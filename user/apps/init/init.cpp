@@ -2,10 +2,7 @@
 
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
-#include "kernel/fs/fs.h"
-#include "kernel/fs/file.h"
+#include "kernel/drivers/device_numbers.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
 

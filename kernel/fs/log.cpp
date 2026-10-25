@@ -1,9 +1,9 @@
+import xv.sync;
+
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/buf.h"
 
@@ -40,7 +40,7 @@ struct logheader {
 };
 
 struct log {
-  class SpinLock lock;
+  xv::sync::SpinLock lock;
   int start;
   int outstanding; // how many FS sys calls are executing.
   int committing;  // in commit(), please wait.
@@ -48,7 +48,7 @@ struct log {
   int ncommit;
   struct logheader lh;
 };
-struct log log;
+constinit struct log log{};
 
 static void recover_from_log(void);
 static void commit();

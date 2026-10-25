@@ -12,8 +12,6 @@ struct file;
 struct inode;
 struct pipe;
 struct proc;
-class SpinLock;
-class SleepLock;
 struct stat;
 struct superblock;
 #ifdef LAB_LOCK
@@ -128,7 +126,6 @@ void            push_off(void);
 void            pop_off(void);
 int             atomic_read4(int *addr);
 #ifdef LAB_LOCK
-void            freelock(class SpinLock*);
 void            initrwlock(struct rwspinlock*);
 void            read_acquire(struct rwspinlock*);
 void            read_release(struct rwspinlock*);
@@ -160,7 +157,6 @@ void            syscall();
 extern uint     ticks;
 void            trapinit(void);
 void            trapinithart(void);
-extern class SpinLock tickslock;
 void            prepare_return(void);
 
 // uart.c

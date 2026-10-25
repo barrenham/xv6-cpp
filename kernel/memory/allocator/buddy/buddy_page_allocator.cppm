@@ -1,8 +1,6 @@
-module;
-
-#include "kernel/sync/spinlock.h"
-
 module xv.memory:buddy;
+
+import xv.sync;
 
 import :allocator;
 import :detail;
@@ -57,7 +55,7 @@ private:
 
   struct FreeArea
   {
-    SpinLock lock;
+    xv::sync::SpinLock lock;
     Run *head;
   };
 

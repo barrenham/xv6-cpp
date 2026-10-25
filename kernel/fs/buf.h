@@ -4,7 +4,7 @@ struct buf {
   int disk;  // does disk "own" buf?
   uint dev;
   uint blockno;
-  class SleepLock lock;
+  xv::sync::SleepLock lock;
   uint refcnt;
   struct buf *prev; // LRU cache list
   struct buf *next;

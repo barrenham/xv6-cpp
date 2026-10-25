@@ -1,9 +1,11 @@
+import xv.sync;
+
+#include "kernel/trap/ticks.h"
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/param.h"
 #include "kernel/support/defs.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
 #ifdef PGTBL_SOL
 #include "kernel/arch/riscv/riscv.h"

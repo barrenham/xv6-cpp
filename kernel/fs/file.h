@@ -1,4 +1,5 @@
 #pragma once
+#include "kernel/drivers/device_numbers.h"
 struct file {
   enum class Kind { none, pipe, inode, device };
   Kind type;
@@ -20,7 +21,7 @@ struct inode {
   uint dev;              // Device number
   uint inum;             // Inode number
   int ref;               // Reference count
-  class SleepLock lock; // protects everything below here
+  xv::sync::SleepLock lock; // protects everything below here
   int valid;             // inode has been read from disk?
 
   short type; // copy of disk inode
@@ -38,5 +39,3 @@ struct devsw {
 };
 
 extern "C" struct devsw devsw[];
-
-#define CONSOLE 1

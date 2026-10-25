@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // Support functions for system calls that involve file descriptors.
 //
@@ -7,20 +9,17 @@
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/fs.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/file.h"
 #include "kernel/fs/stat.h"
 #include "kernel/process/proc.h"
-#include "kernel/sync/scoped_lock.hpp"
 
 extern "C" {
 
 struct devsw devsw[NDEV];
-struct {
-  class SpinLock lock;
+constinit struct {
+  xv::sync::SpinLock lock;
   struct file file[NFILE];
-} ftable;
+} ftable{};
 
 void
 fileinit(void)

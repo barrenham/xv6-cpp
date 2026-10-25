@@ -1,3 +1,5 @@
+import xv.sync;
+
 // File system implementation.  Five layers:
 //   + Blocks: allocator for raw disk blocks.
 //   + Log: crash recovery for multi-step updates.
@@ -14,9 +16,7 @@
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/stat.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/buf.h"
 #include "kernel/fs/file.h"
@@ -177,10 +177,10 @@ bfree(int dev, uint b)
 // dev, and inum.  One must hold ip->lock in order to
 // read or write that inode's ip->valid, ip->size, ip->type, &c.
 
-struct {
-  class SpinLock lock;
+constinit struct {
+  xv::sync::SpinLock lock;
   struct inode inode[NINODE];
-} itable;
+} itable{};
 
 void
 iinit()

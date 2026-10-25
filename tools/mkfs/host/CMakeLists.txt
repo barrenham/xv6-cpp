@@ -30,3 +30,21 @@ set_target_properties(allocator_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${
 
 include("${XV_ROOT}/cmake/memory-modules.cmake")
 xv_add_memory_modules(allocator_contract)
+
+include("${XV_ROOT}/cmake/sync-modules.cmake")
+xv_add_sync_modules(allocator_contract)
+target_sources(allocator_contract PRIVATE
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp")
+
+add_executable(sync_contract
+  "${XV_ROOT}/tests/sync_contract.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_compile_features(sync_contract PRIVATE cxx_std_20)
+target_compile_options(sync_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(sync_contract PRIVATE Threads::Threads)
+set_target_properties(sync_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(sync_contract)

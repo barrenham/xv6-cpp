@@ -103,7 +103,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 
 - `PhysicalAddress` 封装地址值与对齐、页号计算；`PhysicalMemoryRange` 封装区域边界与区域内页索引，地址不会隐式转换为整数。
 - `PhysicalPageAllocator` 提供统一的物理页分配接口，伙伴和链表实现均在启动时可选；唯一实例经显式构造后固定使用。所有内存分配调用点已迁移到抽象接口，详见 [内存模块说明](kernel/memory/README.md)。
-- `SpinLock`、`SleepLock` 将状态和操作合并为类，所有调用点已迁移为成员调用；`xv::sync::ScopedLock` 在文件表操作中处理正常返回和提前返回时的解锁。
+- `import xv.sync;` 提供抽象接口 `xv::sync::Lock`、派生类 `SpinLock` / `SleepLock` 和基于接口的 RAII `ScopedLock`。进程、文件系统、驱动和分配器统一使用该模块，设计与生命周期约束见 [sync 说明](kernel/sync/README.md)。
 - `xv::user::File` 管理文件描述符，支持析构释放和移动所有权，禁止复制。`cppdemo` 连续执行超过描述符上限的打开/移动/析构操作，验证不会泄漏。
 - 文件类型和用户态打开模式采用 `enum class`，显式表达类型；按已确认的选择，不启用 `dynamic_cast`、`typeid` 和完整 RTTI。
 - 不链接宿主机 libc、libstdc++、libc++、异常运行时或启动对象。目标文件直接交给 LLD；`mkfs` 是独立宿主机程序，允许使用宿主机标准库。

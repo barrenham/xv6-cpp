@@ -1,8 +1,9 @@
+import xv.sync;
+
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
 #include "kernel/support/defs.h"
 
@@ -12,12 +13,12 @@ extern "C" {
 
 struct cpu cpus[NCPU];
 
-struct proc proc[NPROC];
+constinit struct proc proc[NPROC]{};
 
 struct proc *initproc;
 
 int nextpid = 1;
-class SpinLock pid_lock;
+constinit xv::sync::SpinLock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -28,7 +29,7 @@ extern char trampoline[]; // trampoline.S
 // parents are not lost. helps obey the
 // memory model when using p->parent.
 // must be acquired before any p->lock.
-class SpinLock wait_lock;
+constinit xv::sync::SpinLock wait_lock;
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid

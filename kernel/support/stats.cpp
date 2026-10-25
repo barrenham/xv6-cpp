@@ -1,9 +1,9 @@
+import xv.sync;
+
 #include <stdarg.h>
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/file.h"
 #include "kernel/arch/riscv/riscv.h"
@@ -19,12 +19,12 @@ extern "C" {
 #ifdef LAB_LOCK
 
 #define BUFSZ 4096
-static struct {
-  class SpinLock lock;
+static constinit struct {
+  xv::sync::SpinLock lock;
   char buf[BUFSZ];
   int sz;
   int off;
-} stats;
+} stats{};
 
 int statscopyin(char *, int);
 int statslock(char *, int);

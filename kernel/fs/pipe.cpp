@@ -1,11 +1,12 @@
+import xv.sync;
+
+#include "kernel/support/placement_new.hpp"
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
 #include "kernel/fs/fs.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/file.h"
 
 import xv.memory;
@@ -15,7 +16,7 @@ extern "C" {
 #define PIPESIZE 512
 
 struct pipe {
-  class SpinLock lock;
+  xv::sync::SpinLock lock;
   char data[PIPESIZE];
   uint nread;    // number of bytes read
   uint nwrite;   // number of bytes written
@@ -34,6 +35,7 @@ pipealloc(struct file **f0, struct file **f1)
     goto bad;
   if ((pi = (struct pipe *)xv::memory::allocator().allocate()) == 0)
     goto bad;
+  new (pi) pipe;
   pi->readopen = 1;
   pi->writeopen = 1;
   pi->nwrite = 0;
@@ -51,7 +53,10 @@ pipealloc(struct file **f0, struct file **f1)
 
 bad:
   if (pi)
+  {
+    pi->~pipe();
     xv::memory::allocator().deallocate((char *)pi);
+  }
   if (*f0)
     fileclose(*f0);
   if (*f1)
@@ -72,6 +77,7 @@ pipeclose(struct pipe *pi, int writable)
   }
   if (pi->readopen == 0 && pi->writeopen == 0) {
     pi->lock.release();
+    pi->~pipe();
     xv::memory::allocator().deallocate((char *)pi);
   } else
     pi->lock.release();

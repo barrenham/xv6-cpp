@@ -1,3 +1,5 @@
+import xv.sync;
+
 // Buffer cache.
 //
 // The buffer cache is a linked list of buf structures holding
@@ -15,8 +17,6 @@
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
 #include "kernel/fs/fs.h"
@@ -24,15 +24,15 @@
 
 extern "C" {
 
-struct {
-  class SpinLock lock;
+constinit struct {
+  xv::sync::SpinLock lock;
   struct buf buf[NBUF];
 
   // Linked list of all buffers, through prev/next.
   // Sorted by how recently the buffer was used.
   // head.next is most recent, head.prev is least.
   struct buf head;
-} bcache;
+} bcache{};
 
 void
 binit(void)

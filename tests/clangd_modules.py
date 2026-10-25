@@ -3,6 +3,8 @@
 
 Build the dev preset first. Reads CMake-built BMIs with the module builder off.
 Uses unsaved editor buffers only; never changes project source files.
+Background indexing is disabled so the probe only inspects opened files/BMIs and
+can shut down without indexing the entire kernel and native standard library.
 """
 import argparse
 import json
@@ -23,7 +25,7 @@ original = source.read_text()
 messages = queue.Queue()
 errors = tempfile.TemporaryFile(mode='w+b')
 process = subprocess.Popen(
-    [args.clangd, '--background-index', '--log=error',
+    [args.clangd, '--background-index=false', '--log=error',
      '--query-driver=' + str(Path(args.clangd).resolve().parent / 'clang++')],
     cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
 )
@@ -164,10 +166,13 @@ void xv_clangd_module_probe()
          ['raw', 'page_number', 'is_aligned', 'align_up', 'align_down', 'advanced']),
         (5, 'PhysicalMemoryRange', 'physical_memory_range.cppm',
          ['begin', 'end', 'contains', 'contains_block', 'page_index', 'page_address']),
+        (6, 'SpinLock', 'spinlock.cppm',
+         ['init', 'acquire', 'release', 'holding', 'kind', 'name']),
     ]:
+        namespace = 'sync' if type_name == 'SpinLock' else 'memory'
         value_probe = original + (
             '\nvoid xv_clangd_value_probe()\n{\n'
-            f'  xv::memory::{type_name} value;\n  value.\n}}\n'
+            f'  xv::{namespace}::{type_name} value;\n  value.\n}}\n'
         )
         notify('textDocument/didChange', {
             'textDocument': {'uri': uri, 'version': version},
@@ -190,7 +195,10 @@ void xv_clangd_module_probe()
         print(f'{type_name} definition and member completion: passed', flush=True)
     opened = []
     for relative in ['tests/allocator_contract.cpp', 'tests/allocator_test_platform.cpp',
-                     'kernel/memory/address/physical_address.cppm', 'kernel/memory/allocator/allocator_service.cpp']:
+                     'kernel/memory/address/physical_address.cppm', 'kernel/memory/allocator/allocator_service.cpp',
+                     'tests/sync_contract.cpp', 'tests/sync_test_platform.cpp',
+                     'kernel/sync/lock.cppm', 'kernel/sync/spin/spinlock.cppm',
+                     'kernel/sync/sleep/sleeplock.cpp', 'kernel/fs/pipe.cpp']:
         file = root / relative
         target_uri = file.as_uri()
         notify('textDocument/didOpen', {

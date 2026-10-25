@@ -1,7 +1,9 @@
+import xv.sync;
+
 // Native tests run the real allocator implementations over a mapped physical
 // arena. Only spinlock/poison/panic platform primitives are substituted.
+#include "kernel/support/types.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/sync/spinlock.h"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -37,31 +39,6 @@ static void check(bool condition, const char *message)
     std::fprintf(stderr, "FAIL: %s\n", message);
     std::exit(1);
   }
-}
-
-void SpinLock::init(const char *label)
-{
-  name = label;
-  locked = 0;
-  cpu = nullptr;
-}
-
-void SpinLock::acquire()
-{
-  while (__atomic_exchange_n(&locked, 1, __ATOMIC_ACQUIRE))
-  {
-    std::this_thread::yield();
-  }
-}
-
-void SpinLock::release()
-{
-  __atomic_store_n(&locked, 0, __ATOMIC_RELEASE);
-}
-
-int SpinLock::holding()
-{
-  return __atomic_load_n(&locked, __ATOMIC_RELAXED);
 }
 
 template <class Operation> void expect_panic(Operation operation)

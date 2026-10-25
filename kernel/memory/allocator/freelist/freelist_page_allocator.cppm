@@ -1,8 +1,6 @@
-module;
-
-#include "kernel/sync/spinlock.h"
-
 module xv.memory:freelist;
+
+import xv.sync;
 
 import :allocator;
 import :detail;
@@ -53,7 +51,7 @@ private:
     Run *next;
   };
 
-  SpinLock lock_;
+  xv::sync::SpinLock lock_;
   Run *head_ = nullptr;
   unsigned char *states_ = nullptr;
 

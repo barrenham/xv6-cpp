@@ -1,8 +1,9 @@
+import xv.sync;
+
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
 #include "kernel/support/defs.h"
 #include "kernel/process/elf.h"

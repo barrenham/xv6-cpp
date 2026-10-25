@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // low-level driver for 16550a UART.
 //
@@ -6,8 +8,6 @@
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/process/proc.h"
 #include "kernel/support/defs.h"
 
@@ -41,7 +41,7 @@ extern "C" {
 #define LSR_TX_IDLE     (1 << 5) // THR can accept another character to send
 
 // for sending threads to serialize their writes
-static class SleepLock tx_lock;
+static constinit xv::sync::SleepLock tx_lock;
 static int tx_chan; // &tx_chan is the "wait channel"
 
 extern volatile int panicking; // from printk.c

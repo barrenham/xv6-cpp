@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // formatted console output -- printk, panic.
 //
@@ -6,8 +8,6 @@
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/file.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -21,9 +21,9 @@ volatile int panicking = 0; // printing a panic message
 volatile int panicked = 0;  // spinning forever at end of a panic
 
 // lock to avoid interleaving concurrent printk's.
-static struct {
-  class SpinLock lock;
-} pr;
+static constinit struct {
+  xv::sync::SpinLock lock;
+} pr{};
 
 static char digits[] = "0123456789abcdef";
 

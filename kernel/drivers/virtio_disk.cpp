@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // driver for qemu's virtio disk device.
 // uses qemu's mmio interface to virtio.
@@ -10,8 +12,6 @@
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/buf.h"
 #include "kernel/drivers/virtio.h"
@@ -23,7 +23,7 @@ extern "C" {
 // the address of virtio mmio register r.
 #define R(r) ((volatile uint32 *)(VIRTIO0 + (r)))
 
-static struct disk {
+static constinit struct disk {
   // a set (not a ring) of DMA descriptors, with which the
   // driver tells the device where to read and write individual
   // disk operations. there are NUM descriptors.
@@ -58,9 +58,9 @@ static struct disk {
   // one-for-one with descriptors, for convenience.
   struct virtio_blk_req ops[NUM];
 
-  class SpinLock vdisk_lock;
+  xv::sync::SpinLock vdisk_lock;
 
-} disk;
+} disk{};
 
 void
 virtio_disk_init(void)

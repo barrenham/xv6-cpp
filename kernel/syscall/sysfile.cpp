@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // File-system system calls.
 // Mostly argument checking, since we don't trust
@@ -9,10 +11,8 @@
 #include "kernel/support/defs.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/stat.h"
-#include "kernel/sync/spinlock.h"
 #include "kernel/process/proc.h"
 #include "kernel/fs/fs.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/file.h"
 #include "kernel/fs/fcntl.h"
 

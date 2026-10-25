@@ -1,3 +1,5 @@
+import xv.sync;
+
 //
 // Console input and output, to the uart.
 // Reads are line at a time.
@@ -13,8 +15,6 @@
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/sync/spinlock.h"
-#include "kernel/sync/sleeplock.h"
 #include "kernel/fs/fs.h"
 #include "kernel/fs/file.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -46,8 +46,8 @@ consputc(int c)
   }
 }
 
-struct {
-  class SpinLock lock;
+constinit struct {
+  xv::sync::SpinLock lock;
 
   // input circular buffer
 #define INPUT_BUF_SIZE 128
@@ -55,7 +55,7 @@ struct {
   uint r; // Read index
   uint w; // Write index
   uint e; // Edit index
-} cons;
+} cons{};
 
 //
 // user write() system calls to the console go here.
