@@ -10,7 +10,7 @@
         # a page boundary.
         #
 
-#include "kernel/arch/riscv/riscv.h"
+#include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 
 .section trampsec

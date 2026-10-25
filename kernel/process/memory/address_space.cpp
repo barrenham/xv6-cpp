@@ -3,10 +3,11 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.memory;
 
 namespace xv::process
 {
@@ -19,7 +20,7 @@ bool AddressSpace::create(void *trap_frame, void *user_info)
   PageTable pagetable;
 
   // An empty page table.
-  pagetable = uvmcreate();
+  pagetable = xv::memory::create_user_table();
   if (pagetable == 0)
   {
     return false;
@@ -29,29 +30,32 @@ bool AddressSpace::create(void *trap_frame, void *user_info)
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
-  if (mappages(pagetable, TRAMPOLINE, PGSIZE, (uint64)trampoline, PTE_R | PTE_X) < 0)
+  if (xv::memory::map_user_pages(pagetable, TRAMPOLINE, PGSIZE, (uint64)trampoline,
+                                 PTE_R | PTE_X) < 0)
   {
-    uvmfree(pagetable, 0);
+    xv::memory::free_user_table(pagetable, 0);
     return false;
   }
 
   // map the trapframe page just below the trampoline page, for
   // trampoline.S.
-  if (mappages(pagetable, TRAPFRAME, PGSIZE, reinterpret_cast<uint64>(trap_frame),
-               PTE_R | PTE_W) < 0)
+  if (xv::memory::map_user_pages(pagetable, TRAPFRAME, PGSIZE,
+                                 reinterpret_cast<uint64>(trap_frame),
+                                 PTE_R | PTE_W) < 0)
   {
-    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-    uvmfree(pagetable, 0);
+    xv::memory::unmap_user_pages(pagetable, TRAMPOLINE, 1, 0);
+    xv::memory::free_user_table(pagetable, 0);
     return false;
   }
 
 #ifdef LAB_PGTBL
-  if (mappages(pagetable, USYSCALL, PGSIZE, reinterpret_cast<uint64>(user_info),
-               PTE_R | PTE_U) < 0)
+  if (xv::memory::map_user_pages(pagetable, USYSCALL, PGSIZE,
+                                 reinterpret_cast<uint64>(user_info),
+                                 PTE_R | PTE_U) < 0)
   {
-    uvmunmap(pagetable, TRAPFRAME, 1, 0);
-    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-    uvmfree(pagetable, 0);
+    xv::memory::unmap_user_pages(pagetable, TRAPFRAME, 1, 0);
+    xv::memory::unmap_user_pages(pagetable, TRAMPOLINE, 1, 0);
+    xv::memory::free_user_table(pagetable, 0);
     return false;
   }
 #endif
@@ -70,13 +74,13 @@ void AddressSpace::reset()
     return;
   }
   auto pagetable = table_;
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  xv::memory::unmap_user_pages(pagetable, TRAMPOLINE, 1, 0);
+  xv::memory::unmap_user_pages(pagetable, TRAPFRAME, 1, 0);
 #ifdef LAB_PGTBL
   // The page belongs to the proc and survives exec's page-table replacement.
-  uvmunmap(pagetable, USYSCALL, 1, 0);
+  xv::memory::unmap_user_pages(pagetable, USYSCALL, 1, 0);
 #endif
-  uvmfree(pagetable, size_);
+  xv::memory::free_user_table(pagetable, size_);
   table_ = nullptr;
   size_ = 0;
 }
@@ -93,7 +97,7 @@ void AddressSpace::swap(AddressSpace &other)
 
 bool AddressSpace::copy_to(AddressSpace &child) const
 {
-  if (uvmcopy(table_, child.table_, size_) < 0)
+  if (xv::memory::clone_user_pages(table_, child.table_, size_) < 0)
   {
     return false;
   }
@@ -112,7 +116,7 @@ int AddressSpace::resize(int bytes, bool eager)
     }
     if (eager)
     {
-      next = uvmalloc(table_, size_, size_ + bytes, PTE_W);
+      next = xv::memory::allocate_user_pages(table_, size_, size_ + bytes, PTE_W);
       if (!next)
       {
         return -1;
@@ -125,7 +129,7 @@ int AddressSpace::resize(int bytes, bool eager)
   }
   else if (bytes < 0)
   {
-    next = uvmdealloc(table_, size_, size_ + bytes);
+    next = xv::memory::deallocate_user_pages(table_, size_, size_ + bytes);
   }
   size_ = next;
   return 0;
@@ -133,7 +137,7 @@ int AddressSpace::resize(int bytes, bool eager)
 
 bool AddressSpace::grow_to(unsigned long end, int permissions)
 {
-  auto next = uvmalloc(table_, size_, end, permissions);
+  auto next = xv::memory::allocate_user_pages(table_, size_, end, permissions);
   if (!next)
   {
     return false;
@@ -144,34 +148,36 @@ bool AddressSpace::grow_to(unsigned long end, int permissions)
 
 void AddressSpace::protect_guard(unsigned long address)
 {
-  uvmclear(table_, address);
+  xv::memory::protect_user_guard(table_, address);
 }
 
 unsigned long AddressSpace::translate(unsigned long address) const
 {
-  return walkaddr(table_, address);
+  return xv::memory::translate_user_page(table_, address);
 }
 
 unsigned long AddressSpace::handle_fault(unsigned long address, bool read)
 {
-  return vmfault(table_, size_, address, read);
+  return xv::memory::resolve_user_fault(table_, size_, address, read);
 }
 
 int AddressSpace::copy_in(void *destination, unsigned long source,
                           unsigned long bytes) const
 {
-  return copyin(table_, size_, static_cast<char *>(destination), source, bytes);
+  return xv::memory::copy_from_user(table_, size_, static_cast<char *>(destination),
+                                    source, bytes);
 }
 
 int AddressSpace::copy_out(unsigned long destination, const void *source,
                            unsigned long bytes) const
 {
-  return copyout(table_, size_, destination, static_cast<const char *>(source), bytes);
+  return xv::memory::copy_to_user(table_, size_, destination,
+                                  static_cast<const char *>(source), bytes);
 }
 
 int AddressSpace::copy_string(char *destination, unsigned long source,
                               unsigned long limit) const
 {
-  return copyinstr(table_, size_, destination, source, limit);
+  return xv::memory::copy_user_string(table_, size_, destination, source, limit);
 }
 } // namespace xv::process

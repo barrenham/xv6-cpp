@@ -1,9 +1,10 @@
 module;
 #include "kernel/support/types.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.runtime;
 import :table;
 
 namespace xv::process
@@ -59,7 +60,7 @@ int copy_in(void *destination, bool user, unsigned long source, unsigned long co
   {
     return current()->memory().copy_in(destination, source, count);
   }
-  memmove(destination, reinterpret_cast<const void *>(source), count);
+  xv::runtime::move(destination, reinterpret_cast<const void *>(source), count);
   return 0;
 }
 
@@ -70,7 +71,7 @@ int copy_out(bool user, unsigned long destination, const void *source,
   {
     return current()->memory().copy_out(destination, source, count);
   }
-  memmove(reinterpret_cast<void *>(destination), source, count);
+  xv::runtime::move(reinterpret_cast<void *>(destination), source, count);
   return 0;
 }
 } // namespace xv::process

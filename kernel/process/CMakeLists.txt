@@ -7,6 +7,7 @@ target_sources(kernel PRIVATE
   lifecycle/process_table.cpp
   lifecycle/service.cpp
   resources/process_resources.cpp
+  resources/kernel_platform.cpp
   memory/address_space.cpp
   scheduler/round_robin.cpp
   exec/elf_loader.cpp

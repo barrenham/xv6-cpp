@@ -3,10 +3,13 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.print;
+
+import xv.runtime;
 
 import xv.fs;
 
@@ -31,10 +34,10 @@ void ProcessTable::map_kernel_stacks(pagetable_t kpgtbl)
     char *pa = static_cast<char *>(xv::memory::allocator().allocate());
     if (pa == 0)
     {
-      panic("kalloc");
+      xv::print::panic("kalloc");
     }
     uint64 va = KSTACK((int)(p - entries_));
-    kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+    xv::memory::map_kernel_range(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   }
 }
 
@@ -109,7 +112,7 @@ found:
     p->lock.release();
     return 0;
   }
-  memset(p->usyscall, 0, PGSIZE);
+  xv::runtime::fill(p->usyscall, 0, PGSIZE);
   static_cast<struct usyscall *>(p->usyscall)->pid = p->pid;
 #endif
 
@@ -123,7 +126,7 @@ found:
 
   // Set up new context to start executing at first_return,
   // which returns to user space.
-  memset(&p->context, 0, sizeof(p->context));
+  xv::runtime::fill(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)first_return;
   p->context.sp = p->kstack + PGSIZE;
 
@@ -164,7 +167,7 @@ void ProcessTable::create_initial_process(void)
   p = allocate();
   if (!p)
   {
-    panic("process: no initial process slot");
+    xv::print::panic("process: no initial process slot");
   }
   initial_ = p;
 
@@ -206,7 +209,7 @@ int ProcessTable::fork_process(void)
   np->descriptors_.inherit_from(p->descriptors_);
   np->directory_.inherit_from(p->directory_);
 
-  safestrcpy(np->name, p->name, sizeof(p->name));
+  xv::runtime::copy_string(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
 
@@ -249,7 +252,7 @@ void ProcessTable::exit_process(int status)
 
   if (p == initial_)
   {
-    panic("init exiting");
+    xv::print::panic("init exiting");
   }
 
   p->descriptors_.close_all();
@@ -275,7 +278,7 @@ void ProcessTable::exit_process(int status)
 
   // Jump into the scheduler, never to return.
   scheduler().suspend();
-  panic("zombie exit");
+  xv::print::panic("zombie exit");
 }
 
 // Wait for a child process to exit and return its pid.
@@ -405,14 +408,14 @@ void ProcessTable::dump(void)
   Process *p;
   char *state;
 
-  printk("\n");
+  xv::print::printk("\n");
   for (p = entries_; p < &entries_[NPROC]; p++)
   {
     if (p->state == ProcessState::Unused)
     {
       continue;
     }
-    if (static_cast<unsigned>(p->state) < NELEM(states))
+    if (static_cast<unsigned>(p->state) < xv::runtime::array_size(states))
     {
       state = states[static_cast<unsigned>(p->state)];
     }
@@ -420,8 +423,8 @@ void ProcessTable::dump(void)
     {
       state = "???";
     }
-    printk("%d %s %s", p->pid, state, p->name);
-    printk("\n");
+    xv::print::printk("%d %s %s", p->pid, state, p->name);
+    xv::print::printk("\n");
   }
 }
 

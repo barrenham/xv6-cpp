@@ -61,7 +61,7 @@ import xv.memory;
 
 实现文件通过 `module xv.memory;` 与 `import :detail;` 等声明访问同一模块的内部定义。CMake 的 `CXX_MODULES` 文件集负责依赖扫描和 BMI 编译，无需手工维护编译顺序。RISC-V 内核和宿主机测试各自编译模块产物，不共享 `.pcm` 文件。
 
-模块化覆盖地址、内存布局、启动内存发现、物理页分配器和 Sv39 页表。原有 VM 集成、驱动等接口仍保留 C/C++ 兼容头文件；RISC-V 汇编继续使用预处理头文件。模块不会导出宏，因此 `layout/memlayout.h` 的平台宏只在模块边界转成类型明确的常量。内核不使用 `import std`，保持 freestanding 构建。
+模块化覆盖启动、进程、文件系统、驱动、同步、陷阱、系统调用、内存及其用户页表操作；基础打印、字符串工具和寄存器指令也由模块提供。旧的全局兼容函数和 `defs.h` 已移除；RISC-V 汇编、用户程序和磁盘格式仍共用 ABI/常量头文件。模块不会导出宏，因此 `layout/memlayout.h` 的平台宏只在模块边界转成类型明确的常量。内核不使用 `import std`，保持 freestanding 构建。
 
 当前 IDE 使用构建系统生成的模块文件和编译命令，不让 clangd 自动重建模块。此前自动构建路径在同一编辑器进程中出现过模块依赖重建失败与类型未声明的误报。新增或修改 `.cppm` 后，先运行 `cmake --build --preset dev` 更新内核及宿主机 BMI，再执行 `clangd: Restart language server` 刷新已打开文件；普通 `.cpp` 的编辑仍由 clangd 实时分析。修改编译器版本后需重新配置和构建。可通过实际 LSP 请求检查诊断、跨模块悬停、跳转和成员补全：
 
@@ -82,16 +82,16 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 | `kernel/memory` | 页分配、伙伴分配器、页表、地址布局 |
 | `kernel/memory/address` | 物理地址和区域值对象 |
 | `kernel/memory/layout` | 可用区域规划与平台地址常量 |
-| `kernel/memory/boot` | RAM 发现、分配器启动集成与 C ABI 适配 |
+| `kernel/memory/boot` | RAM 发现、分配器启动集成与平台操作 |
 | `kernel/memory/allocator` | 抽象分配接口、实例服务及 buddy/freelist 实现目录 |
 | `kernel/memory/paging` | Sv39 页表、映射策略与地址空间集成 |
 | `kernel/process` | 进程资源、地址空间、生命周期、调度器和 ELF 加载模块 |
 | `kernel/trap` | 原因解码、异常分派、时钟服务和 RISC-V 进入/返回适配 |
-| `kernel/syscall` | 系统调用 ABI、分发和处理函数 |
+| `kernel/syscall` | `xv.syscall`：系统调用分发、内部参数读取和处理函数 |
 | `kernel/fs` | 块缓存、日志事务、inode/路径、打开文件和管道模块 |
 | `kernel/sync` | 自旋锁、睡眠锁、RAII guard |
 | `kernel/drivers` | 串口、控制台、块设备和中断控制器模块；QEMU virt 实例装配 |
-| `kernel/support` | 基础类型、字符串、打印和兼容接口声明 |
+| `kernel/support` | `xv.runtime`、`xv.print`、基础类型和编译器 ABI 适配 |
 | `user/apps/<程序名>` | 每个应用独立目录 |
 | `user/runtime` | 系统调用入口、程序入口、分配器、打印和 C++ 资源封装 |
 | `user/tests` | 操作系统回归及页表测试程序 |
@@ -117,7 +117,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 - 内核和用户态禁用异常、RTTI、线程安全静态初始化、自动全局析构。链接脚本拒绝需要执行全局构造/析构的 `.init_array`、`.fini_array`。
 - 普通栈对象的构造/析构、模板、引用、枚举、命名空间和 RAII 可以使用；提供了不分配内存的 placement new，用于启动期实例构造；暂未提供通用 `new/delete`、STL、线程局部存储或异常展开支持。需要动态分配时仍使用现有显式分配接口，并检查失败。
 - 锁在启动阶段显式 `init()`。自旋锁守卫不能包围普通阻塞操作；睡眠锁守卫可以跨越阻塞操作。调度器的锁所有权交接继续使用显式锁操作。
-- 迁移保留了原有进程、虚拟内存和文件系统算法，以及用于对照实验的 C ABI 接口。并非将每个全局函数都包装为类；`kernel/support/defs.h` 仍是兼容声明汇总。后续类化应围绕资源所有权和不变量逐步进行。
+- 迁移保留原有进程、虚拟内存和文件系统算法，模块内部通过模块接口调用。C ABI 只用于汇编入口/上下文切换和编译器运行时边界；共享头文件保留 ABI 布局与预处理常量。
 
 为兼容原有实验接口，目前保留部分 `char *` 字符串参数，并关闭字符串字面量转为 `char *` 的诊断；这些字面量不得被修改。新增接口应使用 `const char *`。
 
@@ -145,3 +145,7 @@ GDB 使用支持 RISC-V 的版本，加载 `build/dev/kernel.elf`，执行 `targ
 保留原 MIT 许可于 `LICENSE`，上游说明于 `README.xv6`。此项目不需要 GitHub 连接。
 
 本机验证记录（2026-10-25）：Clang/clangd/LLD 23.1.4，CMake 4.3.1，QEMU 9.2.1。C++20 构建在启用 `-Werror` 下通过；默认回归、原生契约测试与可变 RAM 测试均通过，后者运行完整的 `usertests -q` 并输出 `ALL TESTS PASSED`。三类源文件的 clangd 检查均为零错误；26 个目标可执行文件均无未定义符号。再次增量构建不会重建未变化的磁盘镜像。
+
+系统调用分发入口及内部模块分区见 [系统调用模块说明](kernel/syscall/README.md)。
+
+基础服务和编译器 ABI 边界见 [support 说明](kernel/support/README.md)，寄存器操作见 [架构模块说明](kernel/arch/README.md)。

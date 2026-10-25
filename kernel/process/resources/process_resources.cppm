@@ -47,7 +47,7 @@ public:
   } // borrowed reference
 
   xv::fs::Inode *duplicate() const;
-  // Takes one reference and drops the old one. Caller surrounds possible iput
+  // Takes one reference and drops the old one. Caller surrounds possible inode release
   // with a filesystem transaction; this operation may sleep.
   void replace(xv::fs::Inode *owned);
   void clear();

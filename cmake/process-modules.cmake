@@ -7,6 +7,7 @@ function(xv_add_process_interfaces target)
       "${module_root}/process_module.cppm"
       "${module_root}/arch/registers.cppm"
       "${module_root}/resources/process_resources.cppm"
+      "${module_root}/resources/resource_platform.cppm"
       "${module_root}/memory/address_space.cppm"
       "${module_root}/process.cppm"
       "${module_root}/scheduler/scheduler.cppm"

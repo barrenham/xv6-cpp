@@ -1,3 +1,4 @@
+#include "tests/process_test_hooks.h"
 #include <cstdio>
 #include <cstdlib>
 #include <type_traits>
@@ -38,34 +39,34 @@ static void check(bool condition, const char *message)
   }
 }
 
-extern "C" file *filedup(file *reference)
+extern "C" void *test_retain_file(void *reference)
 {
   check(reference && references(reference) > 0, "duplicate live file reference");
   ++references(reference);
   return reference;
 }
 
-extern "C" void fileclose(file *reference)
+extern "C" void test_release_file(void *reference)
 {
   check(reference && references(reference) > 0, "close owned file reference");
   --references(reference);
 }
 
-extern "C" inode *idup(inode *reference)
+extern "C" void *test_retain_inode(void *reference)
 {
   check(reference && references(reference) > 0, "duplicate live inode reference");
   ++references(reference);
   return reference;
 }
 
-extern "C" void iput(inode *reference)
+extern "C" void test_release_inode(void *reference)
 {
   check(transaction, "directory reference released within transaction");
   check(reference && references(reference) > 0, "drop owned inode reference");
   --references(reference);
 }
 
-extern "C" [[noreturn]] void panic(char *)
+extern "C" [[noreturn]] void test_resource_fail(const char *)
 {
   std::_Exit(99);
 }
@@ -106,7 +107,7 @@ static void descriptor_contract()
   auto *taken = child.take(0);
   check(taken == &first && !child.get(0) && references(&first) == 4,
         "take transfers ownership without dropping the reference");
-  fileclose(taken);
+  test_release_file(taken);
   parent.close_all();
   check(references(&first) == 1 && child.get(2) == &first,
         "child survives parent close");
@@ -119,7 +120,7 @@ static void descriptor_contract()
   {
     if (i != 0)
     {
-      filedup(&shared);
+      test_retain_file(&shared);
     }
     check(parent.install(&shared) == i, "fill descriptor table");
   }
@@ -150,7 +151,7 @@ static void directory_contract()
         "chdir preserves the child's directory reference");
   auto *owned = child.duplicate();
   check(references(&root) == 2, "path lookup receives its own reference");
-  iput(owned);
+  test_release_inode(owned);
   child.clear();
   parent.clear();
   parent.clear();

@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--clangd', required=True)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-source = root / 'kernel/memory/paging/vm.cpp'
+source = root / 'kernel/process/lifecycle/process_table.cpp'
 uri = source.as_uri()
 original = source.read_text()
 messages = queue.Queue()
@@ -296,7 +296,11 @@ void xv_clangd_module_probe()
                      'kernel/fs/fs.cppm', 'kernel/fs/cache/lru_block_cache.cpp',
                      'kernel/fs/journal/journal.cpp', 'kernel/fs/inode/xv6_filesystem.cpp',
                      'kernel/fs/path/path_operations.cpp', 'kernel/fs/file/file_operations.cpp',
-                     'kernel/syscall/sysfile.cpp',
+                     'kernel/syscall/syscall.cppm',
+                     'kernel/syscall/arguments.cppm', 'kernel/syscall/handlers.cppm',
+                     'kernel/syscall/syscall.cpp', 'kernel/syscall/arguments.cpp',
+                     'kernel/syscall/sysfile.cpp', 'kernel/syscall/sysproc.cpp',
+                     'kernel/syscall/sysvm.cpp',
                      'tests/trap_contract.cpp', 'tests/trap_test_platform.cpp',
                      'kernel/trap/trap.cppm', 'kernel/trap/event/trap_event.cppm',
                      'kernel/trap/controller/trap_controller.cpp',
@@ -305,6 +309,15 @@ void xv_clangd_module_probe()
                      'kernel/memory/paging/kernel_page_table.cppm',
                      'kernel/memory/paging/kernel_page_table.cpp',
                      'kernel/support/print.cppm', 'kernel/support/printk.cpp',
+                     'kernel/support/runtime.cppm', 'kernel/support/string.cpp',
+                     'kernel/support/compiler_memory.cpp',
+                     'kernel/arch/arch.cppm', 'kernel/sync/interrupts.cppm',
+                     'kernel/sync/platform/kernel_bridge.cpp',
+                     'kernel/sync/platform/kernel_platform.cpp',
+                     'kernel/memory/paging/user_paging.cppm',
+                     'kernel/process/resources/resource_platform.cppm',
+                     'kernel/process/resources/kernel_platform.cpp',
+                     'tests/process_test_platform.cpp', 'tests/runtime_contract.cpp',
                      'kernel/boot/boot.cppm', 'kernel/boot/state.cppm',
                      'kernel/boot/start.cpp', 'kernel/boot/entry.cpp',
                      'kernel/memory/boot/kalloc.cpp',
@@ -323,6 +336,23 @@ void xv_clangd_module_probe()
         problems = diagnostic['params'].get('diagnostics', [])
         assert not [item for item in problems if item.get('severity') == 1], (relative, problems)
         print(relative + ': prebuilt modules, no errors', flush=True)
+        if relative == 'kernel/trap/arch/riscv/kernel_platform.cpp':
+            target_text = file.read_text()
+            offset = target_text.index('dispatch();', target_text.index('xv::syscall::'))
+            location = {'textDocument': {'uri': target_uri},
+                        'position': position(target_text, offset)}
+            hover = request('textDocument/hover', location)
+            assert hover and 'dispatch' in json.dumps(hover), hover
+            definitions = request('textDocument/definition', location)
+            assert definitions, 'no syscall module definition returned'
+            if not isinstance(definitions, list):
+                definitions = [definitions]
+            targets = [item.get('targetUri', item.get('uri', ''))
+                       for item in definitions]
+            assert any(target.endswith(('/syscall.cppm', '/syscall.cpp'))
+                       for target in targets), targets
+            print('syscall dispatch hover and module definition: passed', flush=True)
+
         opened.append(target_uri)
     for target_uri in opened:
         notify('textDocument/didClose', {'textDocument': {'uri': target_uri}})

@@ -6,6 +6,7 @@ function(xv_add_memory_modules target)
     FILES
       "${module_root}/paging/sv39_page_table.cppm"
       "${module_root}/paging/kernel_page_table.cppm"
+      "${module_root}/paging/user_paging.cppm"
       "${module_root}/memory.cppm"
       "${module_root}/address/physical_address.cppm"
       "${module_root}/address/physical_memory_range.cppm"

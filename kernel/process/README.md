@@ -131,3 +131,14 @@ cmake --build --preset freelist
 ctest --preset freelist --output-on-failure
 python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 ```
+
+## 底层模块依赖
+
+地址空间实现通过 `xv.memory` 的用户页表接口操作映射和复制用户内存；
+调度器通过 `xv.sync` 操作嵌套中断状态，通过 `xv.arch` 访问寄存器。
+字符串和诊断分别导入 `xv.runtime` 与 `xv.print`，不再包含 `defs.h`。
+
+资源管理的 `resource_platform` 是私有模块分区：内核实现直接调用
+`xv.fs::files()` 和 `xv.fs::filesystem()`，原生测试替换该平台实现并验证
+原有引用计数和事务约束。`filedup/fileclose/idup/iput` C 桥接已删除。
+只有上下文切换的 `swtch` 和汇编/链接器符号保留必要的 ABI 声明。

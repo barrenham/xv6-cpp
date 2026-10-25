@@ -1,13 +1,17 @@
 module;
 
 #include "kernel/support/types.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
-
-extern "C" volatile int panicking;
-extern "C" volatile int panicked;
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.drivers;
+
+import xv.arch;
+
+import xv.sync;
+
+import xv.print;
+
+import xv.runtime;
 
 import xv.process;
 
@@ -53,27 +57,27 @@ int copy_out(bool user, unsigned long destination, void *source, unsigned count)
 
 void push_interrupts_off()
 {
-  push_off();
+  xv::sync::push_interrupts_off();
 }
 
 void pop_interrupts_off()
 {
-  pop_off();
+  xv::sync::pop_interrupts_off();
 }
 
 bool panicking()
 {
-  return ::panicking != 0;
+  return xv::print::panicking();
 }
 
 bool panicked()
 {
-  return ::panicked != 0;
+  return xv::print::panicked();
 }
 
 void io_barrier()
 {
-  io_fence();
+  xv::arch::io_fence();
 }
 
 void *allocate_dma_page()
@@ -83,11 +87,11 @@ void *allocate_dma_page()
 
 void zero_page(void *page)
 {
-  memset(page, 0, xv::memory::PageSize);
+  xv::runtime::fill(page, 0, xv::memory::PageSize);
 }
 
 [[noreturn]] void fail(const char *message)
 {
-  panic(const_cast<char *>(message));
+  xv::print::panic(message);
 }
 } // namespace xv::drivers::detail

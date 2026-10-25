@@ -1,76 +1,86 @@
+module;
 #include "kernel/support/types.h"
 
-extern "C" {
+module xv.runtime;
 
-void *
-memset(void *dst, int c, uint n)
+namespace xv::runtime
+{
+
+void *fill(void *dst, int c, unsigned long n)
 {
   char *cdst = (char *)dst;
-  int i;
-  for (i = 0; i < n; i++) {
+  unsigned long i;
+  for (i = 0; i < n; i++)
+  {
     cdst[i] = c;
   }
   return dst;
 }
 
-int
-memcmp(const void *v1, const void *v2, uint n)
+int compare_bytes(const void *v1, const void *v2, unsigned long n)
 {
   const uchar *s1, *s2;
 
   s1 = static_cast<const uchar *>(v1);
   s2 = static_cast<const uchar *>(v2);
-  while (n-- > 0) {
+  while (n-- > 0)
+  {
     if (*s1 != *s2)
+    {
       return *s1 - *s2;
+    }
     s1++, s2++;
   }
 
   return 0;
 }
 
-void *
-memmove(void *dst, const void *src, uint n)
+void *move(void *dst, const void *src, unsigned long n)
 {
   const char *s;
   char *d;
 
   if (n == 0)
+  {
     return dst;
+  }
 
   s = static_cast<const char *>(src);
   d = static_cast<char *>(dst);
-  if (s < d && s + n > d) {
+  if (s < d && s + n > d)
+  {
     s += n;
     d += n;
     while (n-- > 0)
+    {
       *--d = *--s;
-  } else
+    }
+  }
+  else
+  {
     while (n-- > 0)
+    {
       *d++ = *s++;
+    }
+  }
 
   return dst;
 }
 
-// memcpy exists to placate GCC.  Use memmove.
-void *
-memcpy(void *dst, const void *src, uint n)
-{
-  return memmove(dst, src, n);
-}
-
-int
-strncmp(const char *p, const char *q, uint n)
+int compare_text(const char *p, const char *q, unsigned long n)
 {
   while (n > 0 && *p && *p == *q)
+  {
     n--, p++, q++;
+  }
   if (n == 0)
+  {
     return 0;
+  }
   return (uchar)*p - (uchar)*q;
 }
 
-char *
-strncpy(char *s, const char *t, int n)
+char *copy_fixed(char *s, const char *t, int n)
 {
   char *os;
 
@@ -78,27 +88,29 @@ strncpy(char *s, const char *t, int n)
   while (n-- > 0 && (*s++ = *t++) != 0)
     ;
   while (n-- > 0)
+  {
     *s++ = 0;
+  }
   return os;
 }
 
-// Like strncpy but guaranteed to NUL-terminate.
-char *
-safestrcpy(char *s, const char *t, int n)
+// Like copy_fixed but guaranteed to NUL-terminate.
+char *copy_string(char *s, const char *t, int n)
 {
   char *os;
 
   os = s;
   if (n <= 0)
+  {
     return os;
+  }
   while (--n > 0 && (*s++ = *t++) != 0)
     ;
   *s = 0;
   return os;
 }
 
-int
-strlen(const char *s)
+int length(const char *s)
 {
   int n;
 
@@ -106,4 +118,5 @@ strlen(const char *s)
     ;
   return n;
 }
-}
+
+} // namespace xv::runtime

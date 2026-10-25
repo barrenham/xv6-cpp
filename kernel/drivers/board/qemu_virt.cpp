@@ -1,12 +1,13 @@
 module;
 
 #include "kernel/support/types.h"
-#include "kernel/arch/riscv/riscv.h"
+#include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/drivers/device_numbers.h"
-#include "kernel/support/defs.h"
 
 module xv.drivers;
+
+import xv.print;
 
 import xv.fs;
 
@@ -51,7 +52,7 @@ void handle_external_interrupt(int hart)
   const auto unknown = router.dispatch(hart);
   if (unknown)
   {
-    printk("unexpected interrupt irq=%d\n", unknown);
+    xv::print::printk("unexpected interrupt irq=%d\n", unknown);
   }
 }
 

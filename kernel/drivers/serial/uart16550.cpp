@@ -80,7 +80,7 @@ void Uart16550::write(const char *buf, int n)
 }
 
 // write a byte to the uart without using
-// interrupts, for use by kernel printk() and
+// interrupts, for use by kernel xv::print::printk() and
 // to echo characters. it spins waiting for the uart's
 // output register to be empty.
 void Uart16550::put_sync(int c)

@@ -1,27 +1,9 @@
-module;
-
-#include "kernel/support/types.h"
-#include "kernel/support/param.h"
-#include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
-
 module xv.process;
 
-extern "C" xv::fs::File *filedup(xv::fs::File *);
-extern "C" void fileclose(xv::fs::File *);
-extern "C" xv::fs::Inode *idup(xv::fs::Inode *);
-extern "C" void iput(xv::fs::Inode *);
+import :resource_platform;
 
 namespace xv::process
 {
-namespace
-{
-[[noreturn]] void resource_failure(const char *message)
-{
-  panic(const_cast<char *>(message));
-}
-} // namespace
 
 xv::fs::File *DescriptorTable::get(int descriptor) const
 {
@@ -62,7 +44,7 @@ bool DescriptorTable::close(int descriptor)
   {
     return false;
   }
-  fileclose(owned);
+  detail::release_file(owned);
   return true;
 }
 
@@ -73,11 +55,11 @@ int DescriptorTable::duplicate(int descriptor)
   {
     return -1;
   }
-  auto *reference = filedup(borrowed);
+  auto *reference = detail::retain_file(borrowed);
   auto result = install(reference);
   if (result < 0)
   {
-    fileclose(reference);
+    detail::release_file(reference);
   }
   return result;
 }
@@ -94,27 +76,27 @@ void DescriptorTable::inherit_from(const DescriptorTable &parent)
 {
   if (this == &parent)
   {
-    resource_failure("descriptor table: self inheritance");
+    detail::resource_fail("descriptor table: self inheritance");
   }
   for (int i = 0; i < Capacity; ++i)
   {
     if (entries_[i])
     {
-      resource_failure("descriptor table: child is not empty");
+      detail::resource_fail("descriptor table: child is not empty");
     }
   }
   for (int i = 0; i < Capacity; ++i)
   {
     if (auto *file = parent.get(i))
     {
-      entries_[i] = filedup(file);
+      entries_[i] = detail::retain_file(file);
     }
   }
 }
 
 xv::fs::Inode *WorkingDirectory::duplicate() const
 {
-  return directory_ ? idup(directory_) : nullptr;
+  return directory_ ? detail::retain_inode(directory_) : nullptr;
 }
 
 void WorkingDirectory::replace(xv::fs::Inode *owned)
@@ -123,7 +105,7 @@ void WorkingDirectory::replace(xv::fs::Inode *owned)
   directory_ = owned;
   if (old)
   {
-    iput(old);
+    detail::release_inode(old);
   }
 }
 
@@ -136,7 +118,7 @@ void WorkingDirectory::inherit_from(const WorkingDirectory &parent)
 {
   if (directory_ || this == &parent)
   {
-    resource_failure("working directory: child is not empty");
+    detail::resource_fail("working directory: child is not empty");
   }
   directory_ = parent.duplicate();
 }

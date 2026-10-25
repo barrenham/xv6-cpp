@@ -3,10 +3,13 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.print;
+
+import xv.runtime;
 
 import xv.fs;
 
@@ -115,7 +118,7 @@ bool load_segment(AddressSpace &image, ExecutableFile &file, const proghdr &segm
     auto physical = image.translate(segment.vaddr + offset);
     if (!physical)
     {
-      panic("ELF: missing segment mapping");
+      xv::print::panic("ELF: missing segment mapping");
     }
     auto count = segment.filesz - offset;
     if (count > PGSIZE)
@@ -195,7 +198,7 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments)
     {
       return -1;
     }
-    auto bytes = static_cast<unsigned long>(strlen(arguments[count])) + 1;
+    auto bytes = static_cast<unsigned long>(xv::runtime::length(arguments[count])) + 1;
     if (bytes > stack - bottom)
     {
       return -1;

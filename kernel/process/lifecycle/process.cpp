@@ -3,16 +3,17 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.runtime;
 
 namespace xv::process
 {
 void Process::set_name(const char *label)
 {
-  safestrcpy(name, label, sizeof(name));
+  xv::runtime::copy_string(name, label, sizeof(name));
 }
 
 bool Process::is_killed() const

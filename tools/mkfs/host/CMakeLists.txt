@@ -72,6 +72,7 @@ xv_add_driver_modules(driver_contract)
 include("${XV_ROOT}/cmake/process-modules.cmake")
 add_executable(process_contract
   "${XV_ROOT}/tests/process_contract.cpp"
+  "${XV_ROOT}/tests/process_test_platform.cpp"
   "${XV_ROOT}/kernel/process/resources/process_resources.cpp")
 target_include_directories(process_contract PRIVATE "${XV_ROOT}")
 target_compile_features(process_contract PRIVATE cxx_std_20)
@@ -136,3 +137,13 @@ target_link_libraries(trap_contract PRIVATE Threads::Threads)
 set_target_properties(trap_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(trap_contract)
 xv_add_trap_modules(trap_contract)
+
+include("${XV_ROOT}/cmake/runtime-modules.cmake")
+add_executable(runtime_contract
+  "${XV_ROOT}/tests/runtime_contract.cpp"
+  "${XV_ROOT}/kernel/support/string.cpp")
+target_include_directories(runtime_contract PRIVATE "${XV_ROOT}")
+target_compile_features(runtime_contract PRIVATE cxx_std_20)
+target_compile_options(runtime_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-builtin)
+set_target_properties(runtime_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_runtime_module(runtime_contract)

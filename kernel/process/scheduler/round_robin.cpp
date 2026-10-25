@@ -3,10 +3,15 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/arch/riscv/riscv.h"
-#include "kernel/support/defs.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+
+import xv.arch;
+
+import xv.sync;
+
+import xv.print;
 
 import xv.trap;
 
@@ -28,7 +33,7 @@ constinit RoundRobinScheduler active_scheduler(process_table);
 // to a different CPU.
 int cpu_id()
 {
-  int id = r_tp();
+  int id = xv::arch::r_tp();
   return id;
 }
 
@@ -44,10 +49,10 @@ CpuState *current_cpu(void)
 // Return the current Process *, or zero if none.
 Process *current(void)
 {
-  push_off();
+  xv::sync::push_interrupts_off();
   CpuState *c = current_cpu();
   Process *p = c->current;
-  pop_off();
+  xv::sync::pop_interrupts_off();
   return p;
 }
 
@@ -71,8 +76,8 @@ void RoundRobinScheduler::run()
     // processes are waiting. Then turn them back off
     // to avoid a possible race between an interrupt
     // and wfi.
-    intr_on();
-    intr_off();
+    xv::arch::intr_on();
+    xv::arch::intr_off();
 
     int nproc = 0;
     for (p = table_.entries_; p < &table_.entries_[NPROC]; p++)
@@ -111,7 +116,7 @@ void RoundRobinScheduler::run()
     if (nproc <= 2)
     { // only init and sh exist
       // nothing to run; stop running on this core until an interrupt.
-      intr_on();
+      xv::arch::intr_on();
 #ifndef LAB_FS
       asm volatile("wfi");
 #endif
@@ -133,19 +138,19 @@ void RoundRobinScheduler::suspend()
 
   if (!p->lock.holding())
   {
-    panic("sched p->lock");
+    xv::print::panic("sched p->lock");
   }
   if (current_cpu()->noff != 1)
   {
-    panic("sched locks");
+    xv::print::panic("sched locks");
   }
   if (p->state == ProcessState::Running)
   {
-    panic("sched ProcessState::Running");
+    xv::print::panic("sched ProcessState::Running");
   }
-  if (intr_get())
+  if (xv::arch::intr_get())
   {
-    panic("sched interruptible");
+    xv::print::panic("sched interruptible");
   }
 
   intena = current_cpu()->intena;
@@ -189,7 +194,7 @@ void RoundRobinScheduler::first_return()
     p->trapframe->a0 = execute("/init", arguments);
     if (p->trapframe->a0 == -1)
     {
-      panic("exec");
+      xv::print::panic("exec");
     }
   }
 
@@ -204,7 +209,7 @@ void RoundRobinScheduler::prepare_sleep(void *chan)
   p->lock.acquire();
   if (chan == 0)
   {
-    panic("prepare_sleep: zero chan");
+    xv::print::panic("prepare_sleep: zero chan");
   }
   p->chan = chan;
   p->lock.release();

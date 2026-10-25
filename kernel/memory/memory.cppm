@@ -8,3 +8,4 @@ export import :boot;
 export import :allocator;
 export import :sv39;
 export import :kernel_paging;
+export import :user_paging;

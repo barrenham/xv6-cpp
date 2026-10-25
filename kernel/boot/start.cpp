@@ -1,9 +1,11 @@
 module;
 
 #include "kernel/support/types.h"
-#include "kernel/arch/riscv/riscv.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.boot;
+
+import xv.arch;
 
 import :state;
 import xv.trap;
@@ -17,9 +19,9 @@ constinit unsigned long firmware_device_tree = 0;
 void initialize_timer()
 {
   // Permit supervisor-mode timer programming through the Sstc extension.
-  w_menvcfg(r_menvcfg() | MENVCFG_STCE);
-  w_mcounteren(r_mcounteren() | 2);
-  w_stimecmp(r_time() + xv::trap::TimerInterval);
+  xv::arch::w_menvcfg(xv::arch::r_menvcfg() | MENVCFG_STCE);
+  xv::arch::w_mcounteren(xv::arch::r_mcounteren() | 2);
+  xv::arch::w_stimecmp(xv::arch::r_time() + xv::trap::TimerInterval);
 }
 } // namespace
 
@@ -39,37 +41,37 @@ unsigned long device_tree()
   }
 
   // set M Previous Privilege mode to Supervisor, for mret.
-  unsigned long x = r_mstatus();
+  unsigned long x = xv::arch::r_mstatus();
   x &= ~MSTATUS_MPP_MASK;
   x |= MSTATUS_MPP_S;
-  w_mstatus(x);
+  xv::arch::w_mstatus(x);
 
   // set M Exception Program Counter to run(), for mret.
   // requires gcc -mcmodel=medany
-  w_mepc(reinterpret_cast<uint64>(&run));
+  xv::arch::w_mepc(reinterpret_cast<uint64>(&run));
 
   // disable paging for now.
-  w_satp(0);
+  xv::arch::w_satp(0);
 
   // delegate all interrupts and exceptions to supervisor mode.
-  w_medeleg(0xffff);
-  w_mideleg(0xffff);
-  w_sie(r_sie() | SIE_SEIE | SIE_STIE);
+  xv::arch::w_medeleg(0xffff);
+  xv::arch::w_mideleg(0xffff);
+  xv::arch::w_sie(xv::arch::r_sie() | SIE_SEIE | SIE_STIE);
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.
-  w_pmpaddr0(0x3fffffffffffffull);
-  w_pmpcfg0(0xf);
+  xv::arch::w_pmpaddr0(0x3fffffffffffffull);
+  xv::arch::w_pmpcfg0(0xf);
 
   // enable hardware updates of page table A and D bits
-  w_menvcfg(r_menvcfg() | MENVCFG_ADUE);
+  xv::arch::w_menvcfg(xv::arch::r_menvcfg() | MENVCFG_ADUE);
 
   // ask for clock interrupts.
   initialize_timer();
 
   // keep each CPU's hartid in its tp register, for cpu_id().
-  int id = r_mhartid();
-  w_tp(id);
+  int id = xv::arch::r_mhartid();
+  xv::arch::w_tp(id);
 
   // switch to supervisor mode and jump to run().
   asm volatile("mret" ::: "memory");

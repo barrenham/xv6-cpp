@@ -27,7 +27,7 @@ void update(xv::sync::Lock &lock)
 | `scoped_lock.cppm` | 基于抽象接口的作用域守卫 |
 | `platform/platform.cppm` | 内部平台操作契约，不向调用方导出 |
 | `platform/kernel_platform.cpp` | RISC-V 中断嵌套与 CPU / 进程适配 |
-| `platform/kernel_bridge.cpp` | 模块实现与现有 C ABI 的桥接 |
+| `platform/kernel_bridge.cpp` | 模块内平台操作到 process、print 和中断服务的适配 |
 
 ## 语义与生命周期
 
@@ -50,7 +50,7 @@ void update(xv::sync::Lock &lock)
   管理生命周期。内核不依赖堆分配、异常、RTTI 或标准库。
 
 文件系统运行时类型现由 `xv.fs` 定义，进程类型由 `xv.process` 定义；这些模块
-在内部使用锁类型。模块实体不在 `defs.h` 中声明为全局类。
+在内部使用锁类型。旧的 `defs.h` 汇总声明已删除。
 计时器锁和计数封装在 `xv.trap::TickClock` 中，系统调用通过时钟服务访问。
 用户态 `init` 仅包含设备编号头文件，不再依赖内核锁及 inode 布局。
 
@@ -66,3 +66,7 @@ ctest --preset dev --output-on-failure
 ctest --preset freelist --output-on-failure
 python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 ```
+
+`interrupts.cppm` 导出 `push_interrupts_off()` / `pop_interrupts_off()`，
+由调度器和驱动显式导入 `xv.sync` 使用。它们保留嵌套计数和最外层中断状态
+恢复规则，不再经过旧的 `push_off/pop_off` C 函数。

@@ -1,13 +1,6 @@
-module;
-
-extern "C"
-{
-  void push_off();
-  void pop_off();
-  [[noreturn]] void panic(char *);
-}
-
 module xv.sync;
+
+import xv.print;
 
 import xv.process;
 
@@ -17,12 +10,12 @@ namespace xv::sync::detail
 {
 void push_interrupts_off()
 {
-  push_off();
+  xv::sync::push_interrupts_off();
 }
 
 void pop_interrupts_off()
 {
-  pop_off();
+  xv::sync::pop_interrupts_off();
 }
 
 void *current_cpu()
@@ -52,6 +45,6 @@ void wake_processes(void *channel)
 
 [[noreturn]] void fail(const char *message)
 {
-  panic(const_cast<char *>(message));
+  xv::print::panic(message);
 }
 } // namespace xv::sync::detail

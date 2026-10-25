@@ -4,3 +4,4 @@ export import :lock;
 export import :spin;
 export import :sleep;
 export import :guard;
+export import :interrupts;

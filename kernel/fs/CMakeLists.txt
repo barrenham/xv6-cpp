@@ -11,6 +11,5 @@ target_sources(kernel PRIVATE
   pipe/pipe.cpp
   pipe/pipe_factory.cpp
   platform/kernel_platform.cpp
-  platform/reference_bridge.cpp
   service.cpp
 )

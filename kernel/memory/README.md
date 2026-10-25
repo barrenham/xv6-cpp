@@ -18,7 +18,7 @@ memory/
 ├── boot/                              启动时发现 RAM、安装分配器
 │   ├── boot_memory.cppm
 │   ├── boot_memory.cpp                 设备树解析
-│   └── kalloc.cpp                      启动集成与旧 C ABI 适配
+│   └── kalloc.cpp                      启动集成与分配器平台操作
 ├── allocator/                         分配抽象、公共内部定义、实例选择
 │   ├── page_allocator.cppm             PhysicalPageAllocator 与 OwnedPage
 │   ├── allocator_service.cpp           构造、选择和发布唯一实例
@@ -171,7 +171,7 @@ void use_page()
 
 `PhysicalMemoryRange` 提供 `contains()`、`contains_block()`、`page_aligned()`、`page_count()`、`page_index()` 与 `page_address()`。页索引运算要求按页对齐的区域及页起始地址；地址溢出、负偏移、非法对齐和非法索引触发 panic。合法运算可在编译期执行。
 
-`allocate(order)` 返回连续且按块大小对齐的 `2^order` 页，失败返回空指针；释放时必须提供准确所有权和原始阶数。`split_to_pages()` 保留数据，把块转换为独立单页所有权。旧 `kalloc/kfree/superalloc/superfree/supersplit` 只保留为 C ABI 适配层。
+`allocate(order)` 返回连续且按块大小对齐的 `2^order` 页，失败返回空指针；释放时必须提供准确所有权和原始阶数。`split_to_pages()` 保留数据，把块转换为独立单页所有权。旧 `kalloc/kfree/superalloc/superfree/supersplit` 包装已删除，所有调用方使用分配器模块接口。
 
 实例启动时显式构造在静态存储中，以 release/acquire 发布，生命周期内固定使用。初始化失败不发布实例；第二次成功安装请求被拒绝。通过 `--preset freelist` 可以选择链表默认实现，两种实现都会编译进内核。
 
@@ -204,3 +204,24 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 创建映射、权限和直接映射自检位于 `paging/kernel_page_table.cpp`；
 `paging/vm.cpp` 保留用户页表和传统 VM 辅助函数。
 引导核通过启动完成的 release/acquire 屏障向其他 hart 发布页表。
+
+### 用户页表模块接口
+
+`paging/user_paging.cppm` 是 `xv.memory` 导出的用户页表服务；`paging/vm.cpp`
+作为模块实现单元提供实际算法。进程和系统调用不再通过全局 C 函数访问页表。
+
+| 操作 | 模块接口 |
+| --- | --- |
+| 创建/释放根页表 | `create_user_table` / `free_user_table` |
+| 映射/取消映射 | `map_user_pages` / `unmap_user_pages` |
+| 调整已分配范围 | `allocate_user_pages` / `deallocate_user_pages` |
+| fork 拷贝与保护页 | `clone_user_pages` / `protect_user_guard` |
+| 查找与翻译 | `walk_entry` / `translate_user_page` / `is_user_mapped` |
+| 用户内存复制 | `copy_from_user` / `copy_to_user` / `copy_user_string` |
+| 懒分配缺页 | `resolve_user_fault` |
+| 页表实验 | `demote_user_pages` / `print_page_table` |
+| 内核映射 | `map_kernel_range` |
+
+页表编码宏仍由汇编共用的常量头提供。寄存器操作导入 `xv.arch`，填充/移动
+导入 `xv.runtime`，诊断导入 `xv.print`。空洞、超大页拆分、用户权限检查和
+失败清理规则保留现有算法。

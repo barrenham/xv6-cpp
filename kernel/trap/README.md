@@ -39,7 +39,7 @@ cause、PC、status 和 fault value。
 
 | 默认处理器 | 接受的事件 | 行为 |
 | --- | --- | --- |
-| `SystemCallHandler` | 用户来源的异常 8 | 检查 killed，保存 PC + 4，然后开中断并调用 syscall 分派 |
+| `SystemCallHandler` | 用户来源的异常 8 | 检查 killed，保存 PC + 4，然后开中断并通过 `xv.syscall::dispatch()` 分派 |
 | `ExternalInterruptHandler` | 中断 9 | 交给 drivers 的 PLIC/设备路由，返回 Resume |
 | `TimerInterruptHandler` | 中断 5 | 更新时钟并重设本 hart 定时器，返回 Yield |
 | `PageFaultHandler` | 用户来源的读缺页 13、写缺页 15 | 调用当前地址空间的缺页处理，成功后重试原指令 |
