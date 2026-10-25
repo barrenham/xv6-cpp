@@ -87,7 +87,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 | `kernel/syscall` | 系统调用 ABI、分发和处理函数 |
 | `kernel/fs` | inode、文件、管道、日志和块缓存 |
 | `kernel/sync` | 自旋锁、睡眠锁、RAII guard |
-| `kernel/drivers` | UART、console、PLIC、VirtIO |
+| `kernel/drivers` | 串口、控制台、块设备和中断控制器模块；QEMU virt 实例装配 |
 | `kernel/support` | 基础类型、字符串、打印和兼容接口声明 |
 | `user/apps/<程序名>` | 每个应用独立目录 |
 | `user/runtime` | 系统调用入口、程序入口、分配器、打印和 C++ 资源封装 |
@@ -104,12 +104,13 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 - `PhysicalAddress` 封装地址值与对齐、页号计算；`PhysicalMemoryRange` 封装区域边界与区域内页索引，地址不会隐式转换为整数。
 - `PhysicalPageAllocator` 提供统一的物理页分配接口，伙伴和链表实现均在启动时可选；唯一实例经显式构造后固定使用。所有内存分配调用点已迁移到抽象接口，详见 [内存模块说明](kernel/memory/README.md)。
 - `import xv.sync;` 提供抽象接口 `xv::sync::Lock`、派生类 `SpinLock` / `SleepLock` 和基于接口的 RAII `ScopedLock`。进程、文件系统、驱动和分配器统一使用该模块，设计与生命周期约束见 [sync 说明](kernel/sync/README.md)。
+- `import xv.drivers;` 提供 `Device`、`SerialPort`、`CharacterDevice`、`BlockDevice`、`InterruptController` 和固定设备表的中断路由。UART、控制台、PLIC、VirtIO 的状态归各自对象管理，启动、文件系统与中断入口通过抽象接口调用，详见 [驱动模块说明](kernel/drivers/README.md)。
 - `xv::user::File` 管理文件描述符，支持析构释放和移动所有权，禁止复制。`cppdemo` 连续执行超过描述符上限的打开/移动/析构操作，验证不会泄漏。
 - 文件类型和用户态打开模式采用 `enum class`，显式表达类型；按已确认的选择，不启用 `dynamic_cast`、`typeid` 和完整 RTTI。
 - 不链接宿主机 libc、libstdc++、libc++、异常运行时或启动对象。目标文件直接交给 LLD；`mkfs` 是独立宿主机程序，允许使用宿主机标准库。
 - 内核和用户态禁用异常、RTTI、线程安全静态初始化、自动全局析构。链接脚本拒绝需要执行全局构造/析构的 `.init_array`、`.fini_array`。
 - 普通栈对象的构造/析构、模板、引用、枚举、命名空间和 RAII 可以使用；提供了不分配内存的 placement new，用于启动期实例构造；暂未提供通用 `new/delete`、STL、线程局部存储或异常展开支持。需要动态分配时仍使用现有显式分配接口，并检查失败。
-- 锁在启动阶段显式 `init()`。RAII 锁不能跨越 `sched()`、`sleep()` 或其他转移锁所有权的边界，这些路径保留显式锁操作。
+- 锁在启动阶段显式 `init()`。自旋锁守卫不能包围普通阻塞操作；睡眠锁守卫可以跨越阻塞操作。调度器的锁所有权交接继续使用显式锁操作。
 - 迁移保留了原有进程、虚拟内存和文件系统算法，以及用于对照实验的 C ABI 接口。并非将每个全局函数都包装为类；`kernel/support/defs.h` 仍是兼容声明汇总。后续类化应围绕资源所有权和不变量逐步进行。
 
 为兼容原有实验接口，目前保留部分 `char *` 字符串参数，并关闭字符串字面量转为 `char *` 的诊断；这些字面量不得被修改。新增接口应使用 `const char *`。

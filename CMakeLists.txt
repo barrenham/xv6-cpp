@@ -39,6 +39,8 @@ set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
+add_test(NAME driver_contract COMMAND "${PROJECT_BINARY_DIR}/driver_contract")
+set_tests_properties(driver_contract PROPERTIES TIMEOUT 45 LABELS drivers)
 add_test(NAME sync_contract COMMAND "${PROJECT_BINARY_DIR}/sync_contract")
 set_tests_properties(sync_contract PROPERTIES TIMEOUT 45 LABELS sync)
 add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")

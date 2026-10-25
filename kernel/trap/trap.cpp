@@ -1,3 +1,5 @@
+import xv.drivers;
+
 import xv.sync;
 
 #include "kernel/trap/ticks.h"
@@ -196,22 +198,7 @@ devintr()
   if (scause == 0x8000000000000009L) {
     // this is a supervisor external interrupt, via PLIC.
 
-    // irq indicates which device interrupted.
-    int irq = plic_claim();
-
-    if (irq == UART0_IRQ) {
-      uartintr();
-    } else if (irq == VIRTIO0_IRQ) {
-      virtio_disk_intr();
-    } else if (irq) {
-      printk("unexpected interrupt irq=%d\n", irq);
-    }
-
-    // the PLIC allows each device to raise at most one
-    // interrupt at a time; tell the PLIC the device is
-    // now allowed to interrupt again.
-    if (irq)
-      plic_complete(irq);
+    xv::drivers::handle_external_interrupt(cpuid());
 
     return 1;
   } else if (scause == 0x8000000000000005L) {

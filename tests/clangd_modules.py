@@ -193,12 +193,66 @@ void xv_clangd_module_probe()
         for name in methods:
             assert any(name == label or label.startswith(name + '(') for label in labels), (name, labels)
         print(f'{type_name} definition and member completion: passed', flush=True)
+    memory_uri = uri
+    driver_file = root / 'kernel/boot/main.cpp'
+    driver_text = driver_file.read_text()
+    uri = driver_file.as_uri()
+    notify('textDocument/didOpen', {
+        'textDocument': {'uri': uri, 'languageId': 'cpp', 'version': 1,
+                         'text': driver_text},
+    })
+    diagnostic = receive_until(lambda message:
+        message.get('method') == 'textDocument/publishDiagnostics'
+        and message.get('params', {}).get('uri') == uri)
+    problems = diagnostic['params'].get('diagnostics', [])
+    assert not [item for item in problems if item.get('severity') == 1], problems
+    for version, type_name, service, module_file, methods in [
+        (2, 'SerialPort', 'serial_port', 'serial_port.cppm',
+         ['attach', 'write', 'put_sync', 'handle_interrupt', 'initialize', 'irq']),
+        (3, 'BlockDevice', 'block_device', 'block_device.cppm',
+         ['transfer', 'handle_interrupt', 'initialize', 'irq']),
+        (4, 'InterruptController', 'interrupt_controller', 'interrupt_controller.cppm',
+         ['initialize_hart', 'enable', 'claim', 'complete', 'set_priority']),
+    ]:
+        probe = driver_text + (
+            '\nvoid xv_clangd_driver_probe()\n{\n'
+            f'  xv::drivers::{type_name} &device = xv::drivers::{service}();\n'
+            '  device.\n}\n'
+        )
+        notify('textDocument/didChange', {
+            'textDocument': {'uri': uri, 'version': version},
+            'contentChanges': [{'text': probe}],
+        })
+        hover = request('textDocument/hover', at(probe, type_name))
+        assert hover and type_name in json.dumps(hover), hover
+        definitions = request('textDocument/definition', at(probe, type_name))
+        if not isinstance(definitions, list):
+            definitions = [definitions] if definitions else []
+        targets = [item.get('targetUri', item.get('uri', '')) for item in definitions]
+        assert any(target.endswith('/' + module_file) for target in targets), targets
+        offset = probe.rindex('device.') + len('device.')
+        completion = request('textDocument/completion', {
+            'textDocument': {'uri': uri}, 'position': position(probe, offset),
+            'context': {'triggerKind': 2, 'triggerCharacter': '.'},
+        })
+        items = completion.get('items', []) if isinstance(completion, dict) else completion
+        labels = [item.get('filterText', item.get('label', '')).strip() for item in items or []]
+        for name in methods:
+            assert any(name == label or label.startswith(name + '(') for label in labels), (name, labels)
+        print(f'{type_name} hover, definition and member completion: passed', flush=True)
+    notify('textDocument/didClose', {'textDocument': {'uri': uri}})
+    uri = memory_uri
     opened = []
     for relative in ['tests/allocator_contract.cpp', 'tests/allocator_test_platform.cpp',
                      'kernel/memory/address/physical_address.cppm', 'kernel/memory/allocator/allocator_service.cpp',
                      'tests/sync_contract.cpp', 'tests/sync_test_platform.cpp',
                      'kernel/sync/lock.cppm', 'kernel/sync/spin/spinlock.cppm',
-                     'kernel/sync/sleep/sleeplock.cpp', 'kernel/fs/pipe.cpp']:
+                     'kernel/sync/sleep/sleeplock.cpp', 'kernel/fs/pipe.cpp',
+                     'tests/driver_test_platform.cpp', 'tests/driver_contract.cpp',
+                     'kernel/drivers/serial/uart16550.cppm',
+                     'kernel/drivers/console/line_console.cpp',
+                     'kernel/drivers/block/virtio/virtio_block.cpp',
+                     'kernel/drivers/board/qemu_virt.cpp']:
         file = root / relative
         target_uri = file.as_uri()
         notify('textDocument/didOpen', {

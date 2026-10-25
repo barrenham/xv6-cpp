@@ -48,3 +48,23 @@ target_compile_options(sync_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti
 target_link_libraries(sync_contract PRIVATE Threads::Threads)
 set_target_properties(sync_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(sync_contract)
+
+include("${XV_ROOT}/cmake/driver-modules.cmake")
+add_executable(driver_contract
+  "${XV_ROOT}/tests/driver_contract.cpp"
+  "${XV_ROOT}/tests/driver_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/kernel/drivers/serial/uart16550.cpp"
+  "${XV_ROOT}/kernel/drivers/console/line_console.cpp"
+  "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
+  "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
+  "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")
+target_include_directories(driver_contract PRIVATE "${XV_ROOT}")
+target_compile_features(driver_contract PRIVATE cxx_std_20)
+target_compile_options(driver_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(driver_contract PRIVATE Threads::Threads)
+set_target_properties(driver_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(driver_contract)
+xv_add_driver_modules(driver_contract)

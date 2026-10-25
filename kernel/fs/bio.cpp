@@ -1,3 +1,5 @@
+import xv.drivers;
+
 import xv.sync;
 
 // Buffer cache.
@@ -97,7 +99,11 @@ bread(uint dev, uint blockno)
 
   b = bget(dev, blockno);
   if (!b->valid) {
-    virtio_disk_rw(b, 0);
+    xv::drivers::block_device().transfer(
+      xv::drivers::BlockOperation::Read,
+      static_cast<unsigned long>(b->blockno) *
+          (BSIZE / xv::drivers::BlockDevice::SectorSize),
+      b->data, BSIZE);
     b->valid = 1;
   }
   return b;
@@ -110,7 +116,11 @@ bwrite(struct buf *b)
 {
   if (!b->lock.holding())
     panic("bwrite");
-  virtio_disk_rw(b, 1);
+  xv::drivers::block_device().transfer(
+      xv::drivers::BlockOperation::Write,
+      static_cast<unsigned long>(b->blockno) *
+          (BSIZE / xv::drivers::BlockDevice::SectorSize),
+      b->data, BSIZE);
 }
 
 // Release a locked buffer.

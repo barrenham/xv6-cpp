@@ -26,11 +26,6 @@ void            bwrite(struct buf*);
 void            bpin(struct buf*);
 void            bunpin(struct buf*);
 
-// console.c
-void            consoleinit(void);
-void            consoleintr(int);
-void            consputc(int);
-
 // exec.c
 int             kexec(char*, char**);
 
@@ -159,12 +154,6 @@ void            trapinit(void);
 void            trapinithart(void);
 void            prepare_return(void);
 
-// uart.c
-void            uartinit(void);
-void            uartintr(void);
-void            uartwrite(char [], int);
-void            uartputc_sync(int);
-
 // vm.c
 void            kvminit(void);
 void            kvminithart(void);
@@ -191,17 +180,6 @@ void            vmprint(pagetable_t);
 uint64          sys_ksupernpte(void);
 pte_t*          pgpte(pagetable_t, uint64);
 #endif
-
-// plic.c
-void            plicinit(void);
-void            plicinithart(void);
-int             plic_claim(void);
-void            plic_complete(int);
-
-// virtio_disk.c
-void            virtio_disk_init(void);
-void            virtio_disk_rw(struct buf *, int);
-void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))

@@ -8,6 +8,6 @@ ExternalProject_Add(host_mkfs
     "-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON"
     "-DXV_OUTPUT_DIR:PATH=${PROJECT_BINARY_DIR}"
   BUILD_ALWAYS TRUE
-  BUILD_BYPRODUCTS "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/allocator_contract" "${PROJECT_BINARY_DIR}/sync_contract"
+  BUILD_BYPRODUCTS "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/allocator_contract" "${PROJECT_BINARY_DIR}/sync_contract" "${PROJECT_BINARY_DIR}/driver_contract"
   INSTALL_COMMAND ""
 )

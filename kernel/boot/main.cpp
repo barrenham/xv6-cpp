@@ -1,3 +1,5 @@
+import xv.drivers;
+
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -18,7 +20,7 @@ extern "C"
   {
     if (cpuid() == 0)
     {
-      consoleinit();
+      xv::drivers::initialize_console();
       printkinit();
       printk("\n");
       printk("xv6 kernel is booting\n");
@@ -31,12 +33,12 @@ extern "C"
       procinit();         // process table
       trapinit();         // trap vectors
       trapinithart();     // install kernel trap vector
-      plicinit();         // set up interrupt controller
-      plicinithart();     // ask PLIC for device interrupts
+      xv::drivers::initialize_interrupts();
+      xv::drivers::initialize_hart(cpuid());
       binit();            // buffer cache
       iinit();            // inode table
       fileinit();         // file table
-      virtio_disk_init(); // emulated hard disk
+      xv::drivers::block_device().initialize(); // emulated hard disk
       userinit();         // first user process
 
       __atomic_store_n(&started, 1, __ATOMIC_RELEASE);
@@ -49,7 +51,7 @@ extern "C"
       printk("hart %d starting\n", cpuid());
       kvminithart();  // turn on paging
       trapinithart(); // install kernel trap vector
-      plicinithart(); // ask PLIC for device interrupts
+      xv::drivers::initialize_hart(cpuid()); // ask PLIC for device interrupts
     }
 
     scheduler();

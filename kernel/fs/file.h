@@ -1,5 +1,5 @@
 #pragma once
-#include "kernel/drivers/device_numbers.h"
+#include "kernel/fs/device_switch.h"
 struct file {
   enum class Kind { none, pipe, inode, device };
   Kind type;
@@ -31,11 +31,3 @@ struct inode {
   uint size;
   uint addrs[NDIRECT + 1];
 };
-
-// map major device number to device functions.
-struct devsw {
-  int (*read)(int, uint64, int);
-  int (*write)(int, uint64, int);
-};
-
-extern "C" struct devsw devsw[];
