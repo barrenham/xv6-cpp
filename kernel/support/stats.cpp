@@ -1,3 +1,5 @@
+import xv.memory;
+
 import xv.drivers;
 
 import xv.fs;
@@ -111,7 +113,6 @@ statsinit(void)
 
 #ifdef LAB_PGTBL
 
-extern pagetable_t kernel_pagetable;
 
 pte_t *
 pgpte(pagetable_t pagetable, uint64 va)
@@ -165,7 +166,7 @@ sys_ksupernpte() {
   uint64 as, an;
   uint64 s = 0, n = 0;
 
-  cnt_level(kernel_pagetable, &s, &n, 0, 2);
+  cnt_level((pagetable_t)xv::memory::kernel_page_table().root(), &s, &n, 0, 2);
 
   p = xv::process::current();
   argaddr(0, &as);

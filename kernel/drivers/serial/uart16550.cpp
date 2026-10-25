@@ -126,7 +126,7 @@ int Uart16550::get()
 
 // handle a uart interrupt, raised because input has
 // arrived, or the uart is ready for more output, or
-// both. called from devintr().
+// both. called by the external interrupt router.
 void Uart16550::handle_interrupt()
 {
   registers_.read8(ISR); // acknowledge the interrupt

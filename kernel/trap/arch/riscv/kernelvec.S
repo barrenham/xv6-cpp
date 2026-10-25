@@ -34,7 +34,7 @@ kernelvec:
         sd t5, 232(sp)
         sd t6, 240(sp)
 
-        # call the C trap handler in trap.c
+        # call the thin C ABI trap entry
         call kerneltrap
 
         # restore registers.

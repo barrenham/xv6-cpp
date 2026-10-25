@@ -1,8 +1,9 @@
+import xv.trap;
+
 import xv.process;
 
 import xv.sync;
 
-#include "kernel/trap/ticks.h"
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/param.h"
@@ -63,27 +64,9 @@ sys_sbrk(void)
 uint64
 sys_pause(void)
 {
-  int n;
-  uint ticks0;
-
-
-  argint(0, &n);
-  if (n < 0)
-    n = 0;
-  tickslock.acquire();
-  ticks0 = ticks;
-  while (ticks - ticks0 < n) {
-    if (xv::process::current()->is_killed()) {
-      tickslock.release();
-      return -1;
-    }
-    xv::process::prepare_sleep(&ticks);
-    tickslock.release();
-    xv::process::sleep();
-    tickslock.acquire();
-  }
-  tickslock.release();
-  return 0;
+  int count;
+  argint(0, &count);
+  return xv::trap::clock().pause(count);
 }
 
 
@@ -174,12 +157,7 @@ sys_kill(void)
 uint64
 sys_uptime(void)
 {
-  uint xticks;
-
-  tickslock.acquire();
-  xticks = ticks;
-  tickslock.release();
-  return xticks;
+  return xv::trap::clock().uptime();
 }
 
 #ifdef LAB_LOCK

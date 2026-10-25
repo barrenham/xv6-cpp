@@ -192,3 +192,15 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 本轮实测：伙伴和链表配置均通过 8 项 CTest。128 MiB 配置包含完整 `usertests -q`；64、257、2048、2049 MiB 矩阵使用同一个内核 ELF，包含启动、RAII 和页表边界检查。2 GiB RAM 的整个内核映射使用 7 张页表页（28 KiB），包含 1 个 1 GiB 叶子；2049 MiB 的 1 MiB 尾部使用普通页，页表页总数为 9。统计还包含设备、内核栈及 trampoline。
 
 模块接口位于 `.cppm`，实现位于 `.cpp`，清单集中在 `cmake/memory-modules.cmake`。clangd 默认使用 CMake 生成的 BMI，模块修改后先构建再重启语言服务；原生与 RISC-V 目标各有独立 BMI。
+
+### 内核页表启动服务
+
+`import xv.memory;` 后通过 `kernel_page_table()` 访问共享 `KernelPageTable`。
+引导核在物理内存初始化完成后调用 `initialize()` 创建内核页表；所有 hart
+在使用该页表前各自调用 `activate_hart()`，写入本核 `satp` 并执行
+`sfence.vma`。重复初始化或未初始化就启用会触发 panic。
+
+页表根地址由对象私有持有，`root()` 提供只读查询供页表统计使用。
+创建映射、权限和直接映射自检位于 `paging/kernel_page_table.cpp`；
+`paging/vm.cpp` 保留用户页表和传统 VM 辅助函数。
+引导核通过启动完成的 release/acquire 屏障向其他 hart 发布页表。

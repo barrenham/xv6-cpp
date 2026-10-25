@@ -6,7 +6,7 @@
 .global _entry
 _entry:
         # set up a stack for C.
-        # stack0 is declared in start.c,
+        # stack0 is declared in entry.cpp,
         # with a 4096-byte stack per CPU.
         # sp = stack0 + ((hartid + 1) * 4096)
         la sp, stack0
@@ -16,7 +16,7 @@ _entry:
         mul t0, t0, t1
         add sp, sp, t0
         # a0 is hartid; preserve firmware a1 (device tree address).
-        # jump to start() in start.c
+        # jump to the C ABI adapter start() in entry.cpp
         call start
 spin:
         j spin

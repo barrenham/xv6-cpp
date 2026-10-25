@@ -48,6 +48,9 @@ clangd --check=tools/mkfs/main.cpp --check-locations=false --tweaks= \
 
 ## C++20 具名模块
 
+启动流程由 `xv.boot` 模块管理，机器态入口、每核初始化和启动同步见
+[启动模块说明](kernel/boot/README.md)。
+
 物理页分配器对外统一使用：
 
 ```cpp
@@ -83,7 +86,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 | `kernel/memory/allocator` | 抽象分配接口、实例服务及 buddy/freelist 实现目录 |
 | `kernel/memory/paging` | Sv39 页表、映射策略与地址空间集成 |
 | `kernel/process` | 进程资源、地址空间、生命周期、调度器和 ELF 加载模块 |
-| `kernel/trap` | 中断、异常、用户态与内核态切换 |
+| `kernel/trap` | 原因解码、异常分派、时钟服务和 RISC-V 进入/返回适配 |
 | `kernel/syscall` | 系统调用 ABI、分发和处理函数 |
 | `kernel/fs` | 块缓存、日志事务、inode/路径、打开文件和管道模块 |
 | `kernel/sync` | 自旋锁、睡眠锁、RAII guard |
@@ -107,6 +110,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 - `import xv.drivers;` 提供 `Device`、`SerialPort`、`CharacterDevice`、`BlockDevice`、`InterruptController` 和固定设备表的中断路由。UART、控制台、PLIC、VirtIO 的状态归各自对象管理，启动、文件系统与中断入口通过抽象接口调用，详见 [驱动模块说明](kernel/drivers/README.md)。
 - `import xv.process;` 提供进程资源和生命周期接口，描述符表、当前目录、地址空间各自管理状态；调度器和可执行文件加载器使用抽象接口，详见 [进程模块说明](kernel/process/README.md)。
 - `import xv.fs;` 提供 `BlockCache`、`FileSystem` 抽象和 RAII 块句柄、事务、inode 锁；运行时文件与 inode 类型封装在模块中，磁盘布局与用户 ABI 保持共享格式，详见 [文件系统模块说明](kernel/fs/README.md)。
+- `import xv.trap;` 提供陷阱事件、处理器分派、返回控制和时钟服务。系统调用、外部中断、定时器与数据缺页分别实现处理器，保留汇编 C ABI 入口，详见 [trap 模块说明](kernel/trap/README.md)。
 - `xv::user::File` 管理文件描述符，支持析构释放和移动所有权，禁止复制。`cppdemo` 连续执行超过描述符上限的打开/移动/析构操作，验证不会泄漏。
 - 文件类型和用户态打开模式采用 `enum class`，显式表达类型；按已确认的选择，不启用 `dynamic_cast`、`typeid` 和完整 RTTI。
 - 不链接宿主机 libc、libstdc++、libc++、异常运行时或启动对象。目标文件直接交给 LLD；`mkfs` 是独立宿主机程序，允许使用宿主机标准库。

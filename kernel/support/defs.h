@@ -1,4 +1,6 @@
 #pragma once
+#include "kernel/support/print_abi.h"
+
 extern "C" {
 #pragma once
 // clang-format off
@@ -20,12 +22,6 @@ void            superfree(void *);
 void            supersplit(void *);
 int             uvmdemote(pagetable_t, uint64, uint64);
 #endif
-void            kinit(void);
-
-// printk.c
-int             printk(char*, ...) __attribute__ ((format (printf, 1, 2)));
-void            panic(char*) __attribute__((noreturn));
-void            printkinit(void);
 
 // spinlock.c
 void            push_off(void);
@@ -59,15 +55,7 @@ int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
 void            syscall();
 
-// trap.c
-extern uint     ticks;
-void            trapinit(void);
-void            trapinithart(void);
-void            prepare_return(void);
-
 // vm.c
-void            kvminit(void);
-void            kvminithart(void);
 void            kvmmap(pagetable_t, uint64, uint64, uint64, int);
 int             mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t     uvmcreate(void);

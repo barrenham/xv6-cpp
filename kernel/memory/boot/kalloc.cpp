@@ -48,13 +48,6 @@ void boot_initialize(AllocatorKind kind, PhysicalAddress device_tree)
          layout.usable_pages(), source.name());
 }
 
-extern "C" uint64 boot_device_tree;
-
-void boot_initialize(AllocatorKind kind)
-{
-  boot_initialize(kind, PhysicalAddress(boot_device_tree));
-}
-
 namespace detail
 {
 void fill(void *address, int value, MemorySize length)
@@ -71,11 +64,6 @@ void fill(void *address, int value, MemorySize length)
 
 extern "C"
 {
-  void kinit()
-  {
-    xv::memory::boot_initialize(xv::memory::configured_allocator_kind());
-  }
-
   void *kalloc()
   {
     return xv::memory::allocator().allocate();

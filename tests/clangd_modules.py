@@ -233,8 +233,15 @@ void xv_clangd_module_probe()
         (10, 'FileSystem', 'filesystem', 'filesystem.cppm', ['lookup', 'create', 'link', 'unlink', 'read', 'write']),
         (11, 'OpenFileTable', 'files', 'open_file.cppm', ['allocate', 'retain', 'release', 'read', 'write', 'stat']),
         (12, 'DeviceRegistry', 'devices', 'open_file.cppm', ['attach', 'get']),
+        (13, 'TrapController', 'controller', 'trap_controller.cppm',
+         ['initialize_hart', 'handle_user', 'handle_kernel', 'prepare_return', 'return_to_user']),
+        (14, 'TickClock', 'clock', 'tick_clock.cppm', ['initialize', 'interrupt', 'uptime', 'pause']),
+        (15, 'KernelPageTable', 'kernel_page_table', 'kernel_page_table.cppm',
+         ['initialize', 'activate_hart', 'root']),
     ]:
-        namespace = ('process' if type_name in ['Process', 'Scheduler', 'ExecutableLoader'] else
+        namespace = ('memory' if type_name == 'KernelPageTable' else
+                     'trap' if type_name in ['TrapController', 'TickClock'] else
+                     'process' if type_name in ['Process', 'Scheduler', 'ExecutableLoader'] else
                      'fs' if type_name in ['BlockCache', 'Journal', 'FileSystem', 'OpenFileTable', 'DeviceRegistry']
                      else 'drivers')
         initializer = f'xv::{namespace}::{service}()'
@@ -289,7 +296,21 @@ void xv_clangd_module_probe()
                      'kernel/fs/fs.cppm', 'kernel/fs/cache/lru_block_cache.cpp',
                      'kernel/fs/journal/journal.cpp', 'kernel/fs/inode/xv6_filesystem.cpp',
                      'kernel/fs/path/path_operations.cpp', 'kernel/fs/file/file_operations.cpp',
-                     'kernel/syscall/sysfile.cpp']:
+                     'kernel/syscall/sysfile.cpp',
+                     'tests/trap_contract.cpp', 'tests/trap_test_platform.cpp',
+                     'kernel/trap/trap.cppm', 'kernel/trap/event/trap_event.cppm',
+                     'kernel/trap/controller/trap_controller.cpp',
+                     'kernel/trap/handlers/system_call.cpp',
+                     'kernel/trap/clock/tick_clock.cpp',
+                     'kernel/memory/paging/kernel_page_table.cppm',
+                     'kernel/memory/paging/kernel_page_table.cpp',
+                     'kernel/support/print.cppm', 'kernel/support/printk.cpp',
+                     'kernel/boot/boot.cppm', 'kernel/boot/state.cppm',
+                     'kernel/boot/start.cpp', 'kernel/boot/entry.cpp',
+                     'kernel/memory/boot/kalloc.cpp',
+                     'kernel/support/stats.cpp',
+                     'kernel/trap/arch/riscv/entry.cpp',
+                     'kernel/trap/arch/riscv/kernel_platform.cpp']:
         file = root / relative
         target_uri = file.as_uri()
         notify('textDocument/didOpen', {

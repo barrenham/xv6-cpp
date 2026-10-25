@@ -1,8 +1,4 @@
-import xv.fs;
-
-import xv.drivers;
-
-import xv.sync;
+module;
 
 //
 // formatted console output -- printk, panic.
@@ -16,6 +12,11 @@ import xv.sync;
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
+
+module xv.print;
+
+import xv.drivers;
+import xv.sync;
 
 extern "C" {
 
@@ -149,9 +150,12 @@ panic(char *s)
     ;
 }
 
-void
-printkinit(void)
+} // extern "C"
+
+namespace xv::print
+{
+void initialize()
 {
   pr.lock.init("pr");
 }
-}
+} // namespace xv::print

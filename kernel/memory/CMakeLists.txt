@@ -9,6 +9,7 @@ target_sources(kernel PRIVATE
   allocator/freelist/freelist_page_allocator.cpp
   boot/kalloc.cpp
   paging/vm.cpp
+  paging/kernel_page_table.cpp
 )
 set(XV_PAGE_ALLOCATOR "buddy" CACHE STRING "Boot physical page allocator: buddy or freelist")
 set_property(CACHE XV_PAGE_ALLOCATOR PROPERTY STRINGS buddy freelist)

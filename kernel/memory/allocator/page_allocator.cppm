@@ -117,6 +117,5 @@ bool initialize(AllocatorKind kind, PhysicalMemoryRange range);
 bool initialize(AllocatorKind kind, void *first, void *last);
 PhysicalPageAllocator &allocator(); // panics if accessed before initialization
 AllocatorKind configured_allocator_kind();
-void boot_initialize(AllocatorKind kind);
 void boot_initialize(AllocatorKind kind, PhysicalAddress device_tree);
 } // namespace xv::memory

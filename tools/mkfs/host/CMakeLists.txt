@@ -112,3 +112,27 @@ xv_add_sync_modules(fs_contract)
 xv_add_driver_interfaces(fs_contract)
 xv_add_fs_interfaces(fs_contract)
 xv_add_fs_internals(fs_contract)
+
+include("${XV_ROOT}/cmake/trap-modules.cmake")
+add_executable(trap_contract
+  "${XV_ROOT}/tests/trap_contract.cpp"
+  "${XV_ROOT}/tests/trap_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/kernel/trap/arch/riscv/entry.cpp"
+  "${XV_ROOT}/kernel/trap/dispatch/trap_dispatcher.cpp"
+  "${XV_ROOT}/kernel/trap/controller/trap_controller.cpp"
+  "${XV_ROOT}/kernel/trap/clock/tick_clock.cpp"
+  "${XV_ROOT}/kernel/trap/handlers/system_call.cpp"
+  "${XV_ROOT}/kernel/trap/handlers/external_interrupt.cpp"
+  "${XV_ROOT}/kernel/trap/handlers/timer_interrupt.cpp"
+  "${XV_ROOT}/kernel/trap/handlers/page_fault.cpp"
+  "${XV_ROOT}/kernel/trap/service.cpp")
+target_include_directories(trap_contract PRIVATE "${XV_ROOT}")
+target_compile_features(trap_contract PRIVATE cxx_std_20)
+target_compile_options(trap_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(trap_contract PRIVATE Threads::Threads)
+set_target_properties(trap_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(trap_contract)
+xv_add_trap_modules(trap_contract)

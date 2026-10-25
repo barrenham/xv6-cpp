@@ -7,3 +7,4 @@ export import :layout;
 export import :boot;
 export import :allocator;
 export import :sv39;
+export import :kernel_paging;

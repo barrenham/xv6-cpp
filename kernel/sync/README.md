@@ -51,7 +51,7 @@ void update(xv::sync::Lock &lock)
 
 文件系统运行时类型现由 `xv.fs` 定义，进程类型由 `xv.process` 定义；这些模块
 在内部使用锁类型。模块实体不在 `defs.h` 中声明为全局类。
-共享计时器锁的声明位于 `kernel/trap/ticks.h`。
+计时器锁和计数封装在 `xv.trap::TickClock` 中，系统调用通过时钟服务访问。
 用户态 `init` 仅包含设备编号头文件，不再依赖内核锁及 inode 布局。
 
 ## 验证

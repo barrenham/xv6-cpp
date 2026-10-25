@@ -8,13 +8,14 @@ module;
 
 module xv.process;
 
+import xv.trap;
+
 import xv.fs;
 
 import :round_robin;
 
 namespace xv::process
 {
-extern "C" char trampoline[], userret[];
 
 namespace
 {
@@ -192,11 +193,7 @@ void RoundRobinScheduler::first_return()
     }
   }
 
-  // return to user space, mimicing usertrap()'s return.
-  prepare_return();
-  uint64 satp = MAKE_SATP(p->memory_.page_table());
-  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
-  ((void (*)(uint64))trampoline_userret)(satp);
+  xv::trap::return_to_user();
 }
 
 // Register current process as waiting for wakeups on chan.

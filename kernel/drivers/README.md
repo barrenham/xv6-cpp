@@ -76,7 +76,7 @@ void read_sectors(unsigned long first, void *dma_data, unsigned bytes)
 为表中来源设置优先级；每个 hart 启用同一组来源。分派时先 claim，再调用
 匹配的 `InterruptDevice`，最后 complete。IRQ 0 不做完成操作，未知非零 IRQ
 也会完成并交给板级代码报告，避免中断控制器一直保留领取状态。
-`trap.cpp` 只负责识别外部中断和定时器类别，不再分支识别具体设备。
+`xv.trap` 的外部中断处理器只调用板级路由入口，不分支识别具体设备。
 
 ## 启动与并发约束
 
