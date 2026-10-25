@@ -82,10 +82,10 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 | `kernel/memory/boot` | RAM 发现、分配器启动集成与 C ABI 适配 |
 | `kernel/memory/allocator` | 抽象分配接口、实例服务及 buddy/freelist 实现目录 |
 | `kernel/memory/paging` | Sv39 页表、映射策略与地址空间集成 |
-| `kernel/process` | 进程、调度、上下文切换、ELF 加载 |
+| `kernel/process` | 进程资源、地址空间、生命周期、调度器和 ELF 加载模块 |
 | `kernel/trap` | 中断、异常、用户态与内核态切换 |
 | `kernel/syscall` | 系统调用 ABI、分发和处理函数 |
-| `kernel/fs` | inode、文件、管道、日志和块缓存 |
+| `kernel/fs` | 块缓存、日志事务、inode/路径、打开文件和管道模块 |
 | `kernel/sync` | 自旋锁、睡眠锁、RAII guard |
 | `kernel/drivers` | 串口、控制台、块设备和中断控制器模块；QEMU virt 实例装配 |
 | `kernel/support` | 基础类型、字符串、打印和兼容接口声明 |
@@ -105,6 +105,8 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 - `PhysicalPageAllocator` 提供统一的物理页分配接口，伙伴和链表实现均在启动时可选；唯一实例经显式构造后固定使用。所有内存分配调用点已迁移到抽象接口，详见 [内存模块说明](kernel/memory/README.md)。
 - `import xv.sync;` 提供抽象接口 `xv::sync::Lock`、派生类 `SpinLock` / `SleepLock` 和基于接口的 RAII `ScopedLock`。进程、文件系统、驱动和分配器统一使用该模块，设计与生命周期约束见 [sync 说明](kernel/sync/README.md)。
 - `import xv.drivers;` 提供 `Device`、`SerialPort`、`CharacterDevice`、`BlockDevice`、`InterruptController` 和固定设备表的中断路由。UART、控制台、PLIC、VirtIO 的状态归各自对象管理，启动、文件系统与中断入口通过抽象接口调用，详见 [驱动模块说明](kernel/drivers/README.md)。
+- `import xv.process;` 提供进程资源和生命周期接口，描述符表、当前目录、地址空间各自管理状态；调度器和可执行文件加载器使用抽象接口，详见 [进程模块说明](kernel/process/README.md)。
+- `import xv.fs;` 提供 `BlockCache`、`FileSystem` 抽象和 RAII 块句柄、事务、inode 锁；运行时文件与 inode 类型封装在模块中，磁盘布局与用户 ABI 保持共享格式，详见 [文件系统模块说明](kernel/fs/README.md)。
 - `xv::user::File` 管理文件描述符，支持析构释放和移动所有权，禁止复制。`cppdemo` 连续执行超过描述符上限的打开/移动/析构操作，验证不会泄漏。
 - 文件类型和用户态打开模式采用 `enum class`，显式表达类型；按已确认的选择，不启用 `dynamic_cast`、`typeid` 和完整 RTTI。
 - 不链接宿主机 libc、libstdc++、libc++、异常运行时或启动对象。目标文件直接交给 LLD；`mkfs` 是独立宿主机程序，允许使用宿主机标准库。

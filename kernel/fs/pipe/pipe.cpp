@@ -1,0 +1,126 @@
+module;
+#include "kernel/support/types.h"
+#include "kernel/support/param.h"
+#include "kernel/fs/format/layout.h"
+#include "kernel/fs/stat.h"
+
+module xv.fs;
+import :platform;
+import :pipe;
+
+namespace xv::fs
+{
+static_assert(sizeof(Pipe) <= 4096);
+
+void Pipe::initialize()
+{
+  lock_.init("pipe");
+}
+
+void Pipe::close(bool writable)
+{
+  lock_.acquire();
+  if (writable)
+  {
+    writer_open_ = 0;
+    detail::wakeup(&read_);
+  }
+  else
+  {
+    reader_open_ = 0;
+    detail::wakeup(&written_);
+  }
+  if (reader_open_ == 0 && writer_open_ == 0)
+  {
+    lock_.release();
+    this->~Pipe();
+    detail::free_page(this);
+  }
+  else
+  {
+    lock_.release();
+  }
+}
+
+int Pipe::write(uint64 addr, int n)
+{
+  int i = 0;
+
+  lock_.acquire();
+  while (i < n)
+  {
+    if (reader_open_ == 0 || detail::killed())
+    {
+      lock_.release();
+      return -1;
+    }
+    if (written_ == read_ + Capacity)
+    { //DOC: pipewrite-full
+      detail::wakeup(&read_);
+      detail::prepare_sleep(&written_);
+      lock_.release();
+      detail::sleep();
+      lock_.acquire();
+    }
+    else
+    {
+      char ch;
+      if (detail::copy_in(&ch, true, addr + i, 1) == -1)
+      {
+        if (i == 0)
+        {
+          i = -1;
+        }
+        break;
+      }
+      data_[written_++ % Capacity] = ch;
+      i++;
+    }
+  }
+  detail::wakeup(&read_);
+  lock_.release();
+
+  return i;
+}
+
+int Pipe::read(uint64 addr, int n)
+{
+  int i;
+  char ch;
+
+  lock_.acquire();
+  while (read_ == written_ && writer_open_)
+  { //DOC: pipe-empty
+    if (detail::killed())
+    {
+      lock_.release();
+      return -1;
+    }
+    detail::prepare_sleep(&read_); //DOC: piperead-sleep
+    lock_.release();
+    detail::sleep();
+    lock_.acquire();
+  }
+  for (i = 0; i < n; i++)
+  { //DOC: piperead-copy
+    if (read_ == written_)
+    {
+      break;
+    }
+    ch = data_[read_ % Capacity];
+    if (detail::copy_out(true, addr + i, &ch, 1) == -1)
+    {
+      if (i == 0)
+      {
+        i = -1;
+      }
+      break;
+    }
+    read_++;
+  }
+  detail::wakeup(&written_); //DOC: piperead-wakeup
+  lock_.release();
+  return i;
+}
+
+} // namespace xv::fs

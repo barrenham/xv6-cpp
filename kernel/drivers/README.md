@@ -46,12 +46,11 @@ classDiagram
 串口只认识 `InputReceiver`，接收中断通过 `receive()` 交付字符。
 `LineConsole` 实现接收接口和字符设备接口，负责回显、退格、Ctrl-U、Ctrl-D、
 Ctrl-P 以及输入环形缓冲。它持有 `SerialPort &`，可以注入其他串口实现。
-控制台的 `IoBuffer` 显式区分内核和用户地址，复制交给平台适配层。
+控制台的 `IoBuffer` 显式区分内核和用户地址，复制交给平台适配层，内核平台通过 `xv.process` 的用户内存访问接口完成复制。
 
-`board/qemu_virt.cpp` 提供内核原有 `devsw` 所需的两个函数指针适配器。
-文件系统的设备分发表声明单独位于 `kernel/fs/device_switch.h`，驱动模块
-不需要导入 inode 或进程结构布局。旧 `console*`、`uart*`、`plic*` 和
-`virtio_disk_*` C 驱动入口已移除，调用方统一迁移到模块服务。
+`board/qemu_virt.cpp` 在早期启动时把控制台实例注册进 `xv.fs::DeviceRegistry`。
+文件系统设备文件通过 `CharacterDevice` 接口调用实际对象，原 `devsw` 函数指针
+表与适配头文件已移除。驱动公开接口不依赖 FS；板级实现导入 FS 完成装配。
 
 块缓存持有缓冲区的睡眠锁，通过 `block_device().transfer()` 传入方向、
 512 字节扇区号、DMA 数据地址和字节数。文件系统块号到扇区号的转换留在

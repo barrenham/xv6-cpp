@@ -168,8 +168,19 @@ void xv_clangd_module_probe()
          ['begin', 'end', 'contains', 'contains_block', 'page_index', 'page_address']),
         (6, 'SpinLock', 'spinlock.cppm',
          ['init', 'acquire', 'release', 'holding', 'kind', 'name']),
+        (7, 'AddressSpace', 'address_space.cppm',
+         ['size', 'copy_in', 'copy_out', 'copy_string', 'resize', 'handle_fault']),
+        (8, 'DescriptorTable', 'process_resources.cppm',
+         ['get', 'install', 'take', 'close', 'duplicate', 'close_all']),
+        (9, 'WorkingDirectory', 'process_resources.cppm',
+         ['get', 'duplicate', 'replace', 'clear']),
+        (10, 'Inode', 'inode.cppm', ['kind', 'device_major', 'device', 'number', 'size_bytes']),
+        (11, 'Buffer', 'block_cache.cppm', ['bytes', 'block_number', 'device']),
     ]:
-        namespace = 'sync' if type_name == 'SpinLock' else 'memory'
+        namespace = ('sync' if type_name == 'SpinLock' else
+                     'fs' if type_name in ['Inode', 'Buffer'] else
+                     'process' if type_name in ['AddressSpace', 'DescriptorTable', 'WorkingDirectory']
+                     else 'memory')
         value_probe = original + (
             '\nvoid xv_clangd_value_probe()\n{\n'
             f'  xv::{namespace}::{type_name} value;\n  value.\n}}\n'
@@ -213,10 +224,25 @@ void xv_clangd_module_probe()
          ['transfer', 'handle_interrupt', 'initialize', 'irq']),
         (4, 'InterruptController', 'interrupt_controller', 'interrupt_controller.cppm',
          ['initialize_hart', 'enable', 'claim', 'complete', 'set_priority']),
+        (5, 'Process', 'current', 'process.cppm',
+         ['id', 'registers', 'memory', 'files', 'directory', 'is_killed']),
+        (6, 'Scheduler', 'scheduler', 'scheduler.cppm', ['name', 'run', 'yield', 'suspend']),
+        (7, 'ExecutableLoader', 'executable_loader', 'executable_loader.cppm', ['name', 'load']),
+        (8, 'BlockCache', 'cache', 'block_cache.cppm', ['read', 'write', 'pin', 'unpin', 'release']),
+        (9, 'Journal', 'journal', 'journal.cppm', ['begin', 'end', 'record', 'sync']),
+        (10, 'FileSystem', 'filesystem', 'filesystem.cppm', ['lookup', 'create', 'link', 'unlink', 'read', 'write']),
+        (11, 'OpenFileTable', 'files', 'open_file.cppm', ['allocate', 'retain', 'release', 'read', 'write', 'stat']),
+        (12, 'DeviceRegistry', 'devices', 'open_file.cppm', ['attach', 'get']),
     ]:
+        namespace = ('process' if type_name in ['Process', 'Scheduler', 'ExecutableLoader'] else
+                     'fs' if type_name in ['BlockCache', 'Journal', 'FileSystem', 'OpenFileTable', 'DeviceRegistry']
+                     else 'drivers')
+        initializer = f'xv::{namespace}::{service}()'
+        if type_name == 'Process':
+            initializer = '*' + initializer
         probe = driver_text + (
             '\nvoid xv_clangd_driver_probe()\n{\n'
-            f'  xv::drivers::{type_name} &device = xv::drivers::{service}();\n'
+            f'  xv::{namespace}::{type_name} &device = {initializer};\n'
             '  device.\n}\n'
         )
         notify('textDocument/didChange', {
@@ -247,12 +273,23 @@ void xv_clangd_module_probe()
                      'kernel/memory/address/physical_address.cppm', 'kernel/memory/allocator/allocator_service.cpp',
                      'tests/sync_contract.cpp', 'tests/sync_test_platform.cpp',
                      'kernel/sync/lock.cppm', 'kernel/sync/spin/spinlock.cppm',
-                     'kernel/sync/sleep/sleeplock.cpp', 'kernel/fs/pipe.cpp',
+                     'kernel/sync/sleep/sleeplock.cpp', 'kernel/fs/pipe/pipe.cpp',
                      'tests/driver_test_platform.cpp', 'tests/driver_contract.cpp',
                      'kernel/drivers/serial/uart16550.cppm',
                      'kernel/drivers/console/line_console.cpp',
                      'kernel/drivers/block/virtio/virtio_block.cpp',
-                     'kernel/drivers/board/qemu_virt.cpp']:
+                     'kernel/drivers/board/qemu_virt.cpp',
+                     'tests/process_contract.cpp',
+                     'kernel/process/process.cppm',
+                     'kernel/process/resources/process_resources.cpp',
+                     'kernel/process/memory/address_space.cpp',
+                     'kernel/process/scheduler/round_robin.cpp',
+                     'kernel/process/exec/elf_loader.cpp',
+                     'tests/fs_contract.cpp', 'tests/fs_test_platform.cpp',
+                     'kernel/fs/fs.cppm', 'kernel/fs/cache/lru_block_cache.cpp',
+                     'kernel/fs/journal/journal.cpp', 'kernel/fs/inode/xv6_filesystem.cpp',
+                     'kernel/fs/path/path_operations.cpp', 'kernel/fs/file/file_operations.cpp',
+                     'kernel/syscall/sysfile.cpp']:
         file = root / relative
         target_uri = file.as_uri()
         notify('textDocument/didOpen', {

@@ -1,9 +1,10 @@
+import xv.process;
+
 import xv.sync;
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/process/proc.h"
 #include "kernel/support/defs.h"
 
 // push_off/pop_off are like intr_off()/intr_on() except that they are matched:
@@ -13,20 +14,20 @@ import xv.sync;
 extern "C" void push_off(void)
 {
   // disable interrupts to prevent an involuntary context
-  // switch while using mycpu().
+  // switch while using xv::process::current_cpu().
   uint64 flags = rc_sstatus(SSTATUS_SIE);
   int old = !!(flags & SSTATUS_SIE);
 
-  if (mycpu()->noff == 0)
+  if (xv::process::current_cpu()->noff == 0)
   {
-    mycpu()->intena = old;
+    xv::process::current_cpu()->intena = old;
   }
-  mycpu()->noff += 1;
+  xv::process::current_cpu()->noff += 1;
 }
 
 extern "C" void pop_off(void)
 {
-  struct cpu *c = mycpu();
+  xv::process::CpuState *c = xv::process::current_cpu();
   if (intr_get())
   {
     panic("pop_off - interruptible");
@@ -40,15 +41,4 @@ extern "C" void pop_off(void)
   {
     intr_on();
   }
-}
-
-// C bridge keeps legacy process headers out of the named module's declarations.
-extern "C" void *sync_current_cpu()
-{
-  return mycpu();
-}
-
-extern "C" int sync_current_pid()
-{
-  return myproc()->pid;
 }

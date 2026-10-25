@@ -4,15 +4,12 @@ extern "C"
 {
   void push_off();
   void pop_off();
-  void *sync_current_cpu();
-  int sync_current_pid();
-  void sleep_prepare(void *);
-  void sleep();
-  void wakeup(void *);
   [[noreturn]] void panic(char *);
 }
 
 module xv.sync;
+
+import xv.process;
 
 import :platform;
 
@@ -30,27 +27,27 @@ void pop_interrupts_off()
 
 void *current_cpu()
 {
-  return sync_current_cpu();
+  return xv::process::current_cpu();
 }
 
 int current_pid()
 {
-  return sync_current_pid();
+  return xv::process::current()->id();
 }
 
 void prepare_sleep(void *channel)
 {
-  sleep_prepare(channel);
+  xv::process::prepare_sleep(channel);
 }
 
 void sleep_process()
 {
-  sleep();
+  xv::process::sleep();
 }
 
 void wake_processes(void *channel)
 {
-  wakeup(channel);
+  xv::process::wakeup(channel);
 }
 
 [[noreturn]] void fail(const char *message)

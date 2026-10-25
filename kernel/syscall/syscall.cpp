@@ -1,14 +1,16 @@
+import xv.fs;
+
+import xv.process;
+
 import xv.sync;
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/process/proc.h"
 #include "kernel/syscall/syscall.h"
 #include "kernel/support/defs.h"
-#include "kernel/fs/fs.h"
-#include "kernel/fs/file.h"
+#include "kernel/fs/format/layout.h"
 
 extern "C" {
 
@@ -16,11 +18,11 @@ extern "C" {
 int
 fetchaddr(uint64 addr, uint64 *ip)
 {
-  struct proc *p = myproc();
-  if (addr >= p->sz ||
-      addr + sizeof(uint64) > p->sz) // both tests needed, in case of overflow
+  xv::process::Process *p = xv::process::current();
+  if (addr >= p->memory().size() ||
+      addr + sizeof(uint64) > p->memory().size()) // both tests needed, in case of overflow
     return -1;
-  if (copyin(p->pagetable, p->sz, (char *)ip, addr, sizeof(*ip)) != 0)
+  if (p->memory().copy_in(ip, addr, sizeof(*ip)) != 0)
     return -1;
   return 0;
 }
@@ -30,8 +32,8 @@ fetchaddr(uint64 addr, uint64 *ip)
 int
 fetchstr(uint64 addr, char *buf, int max)
 {
-  struct proc *p = myproc();
-  if (copyinstr(p->pagetable, p->sz, buf, addr, max) < 0)
+  xv::process::Process *p = xv::process::current();
+  if (p->memory().copy_string(buf, addr, max) < 0)
     return -1;
   return strlen(buf);
 }
@@ -39,20 +41,20 @@ fetchstr(uint64 addr, char *buf, int max)
 static uint64
 argraw(int n)
 {
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
   switch (n) {
   case 0:
-    return p->trapframe->a0;
+    return p->registers()->a0;
   case 1:
-    return p->trapframe->a1;
+    return p->registers()->a1;
   case 2:
-    return p->trapframe->a2;
+    return p->registers()->a2;
   case 3:
-    return p->trapframe->a3;
+    return p->registers()->a3;
   case 4:
-    return p->trapframe->a4;
+    return p->registers()->a4;
   case 5:
-    return p->trapframe->a5;
+    return p->registers()->a5;
   }
   panic("argraw");
   return -1;
@@ -179,17 +181,17 @@ void
 syscall(void)
 {
   int num;
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
 
-  num = p->trapframe->a7;
+  num = p->registers()->a7;
   auto handler = lookup_syscall(num);
   if (handler) {
     // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->trapframe->a0
-    p->trapframe->a0 = handler();
+    // and store its return value in p->registers()->a0
+    p->registers()->a0 = handler();
   } else {
-    printk("%d %s: unknown sys call %d\n", p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+    printk("%d %s: unknown sys call %d\n", p->id(), p->debug_name(), num);
+    p->registers()->a0 = -1;
   }
 }
 }

@@ -68,3 +68,47 @@ target_link_libraries(driver_contract PRIVATE Threads::Threads)
 set_target_properties(driver_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(driver_contract)
 xv_add_driver_modules(driver_contract)
+
+include("${XV_ROOT}/cmake/process-modules.cmake")
+add_executable(process_contract
+  "${XV_ROOT}/tests/process_contract.cpp"
+  "${XV_ROOT}/kernel/process/resources/process_resources.cpp")
+target_include_directories(process_contract PRIVATE "${XV_ROOT}")
+target_compile_features(process_contract PRIVATE cxx_std_20)
+target_compile_options(process_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+set_target_properties(process_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(process_contract)
+xv_add_process_interfaces(process_contract)
+target_sources(process_contract PRIVATE
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_link_libraries(process_contract PRIVATE Threads::Threads)
+
+include("${XV_ROOT}/cmake/fs-modules.cmake")
+xv_add_driver_interfaces(process_contract)
+xv_add_fs_interfaces(process_contract)
+
+add_executable(fs_contract
+  "${XV_ROOT}/tests/fs_contract.cpp"
+  "${XV_ROOT}/tests/fs_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/kernel/fs/cache/lru_block_cache.cpp"
+  "${XV_ROOT}/kernel/fs/journal/journal.cpp"
+  "${XV_ROOT}/kernel/fs/inode/xv6_filesystem.cpp"
+  "${XV_ROOT}/kernel/fs/path/path_operations.cpp"
+  "${XV_ROOT}/kernel/fs/file/open_file.cpp"
+  "${XV_ROOT}/kernel/fs/file/file_operations.cpp"
+  "${XV_ROOT}/kernel/fs/pipe/pipe.cpp"
+  "${XV_ROOT}/kernel/fs/pipe/pipe_factory.cpp")
+target_include_directories(fs_contract PRIVATE "${XV_ROOT}")
+target_compile_features(fs_contract PRIVATE cxx_std_20)
+target_compile_options(fs_contract PRIVATE -O2 -Wall -Wextra -Werror -Wno-sign-compare -fno-rtti -fno-exceptions)
+target_link_libraries(fs_contract PRIVATE Threads::Threads)
+set_target_properties(fs_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(fs_contract)
+xv_add_driver_interfaces(fs_contract)
+xv_add_fs_interfaces(fs_contract)
+xv_add_fs_internals(fs_contract)

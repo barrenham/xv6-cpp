@@ -7,7 +7,7 @@
 
 #define stat xv6_stat // avoid clash with host struct stat
 #include "kernel/support/types.h"
-#include "kernel/fs/fs.h"
+#include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
 #include "kernel/support/param.h"
 

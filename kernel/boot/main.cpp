@@ -1,3 +1,7 @@
+import xv.fs;
+
+import xv.process;
+
 import xv.drivers;
 
 #include "kernel/support/types.h"
@@ -18,7 +22,7 @@ extern "C"
   // start() jumps here in supervisor mode on all CPUs.
   void main()
   {
-    if (cpuid() == 0)
+    if (xv::process::cpu_id() == 0)
     {
       xv::drivers::initialize_console();
       printkinit();
@@ -30,16 +34,17 @@ extern "C"
       printk("physical allocator: %s\n", xv::memory::allocator().name());
       kvminit();          // create kernel page table
       kvminithart();      // turn on paging
-      procinit();         // process table
+      xv::process::initialize();         // process table
       trapinit();         // trap vectors
       trapinithart();     // install kernel trap vector
       xv::drivers::initialize_interrupts();
-      xv::drivers::initialize_hart(cpuid());
-      binit();            // buffer cache
-      iinit();            // inode table
-      fileinit();         // file table
+      xv::drivers::initialize_hart(xv::process::cpu_id());
+      xv::fs::initialize_cache();            // buffer cache
+      xv::fs::filesystem().initialize_inodes();            // inode table
+      xv::fs::files().initialize();         // file table
+
       xv::drivers::block_device().initialize(); // emulated hard disk
-      userinit();         // first user process
+      xv::process::create_initial_process();         // first user process
 
       __atomic_store_n(&started, 1, __ATOMIC_RELEASE);
     }
@@ -48,12 +53,12 @@ extern "C"
       while (__atomic_load_n(&started, __ATOMIC_ACQUIRE) == 0)
         ;
 
-      printk("hart %d starting\n", cpuid());
+      printk("hart %d starting\n", xv::process::cpu_id());
       kvminithart();  // turn on paging
       trapinithart(); // install kernel trap vector
-      xv::drivers::initialize_hart(cpuid()); // ask PLIC for device interrupts
+      xv::drivers::initialize_hart(xv::process::cpu_id()); // ask PLIC for device interrupts
     }
 
-    scheduler();
+    xv::process::scheduler().run();
   }
 }

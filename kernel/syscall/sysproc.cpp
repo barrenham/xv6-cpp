@@ -1,3 +1,5 @@
+import xv.process;
+
 import xv.sync;
 
 #include "kernel/trap/ticks.h"
@@ -6,7 +8,6 @@ import xv.sync;
 #include "kernel/support/param.h"
 #include "kernel/support/defs.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/process/proc.h"
 #ifdef PGTBL_SOL
 #include "kernel/arch/riscv/riscv.h"
 #endif
@@ -19,20 +20,20 @@ sys_exit(void)
 {
   int n;
   argint(0, &n);
-  kexit(n);
+  xv::process::exit_process(n);
   return 0; // not reached
 }
 
 uint64
 sys_getpid(void)
 {
-  return myproc()->pid;
+  return xv::process::current()->id();
 }
 
 uint64
 sys_fork(void)
 {
-  return kfork();
+  return xv::process::fork_process();
 }
 
 uint64
@@ -40,7 +41,7 @@ sys_wait(void)
 {
   uint64 p;
   argaddr(0, &p);
-  return kwait(p);
+  return xv::process::wait(p);
 }
 
 uint64
@@ -52,22 +53,10 @@ sys_sbrk(void)
 
   argint(0, &n);
   argint(1, &t);
-  addr = myproc()->sz;
+  addr = xv::process::current()->memory().size();
 
-  if (t == SBRK_EAGER || n < 0) {
-    if (growproc(n) < 0) {
-      return -1;
-    }
-  } else {
-    // Lazily allocate memory for this process: increase its memory
-    // size but don't allocate memory. If the processes uses the
-    // memory, vmfault() will allocate it.
-    if (addr + n < addr)
-      return -1;
-    if (addr + n > UTOP)
-      return -1;
-    myproc()->sz += n;
-  }
+  if (xv::process::current()->memory().resize(n, t == SBRK_EAGER || n < 0) < 0)
+    return -1;
   return addr;
 }
 
@@ -84,13 +73,13 @@ sys_pause(void)
   tickslock.acquire();
   ticks0 = ticks;
   while (ticks - ticks0 < n) {
-    if (killed(myproc())) {
+    if (xv::process::current()->is_killed()) {
       tickslock.release();
       return -1;
     }
-    sleep_prepare(&ticks);
+    xv::process::prepare_sleep(&ticks);
     tickslock.release();
-    sleep();
+    xv::process::sleep();
     tickslock.acquire();
   }
   tickslock.release();
@@ -102,10 +91,10 @@ sys_pause(void)
 int
 sys_vmprint(void)
 {
-  struct proc *p;
+  xv::process::Process *p;
 
-  p = myproc();
-  vmprint(p->pagetable);
+  p = xv::process::current();
+  vmprint(p->memory().page_table());
   return 0;
 }
 #endif
@@ -119,7 +108,7 @@ sys_pgaccess(void)
   uchar bits[MAXPAGES / 8];
   uint64 base, out;
   int npages;
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
 
   argaddr(0, &base);
   argint(1, &npages);
@@ -134,7 +123,7 @@ sys_pgaccess(void)
   memset(bits, 0, nbytes);
   // Validate the whole range before changing any access bits.
   for (int i = 0; i < npages; i++) {
-    pte_t *pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
+    pte_t *pte = walk(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
     if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) ||
         !PTE_LEAF(*pte))
       return -1;
@@ -144,25 +133,25 @@ sys_pgaccess(void)
   if (out >= MAXVA || (uint64)nbytes > MAXVA - out)
     return -1;
   for (uint64 va = PGROUNDDOWN(out); va < out + nbytes; va += PGSIZE) {
-    pte_t *pte = walk(p->pagetable, va, 0);
+    pte_t *pte = walk(p->memory().page_table(), va, 0);
     if (pte == 0 || (*pte & (PTE_V | PTE_U | PTE_W)) !=
                     (PTE_V | PTE_U | PTE_W))
       return -1;
   }
   // Superpages share one hardware A bit. Demote them so later samples
   // still detect accesses at the 4 KiB granularity promised by pgaccess.
-  if (uvmdemote(p->pagetable, base, npages) < 0)
+  if (uvmdemote(p->memory().page_table(), base, npages) < 0)
     return -1;
   for (int i = 0; i < npages; i++) {
-    pte_t *pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
+    pte_t *pte = walk(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
     if (*pte & PTE_A)
       bits[i / 8] |= 1U << (i % 8);
   }
-  if (copyout(p->pagetable, p->sz, out, (char *)bits, nbytes) < 0)
+  if (copyout(p->memory().page_table(), p->memory().size(), out, (char *)bits, nbytes) < 0)
     return -1;
 
   for (int i = 0; i < npages; i++) {
-    pte_t *pte = walk(p->pagetable, base + (uint64)i * PGSIZE, 0);
+    pte_t *pte = walk(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
     *pte &= ~PTE_A;
   }
   // Invalidate cached translations so future accesses set PTE_A again.
@@ -177,7 +166,7 @@ sys_kill(void)
   int pid;
 
   argint(0, &pid);
-  return kkill(pid);
+  return xv::process::kill(pid);
 }
 
 // return how many clock tick interrupts have occurred
@@ -197,16 +186,11 @@ sys_uptime(void)
 uint64
 sys_cpupin(void)
 {
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
   int cpu;
 
   argint(0, &cpu);
-  if (cpu < 0 || cpu >= NCPU)
-    return -1;
-  p->lock.acquire();
-  p->pincpu = &cpus[cpu];
-  p->lock.release();
-  return 0;
+  return p->pin_cpu(cpu);
 }
 #endif
 }

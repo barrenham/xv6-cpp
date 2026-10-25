@@ -1,7 +1,7 @@
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
-#include "kernel/fs/fs.h"
+#include "kernel/fs/format/layout.h"
 #include "kernel/fs/fcntl.h"
 
 extern "C" {

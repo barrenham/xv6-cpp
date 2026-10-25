@@ -1,14 +1,18 @@
+import xv.drivers;
+
+import xv.fs;
+
+import xv.process;
+
 import xv.sync;
 
 #include <stdarg.h>
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/fs/fs.h"
-#include "kernel/fs/file.h"
+#include "kernel/fs/format/layout.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
-#include "kernel/process/proc.h"
 
 extern "C" {
 
@@ -55,7 +59,7 @@ statsread(int user_dst, uint64 dst, int n)
   if (m > 0) {
     if (m > n)
       m = n;
-    if (either_copyout(user_dst, dst, stats.buf + stats.off, m) != -1) {
+    if (xv::process::copy_out(user_dst, dst, stats.buf + stats.off, m) != -1) {
       stats.off += m;
     }
   } else {
@@ -67,13 +71,40 @@ statsread(int user_dst, uint64 dst, int n)
   return m;
 }
 
+class StatsDevice final : public xv::drivers::CharacterDevice
+{
+public:
+  constexpr StatsDevice() = default;
+  const char *name() const override
+  {
+    return "statistics";
+  }
+  void initialize() override
+  {
+    stats.lock.init("stats");
+  }
+  int read(xv::drivers::IoBuffer destination, int count) override
+  {
+    return statsread(destination.space == xv::drivers::AddressSpace::User,
+                     destination.address, count);
+  }
+  int write(xv::drivers::IoBuffer source, int count) override
+  {
+    return statswrite(source.space == xv::drivers::AddressSpace::User,
+                      source.address, count);
+  }
+  void put_sync(int) override
+  {
+    // The statistics device has no polling output operation.
+  }
+};
+static constinit StatsDevice stats_device;
+
 void
 statsinit(void)
 {
-  stats.lock.init("stats");
-
-  devsw[STATS].read = statsread;
-  devsw[STATS].write = statswrite;
+  stats_device.initialize();
+  xv::fs::devices().attach(STATS, stats_device);
 }
 
 #endif
@@ -92,11 +123,11 @@ uint64
 sys_pgpte(void)
 {
   uint64 va;
-  struct proc *p;
+  xv::process::Process *p;
 
-  p = myproc();
+  p = xv::process::current();
   argaddr(0, &va);
-  pte_t *pte = pgpte(p->pagetable, va);
+  pte_t *pte = pgpte(p->memory().page_table(), va);
   if (pte != 0) {
     return (uint64)*pte;
   }
@@ -130,20 +161,20 @@ cnt_level(pagetable_t pagetable, uint64 *nsuper, uint64 *n2, uint64 va_start, in
 
 uint64
 sys_ksupernpte() {
-  struct proc *p;
+  xv::process::Process *p;
   uint64 as, an;
   uint64 s = 0, n = 0;
 
   cnt_level(kernel_pagetable, &s, &n, 0, 2);
 
-  p = myproc();
+  p = xv::process::current();
   argaddr(0, &as);
   argaddr(1, &an);
 
-  if (copyout(p->pagetable, p->sz, as, (char *)&s, sizeof(uint64)) < 0) {
+  if (copyout(p->memory().page_table(), p->memory().size(), as, (char *)&s, sizeof(uint64)) < 0) {
     return -1;
   }
-  if (copyout(p->pagetable, p->sz, an, (char *)&n, sizeof(uint64)) < 0) {
+  if (copyout(p->memory().page_table(), p->memory().size(), an, (char *)&n, sizeof(uint64)) < 0) {
     return -1;
   }
 

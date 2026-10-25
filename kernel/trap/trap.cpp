@@ -1,3 +1,5 @@
+import xv.process;
+
 import xv.drivers;
 
 import xv.sync;
@@ -7,7 +9,6 @@ import xv.sync;
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
-#include "kernel/process/proc.h"
 #include "kernel/support/defs.h"
 
 extern "C" {
@@ -52,20 +53,20 @@ usertrap(void)
   // since we're now in the kernel.
   w_stvec((uint64)kernelvec); //DOC: kernelvec
 
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
 
   // save user program counter.
-  p->trapframe->epc = r_sepc();
+  p->registers()->epc = r_sepc();
 
   if (r_scause() == 8) {
     // system call
 
-    if (killed(p))
-      kexit(-1);
+    if (p->is_killed())
+      xv::process::exit_process(-1);
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
-    p->trapframe->epc += 4;
+    p->registers()->epc += 4;
 
     // an interrupt will change sepc, scause, and sstatus,
     // so enable only now that we're done with those registers.
@@ -75,26 +76,25 @@ usertrap(void)
   } else if ((which_dev = devintr()) != 0) {
     // ok
   } else if ((r_scause() == 15 || r_scause() == 13) &&
-             vmfault(p->pagetable, p->sz, r_stval(),
-                     (r_scause() == 13) ? 1 : 0) != 0) {
+             p->memory().handle_fault(r_stval(), r_scause() == 13) != 0) {
     // page fault on lazily-allocated page
   } else {
-    printk("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+    printk("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->id());
     printk("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
-    setkilled(p);
+    p->request_kill();
   }
 
-  if (killed(p))
-    kexit(-1);
+  if (p->is_killed())
+    xv::process::exit_process(-1);
 
   // give up the CPU if this is a timer interrupt.
   if (which_dev == 2)
-    yield();
+    xv::process::scheduler().yield();
 
   prepare_return();
 
   // the user page table to switch to, for trampoline.S
-  uint64 satp = MAKE_SATP(p->pagetable);
+  uint64 satp = MAKE_SATP(p->memory().page_table());
 
   // return to trampoline.S; satp value in a0.
   return satp;
@@ -106,7 +106,7 @@ usertrap(void)
 void
 prepare_return(void)
 {
-  struct proc *p = myproc();
+  xv::process::Process *p = xv::process::current();
 
   // we're about to switch the destination of traps from
   // kerneltrap() to usertrap(). because a trap from kernel
@@ -119,10 +119,10 @@ prepare_return(void)
 
   // set up trapframe values that uservec will need when
   // the process next traps into the kernel.
-  p->trapframe->kernel_satp = r_satp();         // kernel page table
-  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
-  p->trapframe->kernel_trap = (uint64)usertrap;
-  p->trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
+  p->registers()->kernel_satp = r_satp();         // kernel page table
+  p->registers()->kernel_sp = p->kernel_stack() + PGSIZE; // process's kernel stack
+  p->registers()->kernel_trap = (uint64)usertrap;
+  p->registers()->kernel_hartid = r_tp(); // hartid for xv::process::cpu_id()
 
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
@@ -134,7 +134,7 @@ prepare_return(void)
   w_sstatus(x);
 
   // set S Exception Program Counter to the saved user pc.
-  w_sepc(p->trapframe->epc);
+  w_sepc(p->registers()->epc);
 }
 
 // interrupts and exceptions from kernel code go here via kernelvec,
@@ -160,8 +160,8 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-  if (which_dev == 2 && myproc() != 0)
-    yield();
+  if (which_dev == 2 && xv::process::current() != 0)
+    xv::process::scheduler().yield();
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
@@ -172,10 +172,10 @@ kerneltrap()
 void
 clockintr()
 {
-  if (cpuid() == 0) {
+  if (xv::process::cpu_id() == 0) {
     tickslock.acquire();
     ticks++;
-    wakeup(&ticks);
+    xv::process::wakeup(&ticks);
     tickslock.release();
   }
 
@@ -198,7 +198,7 @@ devintr()
   if (scause == 0x8000000000000009L) {
     // this is a supervisor external interrupt, via PLIC.
 
-    xv::drivers::handle_external_interrupt(cpuid());
+    xv::drivers::handle_external_interrupt(xv::process::cpu_id());
 
     return 1;
   } else if (scause == 0x8000000000000005L) {

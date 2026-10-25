@@ -3,10 +3,12 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/fs/device_switch.h"
+#include "kernel/drivers/device_numbers.h"
 #include "kernel/support/defs.h"
 
 module xv.drivers;
+
+import xv.fs;
 
 import :uart;
 import :console;
@@ -24,17 +26,6 @@ constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
 constinit InterruptDevice *sources[] = {&uart, &disk};
 constinit InterruptRouter router(plic, sources, 2);
 
-int console_read(int user, unsigned long destination, int count)
-{
-  return terminal.read({user ? AddressSpace::User : AddressSpace::Kernel, destination},
-                       count);
-}
-
-int console_write(int user, unsigned long source, int count)
-{
-  return terminal.write({user ? AddressSpace::User : AddressSpace::Kernel, source},
-                        count);
-}
 } // namespace
 
 void initialize_console()
@@ -42,8 +33,7 @@ void initialize_console()
   terminal.initialize();
   uart.attach(terminal);
   uart.initialize();
-  devsw[CONSOLE].read = console_read;
-  devsw[CONSOLE].write = console_write;
+  xv::fs::devices().attach(CONSOLE, terminal);
 }
 
 void initialize_interrupts()

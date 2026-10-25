@@ -9,6 +9,8 @@ extern "C" volatile int panicked;
 
 module xv.drivers;
 
+import xv.process;
+
 import :platform;
 import xv.memory;
 
@@ -16,37 +18,37 @@ namespace xv::drivers::detail
 {
 void prepare_sleep(void *channel)
 {
-  sleep_prepare(channel);
+  xv::process::prepare_sleep(channel);
 }
 
 void sleep_process()
 {
-  sleep();
+  xv::process::sleep();
 }
 
 void wake_processes(void *channel)
 {
-  wakeup(channel);
+  xv::process::wakeup(channel);
 }
 
 bool process_killed()
 {
-  return killed(myproc());
+  return xv::process::current()->is_killed();
 }
 
 void dump_processes()
 {
-  procdump();
+  xv::process::dump();
 }
 
 int copy_in(void *destination, bool user, unsigned long source, unsigned count)
 {
-  return either_copyin(destination, user, source, count);
+  return xv::process::copy_in(destination, user, source, count);
 }
 
 int copy_out(bool user, unsigned long destination, void *source, unsigned count)
 {
-  return either_copyout(user, destination, source, count);
+  return xv::process::copy_out(user, destination, source, count);
 }
 
 void push_interrupts_off()

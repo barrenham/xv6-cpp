@@ -1,3 +1,5 @@
+import xv.fs;
+
 import xv.drivers;
 
 import xv.sync;
@@ -10,12 +12,10 @@ import xv.sync;
 
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/fs/fs.h"
-#include "kernel/fs/file.h"
+#include "kernel/fs/format/layout.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
-#include "kernel/process/proc.h"
 
 extern "C" {
 

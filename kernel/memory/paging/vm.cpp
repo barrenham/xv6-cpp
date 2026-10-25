@@ -1,13 +1,13 @@
+import xv.process;
+
 import xv.sync;
 
 #include "kernel/support/param.h"
 #include "kernel/support/types.h"
 #include "kernel/memory/layout/memlayout.h"
-#include "kernel/process/elf.h"
 #include "kernel/arch/riscv/riscv.h"
 #include "kernel/support/defs.h"
-#include "kernel/process/proc.h"
-#include "kernel/fs/fs.h"
+#include "kernel/fs/format/layout.h"
 
 import xv.memory;
 
@@ -79,7 +79,7 @@ extern "C"
     kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 
     // allocate and map a kernel stack for each process.
-    proc_mapstacks(kpgtbl);
+    xv::process::map_kernel_stacks(kpgtbl);
 
     xv::memory::PageTranslation translated;
     if (!owned.view().translate((uint64)etext - 1, translated) ||
@@ -691,7 +691,7 @@ extern "C"
   // Copy from kernel to user.
   // Copy len bytes from src to virtual address dstva in a given page table.
   // Return 0 on success, -1 on error.
-  int copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, char *src, uint64 len)
+  int copyout(pagetable_t pagetable, uint64 psz, uint64 dstva, const char *src, uint64 len)
   {
     uint64 n, va0, pa0;
     pte_t *pte;

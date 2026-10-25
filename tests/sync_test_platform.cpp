@@ -5,6 +5,7 @@ module;
 #include <cstdlib>
 #include <mutex>
 #include <vector>
+#include "native_wait.h"
 
 module xv.sync;
 
@@ -99,3 +100,19 @@ void wake_processes(void *channel)
   std::_Exit(99);
 }
 } // namespace xv::sync::detail
+
+// Shared scheduler emulation for native filesystem wait/wakeup paths.
+extern "C" void xv_test_prepare_sleep(void *channel)
+{
+  xv::sync::detail::prepare_sleep(channel);
+}
+
+extern "C" void xv_test_sleep()
+{
+  xv::sync::detail::sleep_process();
+}
+
+extern "C" void xv_test_wakeup(void *channel)
+{
+  xv::sync::detail::wake_processes(channel);
+}
