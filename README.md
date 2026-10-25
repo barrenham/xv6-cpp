@@ -158,6 +158,13 @@ GDB 使用支持 RISC-V 的版本，加载 `build/dev/kernel.elf`，执行 `targ
 
 最小信号机制支持 `sigsend`、SIGINT/SIGKILL/SIGTERM 默认终止和进程组投递，可运行 `signaltest`，详见 [信号说明](kernel/process/signals/README.md)。
 
-交互 shell 已接入 [控制终端、前台进程组与 Ctrl-C](kernel/drivers/tty/foreground.md)，命令与管道退出后收回终端；Ctrl-Z、jobs、fg/bg 已实现。
+交互 shell 已接入 [控制终端、前台进程组与 Ctrl-C](kernel/drivers/tty/docs/foreground.md)，命令与管道退出后收回终端；Ctrl-Z、jobs、fg/bg 已实现。
 
 停止/继续、waitpid 事件和 shell 作业控制详见 [作业控制说明](kernel/process/signals/job-control.md)。
+
+匿名 PTY 已接入现有 TTY、termios 与作业控制。运行 `pty` 启动内层 shell，
+Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API、限制和验证
+见 [PTY 说明](kernel/drivers/tty/docs/pty.md)。
+
+`poll` 已支持管道、TTY、PTY 与普通文件就绪查询和阻塞等待。PTY 代理使用
+单进程事件循环，`ptytest poll` 检查新接口；实现与限制见 [poll 说明](kernel/fs/poll.md)。

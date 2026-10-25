@@ -71,6 +71,27 @@ bool process_killed()
   return xv::process::current()->is_killed();
 }
 
+void hangup_terminal(void *terminal)
+{
+  xv::process::post_terminal_interrupt(terminal, SIGHUP);
+  xv::process::service_signal_notifications();
+}
+
+void detach_terminal(void *terminal)
+{
+  xv::process::detach_terminal(terminal);
+}
+
+void service_terminal_signals()
+{
+  xv::process::service_signal_notifications();
+}
+
+void free_terminal_page(void *page)
+{
+  xv::memory::allocator().deallocate(page);
+}
+
 void dump_processes()
 {
   xv::process::dump();

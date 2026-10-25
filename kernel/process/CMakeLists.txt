@@ -5,6 +5,7 @@ xv_add_process_internals(kernel)
 target_sources(kernel PRIVATE
   arch/cpu.cpp
   lifecycle/first_return.cpp
+  wait/poll_wait.cpp
   wait/sleep.cpp
   wait/wait_child.cpp
   scheduler/runtime/scheduler_context.cpp

@@ -34,6 +34,7 @@ constinit InterruptRouter router(plic, sources, 2);
 void initialize_console()
 {
   terminal.initialize();
+  initialize_ptys();
   uart.attach(terminal);
   uart.initialize();
   xv::fs::devices().attach(CONSOLE, terminal);
@@ -66,6 +67,7 @@ CharacterDevice &console()
 void terminal_timer_tick()
 {
   terminal.timer_tick();
+  pty_timer_tick();
 }
 
 SerialPort &serial_port()

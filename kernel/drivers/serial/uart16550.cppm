@@ -30,6 +30,7 @@ public:
   void put_sync(int character) override;
   void drain() override;
   void handle_interrupt() override;
+  bool writable(xv::sync::PollTable *table = nullptr) override;
 
 private:
 

@@ -6,6 +6,7 @@ export import :address_space;
 export import :process;
 export import :scheduler;
 export import :executable;
+export import :poll;
 
 export namespace xv::process
 {
@@ -22,6 +23,7 @@ int set_signal_disposition(int signal, int action);
 void post_terminal_interrupt(void *terminal, int signal);
 void service_signal_notifications();
 int claim_terminal(void *terminal);
+void detach_terminal(void *terminal);
 int terminal_foreground(void *terminal);
 int set_terminal_foreground(void *terminal, int group);
 bool may_read_terminal(void *terminal);
@@ -33,6 +35,8 @@ void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
 void sleep();
 void wakeup(void *channel);
+PollWait make_poll_wait();
+void poll_timer_tick(unsigned long milliseconds);
 void dump();
 int copy_in(void *destination, bool user, unsigned long source, unsigned long count);
 int copy_out(bool user, unsigned long destination, const void *source,

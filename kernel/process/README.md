@@ -227,3 +227,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 
 `waitpid` 支持退出/停止/继续事件和非阻塞查询，旧 wait 退出状态 ABI 保持不变；
 具体状态编码、锁顺序和可中断 syscall 重试见 [作业控制说明](signals/job-control.md)。
+
+poll 等待上下文由 wait/poll_wait.cppm 定义，单次调用可订阅多个对象通道；
+WaitChannels 按通道匹配通知并管理有限超时，无限等待不接收全局时钟广播。
+接口和锁顺序见 [poll 说明](../fs/poll.md)。

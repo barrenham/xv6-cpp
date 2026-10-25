@@ -51,3 +51,5 @@
 #define SYS_sigdisposition 46
 
 #define SYS_waitpid 47
+#define SYS_openpty 48
+#define SYS_poll 49

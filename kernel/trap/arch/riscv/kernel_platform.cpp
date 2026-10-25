@@ -168,6 +168,7 @@ void service_timer_devices()
 {
   if (hart_id() == 0)
   {
+    xv::process::poll_timer_tick(xv::arch::r_time() / 10000);
     xv::drivers::terminal_timer_tick();
   }
 }

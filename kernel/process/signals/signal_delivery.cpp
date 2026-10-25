@@ -170,6 +170,7 @@ void ProcessManager::post_terminal_interrupt(void *terminal, int signal)
       if (process && process != initial_)
       {
         process->pending_signals_.post(signal_);
+        if (signal_ == SIGHUP) process->pending_signals_.post(SIGCONT);
       }
     }
 

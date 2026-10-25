@@ -14,6 +14,7 @@ import :cpu;
 import :paged_store;
 import :fifo_queue;
 import :wait_channels;
+import :poll;
 
 namespace xv::process::test
 {
@@ -297,6 +298,86 @@ void concurrent_channels()
         "concurrent notifications cannot retain or dereference retired waiters");
 }
 
+void poll_subscriptions()
+{
+  PagedProcessStore store;
+  store.initialize();
+  UnusedScheduler scheduler;
+  WaitChannels waits(scheduler);
+  waits.initialize();
+  auto *first = store.allocate();
+  Access::unlock(*first);
+  auto *second = store.allocate();
+  Access::unlock(*second);
+  int a, b, unrelated;
+  const auto baseline = xv_storage_live_pages();
+  {
+    PollWait left(*first, waits), right(*second, waits);
+    left.watch(&a);
+    left.watch(&b);
+    left.watch(&a);
+    right.watch(&b);
+    check(xv_storage_live_pages() == baseline + 2,
+          "poll deduplicates subscriptions in per-call storage");
+    waits.wake(&unrelated);
+    waits.expire_timers(~0UL);
+    check(!left.triggered() && !right.triggered(),
+          "unrelated queues and ticks do not notify infinite poll");
+    waits.wake(&a);
+    check(left.triggered() && !right.triggered(), "only subscribed poll is notified");
+    left.sleep(); // Notification before sleep must skip the scheduler.
+    check(!left.triggered(), "early notification consumed without sleeping");
+    waits.wake(&b);
+    check(left.triggered() && right.triggered(), "shared queue notifies both contexts");
+    left.sleep(); right.sleep();
+    left.set_deadline(1000);
+    waits.expire_timers(999);
+    check(!left.triggered(), "timer does not notify before deadline");
+    waits.expire_timers(1000);
+    check(left.triggered() && !right.triggered(), "only due finite poll is notified");
+    left.sleep();
+    waits.expire_timers(1001);
+    check(!left.triggered(), "deadline is removed after notification");
+  }
+  check(xv_storage_live_pages() == baseline, "poll destruction frees all pages");
+  waits.wake(&a); waits.wake(&b); waits.expire_timers(~0UL);
+  xv_storage_fail_after(0);
+  {
+    PollWait failed(*first, waits);
+    failed.watch(&a);
+    check(failed.failed(), "subscription allocation failure is reported");
+  }
+  xv_storage_fail_after(-1);
+  std::atomic<bool> stop{false};
+  std::thread notifier([&]
+  {
+    while (!stop.load())
+    {
+      waits.wake(&a);
+      waits.expire_timers(1000);
+    }
+  });
+  for (int i = 0; i < 500; ++i)
+  {
+    PollWait wait(*first, waits);
+    wait.watch(&a);
+    wait.watch(&b);
+    wait.set_deadline(1000);
+  }
+  stop.store(true);
+  notifier.join();
+  check(xv_storage_live_pages() == baseline,
+        "concurrent notify/timer/destruction leave no dangling subscriptions");
+  first->request_kill();
+  {
+    PollWait interrupted(*first, waits);
+    interrupted.sleep(); // A pending signal skips sleep without recursive locking.
+  }
+  Access::lock(*first); store.release(first);
+  Access::lock(*second); store.release(second);
+  check(xv_storage_live_pages() == 0, "poll owners retire without residual waits");
+}
+
 void concurrent()
 {
   PagedProcessStore store;
@@ -370,6 +451,7 @@ extern "C" int run_process_storage_contracts()
   xv::process::test::channels();
   xv::process::test::interrupted_channels();
   xv::process::test::concurrent_channels();
+  xv::process::test::poll_subscriptions();
   xv::process::test::concurrent();
   std::puts("process storage and ready queue contracts: passed");
   return 0;

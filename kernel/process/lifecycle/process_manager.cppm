@@ -32,6 +32,7 @@ public:
   void post_terminal_interrupt(void *terminal, int signal);
   void service_signal_notifications();
   int claim_terminal(void *terminal);
+  void detach_terminal(void *terminal);
   int terminal_foreground(void *terminal);
   int set_terminal_foreground(void *terminal, int group);
   bool may_read_terminal(void *terminal);

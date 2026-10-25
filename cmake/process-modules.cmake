@@ -23,6 +23,7 @@ function(xv_add_process_interfaces target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/process_module.cppm"
+      "${module_root}/wait/poll_wait.cppm"
       "${module_root}/arch/registers.cppm"
       "${module_root}/resources/process_resources.cppm"
       "${module_root}/resources/resource_platform.cppm"
@@ -41,12 +42,13 @@ function(xv_add_process_core_modules target)
     FILE_SET process_core_modules TYPE CXX_MODULES
     BASE_DIRS "${module_root}"
     FILES
+      "${module_root}/wait/poll_entry.cppm"
+      "${module_root}/wait/wait_channels.cppm"
       "${module_root}/arch/cpu.cppm"
       "${module_root}/storage/process_store.cppm"
       "${module_root}/storage/paged_process_store.cppm"
       "${module_root}/storage/platform.cppm"
       "${module_root}/scheduler/queues/ready_queue.cppm"
-      "${module_root}/wait/wait_channels.cppm"
       "${module_root}/scheduler/queues/fifo_ready_queue.cppm"
   )
 endfunction()

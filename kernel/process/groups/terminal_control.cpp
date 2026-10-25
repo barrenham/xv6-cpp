@@ -80,6 +80,20 @@ void ProcessGroups::exit_terminal(const ProcessMembership &caller)
   }
 }
 
+void ProcessGroups::detach_terminal(void *terminal)
+{
+  xv::sync::ScopedLock guard(lock_);
+  for (auto *group = groups_; group; group = group->next)
+  {
+    auto *session = group->session;
+    if (session->terminal == terminal)
+    {
+      session->terminal = nullptr;
+      session->foreground = 0;
+    }
+  }
+}
+
 void ProcessGroups::visit_foreground(void *terminal, GroupVisitor &visitor)
 {
   xv::sync::ScopedLock guard(lock_);

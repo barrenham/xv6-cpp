@@ -10,6 +10,7 @@ typedef long int off_t;
 
 struct stat;
 struct termios;
+struct pollfd;
 
 // system calls
 int fork(void);
@@ -17,6 +18,9 @@ int exit(int) __attribute__((noreturn));
 int wait(int *);
 int waitpid(int pid, int *status, int options);
 int pipe(int *);
+// Anonymous PTY: fds[0] is master, fds[1] is slave.
+int openpty(int fds[2]);
+int poll(struct pollfd *fds, int count, int timeout_ms);
 int write(int, const void *, int);
 int read(int, void *, int);
 int close(int);

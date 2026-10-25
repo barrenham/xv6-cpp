@@ -3,6 +3,7 @@ module;
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/fs/poll.h"
 
 module xv.fs;
 import :platform;
@@ -11,6 +12,19 @@ import :pipe;
 namespace xv::fs
 {
 static_assert(sizeof(Pipe) <= 4096);
+
+unsigned Pipe::poll(bool writable, xv::sync::PollTable *table)
+{
+  xv::sync::ScopedLock guard(lock_);
+  if (table) table->watch(writable ? static_cast<void *>(&written_) : &read_);
+  if (writable)
+  {
+    if (!reader_open_) return POLLERR;
+    return written_ - read_ < Capacity ? POLLOUT : 0;
+  }
+  unsigned events = written_ != read_ || !writer_open_ ? POLLIN : 0;
+  return events | (writer_open_ ? 0 : POLLHUP);
+}
 
 void Pipe::initialize()
 {

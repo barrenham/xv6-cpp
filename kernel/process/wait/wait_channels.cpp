@@ -1,6 +1,7 @@
 module xv.process;
 import :wait_channels;
 import :storage_platform;
+import :poll;
 
 namespace xv::process
 {
@@ -12,6 +13,7 @@ unsigned WaitChannels::index(void *channel)
 
 void WaitChannels::initialize()
 {
+  timer_lock_.init("poll timers");
   for (auto &bucket : buckets_)
   {
     bucket.lock.init("wait channel");
@@ -106,5 +108,7 @@ void WaitChannels::wake(void *channel)
     }
     process = next;
   }
+  for (auto *entry = bucket.pollers; entry; entry = entry->next)
+    if (entry->channel == channel) entry->owner->notify();
 }
 } // namespace xv::process

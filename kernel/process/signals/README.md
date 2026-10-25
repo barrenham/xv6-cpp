@@ -1,6 +1,6 @@
 # 最小信号机制
 
-当前实现支持 SIGINT(2)、SIGKILL(9)、SIGTERM(15) 的默认终止动作，作为后续
+当前实现支持 SIGHUP(1)、SIGINT(2)、SIGKILL(9)、SIGTERM(15) 的默认终止动作，作为后续
 TTY 前台进程组与 Ctrl-C 的基础。参考 [Linux 信号说明](https://man7.org/linux/man-pages/man7/signal.7.html)
 及 [kill 的目标选择语义](https://man7.org/linux/man-pages/man2/kill.2.html)。
 这不是完整 POSIX 信号接口：暂不支持用户处理器、屏蔽、实时信号、
@@ -52,7 +52,7 @@ signaltest
 
 Process 拥有一个 `PendingSignals`，采用原子位集；相同普通信号重复发送会
 合并，不排队计数。当前全部受支持信号都终止进程；同时待处理时优先选
-SIGKILL，再选 SIGINT、SIGTERM。fork 构造空的子进程待处理集，不复制父集；
+SIGKILL，再选 SIGINT、SIGTERM、SIGHUP。fork 构造空的子进程待处理集，不复制父集；
 exec 保留当前待处理集；reap 在解除成员登记后清空状态。
 
 发送信号只登记状态、唤醒可中断等待者。目标在自己的内核执行上下文中，
@@ -60,7 +60,7 @@ exec 保留当前待处理集；reap 在解除成员登记后清空状态。
 exit 路径关闭描述符、清理目录、转交子进程并成为 Zombie，最终由 wait 回收。
 不会在发送者或硬件中断中直接销毁目标，也不会在任意持锁位置强行退出。
 首次调度进入用户态前，以及让出 CPU 后重新准备返回用户态时同样检查。
-SIGINT/SIGTERM 现在允许默认/忽略两种处置，详见 [前台终端说明](../../drivers/tty/foreground.md)。
+SIGHUP/SIGINT/SIGTERM 现在允许默认/忽略两种处置，详见 [前台终端说明](../../drivers/tty/docs/foreground.md)。
 无跨 CPU 重调度 IPI，正在另一核运行的目标最迟在后续 trap/返回检查响应。
 
 旧 `killed` 标记仍用于 kill 和异常终止。`is_killed()` 同时检查它与待处理
@@ -112,3 +112,6 @@ shell 命令，验证终端锁与描述符没有被终止路径遗留。
 TTY 现已启用 VINTR/ISIG 并按控制终端前台组投递 SIGINT；UART 中断只原子
 登记，外部中断路由释放设备锁后再唤醒进程。用户态自定义处理器、Ctrl-Z
 已支持停止/继续，仍不支持用户自定义信号处理器。
+
+PTY master 关闭时，对其前台组投递 SIGHUP 和 SIGCONT，并解除终端关联，
+详见 [PTY 说明](../../drivers/tty/docs/pty.md)。

@@ -1,5 +1,6 @@
 module;
 #include "kernel/tty/termios.h"
+#include "kernel/fs/poll.h"
 
 module xv.drivers;
 import :tty;
@@ -46,15 +47,15 @@ void Tty::initialize()
 void Tty::put_sync(int character)
 {
   // Kernel diagnostics bypass termios, including during panic.
-  serial_.put_sync(character);
+  output_.put_sync(character);
 }
 
 void Tty::receive(int character)
 {
   xv::sync::ScopedLock guard(lock_);
   auto action =
-      discipline_.receive(static_cast<unsigned char>(character), settings_, serial_);
-  if (action != InputAction::None)
+      discipline_.receive(static_cast<unsigned char>(character), settings_, output_);
+  if (action == InputAction::Interrupt || action == InputAction::Suspend)
   {
     detail::post_terminal_interrupt(this, action == InputAction::Suspend);
   }
@@ -62,6 +63,64 @@ void Tty::receive(int character)
   {
     detail::wake_processes(&discipline_);
   }
+}
+
+int Tty::inject(unsigned char character)
+{
+  lock_.acquire();
+  for (;;)
+  {
+    if (hungup_ || detail::process_killed())
+    {
+      lock_.release();
+      return -1;
+    }
+    auto action = discipline_.receive(character, settings_, output_);
+    if (action != InputAction::Retry)
+    {
+      if (action == InputAction::Interrupt || action == InputAction::Suspend)
+        detail::post_terminal_interrupt(this, action == InputAction::Suspend);
+      detail::wake_processes(&discipline_);
+      lock_.release();
+      return 0;
+    }
+    detail::prepare_interruptible_sleep(&discipline_);
+    lock_.release();
+    detail::sleep_process();
+    lock_.acquire();
+  }
+}
+
+void Tty::hangup()
+{
+  xv::sync::ScopedLock guard(lock_);
+  hungup_ = true;
+  // Publish an unfinished canonical line, then let readers drain it before EOF.
+  discipline_.change_mode(false);
+  detail::detach_terminal(this);
+  detail::wake_processes(&discipline_);
+}
+
+bool Tty::input_writable(xv::sync::PollTable *table)
+{
+  xv::sync::ScopedLock guard(lock_);
+  if (table) table->watch(&discipline_);
+  return !hungup_ && discipline_.input_room(settings_.c_lflag & ICANON);
+}
+
+unsigned Tty::poll(xv::sync::PollTable *table)
+{
+  lock_.acquire();
+  if (table) table->watch(&discipline_);
+  unsigned minimum = 1;
+  if (!(settings_.c_lflag & ICANON) && !settings_.c_cc[VTIME] && settings_.c_cc[VMIN])
+    minimum = settings_.c_cc[VMIN];
+  unsigned events = discipline_.available() >= minimum ? POLLIN : 0;
+  bool disconnected = hungup_;
+  lock_.release();
+  if (disconnected) return events | POLLIN | POLLHUP;
+  if ((!table || (table->events() & POLLOUT)) && output_.writable(table)) events |= POLLOUT;
+  return events;
 }
 
 void Tty::timer_tick()
@@ -153,7 +212,7 @@ int Tty::read(IoBuffer destination, int count)
       discipline_.consume();
       finished = true;
     }
-    if (finished || done == count)
+    if (finished || done == count || hungup_)
     {
       break;
     }
@@ -174,6 +233,7 @@ int Tty::read(IoBuffer destination, int count)
       fault = true;
       break;
     }
+    detail::wake_processes(&discipline_);
     timed_wait_ = timeout && (!minimum || done);
     detail::prepare_interruptible_sleep(&discipline_);
     lock_.release();
@@ -181,6 +241,7 @@ int Tty::read(IoBuffer destination, int count)
     lock_.acquire();
     timed_wait_ = false;
   }
+  detail::wake_processes(&discipline_);
   lock_.release();
   return done ? done : (fault ? -1 : 0);
 }
@@ -198,7 +259,9 @@ int Tty::write(IoBuffer source, int count)
   xv::sync::ScopedLock writer(write_lock_, xv::sync::adopt_lock);
   lock_.acquire();
   unsigned flags = settings_.c_oflag;
+  bool disconnected = hungup_;
   lock_.release();
+  if (disconnected) return count == 0 ? 0 : -1;
   int done = 0;
   while (done < count)
   {
@@ -226,7 +289,8 @@ int Tty::write(IoBuffer source, int count)
       }
       output[used++] = input[i];
     }
-    serial_.write(output, used);
+    if (output_.transmit(output, used) != used)
+      return done ? done : -1;
     done += part;
   }
   return done;
@@ -242,7 +306,7 @@ int Tty::ioctl(unsigned request, IoBuffer argument)
       return -1;
     }
     xv::sync::ScopedLock guard(lock_);
-    return detail::claim_terminal(this);
+    return hungup_ ? -1 : detail::claim_terminal(this);
   }
   if (request == TIOCGPGRP)
   {
@@ -290,7 +354,7 @@ int Tty::ioctl(unsigned request, IoBuffer argument)
       {
         return -1;
       }
-      serial_.drain();
+      output_.drain();
     }
     lock_.acquire();
     if (request == TCSETSF)

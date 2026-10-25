@@ -18,6 +18,8 @@ set(programs
   apps/ls/ls.cpp
   apps/mkdir/mkdir.cpp
   apps/rm/rm.cpp
+  apps/pty/pty.cpp
+  tests/ptytest.cpp
   apps/sh/sh.cpp
   apps/sync/sync.cpp
   apps/stty/stty.cpp
@@ -46,3 +48,6 @@ foreach(source IN LISTS programs)
   xv_add_program("${source}")
 endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
+
+# Poll contracts reuse the PTY test executable and installed inode.
+target_sources(user_ptytest PRIVATE tests/poll_checks.cpp)

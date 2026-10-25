@@ -23,6 +23,8 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_exit: return sys_exit;
   case SYS_wait: return sys_wait;
   case SYS_waitpid: return sys_waitpid;
+  case SYS_openpty: return sys_openpty;
+  case SYS_poll: return sys_poll;
   case SYS_pipe: return sys_pipe;
   case SYS_read: return sys_read;
   case SYS_kill: return sys_kill;

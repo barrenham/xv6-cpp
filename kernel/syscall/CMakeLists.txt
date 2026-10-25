@@ -6,6 +6,7 @@ target_sources(kernel PRIVATE
 target_sources(kernel PRIVATE
   syscall.cpp
   arguments.cpp
+  syspoll.cpp
   sysfile.cpp
   sysproc.cpp
   sysvm.cpp

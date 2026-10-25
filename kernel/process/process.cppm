@@ -93,6 +93,7 @@ private:
   friend class ProcessStore;
   friend class ReadyQueue;
   friend class WaitChannels;
+  friend class PollWait;
   friend class SchedulerContext;
   friend void prepare_sleep(void *channel);
   friend void sleep();

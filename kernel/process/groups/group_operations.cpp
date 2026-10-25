@@ -31,6 +31,11 @@ void ProcessManager::did_exec(Process &process)
   groups_.did_exec(process.membership_);
 }
 
+void ProcessManager::detach_terminal(void *terminal)
+{
+  groups_.detach_terminal(terminal);
+}
+
 int ProcessManager::claim_terminal(void *terminal)
 {
   return groups_.claim_terminal(current()->membership_, terminal);

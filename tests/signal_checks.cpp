@@ -24,7 +24,7 @@ void pending()
   PendingSignals signals;
   check(signals.pending() == 0 && signals.terminating_signal() == 0,
         "empty pending set");
-  check(!signals.post(0) && !signals.post(-1) && !signals.post(1) &&
+  check(!signals.post(0) && !signals.post(-1) && !signals.post(3) &&
             !signals.post(32) && signals.pending() == 0,
         "unsupported signal validation");
   check(signals.post(SIGTERM) && signals.post(SIGTERM) &&
@@ -36,6 +36,12 @@ void pending()
   check(signals.terminating_signal() == SIGKILL, "SIGKILL takes priority");
   signals.reset();
   check(signals.pending() == 0, "reap reset");
+  check(signals.post(SIGHUP) && signals.terminating_signal() == SIGHUP,
+        "hangup default termination");
+  check(signals.disposition(SIGHUP, SIGNAL_IGNORE) == SIGNAL_DEFAULT &&
+        signals.pending() == 0 && signals.post(SIGHUP) && signals.pending() == 0,
+        "hangup ignore disposition");
+  signals.reset();
   std::vector<std::thread> senders;
   for (int i = 0; i < 6; ++i)
   {

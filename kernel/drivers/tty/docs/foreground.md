@@ -42,7 +42,7 @@ TTY 状态锁可以先于组锁，但组遍历回调不取得进程锁、不睡�
 
 默认 VINTR=3，ISIG 开启。关闭 ISIG 或使用 cfmakeraw 后，Ctrl-C 是普通字节；
 Ctrl-V 引用的 Ctrl-C 也不会产生信号。Ctrl-Z 现由 VSUSP 转成 SIGTSTP；停止/继续与 fg/bg 见
-[作业控制说明](../../process/signals/job-control.md)。
+[作业控制说明](../../../process/signals/job-control.md)。
 
 ## shell 的交接流程
 

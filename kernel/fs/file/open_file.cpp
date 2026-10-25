@@ -3,10 +3,12 @@ module;
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/fs/poll.h"
 
 module xv.fs;
 import :platform;
 import :operations;
+import :pipe;
 
 namespace xv::fs
 {
@@ -66,6 +68,7 @@ void OpenFileTable::release(File *file)
   detached.node = file->node;
   detached.writable = file->writable;
   detached.major = file->major;
+  detached.endpoint = file->endpoint;
   file->type = File::Kind::None;
   lock_.release();
   // Final release can sleep and must happen outside the table's spinlock.
@@ -79,6 +82,9 @@ void OpenFileTable::release(File *file)
     break;
   case File::Kind::Device:
     device_operations.close(detached);
+    break;
+  case File::Kind::Endpoint:
+    detached.endpoint->close();
     break;
   case File::Kind::None:
     break;
@@ -95,6 +101,13 @@ void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writ
   file.writable = writable;
 }
 
+void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
+{
+  file.type = File::Kind::Endpoint;
+  file.endpoint = &endpoint;
+  file.readable = file.writable = true;
+}
+
 void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
 {
   file.type = File::Kind::Pipe;
@@ -109,6 +122,8 @@ int OpenFileTable::read(File *file, unsigned long address, int count)
   {
     return -1;
   }
+  if (file->type == File::Kind::Endpoint)
+    return file->endpoint->read({xv::drivers::AddressSpace::User, address}, count);
   FileOperations *operations = nullptr;
   switch (file->type)
   {
@@ -133,6 +148,8 @@ int OpenFileTable::write(File *file, unsigned long address, int count)
   {
     return -1;
   }
+  if (file->type == File::Kind::Endpoint)
+    return file->endpoint->write({xv::drivers::AddressSpace::User, address}, count);
   FileOperations *operations = nullptr;
   switch (file->type)
   {
@@ -153,6 +170,13 @@ int OpenFileTable::write(File *file, unsigned long address, int count)
 
 int OpenFileTable::stat(File *file, unsigned long address)
 {
+  if (file->type == File::Kind::Endpoint)
+  {
+    Stat value{};
+    value.type = T_DEVICE;
+    value.nlink = 1;
+    return detail::copy_out(true, address, &value, sizeof(value));
+  }
   if (file->type == File::Kind::Inode)
   {
     return inode_operations.stat(*file, address);
@@ -166,6 +190,8 @@ int OpenFileTable::stat(File *file, unsigned long address)
 
 int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
 {
+  if (file->type == File::Kind::Endpoint)
+    return file->endpoint->ioctl(request, {xv::drivers::AddressSpace::User, argument});
   if (file->type != File::Kind::Device)
   {
     return -1;
@@ -173,6 +199,34 @@ int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
   auto *device = devices().get(file->major);
   return device ? device->ioctl(request, {xv::drivers::AddressSpace::User, argument})
                 : -1;
+}
+
+unsigned OpenFileTable::poll(File *file, xv::sync::PollTable *table)
+{
+  unsigned events;
+  switch (file->type)
+  {
+  case File::Kind::Pipe:
+    events = file->pipe->poll(file->writable, table);
+    break;
+  case File::Kind::Endpoint:
+    events = file->endpoint->poll(table);
+    break;
+  case File::Kind::Device:
+  {
+    auto *device = devices().get(file->major);
+    events = device ? device->poll(table) : POLLERR;
+    break;
+  }
+  case File::Kind::Inode:
+    events = POLLIN | POLLOUT;
+    break;
+  default:
+    return POLLNVAL;
+  }
+  if (!file->readable) events &= ~POLLIN;
+  if (!file->writable) events &= ~POLLOUT;
+  return events;
 }
 
 void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)

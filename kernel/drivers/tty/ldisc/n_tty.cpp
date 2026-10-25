@@ -18,7 +18,7 @@ bool word_space(unsigned char byte)
   return byte == ' ' || byte == '\t';
 }
 
-void echo(unsigned char byte, const termios &settings, SerialPort &serial)
+void echo(unsigned char byte, const termios &settings, TerminalOutput &serial)
 {
   if ((settings.c_lflag & ECHOCTL) && (byte < 32 || byte == 127) && byte != '\n' &&
       byte != '\t')
@@ -34,6 +34,12 @@ void echo(unsigned char byte, const termios &settings, SerialPort &serial)
   serial.put_sync(byte);
 }
 } // namespace
+
+bool NttyDiscipline::input_room(bool canonical) const
+{
+  return head_ - tail_ < Capacity &&
+         (!canonical || head_ - tail_ < Capacity - 1 || committed_ == tail_);
+}
 
 unsigned NttyDiscipline::available() const
 {
@@ -90,7 +96,7 @@ void NttyDiscipline::change_mode(bool canonical)
   literal_ = false;
 }
 
-void NttyDiscipline::erase(const termios &settings, SerialPort &output)
+void NttyDiscipline::erase(const termios &settings, TerminalOutput &output)
 {
   if (head_ == committed_)
   {
@@ -123,7 +129,7 @@ void NttyDiscipline::erase(const termios &settings, SerialPort &output)
 }
 
 InputAction NttyDiscipline::receive(unsigned char byte, const termios &settings,
-                                    SerialPort &output)
+                                    TerminalOutput &output)
 {
   if (settings.c_iflag & ISTRIP)
   {
@@ -216,6 +222,11 @@ InputAction NttyDiscipline::receive(unsigned char byte, const termios &settings,
   // partial canonical line. Erase/kill remain usable while the ring is full.
   if (head_ - tail_ >= Capacity || (canonical && !end && head_ - tail_ >= Capacity - 1))
   {
+    if (committed_ != tail_)
+    {
+      literal_ = quoted;
+      return InputAction::Retry;
+    }
     return InputAction::None;
   }
   ring_[head_++ % Capacity] = {byte, end, eof};

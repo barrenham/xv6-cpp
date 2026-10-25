@@ -43,6 +43,7 @@ public:
   int set_foreground(const ProcessMembership &caller, void *terminal, int group);
   bool may_read_terminal(const ProcessMembership &caller, void *terminal);
   void exit_terminal(const ProcessMembership &caller);
+  void detach_terminal(void *terminal);
   void visit_foreground(void *terminal, GroupVisitor &visitor);
   bool create_initial(ProcessMembership &member, int pid);
   void inherit(ProcessMembership &child, int pid, const ProcessMembership &parent);

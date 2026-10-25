@@ -12,8 +12,10 @@ flowchart LR
   F --> T[Tty: 设置、等待与设备操作]
   T --> L[LineDiscipline 接口]
   L --> N[NttyDiscipline: 字节处理与规范记录]
-  T --> S[SerialPort 接口]
+  T --> O[TerminalOutput 接口]
+  O --> S[SerialPort]
   S --> H[Uart16550]
+  O --> P[PTY 输出缓冲]
   H -->|接收中断| T
 ```
 
@@ -21,7 +23,22 @@ flowchart LR
 依赖。`LineDiscipline` 是可替换抽象；具体 `Tty`、`NttyDiscipline` 和 UART
 实现留在内部模块分区。现有主设备号 CONSOLE 的 `console` 节点接入此 TTY，
 已有 init/sh 的打开和继承流程继续工作。设备名称为 ttyS0，目前没有额外的
-设备节点枚举、`/dev/tty` 控制终端别名或动态终端注册。
+设备节点枚举或 `/dev/tty` 控制终端别名；动态 PTY 通过 openpty 直接获得描述符。
+
+## 目录与职责
+
+```text
+tty/
+  core/   Tty、TerminalOutput：终端状态、读写等待和输出后端接口
+  ldisc/  LineDiscipline、NttyDiscipline：输入缓冲、编辑和控制字符
+  pty/    Pty：动态 master/slave 端点、输出缓冲和生命周期
+  docs/   控制终端与 PTY 的详细说明
+```
+
+文件位置改变不改变 C++ 模块名；构建清单、迁移映射和 clangd 检查已同步。
+Tty 的输出引用命名为 output_，串口和 PTY 分别注入各自的实现。
+`CharacterDevice::poll` 提供非阻塞就绪查询，TerminalOutput::writable 查询
+输出后端空间；等待与超时统一由 [poll](../../fs/poll.md) 处理。
 
 ## 支持的行为
 
@@ -32,7 +49,7 @@ flowchart LR
   因而 VMIN 大于输入缓冲容量也不会单纯因容量而无法满足。
 - ISTRIP、IGNCR、ICRNL、INLCR 输入处理；OPOST、ONLCR 输出处理。
 - ECHO、ECHOE、ECHOK、ECHOKE、ECHONL、ECHOCTL 回显；原始模式不执行规范行编辑。
-- 控制终端、前台进程组与 Ctrl-C：见 [终端交接与验证](foreground.md)。
+- 控制终端、前台进程组与 Ctrl-C：见 [终端交接与验证](docs/foreground.md)。
 - `TCGETS`、`TCSETS`、`TCSETSW`、`TCSETSF`、`TCFLSH(TCIFLUSH)`、
   `TIOCGWINSZ`、`TIOCSWINSZ`、`FIONREAD`。
 - `ioctl`、`tcgetattr`、`tcsetattr`、`tcflush`、`cfmakeraw` 用户接口。
@@ -64,7 +81,8 @@ TTY 自旋锁保护设置、行规程状态、窗口大小和定时等待标记�
 
 写操作先在状态锁下取得输出模式快照，再释放自旋锁完成用户复制与串口写入。
 TCSETSW/F 取得写锁并等待 UART LSR.TEMT，包括移位寄存器排空后才安装设置。
-没有异步软件输出队列，因此当前拒绝 TCOFLUSH/TCIOFLUSH；输入清空始终可用。
+UART 没有异步软件输出队列；PTY 有独立输出缓冲，但输出清空尚未实现。
+当前拒绝 TCOFLUSH/TCIOFLUSH；输入清空始终可用。
 
 VTIME 单位为 100 ms。QEMU virt 平台适配从固定 10 MHz 的硬件 time 计数器
 转换毫秒；周期中断仅唤醒定时读者，读者使用实际经过时间判断到期。
@@ -99,7 +117,7 @@ ctest --preset dev -j1 -R '^(driver_contract|fs_contract|tty_[13]cpu)$'
 
 ## 本轮范围之外
 
-控制终端、前台进程组和 Ctrl-C 已接入。仍没有 PTY、devpts、
+控制终端、前台进程组和 Ctrl-C 已接入。匿名 PTY 已实现（见 [PTY 说明](docs/pty.md)）。仍没有 devpts、
 SIGWINCH、IXON/IXOFF、poll、完整挂断和动态卸载；窗口改变只保存尺寸。
 SIGTTIN 与停止状态已实现，SIGTTOU/TOSTOP 尚未实现。字节行规程没有
 UTF-8 字符宽度或完整的光标列追踪，tab 可视删除按单格处理。

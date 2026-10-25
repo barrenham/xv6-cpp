@@ -98,6 +98,11 @@ void service_signal_notifications()
   process_manager.service_signal_notifications();
 }
 
+void detach_terminal(void *terminal)
+{
+  process_manager.detach_terminal(terminal);
+}
+
 int claim_terminal(void *terminal)
 {
   return process_manager.claim_terminal(terminal);
@@ -141,6 +146,16 @@ int create_session()
 void wakeup(void *channel)
 {
   process_manager.wakeup(channel);
+}
+
+PollWait make_poll_wait()
+{
+  return PollWait(*current(), waits);
+}
+
+void poll_timer_tick(unsigned long milliseconds)
+{
+  waits.expire_timers(milliseconds);
 }
 
 void dump()

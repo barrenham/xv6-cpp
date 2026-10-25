@@ -72,6 +72,6 @@ struct winsize
 #define TCSADRAIN 1
 #define TCSAFLUSH 2
 #define TCIFLUSH 0
-// No software output queue: output flush requests are currently unsupported.
+// Output flush requests are currently unsupported by both UART and PTY.
 #define TCOFLUSH 1
 #define TCIOFLUSH 2

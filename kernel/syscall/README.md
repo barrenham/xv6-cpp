@@ -43,3 +43,11 @@ TIOCSCTTY/TIOCGPGRP/TIOCSPGRP 通过原 ioctl 接口实现；用户态增加
 `waitpid=47` 按 PID/进程组选择自己的子进程，支持 WNOHANG/WUNTRACED/WCONTINUED，
 使用 wait.h 的状态编码。旧 wait 仍返回普通退出值。停止信号导致可重试 syscall
 无传输返回 -1 时，分发器保留参数并回退 ecall，继续后重新执行，部分传输不重放。
+
+`openpty=48` 接收可写的 int[2] 用户地址，原子安装匿名 master/slave 两个
+描述符；分配、描述符不足或复制失败会撤销安装并释放资源。端点是动态字符
+设备，不经过 inode/主设备号查找。接口及关闭语义见 [PTY 说明](../drivers/tty/docs/pty.md)。
+
+`poll=49` 接收 pollfd 数组、元素数量和毫秒超时，查询并等待文件描述符就绪，
+支持 IN/OUT/ERR/HUP/NVAL。每次调用向对象登记等待项，triggered 与进程锁关闭查询到睡眠的竞态窗口；接口、
+信号和精度约定见 [poll 说明](../fs/poll.md)。

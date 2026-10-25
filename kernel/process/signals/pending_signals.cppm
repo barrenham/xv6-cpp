@@ -7,7 +7,7 @@ export namespace xv::process
 {
 inline constexpr bool supported_signal(int signal)
 {
-  return signal == SIGINT || signal == SIGKILL || signal == SIGTERM ||
+  return signal == SIGHUP || signal == SIGINT || signal == SIGKILL || signal == SIGTERM ||
          signal == SIGCONT || signal == SIGSTOP || signal == SIGTSTP ||
          signal == SIGTTIN;
 }
@@ -62,7 +62,7 @@ public:
   // One atomic state couples disposition changes with pending-bit removal.
   inline int disposition(int signal, int action)
   {
-    if ((signal != SIGINT && signal != SIGTERM && signal != SIGTSTP &&
+    if ((signal != SIGHUP && signal != SIGINT && signal != SIGTERM && signal != SIGTSTP &&
          signal != SIGTTIN) ||
         (action != SIGNAL_DEFAULT && action != SIGNAL_IGNORE))
     {
@@ -103,6 +103,7 @@ public:
     {
       return SIGTERM;
     }
+    if (bits & (1U << SIGHUP)) return SIGHUP;
     return 0;
   }
 

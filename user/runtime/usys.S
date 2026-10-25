@@ -242,3 +242,15 @@ waitpid:
  li a7, SYS_waitpid
  ecall
  ret
+
+.global openpty
+openpty:
+ li a7, SYS_openpty
+ ecall
+ ret
+
+.global poll
+poll:
+ li a7, SYS_poll
+ ecall
+ ret

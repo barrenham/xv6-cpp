@@ -57,8 +57,8 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
   "${XV_ROOT}/kernel/drivers/serial/uart16550.cpp"
-  "${XV_ROOT}/kernel/drivers/tty/tty.cpp"
-  "${XV_ROOT}/kernel/drivers/tty/n_tty.cpp"
+  "${XV_ROOT}/kernel/drivers/tty/core/tty.cpp"
+  "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
   "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")
@@ -158,6 +158,7 @@ add_executable(process_storage_contract
   "${XV_ROOT}/kernel/process/signals/process_signals.cpp"
   "${XV_ROOT}/kernel/process/storage/paged_process_store.cpp"
   "${XV_ROOT}/kernel/process/wait/wait_channels.cpp"
+  "${XV_ROOT}/kernel/process/wait/poll_wait.cpp"
   "${XV_ROOT}/kernel/process/scheduler/queues/ready_queue.cpp"
   "${XV_ROOT}/kernel/process/scheduler/queues/fifo_ready_queue.cpp"
   "${XV_ROOT}/kernel/process/arch/cpu_affinity.cpp"

@@ -351,6 +351,36 @@ uint64 sys_pipe(void)
   return 0;
 }
 
+uint64 sys_openpty(void)
+{
+  uint64 address;
+  argument_address(0, &address);
+  auto *master_file = xv::fs::files().allocate();
+  auto *slave_file = xv::fs::files().allocate();
+  xv::drivers::CharacterDevice *master = nullptr, *slave = nullptr;
+  if (!master_file || !slave_file || !xv::drivers::create_pty(&master, &slave))
+  {
+    if (master_file) xv::fs::files().release(master_file);
+    if (slave_file) xv::fs::files().release(slave_file);
+    return -1;
+  }
+  xv::fs::files().bind_endpoint(*master_file, *master);
+  xv::fs::files().bind_endpoint(*slave_file, *slave);
+  int fds[2] = {-1, -1};
+  auto &table = xv::process::current()->files();
+  fds[0] = table.install(master_file);
+  if (fds[0] >= 0) fds[1] = table.install(slave_file);
+  if (fds[1] < 0 || xv::process::current()->memory().copy_out(address, fds, sizeof(fds)) < 0)
+  {
+    if (fds[0] >= 0) table.take(fds[0]);
+    if (fds[1] >= 0) table.take(fds[1]);
+    xv::fs::files().release(master_file);
+    xv::fs::files().release(slave_file);
+    return -1;
+  }
+  return 0;
+}
+
 uint64 sys_ioctl(void)
 {
   xv::fs::File *file;

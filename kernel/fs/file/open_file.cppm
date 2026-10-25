@@ -28,7 +28,8 @@ private:
     None,
     Pipe,
     Inode,
-    Device
+    Device,
+    Endpoint
   };
   Kind type = Kind::None;
   int ref = 0;
@@ -38,6 +39,7 @@ private:
   Inode *node = nullptr;
   unsigned offset = 0;
   short major = 0;
+  xv::drivers::CharacterDevice *endpoint = nullptr;
 };
 
 class OpenFileTable final
@@ -51,10 +53,12 @@ public:
   void release(File *file);
   void bind_inode(File &file, Inode &node, bool readable, bool writable);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
+  void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
   int ioctl(File *file, unsigned request, unsigned long argument);
+  unsigned poll(File *file, xv::sync::PollTable *table = nullptr);
 
 private:
 

@@ -619,6 +619,8 @@ bool process_killed()
   return test::killed;
 }
 
+void detach_terminal(void *) {}
+
 void dump_processes()
 {
   ++test::dumps;

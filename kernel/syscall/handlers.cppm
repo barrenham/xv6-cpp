@@ -8,6 +8,8 @@ unsigned long sys_exit(void);
 unsigned long sys_wait(void);
 unsigned long sys_waitpid(void);
 unsigned long sys_pipe(void);
+unsigned long sys_openpty(void);
+unsigned long sys_poll(void);
 unsigned long sys_read(void);
 unsigned long sys_kill(void);
 unsigned long sys_exec(void);

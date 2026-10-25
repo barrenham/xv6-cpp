@@ -5,6 +5,7 @@ function(xv_add_sync_modules target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/sync.cppm"
+      "${module_root}/poll_table.cppm"
       "${module_root}/interrupts.cppm"
       "${module_root}/lock.cppm"
       "${module_root}/spin/spinlock.cppm"

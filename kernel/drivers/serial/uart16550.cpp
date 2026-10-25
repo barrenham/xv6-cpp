@@ -109,6 +109,12 @@ void Uart16550::put_sync(int c)
   }
 }
 
+bool Uart16550::writable(xv::sync::PollTable *table)
+{
+  if (table) table->watch(&tx_channel_);
+  return registers_.read8(LSR) & LSR_TX_IDLE;
+}
+
 void Uart16550::drain()
 {
   xv::sync::ScopedLock guard(tx_lock_);

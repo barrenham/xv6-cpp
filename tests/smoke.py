@@ -22,6 +22,8 @@ parser.add_argument('--process-groups', action='store_true')
 parser.add_argument('--signals', action='store_true')
 parser.add_argument('--foreground', action='store_true')
 parser.add_argument('--jobs', action='store_true')
+parser.add_argument('--pty', action='store_true')
+parser.add_argument('--poll', action='store_true')
 parser.add_argument('--cpus', type=int, default=3)
 parser.add_argument('--ram-mib', type=int, default=128)
 parser.add_argument('--boot-only', action='store_true')
@@ -41,7 +43,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -295,9 +297,80 @@ def jobs_checks():
     if transcript.count(b'init: starting sh') != 1:
         raise RuntimeError('job control restarted the shell')
 
+def pty_checks():
+    def command(text):
+        process.stdin.write((text + '\n').encode())
+        process.stdin.flush()
+        expect(text + '\n', timeout=5)
+
+    command('ptytest')
+    expect('ptytest: all tests succeeded\n', timeout=10)
+    expect('$ ', timeout=5)
+    command('pty')
+    expect('pty: connected; Ctrl-] exits\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('echo PTY_NESTED')
+    expect('PTY_NESTED\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('cat')
+    process.stdin.write(b'PTY_CAT\n')
+    process.stdin.flush()
+    expect('PTY_CAT\n', timeout=5)  # line discipline echo
+    expect('PTY_CAT\n', timeout=5)  # cat output
+    process.stdin.write(b'\x1a')
+    process.stdin.flush()
+    expect('Stopped cat\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('bg')
+    expect('Running cat\n', timeout=5)
+    expect('$ ', timeout=5)
+    for attempt in range(20):
+        start = len(transcript)
+        command('jobs')
+        expect('$ ', timeout=5)
+        if b'Stopped cat\n' in transcript[start:]:
+            break
+        time.sleep(0.02)
+    else:
+        raise RuntimeError('PTY background read did not stop')
+    command('fg')
+    expect('Foreground cat\n', timeout=5)
+    process.stdin.write(b'PTY_RESUME\n')
+    process.stdin.flush()
+    expect('PTY_RESUME\n', timeout=5)
+    expect('PTY_RESUME\n', timeout=5)
+    process.stdin.write(b'\x03')
+    process.stdin.flush()
+    expect('$ ', timeout=5)
+    command('echo PTY_AFTER_INT')
+    expect('PTY_AFTER_INT\n', timeout=5)
+    expect('$ ', timeout=5)
+    process.stdin.write(b'\x04')
+    process.stdin.flush()
+    expect('pty: disconnected\n', timeout=5)
+    expect('$ ', timeout=5)
+    # Final master close also terminates a running foreground job and lets its
+    # waiting shell observe EOF. Verify that escape restores the outer TTY.
+    command('pty')
+    expect('pty: connected; Ctrl-] exits\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('jobtest raw')
+    expect('jobtest: raw ready\n', timeout=5)
+    process.stdin.write(b'\x1d')
+    process.stdin.flush()
+    expect('pty: disconnected\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('echo PTY_DONE')
+    expect('PTY_DONE\n', timeout=5)
+    expect('$ ', timeout=5)
+    if transcript.count(b'init: starting sh') != 1:
+        raise RuntimeError('PTY proxy restarted the outer shell')
+
 try:
     expect('physical allocator: ' + args.allocator + '\n')
     expect('$ ')
+    if args.pty:
+        pty_checks()
     if args.jobs:
         jobs_checks()
     if args.foreground:
@@ -349,11 +422,13 @@ try:
         checks = [('procext', 'procext: 96 concurrent children, wake/kill/reuse OK')]
     if args.process_groups:
         checks = [('grouptest', 'grouptest: all tests succeeded')]
+    if args.poll:
+        checks = [('ptytest poll', 'ptytest: poll tests succeeded\n')]
     if args.signals:
         checks = [('signaltest', 'signaltest: all tests succeeded'),
                   ('ttytest', 'ttytest: all tests succeeded'),
                   ('echo SIGNAL_SHELL_OK', 'SIGNAL_SHELL_OK\n')]
-    if args.foreground or args.jobs:
+    if args.foreground or args.jobs or args.pty:
         checks = []
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
