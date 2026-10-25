@@ -1,0 +1,14 @@
+name: OS-LAB
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - clangxx=23.1.4
+  - clang-tools=23.1.4
+  - lld=23.1.4
+  - llvm-tools=23.1.4
+  - cmake>=3.28
+  - ninja>=1.11
+  - python>=3.11
+  - gxx
+# qemu-system-riscv64 is an external prerequisite; these channels lack a qemu package.

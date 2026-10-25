@@ -1,0 +1,196 @@
+#include "kernel/syscall/syscall.h"
+.global fork
+fork:
+ li a7, SYS_fork
+ ecall
+ ret
+.global exit
+exit:
+ li a7, SYS_exit
+ ecall
+ ret
+.global wait
+wait:
+ li a7, SYS_wait
+ ecall
+ ret
+.global pipe
+pipe:
+ li a7, SYS_pipe
+ ecall
+ ret
+.global read
+read:
+ li a7, SYS_read
+ ecall
+ ret
+.global kill
+kill:
+ li a7, SYS_kill
+ ecall
+ ret
+.global exec
+exec:
+ li a7, SYS_exec
+ ecall
+ ret
+.global fstat
+fstat:
+ li a7, SYS_fstat
+ ecall
+ ret
+.global chdir
+chdir:
+ li a7, SYS_chdir
+ ecall
+ ret
+.global dup
+dup:
+ li a7, SYS_dup
+ ecall
+ ret
+.global getpid
+getpid:
+ li a7, SYS_getpid
+ ecall
+ ret
+.global sys_sbrk
+sys_sbrk:
+ li a7, SYS_sbrk
+ ecall
+ ret
+.global pause
+pause:
+ li a7, SYS_pause
+ ecall
+ ret
+.global uptime
+uptime:
+ li a7, SYS_uptime
+ ecall
+ ret
+.global open
+open:
+ li a7, SYS_open
+ ecall
+ ret
+.global write
+write:
+ li a7, SYS_write
+ ecall
+ ret
+.global mknod
+mknod:
+ li a7, SYS_mknod
+ ecall
+ ret
+.global unlink
+unlink:
+ li a7, SYS_unlink
+ ecall
+ ret
+.global link
+link:
+ li a7, SYS_link
+ ecall
+ ret
+.global mkdir
+mkdir:
+ li a7, SYS_mkdir
+ ecall
+ ret
+.global close
+close:
+ li a7, SYS_close
+ ecall
+ ret
+.global sync
+sync:
+ li a7, SYS_sync
+ ecall
+ ret
+.global trace
+trace:
+ li a7, SYS_trace
+ ecall
+ ret
+.global interpose
+interpose:
+ li a7, SYS_interpose
+ ecall
+ ret
+.global sigalarm
+sigalarm:
+ li a7, SYS_sigalarm
+ ecall
+ ret
+.global sigreturn
+sigreturn:
+ li a7, SYS_sigreturn
+ ecall
+ ret
+.global symlink
+symlink:
+ li a7, SYS_symlink
+ ecall
+ ret
+.global mmap
+mmap:
+ li a7, SYS_mmap
+ ecall
+ ret
+.global munmap
+munmap:
+ li a7, SYS_munmap
+ ecall
+ ret
+.global bind
+bind:
+ li a7, SYS_bind
+ ecall
+ ret
+.global unbind
+unbind:
+ li a7, SYS_unbind
+ ecall
+ ret
+.global send
+send:
+ li a7, SYS_send
+ ecall
+ ret
+.global recv
+recv:
+ li a7, SYS_recv
+ ecall
+ ret
+.global pgpte
+pgpte:
+ li a7, SYS_pgpte
+ ecall
+ ret
+.global vmprint
+vmprint:
+ li a7, SYS_vmprint
+ ecall
+ ret
+.global rwlktest
+rwlktest:
+ li a7, SYS_rwlktest
+ ecall
+ ret
+.global cpupin
+cpupin:
+ li a7, SYS_cpupin
+ ecall
+ ret
+.global pgaccess
+pgaccess:
+ li a7, SYS_pgaccess
+ ecall
+ ret
+.global ksupernpte
+ksupernpte:
+ li a7, SYS_ksupernpte
+ ecall
+ ret

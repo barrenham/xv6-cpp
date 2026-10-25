@@ -1,0 +1,52 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "RISC-V Clang / Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "toolchainFile": "${sourceDir}/cmake/riscv-clang.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "XV_PAGE_ALLOCATOR": "buddy"
+      }
+    },
+    {
+      "name": "freelist",
+      "inherits": "dev",
+      "displayName": "RISC-V / free-list allocator",
+      "binaryDir": "${sourceDir}/build/freelist",
+      "cacheVariables": {
+        "XV_PAGE_ALLOCATOR": "freelist"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "freelist",
+      "configurePreset": "freelist"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "freelist",
+      "configurePreset": "freelist",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

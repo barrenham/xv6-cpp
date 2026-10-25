@@ -1,0 +1,13 @@
+{
+  "clangd.path": "/home/barrenham/miniconda3/envs/OS-LAB/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=/home/barrenham/miniconda3/envs/OS-LAB/bin/g++,/home/barrenham/miniconda3/envs/OS-LAB/bin/clang++"
+  ],
+  "cmake.useCMakePresets": "always",
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "files.associations": {
+    "*.h": "cpp",
+    "*.cppm": "cpp"
+  }
+}

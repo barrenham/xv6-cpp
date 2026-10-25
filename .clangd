@@ -1,0 +1,10 @@
+CompileFlags:
+  CompilationDatabase: build/dev
+  Add: [-Wno-unknown-warning-option]
+Index:
+  Background: Build
+---
+If:
+  PathMatch: (tools/mkfs/.*|tests/allocator_.*[.]cpp)
+CompileFlags:
+  CompilationDatabase: build/dev/host
