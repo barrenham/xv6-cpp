@@ -26,6 +26,8 @@ public:
   virtual void write(const char *data, int count) = 0;
   // Polling path for early boot, interrupt-time echo, and panic output.
   virtual void put_sync(int character) = 0;
+  // Wait until the hardware shift register is empty (process context).
+  virtual void drain() = 0;
 
 protected:
 

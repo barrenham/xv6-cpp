@@ -151,3 +151,5 @@ GDB 使用支持 RISC-V 的版本，加载 `build/dev/kernel.elf`，执行 `targ
 基础服务和编译器 ABI 边界见 [support 说明](kernel/support/README.md)，寄存器操作见 [架构模块说明](kernel/arch/README.md)。
 
 进程存储现使用可增长链式登记与独立 FIFO 就绪队列，移除了固定 `NPROC` 容量及调度器的数组扫描。`procext` 验证 96 个并发子进程，设计和锁协议见 [进程模块说明](kernel/process/README.md)。
+
+串口终端现由 [TTY 核心与 N_TTY 风格行规程](kernel/drivers/tty/README.md) 管理，支持 termios/ioctl、规范与原始输入，以及用户程序 `stty` 和 `ttytest`。

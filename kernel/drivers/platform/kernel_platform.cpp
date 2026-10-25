@@ -45,6 +45,12 @@ void dump_processes()
   xv::process::dump();
 }
 
+unsigned long terminal_milliseconds()
+{
+  // QEMU virt's fixed 10 MHz timebase; independent of delayed software ticks.
+  return xv::arch::r_time() / 10000;
+}
+
 int copy_in(void *destination, bool user, unsigned long source, unsigned count)
 {
   return xv::process::copy_in(destination, user, source, count);

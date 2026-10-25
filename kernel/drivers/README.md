@@ -12,10 +12,12 @@ classDiagram
   InterruptDevice <|-- BlockDevice
   SerialPort <|-- Uart16550
   BlockDevice <|-- VirtioBlock
-  CharacterDevice <|-- LineConsole
+  CharacterDevice <|-- Tty
   InterruptController <|-- Plic
-  InputReceiver <|.. LineConsole
-  LineConsole --> SerialPort
+  InputReceiver <|.. Tty
+  Tty --> SerialPort
+  Tty --> LineDiscipline
+  LineDiscipline <|-- NttyDiscipline
   InterruptRouter --> InterruptController
   InterruptRouter --> InterruptDevice
 ```
@@ -29,13 +31,14 @@ classDiagram
 | `drivers.cppm` | 主接口和板级服务入口，仅重导出公共接口 |
 | `device.cppm` | 共同的 `Device` 抽象 |
 | `serial/` | `SerialPort` / `InputReceiver` 接口和 16550a 实现 |
-| `console/` | `CharacterDevice` / `IoBuffer` 接口和行控制台实现 |
+| `console/` | `CharacterDevice` / `IoBuffer` 字符设备接口 |
+| `tty/` | TTY 状态、读写等待、ioctl 和可替换的 N_TTY 风格行规程 |
 | `block/` | 与文件系统无关的 `BlockDevice` 接口 |
 | `block/virtio/` | VirtIO MMIO 块设备、私有协议常量和队列布局 |
 | `interrupt/` | 中断控制器接口、PLIC 实现和固定设备表路由 |
 | `mmio.cppm` | 内部的非拥有 MMIO 窗口，执行 volatile 寄存器访问 |
 | `platform/` | 内部平台操作：等待、唤醒、用户复制、内存屏障及 DMA 页分配 |
-| `board/qemu_virt.cpp` | QEMU virt 地址、IRQ、唯一实例、依赖装配和 devsw 适配 |
+| `board/qemu_virt.cpp` | QEMU virt 地址、IRQ、唯一实例、依赖装配和字符设备注册 |
 
 `.cppm` 中的硬件实现分区不从主接口导出；实现文件通过 `module xv.drivers;`
 加入同一模块。地址和 IRQ 只由板级装配传给驱动。当前仍面向 QEMU virt，
@@ -44,9 +47,11 @@ classDiagram
 ## 对象与调用关系
 
 串口只认识 `InputReceiver`，接收中断通过 `receive()` 交付字符。
-`LineConsole` 实现接收接口和字符设备接口，负责回显、退格、Ctrl-U、Ctrl-D、
-Ctrl-P 以及输入环形缓冲。它持有 `SerialPort &`，可以注入其他串口实现。
-控制台的 `IoBuffer` 显式区分内核和用户地址，复制交给平台适配层，内核平台通过 `xv.process` 的用户内存访问接口完成复制。
+`Tty` 实现接收接口和字符设备接口，组合 `SerialPort &` 与
+`LineDiscipline &`。`NttyDiscipline` 负责输入转换、行编辑、回显和规范记录，
+TTY 核心负责 termios、窗口大小、读写串行化、等待和 ioctl。
+具体实例由板级代码静态拥有。详见 [TTY 实现与支持边界](tty/README.md)。
+`IoBuffer` 显式区分内核和用户地址，平台适配通过 `xv.process` 复制用户内存。
 
 `board/qemu_virt.cpp` 在早期启动时把控制台实例注册进 `xv.fs::DeviceRegistry`。
 文件系统设备文件通过 `CharacterDevice` 接口调用实际对象，原 `devsw` 函数指针
@@ -82,7 +87,7 @@ void read_sectors(unsigned long first, void *dma_data, unsigned bytes)
 
 1. 全部设备及其依赖表使用 `constinit`，链接脚本仍拒绝全局构造/析构数组。
 2. `initialize_console()` 初始化控制台锁、绑定接收对象并配置 UART，随后
-   连接 `devsw`。这个阶段不使用物理页分配器。
+   注册字符设备。这个阶段不使用物理页分配器。
 3. 内存分配器、页表和进程表就绪后初始化中断路由，并配置当前 hart。
 4. 块缓存、inode 和文件表就绪后初始化块设备，此时才分配 VirtIO DMA 页。
 5. 发布启动完成后，其他 hart 配置自己的 PLIC 上下文。
@@ -102,7 +107,8 @@ VirtIO 发布描述符与读取完成环之间保留 I/O 屏障；设备写入�
 `driver_contract` 编译实际控制台、UART、PLIC、VirtIO 和中断路由实现，
 以宿主机寄存器窗口、串口接收替身和设备完成模拟验证：
 
-- 控制台编辑、回显、部分读取、EOF、缓冲区回绕、用户复制失败及 killed 读取。
+- TTY 行编辑、EOF 边界、规范/原始输入、环形缓冲、输入与输出转换。
+- `VMIN/VTIME` 四种组合、ioctl、模式切换、复制失败和 killed 读取。
 - 中断来源配置，已知、未知、空 IRQ 的分派和完成顺序。
 - PLIC 上下文寄存器和 UART 初始化、同步及进程输出。
 - VirtIO 请求方向、扇区与描述符内容、DMA 完成、队列回绕和描述符回收。

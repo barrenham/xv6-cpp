@@ -1,4 +1,4 @@
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 function(xv_add_program source)
   get_filename_component(name "${source}" NAME_WE)
@@ -20,6 +20,7 @@ set(programs
   apps/rm/rm.cpp
   apps/sh/sh.cpp
   apps/sync/sync.cpp
+  apps/stty/stty.cpp
   apps/wc/wc.cpp
   apps/zombie/zombie.cpp
   tests/dorphan.cpp
@@ -28,6 +29,7 @@ set(programs
   tests/grind.cpp
   tests/logstress.cpp
   tests/procext.cpp
+  tests/ttytest.cpp
   tests/pgtblext.cpp
   tests/pgtbltest.cpp
   tests/stressfs.cpp

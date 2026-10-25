@@ -6,6 +6,7 @@ export import :character;
 export import :block;
 export import :interrupt;
 export import :router;
+export import :ldisc;
 
 export namespace xv::drivers
 {
@@ -15,6 +16,7 @@ void initialize_console();
 void initialize_interrupts();
 void initialize_hart(int hart);
 void handle_external_interrupt(int hart);
+void terminal_timer_tick();
 CharacterDevice &console();
 SerialPort &serial_port();
 BlockDevice &block_device();

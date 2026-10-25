@@ -24,6 +24,11 @@ public:
   virtual int write(IoBuffer source, int count) = 0;
   virtual void put_sync(int character) = 0;
 
+  virtual int ioctl(unsigned, IoBuffer)
+  {
+    return -1;
+  }
+
 protected:
 
   constexpr CharacterDevice() = default;

@@ -152,6 +152,14 @@ void arm_timer(Word deadline)
   xv::arch::w_stimecmp(deadline);
 }
 
+void service_timer_devices()
+{
+  if (hart_id() == 0)
+  {
+    xv::drivers::terminal_timer_tick();
+  }
+}
+
 void prepare_sleep(void *channel)
 {
   xv::process::prepare_sleep(channel);

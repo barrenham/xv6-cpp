@@ -25,6 +25,7 @@ unsigned long sys_link(void);
 unsigned long sys_mkdir(void);
 unsigned long sys_close(void);
 unsigned long sys_sync(void);
+unsigned long sys_ioctl(void);
 
 #ifdef LAB_NET
 unsigned long sys_bind(void);

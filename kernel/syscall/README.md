@@ -22,3 +22,8 @@
 页表处理函数通过 `xv.memory` 调用页表服务，填充与数组长度通过
 `xv.runtime` 访问，寄存器和 TLB 操作导入 `xv.arch`，诊断导入 `xv.print`。
 陷阱入口推进用户 PC、检查 killed、开中断等职责仍由 `xv.trap` 管理。
+
+`SYS_ioctl=40` 通过 `sysfile.cpp` 解析描述符、请求号和机器字宽参数，调用
+`OpenFileTable::ioctl()`。只向字符设备转发，由设备验证请求和用户缓冲；
+普通文件、管道、无效描述符及不支持的请求返回 -1。TTY 请求和结构布局见
+`kernel/tty/termios.h`，用户态封装位于 `user/runtime/termios.cpp`。

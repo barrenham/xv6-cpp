@@ -109,6 +109,15 @@ void Uart16550::put_sync(int c)
   }
 }
 
+void Uart16550::drain()
+{
+  xv::sync::ScopedLock guard(tx_lock_);
+  // LSR.TEMT includes both the holding and shift registers. Interrupts stay on.
+  while ((registers_.read8(LSR) & (1U << 6)) == 0)
+  {
+  }
+}
+
 // try to read one input character from the UART.
 // return -1 if none is waiting.
 int Uart16550::get()

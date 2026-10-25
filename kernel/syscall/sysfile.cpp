@@ -351,6 +351,20 @@ uint64 sys_pipe(void)
   return 0;
 }
 
+uint64 sys_ioctl(void)
+{
+  xv::fs::File *file;
+  int request;
+  uint64 argument;
+  argument_integer(1, &request);
+  argument_address(2, &argument);
+  if (argfd(0, nullptr, &file) < 0)
+  {
+    return -1;
+  }
+  return xv::fs::files().ioctl(file, static_cast<unsigned>(request), argument);
+}
+
 uint64 sys_sync(void)
 {
   xv::fs::journal().sync();

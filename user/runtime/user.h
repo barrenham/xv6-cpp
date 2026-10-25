@@ -9,6 +9,7 @@ typedef long int off_t;
 #define SBRK_ERROR ((char *)-1)
 
 struct stat;
+struct termios;
 
 // system calls
 int fork(void);
@@ -33,6 +34,11 @@ char *sys_sbrk(int, int);
 int pause(int);
 int uptime(void);
 int sync(void);
+int ioctl(int, unsigned, unsigned long);
+int tcgetattr(int, struct termios *);
+int tcsetattr(int, int, const struct termios *);
+int tcflush(int, int);
+void cfmakeraw(struct termios *);
 #ifdef LAB_NET
 int bind(uint16);
 int unbind(uint16);

@@ -28,6 +28,7 @@ public:
   void attach(InputReceiver &receiver) override;
   void write(const char *data, int count) override;
   void put_sync(int character) override;
+  void drain() override;
   void handle_interrupt() override;
 
 private:

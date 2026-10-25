@@ -54,6 +54,7 @@ public:
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
+  int ioctl(File *file, unsigned request, unsigned long argument);
 
 private:
 

@@ -7,6 +7,7 @@ void sleep_process();
 void wake_processes(void *channel);
 bool process_killed();
 void dump_processes();
+unsigned long terminal_milliseconds();
 int copy_in(void *destination, bool user, unsigned long source, unsigned count);
 int copy_out(bool user, unsigned long destination, void *source, unsigned count);
 void push_interrupts_off();

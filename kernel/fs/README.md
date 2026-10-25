@@ -152,3 +152,7 @@ cmake --build --preset freelist
 ctest --preset freelist --output-on-failure
 python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 ```
+
+`OpenFileTable::ioctl()` 只接受设备文件，通过设备主设备号找到
+`CharacterDevice` 并转发请求。TTY 的 termios 和用户复制由驱动层处理，
+文件系统不解析终端设置；普通文件及管道返回 -1。

@@ -504,6 +504,10 @@ Word time()
   return test::current_time.load();
 }
 
+void service_timer_devices()
+{
+}
+
 void arm_timer(Word deadline)
 {
   test::state.deadline = deadline;

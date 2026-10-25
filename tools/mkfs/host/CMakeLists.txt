@@ -57,7 +57,8 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
   "${XV_ROOT}/kernel/drivers/serial/uart16550.cpp"
-  "${XV_ROOT}/kernel/drivers/console/line_console.cpp"
+  "${XV_ROOT}/kernel/drivers/tty/tty.cpp"
+  "${XV_ROOT}/kernel/drivers/tty/n_tty.cpp"
   "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")

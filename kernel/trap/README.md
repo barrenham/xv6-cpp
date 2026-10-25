@@ -85,6 +85,11 @@ trapframe 的 kernel satp、内核栈、usertrap C 入口和当前 hart ID；清
 
 ## 时钟服务
 
+定时中断处理器在 `TickClock::interrupt()` 完成后，通过平台的
+`service_timer_devices()` 通知板级 TTY。hart 0 的通知只唤醒正在等待 VTIME
+超时的读者，TTY 再根据硬件时间判断到期。设备通知与时钟计数分开，
+`arm_timer()` 只负责设置比较寄存器。
+
 `TickClock` 封装原 tickslock/ticks。每个 hart 的定时器中断都会把 stimecmp 重设
 为 `r_time() + TimerInterval`；只有 hart 0 增加全局计数并唤醒等待者。共享常量
 `TimerInterval = 1000000` 同时用于 boot/start.cpp 的首次设置和后续中断重设，

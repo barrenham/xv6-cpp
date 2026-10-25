@@ -3,7 +3,8 @@ xv_add_driver_modules(kernel)
 
 target_sources(kernel PRIVATE
   serial/uart16550.cpp
-  console/line_console.cpp
+  tty/tty.cpp
+  tty/n_tty.cpp
   block/virtio/virtio_block.cpp
   interrupt/plic.cpp
   interrupt/interrupt_router.cpp

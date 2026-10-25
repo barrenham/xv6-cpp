@@ -8,6 +8,7 @@ function(xv_add_driver_interfaces target)
       "${module_root}/device.cppm"
       "${module_root}/serial/serial_port.cppm"
       "${module_root}/console/character_device.cppm"
+      "${module_root}/tty/line_discipline.cppm"
       "${module_root}/block/block_device.cppm"
       "${module_root}/interrupt/interrupt_controller.cppm"
       "${module_root}/interrupt/interrupt_router.cppm"
@@ -23,7 +24,8 @@ function(xv_add_driver_modules target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/serial/uart16550.cppm"
-      "${module_root}/console/line_console.cppm"
+      "${module_root}/tty/n_tty.cppm"
+      "${module_root}/tty/tty.cppm"
       "${module_root}/block/virtio/virtio_block.cppm"
       "${module_root}/block/virtio/protocol.cppm"
       "${module_root}/interrupt/plic.cppm"

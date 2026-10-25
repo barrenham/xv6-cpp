@@ -194,3 +194,9 @@ ksupernpte:
  li a7, SYS_ksupernpte
  ecall
  ret
+
+.global ioctl
+ioctl:
+ li a7, SYS_ioctl
+ ecall
+ ret

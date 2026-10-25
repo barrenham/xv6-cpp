@@ -12,7 +12,8 @@ import xv.print;
 import xv.fs;
 
 import :uart;
-import :console;
+import :n_tty;
+import :tty;
 import :plic;
 import :virtio;
 
@@ -21,7 +22,8 @@ namespace xv::drivers
 namespace
 {
 constinit Uart16550 uart(UART0, UART0_IRQ);
-constinit LineConsole terminal(uart);
+constinit NttyDiscipline discipline;
+constinit Tty terminal(uart, discipline);
 constinit Plic plic(PLIC);
 constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
 constinit InterruptDevice *sources[] = {&uart, &disk};
@@ -59,6 +61,11 @@ void handle_external_interrupt(int hart)
 CharacterDevice &console()
 {
   return terminal;
+}
+
+void terminal_timer_tick()
+{
+  terminal.timer_tick();
 }
 
 SerialPort &serial_port()

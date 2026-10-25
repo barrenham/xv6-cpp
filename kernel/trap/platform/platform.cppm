@@ -25,6 +25,7 @@ void restore_kernel(const TrapEvent &event);
 int hart_id();
 Word time();
 void arm_timer(Word deadline);
+void service_timer_devices();
 void prepare_sleep(void *channel);
 void sleep();
 void wakeup(void *channel);

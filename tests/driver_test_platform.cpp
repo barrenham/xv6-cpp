@@ -1,6 +1,8 @@
 module;
 
 #include <cstdio>
+#include <functional>
+#include "kernel/tty/termios.h"
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -12,7 +14,8 @@ module;
 module xv.drivers;
 
 import :platform;
-import :console;
+import :tty;
+import :n_tty;
 import :uart;
 import :plic;
 import :virtio;
@@ -52,7 +55,8 @@ template <class Operation> void expect_panic(Operation operation)
   check(WIFEXITED(status) && WEXITSTATUS(status) == 99, "invalid device operation");
 }
 
-void (*on_sleep)() = nullptr;
+std::function<void()> on_sleep;
+unsigned long milliseconds = 0;
 bool killed = false;
 bool fail_copy = false;
 bool copied_user = false;
@@ -63,6 +67,13 @@ std::vector<void *> dma_pages;
 class FakeSerial final : public SerialPort
 {
 public:
+
+  unsigned drains = 0;
+
+  void drain() override
+  {
+    ++drains;
+  }
 
   std::string output;
   InputReceiver *receiver = nullptr;
@@ -104,60 +115,190 @@ public:
 void console_contract()
 {
   FakeSerial serial;
-  LineConsole console(serial);
+  NttyDiscipline discipline;
+  Tty console(serial, discipline);
   console.initialize();
   char input[256]{};
-  auto destination =
-      IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(input)};
-  for (char c : std::string("ab\bcd\r"))
+  auto buffer = [](void *p)
+  { return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p)}; };
+  auto destination = buffer(input);
+  termios settings{};
+  check(console.ioctl(TCGETS, buffer(&settings)) == 0, "get termios");
+  auto defaults = settings;
+  auto set = [&]
+  { check(console.ioctl(TCSETS, buffer(&settings)) == 0, "set termios"); };
+  auto feed = [&](const std::string &text)
   {
-    console.receive(c);
-  }
+    for (unsigned char c : text)
+    {
+      console.receive(c);
+    }
+  };
+  auto queued = [&]
+  {
+    int n = -1;
+    check(console.ioctl(FIONREAD, buffer(&n)) == 0, "FIONREAD");
+    return n;
+  };
+  feed("ab\177cd\r");
   check(console.read(destination, sizeof(input)) == 4, "edited line length");
   check(std::string(input, 4) == "acd\n", "backspace and CR translation");
-  check(serial.output == "ab\b \bcd\n", "synchronous editing echo");
-
-  console.receive('x');
-  console.receive(21); // Ctrl-U removes the uncommitted line.
-  console.receive('y');
-  console.receive('\n');
-  check(console.read(destination, 1) == 1 && input[0] == 'y', "partial line read");
-  check(console.read(destination, 10) == 1 && input[0] == '\n', "remaining line read");
-
-  console.receive('z');
-  console.receive(4);
+  check(serial.output == "ab\b \bcd\n", "editing echo");
+  feed("x\025y\n");
+  check(console.read(destination, 1) == 1 && input[0] == 'y', "partial line");
+  check(console.read(destination, 10) == 1 && input[0] == '\n', "remaining line");
+  feed("z\004");
   check(console.read(destination, 8) == 1 && input[0] == 'z', "EOF after data");
-  check(console.read(destination, 8) == 0, "EOF preserved for next reader");
-
-  // A full line buffer is delivered without a newline; wrap multiple times.
+  feed("next\n\004");
+  check(console.read(destination, 8) == 5, "EOF does not create extra empty read");
+  check(console.read(destination, 8) == 0, "separate empty EOF record");
+  feed("q\004");
+  check(console.read(destination, 1) == 1, "EOF at exact read limit");
+  feed("r\n");
+  check(console.read(destination, 8) == 2, "exact limit consumed EOF");
   for (int round = 0; round < 3; ++round)
   {
-    for (int i = 0; i < 128; ++i)
-    {
-      console.receive('a' + round);
-    }
-    console.receive('!'); // Full buffer discards additional input.
-    check(console.read(destination, 128) == 128, "full ring delivery");
-    for (int i = 0; i < 128; ++i)
+    feed(std::string(140, 'a' + round));
+    check(queued() == 0, "overflow does not commit partial canonical line");
+    feed("\n");
+    check(console.read(destination, 256) == 128 && input[127] == '\n',
+          "delimiter reserved at ring limit");
+    for (int i = 0; i < 127; ++i)
     {
       check(input[i] == 'a' + round, "ring wrap data");
     }
   }
-
-  const std::string message(79, 'w');
+  settings.c_cc[VERASE] = '#';
+  settings.c_cc[VEOL] = ';';
+  set();
+  feed("ab#c;");
+  check(console.read(destination, 256) == 3 && std::string(input, 3) == "ac;",
+        "configurable erase and delimiter");
+  feed("word\ttail\027X\n");
+  check(console.read(destination, 256) == 7 && std::string(input, 7) == "word\tX\n",
+        "word erase");
+  feed("\026\004\n");
+  check(console.read(destination, 256) == 2 && input[0] == 4, "literal EOF");
+  feed("unfinished");
+  settings = defaults;
+  settings.c_lflag = 0;
+  settings.c_iflag = 0;
+  settings.c_cc[VMIN] = 0;
+  set();
+  check(console.read(destination, 256) == 10, "mode switch publishes pending input");
+  check(console.read(destination, 256) == 0, "MIN=0 TIME=0 immediate");
   serial.output.clear();
-  auto source =
-      IoBuffer{AddressSpace::User, reinterpret_cast<unsigned long>(message.data())};
-  check(console.write(source, message.size()) == 79, "batched console output");
-  check(serial.output == message && copied_user, "user copy routing");
-  fail_copy = true;
-  check(console.write(source, 4) == 0, "failed input copy stops write");
-  fail_copy = false;
-  killed = true;
-  check(console.read(destination, 4) == -1, "killed waiting reader");
+  const char raw[] = {0, 4, '\r', '\n', 127, 16};
+  for (auto c : raw)
+  {
+    console.receive(c);
+  }
+  check(queued() == 6, "raw binary count");
+  check(console.read(destination, 256) == 6 && std::memcmp(input, raw, 6) == 0,
+        "raw preserves NUL, EOF, CR, newline and controls");
+  check(serial.output.empty(), "raw disables echo");
+  settings.c_iflag = IGNCR | INLCR | ISTRIP;
+  set();
+  console.receive('\r');
+  console.receive('\n');
+  console.receive(0xe1);
+  check(console.read(destination, 256) == 2 && input[0] == '\r' && input[1] == 'a',
+        "input ignore, NL mapping and strip");
+  settings.c_iflag = 0;
+  settings.c_cc[VMIN] = 3;
+  set();
+  int sleeps = 0;
+  on_sleep = [&]
+  {
+    ++sleeps;
+    feed(sleeps == 1 ? "a" : "bc");
+  };
+  check(console.read(destination, 256) == 3 && sleeps == 2, "MIN blocks for bytes");
+  settings.c_cc[VMIN] = 200;
+  set();
+  sleeps = 0;
+  on_sleep = [&]
+  {
+    ++sleeps;
+    feed(std::string(100, 'v'));
+  };
+  check(console.read(destination, 256) == 200 && sleeps == 2,
+        "MIN larger than ring capacity makes progress");
+  settings.c_cc[VMIN] = 3;
+  settings.c_cc[VTIME] = 2;
+  set();
+  sleeps = 0;
+  on_sleep = [&]
+  {
+    ++sleeps;
+    milliseconds += 100;
+    if (sleeps == 1 || sleeps == 2)
+    {
+      feed("a");
+    }
+    console.timer_tick();
+  };
+  check(console.read(destination, 256) == 2 && sleeps == 4,
+        "interbyte timer waits for first byte and restarts");
+  settings.c_cc[VMIN] = 0;
+  set();
+  sleeps = 0;
+  on_sleep = [&]
+  {
+    ++sleeps;
+    milliseconds += 100;
+    console.timer_tick();
+  };
+  check(console.read(destination, 256) == 0 && sleeps == 2, "read timer expires");
+  on_sleep = [&] { feed("x"); };
+  check(console.read(destination, 256) == 1 && input[0] == 'x',
+        "MIN=0 TIME>0 returns on first byte");
+  settings.c_cc[VMIN] = 2;
+  settings.c_cc[VTIME] = 0;
+  set();
+  on_sleep = [&] { feed("y"); };
+  check(console.read(destination, 1) == 1 && input[0] == 'y', "MIN clamps to count");
+  on_sleep = [&] { killed = true; };
+  check(console.read(destination, 256) == -1, "killed waiting reader");
   killed = false;
-  console.receive(16);
-  check(dumps == 1 && wakeups > 0, "process dump and reader wakeups");
+  on_sleep = nullptr;
+  settings.c_cc[VMIN] = 0;
+  settings.c_oflag = OPOST | ONLCR;
+  set();
+  char output[] = "a\nb";
+  check(console.write(buffer(output), 3) == 3 && serial.output == "a\r\nb",
+        "ONLCR output counts source bytes");
+  settings.c_oflag = ONLCR;
+  set();
+  serial.output.clear();
+  check(console.write(buffer(output), 3) == 3 && serial.output == output,
+        "OPOST disables output translation");
+  fail_copy = true;
+  check(console.write(buffer(output), 3) == -1, "write copy failure");
+  check(console.ioctl(TCSETS, buffer(&defaults)) == -1, "ioctl copy failure");
+  fail_copy = false;
+  feed("z");
+  fail_copy = true;
+  check(console.read(destination, 1) == -1, "read copy failure");
+  fail_copy = false;
+  check(console.read(destination, 1) == 1 && input[0] == 'z', "fault retains byte");
+  settings.c_lflag |= ISIG;
+  check(console.ioctl(TCSETS, buffer(&settings)) == -1, "signals rejected");
+  settings = defaults;
+  check(console.ioctl(TCSETSF, buffer(&settings)) == 0 && serial.drains == 1,
+        "flush setter drains");
+  feed("secret");
+  check(console.ioctl(TCFLSH, {AddressSpace::Kernel, TCIFLUSH}) == 0,
+        "flush pending canonical input");
+  feed("ok\n");
+  check(console.read(destination, 256) == 3 && std::string(input, 3) == "ok\n",
+        "flush discards pending line");
+  winsize size{40, 100, 0, 0}, actual{};
+  check(console.ioctl(TIOCSWINSZ, buffer(&size)) == 0 &&
+            console.ioctl(TIOCGWINSZ, buffer(&actual)) == 0 && actual.ws_row == 40 &&
+            actual.ws_col == 100,
+        "window size round trip");
+  check(console.ioctl(0xdead, destination) == -1, "unknown ioctl");
 }
 
 class FakeController final : public InterruptController
@@ -291,7 +432,8 @@ void uart_contract()
   alignas(4) unsigned char registers[8]{};
   Uart16550 uart(reinterpret_cast<unsigned long>(registers), 10);
   FakeSerial receiver_storage;
-  LineConsole receiver(receiver_storage);
+  NttyDiscipline receiver_discipline;
+  Tty receiver(receiver_storage, receiver_discipline);
   uart.attach(receiver);
   uart.initialize();
   check(registers[1] == 3 && registers[3] == 3 && registers[2] == 7,
@@ -299,6 +441,8 @@ void uart_contract()
   registers[5] = 1U << 5;
   uart.put_sync('p');
   check(registers[0] == 'p', "UART polling output");
+  registers[5] |= 1U << 6;
+  uart.drain();
   uart.write("abc", 3);
   check(registers[0] == 'c', "UART process output");
 }
@@ -400,6 +544,11 @@ void block_contract()
 
 namespace detail
 {
+unsigned long terminal_milliseconds()
+{
+  return test::milliseconds;
+}
+
 void prepare_sleep(void *)
 {
 }

@@ -32,7 +32,7 @@
   "kernel/sleeplock.c": "kernel/sync/sleep/sleeplock.cpp",
   "kernel/sleeplock.h": "kernel/sync/sleep/sleeplock.cppm",
   "kernel/uart.c": "kernel/drivers/serial/uart16550.cpp",
-  "kernel/console.c": "kernel/drivers/console/line_console.cpp",
+  "kernel/console.c": "kernel/drivers/tty/tty.cpp",
   "kernel/plic.c": "kernel/drivers/interrupt/plic.cpp",
   "kernel/virtio_disk.c": "kernel/drivers/block/virtio/virtio_block.cpp",
   "kernel/virtio.h": "kernel/drivers/block/virtio/protocol.cppm",

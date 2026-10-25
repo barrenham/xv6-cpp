@@ -164,6 +164,17 @@ int OpenFileTable::stat(File *file, unsigned long address)
   return -1;
 }
 
+int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
+{
+  if (file->type != File::Kind::Device)
+  {
+    return -1;
+  }
+  auto *device = devices().get(file->major);
+  return device ? device->ioctl(request, {xv::drivers::AddressSpace::User, argument})
+                : -1;
+}
+
 void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
 {
   if (major >= NDEV)

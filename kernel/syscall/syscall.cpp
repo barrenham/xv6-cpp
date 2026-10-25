@@ -41,6 +41,7 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_mkdir: return sys_mkdir;
   case SYS_close: return sys_close;
   case SYS_sync: return sys_sync;
+  case SYS_ioctl: return sys_ioctl;
 #ifdef LAB_NET
   case SYS_bind: return sys_bind;
   case SYS_unbind: return sys_unbind;
