@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--clangd', required=True)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-source = root / 'kernel/process/lifecycle/process_table.cpp'
+source = root / 'kernel/process/lifecycle/process_manager.cpp'
 uri = source.as_uri()
 original = source.read_text()
 messages = queue.Queue()
@@ -290,7 +290,24 @@ void xv_clangd_module_probe()
                      'kernel/process/process.cppm',
                      'kernel/process/resources/process_resources.cpp',
                      'kernel/process/memory/address_space.cpp',
-                     'kernel/process/scheduler/round_robin.cpp',
+                     'kernel/process/scheduler/policies/round_robin.cpp',
+                     'kernel/process/scheduler/runtime/scheduler_context.cppm',
+                     'kernel/process/scheduler/runtime/scheduler_context.cpp',
+                     'kernel/process/arch/cpu.cppm', 'kernel/process/arch/cpu.cpp',
+                     'kernel/process/lifecycle/first_return.cpp',
+                     'kernel/process/wait/sleep.cpp',
+                     'kernel/process/lifecycle/process_manager.cppm',
+                     'kernel/process/storage/process_store.cppm',
+                     'kernel/process/storage/paged_process_store.cpp',
+                     'kernel/process/scheduler/queues/fifo_ready_queue.cpp',
+                     'kernel/process/storage/process_store.cpp',
+                     'kernel/process/scheduler/queues/ready_queue.cpp',
+                     'kernel/process/wait/wait_channels.cpp',
+                     'kernel/process/arch/cpu_affinity.cpp',
+                     'tests/process_storage_checks.cpp',
+                     'tests/process_storage_test_platform.cpp',
+                     'tests/process_storage_contract.cpp',
+                     'kernel/process/storage/kernel_platform.cpp',
                      'kernel/process/exec/elf_loader.cpp',
                      'tests/fs_contract.cpp', 'tests/fs_test_platform.cpp',
                      'kernel/fs/fs.cppm', 'kernel/fs/cache/lru_block_cache.cpp',

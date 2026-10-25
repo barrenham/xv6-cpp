@@ -27,6 +27,7 @@ set(programs
   tests/forphan.cpp
   tests/grind.cpp
   tests/logstress.cpp
+  tests/procext.cpp
   tests/pgtblext.cpp
   tests/pgtbltest.cpp
   tests/stressfs.cpp

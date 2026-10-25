@@ -39,6 +39,8 @@ set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
+add_test(NAME process_storage_contract COMMAND "${PROJECT_BINARY_DIR}/process_storage_contract")
+set_tests_properties(process_storage_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME runtime_contract COMMAND "${PROJECT_BINARY_DIR}/runtime_contract")
 set_tests_properties(runtime_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 add_test(NAME trap_contract COMMAND "${PROJECT_BINARY_DIR}/trap_contract")
@@ -66,4 +68,13 @@ foreach(ram 64 257 2048 2049)
     --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib ${ram} --boot-only)
   set_tests_properties(ram_${ram}MiB PROPERTIES TIMEOUT 120 LABELS ram)
+endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME process_scaling_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --process-scaling --cpus ${cpus})
+  set_tests_properties(process_scaling_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
 endforeach()

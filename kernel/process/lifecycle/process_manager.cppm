@@ -1,21 +1,24 @@
-module;
-
-#include "kernel/support/param.h"
-
-module xv.process:table;
+module xv.process:manager;
 
 import :process;
+import :store;
+import :scheduler;
+import :wait_channels;
 import xv.sync;
 
 namespace xv::process
 {
-class ProcessTable final
+class ProcessManager final
 {
 public:
 
-  constexpr ProcessTable() = default;
+  constexpr ProcessManager(ProcessStore &store, Scheduler &scheduler,
+                           WaitChannels &waits)
+      : store_(store), scheduler_(scheduler), waits_(waits)
+  {
+  }
+
   void initialize();
-  void map_kernel_stacks(PageTable table);
   void create_initial_process();
   int fork_process();
   [[noreturn]] void exit_process(int status);
@@ -26,18 +29,19 @@ public:
 
 private:
 
-  friend class RoundRobinScheduler;
   Process *allocate();
   void reap(Process *process);
   int allocate_pid();
   void reparent(Process *parent);
-  Process entries_[NPROC]{};
+  ProcessStore &store_;
+  Scheduler &scheduler_;
+  WaitChannels &waits_;
   Process *initial_ = nullptr;
-  int next_pid_ = 1;
+  unsigned next_pid_ = 1;
   xv::sync::SpinLock pid_lock_;
   xv::sync::SpinLock wait_lock_;
 };
 
-extern ProcessTable process_table;
+extern ProcessManager process_manager;
 void first_return();
 } // namespace xv::process

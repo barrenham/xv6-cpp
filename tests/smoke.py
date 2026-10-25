@@ -16,6 +16,8 @@ parser.add_argument('--qemu', required=True)
 parser.add_argument('--kernel', required=True)
 parser.add_argument('--image', required=True)
 parser.add_argument('--regression', action='store_true')
+parser.add_argument('--process-scaling', action='store_true')
+parser.add_argument('--cpus', type=int, default=3)
 parser.add_argument('--ram-mib', type=int, default=128)
 parser.add_argument('--boot-only', action='store_true')
 parser.add_argument('--allocator', choices=['buddy', 'freelist'], default='buddy')
@@ -25,7 +27,7 @@ test_image = Path(temporary.name) / "fs.img"
 shutil.copyfile(args.image, test_image)
 qemu_env = dict(os.environ, TMPDIR=temporary.name)
 command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel,
-           '-m', f'{args.ram_mib}M', '-smp', '3', '-nographic', '-snapshot',
+           '-m', f'{args.ram_mib}M', '-smp', str(args.cpus), '-nographic', '-snapshot',
            '-global', 'virtio-mmio.force-legacy=false',
            '-drive', f'file={test_image},if=none,format=raw,id=x0',
            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
@@ -34,7 +36,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / ("user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -84,6 +86,8 @@ try:
         checks = checks[:2] + [('usertests sbrkbasic', 'ALL TESTS PASSED')]
     if args.boot_only:
         checks = checks[:2] + [('pgtblext', 'pgtblext: all tests succeeded')]
+    if args.process_scaling:
+        checks = [('procext', 'procext: 96 concurrent children, wake/kill/reuse OK')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
     for cmd, token in checks:

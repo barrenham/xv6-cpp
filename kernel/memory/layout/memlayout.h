@@ -49,8 +49,8 @@
 // in both user and kernel space.
 #define TRAMPOLINE (MAXVA - PGSIZE)
 
-// map kernel stacks beneath the trampoline,
-// each surrounded by invalid guard pages.
+// Guarded stack slots beneath the trampoline. A slot is the physical page
+// index of a physical stack frame, not a process-table index.
 #define KSTACK(p) (TRAMPOLINE - (p) * 2 * PGSIZE - 3 * PGSIZE)
 
 // User memory layout.

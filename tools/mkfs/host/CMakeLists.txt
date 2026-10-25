@@ -147,3 +147,27 @@ target_compile_features(runtime_contract PRIVATE cxx_std_20)
 target_compile_options(runtime_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-builtin)
 set_target_properties(runtime_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_runtime_module(runtime_contract)
+
+add_executable(process_storage_contract
+  "${XV_ROOT}/tests/process_storage_contract.cpp"
+  "${XV_ROOT}/tests/process_storage_checks.cpp"
+  "${XV_ROOT}/tests/process_storage_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/process/storage/process_store.cpp"
+  "${XV_ROOT}/kernel/process/storage/paged_process_store.cpp"
+  "${XV_ROOT}/kernel/process/wait/wait_channels.cpp"
+  "${XV_ROOT}/kernel/process/scheduler/queues/ready_queue.cpp"
+  "${XV_ROOT}/kernel/process/scheduler/queues/fifo_ready_queue.cpp"
+  "${XV_ROOT}/kernel/process/arch/cpu_affinity.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_include_directories(process_storage_contract PRIVATE "${XV_ROOT}")
+target_compile_features(process_storage_contract PRIVATE cxx_std_20)
+target_compile_options(process_storage_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(process_storage_contract PRIVATE Threads::Threads)
+set_target_properties(process_storage_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(process_storage_contract)
+xv_add_driver_interfaces(process_storage_contract)
+xv_add_fs_interfaces(process_storage_contract)
+xv_add_process_interfaces(process_storage_contract)
+xv_add_process_core_modules(process_storage_contract)

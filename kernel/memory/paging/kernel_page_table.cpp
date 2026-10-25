@@ -11,8 +11,6 @@ import xv.arch;
 
 import xv.print;
 
-import xv.process;
-
 extern "C" char etext[];
 extern "C" char trampoline[];
 
@@ -82,9 +80,6 @@ pagetable_t make_kernel_page_table()
   xv::memory::map_kernel_range(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE,
                                PTE_R | PTE_X);
 
-  // allocate and map a kernel stack for each process.
-  xv::process::map_kernel_stacks(kpgtbl);
-
   xv::memory::PageTranslation translated;
   if (!owned.view().translate((uint64)etext - 1, translated) ||
       (translated.permissions & PTE_W) || !(translated.permissions & PTE_X))
@@ -129,6 +124,19 @@ void KernelPageTable::initialize()
     xv::print::panic("kernel page table: already initialized");
   }
   root_ = make_kernel_page_table();
+  // Reserve only page-table metadata, not process descriptors or stack frames.
+  // Each physical stack frame has a unique guarded virtual alias slot.
+  // All intermediate tables remain stable while other harts walk this root.
+  stack_slots_ = allocator().layout().ram().page_count();
+  const unsigned long leaf_span = 512 * PageSize;
+  auto bottom = KSTACK(stack_slots_ - 1) & ~(leaf_span - 1);
+  for (auto address = bottom; address < MAXVA; address += leaf_span)
+  {
+    if (!walk_entry(static_cast<PageTable>(root_), address, 1))
+    {
+      xv::print::panic("kernel stack page tables: out of memory");
+    }
+  }
 }
 
 void KernelPageTable::activate_hart() const
@@ -140,6 +148,48 @@ void KernelPageTable::activate_hart() const
   xv::arch::sfence_vma();
   xv::arch::w_satp(MAKE_SATP(root_));
   xv::arch::sfence_vma();
+}
+
+unsigned long KernelPageTable::map_process_stack(unsigned long slot, void *physical)
+{
+  if (!root_ || slot >= stack_slots_)
+  {
+    return 0;
+  }
+  const auto address = KSTACK(slot);
+  auto *entry = walk_entry(static_cast<PageTable>(root_), address, 0);
+  if (!entry)
+  {
+    xv::print::panic("kernel stack: missing reserved page table");
+  }
+  unsigned long empty = 0;
+  const auto value = PA2PTE(physical) | PTE_R | PTE_W | PTE_V;
+  if (!__atomic_compare_exchange_n(entry, &empty, value, false, __ATOMIC_RELEASE,
+                                   __ATOMIC_RELAXED))
+  {
+    xv::print::panic("kernel stack: duplicate slot");
+  }
+  return address;
+}
+
+void *KernelPageTable::unmap_process_stack(unsigned long address)
+{
+  if (!root_ || address > KSTACK(0UL) ||
+      (KSTACK(0UL) - address) % (2 * PageSize) != 0 ||
+      (KSTACK(0UL) - address) / (2 * PageSize) >= stack_slots_)
+  {
+    xv::print::panic("kernel stack: invalid address");
+  }
+  auto *entry = walk_entry(static_cast<PageTable>(root_), address, 0);
+  auto value = __atomic_exchange_n(entry, 0UL, __ATOMIC_ACQ_REL);
+  if (!(value & PTE_V))
+  {
+    xv::print::panic("kernel stack: unmapped slot");
+  }
+  // Only a descheduled, locked process can retire its stack. Dispatch fences
+  // every hart before it can reuse a slot; subordinate tables are never freed.
+  xv::arch::sfence_vma();
+  return reinterpret_cast<void *>(PTE2PA(value));
 }
 
 const void *KernelPageTable::root() const

@@ -6,7 +6,7 @@
   "kernel/vm.c": "kernel/memory/paging/vm.cpp",
   "kernel/vm.h": "kernel/memory/paging/vm.h",
   "kernel/memlayout.h": "kernel/memory/layout/memlayout.h",
-  "kernel/proc.c": "kernel/process/lifecycle/process_table.cpp",
+  "kernel/proc.c": "kernel/process/lifecycle/process_manager.cpp",
   "kernel/proc.h": "kernel/process/process.cppm",
   "kernel/exec.c": "kernel/process/exec/elf_loader.cpp",
   "kernel/swtch.S": "kernel/process/arch/swtch.S",

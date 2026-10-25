@@ -10,7 +10,6 @@ export import :executable;
 export namespace xv::process
 {
 void initialize();
-void map_kernel_stacks(PageTable table);
 void create_initial_process();
 int fork_process();
 [[noreturn]] void exit_process(int status);

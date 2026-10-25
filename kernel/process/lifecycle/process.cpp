@@ -28,19 +28,6 @@ void Process::request_kill()
   killed = 1;
 }
 
-int Process::pin_cpu(int index)
-{
-  if (index < 0 || index >= NCPU)
-  {
-    return -1;
-  }
-  // The optional lab binds via the scheduler's per-hart array.
-  extern CpuState *cpu_at(int);
-  xv::sync::ScopedLock guard(lock);
-  pincpu = cpu_at(index);
-  return 0;
-}
-
 bool Process::create_image(AddressSpace &image)
 {
   return image.create(trapframe, usyscall);

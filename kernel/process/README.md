@@ -7,28 +7,34 @@
 | --- | --- |
 | `process_module.cppm` | 模块入口，导出公共分区与生命周期服务 |
 | `process.cppm` | `Process`、`ProcessState`、`CpuState` 和当前进程/CPU 查询 |
-| `arch/` | 上下文、陷阱帧布局及必要的 `swtch.S` |
+| `arch/` | CPU 状态查询与绑定、寄存器布局及 `swtch.S` |
 | `resources/` | 描述符表和当前目录的引用所有权 |
 | `memory/` | 进程地址空间、用户复制、增长与缺页处理 |
-| `lifecycle/` | 进程槽位、PID、fork/exit/wait/kill、资源回收和服务装配 |
-| `scheduler/` | `Scheduler` 抽象与 `RoundRobinScheduler` 实现 |
+| `lifecycle/` | `ProcessManager`：PID、fork/exit/wait/kill、资源回收和服务装配 |
+| `storage/` | `ProcessStore` 抽象与动态链式 `PagedProcessStore` |
+| `scheduler/` | 按 policies / queues / runtime 分开的策略、队列和上下文机制 |
+| `wait/` | 等待通道索引与 prepare_sleep/sleep 协议 |
 | `exec/` | `ExecutableLoader` 抽象、ELF64 协议和 `ElfLoader` 实现 |
 
-`ProcessTable`、轮转调度器和 ELF 实现属于内部模块分区，不从入口重导出。
-`Scheduler` 和 `ExecutableLoader` 是有实际实现的替换点；描述符表和地址空间
-使用具体资源类，避免为每个状态对象增加虚函数。当前服务固定装配轮转调度器
-和 ELF64 加载器，未实现运行时切换或多线程共享进程地址空间。
+进程存储、就绪队列、调度策略和 ELF 实现均属于内部模块分区。当前由服务层
+注入 `PagedProcessStore`、`FifoReadyQueue`、`RoundRobinScheduler` 和 ELF64 加载器。
+存储和就绪队列都可以换成其他派生实现；调度器不持有存储对象，不访问容器、
+容量或进程枚举接口。未增加运行时热切换或进程内多线程。
 
 ```mermaid
 classDiagram
   Process *-- DescriptorTable
   Process *-- WorkingDirectory
   Process *-- AddressSpace
-  ProcessTable *-- Process
+  ProcessStore <|-- PagedProcessStore
+  ReadyQueue <|-- FifoReadyQueue
   Scheduler <|-- RoundRobinScheduler
+  ProcessManager --> ProcessStore
+  ProcessManager --> Scheduler
+  ProcessManager --> WaitChannels
+  WaitChannels --> Scheduler
+  RoundRobinScheduler --> ReadyQueue
   ExecutableLoader <|-- ElfLoader
-  RoundRobinScheduler --> ProcessTable
-  ElfLoader --> AddressSpace
 ```
 
 ## 文件与目录引用
@@ -55,8 +61,7 @@ classDiagram
 退出仍在 `begin_op()` / `end_op()` 之间清理目录。
 
 这两个对象使用显式清理：资源释放可能睡眠或触发日志事务，不能在持有进程锁
-回收槽位时隐式执行析构。它们保存 `xv.fs` 公开的 `File` / `Inode` 引用，不访问对象内部布局。四个私有
-C 链接适配函数连接引用操作，原生进程测试可以替换这些操作检查引用计数。
+回收槽位时隐式执行析构。它们保存 `xv.fs` 公开的 `File` / `Inode` 引用，不访问对象内部布局。引用操作通过私有模块平台分区连接到 `xv.fs`，原生进程测试替换该分区的实现检查引用计数。
 
 ## 地址空间与 exec
 
@@ -87,36 +92,92 @@ int copy_to_current_user(unsigned long address, const void *data, unsigned long 
 }
 ```
 
-## 进程表、调度与架构边界
+## 动态进程存储
 
-`Process` 把调度状态、父子关系、退出状态和进程锁设为私有，由进程表与调度器
-协作访问。外部使用 `id()`、`is_killed()`、`registers()`、`files()`、
-`directory()` 和 `memory()` 等有具体职责的入口。
+`ProcessManager` 管理生命周期，`ProcessStore` 管理登记与对象存活。
+`PagedProcessStore` 使用链式节点，每个节点从物理分配器取得一页，placement
+构造 `Process`，另按需分配一页带保护页的内核栈。没有 `NPROC` 数组或固定
+进程数量限制；可用内存不足时 fork 返回 -1。节点地址在登记期间不变。
 
-进程表保持现有 PID 分配、初始进程、fork 发布、父子回收和孤儿转交算法。
-wait 锁仍先于进程锁；fork 在资源准备完成后发布子进程；exit 在进入 Zombie
-之前关闭描述符并释放目录引用，wait 回收用户内存及槽位。
+回收时先清理 trapframe、只读 PID 页、用户地址空间等资源，再从登记链移除
+对象，执行析构、取消栈映射并归还节点页与栈页。分配中途失败走同一所有权
+清理路径，不保留随历史并发量增长的描述符/栈缓存。PID 单调分配，达到正
+int 范围上界后拒绝新分配，避免溢出和重复 PID。
 
-调度器保留原有扫描选择行为。`suspend()` 要求只持有当前进程锁、中断关闭、
-进程状态已离开 Running，并保留现有中断嵌套检查。进程锁跨 `swtch` 的交接
-仍显式获取和释放，不能由普通作用域守卫包围。
+存储接口不暴露链表布局：
 
-`prepare_sleep(channel)` 先登记通道，调用者再释放条件锁并 `sleep()`；
-`wakeup()` 清除登记通道并把 Sleeping 进程置为 Runnable，保留防丢失唤醒协议。
+- `allocate()` / `find(predicate)` 返回持有进程锁的稳定指针。
+- `visit(visitor)` 在进程锁保护下访问对象；回调不得睡眠或再次进入存储。
+- `release(process)` 消费进程锁和对象所有权；调用者之后不能解锁或访问指针。
+- 查询先取登记锁，再取进程锁；回收先标记 Unused 并释放进程锁，再取登记锁
+  删除，等待已经借出进程锁的查询完成后才析构。
 
-`Context`、`TrapFrame` 保持汇编寄存器布局，通过大小与关键字段偏移断言验证。
-`CpuState` 保留供 sync 平台使用的中断嵌套深度和恢复标志。CPU 数组、进程表、
-调度器和加载器均使用 `constinit`；链接脚本继续拒绝启动构造/析构数组。
-内核不引入异常、RTTI、堆对象注册或标准库依赖。
+wait 锁继续保护父子关系，并先于登记锁、进程锁。fork 准备完资源和父子关系
+后才发布就绪；退出先关闭文件及目录，再成为 Zombie。父进程 wait 后才回收
+对象。孤儿转交和调试遍历使用存储接口，不依赖容器形态。
 
-sync、drivers 和 fs 的公共模块不依赖进程模块；它们的内核平台实现导入进程接口。
-进程资源公开接口导入 fs，以引用实际的文件和 inode 类型。
-因此具名模块的接口依赖图保持无环，运行时的锁/调度互相调用集中在实现层。
-必要的汇编入口 `swtch` 保留 C 链接；其他旧进程 C 入口已迁移为模块服务。
-首次调度返回用户态通过 `xv.trap::return_to_user()` 准备 CSR 和 trampoline 跳转，
-调度器实现不再计算用户页表 token 或直接跳转 userret。
+PID 查询与 wait 目前仍为线性访问；PID 索引、独立父子链仍是后续优化方向。
+wakeup 已脱离登记链，使用下面的等待通道索引。
+
+## 独立就绪队列与调度
+
+`ReadyQueue` 定义 `enqueue/take`；`FifoReadyQueue` 使用进程内的独立链接，
+与存储登记链无关。普通入队/取任务是 O(1)，有 CPU 绑定时跳过不适合当前核
+的节点。重复入队会触发不变量诊断；进程锁保护状态，队列锁保护队列链接。
+
+所有 Used/Running/Sleeping → Runnable 转换通过 `Scheduler::make_runnable()`
+完成并入队。`take()` 先移出节点并释放队列锁，调度器随后才等待进程锁，避免
+与发布者的“进程锁 → 队列锁”顺序形成环。Runnable/Running 状态保证取出的
+对象不能被生命周期管理回收。
+
+`suspend()` 仍要求只持当前进程锁、中断关闭、状态已离开 Running。
+进程锁跨 `swtch` 的交接显式进行。yield 可在切换前发布就绪，但其他 CPU
+必须等原 CPU 完成切换并交出进程锁后才能执行它。无可用任务时执行 wfi，
+不再用“只剩 init 和 sh”推断空闲；每核定时器保证新工作出现后的有限唤醒延迟。
+
+`prepare_sleep(channel)` 先登记事件，再释放条件锁并 `sleep()`；提前发生的
+wakeup 清除登记，后续 sleep 不会睡下去。实际睡眠者由 wakeup/kill 经调度器
+发布就绪。睡眠及首次返回用户态的机制是模块函数，不依赖具体调度策略。
+
+## 等待通道索引
+
+`WaitChannels` 使用带锁的哈希桶和进程内等待链接；桶数只影响碰撞成本，
+不限制等待者数量。唤醒只访问对应桶，并匹配通道，而非扫描全部进程。
+这避免扩容后每次缓冲区释放都锁定所有进程；原有 forkforkfork 压力用例在
+大量等待文件系统锁的进程下也能完成。
+
+锁顺序为“等待桶 → 进程 → 就绪队列”；队列取任务先释放队列锁再取进程锁。
+等待登记成员 `wait_key_` 与是否已通知的 `chan` 分开：kill 持进程锁清除 chan，
+即使目标尚未实际 sleep，也不会丢失通知；它无需反向取得等待桶锁。
+下一次 prepare、正常 wake 或退出时的 cancel 在桶锁下移除登记。
+
+退出在资源关闭前取消残余登记，回收拒绝仍在等待索引中的对象。索引不保存
+可被直接回收的裸悬空节点；cancel 与 wake 的锁交接保证通知方完成访问后
+才允许释放进程。访存和调度状态仍由进程锁保护。
+
+## 内核栈与架构边界
+
+栈映射由 `xv.memory::KernelPageTable` 管理。启动时按实际 RAM 只预建覆盖全部
+潜在物理栈帧的页表元数据，尚不分配进程或栈帧。运行时仅原子更新叶子 PTE，
+不创建/回收共享页表节点；每个栈映射旁的保护页保持无映射。
+
+栈虚拟别名由物理栈帧索引计算；调度器在进入/离开进程内核栈时执行本核
+sfence.vma。回收必须等退出上下文完成、进程锁交出后才取消映射并释放帧。
+预建页表的内存属于固定启动开销，fork/exit 不造成持续增加的页表元数据。
+地址布局和成本见 memory 模块说明。
+
+`Context` / `TrapFrame` 保持汇编布局断言，`CpuState` 保留中断嵌套状态。
+服务对象使用 constinit，动态 Process 显式 placement 构造/析构；不引入异常、
+RTTI、宿主机标准库或启动构造函数。只有 swtch 和汇编/链接器符号保留 ABI 边界。
 
 ## 验证
+
+`process_storage_contract` 编译实际登记链、FIFO、CPU 绑定、等待索引和锁，
+覆盖 192 个稳定地址、分配失败回滚、重复入队、通道替换/提前通知，以及
+扩容、遍历、取任务、取消等待和回收的多线程交错。
+`procext` 在 1 核、3 核 QEMU 中让 96 个子进程同时存活，检查管道唤醒、
+kill、wait 和多轮复用。完整 usertests 检查 fork 压力、孤儿转交、内存耗尽
+和释放后的空闲页恢复。
 
 原生 `process_contract` 运行实际描述符表和目录资源实现，以文件/inode 引用
 计数替身检查槽位、所有权转移、dup 表满回滚、fork 引用、父子独立关闭、目录
@@ -142,3 +203,5 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 `xv.fs::files()` 和 `xv.fs::filesystem()`，原生测试替换该平台实现并验证
 原有引用计数和事务约束。`filedup/fileclose/idup/iput` C 桥接已删除。
 只有上下文切换的 `swtch` 和汇编/链接器符号保留必要的 ABI 声明。
+
+调度子目录的文件职责及关联位置见 [调度目录说明](scheduler/README.md)。CPU 状态不再放在轮转策略中，首次进入用户态由 lifecycle/first_return.cpp 管理。

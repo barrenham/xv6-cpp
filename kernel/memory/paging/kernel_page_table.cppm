@@ -14,10 +14,14 @@ public:
   void initialize();
   void activate_hart() const;
   const void *root() const;
+  // Internal process-stack service: slots are derived from physical page IDs.
+  unsigned long map_process_stack(unsigned long slot, void *physical);
+  void *unmap_process_stack(unsigned long address);
 
 private:
 
   void *root_ = nullptr;
+  unsigned long stack_slots_ = 0;
 };
 
 KernelPageTable &kernel_page_table();

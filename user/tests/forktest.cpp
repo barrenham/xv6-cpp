@@ -1,59 +1,60 @@
-// Test that fork fails gracefully.
-// Tiny executable so that the limit can be filling the proc table.
+// Bounded fork/reap stress. Dynamic storage can legitimately reach N children;
+// allocation failure before N must still leave every successful child waitable.
 
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
 
-extern "C" {
+extern "C"
+{
 
 #define N 1000
 
-void
-print(const char *s)
-{
-  write(1, s, strlen(s));
-}
-
-void
-forktest(void)
-{
-  int n, pid;
-
-  print("fork test\n");
-
-  for (n = 0; n < N; n++) {
-    pid = fork();
-    if (pid < 0)
-      break;
-    if (pid == 0)
-      exit(0);
+  void print(const char *s)
+  {
+    write(1, s, strlen(s));
   }
 
-  if (n == N) {
-    print("fork claimed to work N times!\n");
-    exit(1);
-  }
+  void forktest(void)
+  {
+    int n, pid;
 
-  for (; n > 0; n--) {
-    if (wait(0) < 0) {
-      print("wait stopped early\n");
+    print("fork test\n");
+
+    for (n = 0; n < N; n++)
+    {
+      pid = fork();
+      if (pid < 0)
+      {
+        break;
+      }
+      if (pid == 0)
+      {
+        exit(0);
+      }
+    }
+
+    for (; n > 0; n--)
+    {
+      if (wait(0) < 0)
+      {
+        print("wait stopped early\n");
+        exit(1);
+      }
+    }
+
+    if (wait(0) != -1)
+    {
+      print("wait got too many\n");
       exit(1);
     }
+
+    print("fork test OK\n");
   }
 
-  if (wait(0) != -1) {
-    print("wait got too many\n");
-    exit(1);
+  int main(void)
+  {
+    forktest();
+    exit(0);
   }
-
-  print("fork test OK\n");
-}
-
-int
-main(void)
-{
-  forktest();
-  exit(0);
-}
 }

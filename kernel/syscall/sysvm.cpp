@@ -42,7 +42,7 @@ static void cnt_level(pagetable_t pagetable, uint64 *nsuper, uint64 *n2,
 
   for (int i = 0; i < n; i++)
   {
-    pte_t pte = pagetable[i];
+    pte_t pte = __atomic_load_n(&pagetable[i], __ATOMIC_ACQUIRE);
     if (pte & PTE_V)
     {
       va = (((uint64)i) << PXSHIFT(level)) + va_start;

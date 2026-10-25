@@ -1962,9 +1962,8 @@ iref(char *s)
   chdir("/");
 }
 
-// test that fork fails gracefully
-// the forktest binary also does this, but it runs out of proc entries first.
-// inside the bigger usertests binary, we run out of memory first.
+// Test bounded fork/reap and graceful memory exhaustion. A dynamic process
+// registry may reach the bound on larger machines; that is a valid outcome.
 void
 forktest(char *s)
 {
@@ -1981,11 +1980,6 @@ forktest(char *s)
 
   if (n == 0) {
     printf("%s: no fork at all!\n", s);
-    exit(1);
-  }
-
-  if (n == N) {
-    printf("%s: fork claimed to work 1000 times!\n", s);
     exit(1);
   }
 

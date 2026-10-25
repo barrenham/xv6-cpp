@@ -79,8 +79,14 @@ public:
 private:
 
   constexpr Process() = default;
-  friend class ProcessTable;
-  friend class RoundRobinScheduler;
+  friend class ProcessManager;
+  friend class ProcessStore;
+  friend class ReadyQueue;
+  friend class WaitChannels;
+  friend class SchedulerContext;
+  friend void prepare_sleep(void *channel);
+  friend void sleep();
+  friend void first_return();
 
   mutable xv::sync::SpinLock lock;
   ProcessState state = ProcessState::Unused;
@@ -88,7 +94,7 @@ private:
   int killed = 0;
   int xstate = 0;
   int pid = 0;
-  Process *parent = nullptr; // protected by the process table's wait lock
+  Process *parent = nullptr; // protected by the manager's family lock
   unsigned long kstack = 0;
   AddressSpace memory_;
   TrapFrame *trapframe = nullptr;
@@ -98,6 +104,10 @@ private:
   WorkingDirectory directory_;
   char name[16]{};
   struct CpuState *pincpu = nullptr;
+  void *wait_key_ = nullptr;
+  Process *wait_next_ = nullptr;
+  Process *ready_next_ = nullptr;
+  bool queued_ = false;
 };
 
 // Per-hart architectural state. Interrupt nesting is accessed by the sync

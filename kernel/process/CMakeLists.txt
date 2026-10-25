@@ -3,13 +3,24 @@ xv_add_process_interfaces(kernel)
 xv_add_process_internals(kernel)
 
 target_sources(kernel PRIVATE
+  arch/cpu.cpp
+  lifecycle/first_return.cpp
+  wait/sleep.cpp
+  scheduler/runtime/scheduler_context.cpp
   lifecycle/process.cpp
-  lifecycle/process_table.cpp
+  lifecycle/process_manager.cpp
+  storage/process_store.cpp
+  storage/paged_process_store.cpp
+  storage/kernel_platform.cpp
+  wait/wait_channels.cpp
+  scheduler/queues/ready_queue.cpp
+  scheduler/queues/fifo_ready_queue.cpp
+  arch/cpu_affinity.cpp
   lifecycle/service.cpp
   resources/process_resources.cpp
   resources/kernel_platform.cpp
   memory/address_space.cpp
-  scheduler/round_robin.cpp
+  scheduler/policies/round_robin.cpp
   exec/elf_loader.cpp
   arch/swtch.S
 )

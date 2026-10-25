@@ -1,7 +1,7 @@
 module xv.process:round_robin;
 
 import :scheduler;
-import :table;
+import :ready_queue;
 
 namespace xv::process
 {
@@ -9,7 +9,7 @@ class RoundRobinScheduler final : public Scheduler
 {
 public:
 
-  constexpr explicit RoundRobinScheduler(ProcessTable &table) : table_(table)
+  constexpr explicit RoundRobinScheduler(ReadyQueue &ready) : ready_(ready)
   {
   }
 
@@ -21,12 +21,10 @@ public:
   [[noreturn]] void run() override;
   void suspend() override;
   void yield() override;
-  void prepare_sleep(void *channel);
-  void sleep();
-  void first_return();
+  void make_runnable(Process &process) override;
 
 private:
 
-  ProcessTable &table_;
+  ReadyQueue &ready_;
 };
 } // namespace xv::process
