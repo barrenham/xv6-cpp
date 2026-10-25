@@ -11,6 +11,8 @@
 | `resources/` | 描述符表和当前目录的引用所有权 |
 | `memory/` | 进程地址空间、用户复制、增长与缺页处理 |
 | `lifecycle/` | `ProcessManager`：PID、fork/exit/wait/kill、资源回收和服务装配 |
+| `signals/` | 原子待处理信号、进程/组投递和返回用户态前的默认终止 |
+| `groups/` | `ProcessGroups`：独立进程组/会话对象、成员登记、权限与生命周期 |
 | `storage/` | `ProcessStore` 抽象与动态链式 `PagedProcessStore` |
 | `scheduler/` | 按 policies / queues / runtime 分开的策略、队列和上下文机制 |
 | `wait/` | 等待通道索引与 prepare_sleep/sleep 协议 |
@@ -32,6 +34,8 @@ classDiagram
   ProcessManager --> ProcessStore
   ProcessManager --> Scheduler
   ProcessManager --> WaitChannels
+  ProcessManager --> ProcessGroups
+  ProcessGroup --> Session
   WaitChannels --> Scheduler
   RoundRobinScheduler --> ReadyQueue
   ExecutableLoader <|-- ElfLoader
@@ -79,7 +83,8 @@ ELF 加载通过 `PendingImage` 在栈上拥有候选地址空间，通过 `Exec
 在栈上管理 inode 锁、引用和文件系统事务。头部、段、用户栈或参数复制失败，
 临时对象自动回收，保留旧地址空间与用户寄存器。
 
-全部准备完成后，`Process::commit_image()` 交换新旧地址空间并更新 PC、SP、
+全部准备完成后，`Process::commit_image()` 先在组锁下记录成功 exec，保留 PGID/SID，
+再交换新旧地址空间并更新 PC、SP、
 argv 和进程名；候选对象随后释放旧空间。加载器仍面向现有 ELF64 程序格式，
 本次未增加动态链接、共享库或其他可执行格式。
 
@@ -91,6 +96,20 @@ int copy_to_current_user(unsigned long address, const void *data, unsigned long 
   return xv::process::current()->memory().copy_out(address, data, count);
 }
 ```
+
+## 进程组与会话
+
+`getpgrp/setpgid/getsid/setsid` 通过进程服务访问独立的 `ProcessGroups`。
+fork 继承成员身份，成功 exec 保留组/会话并禁止父进程再修改其组；wait 回收
+时移除成员。组和会话独立于首进程描述符存活，最后一个引用消失时释放页面。
+具体规则、锁顺序和测试见 [进程组与会话说明](groups/README.md)。
+目前支持 SIGINT/SIGKILL/SIGTERM 的默认终止，已接入控制终端、前台进程组与 Ctrl-C；停止/继续、Ctrl-Z 和 jobs/fg/bg 已接入。
+
+## 最小信号机制
+
+`sigsend(target, signal)` 支持进程与进程组投递，目标自行在返回用户态前完成
+默认终止。TTY、管道、pause、wait 使用可中断等待；内部 I/O 和锁等待保持
+协议完整。旧 kill(pid) ABI 保留，详见 [信号接口、锁与验证](signals/README.md)。
 
 ## 动态进程存储
 
@@ -205,3 +224,6 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 只有上下文切换的 `swtch` 和汇编/链接器符号保留必要的 ABI 声明。
 
 调度子目录的文件职责及关联位置见 [调度目录说明](scheduler/README.md)。CPU 状态不再放在轮转策略中，首次进入用户态由 lifecycle/first_return.cpp 管理。
+
+`waitpid` 支持退出/停止/继续事件和非阻塞查询，旧 wait 退出状态 ABI 保持不变；
+具体状态编码、锁顺序和可中断 syscall 重试见 [作业控制说明](signals/job-control.md)。

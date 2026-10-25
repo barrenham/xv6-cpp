@@ -35,9 +35,19 @@ bool has_process()
   return xv::process::current() != nullptr;
 }
 
-bool killed()
+void deliver_signals()
+{
+  xv::process::deliver_signals();
+}
+
+bool interrupted()
 {
   return xv::process::current()->is_killed();
+}
+
+bool killed()
+{
+  return xv::process::current()->termination_status() != 0;
 }
 
 void request_kill()
@@ -78,6 +88,8 @@ void dispatch_system_call()
 void dispatch_external_interrupt()
 {
   xv::drivers::handle_external_interrupt(xv::process::cpu_id());
+  // UART/TTY locks have been released and the PLIC source completed.
+  xv::process::service_signal_notifications();
 }
 
 bool resolve_page_fault(Word address, bool read)
@@ -158,6 +170,11 @@ void service_timer_devices()
   {
     xv::drivers::terminal_timer_tick();
   }
+}
+
+void prepare_interruptible_sleep(void *channel)
+{
+  xv::process::prepare_interruptible_sleep(channel);
 }
 
 void prepare_sleep(void *channel)

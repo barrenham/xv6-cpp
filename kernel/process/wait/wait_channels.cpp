@@ -33,6 +33,7 @@ void WaitChannels::unlink(Bucket &bucket, Process &process)
   process.wait_next_ = nullptr;
   __atomic_store_n(&process.wait_key_, static_cast<void *>(nullptr), __ATOMIC_RELEASE);
   process.chan = nullptr;
+  process.interruptible_ = false;
 }
 
 void WaitChannels::cancel(Process &process)
@@ -55,7 +56,7 @@ void WaitChannels::cancel(Process &process)
   }
 }
 
-void WaitChannels::prepare(Process &process, void *channel)
+void WaitChannels::prepare(Process &process, void *channel, bool interruptible)
 {
   if (!channel)
   {
@@ -67,6 +68,15 @@ void WaitChannels::prepare(Process &process, void *channel)
   auto &bucket = buckets_[index(channel)];
   xv::sync::ScopedLock bucket_guard(bucket.lock);
   xv::sync::ScopedLock process_guard(process.lock);
+  if (interruptible &&
+      (process.killed || (process.pending_signals_.terminating_signal() ||
+                          process.pending_signals_.stopping_signal())))
+  {
+    process.chan = nullptr;
+    process.interruptible_ = false;
+    return;
+  }
+  process.interruptible_ = interruptible;
   process.chan = channel;
   process.wait_next_ = bucket.head;
   bucket.head = &process;

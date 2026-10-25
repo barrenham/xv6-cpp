@@ -29,6 +29,7 @@ Word TrapController::handle_user()
     detail::request_kill();
     detail::exit_current(-1);
   }
+  detail::deliver_signals();
   if (action == TrapAction::Terminate || detail::killed())
   {
     detail::exit_current(-1);
@@ -67,6 +68,7 @@ void TrapController::handle_kernel()
 
 void TrapController::prepare_return()
 {
+  detail::deliver_signals();
   detail::prepare_user_return();
 }
 

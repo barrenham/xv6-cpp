@@ -6,6 +6,7 @@ namespace xv::syscall
 unsigned long sys_fork(void);
 unsigned long sys_exit(void);
 unsigned long sys_wait(void);
+unsigned long sys_waitpid(void);
 unsigned long sys_pipe(void);
 unsigned long sys_read(void);
 unsigned long sys_kill(void);
@@ -26,6 +27,12 @@ unsigned long sys_mkdir(void);
 unsigned long sys_close(void);
 unsigned long sys_sync(void);
 unsigned long sys_ioctl(void);
+unsigned long sys_getpgrp(void);
+unsigned long sys_setpgid(void);
+unsigned long sys_getsid(void);
+unsigned long sys_setsid(void);
+unsigned long sys_sigsend(void);
+unsigned long sys_sigdisposition(void);
 
 #ifdef LAB_NET
 unsigned long sys_bind(void);

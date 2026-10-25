@@ -68,8 +68,8 @@ extern "C" int main(int argc, char **argv)
   raw.c_cc[VMIN] = 0;
   check(tcsetattr(0, TCSANOW, &raw) == 0, "nonblocking raw mode");
   check(read(0, input, sizeof(input)) == 0, "read after killed reader");
-  raw.c_lflag |= ISIG;
-  check(tcsetattr(0, TCSANOW, &raw) == -1, "unsupported signals rejected");
+  raw.c_lflag |= 0x80000000U;
+  check(tcsetattr(0, TCSANOW, &raw) == -1, "unsupported unsupported flags rejected");
   check(tcsetattr(0, TCSAFLUSH, &saved) == 0, "restore");
   check(tcflush(0, TCIFLUSH) == 0, "flush");
   if (argc > 1 && strcmp(argv[1], "interactive") == 0)

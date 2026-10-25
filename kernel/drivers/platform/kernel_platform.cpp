@@ -1,4 +1,5 @@
 module;
+#include "kernel/process/signals/signal.h"
 
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
@@ -20,6 +21,11 @@ import xv.memory;
 
 namespace xv::drivers::detail
 {
+void prepare_interruptible_sleep(void *channel)
+{
+  xv::process::prepare_interruptible_sleep(channel);
+}
+
 void prepare_sleep(void *channel)
 {
   xv::process::prepare_sleep(channel);
@@ -33,6 +39,31 @@ void sleep_process()
 void wake_processes(void *channel)
 {
   xv::process::wakeup(channel);
+}
+
+int claim_terminal(void *terminal)
+{
+  return xv::process::claim_terminal(terminal);
+}
+
+int terminal_foreground(void *terminal)
+{
+  return xv::process::terminal_foreground(terminal);
+}
+
+int set_terminal_foreground(void *terminal, int group)
+{
+  return xv::process::set_terminal_foreground(terminal, group);
+}
+
+bool may_read_terminal(void *terminal)
+{
+  return xv::process::may_read_terminal(terminal);
+}
+
+void post_terminal_interrupt(void *terminal, bool suspend)
+{
+  xv::process::post_terminal_interrupt(terminal, suspend ? SIGTSTP : SIGINT);
 }
 
 bool process_killed()

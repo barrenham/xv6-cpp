@@ -5,6 +5,7 @@ import :inode;
 namespace xv::fs::detail
 {
 void prepare_sleep(void *channel);
+void prepare_interruptible_sleep(void *channel);
 void sleep();
 void wakeup(void *channel);
 bool killed();

@@ -122,8 +122,8 @@ void NttyDiscipline::erase(const termios &settings, SerialPort &output)
   }
 }
 
-void NttyDiscipline::receive(unsigned char byte, const termios &settings,
-                             SerialPort &output)
+InputAction NttyDiscipline::receive(unsigned char byte, const termios &settings,
+                                    SerialPort &output)
 {
   if (settings.c_iflag & ISTRIP)
   {
@@ -133,7 +133,7 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
   {
     if (settings.c_iflag & IGNCR)
     {
-      return;
+      return InputAction::None;
     }
     if (settings.c_iflag & ICRNL)
     {
@@ -148,17 +148,29 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
   const bool canonical = settings.c_lflag & ICANON;
   const bool quoted = literal_;
   literal_ = false;
+  if (!quoted && (settings.c_lflag & ISIG) &&
+      (matches(byte, settings, VINTR) || matches(byte, settings, VSUSP)))
+  {
+    bool suspend = matches(byte, settings, VSUSP) && !matches(byte, settings, VINTR);
+    flush();
+    if (settings.c_lflag & ECHO)
+    {
+      echo(byte, settings, output);
+      echo('\n', settings, output);
+    }
+    return suspend ? InputAction::Suspend : InputAction::Interrupt;
+  }
   if (canonical && !quoted)
   {
     if ((settings.c_lflag & IEXTEN) && matches(byte, settings, VLNEXT))
     {
       literal_ = true;
-      return;
+      return InputAction::None;
     }
     if (matches(byte, settings, VERASE))
     {
       erase(settings, output);
-      return;
+      return InputAction::None;
     }
     if (matches(byte, settings, VKILL))
     {
@@ -181,7 +193,7 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
           }
         }
       }
-      return;
+      return InputAction::None;
     }
     if ((settings.c_lflag & IEXTEN) && matches(byte, settings, VWERASE))
     {
@@ -193,7 +205,7 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
       {
         erase(settings, output);
       }
-      return;
+      return InputAction::None;
     }
   }
   bool eof = canonical && !quoted && matches(byte, settings, VEOF);
@@ -204,7 +216,7 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
   // partial canonical line. Erase/kill remain usable while the ring is full.
   if (head_ - tail_ >= Capacity || (canonical && !end && head_ - tail_ >= Capacity - 1))
   {
-    return;
+    return InputAction::None;
   }
   ring_[head_++ % Capacity] = {byte, end, eof};
   if (!eof && ((settings.c_lflag & ECHO) ||
@@ -216,5 +228,6 @@ void NttyDiscipline::receive(unsigned char byte, const termios &settings,
   {
     committed_ = head_;
   }
+  return InputAction::None;
 }
 } // namespace xv::drivers

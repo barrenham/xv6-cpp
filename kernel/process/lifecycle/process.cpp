@@ -8,24 +8,13 @@ module;
 module xv.process;
 
 import xv.runtime;
+import :manager;
 
 namespace xv::process
 {
 void Process::set_name(const char *label)
 {
   xv::runtime::copy_string(name, label, sizeof(name));
-}
-
-bool Process::is_killed() const
-{
-  xv::sync::ScopedLock guard(lock);
-  return killed != 0;
-}
-
-void Process::request_kill()
-{
-  xv::sync::ScopedLock guard(lock);
-  killed = 1;
 }
 
 bool Process::create_image(AddressSpace &image)
@@ -37,6 +26,9 @@ void Process::commit_image(AddressSpace &image, unsigned long entry,
                            unsigned long stack, unsigned long arguments,
                            const char *path)
 {
+  // All fallible loading has completed. Linearize successful exec against a
+  // parent attempting setpgid before publishing the new image.
+  process_manager.did_exec(*this);
   memory_.swap(image);
   trapframe->epc = entry;
   trapframe->sp = stack;

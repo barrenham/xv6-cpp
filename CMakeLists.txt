@@ -39,6 +39,10 @@ set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
+add_test(NAME signal_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract" --signals)
+set_tests_properties(signal_contract PROPERTIES TIMEOUT 45 LABELS process)
+add_test(NAME process_groups_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract")
+set_tests_properties(process_groups_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME process_storage_contract COMMAND "${PROJECT_BINARY_DIR}/process_storage_contract")
 set_tests_properties(process_storage_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME runtime_contract COMMAND "${PROJECT_BINARY_DIR}/runtime_contract")
@@ -71,6 +75,30 @@ foreach(ram 64 257 2048 2049)
 endforeach()
 
 foreach(cpus 1 3)
+  add_test(NAME jobs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --jobs --cpus ${cpus})
+  set_tests_properties(jobs_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS tty)
+  add_test(NAME foreground_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --foreground --cpus ${cpus})
+  set_tests_properties(foreground_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS tty)
+  add_test(NAME signals_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --signals --cpus ${cpus})
+  set_tests_properties(signals_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
+  add_test(NAME process_groups_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --process-groups --cpus ${cpus})
+  set_tests_properties(process_groups_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
   add_test(NAME tty_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"

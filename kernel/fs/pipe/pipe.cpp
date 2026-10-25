@@ -49,7 +49,12 @@ int Pipe::write(uint64 addr, int n)
   lock_.acquire();
   while (i < n)
   {
-    if (reader_open_ == 0 || detail::killed())
+    if (detail::killed())
+    {
+      lock_.release();
+      return i ? i : -1;
+    }
+    if (reader_open_ == 0)
     {
       lock_.release();
       return -1;
@@ -57,7 +62,7 @@ int Pipe::write(uint64 addr, int n)
     if (written_ == read_ + Capacity)
     { //DOC: pipewrite-full
       detail::wakeup(&read_);
-      detail::prepare_sleep(&written_);
+      detail::prepare_interruptible_sleep(&written_);
       lock_.release();
       detail::sleep();
       lock_.acquire();
@@ -96,7 +101,7 @@ int Pipe::read(uint64 addr, int n)
       lock_.release();
       return -1;
     }
-    detail::prepare_sleep(&read_); //DOC: piperead-sleep
+    detail::prepare_interruptible_sleep(&read_); //DOC: piperead-sleep
     lock_.release();
     detail::sleep();
     lock_.acquire();

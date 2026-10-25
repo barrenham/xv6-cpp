@@ -493,6 +493,11 @@ void initialize_cache()
 
 namespace xv::fs::detail
 {
+void prepare_interruptible_sleep(void *channel)
+{
+  xv_test_prepare_sleep(channel);
+}
+
 void prepare_sleep(void *channel)
 {
   xv_test_prepare_sleep(channel);

@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "native_wait.h"
+
 import xv.sync;
 
 using namespace xv::sync;
@@ -112,6 +114,17 @@ int main()
 {
   contract(static_spin, LockKind::Spin);
   contract(static_sleep, LockKind::Sleep);
+
+  xv_test_set_interrupted(true);
+  check(!static_sleep.acquire_interruptible(),
+        "pending signal cancels lock acquisition");
+  xv_test_set_interrupted(false);
+  check(static_sleep.acquire_interruptible(), "uninterrupted lock acquisition");
+  {
+    ScopedLock guard(static_sleep, adopt_lock);
+    check(static_sleep.holding(), "adopted guard retains ownership");
+  }
+  check(!static_sleep.holding(), "adopted guard releases ownership");
 
   // A page-allocated containing object must be placement-constructed, as pipes
   // are in the kernel. Exercise virtual dispatch on non-zero raw storage.

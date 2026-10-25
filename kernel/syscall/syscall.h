@@ -23,6 +23,11 @@
 #define SYS_close  21
 #define SYS_sync   22
 #define SYS_ioctl  40
+#define SYS_getpgrp 41
+#define SYS_setpgid 42
+#define SYS_getsid  43
+#define SYS_setsid  44
+#define SYS_sigsend 45
 
 // System calls for labs
 #define SYS_trace     23
@@ -42,3 +47,7 @@
 #define SYS_cpupin    37
 #define SYS_pgaccess  38
 #define SYS_ksupernpte  39
+
+#define SYS_sigdisposition 46
+
+#define SYS_waitpid 47

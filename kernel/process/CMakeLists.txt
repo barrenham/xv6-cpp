@@ -6,9 +6,16 @@ target_sources(kernel PRIVATE
   arch/cpu.cpp
   lifecycle/first_return.cpp
   wait/sleep.cpp
+  wait/wait_child.cpp
   scheduler/runtime/scheduler_context.cpp
   lifecycle/process.cpp
+  signals/process_signals.cpp
+  signals/signal_delivery.cpp
   lifecycle/process_manager.cpp
+  groups/process_groups.cpp
+  groups/kernel_platform.cpp
+  groups/group_operations.cpp
+  groups/terminal_control.cpp
   storage/process_store.cpp
   storage/paged_process_store.cpp
   storage/kernel_platform.cpp

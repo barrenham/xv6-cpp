@@ -10,6 +10,11 @@ void prepare_sleep(void *channel)
   wait_channels().prepare(*current(), channel);
 }
 
+void prepare_interruptible_sleep(void *channel)
+{
+  wait_channels().prepare(*current(), channel, true);
+}
+
 // A notification before this point clears chan, so it cannot be lost here.
 void sleep()
 {

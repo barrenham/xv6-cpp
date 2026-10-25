@@ -1,4 +1,22 @@
+function(xv_add_process_identity target)
+  set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
+  target_sources(${target} PRIVATE
+    FILE_SET process_identity TYPE CXX_MODULES
+    BASE_DIRS "${module_root}"
+    FILES "${module_root}/groups/process_membership.cppm")
+endfunction()
+
+function(xv_add_process_group_internals target)
+  set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
+  target_sources(${target} PRIVATE
+    FILE_SET process_group_internals TYPE CXX_MODULES
+    BASE_DIRS "${module_root}"
+    FILES "${module_root}/groups/process_groups.cppm"
+          "${module_root}/groups/platform.cppm")
+endfunction()
+
 function(xv_add_process_interfaces target)
+  xv_add_process_identity(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
   target_sources(${target} PRIVATE
     FILE_SET process_interfaces TYPE CXX_MODULES
@@ -10,6 +28,7 @@ function(xv_add_process_interfaces target)
       "${module_root}/resources/resource_platform.cppm"
       "${module_root}/memory/address_space.cppm"
       "${module_root}/process.cppm"
+      "${module_root}/signals/pending_signals.cppm"
       "${module_root}/scheduler/scheduler.cppm"
       "${module_root}/exec/executable_loader.cppm"
   )
@@ -34,6 +53,7 @@ endfunction()
 
 function(xv_add_process_internals target)
   xv_add_process_core_modules(${target})
+  xv_add_process_group_internals(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
   target_sources(${target} PRIVATE
     FILE_SET process_internals TYPE CXX_MODULES

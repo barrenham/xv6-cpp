@@ -13,6 +13,11 @@ import xv.memory;
 
 namespace xv::fs::detail
 {
+void prepare_interruptible_sleep(void *channel)
+{
+  xv::process::prepare_interruptible_sleep(channel);
+}
+
 void prepare_sleep(void *channel)
 {
   xv::process::prepare_sleep(channel);

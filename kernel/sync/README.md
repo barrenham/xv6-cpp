@@ -70,3 +70,7 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 `interrupts.cppm` 导出 `push_interrupts_off()` / `pop_interrupts_off()`，
 由调度器和驱动显式导入 `xv.sync` 使用。它们保留嵌套计数和最外层中断状态
 恢复规则，不再经过旧的 `push_off/pop_off` C 函数。
+
+`SleepLock::acquire_interruptible()` 在终止通知待处理时返回 false，不取得锁；
+它用于 TTY 读写排队。取得锁后可使用 `ScopedLock(lock, adopt_lock)` 接收已经
+持有的所有权。普通 acquire 保持不可中断，供磁盘与内部协议使用。

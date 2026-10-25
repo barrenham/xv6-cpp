@@ -32,6 +32,35 @@ void SleepLock::acquire()
   state_lock_.release();
 }
 
+bool SleepLock::acquire_interruptible()
+{
+  state_lock_.acquire();
+  for (;;)
+  {
+    if (detail::interrupted())
+    {
+      state_lock_.release();
+      return false;
+    }
+    if (!locked_)
+    {
+      break;
+    }
+    if (pid_ == detail::current_pid())
+    {
+      detail::fail("sleeplock: recursive acquire");
+    }
+    detail::prepare_interruptible_sleep(this);
+    state_lock_.release();
+    detail::sleep_process();
+    state_lock_.acquire();
+  }
+  locked_ = true;
+  pid_ = detail::current_pid();
+  state_lock_.release();
+  return true;
+}
+
 void SleepLock::release()
 {
   ScopedLock guard(state_lock_);

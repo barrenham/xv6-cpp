@@ -33,6 +33,10 @@ int InodeOperations::write(File &file, unsigned long address, int count)
   int done = 0;
   while (done < count)
   {
+    if (detail::killed())
+    {
+      return done ? done : -1;
+    }
     int part = count - done;
     if (part > maximum)
     {

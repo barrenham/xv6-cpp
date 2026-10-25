@@ -29,6 +29,10 @@ set(programs
   tests/grind.cpp
   tests/logstress.cpp
   tests/procext.cpp
+  tests/grouptest.cpp
+  tests/signaltest.cpp
+  tests/fgtest.cpp
+  tests/jobtest.cpp
   tests/ttytest.cpp
   tests/pgtblext.cpp
   tests/pgtbltest.cpp

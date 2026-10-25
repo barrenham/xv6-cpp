@@ -4,6 +4,8 @@ export import :registers;
 export import :resources;
 export import :address_space;
 import xv.sync;
+import :identity;
+export import :signals;
 
 export namespace xv::process
 {
@@ -14,6 +16,7 @@ enum class ProcessState
   Sleeping,
   Runnable,
   Running,
+  Stopped,
   Zombie
 };
 
@@ -40,6 +43,13 @@ public:
   void set_name(const char *label);
   bool is_killed() const;
   void request_kill();
+  int termination_status() const;
+
+  inline bool stop_requested() const
+  {
+    return pending_signals_.stopping_signal() != 0;
+  }
+
   int pin_cpu(int index);
 
   unsigned long kernel_stack() const
@@ -91,10 +101,17 @@ private:
   mutable xv::sync::SpinLock lock;
   ProcessState state = ProcessState::Unused;
   void *chan = nullptr;
-  int killed = 0;
+  int killed = 0; // legacy kill/fault termination
+  PendingSignals pending_signals_;
+  bool interruptible_ = false;
   int xstate = 0;
+  int exit_signal_ = 0;
+  int stop_signal_ = 0;
+  bool stop_event_ = false;
+  bool continued_event_ = false;
   int pid = 0;
-  Process *parent = nullptr; // protected by the manager's family lock
+  Process *parent = nullptr;           // protected by the manager's family lock
+  ProcessMembership membership_{this}; // protected by ProcessGroups
   unsigned long kstack = 0;
   AddressSpace memory_;
   TrapFrame *trapframe = nullptr;

@@ -4,6 +4,18 @@
 
 extern "C"
 {
+  int tcgetpgrp(int fd)
+  {
+    int group;
+    return ioctl(fd, TIOCGPGRP, reinterpret_cast<unsigned long>(&group)) < 0 ? -1
+                                                                             : group;
+  }
+
+  int tcsetpgrp(int fd, int group)
+  {
+    return ioctl(fd, TIOCSPGRP, reinterpret_cast<unsigned long>(&group));
+  }
+
   int tcgetattr(int fd, termios *settings)
   {
     return ioctl(fd, TCGETS, reinterpret_cast<unsigned long>(settings));

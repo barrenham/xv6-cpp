@@ -22,6 +22,7 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_fork: return sys_fork;
   case SYS_exit: return sys_exit;
   case SYS_wait: return sys_wait;
+  case SYS_waitpid: return sys_waitpid;
   case SYS_pipe: return sys_pipe;
   case SYS_read: return sys_read;
   case SYS_kill: return sys_kill;
@@ -42,6 +43,12 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_close: return sys_close;
   case SYS_sync: return sys_sync;
   case SYS_ioctl: return sys_ioctl;
+  case SYS_getpgrp: return sys_getpgrp;
+  case SYS_setpgid: return sys_setpgid;
+  case SYS_getsid: return sys_getsid;
+  case SYS_setsid: return sys_setsid;
+  case SYS_sigsend: return sys_sigsend;
+  case SYS_sigdisposition: return sys_sigdisposition;
 #ifdef LAB_NET
   case SYS_bind: return sys_bind;
   case SYS_unbind: return sys_unbind;
@@ -75,7 +82,21 @@ void dispatch()
   {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->registers()->a0
-    p->registers()->a0 = handler();
+    auto argument = p->registers()->a0;
+    auto result = handler();
+    bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
+                       num == SYS_waitpid || num == SYS_pause;
+    if (result == ~0UL && restartable && p->stop_requested())
+    {
+      // Retry an interrupted operation after continuation. Partial transfers
+      // report a positive count and are never replayed.
+      p->registers()->epc -= 4;
+      p->registers()->a0 = argument;
+    }
+    else
+    {
+      p->registers()->a0 = result;
+    }
   }
   else
   {

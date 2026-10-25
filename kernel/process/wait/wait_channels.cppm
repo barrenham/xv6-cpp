@@ -16,7 +16,7 @@ public:
   }
 
   void initialize();
-  void prepare(Process &process, void *channel);
+  void prepare(Process &process, void *channel, bool interruptible = false);
   void cancel(Process &process);
   void wake(void *channel);
 

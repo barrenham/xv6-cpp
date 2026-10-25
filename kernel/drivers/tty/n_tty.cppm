@@ -11,8 +11,8 @@ class NttyDiscipline final : public LineDiscipline
 public:
 
   constexpr NttyDiscipline() = default;
-  void receive(unsigned char byte, const termios &settings,
-               SerialPort &output) override;
+  InputAction receive(unsigned char byte, const termios &settings,
+                      SerialPort &output) override;
   unsigned available() const override;
   unsigned readable_bytes() const override;
   TerminalByte front() const override;

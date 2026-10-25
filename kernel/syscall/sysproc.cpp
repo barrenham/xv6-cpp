@@ -36,9 +36,60 @@ uint64 sys_getpid(void)
   return xv::process::current()->id();
 }
 
+uint64 sys_sigdisposition(void)
+{
+  int signal, action;
+  argument_integer(0, &signal);
+  argument_integer(1, &action);
+  return xv::process::set_signal_disposition(signal, action);
+}
+
+uint64 sys_sigsend(void)
+{
+  int target, signal;
+  argument_integer(0, &target);
+  argument_integer(1, &signal);
+  return xv::process::send_signal(target, signal);
+}
+
+uint64 sys_getpgrp(void)
+{
+  return xv::process::get_process_group();
+}
+
+uint64 sys_setpgid(void)
+{
+  int pid, group;
+  argument_integer(0, &pid);
+  argument_integer(1, &group);
+  return xv::process::set_process_group(pid, group);
+}
+
+uint64 sys_getsid(void)
+{
+  int pid;
+  argument_integer(0, &pid);
+  return xv::process::get_session(pid);
+}
+
+uint64 sys_setsid(void)
+{
+  return xv::process::create_session();
+}
+
 uint64 sys_fork(void)
 {
   return xv::process::fork_process();
+}
+
+uint64 sys_waitpid(void)
+{
+  int pid, options;
+  uint64 address;
+  argument_integer(0, &pid);
+  argument_address(1, &address);
+  argument_integer(2, &options);
+  return xv::process::wait_for_child(pid, address, options);
 }
 
 uint64 sys_wait(void)

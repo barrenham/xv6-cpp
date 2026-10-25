@@ -49,6 +49,8 @@ struct State
   bool resolve_success = true;
   bool exec_in_syscall = false;
   bool kill_in_syscall = false;
+  int pending_signal_status = 0;
+  bool signal_on_yield = false;
   Word user_pc = 0;
   Word prepared_pc = 0;
   Word token = 0x8000000000012345UL;
@@ -201,6 +203,30 @@ void syscall_contract()
     check(state.syscalls == 1 && state.preparations == 0, "post-syscall killed check");
   };
   expect_exit(42, [] { ::usertrap(); });
+}
+
+void signal_contract()
+{
+  reset();
+  state.pending_signal_status = 130;
+  exit_check = []
+  {
+    check(state.syscalls == 0 && state.preparations == 0,
+          "pending signal terminates before syscall and user return");
+  };
+  expect_exit(42, [] { ::usertrap(); });
+  reset();
+  state.pending_signal_status = 143;
+  expect_exit(42, [] { controller().return_to_user(); });
+  reset(TrapCause::InterruptBit | 5);
+  state.signal_on_yield = true;
+  exit_check = []
+  {
+    check(state.yields == 1 && state.preparations == 0,
+          "signal posted while descheduled is checked before user return");
+  };
+  expect_exit(42, [] { ::usertrap(); });
+  reset();
 }
 
 void fault_contract()
@@ -371,9 +397,22 @@ bool has_process()
   return test::state.has_process;
 }
 
+void deliver_signals()
+{
+  if (test::state.pending_signal_status)
+  {
+    exit_current(test::state.pending_signal_status);
+  }
+}
+
+bool interrupted()
+{
+  return killed();
+}
+
 bool killed()
 {
-  return test::killed_flag.load();
+  return test::killed_flag.load() || test::state.pending_signal_status != 0;
 }
 
 void request_kill()
@@ -385,7 +424,10 @@ void request_kill()
 
 [[noreturn]] void exit_current(int status)
 {
-  test::check(status == -1, "trap termination status");
+  test::check(
+      status ==
+          (test::state.pending_signal_status ? test::state.pending_signal_status : -1),
+      "trap termination status");
   if (test::exit_check)
   {
     test::exit_check();
@@ -396,6 +438,10 @@ void request_kill()
 void yield_current()
 {
   ++test::state.yields;
+  if (test::state.signal_on_yield)
+  {
+    test::state.pending_signal_status = 130;
+  }
   test::log("yield");
   test::state.event.pc = 0xbad;
   test::state.event.status = 0;
@@ -514,6 +560,11 @@ void arm_timer(Word deadline)
   test::log("arm");
 }
 
+void prepare_interruptible_sleep(void *channel)
+{
+  prepare_sleep(channel);
+}
+
 void prepare_sleep(void *channel)
 {
   xv_test_prepare_sleep(channel);
@@ -538,6 +589,7 @@ extern "C" int run_trap_contracts()
   initialize();
   test::dispatch_contract();
   test::syscall_contract();
+  test::signal_contract();
   test::fault_contract();
   test::interrupt_contract();
   test::privilege_contract();

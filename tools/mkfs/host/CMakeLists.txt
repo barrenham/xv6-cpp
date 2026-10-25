@@ -155,6 +155,7 @@ add_executable(process_storage_contract
   "${XV_ROOT}/tests/process_storage_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/process/storage/process_store.cpp"
+  "${XV_ROOT}/kernel/process/signals/process_signals.cpp"
   "${XV_ROOT}/kernel/process/storage/paged_process_store.cpp"
   "${XV_ROOT}/kernel/process/wait/wait_channels.cpp"
   "${XV_ROOT}/kernel/process/scheduler/queues/ready_queue.cpp"
@@ -172,3 +173,23 @@ xv_add_driver_interfaces(process_storage_contract)
 xv_add_fs_interfaces(process_storage_contract)
 xv_add_process_interfaces(process_storage_contract)
 xv_add_process_core_modules(process_storage_contract)
+
+add_executable(process_groups_contract
+  "${XV_ROOT}/tests/process_groups_contract.cpp"
+  "${XV_ROOT}/tests/process_groups_checks.cpp"
+  "${XV_ROOT}/tests/signal_checks.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/process/groups/process_groups.cpp"
+  "${XV_ROOT}/kernel/process/groups/terminal_control.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_include_directories(process_groups_contract PRIVATE "${XV_ROOT}")
+target_compile_features(process_groups_contract PRIVATE cxx_std_20)
+target_compile_options(process_groups_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(process_groups_contract PRIVATE Threads::Threads)
+set_target_properties(process_groups_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(process_groups_contract)
+xv_add_driver_interfaces(process_groups_contract)
+xv_add_fs_interfaces(process_groups_contract)
+xv_add_process_interfaces(process_groups_contract)
+xv_add_process_group_internals(process_groups_contract)

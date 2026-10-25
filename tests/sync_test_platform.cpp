@@ -25,6 +25,7 @@ std::mutex wait_mutex;
 std::vector<Waiter *> waiters;
 std::atomic<int> next_pid{1};
 thread_local int interrupt_depth = 0;
+std::atomic<bool> interruption{false};
 thread_local Waiter waiter;
 } // namespace
 
@@ -51,6 +52,16 @@ int current_pid()
 {
   static thread_local int pid = next_pid.fetch_add(1);
   return pid;
+}
+
+bool interrupted()
+{
+  return interruption.load();
+}
+
+void prepare_interruptible_sleep(void *channel)
+{
+  prepare_sleep(channel);
 }
 
 void prepare_sleep(void *channel)
@@ -115,4 +126,9 @@ extern "C" void xv_test_sleep()
 extern "C" void xv_test_wakeup(void *channel)
 {
   xv::sync::detail::wake_processes(channel);
+}
+
+extern "C" void xv_test_set_interrupted(bool value)
+{
+  xv::sync::detail::interruption.store(value);
 }

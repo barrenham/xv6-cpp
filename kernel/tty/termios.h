@@ -62,6 +62,9 @@ struct winsize
 #define TCSETSW 0x5403
 #define TCSETSF 0x5404
 #define TCFLSH 0x540b
+#define TIOCSCTTY 0x540e
+#define TIOCGPGRP 0x540f
+#define TIOCSPGRP 0x5410
 #define TIOCGWINSZ 0x5413
 #define TIOCSWINSZ 0x5414
 #define FIONREAD 0x541b

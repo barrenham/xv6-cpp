@@ -7,6 +7,8 @@ void pop_interrupts_off();
 void *current_cpu();
 int current_pid();
 void prepare_sleep(void *channel);
+void prepare_interruptible_sleep(void *channel);
+bool interrupted();
 void sleep_process();
 void wake_processes(void *channel);
 [[noreturn]] void fail(const char *message);

@@ -7,6 +7,8 @@ TrapEvent snapshot();
 void install_kernel_vector();
 bool has_process();
 bool killed();
+bool interrupted();
+void deliver_signals();
 void request_kill();
 [[noreturn]] void exit_current(int status);
 void yield_current();
@@ -27,6 +29,7 @@ Word time();
 void arm_timer(Word deadline);
 void service_timer_devices();
 void prepare_sleep(void *channel);
+void prepare_interruptible_sleep(void *channel);
 void sleep();
 void wakeup(void *channel);
 } // namespace xv::trap::detail

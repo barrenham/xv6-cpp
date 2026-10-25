@@ -3,9 +3,15 @@ module xv.drivers:platform;
 namespace xv::drivers::detail
 {
 void prepare_sleep(void *channel);
+void prepare_interruptible_sleep(void *channel);
 void sleep_process();
 void wake_processes(void *channel);
 bool process_killed();
+int claim_terminal(void *terminal);
+int terminal_foreground(void *terminal);
+int set_terminal_foreground(void *terminal, int group);
+bool may_read_terminal(void *terminal);
+void post_terminal_interrupt(void *terminal, bool suspend);
 void dump_processes();
 unsigned long terminal_milliseconds();
 int copy_in(void *destination, bool user, unsigned long source, unsigned count);

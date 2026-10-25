@@ -62,6 +62,7 @@ bool fail_copy = false;
 bool copied_user = false;
 unsigned wakeups = 0;
 unsigned dumps = 0;
+unsigned interrupts = 0;
 std::vector<void *> dma_pages;
 
 class FakeSerial final : public SerialPort
@@ -282,8 +283,8 @@ void console_contract()
   check(console.read(destination, 1) == -1, "read copy failure");
   fail_copy = false;
   check(console.read(destination, 1) == 1 && input[0] == 'z', "fault retains byte");
-  settings.c_lflag |= ISIG;
-  check(console.ioctl(TCSETS, buffer(&settings)) == -1, "signals rejected");
+  settings.c_lflag |= 0x80000000U;
+  check(console.ioctl(TCSETS, buffer(&settings)) == -1, "unsupported flags rejected");
   settings = defaults;
   check(console.ioctl(TCSETSF, buffer(&settings)) == 0 && serial.drains == 1,
         "flush setter drains");
@@ -299,6 +300,26 @@ void console_contract()
             actual.ws_col == 100,
         "window size round trip");
   check(console.ioctl(0xdead, destination) == -1, "unknown ioctl");
+  serial.output.clear();
+  feed("discard");
+  console.receive(3);
+  check(interrupts == 1 && queued() == 0 && serial.output == "discard^C\n",
+        "VINTR flushes input and posts foreground interrupt");
+  feed("\026\003\n");
+  check(console.read(destination, 256) == 2 && input[0] == 3 && interrupts == 1,
+        "literal-next quotes VINTR");
+  settings.c_lflag &= ~ISIG;
+  set();
+  feed("\003\n");
+  check(console.read(destination, 256) == 2 && input[0] == 3 && interrupts == 1,
+        "disabled ISIG preserves interrupt byte");
+  settings.c_lflag |= ISIG;
+  settings.c_cc[VINTR] = 24;
+  set();
+  console.receive(24);
+  check(interrupts == 2 && queued() == 0, "configurable VINTR");
+  console.receive(26);
+  check(interrupts == 3 && queued() == 0, "VSUSP posts stop action");
 }
 
 class FakeController final : public InterruptController
@@ -549,6 +570,10 @@ unsigned long terminal_milliseconds()
   return test::milliseconds;
 }
 
+void prepare_interruptible_sleep(void *)
+{
+}
+
 void prepare_sleep(void *)
 {
 }
@@ -562,6 +587,31 @@ void sleep_process()
 void wake_processes(void *)
 {
   ++test::wakeups;
+}
+
+int claim_terminal(void *)
+{
+  return 0;
+}
+
+int terminal_foreground(void *)
+{
+  return 1;
+}
+
+int set_terminal_foreground(void *, int group)
+{
+  return group > 0 ? 0 : -1;
+}
+
+bool may_read_terminal(void *)
+{
+  return true;
+}
+
+void post_terminal_interrupt(void *, bool)
+{
+  ++test::interrupts;
 }
 
 bool process_killed()

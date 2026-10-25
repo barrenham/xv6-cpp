@@ -13,6 +13,8 @@ public:
 
   void init(const char *label) override;
   void acquire() override;
+  // False leaves ownership unchanged when a fatal signal is pending.
+  bool acquire_interruptible();
   void release() override;
   bool holding() const override;
 

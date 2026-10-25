@@ -227,6 +227,30 @@ void channels()
         "channel replacement/early wake/cancel reclaim safely");
 }
 
+void interrupted_channels()
+{
+  PagedProcessStore store;
+  store.initialize();
+  UnusedScheduler scheduler;
+  WaitChannels waits(scheduler);
+  waits.initialize();
+  int event;
+  auto *process = store.allocate();
+  Access::unlock(*process);
+  process->request_kill();
+  waits.prepare(*process, &event, true);
+  check(!Access::registered(*process),
+        "fatal notification before prepare cannot sleep");
+  check(process->is_killed() && process->termination_status() == -1,
+        "legacy termination predicate preserved");
+  waits.prepare(*process, &event);
+  check(Access::registered(*process), "internal waits remain uninterruptible");
+  waits.cancel(*process);
+  Access::lock(*process);
+  store.release(process);
+  check(xv_storage_live_pages() == 0, "interrupted waits release all pages");
+}
+
 void concurrent_channels()
 {
   PagedProcessStore store;
@@ -344,6 +368,7 @@ extern "C" int run_process_storage_contracts()
   xv::process::test::affinity();
   xv::process::test::duplicate();
   xv::process::test::channels();
+  xv::process::test::interrupted_channels();
   xv::process::test::concurrent_channels();
   xv::process::test::concurrent();
   std::puts("process storage and ready queue contracts: passed");

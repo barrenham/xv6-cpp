@@ -93,6 +93,7 @@ Process *ProcessManager::allocate()
 // p->lock must be held.
 void ProcessManager::reap(Process *p)
 {
+  groups_.release(p->membership_);
   if (p->trapframe)
   {
     xv::memory::allocator().deallocate((void *)p->trapframe);
@@ -110,7 +111,11 @@ void ProcessManager::reap(Process *p)
   p->name[0] = 0;
   p->chan = 0;
   p->killed = 0;
+  p->pending_signals_.reset();
+  p->interruptible_ = false;
   p->xstate = 0;
+  p->exit_signal_ = p->stop_signal_ = 0;
+  p->stop_event_ = p->continued_event_ = false;
   p->parent = nullptr;
   store_.release(p);
 }
@@ -126,6 +131,10 @@ void ProcessManager::create_initial_process(void)
     xv::print::panic("process: no initial process slot");
   }
   initial_ = p;
+  if (!groups_.create_initial(p->membership_, p->pid))
+  {
+    xv::print::panic("process: no initial session memory");
+  }
 
   p->directory_.replace(xv::fs::filesystem().lookup("/"));
 
@@ -155,6 +164,8 @@ int ProcessManager::fork_process(void)
     return -1;
   }
 
+  np->pending_signals_.inherit_dispositions(p->pending_signals_);
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -171,6 +182,7 @@ int ProcessManager::fork_process(void)
   np->lock.release();
 
   wait_lock_.acquire();
+  groups_.inherit(np->membership_, np->pid, p->membership_);
   np->parent = p;
   wait_lock_.release();
 
@@ -190,7 +202,8 @@ void ProcessManager::reparent(Process *p)
   {
   public:
 
-    Adopt(Process *parent, Process *initial) : parent_(parent), initial_(initial)
+    Adopt(Process *parent, Process *initial, ProcessGroups &groups)
+        : parent_(parent), initial_(initial), groups_(groups)
     {
     }
 
@@ -198,6 +211,7 @@ void ProcessManager::reparent(Process *p)
     {
       if (child.state != ProcessState::Unused && child.parent == parent_)
       {
+        groups_.reparent(child.membership_, initial_->pid);
         child.parent = initial_;
         adopted = true;
       }
@@ -209,20 +223,21 @@ void ProcessManager::reparent(Process *p)
 
     Process *parent_;
     Process *initial_;
+    ProcessGroups &groups_;
   };
 
-  Adopt adopt(p, initial_);
+  Adopt adopt(p, initial_, groups_);
   store_.visit(adopt);
   if (adopt.adopted)
   {
-    wakeup(initial_);
+    wakeup(&child_events_);
   }
 }
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait().
-void ProcessManager::exit_process(int status)
+void ProcessManager::exit_process(int status, int signal)
 {
   Process *p = current();
 
@@ -231,6 +246,7 @@ void ProcessManager::exit_process(int status)
     xv::print::panic("init exiting");
   }
 
+  groups_.exit_terminal(p->membership_);
   waits_.cancel(*p);
   p->descriptors_.close_all();
   {
@@ -244,11 +260,12 @@ void ProcessManager::exit_process(int status)
   reparent(p);
 
   // Parent might be sleeping in wait().
-  wakeup(p->parent);
+  wakeup(&child_events_);
 
   p->lock.acquire();
 
   p->xstate = status;
+  p->exit_signal_ = signal;
   p->state = ProcessState::Zombie;
 
   wait_lock_.release();
@@ -256,66 +273,6 @@ void ProcessManager::exit_process(int status)
   // Jump into the scheduler, never to return.
   scheduler_.suspend();
   xv::print::panic("zombie exit");
-}
-
-// Wait for a child process to exit and return its pid.
-// Return -1 if this process has no children.
-int ProcessManager::wait(uint64 addr)
-{
-  Process *p = current();
-  wait_lock_.acquire();
-  for (;;)
-  {
-    class Child final : public ProcessPredicate
-    {
-    public:
-
-      explicit Child(Process *parent) : parent_(parent)
-      {
-      }
-
-      bool matches(Process &child) override
-      {
-        if (child.state != ProcessState::Unused && child.parent == parent_)
-        {
-          have_children = true;
-          return child.state == ProcessState::Zombie;
-        }
-        return false;
-      }
-
-      bool have_children = false;
-
-    private:
-
-      Process *parent_;
-    };
-
-    Child child(p);
-    if (auto *exited = store_.find(child))
-    {
-      int pid = exited->pid;
-      if (addr != 0 &&
-          p->memory_.copy_out(addr, &exited->xstate, sizeof(exited->xstate)) < 0)
-      {
-        exited->lock.release();
-        wait_lock_.release();
-        return -1;
-      }
-      reap(exited); // consumes the child lock and retires the descriptor
-      wait_lock_.release();
-      return pid;
-    }
-    if (!child.have_children || p->is_killed())
-    {
-      wait_lock_.release();
-      return -1;
-    }
-    prepare_sleep(p);
-    wait_lock_.release();
-    sleep();
-    wait_lock_.acquire();
-  }
 }
 
 // Wake up all processes sleeping on channel chan.
@@ -358,15 +315,15 @@ int ProcessManager::kill(int pid)
   {
     return -1;
   }
-  process->killed = 1;
-  // Notify even a prepared-but-not-yet-sleeping process. Membership remains
-  // valid until wake/prepare/exit unlinks it under the channel bucket lock.
-  process->chan = nullptr;
-  if (process->state == ProcessState::Sleeping)
+  if (process == initial_)
   {
-    scheduler_.make_runnable(*process);
+    process->lock.release();
+    return -1;
   }
+  process->killed = 1;
+  wake_for_signal(*process);
   process->lock.release();
+  notify_child_events();
   return 0;
 }
 
@@ -378,8 +335,8 @@ void ProcessManager::dump()
 
     void visit(Process &process) override
     {
-      static const char *states[] = {"unused", "used", "sleep",
-                                     "runble", "run",  "zombie"};
+      static const char *states[] = {"unused", "used",    "sleep", "runble",
+                                     "run",    "stopped", "zombie"};
       if (process.state == ProcessState::Unused)
       {
         return;

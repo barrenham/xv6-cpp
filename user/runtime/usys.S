@@ -200,3 +200,45 @@ ioctl:
  li a7, SYS_ioctl
  ecall
  ret
+
+.global getpgrp
+getpgrp:
+ li a7, SYS_getpgrp
+ ecall
+ ret
+
+.global setpgid
+setpgid:
+ li a7, SYS_setpgid
+ ecall
+ ret
+
+.global getsid
+getsid:
+ li a7, SYS_getsid
+ ecall
+ ret
+
+.global setsid
+setsid:
+ li a7, SYS_setsid
+ ecall
+ ret
+
+.global sigsend
+sigsend:
+ li a7, SYS_sigsend
+ ecall
+ ret
+
+.global sigdisposition
+sigdisposition:
+ li a7, SYS_sigdisposition
+ ecall
+ ret
+
+.global waitpid
+waitpid:
+ li a7, SYS_waitpid
+ ecall
+ ret

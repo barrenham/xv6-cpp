@@ -36,12 +36,12 @@ int TickClock::pause(int count)
   const unsigned start = ticks_;
   while (ticks_ - start < interval)
   {
-    if (detail::killed())
+    if (detail::interrupted())
     {
       lock_.release();
       return -1;
     }
-    detail::prepare_sleep(&ticks_);
+    detail::prepare_interruptible_sleep(&ticks_);
     lock_.release();
     detail::sleep();
     lock_.acquire();

@@ -54,7 +54,10 @@ extern "C" int main(int argc, char **argv)
       settings.c_iflag = ICRNL;
       settings.c_oflag = OPOST;
       settings.c_cflag = B38400 | CS8 | CREAD | CLOCAL;
-      settings.c_lflag = ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+      settings.c_lflag =
+          ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+      settings.c_cc[VINTR] = 3;
+      settings.c_cc[VSUSP] = 26;
       settings.c_cc[VERASE] = 127;
       settings.c_cc[VKILL] = 21;
       settings.c_cc[VEOF] = 4;

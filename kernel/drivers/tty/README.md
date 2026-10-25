@@ -32,6 +32,7 @@ flowchart LR
   因而 VMIN 大于输入缓冲容量也不会单纯因容量而无法满足。
 - ISTRIP、IGNCR、ICRNL、INLCR 输入处理；OPOST、ONLCR 输出处理。
 - ECHO、ECHOE、ECHOK、ECHOKE、ECHONL、ECHOCTL 回显；原始模式不执行规范行编辑。
+- 控制终端、前台进程组与 Ctrl-C：见 [终端交接与验证](foreground.md)。
 - `TCGETS`、`TCSETS`、`TCSETSW`、`TCSETSF`、`TCFLSH(TCIFLUSH)`、
   `TIOCGWINSZ`、`TIOCSWINSZ`、`FIONREAD`。
 - `ioctl`、`tcgetattr`、`tcsetattr`、`tcflush`、`cfmakeraw` 用户接口。
@@ -39,6 +40,7 @@ flowchart LR
 共享头 `kernel/tty/termios.h` 使用 Linux asm-generic TCGETS 的 36 字节布局、
 控制字符索引和请求号，窗口结构为 8 字节。系统调用号仍属于本项目 ABI。
 所有不支持的模式位、非零行规程号和未知请求返回 -1，且不改变当前设置。
+ISIG 实现 VINTR/SIGINT 与 VSUSP/SIGTSTP。
 串口格式固定为 B38400 / CS8 / CREAD / CLOCAL；不支持修改波特率与硬件流控。
 
 默认启用规范模式、回显、DEL 删除、Ctrl-U 删除行、Ctrl-W 删除词、Ctrl-V
@@ -56,8 +58,8 @@ flowchart LR
 ## 等待和锁
 
 TTY 自旋锁保护设置、行规程状态、窗口大小和定时等待标记。接收中断持锁
-调用行规程，回显只走串口同步轮询输出，不睡眠。进程读写分别用睡眠锁串行化。
-读者检查状态后，在 TTY 自旋锁内登记通道，释放锁后睡眠；接收、设置变化、
+调用行规程，回显只走串口同步轮询输出，不睡眠。进程读写分别用可中断获取的睡眠锁串行化。
+读者检查状态后，在 TTY 自旋锁内登记可中断通道，释放锁后睡眠；接收、设置变化、
 输入清空和定时通知通过相同通道唤醒。恢复后重查条件，kill 沿用进程唤醒协议。
 
 写操作先在状态锁下取得输出模式快照，再释放自旋锁完成用户复制与串口写入。
@@ -97,7 +99,9 @@ ctest --preset dev -j1 -R '^(driver_contract|fs_contract|tty_[13]cpu)$'
 
 ## 本轮范围之外
 
-没有 PTY、devpts、会话、控制终端归属、前台进程组、SIGINT/SIGTSTP/SIGWINCH、
-IXON/IXOFF、poll、挂断和动态卸载。ISIG 等未实现模式会被拒绝；窗口改变只
-更新尺寸，不发送信号。字节行规程没有 UTF-8 字符宽度或完整的光标列追踪，
-tab 的可视删除按单格处理。以上能力不能按“完整 Linux N_TTY”理解。
+控制终端、前台进程组和 Ctrl-C 已接入。仍没有 PTY、devpts、
+SIGWINCH、IXON/IXOFF、poll、完整挂断和动态卸载；窗口改变只保存尺寸。
+SIGTTIN 与停止状态已实现，SIGTTOU/TOSTOP 尚未实现。字节行规程没有
+UTF-8 字符宽度或完整的光标列追踪，tab 可视删除按单格处理。
+
+Ctrl-Z、jobs、fg/bg 的路径与验证见 [作业控制说明](../../process/signals/job-control.md)。

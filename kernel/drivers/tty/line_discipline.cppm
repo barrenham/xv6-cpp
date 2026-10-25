@@ -6,6 +6,13 @@ export import :serial;
 
 export namespace xv::drivers
 {
+enum class InputAction
+{
+  None,
+  Interrupt,
+  Suspend
+};
+
 struct TerminalByte
 {
   unsigned char value;
@@ -21,8 +28,8 @@ public:
 
   LineDiscipline(const LineDiscipline &) = delete;
   LineDiscipline &operator=(const LineDiscipline &) = delete;
-  virtual void receive(unsigned char byte, const termios &settings,
-                       SerialPort &output) = 0;
+  virtual InputAction receive(unsigned char byte, const termios &settings,
+                              SerialPort &output) = 0;
   virtual unsigned available() const = 0;
   virtual unsigned readable_bytes() const = 0;
   virtual TerminalByte front() const = 0;

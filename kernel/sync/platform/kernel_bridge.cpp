@@ -28,6 +28,16 @@ int current_pid()
   return xv::process::current()->id();
 }
 
+bool interrupted()
+{
+  return xv::process::current()->is_killed();
+}
+
+void prepare_interruptible_sleep(void *channel)
+{
+  xv::process::prepare_interruptible_sleep(channel);
+}
+
 void prepare_sleep(void *channel)
 {
   xv::process::prepare_sleep(channel);
