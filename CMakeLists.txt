@@ -75,6 +75,12 @@ foreach(ram 64 257 2048 2049)
 endforeach()
 
 foreach(cpus 1 3)
+  add_test(NAME nonblock_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --nonblock --cpus ${cpus})
+  set_tests_properties(nonblock_${cpus}cpu PROPERTIES TIMEOUT 20 LABELS io)
   add_test(NAME poll_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"

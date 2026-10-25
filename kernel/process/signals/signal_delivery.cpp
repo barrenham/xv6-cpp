@@ -11,7 +11,7 @@ void ProcessManager::wake_for_signal(Process &process)
   auto bits = process.pending_signals_.pending();
   bool fatal = process.killed || process.pending_signals_.terminating_signal();
   if (process.state == ProcessState::Stopped &&
-      (process.killed || (bits & ((1U << SIGKILL) | (1U << SIGCONT)))))
+      (process.killed || (bits & (1U << SIGKILL)) || process.pending_signals_.continuing()))
   {
     process.stop_event_ = false;
     process.continued_event_ = !fatal;
@@ -20,7 +20,7 @@ void ProcessManager::wake_for_signal(Process &process)
     return;
   }
   if (!process.interruptible_ ||
-      (!fatal && !process.pending_signals_.stopping_signal()))
+      (!process.killed && !process.pending_signals_.interrupting()))
   {
     return;
   }
@@ -138,7 +138,7 @@ void ProcessManager::wake_signal_waiters()
     void visit(Process &process) override
     {
       if (process.state != ProcessState::Unused &&
-          process.state != ProcessState::Zombie && process.pending_signals_.pending())
+          process.state != ProcessState::Zombie && (process.pending_signals_.pending() || process.pending_signals_.continuing()))
       {
         manager_.wake_for_signal(process);
       }
@@ -221,7 +221,14 @@ void ProcessManager::deliver_signals()
       int signal = process->pending_signals_.terminating_signal();
       exit_process(status, signal ? signal : SIGKILL);
     }
-    process->pending_signals_.consume_continue();
+    if (!process->stop_requested() && process->pending_signals_.caught_signal())
+    {
+      if (!process->enter_signal_handler())
+        exit_process(SIGNAL_EXIT_STATUS(SIGSEGV), SIGSEGV);
+      return;
+    }
+    if (!(process->pending_signals_.handled() & (1U << SIGCONT)))
+      process->pending_signals_.consume_continue();
     if (!process->stop_requested())
     {
       return;

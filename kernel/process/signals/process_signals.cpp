@@ -8,8 +8,8 @@ namespace xv::process
 bool Process::is_killed() const
 {
   xv::sync::ScopedLock guard(lock);
-  return killed != 0 || pending_signals_.terminating_signal() != 0 ||
-         pending_signals_.stopping_signal() != 0;
+  if (pending_signals_.caught_signal()) syscall_interrupted_ = true;
+  return killed != 0 || pending_signals_.interrupting();
 }
 
 void Process::request_kill()

@@ -44,6 +44,13 @@ public:
   bool is_killed() const;
   void request_kill();
   int termination_status() const;
+  int signal_action(int signal, unsigned long action, unsigned long old, unsigned long restorer);
+  int signal_mask(int how, unsigned long set, unsigned long old);
+  int signal_pending(unsigned long set);
+  int signal_suspend(unsigned long set);
+  unsigned long signal_return();
+  void begin_system_call();
+  long finish_system_call(int number, unsigned long argument, long result);
 
   inline bool stop_requested() const
   {
@@ -88,6 +95,7 @@ public:
 
 private:
 
+  bool enter_signal_handler();
   constexpr Process() = default;
   friend class ProcessManager;
   friend class ProcessStore;
@@ -104,6 +112,12 @@ private:
   void *chan = nullptr;
   int killed = 0; // legacy kill/fault termination
   PendingSignals pending_signals_;
+  unsigned long signal_frames_[16]{};
+  unsigned signal_depth_ = 0;
+  unsigned suspend_mask_ = 0;
+  bool suspended_mask_ = false;
+  bool suspend_restarted_ = false;
+  mutable bool syscall_interrupted_ = false;
   bool interruptible_ = false;
   int xstate = 0;
   int exit_signal_ = 0;

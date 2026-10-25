@@ -31,7 +31,7 @@ public:
   // Periodic board timer notification; does not maintain the system tick clock.
   void timer_tick();
   // Software input can wait for buffer space; UART receive must never sleep.
-  int inject(unsigned char character);
+  int inject(unsigned char character, bool nonblocking = false);
   void hangup();
   unsigned poll(xv::sync::PollTable *table = nullptr) override;
   bool input_writable(xv::sync::PollTable *table = nullptr);

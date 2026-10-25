@@ -126,7 +126,7 @@ inode 表和打开文件表；磁盘驱动就绪后，初始进程在可睡眠�
 日志恢复和孤儿回收。当前仍是一个 root 文件系统与一个块设备，未增加 VFS
 挂载表、多磁盘路由、extent、其他磁盘格式或动态更换已使用的缓存实例。
 
-用户 stat/fcntl ABI、磁盘结构、直接/间接块规则和 mkfs 格式保持不变。原
+原有 stat 布局和打开标志保留；新增 O_NONBLOCK 与 fcntl 状态操作。磁盘结构、直接/间接块规则和 mkfs 格式保持不变。原
 `file.h`、`buf.h`、`device_switch.h` 及 `resource_fwd.h` 已移除，运行时调用方导入
 模块。进程引用操作通过 `xv.process` 内部的 resource_platform 分区对接，
 内核后端直接调用文件表和文件系统模块接口；原生契约测试替换该模块内平台实现，
@@ -156,3 +156,5 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 `OpenFileTable::ioctl()` 只接受设备文件，通过设备主设备号找到
 `CharacterDevice` 并转发请求。TTY 的 termios 和用户复制由驱动层处理，
 文件系统不解析终端设置；普通文件及管道返回 -1。
+
+File 的原子状态标志与非阻塞管道/设备读写见 [非阻塞 I/O](nonblocking.md)。

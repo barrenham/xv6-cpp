@@ -81,7 +81,7 @@ TTY 自旋锁保护设置、行规程状态、窗口大小和定时等待标记�
 
 写操作先在状态锁下取得输出模式快照，再释放自旋锁完成用户复制与串口写入。
 TCSETSW/F 取得写锁并等待 UART LSR.TEMT，包括移位寄存器排空后才安装设置。
-UART 没有异步软件输出队列；PTY 有独立输出缓冲，但输出清空尚未实现。
+UART 有 128 字节发送队列，PTY 有 1024 字节输出缓冲；输出清空尚未实现。
 当前拒绝 TCOFLUSH/TCIOFLUSH；输入清空始终可用。
 
 VTIME 单位为 100 ms。QEMU virt 平台适配从固定 10 MHz 的硬件 time 计数器
@@ -118,8 +118,11 @@ ctest --preset dev -j1 -R '^(driver_contract|fs_contract|tty_[13]cpu)$'
 ## 本轮范围之外
 
 控制终端、前台进程组和 Ctrl-C 已接入。匿名 PTY 已实现（见 [PTY 说明](docs/pty.md)）。仍没有 devpts、
-SIGWINCH、IXON/IXOFF、poll、完整挂断和动态卸载；窗口改变只保存尺寸。
+SIGWINCH、IXON/IXOFF、完整挂断和动态卸载；窗口改变只保存尺寸。
 SIGTTIN 与停止状态已实现，SIGTTOU/TOSTOP 尚未实现。字节行规程没有
 UTF-8 字符宽度或完整的光标列追踪，tab 可视删除按单格处理。
 
 Ctrl-Z、jobs、fg/bg 的路径与验证见 [作业控制说明](../../process/signals/job-control.md)。
+
+File 的 O_NONBLOCK 通过每次读写的 IoBuffer 传入，支持非阻塞输入、输出与
+内部锁竞争处理；行为和 UART 发送队列见 [非阻塞 I/O](../../fs/nonblocking.md)。

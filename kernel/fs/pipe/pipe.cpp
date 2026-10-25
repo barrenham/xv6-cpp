@@ -4,6 +4,7 @@ module;
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/io_status.h"
 
 module xv.fs;
 import :platform;
@@ -56,11 +57,22 @@ void Pipe::close(bool writable)
   }
 }
 
-int Pipe::write(uint64 addr, int n)
+int Pipe::write(uint64 addr, int n, bool nonblocking)
 {
+  if (n <= 0) return n == 0 ? 0 : -1;
   int i = 0;
 
   lock_.acquire();
+  // Writes no larger than the ring are all-or-nothing with respect to space.
+  while (static_cast<unsigned>(n) <= Capacity && Capacity - (written_ - read_) < static_cast<unsigned>(n))
+  {
+    if (!reader_open_ || detail::killed()) { lock_.release(); return -1; }
+    if (nonblocking) { lock_.release(); return -EAGAIN; }
+    detail::prepare_interruptible_sleep(&written_);
+    lock_.release();
+    detail::sleep();
+    lock_.acquire();
+  }
   while (i < n)
   {
     if (detail::killed())
@@ -71,11 +83,12 @@ int Pipe::write(uint64 addr, int n)
     if (reader_open_ == 0)
     {
       lock_.release();
-      return -1;
+      return i ? i : -1;
     }
     if (written_ == read_ + Capacity)
     { //DOC: pipewrite-full
       detail::wakeup(&read_);
+      if (nonblocking) { lock_.release(); return i ? i : -EAGAIN; }
       detail::prepare_interruptible_sleep(&written_);
       lock_.release();
       detail::sleep();
@@ -102,8 +115,9 @@ int Pipe::write(uint64 addr, int n)
   return i;
 }
 
-int Pipe::read(uint64 addr, int n)
+int Pipe::read(uint64 addr, int n, bool nonblocking)
 {
+  if (n <= 0) return n == 0 ? 0 : -1;
   int i;
   char ch;
 
@@ -115,6 +129,7 @@ int Pipe::read(uint64 addr, int n)
       lock_.release();
       return -1;
     }
+    if (nonblocking) { lock_.release(); return -EAGAIN; }
     detail::prepare_interruptible_sleep(&read_); //DOC: piperead-sleep
     lock_.release();
     detail::sleep();

@@ -11,6 +11,7 @@ target_sources(kernel PRIVATE
   scheduler/runtime/scheduler_context.cpp
   lifecycle/process.cpp
   signals/process_signals.cpp
+  signals/user_signals.cpp
   signals/signal_delivery.cpp
   lifecycle/process_manager.cpp
   groups/process_groups.cpp

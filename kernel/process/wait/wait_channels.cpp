@@ -71,9 +71,9 @@ void WaitChannels::prepare(Process &process, void *channel, bool interruptible)
   xv::sync::ScopedLock bucket_guard(bucket.lock);
   xv::sync::ScopedLock process_guard(process.lock);
   if (interruptible &&
-      (process.killed || (process.pending_signals_.terminating_signal() ||
-                          process.pending_signals_.stopping_signal())))
+      (process.killed || process.pending_signals_.interrupting()))
   {
+    if (process.pending_signals_.caught_signal()) process.syscall_interrupted_ = true;
     process.chan = nullptr;
     process.interruptible_ = false;
     return;

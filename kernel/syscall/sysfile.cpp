@@ -168,7 +168,7 @@ uint64 sys_open(void)
       return -1;
     }
     xv::fs::filesystem().lock(ip);
-    if (ip->kind() == T_DIR && omode != O_RDONLY)
+    if (ip->kind() == T_DIR && (omode & ~O_NONBLOCK) != O_RDONLY)
     {
       xv::fs::filesystem().unlock_release(ip);
       return -1;
@@ -192,7 +192,7 @@ uint64 sys_open(void)
   }
 
   xv::fs::files().bind_inode(*f, *ip, !(omode & O_WRONLY),
-                             (omode & O_WRONLY) || (omode & O_RDWR));
+                             (omode & O_WRONLY) || (omode & O_RDWR), omode & O_NONBLOCK);
 
   if ((omode & O_TRUNC) && ip->kind() == T_FILE)
   {
@@ -379,6 +379,16 @@ uint64 sys_openpty(void)
     return -1;
   }
   return 0;
+}
+
+uint64 sys_fcntl(void)
+{
+  xv::fs::File *file;
+  int command, flags = 0;
+  argument_integer(1, &command);
+  if (command == F_SETFL) argument_integer(2, &flags);
+  if (argfd(0, nullptr, &file) < 0) return -1;
+  return xv::fs::files().fcntl(file, command, static_cast<unsigned>(flags));
 }
 
 uint64 sys_ioctl(void)

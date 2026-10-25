@@ -12,7 +12,7 @@ public:
   {
   public:
     constexpr explicit Output(Pty &pair) : pair_(pair) {}
-    int transmit(const char *data, int count) override;
+    int transmit(const char *data, int count, bool nonblocking = false) override;
     void put_sync(int character) override;
     void drain() override;
     bool writable(xv::sync::PollTable *table = nullptr) override;

@@ -11,8 +11,8 @@ public:
   constexpr Pipe() = default;
   void initialize();
   void close(bool writable);
-  int read(unsigned long address, int count);
-  int write(unsigned long address, int count);
+  int read(unsigned long address, int count, bool nonblocking = false);
+  int write(unsigned long address, int count, bool nonblocking = false);
   unsigned poll(bool writable, xv::sync::PollTable *table = nullptr);
 
 private:

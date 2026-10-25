@@ -97,8 +97,8 @@ void PollWait::sleep()
   channels_.cancel(process_);
   process_.lock.acquire();
   // The process lock is already held; is_killed() would acquire it again.
-  bool interrupted = process_.killed || process_.pending_signals_.terminating_signal() ||
-                     process_.pending_signals_.stopping_signal();
+  bool interrupted = process_.killed || process_.pending_signals_.interrupting();
+  if (process_.pending_signals_.caught_signal()) process_.syscall_interrupted_ = true;
   if (!triggered_ && !interrupted)
   {
     process_.chan = this;

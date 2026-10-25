@@ -112,6 +112,8 @@ void ProcessManager::reap(Process *p)
   p->chan = 0;
   p->killed = 0;
   p->pending_signals_.reset();
+  p->signal_depth_ = 0;
+  p->suspended_mask_ = p->suspend_restarted_ = p->syscall_interrupted_ = false;
   p->interruptible_ = false;
   p->xstate = 0;
   p->exit_signal_ = p->stop_signal_ = 0;
@@ -165,6 +167,9 @@ int ProcessManager::fork_process(void)
   }
 
   np->pending_signals_.inherit_dispositions(p->pending_signals_);
+  np->signal_depth_ = p->signal_depth_;
+  for (unsigned i = 0; i < p->signal_depth_; ++i)
+    np->signal_frames_[i] = p->signal_frames_[i];
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);

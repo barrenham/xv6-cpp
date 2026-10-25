@@ -14,6 +14,7 @@ class File final
 public:
 
   constexpr File() = default;
+  bool nonblocking() const;
   File(const File &) = delete;
   File &operator=(const File &) = delete;
 
@@ -33,6 +34,7 @@ private:
   };
   Kind type = Kind::None;
   int ref = 0;
+  unsigned status_flags_ = 0;
   bool readable = false;
   bool writable = false;
   Pipe *pipe = nullptr;
@@ -51,13 +53,14 @@ public:
   File *allocate();
   File *retain(File *file);
   void release(File *file);
-  void bind_inode(File &file, Inode &node, bool readable, bool writable);
+  void bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
   int ioctl(File *file, unsigned request, unsigned long argument);
+  int fcntl(File *file, int command, unsigned flags);
   unsigned poll(File *file, xv::sync::PollTable *table = nullptr);
 
 private:

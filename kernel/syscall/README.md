@@ -34,9 +34,9 @@
 
 `sigsend=45` 显式指定目标与信号，支持 SIGINT、SIGKILL、SIGTERM，以及信号 0
 探测；旧 kill(pid) 保持 ABI 和退出状态。错误返回 -1，具体选择和状态约定见
-[最小信号说明](../process/signals/README.md)。
+[信号说明](../process/signals/README.md)。
 
-`sigdisposition=46` 设置 SIGINT/SIGTERM 的默认或忽略动作，返回旧动作。
+`sigdisposition=46` 设置可捕获信号的默认或忽略动作，返回旧的默认/忽略分类。
 TIOCSCTTY/TIOCGPGRP/TIOCSPGRP 通过原 ioctl 接口实现；用户态增加
 `tcgetpgrp/tcsetpgrp`。更改和查询前台组受控制终端与会话关系约束。
 
@@ -51,3 +51,12 @@ TIOCSCTTY/TIOCGPGRP/TIOCSPGRP 通过原 ioctl 接口实现；用户态增加
 `poll=49` 接收 pollfd 数组、元素数量和毫秒超时，查询并等待文件描述符就绪，
 支持 IN/OUT/ERR/HUP/NVAL。每次调用向对象登记等待项，triggered 与进程锁关闭查询到睡眠的竞态窗口；接口、
 信号和精度约定见 [poll 说明](../fs/poll.md)。
+
+`fcntl=50` 实现 F_GETFL/F_SETFL，状态属于 File 并由 dup/fork 共享。open 支持
+O_NONBLOCK，流设备读写无进展返回 -EAGAIN，保留原有错误 -1 和 EOF 0；不引入
+libc errno。接口与短写约定见 [非阻塞 I/O](../fs/nonblocking.md)。
+
+`sigaction=51`、`sigprocmask=52`、`sigpending=53`、`sigsuspend=54` 提供用户信号接口，
+`sigreturn=26` 启用原先预留的编号。sigaction 汇编入口自动传入用户 restorer 地址；
+信号帧只含用户上下文。分发器保留 sigreturn 恢复的 a0，可捕获信号中断无进展操作
+时返回 -EINTR；SA_RESTART 按接口规则重新执行。详见 [信号机制](../process/signals/README.md)。

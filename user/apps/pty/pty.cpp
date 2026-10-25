@@ -1,17 +1,97 @@
 #include "kernel/support/types.h"
 #include "kernel/process/wait/wait.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/fcntl.h"
+#include "kernel/fs/io_status.h"
 #include "kernel/tty/termios.h"
 #include "user/runtime/user.h"
+
+static void transfer(int master)
+{
+  // These flags belong to open file descriptions and may also be used by the
+  // waiting outer shell. Capture both before changing either alias.
+  int input_flags = fcntl(0, F_GETFL);
+  int output_flags = fcntl(1, F_GETFL);
+  if (input_flags < 0 || output_flags < 0) return;
+  bool configured = fcntl(0, F_SETFL, input_flags | O_NONBLOCK) == 0 &&
+                    fcntl(1, F_SETFL, output_flags | O_NONBLOCK) == 0 &&
+                    fcntl(master, F_SETFL, O_NONBLOCK) == 0;
+  if (configured)
+  {
+    char output[256];
+    int used = 0, sent = 0;
+    unsigned char input[256];
+    int input_used = 0, input_sent = 0;
+    bool hungup = false;
+    for (;;)
+    {
+      short master_events = 0;
+      if (sent == used) master_events |= POLLIN;
+      if (input_sent < input_used && !hungup) master_events |= POLLOUT;
+      pollfd descriptors[] = {
+        {input_sent < input_used || hungup ? -1 : 0, POLLIN, 0},
+        {master_events ? master : -1, master_events, 0},
+        {sent < used ? 1 : -1, POLLOUT, 0},
+      };
+      if (poll(descriptors, 3, -1) < 0) break;
+      bool failed = false;
+      for (auto &descriptor : descriptors)
+        if (descriptor.revents & (POLLERR | POLLNVAL)) failed = true;
+      if (failed || (descriptors[2].revents & POLLHUP)) break;
+      if (descriptors[1].revents & POLLHUP)
+      {
+        hungup = true;
+        input_sent = input_used;
+      }
+      if (sent == used && (descriptors[1].revents & (POLLIN | POLLHUP)))
+      {
+        int n = read(master, output, sizeof(output));
+        if (n != -EAGAIN)
+        {
+          if (n <= 0) break;
+          used = n;
+          sent = 0;
+        }
+      }
+      if (sent < used && (descriptors[2].revents & POLLOUT))
+      {
+        int n = write(1, output + sent, used - sent);
+        if (n > 0) sent += n;
+        else if (n != -EAGAIN) break;
+      }
+      if (descriptors[0].revents & (POLLIN | POLLHUP))
+      {
+        int n = read(0, input, sizeof(input));
+        if (n != -EAGAIN)
+        {
+          if (n <= 0) break;
+          bool escape = false;
+          for (int i = 0; i < n; ++i) if (input[i] == 29) escape = true;
+          if (escape) break;
+          input_used = n;
+          input_sent = 0;
+        }
+      }
+      if (input_sent < input_used && !hungup && (descriptors[1].revents & POLLOUT))
+      {
+        int n = write(master, input + input_sent, input_used - input_sent);
+        if (n > 0) input_sent += n;
+        else if (n != -EAGAIN) break;
+      }
+    }
+  }
+  fcntl(0, F_SETFL, input_flags);
+  fcntl(1, F_SETFL, output_flags);
+}
 
 // One proxy process multiplexes keyboard, master and console output with poll().
 extern "C" int main(int argc, char **argv)
 {
   int fds[2];
   termios saved;
-  if (tcgetattr(0, &saved) < 0 || openpty(fds) < 0)
+  if (tcgetattr(0, &saved) < 0 || tcgetpgrp(0) != getpgrp() || openpty(fds) < 0)
   {
-    fprintf(2, "pty: terminal or allocation failed\n");
+    fprintf(2, "pty: foreground terminal required or allocation failed\n");
     exit(1);
   }
   winsize size;
@@ -46,55 +126,7 @@ extern "C" int main(int argc, char **argv)
     exit(1);
   }
   printf("pty: connected; Ctrl-] exits\n");
-  char output[256];
-  int used = 0, sent = 0;
-  unsigned char input = 0;
-  bool pending_input = false;
-  bool hungup = false;
-  for (;;)
-  {
-    short master_events = 0;
-    if (sent == used) master_events |= POLLIN;
-    if (pending_input && !hungup) master_events |= POLLOUT;
-    pollfd descriptors[] = {
-      {pending_input || hungup ? -1 : 0, POLLIN, 0},
-      {master_events ? fds[0] : -1, master_events, 0},
-      {sent < used ? 1 : -1, POLLOUT, 0},
-    };
-    if (poll(descriptors, 3, -1) < 0) break;
-    bool failed = false;
-    for (auto &descriptor : descriptors)
-      if (descriptor.revents & (POLLERR | POLLNVAL)) failed = true;
-    if (failed || (descriptors[2].revents & POLLHUP)) break;
-    if (descriptors[1].revents & POLLHUP)
-    {
-      hungup = true;
-      pending_input = false;
-    }
-    if (sent == used && (descriptors[1].revents & (POLLIN | POLLHUP)))
-    {
-      used = read(fds[0], output, sizeof(output));
-      sent = 0;
-      if (used <= 0) break;
-    }
-    // Send one byte per writable snapshot: large writes may wait for space even
-    // after poll reports POLLOUT, preventing us from servicing the other side.
-    if (sent < used && (descriptors[2].revents & POLLOUT))
-    {
-      if (write(1, output + sent, 1) != 1) break;
-      ++sent;
-    }
-    if (descriptors[0].revents & (POLLIN | POLLHUP))
-    {
-      if (read(0, &input, 1) != 1 || input == 29) break;
-      pending_input = true;
-    }
-    if (pending_input && !hungup && (descriptors[1].revents & POLLOUT))
-    {
-      if (write(fds[0], &input, 1) != 1) break;
-      pending_input = false;
-    }
-  }
+  transfer(fds[0]);
   close(fds[0]);
   tcsetattr(0, TCSANOW, &saved);
   waitpid(child, nullptr, 0);

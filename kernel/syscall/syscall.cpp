@@ -25,6 +25,12 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_waitpid: return sys_waitpid;
   case SYS_openpty: return sys_openpty;
   case SYS_poll: return sys_poll;
+  case SYS_fcntl: return sys_fcntl;
+  case SYS_sigaction: return sys_sigaction;
+  case SYS_sigprocmask: return sys_sigprocmask;
+  case SYS_sigpending: return sys_sigpending;
+  case SYS_sigsuspend: return sys_sigsuspend;
+  case SYS_sigreturn: return sys_sigreturn;
   case SYS_pipe: return sys_pipe;
   case SYS_read: return sys_read;
   case SYS_kill: return sys_kill;
@@ -85,9 +91,10 @@ void dispatch()
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->registers()->a0
     auto argument = p->registers()->a0;
-    auto result = handler();
+    p->begin_system_call();
+    auto result = static_cast<unsigned long>(p->finish_system_call(num, argument, handler()));
     bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
-                       num == SYS_waitpid || num == SYS_pause;
+                       num == SYS_waitpid || num == SYS_pause || num == SYS_sigsuspend;
     if (result == ~0UL && restartable && p->stop_requested())
     {
       // Retry an interrupted operation after continuation. Partial transfers

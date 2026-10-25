@@ -3,6 +3,7 @@ module;
 #include <cstdio>
 #include <functional>
 #include "kernel/tty/termios.h"
+#include "kernel/fs/io_status.h"
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -77,6 +78,7 @@ public:
   }
 
   std::string output;
+  std::function<void()> on_transmit;
   InputReceiver *receiver = nullptr;
 
   const char *name() const override
@@ -105,6 +107,13 @@ public:
   void write(const char *data, int count) override
   {
     output.append(data, count);
+  }
+
+  int transmit(const char *data, int count, bool = false) override
+  {
+    if (on_transmit) on_transmit();
+    write(data, count);
+    return count;
   }
 
   void put_sync(int character) override
@@ -294,6 +303,25 @@ void console_contract()
   feed("ok\n");
   check(console.read(destination, 256) == 3 && std::string(input, 3) == "ok\n",
         "flush discards pending line");
+  IoBuffer nonblocking = destination;
+  nonblocking.nonblocking = true;
+  check(console.read(nonblocking, sizeof(input)) == -EAGAIN,
+        "empty nonblocking TTY does not sleep");
+  on_sleep = [&]
+  {
+    check(console.read(nonblocking, sizeof(input)) == -EAGAIN,
+          "nonblocking TTY reader never waits for another reader lock");
+    feed("ready\n");
+  };
+  check(console.read(destination, sizeof(input)) == 6, "blocking reader survives contention");
+  serial.on_transmit = [&]
+  {
+    check(console.write(nonblocking, 1) == -EAGAIN,
+          "nonblocking TTY writer never waits for another writer lock");
+  };
+  check(console.write(destination, 1) == 1, "blocking writer survives contention");
+  serial.on_transmit = nullptr;
+  on_sleep = nullptr;
   winsize size{40, 100, 0, 0}, actual{};
   check(console.ioctl(TIOCSWINSZ, buffer(&size)) == 0 &&
             console.ioctl(TIOCGWINSZ, buffer(&actual)) == 0 && actual.ws_row == 40 &&
@@ -466,6 +494,18 @@ void uart_contract()
   uart.drain();
   uart.write("abc", 3);
   check(registers[0] == 'c', "UART process output");
+  registers[5] = 0;
+  char fill[128]; std::memset(fill, 'q', sizeof(fill));
+  check(uart.transmit(fill, 127, true) == 127, "UART queues without waiting for hardware");
+  const char newline[] = "\r\n";
+  check(uart.transmit(newline, 2, true) == -EAGAIN &&
+        uart.transmit("z", 1, true) == 1 && uart.transmit("x", 1, true) == -EAGAIN &&
+        !uart.writable(), "UART atomic transformed output and full EAGAIN");
+  registers[5] = (1U << 5) | (1U << 6);
+  uart.handle_interrupt();
+  check(registers[0] == 'z' && uart.writable(), "UART TX interrupt drains queued bytes");
+  uart.drain();
+
 }
 
 VirtioBlock *active_disk = nullptr;

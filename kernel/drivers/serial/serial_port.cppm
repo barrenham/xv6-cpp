@@ -1,3 +1,6 @@
+module;
+#include "kernel/fs/io_status.h"
+
 export module xv.drivers:serial;
 
 export import :interrupt;
@@ -25,8 +28,9 @@ public:
   virtual void attach(InputReceiver &receiver) = 0;
   // Process context only; may block until the transmitter becomes ready.
   virtual void write(const char *data, int count) = 0;
-  int transmit(const char *data, int count) override
+  int transmit(const char *data, int count, bool nonblocking = false) override
   {
+    if (nonblocking) return -EAGAIN;
     write(data, count);
     return count;
   }

@@ -24,6 +24,7 @@ parser.add_argument('--foreground', action='store_true')
 parser.add_argument('--jobs', action='store_true')
 parser.add_argument('--pty', action='store_true')
 parser.add_argument('--poll', action='store_true')
+parser.add_argument('--nonblock', action='store_true')
 parser.add_argument('--cpus', type=int, default=3)
 parser.add_argument('--ram-mib', type=int, default=128)
 parser.add_argument('--boot-only', action='store_true')
@@ -43,7 +44,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -312,6 +313,13 @@ def pty_checks():
     command('echo PTY_NESTED')
     expect('PTY_NESTED\n', timeout=5)
     expect('$ ', timeout=5)
+    # Exercise multiple proxy buffers and UART nonblocking partial writes.
+    command('cat README')
+    payload = (Path(__file__).resolve().parents[1] / 'README.xv6').read_text()
+    if len(payload.encode()) <= 256:
+        raise RuntimeError('PTY bulk fixture is smaller than its forwarding buffer')
+    expect(payload, timeout=5)
+    expect('$ ', timeout=5)
     command('cat')
     process.stdin.write(b'PTY_CAT\n')
     process.stdin.flush()
@@ -366,9 +374,42 @@ def pty_checks():
     if transcript.count(b'init: starting sh') != 1:
         raise RuntimeError('PTY proxy restarted the outer shell')
 
+def nonblock_checks():
+    def command(text):
+        process.stdin.write((text + '\n').encode())
+        process.stdin.flush()
+        expect(text + '\n', timeout=5)
+    def flags():
+        command('ptytest checkflags')
+        expect('ptytest: terminal flags restored\n', timeout=5)
+        expect('$ ', timeout=5)
+    command('ptytest nonblock')
+    expect('ptytest: nonblock tests succeeded\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('ptytest nbmode')
+    expect('ptytest: nonblock ready\n', timeout=5)
+    process.stdin.write(b'\x1a')
+    process.stdin.flush()
+    expect('Stopped ptytest nbmode\n', timeout=5)
+    expect('$ ', timeout=5)
+    flags()
+    command('fg')
+    expect('Foreground ptytest nbmode\n', timeout=5)
+    process.stdin.write(b'\x03')
+    process.stdin.flush()
+    expect('$ ', timeout=5)
+    flags()
+    command('ptytest nbkill')
+    expect('$ ', timeout=5)
+    flags()
+    if transcript.count(b'init: starting sh') != 1:
+        raise RuntimeError('nonblocking flags caused shell restart')
+
 try:
     expect('physical allocator: ' + args.allocator + '\n')
     expect('$ ')
+    if args.nonblock:
+        nonblock_checks()
     if args.pty:
         pty_checks()
     if args.jobs:
@@ -428,7 +469,7 @@ try:
         checks = [('signaltest', 'signaltest: all tests succeeded'),
                   ('ttytest', 'ttytest: all tests succeeded'),
                   ('echo SIGNAL_SHELL_OK', 'SIGNAL_SHELL_OK\n')]
-    if args.foreground or args.jobs or args.pty:
+    if args.foreground or args.jobs or args.pty or args.nonblock:
         checks = []
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]

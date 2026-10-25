@@ -36,6 +36,46 @@ uint64 sys_getpid(void)
   return xv::process::current()->id();
 }
 
+uint64 sys_sigaction()
+{
+  int signal;
+  uint64 action, old, restorer;
+  argument_integer(0, &signal);
+  argument_address(1, &action);
+  argument_address(2, &old);
+  argument_address(3, &restorer);
+  return xv::process::current()->signal_action(signal, action, old, restorer);
+}
+
+uint64 sys_sigprocmask()
+{
+  int how;
+  uint64 set, old;
+  argument_integer(0, &how);
+  argument_address(1, &set);
+  argument_address(2, &old);
+  return xv::process::current()->signal_mask(how, set, old);
+}
+
+uint64 sys_sigpending()
+{
+  uint64 set;
+  argument_address(0, &set);
+  return xv::process::current()->signal_pending(set);
+}
+
+uint64 sys_sigsuspend()
+{
+  uint64 set;
+  argument_address(0, &set);
+  return xv::process::current()->signal_suspend(set);
+}
+
+uint64 sys_sigreturn()
+{
+  return xv::process::current()->signal_return();
+}
+
 uint64 sys_sigdisposition(void)
 {
   int signal, action;

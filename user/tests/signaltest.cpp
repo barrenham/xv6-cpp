@@ -262,9 +262,14 @@ static void leaderless_group()
   close(lifetime[0]);
 }
 
-extern "C" int main()
+void signal_handler_checks();
+int signal_exec_check();
+
+extern "C" int main(int argc, char **argv)
 {
-  check(sigsend(getpid(), 1) == -1 && sigsend(getpid(), 32) == -1 &&
+  if (argc == 2 && strcmp(argv[1], "exec-check") == 0) return signal_exec_check();
+  signal_handler_checks();
+  check(sigsend(getpid(), 3) == -1 && sigsend(getpid(), 32) == -1 &&
             sigsend(getpid(), -1) == -1 && sigsend(-1, 0) == -1 &&
             sigsend(-0x7fffffff - 1, 0) == -1 && sigsend(0x7fffffff, SIGINT) == -1,
         "invalid selections and unsupported signals");

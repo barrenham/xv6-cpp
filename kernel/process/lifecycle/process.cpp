@@ -30,6 +30,9 @@ void Process::commit_image(AddressSpace &image, unsigned long entry,
   // parent attempting setpgid before publishing the new image.
   process_manager.did_exec(*this);
   memory_.swap(image);
+  pending_signals_.on_exec();
+  signal_depth_ = 0;
+  suspended_mask_ = suspend_restarted_ = false;
   trapframe->epc = entry;
   trapframe->sp = stack;
   trapframe->a1 = arguments;

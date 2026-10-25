@@ -1,6 +1,7 @@
 module;
 #include "kernel/tty/termios.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/io_status.h"
 
 module xv.drivers;
 import :tty;
@@ -65,7 +66,7 @@ void Tty::receive(int character)
   }
 }
 
-int Tty::inject(unsigned char character)
+int Tty::inject(unsigned char character, bool nonblocking)
 {
   lock_.acquire();
   for (;;)
@@ -84,6 +85,7 @@ int Tty::inject(unsigned char character)
       lock_.release();
       return 0;
     }
+    if (nonblocking) { lock_.release(); return -EAGAIN; }
     detail::prepare_interruptible_sleep(&discipline_);
     lock_.release();
     detail::sleep_process();
@@ -119,7 +121,14 @@ unsigned Tty::poll(xv::sync::PollTable *table)
   bool disconnected = hungup_;
   lock_.release();
   if (disconnected) return events | POLLIN | POLLHUP;
-  if ((!table || (table->events() & POLLOUT)) && output_.writable(table)) events |= POLLOUT;
+  if ((!table || (table->events() & POLLIN)) && !read_lock_.available(table))
+    events &= ~POLLIN;
+  if (!table || (table->events() & POLLOUT))
+  {
+    bool unlocked = write_lock_.available(table);
+    bool space = output_.writable(table); // Subscribe even when the lock is busy.
+    if (unlocked && space) events |= POLLOUT;
+  }
   return events;
 }
 
@@ -142,10 +151,12 @@ int Tty::read(IoBuffer destination, int count)
   {
     return -1;
   }
-  if (!read_lock_.acquire_interruptible())
+  if (detail::process_killed()) return -1;
+  if (destination.nonblocking)
   {
-    return -1;
+    if (!read_lock_.try_acquire()) return -EAGAIN;
   }
+  else if (!read_lock_.acquire_interruptible()) return -1;
   xv::sync::ScopedLock reader(read_lock_, xv::sync::adopt_lock);
   lock_.acquire();
   unsigned generation = generation_;
@@ -153,6 +164,7 @@ int Tty::read(IoBuffer destination, int count)
   int done = 0;
   bool finished = false;
   bool fault = false;
+  bool again = false;
   while (!finished)
   {
     if (!detail::may_read_terminal(this))
@@ -216,6 +228,11 @@ int Tty::read(IoBuffer destination, int count)
     {
       break;
     }
+    if (destination.nonblocking)
+    {
+      again = done == 0;
+      break;
+    }
     if (!canonical)
     {
       if (done >= minimum && (minimum || !timeout || done))
@@ -243,19 +260,18 @@ int Tty::read(IoBuffer destination, int count)
   }
   detail::wake_processes(&discipline_);
   lock_.release();
-  return done ? done : (fault ? -1 : 0);
+  return done ? done : (fault ? -1 : (again ? -EAGAIN : 0));
 }
 
 int Tty::write(IoBuffer source, int count)
 {
-  if (count < 0)
+  if (count <= 0) return count == 0 ? 0 : -1;
+  if (detail::process_killed()) return -1;
+  if (source.nonblocking)
   {
-    return -1;
+    if (!write_lock_.try_acquire()) return -EAGAIN;
   }
-  if (!write_lock_.acquire_interruptible())
-  {
-    return -1;
-  }
+  else if (!write_lock_.acquire_interruptible()) return -1;
   xv::sync::ScopedLock writer(write_lock_, xv::sync::adopt_lock);
   lock_.acquire();
   unsigned flags = settings_.c_oflag;
@@ -271,10 +287,9 @@ int Tty::write(IoBuffer source, int count)
     }
     char input[32], output[64];
     int part = count - done;
-    if (part > 32)
-    {
-      part = 32;
-    }
+    if (part > 32) part = 32;
+    // A nonblocking backend must accept the entire transformed character.
+    if (source.nonblocking) part = 1;
     if (detail::copy_in(input, source.space == AddressSpace::User,
                         source.address + done, part) < 0)
     {
@@ -289,8 +304,8 @@ int Tty::write(IoBuffer source, int count)
       }
       output[used++] = input[i];
     }
-    if (output_.transmit(output, used) != used)
-      return done ? done : -1;
+    int result = output_.transmit(output, used, source.nonblocking);
+    if (result != used) return done ? done : result;
     done += part;
   }
   return done;

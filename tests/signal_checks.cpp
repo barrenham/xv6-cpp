@@ -117,6 +117,47 @@ void stop_continue()
   signals.post(SIGTTIN);
   check(signals.take_stop() == SIGTTIN, "background read stop");
 }
+void masks_and_handlers()
+{
+  PendingSignals state, child;
+  state.set_action(SIGUSR1, {0x1000, 1U << SIGUSR2, 0, 0x2000});
+  state.set_mask((1U << SIGUSR1) | PendingSignals::Unmaskable);
+  check(state.mask() == (1U << SIGUSR1), "SIGKILL/SIGSTOP cannot be blocked");
+  state.post(SIGUSR1);
+  check(!state.interrupting() && state.pending() == (1U << SIGUSR1),
+        "masked caught signal remains pending without interrupting waits");
+  child.inherit_dispositions(state);
+  check(!child.pending() && child.mask() == state.mask() &&
+        child.action(SIGUSR1).handler == 0x1000, "fork inherits handlers and mask");
+  state.set_mask(0);
+  check(state.caught_signal() == SIGUSR1 && !state.terminating_signal(),
+        "caught signal interrupts without default termination");
+  state.consume(SIGUSR1);
+  check(!state.interrupting(), "delivered signal consumed");
+  state.post(SIGUSR1);
+  state.set_mask(1U << SIGUSR1);
+  state.disposition(SIGTERM, SIGNAL_IGNORE);
+  state.on_exec();
+  check(state.pending() == (1U << SIGUSR1) && state.mask() == (1U << SIGUSR1) &&
+        state.action(SIGUSR1).handler == 0 &&
+        state.action(SIGTERM).handler == SIGNAL_IGNORE, "exec disposition rules");
+  state.set_mask(0);
+  check(state.terminating_signal() == SIGUSR1, "exec pending uses new default action");
+  state.reset();
+  state.disposition(SIGCONT, SIGNAL_IGNORE);
+  state.post(SIGSTOP);
+  state.post(SIGCONT);
+  check(state.continuing() && !state.pending() && !state.stopping_signal(),
+        "ignored SIGCONT still resumes and cancels stops");
+  state.disposition(SIGCONT, SIGNAL_DEFAULT);
+  state.set_action(SIGTSTP, {0x1000, 0, 0, 0x2000});
+  state.set_mask(1U << SIGTTIN);
+  state.post(SIGTTIN);
+  state.post(SIGTSTP);
+  state.post(SIGSTOP);
+  check(state.take_stop() == SIGSTOP && state.caught_signal() == SIGTSTP &&
+        (state.pending() & (1U << SIGTTIN)), "default stop preserves blocked/caught stops");
+}
 } // namespace xv::process::signal_test
 
 extern "C" int run_signal_contracts()
@@ -124,6 +165,7 @@ extern "C" int run_signal_contracts()
   xv::process::signal_test::pending();
   xv::process::signal_test::dispositions();
   xv::process::signal_test::stop_continue();
+  xv::process::signal_test::masks_and_handlers();
   std::puts("pending signal contracts: passed");
   return 0;
 }

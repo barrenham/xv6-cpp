@@ -15,6 +15,7 @@ struct IoBuffer
 {
   AddressSpace space;
   unsigned long address;
+  bool nonblocking = false;
 };
 
 class CharacterDevice : public Device

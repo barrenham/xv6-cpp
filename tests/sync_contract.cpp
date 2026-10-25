@@ -115,6 +115,13 @@ int main()
   contract(static_spin, LockKind::Spin);
   contract(static_sleep, LockKind::Sleep);
 
+  check(static_sleep.available() && static_sleep.try_acquire(), "try-lock succeeds immediately");
+  check(!static_sleep.available() && !static_sleep.try_acquire(), "try-lock fails without waiting");
+  std::thread contender([&] { check(!static_sleep.try_acquire(), "contender never waits"); });
+  contender.join();
+  static_sleep.release();
+  check(static_sleep.available(), "released lock becomes ready");
+
   xv_test_set_interrupted(true);
   check(!static_sleep.acquire_interruptible(),
         "pending signal cancels lock acquisition");

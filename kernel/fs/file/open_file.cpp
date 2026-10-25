@@ -4,6 +4,7 @@ module;
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/fcntl.h"
 
 module xv.fs;
 import :platform;
@@ -18,6 +19,25 @@ constinit InodeOperations inode_operations;
 constinit DeviceOperations device_operations;
 constinit PipeOperations pipe_operations;
 } // namespace
+
+bool File::nonblocking() const
+{
+  return __atomic_load_n(&status_flags_, __ATOMIC_ACQUIRE) & O_NONBLOCK;
+}
+
+int OpenFileTable::fcntl(File *file, int command, unsigned flags)
+{
+  if (command == F_GETFL)
+    return __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
+  if (command != F_SETFL || (flags & ~(O_ACCMODE | O_NONBLOCK))) return -1;
+  auto old = __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
+  for (;;)
+  {
+    unsigned value = (old & O_ACCMODE) | (flags & O_NONBLOCK);
+    if (__atomic_compare_exchange_n(&file->status_flags_, &old, value, false,
+                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) return 0;
+  }
+}
 
 void OpenFileTable::initialize()
 {
@@ -91,7 +111,8 @@ void OpenFileTable::release(File *file)
   }
 }
 
-void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable)
+void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
+                               bool nonblocking)
 {
   file.type = node.kind() == T_DEVICE ? File::Kind::Device : File::Kind::Inode;
   file.major = node.device_major();
@@ -99,6 +120,8 @@ void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writ
   file.offset = 0;
   file.readable = readable;
   file.writable = writable;
+  unsigned mode = readable ? (writable ? O_RDWR : O_RDONLY) : O_WRONLY;
+  __atomic_store_n(&file.status_flags_, mode | (nonblocking ? O_NONBLOCK : 0), __ATOMIC_RELEASE);
 }
 
 void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
@@ -106,6 +129,7 @@ void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endp
   file.type = File::Kind::Endpoint;
   file.endpoint = &endpoint;
   file.readable = file.writable = true;
+  __atomic_store_n(&file.status_flags_, O_RDWR, __ATOMIC_RELEASE);
 }
 
 void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
@@ -114,6 +138,7 @@ void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
   file.pipe = &pipe;
   file.readable = !writable;
   file.writable = writable;
+  __atomic_store_n(&file.status_flags_, writable ? O_WRONLY : O_RDONLY, __ATOMIC_RELEASE);
 }
 
 int OpenFileTable::read(File *file, unsigned long address, int count)
@@ -123,7 +148,7 @@ int OpenFileTable::read(File *file, unsigned long address, int count)
     return -1;
   }
   if (file->type == File::Kind::Endpoint)
-    return file->endpoint->read({xv::drivers::AddressSpace::User, address}, count);
+    return file->endpoint->read({xv::drivers::AddressSpace::User, address, file->nonblocking()}, count);
   FileOperations *operations = nullptr;
   switch (file->type)
   {
@@ -149,7 +174,7 @@ int OpenFileTable::write(File *file, unsigned long address, int count)
     return -1;
   }
   if (file->type == File::Kind::Endpoint)
-    return file->endpoint->write({xv::drivers::AddressSpace::User, address}, count);
+    return file->endpoint->write({xv::drivers::AddressSpace::User, address, file->nonblocking()}, count);
   FileOperations *operations = nullptr;
   switch (file->type)
   {

@@ -1,6 +1,7 @@
 export module xv.sync:sleep;
 
 export import :spin;
+export import :poll;
 
 export namespace xv::sync
 {
@@ -15,6 +16,8 @@ public:
   void acquire() override;
   // False leaves ownership unchanged when a fatal signal is pending.
   bool acquire_interruptible();
+  bool try_acquire();
+  bool available(PollTable *table = nullptr) const;
   void release() override;
   bool holding() const override;
 

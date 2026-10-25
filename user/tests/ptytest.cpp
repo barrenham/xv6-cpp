@@ -211,6 +211,9 @@ static void allocation()
   printf("ptytest: allocation and signals OK\n");
 }
 extern "C" void run_poll_checks();
+extern "C" void run_nonblock_checks();
+extern "C" void check_terminal_flags();
+extern "C" void nonblock_terminal_mode(bool terminate);
 
 extern "C" int main(int argc, char **argv)
 {
@@ -219,6 +222,10 @@ extern "C" int main(int argc, char **argv)
     run_poll_checks();
     exit(0);
   }
+  if (argc > 1 && strcmp(argv[1], "nonblock") == 0) { run_nonblock_checks(); exit(0); }
+  if (argc > 1 && strcmp(argv[1], "checkflags") == 0) { check_terminal_flags(); exit(0); }
+  if (argc > 1 && strcmp(argv[1], "nbmode") == 0) nonblock_terminal_mode(false);
+  if (argc > 1 && strcmp(argv[1], "nbkill") == 0) nonblock_terminal_mode(true);
   basic(); flow(false); flow(true); closure(); signals(false); signals(true); allocation();
   printf("ptytest: all tests succeeded\n");
   exit(0);

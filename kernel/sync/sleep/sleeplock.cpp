@@ -61,6 +61,22 @@ bool SleepLock::acquire_interruptible()
   return true;
 }
 
+bool SleepLock::available(PollTable *table) const
+{
+  ScopedLock guard(state_lock_);
+  if (table) table->watch(const_cast<SleepLock *>(this));
+  return !locked_;
+}
+
+bool SleepLock::try_acquire()
+{
+  ScopedLock guard(state_lock_);
+  if (locked_) return false;
+  locked_ = true;
+  pid_ = detail::current_pid();
+  return true;
+}
+
 void SleepLock::release()
 {
   ScopedLock guard(state_lock_);

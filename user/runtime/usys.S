@@ -254,3 +254,37 @@ poll:
  li a7, SYS_poll
  ecall
  ret
+
+.global fcntl
+fcntl:
+ li a7, SYS_fcntl
+ ecall
+ ret
+
+.global sigaction
+sigaction:
+ la a3, __signal_return
+ li a7, SYS_sigaction
+ ecall
+ ret
+.global sigprocmask
+sigprocmask:
+ li a7, SYS_sigprocmask
+ ecall
+ ret
+.global sigpending
+sigpending:
+ li a7, SYS_sigpending
+ ecall
+ ret
+.global sigsuspend
+sigsuspend:
+ li a7, SYS_sigsuspend
+ ecall
+ ret
+.global __signal_return
+__signal_return:
+ li a7, SYS_sigreturn
+ ecall
+ # A failed restoration must not execute arbitrary stack bytes.
+ ebreak

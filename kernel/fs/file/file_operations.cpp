@@ -84,7 +84,7 @@ int DeviceOperations::read(File &file, unsigned long address, int count)
   {
     return -1;
   }
-  return device->read({xv::drivers::AddressSpace::User, address}, count);
+  return device->read({xv::drivers::AddressSpace::User, address, file.nonblocking()}, count);
 }
 
 int DeviceOperations::write(File &file, unsigned long address, int count)
@@ -94,7 +94,7 @@ int DeviceOperations::write(File &file, unsigned long address, int count)
   {
     return -1;
   }
-  return device->write({xv::drivers::AddressSpace::User, address}, count);
+  return device->write({xv::drivers::AddressSpace::User, address, file.nonblocking()}, count);
 }
 
 int DeviceOperations::stat(File &file, unsigned long address)
@@ -114,11 +114,11 @@ void PipeOperations::close(File &file)
 
 int PipeOperations::read(File &file, unsigned long address, int count)
 {
-  return file.pipe->read(address, count);
+  return file.pipe->read(address, count, file.nonblocking());
 }
 
 int PipeOperations::write(File &file, unsigned long address, int count)
 {
-  return file.pipe->write(address, count);
+  return file.pipe->write(address, count, file.nonblocking());
 }
 } // namespace xv::fs

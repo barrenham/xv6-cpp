@@ -83,8 +83,8 @@ VMIN=1/VTIME=0，因此 Ctrl-C/Ctrl-Z 会到达内层 PTY。不再使用独立�
 
 ## 首版边界
 
-没有 devpts、按路径重新打开 slave、TIOCPKT、非阻塞模式、select、
-SIGWINCH 或完整用户态信号处理函数。初始窗口大小由代理复制，之后的窗口
+没有 devpts、按路径重新打开 slave、TIOCPKT、select、
+SIGWINCH。用户态信号处理已接入，见 [信号说明](../../../process/signals/README.md)。初始窗口大小由代理复制，之后的窗口
 变化不会自动传播。TCOFLUSH/TCIOFLUSH 暂不支持。
 
 回显沿用 IRQ 安全的不可阻塞接口，输出缓冲已满时可能丢弃回显；应用的普通
@@ -98,3 +98,7 @@ slave write 使用背压，不静默丢弃数据。后续可为回显增加独�
 停止、bg 后 SIGTTIN、fg 后读操作继续、Ctrl-C，以及正常 EOF/主动断开恢复
 外层终端。复用的驱动、文件、进程组、信号契约和三核作业控制也已针对性检查；
 此次未运行完整回归。
+
+代理已通过 O_NONBLOCK 批量转发，保留部分传输尾部并处理 EAGAIN；stdin/stdout
+标志在退出时恢复，仅允许前台运行。API 与共享状态说明见
+[非阻塞 I/O](../../../fs/nonblocking.md)。

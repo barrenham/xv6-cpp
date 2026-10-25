@@ -1,4 +1,4 @@
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 function(xv_add_program source)
   get_filename_component(name "${source}" NAME_WE)
@@ -50,4 +50,6 @@ endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
 
 # Poll contracts reuse the PTY test executable and installed inode.
-target_sources(user_ptytest PRIVATE tests/poll_checks.cpp)
+target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.cpp)
+
+target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/signal_registers.S)

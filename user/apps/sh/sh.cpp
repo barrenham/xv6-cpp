@@ -256,6 +256,7 @@ extern "C"
     int pid;
     bool stopped;
     bool modes_valid;
+    int flags;
     termios modes;
     char command[100];
     Job *next;
@@ -307,8 +308,10 @@ extern "C"
     }
   }
 
-  static void foreground_job(Job *job, bool resume, const termios *before = nullptr)
+  static void foreground_job(Job *job, bool resume, const termios *before = nullptr,
+                             int before_flags = -1)
   {
+    int shell_flags = before_flags >= 0 ? before_flags : fcntl(terminal_fd, F_GETFL);
     termios shell_modes;
     bool saved = before != nullptr || tcgetattr(terminal_fd, &shell_modes) == 0;
     if (before)
@@ -326,16 +329,16 @@ extern "C"
       {
         tcsetattr(terminal_fd, TCSANOW, &job->modes);
       }
+      show_job(job, "Foreground");
+      if (job->flags >= 0) fcntl(terminal_fd, F_SETFL, job->flags);
       if (sigsend(-job->pid, SIGCONT) < 0)
       {
         tcsetpgrp(terminal_fd, shell_group);
+        if (shell_flags >= 0) fcntl(terminal_fd, F_SETFL, shell_flags);
+        if (saved) tcsetattr(terminal_fd, TCSANOW, &shell_modes);
         fprintf(2, "sh: cannot continue job\n");
         return;
       }
-    }
-    if (resume)
-    {
-      show_job(job, "Foreground");
     }
     job->stopped = false;
     int status = 0;
@@ -343,12 +346,14 @@ extern "C"
     if (pid > 0 && WIFSTOPPED(status))
     {
       job->stopped = true;
+      job->flags = fcntl(terminal_fd, F_GETFL);
       job->modes_valid = tcgetattr(terminal_fd, &job->modes) == 0;
     }
     if (tcsetpgrp(terminal_fd, shell_group) < 0)
     {
       panic("sh: cannot reclaim terminal");
     }
+    if (shell_flags >= 0) fcntl(terminal_fd, F_SETFL, shell_flags);
     if (saved && (job->stopped ||
                   (pid > 0 && (WIFSIGNALED(status) ||
                                (WIFEXITED(status) && WEXITSTATUS(status) >= 128)))))
@@ -457,6 +462,8 @@ extern "C"
     }
     else
     {
+      show_job(job, "Foreground");
+      if (job->flags >= 0) fcntl(terminal_fd, F_SETFL, job->flags);
       if (sigsend(-job->pid, SIGCONT) < 0)
       {
         fprintf(2, "sh: cannot continue job\n");
@@ -513,6 +520,7 @@ extern "C"
       return;
     }
     memset(job, 0, sizeof(*job));
+    job->flags = -1;
     strcpy(job->command, text);
     int ready[2], gate[2];
     if (pipe(ready) < 0)
@@ -571,6 +579,7 @@ extern "C"
     job->pid = child;
     job->next = jobs_head;
     jobs_head = job;
+    int launch_flags = fcntl(terminal_fd, F_GETFL);
     termios launch_modes;
     bool saved_modes = tcgetattr(terminal_fd, &launch_modes) == 0;
     if (ready_ok && (background || tcsetpgrp(terminal_fd, child) == 0))
@@ -585,7 +594,7 @@ extern "C"
     }
     else
     {
-      foreground_job(job, false, saved_modes ? &launch_modes : nullptr);
+      foreground_job(job, false, saved_modes ? &launch_modes : nullptr, launch_flags);
     }
   }
 

@@ -61,16 +61,17 @@ Ctrl-C 终止执行成员，协调进程回收它们后退出，shell 才重新�
 
 ## 默认与忽略处置
 
-新增 `sigdisposition(signal, action)`（系统调用 46），只接受 SIGINT/SIGTERM 的
-SIGNAL_DEFAULT、SIGNAL_IGNORE，返回旧动作。SIGKILL 不允许更改处置，也不
-支持自定义用户处理函数。忽略状态随 fork 继承、跨 exec 保留，子进程待处理
+`sigdisposition(signal, action)`（系统调用 46）接受受支持可捕获信号的
+SIGNAL_DEFAULT、SIGNAL_IGNORE，返回旧动作。SIGKILL/SIGSTOP 不允许更改处置。
+用户处理函数由后续加入的 sigaction 提供，见 [信号说明](../../../process/signals/README.md)。
+忽略状态随 fork 继承、跨 exec 保留，子进程待处理
 信号仍为空。shell 忽略 SIGINT，普通命令在放行前恢复默认动作。
 
 待处理位和忽略位放在同一个 64 位原子状态中，以 CAS 同步修改；忽略信号时
 同时清除对应待处理位，避免并发投递留下已忽略的信号。
 
 提示符处 Ctrl-C 清空未提交的输入、回显换行，shell 保持原会话并继续等待。
-尚无用户态信号处理器，因此这一场景不立即重新绘制提示符；前台命令被
+shell 仍通过忽略 SIGINT 处理提示符处的 Ctrl-C，因此不立即重新绘制提示符；前台命令被
 Ctrl-C 终止后会正常重新显示 `$`。Ctrl-Z、停止/继续及 fg/bg 已由下一阶段接入。
 
 ## 针对性验证

@@ -2,6 +2,7 @@ module;
 #include "kernel/support/placement_new.hpp"
 #include "kernel/tty/termios.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/io_status.h"
 
 module xv.drivers;
 import :pty;
@@ -84,7 +85,7 @@ void Pty::close(bool master)
   release();
 }
 
-int Pty::Output::transmit(const char *data, int count)
+int Pty::Output::transmit(const char *data, int count, bool nonblocking)
 {
   // Tty emits at most 64 bytes. Accept each chunk atomically so an interrupted
   // ONLCR write never replays half of a transformed newline.
@@ -98,6 +99,7 @@ int Pty::Output::transmit(const char *data, int count)
       p.lock_.release();
       return -1;
     }
+    if (nonblocking) { p.lock_.release(); return -EAGAIN; }
     detail::prepare_interruptible_sleep(&p.read_);
     p.lock_.release();
     detail::sleep_process();
@@ -152,7 +154,12 @@ void Pty::Output::drain()
 int Pty::read_master(IoBuffer destination, int count)
 {
   if (count <= 0) return count == 0 ? 0 : -1;
-  if (!reader_lock_.acquire_interruptible()) return -1;
+  if (detail::process_killed()) return -1;
+  if (destination.nonblocking)
+  {
+    if (!reader_lock_.try_acquire()) return -EAGAIN;
+  }
+  else if (!reader_lock_.acquire_interruptible()) return -1;
   xv::sync::ScopedLock reader(reader_lock_, xv::sync::adopt_lock);
   lock_.acquire();
   while (read_ == written_ && slave_open_)
@@ -162,6 +169,7 @@ int Pty::read_master(IoBuffer destination, int count)
       lock_.release();
       return -1;
     }
+    if (destination.nonblocking) { lock_.release(); return -EAGAIN; }
     detail::prepare_interruptible_sleep(&written_);
     lock_.release();
     detail::sleep_process();
@@ -189,7 +197,12 @@ int Pty::read_master(IoBuffer destination, int count)
 int Pty::write_master(IoBuffer source, int count)
 {
   if (count <= 0) return count == 0 ? 0 : -1;
-  if (!input_lock_.acquire_interruptible()) return -1;
+  if (detail::process_killed()) return -1;
+  if (source.nonblocking)
+  {
+    if (!input_lock_.try_acquire()) return -EAGAIN;
+  }
+  else if (!input_lock_.acquire_interruptible()) return -1;
   xv::sync::ScopedLock input(input_lock_, xv::sync::adopt_lock);
   int done = 0;
   while (done < count)
@@ -202,7 +215,8 @@ int Pty::write_master(IoBuffer source, int count)
     if (detail::copy_in(&value, source.space == AddressSpace::User,
                         source.address + done, 1) < 0)
       return done ? done : -1;
-    if (terminal_.inject(value) < 0) return done ? done : -1;
+    int result = terminal_.inject(value, source.nonblocking);
+    if (result < 0) return done ? done : result;
     ++done;
     // Unlike UART RX, software input has no external-IRQ completion hook.
     // Wake signal recipients only after dropping the TTY/group spinlocks.
@@ -246,9 +260,15 @@ unsigned Pty::Endpoint::poll(xv::sync::PollTable *table)
   unsigned events = pair_.read_ != pair_.written_ ? POLLIN : 0;
   pair_.lock_.release();
   if (!connected) return events | POLLIN | POLLHUP;
+  if ((!table || (table->events() & POLLIN)) && !pair_.reader_lock_.available(table))
+    events &= ~POLLIN;
   // Never acquire the TTY lock while holding the output lock (echo goes back).
-  if ((!table || (table->events() & POLLOUT)) && pair_.terminal_.input_writable(table))
-    events |= POLLOUT;
+  if (!table || (table->events() & POLLOUT))
+  {
+    bool unlocked = pair_.input_lock_.available(table);
+    bool space = pair_.terminal_.input_writable(table);
+    if (unlocked && space) events |= POLLOUT;
+  }
   return events;
 }
 

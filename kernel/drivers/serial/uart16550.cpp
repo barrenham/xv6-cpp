@@ -1,3 +1,6 @@
+module;
+#include "kernel/fs/io_status.h"
+
 module xv.drivers;
 
 import :uart;
@@ -54,74 +57,104 @@ void Uart16550::initialize()
   registers_.write8(IER, IER_TX_ENABLE | IER_RX_ENABLE);
 
   tx_lock_.init("uart");
+  tx_state_.init("uart tx state");
 }
 
-// transmit buf[] to the uart. it blocks if the
-// uart is busy, so it cannot be called from
-// interrupts, only from write() system calls.
-void Uart16550::write(const char *buf, int n)
+// Caller holds tx_state_. THR interrupts pump the queue after write returns.
+void Uart16550::pump()
 {
-  xv::sync::ScopedLock guard(tx_lock_);
-
-  int i = 0;
-  while (i < n)
+  bool progressed = false;
+  while (tx_read_ != tx_written_ && (registers_.read8(LSR) & LSR_TX_IDLE))
   {
-    detail::prepare_sleep(&tx_channel_);
-    if (registers_.read8(LSR) & LSR_TX_IDLE)
-    {
-      registers_.write8(THR, buf[i]);
-      i += 1;
-    }
-    else
-    {
-      detail::sleep_process();
-    }
+    registers_.write8(THR, tx_data_[tx_read_++ % TxCapacity]);
+    progressed = true;
+  }
+  if (progressed) detail::wake_processes(&tx_channel_);
+}
+
+int Uart16550::transmit(const char *data, int count, bool nonblocking)
+{
+  if (count <= 0) return count == 0 ? 0 : -1;
+  if (static_cast<unsigned>(count) > TxCapacity || detail::process_killed()) return -1;
+  if (nonblocking)
+  {
+    if (!tx_lock_.try_acquire()) return -EAGAIN;
+  }
+  else if (!tx_lock_.acquire_interruptible()) return -1;
+  xv::sync::ScopedLock writer(tx_lock_, xv::sync::adopt_lock);
+  tx_state_.acquire();
+  pump();
+  while (TxCapacity - (tx_written_ - tx_read_) < static_cast<unsigned>(count))
+  {
+    if (detail::process_killed()) { tx_state_.release(); return -1; }
+    if (nonblocking) { tx_state_.release(); return -EAGAIN; }
+    detail::prepare_interruptible_sleep(&tx_channel_);
+    tx_state_.release();
+    detail::sleep_process();
+    tx_state_.acquire();
+    pump();
+  }
+  if (detail::process_killed()) { tx_state_.release(); return -1; }
+  for (int i = 0; i < count; ++i) tx_data_[tx_written_++ % TxCapacity] = data[i];
+  pump();
+  tx_state_.release();
+  return count;
+}
+
+void Uart16550::write(const char *data, int count)
+{
+  int done = 0;
+  while (done < count)
+  {
+    int part = count - done;
+    if (part > 64) part = 64;
+    if (transmit(data + done, part) != part) return;
+    done += part;
   }
 }
 
-// write a byte to the uart without using
-// interrupts, for use by kernel xv::print::printk() and
-// to echo characters. it spins waiting for the uart's
-// output register to be empty.
-void Uart16550::put_sync(int c)
+void Uart16550::put_sync(int character)
 {
-  if (!detail::panicking())
+  if (detail::panicked()) for (;;) {}
+  if (detail::panicking())
   {
-    detail::push_interrupts_off();
+    // A panic may have interrupted a holder of tx_state_: bypass all TX locks.
+    while (!(registers_.read8(LSR) & LSR_TX_IDLE)) {}
+    registers_.write8(THR, character);
+    return;
   }
-
-  if (detail::panicked())
-  {
-    for (;;)
-    {
-    }
-  }
-
-  // wait for UART to set Transmit Holding Empty in LSR.
-  while ((registers_.read8(LSR) & LSR_TX_IDLE) == 0)
-  {
-  }
-  registers_.write8(THR, c);
-
-  if (!detail::panicking())
-  {
-    detail::pop_interrupts_off();
-  }
+  xv::sync::ScopedLock guard(tx_state_);
+  // Preserve ordering with queued user output before synchronous echo/logging.
+  while (tx_read_ != tx_written_) pump();
+  while (!(registers_.read8(LSR) & LSR_TX_IDLE)) {}
+  registers_.write8(THR, character);
 }
 
 bool Uart16550::writable(xv::sync::PollTable *table)
 {
+  xv::sync::ScopedLock guard(tx_state_);
   if (table) table->watch(&tx_channel_);
-  return registers_.read8(LSR) & LSR_TX_IDLE;
+  bool room = tx_written_ - tx_read_ <= TxCapacity - 2;
+  bool unlocked = tx_lock_.available(table);
+  return room && unlocked;
 }
 
 void Uart16550::drain()
 {
-  xv::sync::ScopedLock guard(tx_lock_);
-  // LSR.TEMT includes both the holding and shift registers. Interrupts stay on.
-  while ((registers_.read8(LSR) & (1U << 6)) == 0)
+  if (!tx_lock_.acquire_interruptible()) return;
+  xv::sync::ScopedLock writer(tx_lock_, xv::sync::adopt_lock);
+  tx_state_.acquire();
+  while (tx_read_ != tx_written_ && !detail::process_killed())
   {
+    pump();
+    if (tx_read_ == tx_written_) break;
+    detail::prepare_interruptible_sleep(&tx_channel_);
+    tx_state_.release();
+    detail::sleep_process();
+    tx_state_.acquire();
   }
+  tx_state_.release();
+  while (!(registers_.read8(LSR) & (1U << 6)) && !detail::process_killed()) {}
 }
 
 // try to read one input character from the UART.
@@ -146,9 +179,9 @@ void Uart16550::handle_interrupt()
 {
   registers_.read8(ISR); // acknowledge the interrupt
 
-  if (registers_.read8(LSR) & LSR_TX_IDLE)
   {
-    // UART finished transmitting; wake up sending thread.
+    xv::sync::ScopedLock guard(tx_state_);
+    pump();
     detail::wake_processes(&tx_channel_);
   }
 

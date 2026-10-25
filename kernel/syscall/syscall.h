@@ -53,3 +53,8 @@
 #define SYS_waitpid 47
 #define SYS_openpty 48
 #define SYS_poll 49
+#define SYS_fcntl 50
+#define SYS_sigaction 51
+#define SYS_sigprocmask 52
+#define SYS_sigpending 53
+#define SYS_sigsuspend 54

@@ -105,10 +105,11 @@ fork 继承成员身份，成功 exec 保留组/会话并禁止父进程再修�
 具体规则、锁顺序和测试见 [进程组与会话说明](groups/README.md)。
 目前支持 SIGINT/SIGKILL/SIGTERM 的默认终止，已接入控制终端、前台进程组与 Ctrl-C；停止/继续、Ctrl-Z 和 jobs/fg/bg 已接入。
 
-## 最小信号机制
+## 用户态信号机制
 
 `sigsend(target, signal)` 支持进程与进程组投递，目标自行在返回用户态前完成
-默认终止。TTY、管道、pause、wait 使用可中断等待；内部 I/O 和锁等待保持
+默认动作或建立用户信号帧。sigaction、sigprocmask、sigpending、sigsuspend 和
+sigreturn 支持捕获、屏蔽、嵌套及上下文恢复。TTY、管道、pause、wait、poll 使用可中断等待；内部 I/O 和锁等待保持
 协议完整。旧 kill(pid) ABI 保留，详见 [信号接口、锁与验证](signals/README.md)。
 
 ## 动态进程存储

@@ -156,7 +156,7 @@ GDB 使用支持 RISC-V 的版本，加载 `build/dev/kernel.elf`，执行 `targ
 
 进程模块支持 `getpgrp/setpgid/getsid/setsid`、动态进程组与会话生命周期；可运行 `grouptest`，详见 [实现说明](kernel/process/groups/README.md)。
 
-最小信号机制支持 `sigsend`、SIGINT/SIGKILL/SIGTERM 默认终止和进程组投递，可运行 `signaltest`，详见 [信号说明](kernel/process/signals/README.md)。
+信号机制支持 `sigaction`、信号屏蔽、嵌套处理、用户上下文恢复及 `SA_RESTART`，保留进程组投递与作业控制。运行 `signaltest` 验证，详见 [信号说明](kernel/process/signals/README.md)。
 
 交互 shell 已接入 [控制终端、前台进程组与 Ctrl-C](kernel/drivers/tty/docs/foreground.md)，命令与管道退出后收回终端；Ctrl-Z、jobs、fg/bg 已实现。
 
@@ -168,3 +168,8 @@ Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API
 
 `poll` 已支持管道、TTY、PTY 与普通文件就绪查询和阻塞等待。PTY 代理使用
 单进程事件循环，`ptytest poll` 检查新接口；实现与限制见 [poll 说明](kernel/fs/poll.md)。
+
+`fcntl(F_GETFL/F_SETFL)` 与 `O_NONBLOCK` 已支持管道、TTY 和 PTY，临时不可用
+直接返回 `-EAGAIN`。运行 `ptytest nonblock` 验证，详见 [非阻塞 I/O](kernel/fs/nonblocking.md)。
+
+默认文件系统镜像为 4000 个 1024 字节块（约 3.9 MiB），为用户程序和运行时文件留出空间。
