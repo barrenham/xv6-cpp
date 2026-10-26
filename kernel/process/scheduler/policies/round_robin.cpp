@@ -14,6 +14,9 @@ void RoundRobinScheduler::run()
     if (auto *process = ready_.take(cpu))
     {
       SchedulerContext::dispatch(*process, cpu);
+      // exit/stop publish SIGCHLD while holding the outgoing process lock.
+      // Service only after dispatch releases it; no process pointer is reused.
+      service_signal_notifications();
     }
     else
     {

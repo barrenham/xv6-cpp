@@ -105,6 +105,19 @@ extern "C" int main(int argc, char **argv)
   {
     return 0;
   }
+  if (argc > 2 && strcmp(argv[1], "delay") == 0)
+  {
+    pause(atoi(argv[2]));
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "descriptors") == 0)
+  {
+    // The shell's private terminal and SIGCHLD pipe must not survive exec.
+    for (int fd = 3; fd < 16; ++fd)
+      check(close(fd) == -1, "shell private descriptor leaked into command");
+    printf("jobtest: descriptors clean\n");
+    return 0;
+  }
   if (argc > 1 && strcmp(argv[1], "contracts") == 0)
   {
     contracts();

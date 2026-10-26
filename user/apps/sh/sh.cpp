@@ -3,6 +3,8 @@
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/fs/io_status.h"
+#include "kernel/fs/poll.h"
 #include "kernel/tty/termios.h"
 #include "kernel/process/signals/signal.h"
 #include "kernel/process/wait/wait.h"
@@ -201,16 +203,47 @@ extern "C"
     exit(0);
   }
 
-  int getcmd(char *buf, int nbuf)
+  int getcmd(char *buf, int nbuf);
+
+  static int child_pipe[2] = {-1, -1};
+  static volatile sig_atomic_t children_changed = 0;
+
+  static void child_signal(int)
   {
-    write(2, "$ ", 2);
-    memset(buf, 0, nbuf);
-    gets(buf, nbuf);
-    if (buf[0] == 0) // EOF
-    {
-      return -1;
-    }
-    return 0;
+    children_changed = 1;
+    // A full pipe already contains a wakeup. Never wait or touch the job list in
+    // a handler; poll observes this byte even if the signal preceded its sleep.
+    write(child_pipe[1], "c", 1);
+  }
+
+  static void reset_child_notifications()
+  {
+    sigdisposition(SIGCHLD, SIGNAL_DEFAULT);
+    if (child_pipe[0] >= 0) close(child_pipe[0]);
+    if (child_pipe[1] >= 0) close(child_pipe[1]);
+    child_pipe[0] = child_pipe[1] = -1;
+    children_changed = 0;
+  }
+
+  static void initialize_child_notifications()
+  {
+    if (pipe(child_pipe) < 0 ||
+        fcntl(child_pipe[0], F_SETFL, O_NONBLOCK) < 0 ||
+        fcntl(child_pipe[1], F_SETFL, O_NONBLOCK) < 0)
+      panic("sh: cannot create child notification pipe");
+    struct sigaction action{child_signal, 0, SA_RESTART};
+    sigset_t set = 0;
+    sigaddset(&set, SIGCHLD);
+    if (sigaction(SIGCHLD, &action, nullptr) < 0 ||
+        sigprocmask(SIG_UNBLOCK, &set, nullptr) < 0)
+      panic("sh: cannot install child handler");
+  }
+
+  static int read_retry(int fd, void *data, int count)
+  {
+    int result;
+    do { result = read(fd, data, count); } while (result == -EINTR);
+    return result;
   }
 
   // Private descriptor remains usable when a command redirects standard streams.
@@ -284,28 +317,83 @@ extern "C"
     printf("[%d] %s %s\n", job->id, state, job->command);
   }
 
-  static void refresh_jobs()
+  static bool refresh_jobs(bool separate_line = false, Job *foreground = nullptr)
   {
+    bool printed = false;
     for (Job *job = jobs_head, *next; job; job = next)
     {
       next = job->next;
+      if (job == foreground) continue;
       int status;
       for (;;)
       {
         int pid = waitpid(job->pid, &status, WNOHANG | WUNTRACED | WCONTINUED);
+        if (pid == -EINTR) continue;
         if (pid == 0)
         {
           break;
         }
         if (pid < 0 || WIFEXITED(status) || WIFSIGNALED(status))
         {
+          if (separate_line && !printed) write(2, "\n", 1);
           show_job(job, "Done");
+          printed = true;
           remove_job(job);
           break;
         }
-        job->stopped = WIFSTOPPED(status);
+        bool stopped = WIFSTOPPED(status);
+        if (stopped != job->stopped)
+        {
+          if (separate_line && !printed) write(2, "\n", 1);
+          show_job(job, stopped ? "Stopped" : "Running");
+          printed = true;
+        }
+        job->stopped = stopped;
       }
     }
+    return printed;
+  }
+
+  static bool service_children(bool separate_line = false, Job *foreground = nullptr)
+  {
+    if (!children_changed) return false;
+    children_changed = 0;
+    char bytes[64];
+    for (;;)
+    {
+      int n = read(child_pipe[0], bytes, sizeof(bytes));
+      if (n > 0 || n == -EINTR) continue;
+      break;
+    }
+    return refresh_jobs(separate_line, foreground);
+  }
+
+  int getcmd(char *buf, int nbuf)
+  {
+    write(2, "$ ", 2);
+    memset(buf, 0, nbuf);
+    int used = 0;
+    while (used + 1 < nbuf)
+    {
+      if (service_children(true))
+      {
+        write(2, "$ ", 2);
+        if (used) write(2, buf, used);
+      }
+      pollfd events[] = {{0, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
+      int ready = poll(events, 2, -1);
+      if (ready == -EINTR) continue;
+      if (ready < 0) return -1;
+      if (events[1].revents) continue;
+      if (!(events[0].revents & (POLLIN | POLLHUP | POLLERR))) continue;
+      char byte;
+      int n = read(0, &byte, 1);
+      if (n == -EINTR || n == -EAGAIN) continue;
+      if (n <= 0) return used ? 0 : -1;
+      buf[used++] = byte;
+      if (byte == '\n' || byte == '\r') break;
+    }
+    return 0;
   }
 
   static void foreground_job(Job *job, bool resume, const termios *before = nullptr,
@@ -342,7 +430,19 @@ extern "C"
     }
     job->stopped = false;
     int status = 0;
-    int pid = waitpid(job->pid, &status, WUNTRACED);
+    int pid;
+    for (;;)
+    {
+      service_children(false, job);
+      pid = waitpid(job->pid, &status, WNOHANG | WUNTRACED);
+      if (pid > 0 || pid == -1) break;
+      if (pid == -EINTR) continue;
+      // Drain notifications before checking status. A change after that check
+      // leaves a byte for poll, closing the status-check-to-sleep window.
+      pollfd event{child_pipe[0], POLLIN, 0};
+      int ready = poll(&event, 1, -1);
+      if (ready < 0 && ready != -EINTR) break;
+    }
     if (pid > 0 && WIFSTOPPED(status))
     {
       job->stopped = true;
@@ -481,11 +581,12 @@ extern "C"
   {
     if (terminal_fd < 0)
     {
-      if (fork1() == 0)
+      int child = fork1();
+      if (child == 0)
       {
         runcmd(parsecmd(text));
       }
-      wait(nullptr);
+      while (waitpid(child, nullptr, 0) == -EINTR) service_children();
       return;
     }
     int length = strlen(text);
@@ -548,6 +649,7 @@ extern "C"
     }
     if (child == 0)
     {
+      reset_child_notifications();
       close(ready[0]);
       close(gate[1]);
       if (setpgid(0, 0) < 0)
@@ -574,7 +676,7 @@ extern "C"
     close(ready[1]);
     close(gate[0]);
     char byte;
-    bool ready_ok = read(ready[0], &byte, 1) == 1 && setpgid(child, child) == 0;
+    bool ready_ok = read_retry(ready[0], &byte, 1) == 1 && setpgid(child, child) == 0;
     job->id = next_job++;
     job->pid = child;
     job->next = jobs_head;
@@ -584,7 +686,7 @@ extern "C"
     bool saved_modes = tcgetattr(terminal_fd, &launch_modes) == 0;
     if (ready_ok && (background || tcsetpgrp(terminal_fd, child) == 0))
     {
-      write(gate[1], "g", 1);
+      while (write(gate[1], "g", 1) == -EINTR) {}
     }
     close(ready[0]);
     close(gate[1]);
@@ -611,6 +713,7 @@ extern "C"
       }
     }
     initialize_terminal();
+    initialize_child_notifications();
     while (getcmd(buf, sizeof(buf)) >= 0)
     {
       char *cmd = buf;
@@ -640,6 +743,7 @@ extern "C"
         launch_command(cmd);
       }
     }
+    sigdisposition(SIGCHLD, SIGNAL_DEFAULT);
     for (Job *job = jobs_head; job; job = job->next)
     {
       sigsend(-job->pid, SIGKILL);
@@ -665,6 +769,7 @@ extern "C"
     {
       panic("fork");
     }
+    if (pid == 0) reset_child_notifications();
     return pid;
   }
 

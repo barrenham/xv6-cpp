@@ -6,6 +6,9 @@ module;
 #include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
+#ifdef LAB_NET
+import xv.net;
+#endif
 
 import xv.print;
 
@@ -117,7 +120,7 @@ void ProcessManager::reap(Process *p)
   p->interruptible_ = false;
   p->xstate = 0;
   p->exit_signal_ = p->stop_signal_ = 0;
-  p->stop_event_ = p->continued_event_ = false;
+  p->stop_event_ = p->continued_event_ = p->continue_notification_ = false;
   p->parent = nullptr;
   store_.release(p);
 }
@@ -177,6 +180,13 @@ int ProcessManager::fork_process(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
+#ifdef LAB_NET
+  if (!xv::net::inherit(p->pid, np->pid))
+  {
+    reap(np);
+    return -1;
+  }
+#endif
   np->descriptors_.inherit_from(p->descriptors_);
   np->directory_.inherit_from(p->directory_);
 
@@ -207,8 +217,8 @@ void ProcessManager::reparent(Process *p)
   {
   public:
 
-    Adopt(Process *parent, Process *initial, ProcessGroups &groups)
-        : parent_(parent), initial_(initial), groups_(groups)
+    Adopt(Process *parent, Process *initial, ProcessGroups &groups, ProcessManager &manager)
+        : parent_(parent), initial_(initial), groups_(groups), manager_(manager)
     {
     }
 
@@ -218,6 +228,7 @@ void ProcessManager::reparent(Process *p)
       {
         groups_.reparent(child.membership_, initial_->pid);
         child.parent = initial_;
+        if (child.state == ProcessState::Zombie) manager_.post_child_signal(child);
         adopted = true;
       }
     }
@@ -229,9 +240,10 @@ void ProcessManager::reparent(Process *p)
     Process *parent_;
     Process *initial_;
     ProcessGroups &groups_;
+    ProcessManager &manager_;
   };
 
-  Adopt adopt(p, initial_, groups_);
+  Adopt adopt(p, initial_, groups_, *this);
   store_.visit(adopt);
   if (adopt.adopted)
   {
@@ -251,6 +263,9 @@ void ProcessManager::exit_process(int status, int signal)
     xv::print::panic("init exiting");
   }
 
+#ifdef LAB_NET
+  xv::net::release_owner(p->pid);
+#endif
   groups_.exit_terminal(p->membership_);
   waits_.cancel(*p);
   p->descriptors_.close_all();
@@ -272,6 +287,7 @@ void ProcessManager::exit_process(int status, int signal)
   p->xstate = status;
   p->exit_signal_ = signal;
   p->state = ProcessState::Zombie;
+  post_child_signal(*p);
 
   wait_lock_.release();
 

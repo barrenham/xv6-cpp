@@ -69,7 +69,7 @@ void cfmakeraw(struct termios *);
 #ifdef LAB_NET
 int bind(uint16);
 int unbind(uint16);
-int send(uint16, uint32, uint16, char *, uint32);
+int send(uint16, uint32, uint16, const char *, uint32);
 int recv(uint16, uint32 *, uint16 *, char *, uint32);
 #endif
 #ifdef LAB_PGTBL

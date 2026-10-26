@@ -19,6 +19,7 @@ set(programs
   apps/mkdir/mkdir.cpp
   apps/rm/rm.cpp
   apps/pty/pty.cpp
+  tests/nettest.cpp
   tests/ptytest.cpp
   apps/sh/sh.cpp
   apps/sync/sync.cpp
@@ -52,4 +53,4 @@ set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
 # Poll contracts reuse the PTY test executable and installed inode.
 target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.cpp)
 
-target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/signal_registers.S)
+target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/child_signals.cpp tests/signal_registers.S)

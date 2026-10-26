@@ -7,6 +7,7 @@
 #define SIGSEGV 11
 #define SIGUSR2 12
 #define SIGTERM 15
+#define SIGCHLD 17
 #define SIGCONT 18
 #define SIGSTOP 19
 #define SIGTSTP 20

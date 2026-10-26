@@ -15,6 +15,7 @@ void ProcessManager::wake_for_signal(Process &process)
   {
     process.stop_event_ = false;
     process.continued_event_ = !fatal;
+    process.continue_notification_ = process.continue_notification_ || !fatal;
     __atomic_store_n(&child_notifications_, true, __ATOMIC_RELEASE);
     scheduler_.make_runnable(process);
     return;
@@ -125,7 +126,7 @@ int ProcessManager::send_signal(int target, int signal)
   return 0;
 }
 
-void ProcessManager::wake_signal_waiters()
+void ProcessManager::wake_signal_waiters(bool notify_children)
 {
   class Wake final : public ProcessVisitor
   {
@@ -151,7 +152,7 @@ void ProcessManager::wake_signal_waiters()
 
   // No group lock and no borrowed owner pointer survives to this stable visit.
   store_.visit(wake);
-  notify_child_events();
+  if (notify_children) notify_child_events();
 }
 
 void ProcessManager::post_terminal_interrupt(void *terminal, int signal)
@@ -187,6 +188,7 @@ void ProcessManager::post_terminal_interrupt(void *terminal, int signal)
 
 void ProcessManager::service_signal_notifications()
 {
+  notify_child_events();
   if (__atomic_exchange_n(&signal_notifications_, false, __ATOMIC_ACQ_REL))
   {
     wake_signal_waiters();
@@ -200,14 +202,43 @@ int ProcessManager::set_signal_disposition(int signal, int action)
   return process->pending_signals_.disposition(signal, action);
 }
 
+void ProcessManager::post_child_signal(Process &child)
+{
+  // wait_lock_ pins the parent across posting/reparent/reap. The child lock may
+  // be held: do not acquire the parent lock or scan the registry here.
+  if (child.parent)
+  {
+    child.parent->pending_signals_.post(SIGCHLD);
+    __atomic_store_n(&signal_notifications_, true, __ATOMIC_RELEASE);
+  }
+}
+
 void ProcessManager::notify_child_events()
 {
-  if (!__atomic_exchange_n(&child_notifications_, false, __ATOMIC_ACQ_REL))
+  while (__atomic_exchange_n(&child_notifications_, false, __ATOMIC_ACQ_REL))
   {
-    return;
+    {
+      xv::sync::ScopedLock family(wait_lock_);
+      class Continued final : public ProcessVisitor
+      {
+      public:
+        explicit Continued(ProcessManager &manager) : manager_(manager) {}
+        void visit(Process &child) override
+        {
+          if (!child.continue_notification_) return;
+          child.continue_notification_ = false;
+          manager_.post_child_signal(child);
+        }
+      private:
+        ProcessManager &manager_;
+      } continued(*this);
+      // family pins parent pointers; callbacks post atomically without taking a
+      // second process lock. waitpid may already have consumed continued_event_.
+      store_.visit(continued);
+      wakeup(&child_events_);
+    }
+    wake_signal_waiters(false);
   }
-  xv::sync::ScopedLock family(wait_lock_);
-  wakeup(&child_events_);
 }
 
 void ProcessManager::deliver_signals()
@@ -227,6 +258,9 @@ void ProcessManager::deliver_signals()
         exit_process(SIGNAL_EXIT_STATUS(SIGSEGV), SIGSEGV);
       return;
     }
+    if (!(process->pending_signals_.handled() & (1U << SIGCHLD)) &&
+        !(process->pending_signals_.mask() & (1U << SIGCHLD)))
+      process->pending_signals_.consume(SIGCHLD);
     if (!(process->pending_signals_.handled() & (1U << SIGCONT)))
       process->pending_signals_.consume_continue();
     if (!process->stop_requested())
@@ -250,6 +284,7 @@ void ProcessManager::deliver_signals()
     process->stop_event_ = true;
     process->continued_event_ = false;
     process->state = ProcessState::Stopped;
+    post_child_signal(*process);
     wait_lock_.release();
     scheduler_.suspend();
     process->lock.release();

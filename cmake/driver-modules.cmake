@@ -6,6 +6,7 @@ function(xv_add_driver_interfaces target)
     FILES
       "${module_root}/drivers.cppm"
       "${module_root}/device.cppm"
+      "${module_root}/net/ethernet.cppm"
       "${module_root}/serial/serial_port.cppm"
       "${module_root}/tty/core/terminal_output.cppm"
       "${module_root}/console/character_device.cppm"

@@ -143,6 +143,11 @@ void *allocate_dma_page()
   return xv::memory::allocator().allocate();
 }
 
+void free_dma_page(void *page)
+{
+  xv::memory::allocator().deallocate(page);
+}
+
 void zero_page(void *page)
 {
   xv::runtime::fill(page, 0, xv::memory::PageSize);

@@ -158,6 +158,26 @@ void masks_and_handlers()
   check(state.take_stop() == SIGSTOP && state.caught_signal() == SIGTSTP &&
         (state.pending() & (1U << SIGTTIN)), "default stop preserves blocked/caught stops");
 }
+void child_notifications()
+{
+  PendingSignals state;
+  check(state.post(SIGCHLD) && !state.interrupting() &&
+        !state.terminating_signal(), "SIGCHLD defaults to ignoring, not termination");
+  state.set_action(SIGCHLD, {0x1000, 0, 0, 0x2000});
+  check(state.caught_signal() == SIGCHLD, "blocked/default pending can be caught");
+  state.set_mask(1U << SIGCHLD);
+  state.post(SIGCHLD);
+  state.post(SIGCHLD);
+  check(!state.interrupting() && state.pending() == (1U << SIGCHLD),
+        "blocked child notifications coalesce");
+  state.set_action(SIGCHLD, {0x3000, 0, 0, 0x2000});
+  check(state.pending() == (1U << SIGCHLD), "replacing handler preserves pending");
+  state.disposition(SIGCHLD, SIGNAL_DEFAULT);
+  check(!state.pending(), "restoring default ignore discards pending SIGCHLD");
+  state.disposition(SIGCHLD, SIGNAL_IGNORE);
+  state.post(SIGCHLD);
+  check(!state.pending(), "explicit ignore drops SIGCHLD");
+}
 } // namespace xv::process::signal_test
 
 extern "C" int run_signal_contracts()
@@ -166,6 +186,7 @@ extern "C" int run_signal_contracts()
   xv::process::signal_test::dispositions();
   xv::process::signal_test::stop_continue();
   xv::process::signal_test::masks_and_handlers();
+  xv::process::signal_test::child_notifications();
   std::puts("pending signal contracts: passed");
   return 0;
 }

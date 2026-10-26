@@ -263,12 +263,14 @@ static void leaderless_group()
 }
 
 void signal_handler_checks();
+void child_signal_checks();
 int signal_exec_check();
 
 extern "C" int main(int argc, char **argv)
 {
   if (argc == 2 && strcmp(argv[1], "exec-check") == 0) return signal_exec_check();
   signal_handler_checks();
+  child_signal_checks();
   check(sigsend(getpid(), 3) == -1 && sigsend(getpid(), 32) == -1 &&
             sigsend(getpid(), -1) == -1 && sigsend(-1, 0) == -1 &&
             sigsend(-0x7fffffff - 1, 0) == -1 && sigsend(0x7fffffff, SIGINT) == -1,

@@ -9,5 +9,6 @@ target_sources(kernel PRIVATE
   syspoll.cpp
   sysfile.cpp
   sysproc.cpp
+  sysnet.cpp
   sysvm.cpp
 )

@@ -4,6 +4,7 @@ export import :device;
 export import :serial;
 export import :character;
 export import :block;
+export import :network;
 export import :interrupt;
 export import :router;
 export import :ldisc;

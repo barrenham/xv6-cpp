@@ -2,10 +2,12 @@ include("${PROJECT_SOURCE_DIR}/cmake/driver-modules.cmake")
 xv_add_driver_modules(kernel)
 
 target_sources(kernel PRIVATE
-  FILE_SET pty_internal TYPE CXX_MODULES FILES tty/pty/pty.cppm
+  FILE_SET pty_internal TYPE CXX_MODULES FILES tty/pty/pty.cppm net/e1000/e1000.cppm pci/qemu_pci.cppm
 )
 
 target_sources(kernel PRIVATE
+  net/e1000/e1000.cpp
+  pci/qemu_pci.cpp
   serial/uart16550.cpp
   tty/pty/pty.cpp
   tty/core/tty.cpp

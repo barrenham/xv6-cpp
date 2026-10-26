@@ -124,6 +124,7 @@ private:
   int stop_signal_ = 0;
   bool stop_event_ = false;
   bool continued_event_ = false;
+  bool continue_notification_ = false; // independent of waitpid event consumption
   int pid = 0;
   Process *parent = nullptr;           // protected by the manager's family lock
   ProcessMembership membership_{this}; // protected by ProcessGroups

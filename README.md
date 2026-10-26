@@ -161,6 +161,7 @@ GDB 使用支持 RISC-V 的版本，加载 `build/dev/kernel.elf`，执行 `targ
 交互 shell 已接入 [控制终端、前台进程组与 Ctrl-C](kernel/drivers/tty/docs/foreground.md)，命令与管道退出后收回终端；Ctrl-Z、jobs、fg/bg 已实现。
 
 停止/继续、waitpid 事件和 shell 作业控制详见 [作业控制说明](kernel/process/signals/job-control.md)。
+子状态变化自动发送 SIGCHLD，shell 等待输入或前台作业时也能及时回收后台进程，见 [SIGCHLD 说明](kernel/process/signals/sigchld.md)。
 
 匿名 PTY 已接入现有 TTY、termios 与作业控制。运行 `pty` 启动内层 shell，
 Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API、限制和验证
@@ -173,3 +174,11 @@ Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API
 直接返回 `-EAGAIN`。运行 `ptytest nonblock` 验证，详见 [非阻塞 I/O](kernel/fs/nonblocking.md)。
 
 默认文件系统镜像为 4000 个 1024 字节块（约 3.9 MiB），为用户程序和运行时文件留出空间。
+
+独立的函数级开发说明与 clangd 原生 Doxygen 悬浮文档见 [开发文档入口](docs/README.md)。
+
+## E1000 与 UDP 网络
+
+`qemu` 目标默认启用 Intel 82540EM 网卡。内核已接入 PCI、PLIC 中断、DMA 收发、ARP 应答及 IPv4/UDP，并提供 `bind/unbind/send/recv`。端口支持 fork 继承和退出回收，阻塞接收支持 EINTR/SA_RESTART。
+
+构建后执行 `ctest --test-dir build/dev --output-on-failure -R '^network_'`，运行原生协议测试及单核/三核真实 UDP 往返。手动使用 `nettest` 的回显服务、端口转发和当前功能范围见 [网络开发说明](docs/network.md)。

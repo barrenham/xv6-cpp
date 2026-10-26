@@ -276,7 +276,16 @@ void xv_clangd_module_probe()
     notify('textDocument/didClose', {'textDocument': {'uri': uri}})
     uri = memory_uri
     opened = []
-    for relative in ['tests/allocator_contract.cpp', 'tests/allocator_test_platform.cpp',
+    for relative in ['kernel/drivers/net/ethernet.cppm',
+                     'kernel/drivers/net/e1000/e1000.cppm',
+                     'kernel/drivers/net/e1000/e1000.cpp',
+                     'kernel/drivers/pci/qemu_pci.cpp',
+                     'kernel/net/net.cppm', 'kernel/net/stack.cpp',
+                     'kernel/net/platform/kernel_platform.cpp',
+                     'kernel/syscall/sysnet.cpp', 'user/tests/nettest.cpp',
+                     'tests/network_contract.cpp', 'tests/network_test_device.cpp',
+                     'tests/network_test_platform.cpp',
+                     'tests/allocator_contract.cpp', 'tests/allocator_test_platform.cpp',
                      'kernel/memory/address/physical_address.cppm', 'kernel/memory/allocator/allocator_service.cpp',
                      'tests/sync_contract.cpp', 'tests/sync_test_platform.cpp',
                      'kernel/sync/lock.cppm', 'kernel/sync/spin/spinlock.cppm',
@@ -315,6 +324,7 @@ void xv_clangd_module_probe()
                      'kernel/process/signals/user_signals.cpp',
                      'user/runtime/signals.cpp',
                      'user/tests/signal_handlers.cpp',
+                     'user/tests/child_signals.cpp',
                      'kernel/process/signals/signal_delivery.cpp',
                      'tests/signal_checks.cpp',
                      'user/tests/signaltest.cpp',

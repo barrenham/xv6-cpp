@@ -12,3 +12,5 @@ add_subdirectory(fs)
 add_subdirectory(sync)
 add_subdirectory(drivers)
 add_subdirectory(support)
+
+add_subdirectory(net)

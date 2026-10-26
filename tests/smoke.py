@@ -20,6 +20,7 @@ parser.add_argument('--process-scaling', action='store_true')
 parser.add_argument('--tty', action='store_true')
 parser.add_argument('--process-groups', action='store_true')
 parser.add_argument('--signals', action='store_true')
+parser.add_argument('--sigchld', action='store_true')
 parser.add_argument('--foreground', action='store_true')
 parser.add_argument('--jobs', action='store_true')
 parser.add_argument('--pty', action='store_true')
@@ -44,7 +45,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -287,7 +288,8 @@ def jobs_checks():
     expect('Running jobtest exit\n')
     expect('$ ')
     number = int(re.search(rb'\[(\d+)\] Running jobtest exit\n', transcript[start:])[1])
-    poll(number, 'Done', 'jobtest exit')
+    expect(f'[{number}] Done jobtest exit\n')
+    expect('$ ')
     start = begin('jobs')
     expect('$ ')
     if re.search(rb'\[\d+\] (Stopped|Running) ', transcript[start:]):
@@ -297,6 +299,89 @@ def jobs_checks():
     expect('$ ')
     if transcript.count(b'init: starting sh') != 1:
         raise RuntimeError('job control restarted the shell')
+
+def sigchld_checks():
+    global cursor
+
+    def command(text):
+        global cursor
+        cursor = len(transcript)
+        process.stdin.write((text + '\n').encode())
+        process.stdin.flush()
+        return cursor
+
+    command('jobtest descriptors')
+    expect('jobtest: descriptors clean\n')
+    expect('$ ')
+    command('jobtest delay 6 &')
+    expect('Running jobtest delay 6\n')
+    expect('$ ')
+    process.stdin.write(b'echo CHLD_')
+    process.stdin.flush()
+    expect('echo CHLD_')
+    # No newline or additional command is sent before observing Done.
+    expect('Done jobtest delay 6\n', timeout=4)
+    expect('$ ')
+    process.stdin.write(b'INPUT\n')
+    process.stdin.flush()
+    expect('CHLD_INPUT\n')
+    expect('$ ')
+
+    # Noncanonical input has already reached the shell's partial line buffer.
+    command('stty raw')
+    expect('$ ')
+    command('jobtest delay 6 &')
+    expect('Running jobtest delay 6\n')
+    expect('$ ')
+    process.stdin.write(b'echo RAW_')
+    process.stdin.flush()
+    expect('Done jobtest delay 6\n', timeout=4)
+    expect('$ echo RAW_')
+    process.stdin.write(b'KEPT\n')
+    process.stdin.flush()
+    expect('RAW_KEPT\n')
+    expect('$ ')
+    command('stty sane')
+    expect('$ ')
+
+    command('jobtest delay 6 &')
+    expect('Running jobtest delay 6\n')
+    expect('$ ')
+    start = command('fgtest spin')
+    expect('fgtest: spin ready pid=')
+    expect('\n')
+    expect('Done jobtest delay 6\n', timeout=4)
+    if b'$ ' in transcript[start:]:
+        raise RuntimeError('background SIGCHLD prematurely ended foreground wait')
+    process.stdin.write(b'\x03')
+    process.stdin.flush()
+    expect('$ ')
+
+    # Queue commands without waiting between them to cover launch handshakes,
+    # immediate exits and notifications that precede the next poll.
+    start = command('jobtest exit &\n' * 6 + 'echo CHLD_BURST_END')
+    expect('echo CHLD_BURST_END\n')
+    expect('CHLD_BURST_END\n')
+    expect('$ ')
+    for _ in range(16):
+        done = re.findall(rb'\[(\d+)\] Done jobtest exit\n', transcript[start:])
+        if len(set(done)) == 6:
+            break
+        expect('Done jobtest exit\n', timeout=4)
+    done = re.findall(rb'\[(\d+)\] Done jobtest exit\n', transcript[start:])
+    if len(set(done)) != 6:
+        raise RuntimeError('background exit burst was not fully retired')
+    start = command('jobs')
+    expect('jobs\n')
+    expect('$ ')
+    if re.search(rb'\[\d+\] (Stopped|Running) ', transcript[start:cursor]):
+        raise RuntimeError('background jobs remain after Done')
+    command('jobtest descriptors')
+    expect('jobtest: descriptors clean\n')
+    expect('$ ')
+    if transcript.count(b'init: starting sh') != 1:
+        raise RuntimeError('SIGCHLD restarted the shell')
+
 
 def pty_checks():
     def command(text):
@@ -332,15 +417,12 @@ def pty_checks():
     command('bg')
     expect('Running cat\n', timeout=5)
     expect('$ ', timeout=5)
-    for attempt in range(20):
-        start = len(transcript)
-        command('jobs')
-        expect('$ ', timeout=5)
-        if b'Stopped cat\n' in transcript[start:]:
-            break
-        time.sleep(0.02)
-    else:
-        raise RuntimeError('PTY background read did not stop')
+    # SIGTTIN now reports asynchronously, without a jobs polling command.
+    expect('Stopped cat\n', timeout=5)
+    expect('$ ', timeout=5)
+    command('jobs')
+    expect('Stopped cat\n', timeout=5)
+    expect('$ ', timeout=5)
     command('fg')
     expect('Foreground cat\n', timeout=5)
     process.stdin.write(b'PTY_RESUME\n')
@@ -408,6 +490,8 @@ def nonblock_checks():
 try:
     expect('physical allocator: ' + args.allocator + '\n')
     expect('$ ')
+    if args.sigchld:
+        sigchld_checks()
     if args.nonblock:
         nonblock_checks()
     if args.pty:
@@ -469,7 +553,7 @@ try:
         checks = [('signaltest', 'signaltest: all tests succeeded'),
                   ('ttytest', 'ttytest: all tests succeeded'),
                   ('echo SIGNAL_SHELL_OK', 'SIGNAL_SHELL_OK\n')]
-    if args.foreground or args.jobs or args.pty or args.nonblock:
+    if args.foreground or args.jobs or args.pty or args.nonblock or args.sigchld:
         checks = []
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]

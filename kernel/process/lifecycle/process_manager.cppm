@@ -47,7 +47,8 @@ public:
 private:
 
   void wake_for_signal(Process &process);
-  void wake_signal_waiters();
+  void wake_signal_waiters(bool notify_children = true);
+  void post_child_signal(Process &child); // caller holds wait_lock_, no parent lock
   void notify_child_events();
   int wait_child(int pid, unsigned long address, int options, bool encoded);
   int child_events_ = 0;

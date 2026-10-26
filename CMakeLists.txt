@@ -17,7 +17,7 @@ find_program(XV_QEMU qemu-system-riscv64 HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_library(xv_options INTERFACE)
 target_include_directories(xv_options INTERFACE "${PROJECT_SOURCE_DIR}")
-target_compile_definitions(xv_options INTERFACE LAB_PGTBL SOL_PGTBL)
+target_compile_definitions(xv_options INTERFACE LAB_PGTBL SOL_PGTBL LAB_NET)
 target_compile_options(xv_options INTERFACE
   -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
   -ffreestanding -fno-builtin -fno-stack-protector -fno-pic -fno-pie
@@ -36,6 +36,8 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs.img"
   VERBATIM)
 add_custom_target(image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs.img")
 set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${PROJECT_BINARY_DIR}/fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
+set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
+list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
@@ -75,6 +77,12 @@ foreach(ram 64 257 2048 2049)
 endforeach()
 
 foreach(cpus 1 3)
+  add_test(NAME sigchld_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --sigchld --cpus ${cpus})
+  set_tests_properties(sigchld_${cpus}cpu PROPERTIES TIMEOUT 30 LABELS process)
   add_test(NAME nonblock_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
@@ -130,3 +138,13 @@ foreach(cpus 1 3)
     --process-scaling --cpus ${cpus})
   set_tests_properties(process_scaling_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
 endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME network_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+  set_tests_properties(network_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
+endforeach()
+
+add_test(NAME network_contract COMMAND "${PROJECT_BINARY_DIR}/network_contract")
+set_tests_properties(network_contract PROPERTIES TIMEOUT 10 LABELS network)

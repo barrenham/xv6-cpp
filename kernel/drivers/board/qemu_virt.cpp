@@ -16,6 +16,7 @@ import :n_tty;
 import :tty;
 import :plic;
 import :virtio;
+import :e1000;
 
 namespace xv::drivers
 {
@@ -26,8 +27,9 @@ constinit NttyDiscipline discipline;
 constinit Tty terminal(uart, discipline);
 constinit Plic plic(PLIC);
 constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
-constinit InterruptDevice *sources[] = {&uart, &disk};
-constinit InterruptRouter router(plic, sources, 2);
+constinit E1000 ethernet(0x40000000UL, E1000_IRQ);
+constinit InterruptDevice *sources[] = {&uart, &disk, &ethernet};
+constinit InterruptRouter router(plic, sources, 3);
 
 } // namespace
 
@@ -57,6 +59,17 @@ void handle_external_interrupt(int hart)
   {
     xv::print::printk("unexpected interrupt irq=%d\n", unknown);
   }
+}
+
+void initialize_network(EthernetReceiver &receiver)
+{
+  ethernet.attach(receiver);
+  ethernet.initialize();
+}
+
+EthernetDevice &network_device()
+{
+  return ethernet;
 }
 
 CharacterDevice &console()

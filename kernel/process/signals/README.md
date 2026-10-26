@@ -35,8 +35,8 @@ sigprocmask(SIG_SETMASK, &old, nullptr);
 | `sigdisposition(signal, action)` | 保留旧默认/忽略接口，返回旧的默认/忽略分类；会替换已安装的处理函数 |
 
 `sigset_t` 为 32 位，bit n 对应信号 n。支持 SIGHUP(1)、SIGINT(2)、SIGKILL(9)、
-SIGUSR1(10)、SIGSEGV(11)、SIGUSR2(12)、SIGTERM(15)、SIGCONT(18)、SIGSTOP(19)、
-SIGTSTP(20)、SIGTTIN(21)。未知信号、未知集合位和未知 flags 返回 -1。
+SIGUSR1(10)、SIGSEGV(11)、SIGUSR2(12)、SIGTERM(15)、SIGCHLD(17)、SIGCONT(18)、SIGSTOP(19)、
+SIGTSTP(20)、SIGTTIN(21)。SIGCHLD 默认忽略，子状态通知与 shell 回收见 [SIGCHLD 说明](sigchld.md)。未知信号、未知集合位和未知 flags 返回 -1。
 SIGKILL/SIGSTOP 的处置不可更改；屏蔽字自动移除这两位。
 
 处理函数签名是 `void handler(int signal)`。`SIG_DFL` 为默认动作，`SIG_IGN` 为忽略。
@@ -118,6 +118,6 @@ ctest --test-dir build/dev --output-on-failure -R '^(signal_contract|signals_[13
 
 目前没有实时信号、SA_SIGINFO、sigaltstack/SA_ONSTACK、信号队列载荷、用户凭据
 权限检查或浮点/向量上下文支持。SIGSEGV 可以显式发送，也用于信号帧建立失败；
-普通硬件用户异常仍沿用原有 -1 退出路径。SIGCHLD 自动通知、SIGWINCH、SIGTTOU
+普通硬件用户异常仍沿用原有 -1 退出路径。SIGWINCH、SIGTTOU
 及孤儿进程组规则仍未接入。处理函数内可调用原始系统调用，但 malloc/printf 等
 用户运行时函数不保证异步信号安全；推荐设置 volatile sig_atomic_t 标志，或用 write。

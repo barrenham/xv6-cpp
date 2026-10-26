@@ -9,7 +9,7 @@ inline constexpr bool supported_signal(int signal)
 {
   return signal == SIGHUP || signal == SIGINT || signal == SIGKILL || signal == SIGTERM ||
          signal == SIGCONT || signal == SIGSTOP || signal == SIGTSTP ||
-         signal == SIGTTIN || signal == SIGUSR1 || signal == SIGUSR2 || signal == SIGSEGV;
+         signal == SIGCHLD || signal == SIGTTIN || signal == SIGUSR1 || signal == SIGUSR2 || signal == SIGSEGV;
 }
 
 // Standard signals coalesce. Atomic posting allows group delivery under the
@@ -21,7 +21,7 @@ public:
   static constexpr unsigned SupportedMask =
       (1U << SIGHUP) | (1U << SIGINT) | (1U << SIGKILL) | (1U << SIGTERM) |
       (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |
-      (1U << SIGUSR1) | (1U << SIGUSR2) | (1U << SIGSEGV);
+      (1U << SIGUSR1) | (1U << SIGUSR2) | (1U << SIGSEGV) | (1U << SIGCHLD);
   static constexpr unsigned Unmaskable = (1U << SIGKILL) | (1U << SIGSTOP);
   struct Action
   {
@@ -82,6 +82,7 @@ public:
     {
       auto next =
           action == SIGNAL_IGNORE ? (old | (bit << 32)) & ~bit : old & ~(bit << 32);
+      if (signal == SIGCHLD && action == SIGNAL_DEFAULT) next &= ~bit;
       if (__atomic_compare_exchange_n(&state_, &old, next, false, __ATOMIC_ACQ_REL,
                                       __ATOMIC_ACQUIRE))
       {
@@ -135,7 +136,14 @@ public:
   }
   inline void set_action(int signal, Action value)
   {
-    disposition(signal, value.handler == SIGNAL_IGNORE ? SIGNAL_IGNORE : SIGNAL_DEFAULT);
+    if (value.handler <= SIGNAL_IGNORE)
+    {
+      disposition(signal, value.handler == SIGNAL_IGNORE ? SIGNAL_IGNORE : SIGNAL_DEFAULT);
+    }
+    else
+    {
+      __atomic_fetch_and(&state_, ~(1UL << (signal + 32)), __ATOMIC_ACQ_REL);
+    }
     actions_[signal] = value;
     if (value.handler > SIGNAL_IGNORE)
       __atomic_fetch_or(&handled_, 1U << signal, __ATOMIC_RELEASE);

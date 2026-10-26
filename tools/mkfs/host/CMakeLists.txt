@@ -194,3 +194,22 @@ xv_add_driver_interfaces(process_groups_contract)
 xv_add_fs_interfaces(process_groups_contract)
 xv_add_process_interfaces(process_groups_contract)
 xv_add_process_group_internals(process_groups_contract)
+
+add_executable(network_contract
+  "${XV_ROOT}/tests/network_contract.cpp"
+  "${XV_ROOT}/tests/network_test_device.cpp"
+  "${XV_ROOT}/tests/network_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/kernel/net/stack.cpp")
+target_sources(network_contract PRIVATE FILE_SET net_modules TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/kernel/net" FILES
+  "${XV_ROOT}/kernel/net/net.cppm" "${XV_ROOT}/kernel/net/platform/platform.cppm")
+target_include_directories(network_contract PRIVATE "${XV_ROOT}")
+target_compile_features(network_contract PRIVATE cxx_std_20)
+target_compile_options(network_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(network_contract PRIVATE Threads::Threads)
+set_target_properties(network_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+xv_add_sync_modules(network_contract)
+xv_add_driver_interfaces(network_contract)

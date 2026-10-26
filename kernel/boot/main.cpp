@@ -7,6 +7,7 @@ import xv.fs;
 import xv.process;
 import xv.drivers;
 import xv.memory;
+import xv.net;
 
 namespace xv::boot
 {
@@ -37,6 +38,8 @@ void initialize_bootstrap_hart()
   xv::fs::filesystem().initialize_inodes();
   xv::fs::files().initialize();
   xv::drivers::block_device().initialize();
+  xv::net::initialize();
+  xv::print::printk("e1000: %s\n", xv::drivers::network_device().online() ? "ready (10.0.2.15)" : "not present");
   xv::process::create_initial_process();
 }
 

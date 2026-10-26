@@ -26,6 +26,7 @@ bool panicking();
 bool panicked();
 void io_barrier();
 void *allocate_dma_page();
+void free_dma_page(void *page);
 void zero_page(void *page);
 [[noreturn]] void fail(const char *message);
 } // namespace xv::drivers::detail

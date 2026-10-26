@@ -75,8 +75,9 @@ WCONTINUED，状态宏位于 `kernel/process/wait/wait.h`：
 作业停止时保存作业 termios 并恢复 shell 模式；fg 先交还终端、恢复作业模式，
 再发送 SIGCONT。信号终止时也恢复 shell 模式，普通成功退出仍保留 stty 改动。
 
-后台完成与状态更新在下一次命令处理或 jobs 时通过非阻塞 waitpid 刷新，
-尚不实现 SIGCHLD 异步提示。只有顶层作业由交互 shell 跟踪；嵌套语法内部的
+后台完成与状态更新通过 SIGCHLD、非阻塞通知管道和 poll 自动触发，shell 在
+等待输入或前台作业时也能调用非阻塞 waitpid 回收后台进程，见 [SIGCHLD 说明](sigchld.md)。
+只有顶层作业由交互 shell 跟踪；嵌套语法内部的
 后台分支沿用旧执行方式。退出 shell 时向记录中的作业组发送 SIGKILL，防止
 遗留无法操作的停止作业。
 

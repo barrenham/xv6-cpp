@@ -94,7 +94,7 @@ void dispatch()
     p->begin_system_call();
     auto result = static_cast<unsigned long>(p->finish_system_call(num, argument, handler()));
     bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
-                       num == SYS_waitpid || num == SYS_pause || num == SYS_sigsuspend;
+                       num == SYS_waitpid || num == SYS_recv || num == SYS_pause || num == SYS_sigsuspend;
     if (result == ~0UL && restartable && p->stop_requested())
     {
       // Retry an interrupted operation after continuation. Partial transfers
