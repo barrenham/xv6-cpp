@@ -276,7 +276,14 @@ void xv_clangd_module_probe()
     notify('textDocument/didClose', {'textDocument': {'uri': uri}})
     uri = memory_uri
     opened = []
-    for relative in ['kernel/net/interface/interface.cppm', 'kernel/net/interface/interface.cpp',
+    for relative in ['kernel/net/link/port.cppm', 'kernel/net/bridge/bridge.cppm',
+                     'kernel/net/bridge/bridge.cpp', 'kernel/net/bridge/manager.cpp',
+                     'tests/bridge_contract.cpp', 'user/tests/bridgetest.cpp',
+                     'kernel/net/interface/configuration.cppm', 'kernel/net/interface/configuration.cpp',
+                     'kernel/net/core/control.cppm', 'kernel/net/core/control.cpp', 'kernel/net/control.h',
+                     'kernel/syscall/sysnetctl.cpp', 'tests/network_control.cpp',
+                     'user/apps/netctl/netctl.cpp', 'user/tests/netctltest.cpp',
+                     'kernel/net/interface/interface.cppm', 'kernel/net/interface/interface.cpp',
                      'kernel/net/interface/loopback.cppm', 'kernel/net/interface/loopback.cpp',
                      'kernel/net/interface/ethernet_interface.cppm', 'kernel/net/interface/ethernet_interface.cpp',
                      'kernel/net/interface/tunnel.cppm', 'kernel/net/interface/tunnel.cpp',

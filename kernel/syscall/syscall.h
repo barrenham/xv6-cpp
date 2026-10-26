@@ -70,3 +70,5 @@
 #define SYS_getsockname 63
 #define SYS_getpeername 64
 #define SYS_getsockopt 65
+
+#define SYS_netctl 66

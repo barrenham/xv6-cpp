@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--image', required=True)
     parser.add_argument('--cpus', type=int, default=3)
     parser.add_argument('--multi', action='store_true')
+    parser.add_argument('--management', action='store_true')
     args = parser.parse_args()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer:
         peer.bind(('127.0.0.1', 0))
@@ -52,7 +53,7 @@ def main():
                 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT, bufsize=0)
                 transcript = bytearray()
-                log = Path(args.image).parent/f'{"multinet" if args.multi else "network"}-{args.cpus}cpu.log'
+                log = Path(args.image).parent/f'{"netctl" if args.management else "multinet" if args.multi else "network"}-{args.cpus}cpu.log'
                 selector = selectors.DefaultSelector()
                 selector.register(process.stdout, selectors.EVENT_READ)
                 cursor = 0
@@ -69,22 +70,42 @@ def main():
                         for key, _ in selector.select(0.1):
                             data = os.read(key.fd, 65536)
                             transcript.extend(data)
-                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript:
+                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript or b'netctltest: FAIL:' in transcript:
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
                     expect('e1000: ready')
                     expect('$ ')
+                    if args.management:
+                        commands = [('netctl link', 'eth0 UP'), ('netctl addr', '10.0.2.15/24'),
+                                    ('netctl route', '0.0.0.0/0 dev eth0'),
+                                    ('netctl link set eth0 down', None), ('netctl link', 'eth0 DOWN'),
+                                    ('netctl link set eth0 up', None),
+                                    ('netctl addr add 10.0.2.16/24 dev eth0', None),
+                                    ('netctl addr', '10.0.2.16/24'),
+                                    ('netctl addr del 10.0.2.16/24 dev eth0', None),
+                                    ('netctl route add 192.0.2.0/24 dev eth0 via 10.0.2.2 metric 7', None),
+                                    ('netctl route', '192.0.2.0/24 dev eth0 via 10.0.2.2 metric 7'),
+                                    ('netctl route del 192.0.2.0/24 dev eth0 via 10.0.2.2 metric 7', None),
+                                    ('netctl neigh flush eth0', None), ('netctl neigh', None),
+                                    ('netctl stats', 'eth0 TX packets'),
+                                    ('netctl addr add 999.0.0.1/24 dev eth0', 'usage:'),
+                                    ('netctl route add 1.2.3.4/33 dev eth0', 'usage:')]
+                        for text, token in commands:
+                            process.stdin.write((text+'\n').encode()); process.stdin.flush()
+                            if token: expect(token)
+                            expect('$ ')
                     # Repeat in the same boot: exit must release all resources.
                     for _ in range(2):
-                        program = 'multinet' if args.multi else 'nettest'
+                        program = 'netctltest' if args.management else 'multinet' if args.multi else 'nettest'
                         process.stdin.write(f'{program} {peer.getsockname()[1]}\n'.encode())
                         process.stdin.flush()
-                        expect('multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
+                        expect('netctltest: ALL PASSED' if args.management else 'multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
                         expect('$ ')
-                    assert len(received) >= (160 if args.multi else 170), len(received)
-                    assert any(len(p) == 1472 for p in received)
-                    if not args.multi:
+                    assert len(received) >= (8 if args.management else 160 if args.multi else 170), len(received)
+                    if not args.management:
+                        assert any(len(p) == 1472 for p in received)
+                    if not args.multi and not args.management:
                         assert b'' in received
                     print(f'network: {args.cpus} CPUs, {len(received)} datagrams, all passed')
                 finally:

@@ -7,6 +7,7 @@
 - [`xv::net::EthernetLayer::receive_frame`](ethernet.cpp.md#fn-bf5e575793115a66)
 - [`xv::net::EthernetLayer::send`](ethernet.cpp.md#fn-468ec89c64e20c7c)
 - [`xv::net::EthernetLayer::send_ip`](ethernet.cpp.md#fn-2f3a15c921db001f)
+- [`xv::net::EthernetLayer::transmit_frame`](ethernet.cpp.md#fn-d7050414ee46b952)
 
 <a id="fn-d01f4eb93cf246f8"></a>
 
@@ -42,7 +43,18 @@
 
 ```doxygen
 @fn int xv::net::EthernetLayer::send(Packet &packet, const unsigned char *destination, unsigned type)
-@brief 填写指定目标、本设备 MAC 与 EtherType；检查帧长度和设备就绪，成功 DMA 发送后显式 release 页面。
+@brief 为本机生成的帧填写目的 MAC、本机源 MAC 和 EtherType，再委托原始帧发送；网桥过境帧必须直接用 transmit_frame，不能经过此源 MAC 填写步骤。
+```
+
+<a id="fn-d7050414ee46b952"></a>
+
+## `xv::net::EthernetLayer::transmit_frame`
+
+```doxygen
+@fn int xv::net::EthernetLayer::transmit_frame(Packet &packet)
+@brief 检查完整帧长度、设备就绪和载波后，原样交给设备；成功 release 页面，失败保留调用者所有权，不修改任何帧字节。
+@param[in,out] packet 完整以太帧，调用成功后页面被设备接管。
+@return 零或 -EMSGSIZE/-ENETUNREACH/-EAGAIN，失败保留页面。
 ```
 
 <a id="fn-bf5e575793115a66"></a>
@@ -51,5 +63,6 @@
 
 ```doxygen
 @fn void xv::net::EthernetLayer::receive_frame(void *page, unsigned length)
-@brief 接管驱动移交的 RX 页面，检查帧长、本设备 MAC/广播目标，再按 EtherType 分派；未消费页面由 RAII 释放。
+@brief 接管 RX 页面并验证基本帧长。
+@details 桥成员先按接入代次分派完整帧，否则按本机 MAC/广播过滤后进行 EtherType 分派，未消费页由 RAII 释放。
 ```

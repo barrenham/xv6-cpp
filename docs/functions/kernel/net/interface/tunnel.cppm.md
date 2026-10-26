@@ -41,15 +41,6 @@
 @brief 返回 true，向配置代码标识隧道能力。
 ```
 
-<a id="fn-a02d4d873452dbc8"></a>
-
-## `xv::net::IpInIpInterface::carrier`
-
-```doxygen
-@fn bool xv::net::IpInIpInterface::carrier() const
-@brief 仅在已绑定下层且下层管理状态和物理链路均可用时返回 true。
-```
-
 <a id="fn-c156bec475eea836"></a>
 
 ## `xv::net::NetworkSetup::configure`
@@ -57,9 +48,9 @@
 ```doxygen
 @fn bool xv::net::NetworkSetup::configure(InterfaceRegistry &interfaces, RoutingTable &routes, Ipv4Layer &ip, IpInIpProtocol &tunnels)
 @brief 启动期自定义配置契约：为已发现的物理接口设置地址/路由，或注册长期存活的虚拟接口和隧道。
-@details 返回 false 会终止启动；服务随后封存配置。
+@details 返回 false 会终止启动；服务随后封存启动期 API，运行期地址和路由交 NetworkManager 管理。
 @param interfaces 已含回环和发现的以太接口，可增加自有虚拟接口。
-@param routes 待封存的路由表，回环前缀路由已存在。
+@param routes 启动期可写的路由表，回环前缀路由已存在。
 @param ip 各接口共用的纯 IPv4 接收器和发送服务。
 @param tunnels 协议号 4 的隧道分派器。
 @return 完整配置成功返回 true，任何必需步骤失败返回 false。
@@ -73,4 +64,12 @@
 ```doxygen
 @fn xv::net::NetworkSetup::~NetworkSetup()
 @brief 结束接口基类生命周期；protected 非虚析构禁止通过接口 delete，具体对象由启动期长期存储管理。
+```
+<a id="fn-a02d4d873452dbc8"></a>
+
+## `xv::net::IpInIpInterface::carrier`
+
+```doxygen
+@fn bool xv::net::IpInIpInterface::carrier() const
+@brief 仅在下层启用、仍拥有配置的外层本地地址且链路可用时返回 true；删除外层本地地址会使隧道选路失效。
 ```

@@ -3,6 +3,7 @@ module xv.syscall:handlers;
 namespace xv::syscall
 {
 // Prototypes for the functions that handle system calls.
+unsigned long sys_netctl();
 unsigned long sys_socket();
 unsigned long sys_sockbind();
 unsigned long sys_connect();

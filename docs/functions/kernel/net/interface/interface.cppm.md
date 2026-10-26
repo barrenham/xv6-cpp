@@ -21,15 +21,24 @@
 - [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
 - [`xv::net::NetworkInterface::carrier`](interface.cppm.md#fn-b5047586873434d7)
 - [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
+- [`xv::net::NetworkInterface::generation`](interface.cppm.md#fn-f3c8aa01de8e327c)
 - [`xv::net::NetworkInterface::id`](interface.cppm.md#fn-b511fe96a0cf54c6)
+- [`xv::net::NetworkInterface::invalidate`](interface.cppm.md#fn-9b47e77a19f3fcde)
+- [`xv::net::NetworkInterface::is_bridge`](interface.cppm.md#fn-c281e79486e261b6)
 - [`xv::net::NetworkInterface::is_tunnel`](interface.cppm.md#fn-48100c513b8eb3f7)
+- [`xv::net::NetworkInterface::layer2`](interface.cppm.md#fn-3239b118d8b0f543)
 - [`xv::net::NetworkInterface::mac`](interface.cppm.md#fn-11e021ef3340ef33)
+- [`xv::net::NetworkInterface::master`](interface.cppm.md#fn-df4b298eb8ae885a)
 - [`xv::net::NetworkInterface::mtu`](interface.cppm.md#fn-0c6eee747ef53549)
 - [`xv::net::NetworkInterface::name`](interface.cppm.md#fn-f67f92c3b57f37e1)
+- [`xv::net::NetworkInterface::neighbor`](interface.cppm.md#fn-db1c14ebd06114d2)
 - [`xv::net::NetworkInterface::operator=`](interface.cppm.md#fn-2686b037f2ab5fda)
 - [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
+- [`xv::net::NetworkInterface::receive_drop`](interface.cpp.md#fn-72713f8a1c6e3db4)
+- [`xv::net::NetworkInterface::send`](interface.cpp.md#fn-02e2a99c0121b11a)
 - [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
 - [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
+- [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
 - [`xv::net::NetworkInterface::tick`](interface.cppm.md#fn-d7cce1ea0cdf5e32)
 - [`xv::net::NetworkInterface::transmit`](interface.cppm.md#fn-01938802e0c33e15)
 - [`xv::net::NetworkInterface::up`](interface.cppm.md#fn-500511d922186f66)
@@ -111,15 +120,6 @@
 @brief 返回接口可承载的最大纯 IP 报文长度，不包含以太首部。
 ```
 
-<a id="fn-500511d922186f66"></a>
-
-## `xv::net::NetworkInterface::up`
-
-```doxygen
-@fn bool xv::net::NetworkInterface::up() const
-@brief 返回接口管理状态；物理载波由 carrier 单独查询。
-```
-
 <a id="fn-48100c513b8eb3f7"></a>
 
 ## `xv::net::NetworkInterface::is_tunnel`
@@ -145,25 +145,6 @@
 ```doxygen
 @fn const MacAddress *xv::net::NetworkInterface::mac() const
 @brief 基类返回 nullptr，表示该三层接口没有以太网 MAC 属性。
-```
-
-<a id="fn-94e3c574ca835a7a"></a>
-
-## `xv::net::NetworkInterface::address_count`
-
-```doxygen
-@fn unsigned xv::net::NetworkInterface::address_count() const
-@brief 返回零至四个 IPv4 地址的数量；零表示接口尚无地址或采用无编号配置。
-```
-
-<a id="fn-61d3aff01263ffa7"></a>
-
-## `xv::net::NetworkInterface::address`
-
-```doxygen
-@fn const Ipv4Address &xv::net::NetworkInterface::address(unsigned index) const
-@brief 借用指定 IPv4 地址项；调用者必须保证 index 小于 address_count。
-@details 封存后引用稳定。
 ```
 
 <a id="fn-1c1cf46241f614d1"></a>
@@ -207,13 +188,93 @@
 @brief 结束接口基类生命周期；protected 非虚析构禁止通过接口 delete，具体对象由启动期长期存储管理。
 ```
 
+<a id="fn-500511d922186f66"></a>
+
+## `xv::net::NetworkInterface::up`
+
+```doxygen
+@fn bool xv::net::NetworkInterface::up() const
+@brief 在配置锁下读取接口管理状态；carrier 单独表示物理或下层链路可用性。
+```
+
+<a id="fn-f3c8aa01de8e327c"></a>
+
+## `xv::net::NetworkInterface::generation`
+
+```doxygen
+@fn unsigned xv::net::NetworkInterface::generation() const
+@brief 在配置锁下读取接口配置代次；ARP 待解析包据此检测启停或地址变化，拒绝迟到的旧配置包。
+```
+
+<a id="fn-db1c14ebd06114d2"></a>
+
+## `xv::net::NetworkInterface::neighbor`
+
+```doxygen
+@fn bool xv::net::NetworkInterface::neighbor(unsigned, NeighborInfo &)
+@brief 无邻居解析能力的接口默认返回 false，不虚构 MAC 或邻居记录；以太子类提供真实缓存。
+```
+
+<a id="fn-9b47e77a19f3fcde"></a>
+
+## `xv::net::NetworkInterface::invalidate`
+
+```doxygen
+@fn void xv::net::NetworkInterface::invalidate()
+@brief 接口配置变更后的清理钩子，基类不执行操作；调用者必须在配置锁外调用，子类可取得自己的队列锁。
+```
+
+<a id="fn-94e3c574ca835a7a"></a>
+
+## `xv::net::NetworkInterface::address_count`
+
+```doxygen
+@fn unsigned xv::net::NetworkInterface::address_count() const
+@brief 在配置锁下读取零至四个地址的数量；零表示尚无 IPv4 或无编号配置，不影响设备和 MAC 身份。
+```
+
+<a id="fn-61d3aff01263ffa7"></a>
+
+## `xv::net::NetworkInterface::address`
+
+```doxygen
+@fn Ipv4Address xv::net::NetworkInterface::address(unsigned index) const
+@brief 在配置锁下复制一个 IPv4 地址项，越界返回空值；返回副本避免并发删地址后悬空引用，循环查询需留意并发修改。
+```
+<a id="fn-c281e79486e261b6"></a>
+
+## `xv::net::NetworkInterface::is_bridge`
+
+```doxygen
+@fn bool xv::net::NetworkInterface::is_bridge() const
+@brief 基类默认返回 false；BridgeInterface 覆盖为 true，独立于有无 MAC、IP 或隧道能力。
+```
+
+<a id="fn-3239b118d8b0f543"></a>
+
+## `xv::net::NetworkInterface::layer2`
+
+```doxygen
+@fn Layer2Port *xv::net::NetworkInterface::layer2()
+@brief 基类返回 nullptr，表示没有完整以太帧端口能力；回环和三层隧道不能因此被强行接入网桥。
+```
+
+<a id="fn-df4b298eb8ae885a"></a>
+
+## `xv::net::NetworkInterface::master`
+
+```doxygen
+@fn unsigned xv::net::NetworkInterface::master() const
+@brief 基类默认没有二层 master，返回零；以太接口从自己的 Layer2Port 查询桥归属。
+```
+
 <a id="fn-9f93947e373b767e"></a>
 
 ## `xv::net::InterfaceRegistry::count`
 
 ```doxygen
 @fn unsigned xv::net::InterfaceRegistry::count() const
-@brief 返回已注册接口数量，最多八个。
+@brief 在配置锁内读取当前已发布接口数，运行期创建/删除桥可使该值变化，逐项枚举不是整轮冻结。
 ```
 
 <a id="fn-b76c86a7bfb7aabc"></a>
@@ -222,5 +283,5 @@
 
 ```doxygen
 @fn NetworkInterface *xv::net::InterfaceRegistry::at(unsigned index) const
-@brief 按注册顺序借用接口，越界返回 nullptr。
+@brief 在配置锁内按发布顺序借用接口，越界返回 nullptr；对象长期存活，但并发注销后可能已不在注册表内。
 ```

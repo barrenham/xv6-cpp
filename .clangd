@@ -5,7 +5,7 @@ Index:
   Background: Build
 ---
 If:
-  PathMatch: (tools/mkfs/.*|tests/(allocator|sync|driver|process|signal|fs|trap|runtime|network)_.*[.]cpp)
+  PathMatch: (tools/mkfs/.*|tests/(allocator|sync|driver|process|signal|fs|trap|runtime|network|bridge)_.*[.]cpp)
 CompileFlags:
   CompilationDatabase: build/dev/host
 

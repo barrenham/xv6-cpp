@@ -8,6 +8,7 @@
 - [`xv::drivers::EthernetDevice::carrier`](ethernet.cppm.md#fn-0a75b7ad9c57762f)
 - [`xv::drivers::EthernetDevice::mac_address`](ethernet.cppm.md#fn-835a79075d06aef8)
 - [`xv::drivers::EthernetDevice::online`](ethernet.cppm.md#fn-759d5d8b3299891d)
+- [`xv::drivers::EthernetDevice::promiscuous`](ethernet.cppm.md#fn-180eea3b76ffadd5)
 - [`xv::drivers::EthernetDevice::transmit`](ethernet.cppm.md#fn-7340f363f0949924)
 - [`xv::drivers::EthernetDevice::~EthernetDevice`](ethernet.cppm.md#fn-79a6be906dbdfcdd)
 - [`xv::drivers::EthernetReceiver::receive_frame`](ethernet.cppm.md#fn-af5421b98e5d86b2)
@@ -83,4 +84,12 @@
 ```doxygen
 @fn void xv::drivers::EthernetDevice::mac_address(unsigned char *destination) const
 @brief 以太设备契约：向至少六字节目标缓冲区提供此设备 MAC，不把该属性施加给三层虚拟接口。
+```
+<a id="fn-180eea3b76ffadd5"></a>
+
+## `xv::drivers::EthernetDevice::promiscuous`
+
+```doxygen
+@fn bool xv::drivers::EthernetDevice::promiscuous(bool)
+@brief 以太设备的可选混杂接收能力，默认不支持并返回 false；桥接必须先成功启用该能力。
 ```

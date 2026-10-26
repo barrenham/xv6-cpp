@@ -9,18 +9,29 @@ namespace xv::net
 void ArpCache::initialize() { lock_.init("ARP neighbors"); }
 void ArpCache::request(unsigned address)
 {
-  if (!interface_.source_for(address)) return;
+  unsigned source;
+  {
+    ConfigurationGuard guard;
+    source = interface_.up() ? interface_.source_for(address) : 0;
+  }
+  if (!source) return;
   auto packet = Packet::allocate(42);
   if (!packet) return;
   auto *p = packet.data(); wire::zero(p, 42);
   wire::write16(p+14, 1); wire::write16(p+16, 0x800); p[18] = 6; p[19] = 4;
   wire::write16(p+20, 1); wire::copy(p+22, link_.mac().bytes, 6);
-  wire::write32(p+28, interface_.source_for(address)); wire::write32(p+38, address);
+  wire::write32(p+28, source); wire::write32(p+38, address);
   constexpr unsigned char broadcast[6] = {255,255,255,255,255,255};
   link_.send(packet, broadcast, 0x806);
 }
 int ArpCache::send(Packet &packet, unsigned next_hop)
 {
+  unsigned generation;
+  {
+    ConfigurationGuard guard;
+    if (!interface_.up() || packet.size() < 20 || !interface_.owns(wire::read32(packet.data()+12))) return -ENETUNREACH;
+    generation = interface_.generation();
+  }
   unsigned char mac[6];
   lock_.acquire();
   auto now = detail::milliseconds();
@@ -31,14 +42,14 @@ int ArpCache::send(Packet &packet, unsigned next_hop)
     }
   for (auto &p : pending_) if (!p.page)
   {
-    p = {packet.release(), packet.size(), next_hop, 1, now+1000};
+    p = {packet.release(), packet.size(), next_hop, 1, now+1000, generation};
     lock_.release(); request(next_hop); return 0;
   }
   lock_.release(); return -ENOBUFS;
 }
 void ArpCache::receive(Packet &packet)
 {
-  if (packet.size() < 42) return;
+  if (!interface_.up() || packet.size() < 42) return;
   auto *p = packet.data(); unsigned operation = wire::read16(p+20);
   if (wire::read16(p+14) != 1 || wire::read16(p+16) != 0x800 || p[18] != 6 || p[19] != 4 ||
       (operation != 1 && operation != 2) || !wire::equal(p+6, p+22, 6) || (p[22]&1) ||
@@ -56,7 +67,9 @@ void ArpCache::receive(Packet &packet)
   {
     lock_.acquire();
     if (!queued.page || queued.address != source) { lock_.release(); continue; }
+    bool valid = queued.generation == interface_.generation() && interface_.up();
     Packet ready(queued.page, queued.length); queued = {};
+    if (!valid) { lock_.release(); continue; }
     lock_.release(); link_.send_ip(ready, p+22);
   }
   if (operation == 1)
@@ -73,11 +86,40 @@ void ArpCache::tick(unsigned long now)
   for (auto &p : pending_)
   {
     lock_.acquire();
+    if (p.page && (p.generation != interface_.generation() || !interface_.up()))
+    { Packet expired(p.page, p.length); p = {}; }
     if (!p.page || p.deadline > now) { lock_.release(); continue; }
     if (p.retries++ >= 3)
     { Packet expired(p.page, p.length); p = {}; lock_.release(); continue; }
     auto address = p.address; p.deadline = now+1000;
     lock_.release(); request(address);
+  }
+}
+}
+
+namespace xv::net
+{
+bool ArpCache::neighbor(unsigned index, NeighborInfo &result)
+{
+  xv::sync::ScopedLock guard(lock_);
+  auto now = detail::milliseconds();
+  for (const auto &entry : entries_)
+    if (entry.address && entry.expires > now)
+    {
+      if (index--) continue;
+      result.address = entry.address; result.expires_ms = entry.expires-now;
+      for (unsigned i = 0; i < 6; ++i) result.mac[i] = entry.mac[i];
+      return true;
+    }
+  return false;
+}
+void ArpCache::clear()
+{
+  xv::sync::ScopedLock guard(lock_);
+  for (auto &entry : entries_) entry = {};
+  for (auto &pending : pending_)
+  {
+    Packet discarded(pending.page, pending.length); pending = {};
   }
 }
 }

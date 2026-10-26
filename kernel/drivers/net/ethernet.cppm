@@ -15,6 +15,7 @@ public:
   virtual bool carrier() const { return online(); }
   virtual void mac_address(unsigned char *destination) const = 0;
   virtual bool transmit(void *page, unsigned length) = 0;
+  virtual bool promiscuous(bool) { return false; }
 protected:
   ~EthernetDevice() = default;
 };

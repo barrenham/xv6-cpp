@@ -19,6 +19,7 @@ static SyscallHandler lookup_syscall(int number)
   switch (number)
   {
     // clang-format off
+  case SYS_netctl: return sys_netctl;
   case SYS_socket: return sys_socket;
   case SYS_sockbind: return sys_sockbind;
   case SYS_connect: return sys_connect;

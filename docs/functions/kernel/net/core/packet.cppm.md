@@ -7,6 +7,7 @@
 - [`xv::net::Packet::Packet`](packet.cppm.md#fn-01632cbe68dab430)
 - [`xv::net::Packet::Packet`](packet.cppm.md#fn-5c3922f76c0ef31b)
 - [`xv::net::Packet::allocate`](packet.cppm.md#fn-5633cc7891c8536f)
+- [`xv::net::Packet::clone`](packet.cpp.md#fn-b249acc31eb1ae38)
 - [`xv::net::Packet::data`](packet.cppm.md#fn-d33007dacc01e7f6)
 - [`xv::net::Packet::enter_tunnel`](packet.cppm.md#fn-adf125d19993490f)
 - [`xv::net::Packet::operator bool`](packet.cppm.md#fn-7c6cb6aacc141b80)

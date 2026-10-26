@@ -19,6 +19,7 @@ public:
   bool online() const override { return ready_; }
   bool carrier() const override { return ready_ && (registers_.read32(8)&2); }
   bool transmit(void *page, unsigned length) override;
+  bool promiscuous(bool enable) override;
   void handle_interrupt() override;
 private:
   void reclaim();

@@ -344,3 +344,9 @@ getsockopt:
  li a7, SYS_getsockopt
  ecall
  ret
+
+.global netctl
+netctl:
+ li a7, SYS_netctl
+ ecall
+ ret

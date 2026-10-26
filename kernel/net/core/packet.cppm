@@ -11,6 +11,7 @@ public:
   Packet(Packet &&other) : page_(other.release()), length_(other.length_), depth_(other.depth_) {}
   ~Packet();
   static Packet allocate(unsigned length);
+  Packet clone() const;
   unsigned char *data() const { return static_cast<unsigned char *>(page_); }
   bool enter_tunnel() { if (depth_ == 4) return false; ++depth_; return true; }
   unsigned size() const { return length_; }

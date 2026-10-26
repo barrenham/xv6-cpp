@@ -73,6 +73,10 @@ cmake --build build/dev --target qemu
 -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56
 ```
 
+运行中查看或修改接口、地址、路由及邻居缓存，见 [用户态网络管理](network-management.md)。
+
+完整以太帧交换、MAC 学习和桥本机接入见 [软件网桥](network-bridge.md)。
+
 ## Socket 用户接口
 
 包含 `user/runtime/user.h` 即获得 `kernel/net/socket/socket.h` 中的 ABI。`sockaddr_in` 为 16 字节，IPv4 和端口使用网络字节序，借助 `htonl/htons/ntohl/ntohs` 转换。

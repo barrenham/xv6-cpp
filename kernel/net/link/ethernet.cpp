@@ -23,8 +23,13 @@ int EthernetLayer::send(Packet &packet, const unsigned char *destination, unsign
   if (!packet || packet.size() < 14 || packet.size() > mtu_+14) return -EMSGSIZE;
   auto *p = packet.data();
   wire::copy(p, destination, 6); wire::copy(p+6, mac_.bytes, 6); wire::write16(p+12, type);
-  if (!online()) return -ENETUNREACH;
-  if (!device_->transmit(p, packet.size())) return -EAGAIN;
+  return transmit_frame(packet);
+}
+int EthernetLayer::transmit_frame(Packet &packet)
+{
+  if (!packet || packet.size() < 14 || packet.size() > mtu_+14) return -EMSGSIZE;
+  if (!online() || !carrier()) return -ENETUNREACH;
+  if (!device_->transmit(packet.data(), packet.size())) return -EAGAIN;
   packet.release();
   return 0;
 }
@@ -32,8 +37,9 @@ void EthernetLayer::receive_frame(void *page, unsigned length)
 {
   Packet packet(page, length);
   constexpr unsigned char broadcast[6] = {255,255,255,255,255,255};
-  if (length < 14 || length > mtu_+14 ||
-      (!wire::equal(page, mac_.bytes, 6) && !wire::equal(page, broadcast, 6))) return;
+  if (length < 14 || length > mtu_+14) return;
+  if (dispatch_frame(packet)) return;
+  if (!wire::equal(page, mac_.bytes, 6) && !wire::equal(page, broadcast, 6)) return;
   for (auto &b : bindings_)
     if (b.protocol && b.type == wire::read16(packet.data()+12)) { b.protocol->receive(packet); return; }
 }

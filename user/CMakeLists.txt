@@ -9,6 +9,7 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/netctl/netctl.cpp
   apps/cat/cat.cpp
   apps/echo/echo.cpp
   apps/grep/grep.cpp
@@ -19,6 +20,8 @@ set(programs
   apps/mkdir/mkdir.cpp
   apps/rm/rm.cpp
   apps/pty/pty.cpp
+  tests/bridgetest.cpp
+  tests/netctltest.cpp
   tests/nettest.cpp
   tests/multinet.cpp
   tests/sockettest.cpp

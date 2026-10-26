@@ -198,6 +198,8 @@ xv_add_process_group_internals(process_groups_contract)
 add_executable(network_contract
   "${XV_ROOT}/tests/network_contract.cpp"
   "${XV_ROOT}/tests/network_interfaces.cpp"
+  "${XV_ROOT}/tests/network_control.cpp"
+  "${XV_ROOT}/tests/bridge_contract.cpp"
   "${XV_ROOT}/tests/network_test_device.cpp"
   "${XV_ROOT}/tests/network_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"

@@ -11,7 +11,7 @@ void EthernetInterface::initialize(xv::drivers::EthernetDevice &device)
 }
 int EthernetInterface::transmit(Packet &packet, unsigned next_hop)
 {
-  if (!up() || !carrier() || !address_count()) return -ENETUNREACH;
+  if (master() || !up() || !carrier() || !address_count()) return -ENETUNREACH;
   if (packet.size() > mtu()) return -EMSGSIZE;
   if (next_hop == 0xffffffff)
   { constexpr unsigned char broadcast[6] = {255,255,255,255,255,255}; return link_.send_ip(packet, broadcast); }

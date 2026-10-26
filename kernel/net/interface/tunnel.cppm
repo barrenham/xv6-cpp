@@ -11,7 +11,7 @@ public:
   bool accepts_destination(unsigned value, const InterfaceRegistry &registry) const override
   { return registry.owns(value); }
   bool is_tunnel() const override { return true; }
-  bool carrier() const override { return underlay_ && underlay_->up() && underlay_->carrier(); }
+  bool carrier() const override { return underlay_ && underlay_->up() && underlay_->owns(outer_local_) && underlay_->carrier(); }
   int transmit(Packet &packet, unsigned next_hop) override;
   bool receive_outer(Packet &packet, const IpDatagram &datagram);
 private:

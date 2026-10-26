@@ -87,6 +87,8 @@ extern "C" void run_network_interface_contracts()
   check(routes.lookup(0x08080808,selection) && selection.interface==&first,"default route metric");
   check(routes.lookup(0xc6336402,selection,0xc6336409) && selection.source==0xc6336409,"explicit alias source");
   check(!routes.lookup(0xc6336402,selection,0xcb007109),"unconfigured source rejected");
+  check(routes.add(0xcb00710a,32,unnumbered) && routes.lookup(0xcb00710a,selection) && selection.interface==&first,
+        "addressless route does not suppress usable fallback");
   first.connected=false;
   check(routes.lookup(0x08080808,selection) && selection.interface==&second,"carrier-down fallback"); first.connected=true;
   {

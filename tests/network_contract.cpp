@@ -3,6 +3,8 @@
 #include <cstring>
 import xv.net;
 extern "C" void run_network_interface_contracts();
+extern "C" void run_network_control_contracts();
+extern "C" void run_bridge_contracts();
 extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *, unsigned);
 extern "C" void net_test_capture(void *, unsigned *);
@@ -205,5 +207,7 @@ int main()
   check(xv::net::create_socket(1, 6) == nullptr && net_test_pages() == 0, "TCP partial allocation rollback");
   net_test_fail_after(-1);
   run_network_interface_contracts();
+  run_network_control_contracts();
+  run_bridge_contracts();
   std::puts("network contract: all passed");
 }

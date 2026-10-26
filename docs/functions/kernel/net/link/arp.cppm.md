@@ -3,7 +3,9 @@
 ## 函数导航
 
 - [`xv::net::ArpCache::ArpCache`](arp.cppm.md#fn-1deae4753a85af91)
+- [`xv::net::ArpCache::clear`](arp.cpp.md#fn-f92a3d89216fa13d)
 - [`xv::net::ArpCache::initialize`](arp.cpp.md#fn-9716d9e48bbba0d6)
+- [`xv::net::ArpCache::neighbor`](arp.cpp.md#fn-ee8e9de0c540ad2b)
 - [`xv::net::ArpCache::receive`](arp.cpp.md#fn-704e5894f62445e0)
 - [`xv::net::ArpCache::request`](arp.cpp.md#fn-d772ee0820984b06)
 - [`xv::net::ArpCache::send`](arp.cpp.md#fn-ef8526d27ee87536)

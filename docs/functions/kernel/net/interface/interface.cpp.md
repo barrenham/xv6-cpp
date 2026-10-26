@@ -12,18 +12,11 @@
 - [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
 - [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
 - [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
+- [`xv::net::NetworkInterface::receive_drop`](interface.cpp.md#fn-72713f8a1c6e3db4)
+- [`xv::net::NetworkInterface::send`](interface.cpp.md#fn-02e2a99c0121b11a)
 - [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
 - [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
-
-<a id="fn-24e03455c304d9fd"></a>
-
-## `xv::net::NetworkInterface::owns`
-
-```doxygen
-@fn bool xv::net::NetworkInterface::owns(unsigned value) const
-@brief 判断地址是否精确属于本接口的 IPv4 地址列表。
-@details 回环子类可覆盖为前缀拥有语义。
-```
+- [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
 
 <a id="fn-afdbdf714f5adc2b"></a>
 
@@ -34,13 +27,22 @@
 @brief 按入站接口接收本机地址或该接口广播地址，避免普通以太接口跨接口接收。
 ```
 
+<a id="fn-24e03455c304d9fd"></a>
+
+## `xv::net::NetworkInterface::owns`
+
+```doxygen
+@fn bool xv::net::NetworkInterface::owns(unsigned value) const
+@brief 在配置临界区内查询地址是否精确属于本接口；同一调用链嵌套查询复用外层锁，回环子类采用前缀拥有语义。
+```
+
 <a id="fn-aa7c7468ae954fd0"></a>
 
 ## `xv::net::NetworkInterface::broadcast`
 
 ```doxygen
 @fn bool xv::net::NetworkInterface::broadcast(unsigned value) const
-@brief 识别全一广播和接口前缀广播；/31、/32 不生成定向广播，无地址接口不接收广播。
+@brief 在配置锁下识别全一广播和接口前缀广播；/31、/32 无定向广播，无地址接口不接收广播。
 ```
 
 <a id="fn-1c833c16e2ec25f4"></a>
@@ -49,7 +51,7 @@
 
 ```doxygen
 @fn unsigned xv::net::NetworkInterface::source_for(unsigned destination) const
-@brief 优先选择覆盖目标且前缀最长的本地地址，否则取首个地址；没有地址时返回零。
+@brief 在一致配置快照内优先选择覆盖目标且前缀最长的地址，否则取首个；无地址返回零。
 ```
 
 <a id="fn-29e4fdf0db63d8be"></a>
@@ -68,7 +70,7 @@
 
 ```doxygen
 @fn bool xv::net::NetworkInterface::set_up(bool value)
-@brief 启动期设置管理状态；封存后返回 false，运行期不支持动态重配置。
+@brief 启动期设置管理状态；封存后本入口返回 false，运行期修改必须走 NetworkManager 事务。
 ```
 
 <a id="fn-9b5c9773ed945053"></a>
@@ -77,9 +79,7 @@
 
 ```doxygen
 @fn void xv::net::NetworkInterface::deliver(Packet &packet)
-@brief 仅在接口已启用且挂接接收器时，把纯 IP 包连同本接口身份同步交给接收器。
-@param[in,out] packet 起点为 IP 首部的独占页面。
-@pre 页面内容已经去除链路层首部；不在接口队列锁内调用。
+@brief 在已启用且已挂接接收器时累计纯 IP 入站计数，再在配置锁外以本接口身份回调；禁止投递则累计丢弃。
 ```
 
 <a id="fn-19629c883c7bf34c"></a>
@@ -98,18 +98,44 @@
 
 ```doxygen
 @fn bool xv::net::InterfaceRegistry::seal()
-@brief 双向核对所有接口地址拥有关系，成功后冻结注册表及各接口地址和管理状态；冲突时返回 false。
-@return 所有接口地址拥有关系不冲突时返回 true，否则不封存。
-@pre 配置结束且尚未开始并发收发。
+@brief 启动结束时在配置锁内双向核对地址拥有冲突，封存启动注册及配置 API；运行期桥发布、地址和状态交管理器协调。
 ```
 
+<a id="fn-a1a1eb1c46a2f883"></a>
+
+## `xv::net::NetworkInterface::statistics`
+
+```doxygen
+@fn InterfaceStatistics xv::net::NetworkInterface::statistics() const
+@brief 分别原子读取六个纯 IP 接口计数。
+@details 字段无数据竞争，但不保证所有计数来自同一时刻，不等同于硬件帧统计。
+```
+
+<a id="fn-72713f8a1c6e3db4"></a>
+
+## `xv::net::NetworkInterface::receive_drop`
+
+```doxygen
+@fn void xv::net::NetworkInterface::receive_drop()
+@brief 原子增加接口或 IP 基础验证拒绝计数；不包含所有驱动和传输层丢包。
+```
+
+<a id="fn-02e2a99c0121b11a"></a>
+
+## `xv::net::NetworkInterface::send`
+
+```doxygen
+@fn int xv::net::NetworkInterface::send(Packet &packet, unsigned next_hop)
+@brief 统一调用出口 transmit 并计数。
+@details 成功表示出口已接受，包含 ARP 排队；负返回计作发送错误，按调用前纯 IP 长度累计字节。
+```
 <a id="fn-bfd9e34fed60845d"></a>
 
 ## `xv::net::InterfaceRegistry::find`
 
 ```doxygen
 @fn NetworkInterface *xv::net::InterfaceRegistry::find(unsigned id) const
-@brief 按稳定 ID 查找接口，未注册返回 nullptr，不转移对象所有权。
+@brief 在配置锁内按稳定 ID 查找当前已发布接口，支持桥运行期加入与注销；返回长期存活对象或 nullptr。
 ```
 
 <a id="fn-9875c43aa204f3b9"></a>
@@ -118,7 +144,7 @@
 
 ```doxygen
 @fn bool xv::net::InterfaceRegistry::owns(unsigned address) const
-@brief 查询任一已启用接口是否拥有指定地址；供 bind、本地路由及无编号隧道接收使用。
+@brief 在一致配置快照内查询已发布且启用的接口地址拥有关系，支持桥发布/注销与多地址，不返回内部地址引用。
 ```
 
 <a id="fn-11570218be60251c"></a>
@@ -127,5 +153,5 @@
 
 ```doxygen
 @fn void xv::net::InterfaceRegistry::tick(unsigned long now)
-@brief 把单调毫秒时刻转交每个已注册接口；接口自行完成队列或邻居维护。
+@brief 先在配置锁内复制最多八个稳定接口指针，再解锁调用各接口定时维护；桥注销不释放对象，避免回调期间悬空或反向持锁。
 ```

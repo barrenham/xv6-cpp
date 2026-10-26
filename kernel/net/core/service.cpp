@@ -1,3 +1,5 @@
+module;
+#include "kernel/net/control.h"
 module xv.net;
 import :services;
 import :registry;
@@ -5,6 +7,7 @@ import :tcp;
 import :ethernet_interface;
 import :loopback;
 import :tunnel;
+import :control;
 namespace xv::net
 {
 namespace
@@ -19,19 +22,22 @@ constinit UdpProtocol udp(ip, icmp);
 constinit SocketRegistry sockets(ip, udp);
 constinit TcpProtocol tcp(sockets);
 constinit IpInIpProtocol tunnels;
+constinit BridgeManager bridges(interface_registry, routes, ip);
+constinit NetworkManager manager(interface_registry, routes, loopback, &bridges);
 bool qemu_defaults()
 {
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
   {
     auto &interface = ethernet[i]; unsigned address = 0x0a00020f + (i<<8);
     if (!interface.add_address({address, 24}) ||
-        !routes.add(address, 32, loopback, 0, 0, address) ||
-        !routes.add(address & 0xffffff00, 24, interface) ||
+        !routes.add(address, 32, loopback, 0, 0, address, interface.id(), address) ||
+        !routes.add(address & 0xffffff00, 24, interface, 0, 0, 0, interface.id(), address) ||
         !routes.add(0, 0, interface, (address & 0xffffff00)|2, i*10)) return false;
   }
   return true;
 }
 }
+int control(unsigned operation, netctl_request &request) { return manager.execute(operation, request); }
 const InterfaceRegistry &interfaces() { return interface_registry; }
 const RoutingTable &routing_table() { return routes; }
 UdpProtocol &udp_protocol() { return udp; }
@@ -50,6 +56,7 @@ void initialize(NetworkSetup *setup)
     interface.set_up(true); interface.attach(ip);
     if (!interface_registry.add(interface)) detail::fail("interface registry full");
   }
+  bridges.initialize();
   ip.attach(1, icmp); ip.attach(17, udp); ip.attach(6, tcp); ip.attach(4, tunnels);
   initialize_legacy_udp(); udp.attach(sockets);
   if (!(setup ? setup->configure(interface_registry, routes, ip, tunnels) : qemu_defaults()) ||

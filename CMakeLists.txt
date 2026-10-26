@@ -162,3 +162,17 @@ foreach(cpus 1 3)
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --multi)
   set_tests_properties(multinet_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME netctl_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --management)
+  set_tests_properties(netctl_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
+endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME bridge_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/bridge_network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+  set_tests_properties(bridge_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
+endforeach()

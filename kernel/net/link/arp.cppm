@@ -12,10 +12,12 @@ public:
   int send(Packet &packet, unsigned next_hop);
   void receive(Packet &packet) override;
   void tick(unsigned long now);
+  bool neighbor(unsigned index, NeighborInfo &result);
+  void clear();
 private:
   void request(unsigned address);
   struct Neighbor { unsigned address = 0; unsigned char mac[6]{}; unsigned long expires = 0; } entries_[16]{};
-  struct Pending { void *page = nullptr; unsigned length = 0, address = 0, retries = 0; unsigned long deadline = 0; } pending_[8]{};
+  struct Pending { void *page = nullptr; unsigned length = 0, address = 0, retries = 0; unsigned long deadline = 0; unsigned generation = 0; } pending_[8]{};
   xv::sync::SpinLock lock_;
   EthernetLayer &link_;
   const NetworkInterface &interface_;

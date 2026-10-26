@@ -6,19 +6,19 @@
 | --- | ---: | ---: |
 | [arch](#arch) | 4 | 49 |
 | [boot](#boot) | 6 | 8 |
-| [drivers](#drivers) | 33 | 216 |
+| [drivers](#drivers) | 33 | 218 |
 | [fs](#fs) | 26 | 208 |
 | [io](#io) | 2 | 16 |
 | [memory](#memory) | 22 | 173 |
-| [net](#net) | 43 | 252 |
+| [net](#net) | 52 | 311 |
 | [process](#process) | 58 | 323 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
-| [syscall](#syscall) | 12 | 75 |
+| [syscall](#syscall) | 13 | 76 |
 | [trap](#trap) | 20 | 89 |
 | [tty](#tty) | 1 | 0 |
 
-范围：249 个文件；默认 1423 个唯一 C++ 函数，连同条件接口与汇编入口共 1488 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：259 个文件；默认 1485 个唯一 C++ 函数，连同条件接口与汇编入口共 1550 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -150,13 +150,17 @@
 - [`kernel/net/net.cppm`](net/net.cppm.md)
 - [`kernel/net/errno.h`](net/errno.h.md)
 - [`kernel/net/stack.cpp`](net/stack.cpp.md)
+- [`kernel/net/control.h`](net/control.h.md)
 - [`kernel/net/link/arp.cpp`](net/link/arp.cpp.md)
 - [`kernel/net/link/arp.cppm`](net/link/arp.cppm.md)
 - [`kernel/net/link/ethernet.cpp`](net/link/ethernet.cpp.md)
+- [`kernel/net/link/port.cppm`](net/link/port.cppm.md)
 - [`kernel/net/link/ethernet.cppm`](net/link/ethernet.cppm.md)
 - [`kernel/net/interface/loopback.cpp`](net/interface/loopback.cpp.md)
 - [`kernel/net/interface/ethernet_interface.cpp`](net/interface/ethernet_interface.cpp.md)
+- [`kernel/net/interface/configuration.cpp`](net/interface/configuration.cpp.md)
 - [`kernel/net/interface/interface.cppm`](net/interface/interface.cppm.md)
+- [`kernel/net/interface/configuration.cppm`](net/interface/configuration.cppm.md)
 - [`kernel/net/interface/ethernet_interface.cppm`](net/interface/ethernet_interface.cppm.md)
 - [`kernel/net/interface/interface.cpp`](net/interface/interface.cpp.md)
 - [`kernel/net/interface/loopback.cppm`](net/interface/loopback.cppm.md)
@@ -184,11 +188,16 @@
 - [`kernel/net/socket/tcp_socket.cpp`](net/socket/tcp_socket.cpp.md)
 - [`kernel/net/socket/socket.cppm`](net/socket/socket.cppm.md)
 - [`kernel/net/socket/socket.h`](net/socket/socket.h.md)
+- [`kernel/net/bridge/bridge.cpp`](net/bridge/bridge.cpp.md)
+- [`kernel/net/bridge/manager.cpp`](net/bridge/manager.cpp.md)
+- [`kernel/net/bridge/bridge.cppm`](net/bridge/bridge.cppm.md)
 - [`kernel/net/core/wire.cppm`](net/core/wire.cppm.md)
 - [`kernel/net/core/service.cpp`](net/core/service.cpp.md)
+- [`kernel/net/core/control.cppm`](net/core/control.cppm.md)
 - [`kernel/net/core/services.cppm`](net/core/services.cppm.md)
 - [`kernel/net/core/packet.cppm`](net/core/packet.cppm.md)
 - [`kernel/net/core/packet.cpp`](net/core/packet.cpp.md)
+- [`kernel/net/core/control.cpp`](net/core/control.cpp.md)
 - [`kernel/net/core/address.cppm`](net/core/address.cppm.md)
 
 <a id="process"></a>
@@ -295,6 +304,7 @@
 - [`kernel/syscall/arguments.cppm`](syscall/arguments.cppm.md)
 - [`kernel/syscall/handlers.cppm`](syscall/handlers.cppm.md)
 - [`kernel/syscall/syscall.h`](syscall/syscall.h.md)
+- [`kernel/syscall/sysnetctl.cpp`](syscall/sysnetctl.cpp.md)
 - [`kernel/syscall/sysfile.cpp`](syscall/sysfile.cpp.md)
 - [`kernel/syscall/arguments.cpp`](syscall/arguments.cpp.md)
 - [`kernel/syscall/sysnet.cpp`](syscall/sysnet.cpp.md)

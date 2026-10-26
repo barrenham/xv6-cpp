@@ -127,3 +127,15 @@ void E1000::handle_interrupt()
   }
 }
 }
+
+namespace xv::drivers
+{
+bool E1000::promiscuous(bool enable)
+{
+  xv::sync::ScopedLock guard(lock_);
+  if (!ready_) return false;
+  unsigned control = registers_.read32(0x100);
+  registers_.write32(0x100, enable ? control | 0x18U : control & ~0x18U);
+  detail::io_barrier(); return true;
+}
+}

@@ -3,7 +3,7 @@ export import :interface;
 import :arp;
 export namespace xv::net
 {
-class EthernetInterface final : public NetworkInterface, private EthernetProtocol
+class EthernetInterface : public NetworkInterface, private EthernetProtocol
 {
 public:
   constexpr EthernetInterface(unsigned id, const char *name, unsigned mtu = 1500)
@@ -12,7 +12,11 @@ public:
   xv::drivers::EthernetReceiver &receiver() { return link_; }
   const MacAddress *mac() const override { return &link_.mac(); }
   bool carrier() const override { return link_.carrier(); }
+  Layer2Port *layer2() override { return &link_; }
+  unsigned master() const override { return link_.master(); }
   int transmit(Packet &packet, unsigned next_hop) override;
+  bool neighbor(unsigned index, NeighborInfo &result) override { return arp_.neighbor(index, result); }
+  void invalidate() override { arp_.clear(); }
   void tick(unsigned long now) override { arp_.tick(now); }
 private:
   void receive(Packet &packet) override;

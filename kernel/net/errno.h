@@ -13,3 +13,22 @@
 #define ENOBUFS 105
 #define ECONNRESET 104
 #define EOPNOTSUPP 95
+
+#ifndef EINVAL
+#define EINVAL 22
+#endif
+#ifndef ENOENT
+#define ENOENT 2
+#endif
+#ifndef ENODEV
+#define ENODEV 19
+#endif
+#ifndef EEXIST
+#define EEXIST 17
+#endif
+#ifndef EBUSY
+#define EBUSY 16
+#endif
+#ifndef EFAULT
+#define EFAULT 14
+#endif

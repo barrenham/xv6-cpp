@@ -38,17 +38,18 @@ int Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol, uns
   wire::write16(ip+6, 0x4000);
   wire::write32(ip+12, selection.source); wire::write32(ip+16, destination);
   wire::write16(ip+10, ~wire::sum(ip, 20));
-  return selection.interface->transmit(packet, selection.next_hop);
+  return selection.interface->send(packet, selection.next_hop);
 }
 void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
 {
-  if (!interface.up() || interfaces_.find(interface.id()) != &interface || packet.size() < 20) return;
+  if (!interface.up() || interfaces_.find(interface.id()) != &interface || packet.size() < 20)
+  { interface.receive_drop(); return; }
   auto *ip = packet.data();
   unsigned header = (ip[0]&15)*4, total = wire::read16(ip+2);
   unsigned source = wire::read32(ip+12), destination = wire::read32(ip+16);
   if ((ip[0] >> 4) != 4 || header < 20 || total < header || total > packet.size() ||
       !ip[8] || (wire::read16(ip+6)&0x8000) || wire::sum(ip, header) != 0xffff ||
-      !interface.accepts_destination(destination, interfaces_) || !source || (source >> 28) >= 14) return;
+      !interface.accepts_destination(destination, interfaces_) || !source || (source >> 28) >= 14) { interface.receive_drop(); return; }
   if (wire::read16(ip+6)&0x3fff) { fragment(interface, packet, header, total); return; }
   IpDatagram datagram{source, destination, ip[9], header, total-header, &interface};
   for (auto &h : handlers_) if (h.handler && h.protocol == datagram.protocol)

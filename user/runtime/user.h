@@ -1,6 +1,7 @@
 #pragma once
 #include "kernel/process/signals/signal_abi.h"
 #include "kernel/net/socket/socket.h"
+#include "kernel/net/control.h"
 extern "C" {
 #pragma once
 #ifdef LAB_MMAP
@@ -15,6 +16,7 @@ struct termios;
 struct pollfd;
 struct sigaction;
 
+int netctl(unsigned operation, struct netctl_request *request);
 int socket(int domain, int type, int protocol);
 int sockbind(int fd, const struct sockaddr *address, socklen_t length);
 int connect(int fd, const struct sockaddr *address, socklen_t length);

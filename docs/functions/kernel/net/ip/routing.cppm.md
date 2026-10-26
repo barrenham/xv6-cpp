@@ -3,7 +3,7 @@
 ## 函数导航
 
 - [`xv::net::RoutingTable::RoutingTable`](routing.cppm.md#fn-77c6a2a9198776a1)
-- [`xv::net::RoutingTable::add`](routing.cpp.md#fn-fcb92b0f65b7a82b)
+- [`xv::net::RoutingTable::add`](routing.cpp.md#fn-9936922a5ae03a29)
 - [`xv::net::RoutingTable::lookup`](routing.cpp.md#fn-8144db493f085cfd)
 - [`xv::net::RoutingTable::seal`](routing.cppm.md#fn-591a3db6e9fe9bc5)
 
@@ -22,5 +22,5 @@
 
 ```doxygen
 @fn void xv::net::RoutingTable::seal()
-@brief 冻结静态路由，后续 add 返回 false；运行期只读查询。
+@brief 在配置锁内封存启动期添加入口；之后的动态修改由 NetworkManager 在同一锁下验证和提交。
 ```

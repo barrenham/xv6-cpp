@@ -1,6 +1,7 @@
 // Shell.
 
 #include "kernel/support/types.h"
+#include "kernel/support/param.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/io_status.h"
@@ -19,7 +20,7 @@ extern "C"
 #define LIST 4
 #define BACK 5
 
-#define MAXARGS 10
+#define MAXARGS MAXARG
 
   struct cmd
   {

@@ -33,6 +33,7 @@
 - [`xv::syscall::sys_listen`](syssocket.cpp.md#fn-d8dff478749541a9)
 - [`xv::syscall::sys_mkdir`](sysfile.cpp.md#fn-697c039ba51257c6)
 - [`xv::syscall::sys_mknod`](sysfile.cpp.md#fn-a335916d7a484f15)
+- [`xv::syscall::sys_netctl`](sysnetctl.cpp.md#fn-470182ff56d32e47)
 - [`xv::syscall::sys_open`](sysfile.cpp.md#fn-db9a14b0a5f34f13)
 - [`xv::syscall::sys_openpty`](sysfile.cpp.md#fn-6f37e9433a6bd907)
 - [`xv::syscall::sys_pause`](sysproc.cpp.md#fn-2e8395597b7be064)
