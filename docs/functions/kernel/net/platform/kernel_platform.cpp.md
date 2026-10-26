@@ -9,7 +9,6 @@
 - [`xv::net::detail::free_page`](kernel_platform.cpp.md#fn-9ef32a99d26fe40e)
 - [`xv::net::detail::interrupted`](kernel_platform.cpp.md#fn-99f626cb5d17f655)
 - [`xv::net::detail::milliseconds`](kernel_platform.cpp.md#fn-faf2eec702e52b21)
-- [`xv::net::detail::owner`](kernel_platform.cpp.md#fn-7079e964eeda41e2)
 - [`xv::net::detail::prepare_sleep`](kernel_platform.cpp.md#fn-eeff613785c4e3e3)
 - [`xv::net::detail::sleep`](kernel_platform.cpp.md#fn-b5609c0fae83d6c4)
 - [`xv::net::detail::wake`](kernel_platform.cpp.md#fn-44622dca17b535c2)
@@ -33,16 +32,6 @@
 @brief 归还已经不被 DMA 或接收队列持有的网络页。
 @param page 独占的完整分配页。
 @details 与 allocate_page 配对；接收页可由 E1000 分配后转交同一分配器释放。
-```
-
-<a id="fn-7079e964eeda41e2"></a>
-
-## `xv::net::detail::owner`
-
-```doxygen
-@fn int xv::net::detail::owner()
-@brief 取得当前进程的 PID，作为 UDP 绑定持有者身份。
-@pre 进程系统调用上下文调用；收包中断不调用本接口。
 ```
 
 <a id="fn-99f626cb5d17f655"></a>

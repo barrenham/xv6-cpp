@@ -5,7 +5,7 @@ module xv.net;
 import :platform;
 namespace
 {
-int owner_id = 1, pages = 0;
+int pages = 0;
 bool interrupt = false;
 unsigned long test_time = 0;
 int allocations_left = -1;
@@ -21,7 +21,6 @@ void *allocate_page()
 }
 void free_page(void *page) { --pages; std::free(page); }
 unsigned long milliseconds() { return test_time; }
-int owner() { return owner_id; }
 bool interrupted() { return interrupt; }
 int copy_in(void *to, unsigned long from, unsigned n)
 {
@@ -42,7 +41,7 @@ void wake(void *) {}
 extern "C" void *net_test_allocate() { return xv::net::detail::allocate_page(); }
 extern "C" void net_test_free(void *p) { xv::net::detail::free_page(p); }
 extern "C" int net_test_pages() { return pages; }
-extern "C" void net_test_owner(int id) { owner_id = id; interrupt = false; }
+extern "C" void net_test_clear_interrupt() { interrupt = false; }
 
 extern "C" void net_test_clock(unsigned long now) { test_time = now; }
 

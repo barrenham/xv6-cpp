@@ -5,12 +5,13 @@ import xv.net;
 extern "C" void run_network_interface_contracts();
 extern "C" void run_network_control_contracts();
 extern "C" void run_bridge_contracts();
+extern "C" void run_dhcp_contracts();
 extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *, unsigned);
 extern "C" void net_test_capture(void *, unsigned *);
 extern "C" void net_test_device(bool, bool);
 extern "C" int net_test_pages();
-extern "C" void net_test_owner(int);
+extern "C" void net_test_clear_interrupt();
 extern "C" void net_test_clock(unsigned long);
 extern "C" void net_test_fail_after(int);
 namespace
@@ -54,18 +55,18 @@ void tcp_reply(unsigned char *out, const unsigned char *sent, unsigned sequence,
   put16(out+50, checksum(pseudo, 32+length)); put16(out+16, 40+length); ip_checksum(out);
 }
 
-int receive(unsigned short port, char *data, unsigned capacity)
+int receive(xv::net::Socket *socket, char *data, unsigned capacity)
 {
-  unsigned source = 0;
-  unsigned short sport = 0;
-  return xv::net::receive(port, address(&source), address(&sport), address(data), capacity);
+  return socket->receive_from({address(data), false}, capacity, nullptr);
 }
 }
 int main()
 {
   xv::net::initialize();
-  check(xv::net::bind(2000) == 0, "bind");
-  check(xv::net::send(2000, 0x0a000202, 9000, address("hello"), 5) == 0, "send");
+  auto *datagram = xv::net::create_socket(2, 17);
+  check(datagram && datagram->bind({0, 2000}) == 0, "UDP socket bind");
+  xv::net::Endpoint peer{0x0a000202, 9000};
+  check(datagram->send_to({address("hello"), false}, 5, &peer) == 5, "UDP socket send");
   net_test_capture(good, &good_length);
   check(good_length == 47 && checksum(good+14, 20) == 0, "wire IPv4 length/checksum");
   unsigned char pseudo[12+13];
@@ -79,7 +80,7 @@ int main()
   put16(good+34, 9000); put16(good+36, 2000); put16(good+40, 0);
   ip_checksum(good);
   for (unsigned length = 0; length < 47; ++length) inject(good, length);
-  check(net_test_pages() == 0, "short packets released");
+  check(net_test_pages() == 1, "short packets released");
   for (unsigned variant = 0; variant < 10; ++variant)
   {
     unsigned char bad[4096]; std::memcpy(bad, good, good_length);
@@ -97,40 +98,40 @@ int main()
     case 9: bad[33] ^= 1; ip_checksum(bad); break;
     }
     inject(bad, good_length);
-    check(net_test_pages() == 0, "invalid/unbound datagram released");
+    check(net_test_pages() == 1, "invalid/unbound datagram released");
   }
   for (int i = 0; i < 40; ++i) inject(good, good_length);
-  check(net_test_pages() == 16, "bounded per-port queue");
-  check(xv::net::bind(2001) == 0, "second bind");
+  check(net_test_pages() == 17, "bounded UDP socket queue");
+  auto *second = xv::net::create_socket(2, 17);
+  check(second && second->bind({0, 2001}) == 0, "second UDP socket");
   unsigned char other[4096]; std::memcpy(other, good, good_length); put16(other+36, 2001);
   inject(other, good_length);
-  char data[32]{};
-  check(receive(2001, data, sizeof(data)) == 5 && !std::memcmp(data, "hello", 5), "port isolation");
-  check(xv::net::inherit(1, 2), "inherit");
-  xv::net::release_owner(1);
-  check(net_test_pages() == 16, "inherited queue retained");
-  net_test_owner(2);
-  check(receive(2000, data, 3) == 3 && !std::memcmp(data, "hel", 3), "truncate");
-  check(xv::net::receive(2000, ~0UL, address(data), address(data), 5) < 0,
-        "bad copyout fails");
-  check(net_test_pages() == 14, "bad copyout consumes and releases datagram");
-  xv::net::release_owner(2);
-  check(net_test_pages() == 0, "last owner releases queue");
-  net_test_owner(1);
-  for (unsigned port = 1; port <= 32; ++port) check(xv::net::bind(port) == 0, "port table capacity");
-  check(xv::net::bind(33) < 0, "port table exhaustion");
-  for (int child = 2; child <= 8; ++child) check(xv::net::inherit(1, child), "handle capacity");
-  check(!xv::net::inherit(1, 9), "inherit exhaustion is atomic");
-  for (int child = 1; child <= 9; ++child) xv::net::release_owner(child);
-  check(xv::net::bind(2000) == 0, "capacity restored");
-  check(receive(2000, data, sizeof(data)) < 0, "interrupted wait");
-  net_test_owner(1);
+  char data[32]{}; xv::net::Endpoint source{};
+  check(second->receive_from({address(data), false}, sizeof(data), &source) == 5 &&
+        source.address == 0x0a000202 && source.port == 9000 && !std::memcmp(data, "hello", 5), "socket isolation and metadata");
+  second->close();
+  check(receive(datagram, data, 3) == 3 && !std::memcmp(data, "hel", 3), "truncate");
+  check(datagram->receive_from({~0UL, false}, 5, nullptr) < 0, "bad copyout fails");
+  check(net_test_pages() == 15, "bad copyout consumes and releases datagram");
+  datagram->close(); check(net_test_pages() == 0, "socket close releases queue");
+  xv::net::Socket *capacity[64]{};
+  for (unsigned i = 0; i < 64; ++i)
+  {
+    capacity[i] = xv::net::create_socket(2, 17);
+    check(capacity[i] && capacity[i]->bind({0, static_cast<unsigned short>(i+1)}) == 0, "socket table capacity");
+  }
+  check(!xv::net::create_socket(2, 17) && net_test_pages() == 64, "socket table exhaustion rolls back allocation");
+  for (auto *socket : capacity) socket->close();
+  check(net_test_pages() == 0, "socket capacity restored");
+  datagram = xv::net::create_socket(2, 17);
+  check(datagram && datagram->bind({0, 2000}) == 0, "rebind UDP socket");
+  check(receive(datagram, data, sizeof(data)) < 0, "interrupted wait");
+  net_test_clear_interrupt();
   net_test_device(true, false);
-  check(xv::net::send(2000, 0x0a000202, 9000, address("hello"), 5) == -11 &&
-        net_test_pages() == 0, "TX full returns ownership");
+  check(datagram->send_to({address("hello"), false}, 5, &peer) == -11 &&
+        net_test_pages() == 1, "TX full returns ownership");
   net_test_device(false, true);
-  check(xv::net::bind(2001) < 0 && xv::net::send(2000, 1, 1, address(""), 0) < 0,
-        "absent NIC");
+  check(datagram->send_to({address("hello"), false}, 5, &peer) < 0 && net_test_pages() == 1, "absent NIC transmit fails without leaking");
   net_test_device(true, true);
   unsigned char arp[42]{};
   std::memset(arp, 255, 6); std::memcpy(arp+6, good+6, 6);
@@ -153,20 +154,20 @@ int main()
   std::memcpy(last+34, good+42, 5);
   put16(first+16, 28); put16(first+18, 99); put16(first+20, 0x2000); ip_checksum(first);
   put16(last+16, 25); put16(last+18, 99); put16(last+20, 1); ip_checksum(last);
-  inject(last, 39); check(net_test_pages() == 1, "fragment retained");
-  inject(first, 42); check(receive(2000, data, sizeof(data)) == 5 && !std::memcmp(data, "hello", 5), "reverse fragment reassembly");
-  check(net_test_pages() == 0, "reassembled page released");
+  inject(last, 39); check(net_test_pages() == 2, "fragment retained");
+  inject(first, 42); check(receive(datagram, data, sizeof(data)) == 5 && !std::memcmp(data, "hello", 5), "reverse fragment reassembly");
+  check(net_test_pages() == 1, "reassembled page released");
   put16(first+18, 100); ip_checksum(first); inject(first, 42); inject(first, 42);
-  check(net_test_pages() == 0, "overlap rejected");
+  check(net_test_pages() == 1, "overlap rejected");
   put16(first+18, 101); ip_checksum(first); inject(first, 42); tick(16000);
-  check(net_test_pages() == 0, "fragment expiry");
+  check(net_test_pages() == 1, "fragment expiry");
   unsigned char icmp[4096]; std::memcpy(icmp, good, 34); std::memset(icmp+34, 0, 11);
   icmp[23]=1; icmp[34]=8; std::memcpy(icmp+42, "abc", 3);
   put16(icmp+36, checksum(icmp+34, 11)); put16(icmp+16, 31); ip_checksum(icmp);
   inject(icmp, 45); unsigned captured_length; net_test_capture(icmp, &captured_length);
   check(captured_length == 45 && icmp[34] == 0 && checksum(icmp+34, 11) == 0, "ICMP echo");
-  xv::net::release_owner(1);
-  net_test_owner(1);
+  datagram->close();
+  net_test_clear_interrupt();
   auto *stream = xv::net::create_socket(1, 6);
   check(stream && stream->connect({0x0a000202, 9000}, true) == -115, "nonblocking TCP SYN");
   unsigned char syn[4096], response[4096], data_segment[4096]; unsigned syn_length;
@@ -209,5 +210,6 @@ int main()
   run_network_interface_contracts();
   run_network_control_contracts();
   run_bridge_contracts();
+  run_dhcp_contracts();
   std::puts("network contract: all passed");
 }

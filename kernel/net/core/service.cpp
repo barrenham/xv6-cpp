@@ -1,7 +1,7 @@
 module;
 #include "kernel/net/control.h"
 module xv.net;
-import :services;
+import :udp;
 import :registry;
 import :tcp;
 import :ethernet_interface;
@@ -23,9 +23,12 @@ constinit SocketRegistry sockets(ip, udp);
 constinit TcpProtocol tcp(sockets);
 constinit IpInIpProtocol tunnels;
 constinit BridgeManager bridges(interface_registry, routes, ip);
-constinit NetworkManager manager(interface_registry, routes, loopback, &bridges);
+constinit LeaseConfiguration lease_configuration(interface_registry, routes, loopback);
+constinit DhcpManager dhcp(interface_registry, ip, lease_configuration);
+constinit NetworkManager manager(interface_registry, routes, loopback, &bridges, &dhcp);
 bool qemu_defaults()
 {
+#if !XV_NET_BOOT_DHCP
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
   {
     auto &interface = ethernet[i]; unsigned address = 0x0a00020f + (i<<8);
@@ -35,17 +38,19 @@ bool qemu_defaults()
         !routes.add(0, 0, interface, (address & 0xffffff00)|2, i*10)) return false;
   }
   return true;
+#else
+  return true;
+#endif
 }
 }
 int control(unsigned operation, netctl_request &request) { return manager.execute(operation, request); }
 const InterfaceRegistry &interfaces() { return interface_registry; }
 const RoutingTable &routing_table() { return routes; }
-UdpProtocol &udp_protocol() { return udp; }
 SocketRegistry &socket_registry() { return sockets; }
 TcpProtocol &tcp_protocol() { return tcp; }
 void initialize(NetworkSetup *setup)
 {
-  sockets.initialize(); ip.initialize(); loopback.initialize();
+  sockets.initialize(); ip.initialize(); loopback.initialize(); dhcp.initialize();
   loopback.add_address({0x7f000001, 8}); loopback.set_up(true); loopback.attach(ip);
   if (!interface_registry.add(loopback) || !routes.add(0x7f000000, 8, loopback)) detail::fail("loopback setup");
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
@@ -58,14 +63,22 @@ void initialize(NetworkSetup *setup)
   }
   bridges.initialize();
   ip.attach(1, icmp); ip.attach(17, udp); ip.attach(6, tcp); ip.attach(4, tunnels);
-  initialize_legacy_udp(); udp.attach(sockets);
+  udp.attach(sockets);
   if (!(setup ? setup->configure(interface_registry, routes, ip, tunnels) : qemu_defaults()) ||
       !interface_registry.seal()) detail::fail("invalid network setup");
   routes.seal();
+#if XV_NET_BOOT_DHCP
+  if (!setup)
+    for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
+    {
+      netctl_request request{}; request.version=NETCTL_VERSION; request.size=sizeof(request); request.ifindex=ethernet[i].id();
+      if (dhcp.execute(NETCTL_DHCP_START,request)<0) detail::fail("DHCP startup");
+    }
+#endif
 }
 void timer_tick()
 {
   auto now = detail::milliseconds();
-  interface_registry.tick(now); ip.tick(now); sockets.tick(now); interface_registry.tick(now);
+  interface_registry.tick(now); ip.tick(now); dhcp.tick(now); sockets.tick(now); interface_registry.tick(now);
 }
 }

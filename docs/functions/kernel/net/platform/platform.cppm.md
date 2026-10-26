@@ -9,7 +9,6 @@
 - [`xv::net::detail::free_page`](kernel_platform.cpp.md#fn-9ef32a99d26fe40e)
 - [`xv::net::detail::interrupted`](kernel_platform.cpp.md#fn-99f626cb5d17f655)
 - [`xv::net::detail::milliseconds`](kernel_platform.cpp.md#fn-faf2eec702e52b21)
-- [`xv::net::detail::owner`](kernel_platform.cpp.md#fn-7079e964eeda41e2)
 - [`xv::net::detail::prepare_sleep`](kernel_platform.cpp.md#fn-eeff613785c4e3e3)
 - [`xv::net::detail::sleep`](kernel_platform.cpp.md#fn-b5609c0fae83d6c4)
 - [`xv::net::detail::wake`](kernel_platform.cpp.md#fn-44622dca17b535c2)

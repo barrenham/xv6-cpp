@@ -49,7 +49,11 @@ void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
   unsigned source = wire::read32(ip+12), destination = wire::read32(ip+16);
   if ((ip[0] >> 4) != 4 || header < 20 || total < header || total > packet.size() ||
       !ip[8] || (wire::read16(ip+6)&0x8000) || wire::sum(ip, header) != 0xffff ||
-      !interface.accepts_destination(destination, interfaces_) || !source || (source >> 28) >= 14) { interface.receive_drop(); return; }
+      !source || (source >> 28) >= 14) { interface.receive_drop(); return; }
+  IpDatagram bootstrap{source,destination,ip[9],header,total-header,&interface};
+  if (!(wire::read16(ip+6)&0x3fff) && ip[9]==17 && bootstrap_ &&
+      bootstrap_->receive_bootstrap(interface,packet,bootstrap)) return;
+  if (!interface.accepts_destination(destination,interfaces_)) { interface.receive_drop(); return; }
   if (wire::read16(ip+6)&0x3fff) { fragment(interface, packet, header, total); return; }
   IpDatagram datagram{source, destination, ip[9], header, total-header, &interface};
   for (auto &h : handlers_) if (h.handler && h.protocol == datagram.protocol)
@@ -111,5 +115,22 @@ void Ipv4Layer::tick(unsigned long now)
     if (a.page && a.deadline <= now) { Packet expired(a.page, 0); a = {}; }
     lock_.release();
   }
+}
+}
+
+namespace xv::net
+{
+int Ipv4Layer::send_bootstrap(NetworkInterface &interface,Packet &packet,unsigned source)
+{
+  if (!packet || packet.size()<28 || packet.size()>interface.mtu()) return -EMSGSIZE;
+  if (interfaces_.find(interface.id())!=&interface || !interface.dhcp_active() || !interface.up() ||
+      interface.master() || (source && !interface.owns(source))) return -ENETUNREACH;
+  auto *p=packet.data();
+  if (wire::read16(p+20)!=68 || wire::read16(p+22)!=67) return -EINVAL;
+  wire::zero(p,20); p[0]=0x45; p[8]=64; p[9]=17;
+  wire::write16(p+2,packet.size()); wire::write16(p+4,__atomic_fetch_add(&identification_,1U,__ATOMIC_RELAXED));
+  wire::write16(p+6,0x4000); wire::write32(p+12,source); wire::write32(p+16,0xffffffff);
+  wire::write16(p+10,~wire::sum(p,20));
+  return interface.send_bootstrap(packet);
 }
 }

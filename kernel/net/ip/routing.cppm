@@ -16,11 +16,12 @@ public:
 private:
   friend class NetworkManager;
   friend class BridgeManager;
+  friend class LeaseConfiguration;
   struct Route
   {
     unsigned network = 0, prefix = 0, gateway = 0, metric = 0, source = 0;
     NetworkInterface *interface = nullptr;
-    unsigned owner = 0, local_address = 0;
+    unsigned owner = 0, local_address = 0, lease_owner = 0;
   } routes_[32]{};
   unsigned count_ = 0;
   bool sealed_ = false;

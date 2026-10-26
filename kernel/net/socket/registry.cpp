@@ -34,7 +34,7 @@ TcpSocket *SocketRegistry::create_child()
 }
 bool SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except, unsigned local_address) const
 {
-  if (protocol == 17 && legacy_port_used(port)) return true;
+  if (protocol==17 && port==68) return true;
   for (auto *s : sockets_) if (s && s != except && s->protocol() == protocol && s->bound().port == port &&
       (!local_address || !s->bound().address || s->bound().address == local_address)) return true;
   return false;

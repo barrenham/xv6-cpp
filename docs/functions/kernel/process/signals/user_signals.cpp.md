@@ -151,6 +151,6 @@
 @details 本函数可见的状态更新包括：`suspend_restarted_ = true;`；`trapframe->epc -= 4;`。局部临时变量与对象字段应按作用域区分。
 @details 需要特别跟踪的条件：`number == SYS_sigsuspend && result == -1 && stop_requested()`；`result != -1 || !syscall_interrupted_ || !signal`；`restartable && (pending_signals_.action(signal).flags & SA_RESTART)`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`result`；`argument`；`-EINTR`。应结合上面的条件检查区分正常值、空值和错误值。
-@details UDP recv 与 read/write/wait/waitpid 一样支持 SA_RESTART；捕获信号且未启用重启时返回 -EINTR，重启时回退系统调用 PC 并恢复首参数。
+@details UDP socket 的 recvfrom 与 read/write/wait/waitpid 一样支持 SA_RESTART；捕获信号且未启用重启时返回 -EINTR，重启时回退系统调用 PC 并恢复首参数。
 @details accept、recvfrom、sendto 加入可 SA_RESTART 重启的阻塞调用；read/write 已覆盖 Socket 字节流。connect 中断保留在途连接，应用可 poll 查询，避免自动重复发起 connect。
 ```

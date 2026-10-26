@@ -37,10 +37,6 @@
 #define SYS_symlink   27
 #define SYS_mmap      28
 #define SYS_munmap    29
-#define SYS_bind      30
-#define SYS_unbind    31
-#define SYS_send      32
-#define SYS_recv      33
 #define SYS_pgpte     34
 #define SYS_vmprint   35
 #define SYS_rwlktest  36

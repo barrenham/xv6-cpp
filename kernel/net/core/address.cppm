@@ -7,6 +7,7 @@ struct Ipv4Address
 {
   unsigned address = 0;
   unsigned prefix = 0;
+  unsigned owner = 0;
   unsigned mask() const { return prefix && prefix <= 32 ? ~0U << (32-prefix) : 0; }
   bool contains(unsigned value) const { return (value & mask()) == (address & mask()); }
 };

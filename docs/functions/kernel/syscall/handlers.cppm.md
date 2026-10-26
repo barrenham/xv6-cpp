@@ -9,7 +9,6 @@
 ## 函数导航
 
 - [`xv::syscall::sys_accept`](syssocket.cpp.md#fn-a551ee0c6cc31b66)
-- [`xv::syscall::sys_bind`](handlers.cppm.md#fn-7add8f742a0f380b)
 - [`xv::syscall::sys_chdir`](sysfile.cpp.md#fn-5db6c22d9b99841b)
 - [`xv::syscall::sys_close`](sysfile.cpp.md#fn-4692a7b4aafb1a42)
 - [`xv::syscall::sys_connect`](syssocket.cpp.md#fn-6cc9bb91284d2288)
@@ -42,11 +41,9 @@
 - [`xv::syscall::sys_pipe`](sysfile.cpp.md#fn-4fdcb85095f658e9)
 - [`xv::syscall::sys_poll`](syspoll.cpp.md#fn-9423b8d80c87e07b)
 - [`xv::syscall::sys_read`](sysfile.cpp.md#fn-fe1cdff590d53ee1)
-- [`xv::syscall::sys_recv`](handlers.cppm.md#fn-0e996b82215416d8)
 - [`xv::syscall::sys_recvfrom`](syssocket.cpp.md#fn-f11541d42bf45977)
 - [`xv::syscall::sys_rwlktest`](handlers.cppm.md#fn-1d55124bdf88bbe8)
 - [`xv::syscall::sys_sbrk`](sysproc.cpp.md#fn-e24ad0a860144ff2)
-- [`xv::syscall::sys_send`](handlers.cppm.md#fn-2528203d05b39b5f)
 - [`xv::syscall::sys_sendto`](syssocket.cpp.md#fn-4280b55882ad0bde)
 - [`xv::syscall::sys_setpgid`](sysproc.cpp.md#fn-9ebd01f65216ef04)
 - [`xv::syscall::sys_setsid`](sysproc.cpp.md#fn-cd3291a03e4e4fd4)
@@ -61,53 +58,12 @@
 - [`xv::syscall::sys_sockbind`](syssocket.cpp.md#fn-08947764259f8414)
 - [`xv::syscall::sys_socket`](syssocket.cpp.md#fn-1248323fc95ac4c4)
 - [`xv::syscall::sys_sync`](sysfile.cpp.md#fn-f630890d41c7271a)
-- [`xv::syscall::sys_unbind`](handlers.cppm.md#fn-fdefa0ba0439a4a9)
 - [`xv::syscall::sys_unlink`](sysfile.cpp.md#fn-4aa7dc56022e07b7)
 - [`xv::syscall::sys_uptime`](sysproc.cpp.md#fn-d5a85217c5ec8031)
 - [`xv::syscall::sys_vmprint`](sysproc.cpp.md#fn-b43c13f418afd200)
 - [`xv::syscall::sys_wait`](sysproc.cpp.md#fn-0e651ab6af812b15)
 - [`xv::syscall::sys_waitpid`](sysproc.cpp.md#fn-47570f7534c0492e)
 - [`xv::syscall::sys_write`](sysfile.cpp.md#fn-dc225934cc4ef27f)
-
-<a id="fn-7add8f742a0f380b"></a>
-
-## `xv::syscall::sys_bind`
-
-```doxygen
-@fn unsigned long xv::syscall::sys_bind(void)
-@brief 网络系统调用：校验端口 1..65535 后绑定当前 PID；返回 0 或 -1。
-@details 调用 xv.net 服务；当前 dev 配置已启用 LAB_NET。
-```
-
-<a id="fn-fdefa0ba0439a4a9"></a>
-
-## `xv::syscall::sys_unbind`
-
-```doxygen
-@fn unsigned long xv::syscall::sys_unbind(void)
-@brief 网络系统调用：校验端口后释放当前 PID 的绑定引用；最后一个引用释放排队页。
-@details 调用 xv.net 服务；当前 dev 配置已启用 LAB_NET。
-```
-
-<a id="fn-2528203d05b39b5f"></a>
-
-## `xv::syscall::sys_send`
-
-```doxygen
-@fn unsigned long xv::syscall::sys_send(void)
-@brief 网络系统调用：读取源端口、目标 IPv4/端口、用户指针和长度，拒绝负长度及超范围端口，再交给网络栈组包；可返回 -EAGAIN。
-@details 调用 xv.net 服务；当前 dev 配置已启用 LAB_NET。
-```
-
-<a id="fn-0e996b82215416d8"></a>
-
-## `xv::syscall::sys_recv`
-
-```doxygen
-@fn unsigned long xv::syscall::sys_recv(void)
-@brief 网络系统调用：读取接收元信息与数据缓冲区的用户地址，拒绝负容量或超范围端口；阻塞接收支持信号中断和 SA_RESTART。
-@details 调用 xv.net 服务；当前 dev 配置已启用 LAB_NET。
-```
 
 <a id="fn-1d55124bdf88bbe8"></a>
 

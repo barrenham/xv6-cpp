@@ -25,6 +25,8 @@ std::mutex wait_mutex;
 std::vector<Waiter *> waiters;
 std::atomic<int> next_pid{1};
 thread_local int interrupt_depth = 0;
+thread_local bool require_pinned_cpu = false;
+std::atomic<unsigned> pinned_cpu_lookups{0};
 std::atomic<bool> interruption{false};
 thread_local Waiter waiter;
 } // namespace
@@ -45,6 +47,11 @@ void pop_interrupts_off()
 
 void *current_cpu()
 {
+  if (require_pinned_cpu)
+  {
+    if (interrupt_depth == 0) fail("CPU lookup with interrupts enabled");
+    pinned_cpu_lookups.fetch_add(1);
+  }
   return &interrupt_depth;
 }
 
@@ -132,3 +139,16 @@ extern "C" void xv_test_set_interrupted(bool value)
 {
   xv::sync::detail::interruption.store(value);
 }
+
+namespace xv::sync
+{
+void push_interrupts_off() { detail::push_interrupts_off(); }
+void pop_interrupts_off() { detail::pop_interrupts_off(); }
+}
+
+extern "C" int xv_test_interrupt_depth()
+{ return xv::sync::detail::interrupt_depth; }
+extern "C" void xv_test_require_pinned_cpu(bool enabled)
+{ xv::sync::detail::require_pinned_cpu = enabled; }
+extern "C" unsigned xv_test_pinned_cpu_lookups()
+{ return xv::sync::detail::pinned_cpu_lookups.load(); }

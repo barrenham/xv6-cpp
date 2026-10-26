@@ -14,6 +14,7 @@
 - [`xv::net::NetworkInterface::NetworkInterface`](interface.cppm.md#fn-7f76e185fefb2835)
 - [`xv::net::NetworkInterface::NetworkInterface`](interface.cppm.md#fn-75d62bfd584e1c73)
 - [`xv::net::NetworkInterface::accepts_destination`](interface.cpp.md#fn-afdbdf714f5adc2b)
+- [`xv::net::NetworkInterface::account_send`](interface.cpp.md#fn-c99a4c9b5b90a08c)
 - [`xv::net::NetworkInterface::add_address`](interface.cpp.md#fn-29e4fdf0db63d8be)
 - [`xv::net::NetworkInterface::address`](interface.cppm.md#fn-61d3aff01263ffa7)
 - [`xv::net::NetworkInterface::address_count`](interface.cppm.md#fn-94e3c574ca835a7a)
@@ -21,6 +22,7 @@
 - [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
 - [`xv::net::NetworkInterface::carrier`](interface.cppm.md#fn-b5047586873434d7)
 - [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
+- [`xv::net::NetworkInterface::dhcp_active`](interface.cppm.md#fn-85aa8fb35261e0b3)
 - [`xv::net::NetworkInterface::generation`](interface.cppm.md#fn-f3c8aa01de8e327c)
 - [`xv::net::NetworkInterface::id`](interface.cppm.md#fn-b511fe96a0cf54c6)
 - [`xv::net::NetworkInterface::invalidate`](interface.cppm.md#fn-9b47e77a19f3fcde)
@@ -36,11 +38,13 @@
 - [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
 - [`xv::net::NetworkInterface::receive_drop`](interface.cpp.md#fn-72713f8a1c6e3db4)
 - [`xv::net::NetworkInterface::send`](interface.cpp.md#fn-02e2a99c0121b11a)
+- [`xv::net::NetworkInterface::send_bootstrap`](interface.cpp.md#fn-4486a19c308f9201)
 - [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
 - [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
 - [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
 - [`xv::net::NetworkInterface::tick`](interface.cppm.md#fn-d7cce1ea0cdf5e32)
 - [`xv::net::NetworkInterface::transmit`](interface.cppm.md#fn-01938802e0c33e15)
+- [`xv::net::NetworkInterface::transmit_bootstrap`](interface.cppm.md#fn-6d7f4d82c2a0b4ef)
 - [`xv::net::NetworkInterface::up`](interface.cppm.md#fn-500511d922186f66)
 - [`xv::net::NetworkInterface::~NetworkInterface`](interface.cppm.md#fn-03de2f61c61d9eae)
 
@@ -284,4 +288,23 @@
 ```doxygen
 @fn NetworkInterface *xv::net::InterfaceRegistry::at(unsigned index) const
 @brief 在配置锁内按发布顺序借用接口，越界返回 nullptr；对象长期存活，但并发注销后可能已不在注册表内。
+```
+<a id="fn-85aa8fb35261e0b3"></a>
+
+## `xv::net::NetworkInterface::dhcp_active`
+
+```doxygen
+@fn bool xv::net::NetworkInterface::dhcp_active() const
+@brief 在配置锁下查询接口是否由 DHCP 客户端占用。
+@details 尚在发现或失败重试阶段也算活动，桥管理必须要求客户端停止后才接入成员或注销。
+```
+
+<a id="fn-6d7f4d82c2a0b4ef"></a>
+
+## `xv::net::NetworkInterface::transmit_bootstrap`
+
+```doxygen
+@fn int xv::net::NetworkInterface::transmit_bootstrap(Packet &)
+@brief 不具备以太广播能力的接口默认返回不支持。
+@details 回环和三层隧道不会通过普通 IP 发送契约伪造 DHCP 二层能力。
 ```

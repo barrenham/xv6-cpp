@@ -9,18 +9,7 @@
 - [`xv::net::socket_registry`](service.cpp.md#fn-a6dd2cdb97db1848)
 - [`xv::net::tcp_protocol`](service.cpp.md#fn-955e03b182fca925)
 - [`xv::net::timer_tick`](service.cpp.md#fn-cbf196a5e94594a2)
-- [`xv::net::udp_protocol`](service.cpp.md#fn-75964e7f4e71a814)
 - [`xv::net::qemu_defaults`](service.cpp.md#fn-2dfba446a5a4cb8b)
-
-<a id="fn-75964e7f4e71a814"></a>
-
-## `xv::net::udp_protocol`
-
-```doxygen
-@fn UdpProtocol &xv::net::udp_protocol()
-@brief 借用已挂接 IPv4 protocol17 的唯一 UdpProtocol。。
-@details 借用已挂接 IPv4 protocol17 的唯一 UdpProtocol。
-```
 
 <a id="fn-a6dd2cdb97db1848"></a>
 
@@ -60,23 +49,6 @@
 @brief 借用只读静态路由服务，用于按目标查询实际出口和源地址。
 ```
 
-<a id="fn-cbf196a5e94594a2"></a>
-
-## `xv::net::timer_tick`
-
-```doxygen
-@fn void xv::net::timer_tick()
-@brief 使用同一单调时刻依次服务接口、IPv4 重组和 socket 定时器，再排空本轮生成的回环包；由 hart0 时钟服务调用。
-```
-<a id="fn-2dfba446a5a4cb8b"></a>
-
-## `xv::net::qemu_defaults`
-
-```doxygen
-@fn bool xv::net::qemu_defaults()
-@brief 按发现顺序应用 QEMU 地址和网关策略；为本机 /32 与直连路由标记所属接口及地址，运行期删地址可一并清理。
-```
-
 <a id="fn-6f0e1f01771f2e2f"></a>
 
 ## `xv::net::control`
@@ -90,11 +62,32 @@
 @return 查询 1/0、修改成功 0，失败负 errno。
 @see docs/network-management.md
 ```
+<a id="fn-2dfba446a5a4cb8b"></a>
+
+## `xv::net::qemu_defaults`
+
+```doxygen
+@fn bool xv::net::qemu_defaults()
+@brief 按构建策略提供 QEMU 启动配置。
+@details 默认 DHCP 模式不预装静态地址；关闭 XV_NET_DHCP 时保留 10.0.2..5.15/24、对应网关和自动路由。客户端在服务初始化末尾另行启动。
+```
+
 <a id="fn-cdd3b17385336e40"></a>
 
 ## `xv::net::initialize`
 
 ```doxygen
-@fn void xv::net::initialize(NetworkSetup *setup)
-@brief 一次性组装协议栈、回环和发现的物理接口，再初始化未发布的桥槽，应用启动配置并封存启动 API；运行期修改走管理事务。
+@fn void xv::net::initialize(NetworkSetup *setup = nullptr)
+@brief 组装网络协议、回环、物理接口、桥和 DHCP 服务，并应用启动策略。
+@details 注册 DHCP 专用 IPv4 接收入口后封存启动 API；默认构建在无地址物理接口上启动客户端，显式 NetworkSetup 会替代自动策略。UDP 仅绑定 SocketRegistry，不装配旧端口接收端。配置错误终止启动。
+```
+
+<a id="fn-cbf196a5e94594a2"></a>
+
+## `xv::net::timer_tick`
+
+```doxygen
+@fn void xv::net::timer_tick()
+@brief 用同一单调时刻维护接口、IP 重组、DHCP 租约和 socket，再排空回环。
+@details DHCP 检查续租、重新绑定、过期和重试；发送及 ARP 清理均发生在配置锁外。
 ```

@@ -20,3 +20,14 @@ int EthernetInterface::transmit(Packet &packet, unsigned next_hop)
 void EthernetInterface::receive(Packet &packet)
 { if (packet.remove_prefix(14)) deliver(packet); }
 }
+
+namespace xv::net
+{
+int EthernetInterface::transmit_bootstrap(Packet &packet)
+{
+  if (master() || !up() || !carrier()) return -ENETUNREACH;
+  if (!packet || packet.size()<28 || packet.size()>mtu()) return -EMSGSIZE;
+  constexpr unsigned char broadcast[6]={255,255,255,255,255,255};
+  return link_.send_ip(packet,broadcast);
+}
+}

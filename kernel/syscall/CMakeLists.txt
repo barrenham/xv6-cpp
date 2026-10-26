@@ -9,7 +9,6 @@ target_sources(kernel PRIVATE
   syspoll.cpp
   sysfile.cpp
   sysproc.cpp
-  sysnet.cpp
   sysnetctl.cpp
   syssocket.cpp
   sysvm.cpp

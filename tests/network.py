@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--cpus', type=int, default=3)
     parser.add_argument('--multi', action='store_true')
     parser.add_argument('--management', action='store_true')
+    parser.add_argument('--dhcp', action='store_true')
     args = parser.parse_args()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer:
         peer.bind(('127.0.0.1', 0))
@@ -45,7 +46,7 @@ def main():
                            '-global', 'virtio-mmio.force-legacy=false',
                            '-drive', f'file={image},if=none,format=raw,id=x0',
                            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0',
-                           '-netdev', 'user,id=net0', '-device',
+                           '-netdev', 'user,id=net0'+(',dhcpstart=10.0.2.100' if args.dhcp else ''), '-device',
                            'e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56']
                 if args.multi:
                     command += ['-netdev', 'user,id=net1,net=10.0.3.0/24,host=10.0.3.2,dhcpstart=10.0.3.15',
@@ -53,7 +54,7 @@ def main():
                 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT, bufsize=0)
                 transcript = bytearray()
-                log = Path(args.image).parent/f'{"netctl" if args.management else "multinet" if args.multi else "network"}-{args.cpus}cpu.log'
+                log = Path(args.image).parent/f'{"dhcp" if args.dhcp else "netctl" if args.management else "multinet" if args.multi else "network"}-{args.cpus}cpu.log'
                 selector = selectors.DefaultSelector()
                 selector.register(process.stdout, selectors.EVENT_READ)
                 cursor = 0
@@ -70,13 +71,31 @@ def main():
                         for key, _ in selector.select(0.1):
                             data = os.read(key.fd, 65536)
                             transcript.extend(data)
-                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript or b'netctltest: FAIL:' in transcript:
+                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript or b'netctltest: FAIL:' in transcript or b'dhcptest: FAIL:' in transcript:
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
                     expect('e1000: ready')
                     expect('$ ')
+                    for i in range(2 if args.multi else 1):
+                        start = cursor
+                        process.stdin.write(f'netctl dhcp show eth{i}\n'.encode()); process.stdin.flush(); expect('$ ')
+                        if args.dhcp and b'DHCP OFF' in transcript[start:cursor]:
+                            for text in ['netctl route del default dev eth0 via 10.0.2.2',
+                                         'netctl addr del 10.0.2.15/24 dev eth0', 'netctl dhcp start eth0']:
+                                process.stdin.write((text+'\n').encode()); process.stdin.flush(); expect('$ ')
+                            process.stdin.write(b'netctl dhcp wait eth0\n'); process.stdin.flush()
+                            expect('eth0 DHCP BOUND'); expect('$ ')
+                        elif b'DHCP OFF' not in transcript[start:cursor]:
+                            process.stdin.write(f'netctl dhcp wait eth{i}\n'.encode()); process.stdin.flush()
+                            expect(f'eth{i} DHCP BOUND'); expect('$ ')
                     if args.management:
+                        start = cursor
+                        process.stdin.write(b'netctl dhcp show eth0\n'); process.stdin.flush(); expect('$ ')
+                        if b'DHCP OFF' not in transcript[start:cursor]:
+                            for text in ['netctl dhcp stop eth0', 'netctl addr add 10.0.2.15/24 dev eth0',
+                                         'netctl route add default dev eth0 via 10.0.2.2']:
+                                process.stdin.write((text+'\n').encode()); process.stdin.flush(); expect('$ ')
                         commands = [('netctl link', 'eth0 UP'), ('netctl addr', '10.0.2.15/24'),
                                     ('netctl route', '0.0.0.0/0 dev eth0'),
                                     ('netctl link set eth0 down', None), ('netctl link', 'eth0 DOWN'),
@@ -97,15 +116,15 @@ def main():
                             expect('$ ')
                     # Repeat in the same boot: exit must release all resources.
                     for _ in range(2):
-                        program = 'netctltest' if args.management else 'multinet' if args.multi else 'nettest'
+                        program = 'dhcptest' if args.dhcp else 'netctltest' if args.management else 'multinet' if args.multi else 'nettest'
                         process.stdin.write(f'{program} {peer.getsockname()[1]}\n'.encode())
                         process.stdin.flush()
-                        expect('netctltest: ALL PASSED' if args.management else 'multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
+                        expect('dhcptest: ALL PASSED' if args.dhcp else 'netctltest: ALL PASSED' if args.management else 'multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
                         expect('$ ')
-                    assert len(received) >= (8 if args.management else 160 if args.multi else 170), len(received)
-                    if not args.management:
+                    assert len(received) >= (8 if args.management or args.dhcp else 160 if args.multi else 170), len(received)
+                    if not args.management and not args.dhcp:
                         assert any(len(p) == 1472 for p in received)
-                    if not args.multi and not args.management:
+                    if not args.multi and not args.management and not args.dhcp:
                         assert b'' in received
                     print(f'network: {args.cpus} CPUs, {len(received)} datagrams, all passed')
                 finally:

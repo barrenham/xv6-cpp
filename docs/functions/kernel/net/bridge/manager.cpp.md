@@ -41,15 +41,6 @@
 @brief 在固定槽中按 ID 查找已发布的桥；未创建或已注销返回 nullptr，调用者须持配置锁。
 ```
 
-<a id="fn-c333fba347c24bcd"></a>
-
-## `xv::net::BridgeManager::unused`
-
-```doxygen
-@fn bool xv::net::BridgeManager::unused(NetworkInterface &interface) const
-@brief 在配置锁内检查接口既无地址，也无以它为出口或自动归属的路由；供加入成员和删除桥的前置校验。
-```
-
 <a id="fn-9249cf80bd2b818c"></a>
 
 ## `xv::net::BridgeManager::membership`
@@ -63,4 +54,14 @@
 @param add true 加入，false 移出。
 @return 成功零；忙、不支持、容量不足或未找到返回负 errno。
 @pre 已持桥管理锁，调用本函数时不持配置锁。
+```
+<a id="fn-c333fba347c24bcd"></a>
+
+## `xv::net::BridgeManager::unused`
+
+```doxygen
+@fn bool xv::net::BridgeManager::unused(NetworkInterface &interface) const
+@brief 检查接口没有地址、路由归属或运行中的 DHCP 客户端。
+@details DHCP 尚未取得地址也会占用接口，必须先 stop 才能加入成员或删除桥。
+@pre 已持配置锁。
 ```

@@ -5,7 +5,7 @@ import :udp;
 namespace xv::net
 {
 void UdpProtocol::attach(DatagramSink &sink)
-{ for (auto &s : sinks_) if (!s) { s = &sink; return; } }
+{ sink_ = &sink; }
 void UdpProtocol::receive(Packet &packet, const IpDatagram &d)
 {
   auto *p = packet.data()+d.offset;
@@ -14,7 +14,7 @@ void UdpProtocol::receive(Packet &packet, const IpDatagram &d)
       wire::sum(packet.data()+12, 8, 17+d.length)) != 0xffff) return;
   Endpoint source{d.source, static_cast<unsigned short>(wire::read16(p))};
   Endpoint destination{d.destination, static_cast<unsigned short>(wire::read16(p+2))};
-  for (auto *s : sinks_) if (s && s->deliver(packet, source, destination, d.offset+8, d.length-8)) return;
+  if (sink_ && sink_->deliver(packet, source, destination, d.offset+8, d.length-8)) return;
   icmp_.unreachable(packet, d);
 }
 int UdpProtocol::send(Endpoint source, Endpoint destination, const void *data, unsigned length)

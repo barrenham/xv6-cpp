@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <thread>
 #include "kernel/net/control.h"
+#include "native_wait.h"
+import xv.sync;
 import xv.net;
 extern "C" void net_test_device(bool, bool);
 extern "C" int net_test_pages();
@@ -14,10 +16,68 @@ netctl_request request(unsigned interface = 2)
 { netctl_request r{}; r.version = NETCTL_VERSION; r.size = sizeof(r); r.ifindex = interface; return r; }
 int address(unsigned operation, unsigned value, unsigned prefix = 24)
 { auto r = request(); r.address = value; r.prefix = prefix; return xv::net::control(operation,r); }
+void guard_contract()
+{
+  using namespace xv::net;
+  check(xv_test_interrupt_depth() == 0, "guard starts outside interrupt critical section");
+  unsigned observed = xv_test_pinned_cpu_lookups();
+  std::atomic<bool> entered{false};
+  std::thread contender;
+  {
+    ConfigurationGuard owner;
+    contender = std::thread([&] {
+      xv_test_require_pinned_cpu(true);
+      {
+        ConfigurationGuard guard;
+        check(configuration_lock().holding(), "contender owns configuration lock");
+        entered = true;
+      }
+      check(xv_test_interrupt_depth() == 0, "contender restores interrupt depth");
+      xv_test_require_pinned_cpu(false);
+    });
+    while (xv_test_pinned_cpu_lookups() == observed) std::this_thread::yield();
+    check(!entered.load(), "ownership lookup is pinned while another CPU owns the lock");
+  }
+  contender.join();
+  check(entered.load() && xv_test_interrupt_depth() == 0, "contender acquires after outer scope releases");
+  {
+    ConfigurationGuard outer;
+    int depth = xv_test_interrupt_depth();
+    check(depth > 0 && configuration_lock().holding(), "outer guard pins CPU and owns lock");
+    {
+      ConfigurationGuard inner;
+      check(configuration_lock().holding(), "nested guard borrows lock");
+      check(interfaces().find(1), "nested guarded interface lookup");
+    }
+    check(configuration_lock().holding() && xv_test_interrupt_depth() == depth, "nested guard preserves outer ownership and depth");
+  }
+  check(xv_test_interrupt_depth() == 0, "outer guard restores entry depth");
+  xv::sync::push_interrupts_off();
+  int depth = xv_test_interrupt_depth();
+  {
+    ConfigurationGuard guard;
+    check(configuration_lock().holding(), "guard entered with interrupts already disabled");
+  }
+  check(xv_test_interrupt_depth() == depth, "guard preserves caller interrupt disable scope");
+  xv::sync::pop_interrupts_off();
+  configuration_lock().acquire();
+  depth = xv_test_interrupt_depth();
+  {
+    ConfigurationGuard borrowed;
+    check(configuration_lock().holding(), "guard borrows manually acquired lock");
+  }
+  check(configuration_lock().holding() && xv_test_interrupt_depth() == depth, "borrowed guard does not release caller lock");
+  configuration_lock().release();
+  auto early_return = [] { ConfigurationGuard guard; return; };
+  early_return();
+  check(xv_test_interrupt_depth() == 0, "early return restores interrupt depth");
+}
+
 }
 extern "C" void run_network_control_contracts()
 {
   using namespace xv::net;
+  guard_contract();
   auto r = request(); r.version = 2;
   check(control(NETCTL_LINK,r)==-22,"ABI version rejected");
   r=request(); r.size=0; check(control(NETCTL_LINK,r)==-22,"ABI size rejected");

@@ -56,6 +56,5 @@ protected:
   int error_ = 0;
   bool owned_ = true;
 };
-bool legacy_port_used(unsigned short port);
 SocketRegistry &socket_registry();
 }

@@ -14,6 +14,7 @@
 - [`xv::net::EthernetInterface::receiver`](ethernet_interface.cppm.md#fn-b39f14a27d219261)
 - [`xv::net::EthernetInterface::tick`](ethernet_interface.cppm.md#fn-df47067df667684e)
 - [`xv::net::EthernetInterface::transmit`](ethernet_interface.cpp.md#fn-3e698439f28e1935)
+- [`xv::net::EthernetInterface::transmit_bootstrap`](ethernet_interface.cpp.md#fn-6a23b3040e6fa382)
 
 <a id="fn-e8752742067697dc"></a>
 

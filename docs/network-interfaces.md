@@ -12,9 +12,9 @@ IP、TCP、UDP 和 socket 服务各只有一份。每块网卡或虚拟链路对
 
 `up()` 是管理状态，`carrier()` 是链路可用状态。路由查询同时检查二者。物理接口 MAC 与是否配置 IPv4 相互独立；没有地址的以太设备仍可以被发现、初始化和注册。三层虚拟接口不需要伪造 MAC。
 
-`InterfaceRegistry` 借用最多八个长期存活的接口，检查 ID、名称和地址拥有关系。配置入口在启动阶段执行：默认 `initialize()` 使用 QEMU 策略；`initialize(&setup)` 调用 `NetworkSetup::configure`，取代默认物理接口配置。回调结束后启动配置 API 被封存；运行期地址、管理状态和路由由受锁保护的 NetworkManager 事务修改，见 [netctl 用户态管理](network-management.md)。物理接口注册仍只在启动期执行；网桥槽可运行期发布/注销，见 [软件网桥](network-bridge.md)。没有物理热插拔、DHCP 或 IPv6。
+`InterfaceRegistry` 借用最多八个长期存活的接口，检查 ID、名称和地址拥有关系。配置入口在启动阶段执行：默认 `initialize()` 使用 QEMU 策略；`initialize(&setup)` 调用 `NetworkSetup::configure`，取代默认物理接口配置。回调结束后启动配置 API 被封存；运行期地址、管理状态和路由由受锁保护的 NetworkManager 事务修改，见 [netctl 用户态管理](network-management.md)。物理接口注册仍只在启动期执行；网桥槽可运行期发布/注销，见 [软件网桥](network-bridge.md)。没有物理热插拔或 IPv6，DHCP 已通过独立客户端接入。
 
-默认策略为发现顺序中的 `eth0..3` 设置 `10.0.2.15/24` 至 `10.0.5.15/24`，网关为对应子网的 `.2`，默认路由 metric 为 0、10、20、30。它是一项启动策略；接入不同网络时应替换它，并为 QEMU 的每个后端设置相应网段。
+默认启动在每个已启用物理接口上启动 DHCP，由服务器分配地址和路由；见 [DHCP 说明](network-dhcp.md)。`XV_NET_DHCP=OFF` 保留原 QEMU 静态策略：eth0..3 对应 10.0.2..5.15/24 和对应 .2 网关。自定义 NetworkSetup 替代自动启动配置；物理网卡 MAC 来自设备。
 
 ## 一份协议栈如何服务多个接口
 

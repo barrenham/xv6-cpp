@@ -127,41 +127,17 @@
     "source": "kernel/net/net.cppm",
     "document": "docs/functions/kernel/net/net.cppm.md",
     "function_usrs": [
-      "c:@N@xv@N@net@F@bind#s#",
       "c:@N@xv@N@net@F@control#i#&$@S@netctl_request#",
-      "c:@N@xv@N@net@F@inherit#I#I#",
       "c:@N@xv@N@net@F@initialize#*$@N@xv@N@net@S@NetworkSetup#",
       "c:@N@xv@N@net@F@interfaces#",
-      "c:@N@xv@N@net@F@receive#s#l#l#l#i#",
-      "c:@N@xv@N@net@F@release_owner#I#",
       "c:@N@xv@N@net@F@routing_table#",
-      "c:@N@xv@N@net@F@send#s#i#s#l#i#",
-      "c:@N@xv@N@net@F@timer_tick#",
-      "c:@N@xv@N@net@F@unbind#s#"
+      "c:@N@xv@N@net@F@timer_tick#"
     ]
   },
   {
     "source": "kernel/net/errno.h",
     "document": "docs/functions/kernel/net/errno.h.md",
     "function_usrs": []
-  },
-  {
-    "source": "kernel/net/stack.cpp",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "function_usrs": [
-      "c:@N@xv@N@net@F@bind#s#",
-      "c:@N@xv@N@net@F@inherit#I#I#",
-      "c:@N@xv@N@net@F@initialize_legacy_udp#",
-      "c:@N@xv@N@net@F@legacy_port_used#s#",
-      "c:@N@xv@N@net@F@receive#s#l#l#l#i#",
-      "c:@N@xv@N@net@F@release_owner#I#",
-      "c:@N@xv@N@net@F@send#s#i#s#l#i#",
-      "c:@N@xv@N@net@F@unbind#s#",
-      "c:stack.cpp@N@xv@N@net@aN@F@detach#&$@N@xv@N@net@aN@S@Handle#",
-      "c:stack.cpp@N@xv@N@net@aN@F@find#s#I#",
-      "c:stack.cpp@N@xv@N@net@aN@F@legacy_lock#",
-      "c:stack.cpp@N@xv@N@net@aN@S@LegacyUdp@F@deliver#&$@N@xv@N@net@S@Packet#$@N@xv@N@net@S@Endpoint#S2_#i#i#"
-    ]
   },
   {
     "source": "kernel/net/control.h",
@@ -496,7 +472,6 @@
     "document": "docs/functions/kernel/syscall/handlers.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@syscall@F@sys_accept#",
-      "c:@N@xv@N@syscall@F@sys_bind#",
       "c:@N@xv@N@syscall@F@sys_chdir#",
       "c:@N@xv@N@syscall@F@sys_close#",
       "c:@N@xv@N@syscall@F@sys_connect#",
@@ -529,11 +504,9 @@
       "c:@N@xv@N@syscall@F@sys_pipe#",
       "c:@N@xv@N@syscall@F@sys_poll#",
       "c:@N@xv@N@syscall@F@sys_read#",
-      "c:@N@xv@N@syscall@F@sys_recv#",
       "c:@N@xv@N@syscall@F@sys_recvfrom#",
       "c:@N@xv@N@syscall@F@sys_rwlktest#",
       "c:@N@xv@N@syscall@F@sys_sbrk#",
-      "c:@N@xv@N@syscall@F@sys_send#",
       "c:@N@xv@N@syscall@F@sys_sendto#",
       "c:@N@xv@N@syscall@F@sys_setpgid#",
       "c:@N@xv@N@syscall@F@sys_setsid#",
@@ -548,7 +521,6 @@
       "c:@N@xv@N@syscall@F@sys_sockbind#",
       "c:@N@xv@N@syscall@F@sys_socket#",
       "c:@N@xv@N@syscall@F@sys_sync#",
-      "c:@N@xv@N@syscall@F@sys_unbind#",
       "c:@N@xv@N@syscall@F@sys_unlink#",
       "c:@N@xv@N@syscall@F@sys_uptime#",
       "c:@N@xv@N@syscall@F@sys_vmprint#",
@@ -604,16 +576,6 @@
       "c:@N@xv@N@syscall@F@fetch_address#l#*l#",
       "c:@N@xv@N@syscall@F@fetch_string#l#*C#I#",
       "c:arguments.cpp@N@xv@N@syscall@F@argument_raw#I#"
-    ]
-  },
-  {
-    "source": "kernel/syscall/sysnet.cpp",
-    "document": "docs/functions/kernel/syscall/sysnet.cpp.md",
-    "function_usrs": [
-      "c:@N@xv@N@syscall@F@sys_bind#",
-      "c:@N@xv@N@syscall@F@sys_recv#",
-      "c:@N@xv@N@syscall@F@sys_send#",
-      "c:@N@xv@N@syscall@F@sys_unbind#"
     ]
   },
   {
@@ -1970,7 +1932,8 @@
     "function_usrs": [
       "c:@N@xv@N@net@S@EthernetInterface@F@initialize#&$@N@xv@N@drivers@S@EthernetDevice#",
       "c:@N@xv@N@net@S@EthernetInterface@F@receive#&$@N@xv@N@net@S@Packet#",
-      "c:@N@xv@N@net@S@EthernetInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#"
+      "c:@N@xv@N@net@S@EthernetInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#",
+      "c:@N@xv@N@net@S@EthernetInterface@F@transmit_bootstrap#&$@N@xv@N@net@S@Packet#"
     ]
   },
   {
@@ -1996,6 +1959,7 @@
       "c:@N@xv@N@net@S@NetworkInterface@F@NetworkInterface#&1$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@NetworkInterface@F@NetworkInterface#i#*1C#i#",
       "c:@N@xv@N@net@S@NetworkInterface@F@accepts_destination#i#&1$@N@xv@N@net@S@InterfaceRegistry#1",
+      "c:@N@xv@N@net@S@NetworkInterface@F@account_send#i#I#",
       "c:@N@xv@N@net@S@NetworkInterface@F@add_address#$@N@xv@N@net@S@Ipv4Address#",
       "c:@N@xv@N@net@S@NetworkInterface@F@address#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@address_count#1",
@@ -2003,6 +1967,7 @@
       "c:@N@xv@N@net@S@NetworkInterface@F@broadcast#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@carrier#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@deliver#&$@N@xv@N@net@S@Packet#",
+      "c:@N@xv@N@net@S@NetworkInterface@F@dhcp_active#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@generation#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@id#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@invalidate#",
@@ -2018,11 +1983,13 @@
       "c:@N@xv@N@net@S@NetworkInterface@F@owns#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@receive_drop#",
       "c:@N@xv@N@net@S@NetworkInterface@F@send#&$@N@xv@N@net@S@Packet#i#",
+      "c:@N@xv@N@net@S@NetworkInterface@F@send_bootstrap#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@NetworkInterface@F@set_up#b#",
       "c:@N@xv@N@net@S@NetworkInterface@F@source_for#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@statistics#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@tick#l#",
       "c:@N@xv@N@net@S@NetworkInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#",
+      "c:@N@xv@N@net@S@NetworkInterface@F@transmit_bootstrap#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@NetworkInterface@F@up#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@~NetworkInterface#"
     ]
@@ -2053,7 +2020,8 @@
       "c:@N@xv@N@net@S@EthernetInterface@F@receive#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@EthernetInterface@F@receiver#",
       "c:@N@xv@N@net@S@EthernetInterface@F@tick#l#",
-      "c:@N@xv@N@net@S@EthernetInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#"
+      "c:@N@xv@N@net@S@EthernetInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#",
+      "c:@N@xv@N@net@S@EthernetInterface@F@transmit_bootstrap#&$@N@xv@N@net@S@Packet#"
     ]
   },
   {
@@ -2066,12 +2034,14 @@
       "c:@N@xv@N@net@S@InterfaceRegistry@F@seal#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@tick#l#",
       "c:@N@xv@N@net@S@NetworkInterface@F@accepts_destination#i#&1$@N@xv@N@net@S@InterfaceRegistry#1",
+      "c:@N@xv@N@net@S@NetworkInterface@F@account_send#i#I#",
       "c:@N@xv@N@net@S@NetworkInterface@F@add_address#$@N@xv@N@net@S@Ipv4Address#",
       "c:@N@xv@N@net@S@NetworkInterface@F@broadcast#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@deliver#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@NetworkInterface@F@owns#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@receive_drop#",
       "c:@N@xv@N@net@S@NetworkInterface@F@send#&$@N@xv@N@net@S@Packet#i#",
+      "c:@N@xv@N@net@S@NetworkInterface@F@send_bootstrap#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@NetworkInterface@F@set_up#b#",
       "c:@N@xv@N@net@S@NetworkInterface@F@source_for#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@statistics#1"
@@ -2128,7 +2098,6 @@
       "c:@N@xv@N@net@N@detail@F@free_page#*v#",
       "c:@N@xv@N@net@N@detail@F@interrupted#",
       "c:@N@xv@N@net@N@detail@F@milliseconds#",
-      "c:@N@xv@N@net@N@detail@F@owner#",
       "c:@N@xv@N@net@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@net@N@detail@F@sleep#",
       "c:@N@xv@N@net@N@detail@F@wake#*v#"
@@ -2145,7 +2114,6 @@
       "c:@N@xv@N@net@N@detail@F@free_page#*v#",
       "c:@N@xv@N@net@N@detail@F@interrupted#",
       "c:@N@xv@N@net@N@detail@F@milliseconds#",
-      "c:@N@xv@N@net@N@detail@F@owner#",
       "c:@N@xv@N@net@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@net@N@detail@F@sleep#",
       "c:@N@xv@N@net@N@detail@F@wake#*v#"
@@ -2170,6 +2138,7 @@
       "c:@N@xv@N@net@S@Ipv4Layer@F@mtu_for#i#i#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@send#&$@N@xv@N@net@S@Packet#i#i#i#*1$@N@xv@N@net@S@NetworkInterface#",
+      "c:@N@xv@N@net@S@Ipv4Layer@F@send_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#i#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@source_for#i#i#*1$@N@xv@N@net@S@NetworkInterface#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@tick#l#"
     ]
@@ -2207,15 +2176,19 @@
     "function_usrs": [
       "c:@N@xv@N@net@S@IpProtocol@F@receive#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
       "c:@N@xv@N@net@S@IpProtocol@F@~IpProtocol#",
+      "c:@N@xv@N@net@S@Ipv4Bootstrap@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
+      "c:@N@xv@N@net@S@Ipv4Bootstrap@F@~Ipv4Bootstrap#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@Ipv4Layer#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@allocate#i#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@attach#i#&$@N@xv@N@net@S@IpProtocol#",
+      "c:@N@xv@N@net@S@Ipv4Layer@F@attach_bootstrap#&$@N@xv@N@net@S@Ipv4Bootstrap#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@fragment#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#i#i#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@initialize#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@local#i#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@mtu_for#i#i#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@send#&$@N@xv@N@net@S@Packet#i#i#i#*1$@N@xv@N@net@S@NetworkInterface#",
+      "c:@N@xv@N@net@S@Ipv4Layer@F@send_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#i#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@source_for#i#i#*1$@N@xv@N@net@S@NetworkInterface#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@tick#l#"
     ]
@@ -2306,7 +2279,6 @@
     "source": "kernel/net/socket/registry.cppm",
     "document": "docs/functions/kernel/net/socket/registry.cppm.md",
     "function_usrs": [
-      "c:@N@xv@N@net@F@legacy_port_used#s#",
       "c:@N@xv@N@net@F@socket_registry#",
       "c:@N@xv@N@net@S@InetSocket@F@InetSocket#&$@N@xv@N@net@S@SocketRegistry#i#",
       "c:@N@xv@N@net@S@InetSocket@F@accept#b#&I#",
@@ -2540,7 +2512,6 @@
       "c:@N@xv@N@net@F@socket_registry#",
       "c:@N@xv@N@net@F@tcp_protocol#",
       "c:@N@xv@N@net@F@timer_tick#",
-      "c:@N@xv@N@net@F@udp_protocol#",
       "c:service.cpp@N@xv@N@net@aN@F@qemu_defaults#"
     ]
   },
@@ -2548,19 +2519,11 @@
     "source": "kernel/net/core/control.cppm",
     "document": "docs/functions/kernel/net/core/control.cppm.md",
     "function_usrs": [
-      "c:@N@xv@N@net@S@NetworkManager@F@NetworkManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#*$@N@xv@N@net@S@BridgeManager#",
+      "c:@N@xv@N@net@S@NetworkManager@F@NetworkManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#*$@N@xv@N@net@S@BridgeManager#*$@N@xv@N@net@S@DhcpManager#",
       "c:@N@xv@N@net@S@NetworkManager@F@execute#i#&$@S@netctl_request#",
       "c:@N@xv@N@net@S@NetworkManager@F@inspect#i#&$@S@netctl_request#",
       "c:@N@xv@N@net@S@NetworkManager@F@mutate#i#&1$@S@netctl_request#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@NetworkManager@F@remove_route#i#"
-    ]
-  },
-  {
-    "source": "kernel/net/core/services.cppm",
-    "document": "docs/functions/kernel/net/core/services.cppm.md",
-    "function_usrs": [
-      "c:@N@xv@N@net@F@initialize_legacy_udp#",
-      "c:@N@xv@N@net@F@udp_protocol#"
     ]
   },
   {
@@ -3881,6 +3844,70 @@
       "c:@N@xv@N@drivers@S@TerminalOutput@F@transmit#*1C#I#b#",
       "c:@N@xv@N@drivers@S@TerminalOutput@F@writable#*$@N@xv@N@sync@S@PollTable#",
       "c:@N@xv@N@drivers@S@TerminalOutput@F@~TerminalOutput#"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/client.cpp",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
+      "c:@N@xv@N@net@S@DhcpManager@F@find#&$@N@xv@N@net@S@NetworkInterface#",
+      "c:@N@xv@N@net@S@DhcpManager@F@initialize#",
+      "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
+      "c:@N@xv@N@net@S@DhcpManager@F@select#&$@N@xv@N@net@S@DhcpManager@S@Client#l#i#",
+      "c:@N@xv@N@net@S@DhcpManager@F@tick#l#",
+      "c:@N@xv@N@net@S@DhcpManager@F@transmit#&1$@N@xv@N@net@S@DhcpManager@S@Client#i#"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/client.cppm",
+    "document": "docs/functions/kernel/net/dhcp/client.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@DhcpManager@F@DhcpManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@Ipv4Layer#&$@N@xv@N@net@S@LeaseConfiguration#",
+      "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
+      "c:@N@xv@N@net@S@DhcpManager@F@find#&$@N@xv@N@net@S@NetworkInterface#",
+      "c:@N@xv@N@net@S@DhcpManager@F@initialize#",
+      "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
+      "c:@N@xv@N@net@S@DhcpManager@F@select#&$@N@xv@N@net@S@DhcpManager@S@Client#l#i#",
+      "c:@N@xv@N@net@S@DhcpManager@F@tick#l#",
+      "c:@N@xv@N@net@S@DhcpManager@F@transmit#&1$@N@xv@N@net@S@DhcpManager@S@Client#i#"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/lease.cpp",
+    "document": "docs/functions/kernel/net/dhcp/lease.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@LeaseConfiguration@F@install#&$@N@xv@N@net@S@NetworkInterface#&1$@N@xv@N@net@S@DhcpLease#&b#",
+      "c:@N@xv@N@net@S@LeaseConfiguration@F@remove#&$@N@xv@N@net@S@NetworkInterface#"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/lease.cppm",
+    "document": "docs/functions/kernel/net/dhcp/lease.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@LeaseConfiguration@F@LeaseConfiguration#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#",
+      "c:@N@xv@N@net@S@LeaseConfiguration@F@install#&$@N@xv@N@net@S@NetworkInterface#&1$@N@xv@N@net@S@DhcpLease#&b#",
+      "c:@N@xv@N@net@S@LeaseConfiguration@F@remove#&$@N@xv@N@net@S@NetworkInterface#"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/message.cpp",
+    "document": "docs/functions/kernel/net/dhcp/message.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@DhcpCodec@F@decode#*1c#i#&$@N@xv@N@net@S@DhcpReply#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@encode#*c#i#&1$@N@xv@N@net@S@DhcpRequest#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@lease#&1$@N@xv@N@net@S@DhcpReply#&$@N@xv@N@net@S@DhcpLease#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@options#*1c#i#&$@N@xv@N@net@S@DhcpReply#&i#b#S"
+    ]
+  },
+  {
+    "source": "kernel/net/dhcp/message.cppm",
+    "document": "docs/functions/kernel/net/dhcp/message.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@net@S@DhcpCodec@F@decode#*1c#i#&$@N@xv@N@net@S@DhcpReply#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@encode#*c#i#&1$@N@xv@N@net@S@DhcpRequest#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@lease#&1$@N@xv@N@net@S@DhcpReply#&$@N@xv@N@net@S@DhcpLease#S",
+      "c:@N@xv@N@net@S@DhcpCodec@F@options#*1c#i#&$@N@xv@N@net@S@DhcpReply#&i#b#S"
     ]
   }
 ]

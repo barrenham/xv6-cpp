@@ -12,8 +12,10 @@
 
 ```doxygen
 @fn void xv::net::UdpProtocol::attach(DatagramSink &sink)
-@brief UdpProtocol：启动时登记最多四个 DatagramSink；兼容 PID 端口与文件描述符 socket 依次参与分派。
-@details 启动时登记最多四个 DatagramSink；兼容 PID 端口与文件描述符 socket 依次参与分派。
+@brief 在启动装配阶段设置唯一的 UDP 数据报接收端。
+@param sink 借用的接收端，必须比协议对象存活更久；当前装配对象为 SocketRegistry。
+@details 替换保存的接收端指针，不维护接收端列表、PID 端口队列或并行兼容路径。
+@pre 启动期间调用，不与收包并发修改绑定。
 ```
 
 <a id="fn-89d047edb11f0bae"></a>
@@ -22,7 +24,11 @@
 
 ```doxygen
 @fn void xv::net::UdpProtocol::receive(Packet &packet, const IpDatagram &d)
-@brief 从纯 IP 页面验证 UDP 长度、目的端口及可选校验和，再按地址/端口分派；未绑定时交 ICMP 不可达路径。
+@brief 校验 UDP 数据报并交给唯一 SocketRegistry 接收端按地址和端口匹配。
+@param packet 包含完整 IPv4 报文的独占页面。
+@param d IPv4 层已验证的数据报描述，包含载荷范围、源地址和目的地址。
+@details 检查最小头长度、UDP 长度、非零目的端口与可选伪首部校验和。匹配 socket 后接收端可转移页面到其有界队列；没有匹配接收者时走 ICMP 不可达路径。
+@note 不维护独立于 socket 的 UDP 端口表。
 ```
 
 <a id="fn-178312cdd1239398"></a>

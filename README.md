@@ -179,10 +179,14 @@ Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API
 
 ## 分层网络与 socket
 
-`qemu` 目标默认启用 E1000。网络已分为 Ethernet、动态 ARP、IPv4（最长前缀路由/有限分片重组）、ICMP、UDP/TCP 和 socket；协议层通过类接口组装，报文页由 Packet RAII 管理。NetworkInterface 将身份、地址和媒体能力分开，支持多 E1000、独立 ARP、回环和 IP-in-IP；见 [接口与选路](docs/network-interfaces.md)。
+`qemu` 目标默认启用 E1000，并通过 DHCP 自动获取 IPv4；启动后可用 `netctl dhcp wait eth0` 等待租约，详见 [DHCP 说明](docs/network-dhcp.md)。网络已分为 Ethernet、动态 ARP、IPv4（最长前缀路由/有限分片重组）、ICMP、UDP/TCP 和 socket；协议层通过类接口组装，报文页由 Packet RAII 管理。NetworkInterface 将身份、地址和媒体能力分开，支持多 E1000、独立 ARP、回环和 IP-in-IP；见 [接口与选路](docs/network-interfaces.md)。
 
-Socket 以 `xv.io::IoObject` 接入 File，支持 `socket/bind/connect/listen/accept/sendto/recvfrom/shutdown`，并共用 `read/write/close`、`poll`、`O_NONBLOCK`、`dup/fork` 与信号等待机制。旧 UDP 实验 API 保留。
+Socket 以 `xv.io::IoObject` 接入 File，支持 `socket/bind/connect/listen/accept/sendto/recvfrom/shutdown`，并共用 `read/write/close`、`poll`、`O_NONBLOCK`、`dup/fork` 与信号等待机制。UDP 统一使用 socket，不提供旧 PID 端口 API。
 
 执行 `ctest --test-dir build/dev --output-on-failure -R '^(network_.*|socket_[13]cpu|multinet_[13]cpu)$'` 可验证协议边界及单核/三核真实 UDP、TCP 主动/被动连接和回环。支持学习型软件网桥 `br0/br1`、完整以太帧转发及桥本机 IP 接入，见 [网桥说明](docs/network-bridge.md)。运行期可用 `netctl` 查看和修改接口、地址及路由，参见 [用户态网络管理](docs/network-management.md)。配置、示例与教学 TCP 的资源/功能边界见 [网络开发说明](docs/network.md)。
 
 File 的统一后端接口、具体适配器和关闭期间的槽位生命周期见 [统一 I/O 说明](docs/io.md)。
+
+DNS：启动后可运行 `netctl dhcp wait eth0`、`nslookup example.com`。用户运行库提供 `dns_lookup`，详见 [DNS 说明](docs/network-dns.md)。
+
+HTTP：`curl http://example.com/` 支持 `-I`、`-i`、`-L`、`-f`、`-o FILE` 与 `-m SECONDS`，见 [HTTP 客户端说明](docs/network-http.md)。

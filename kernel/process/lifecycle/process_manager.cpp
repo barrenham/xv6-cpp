@@ -6,9 +6,6 @@ module;
 #include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
-#ifdef LAB_NET
-import xv.net;
-#endif
 
 import xv.print;
 
@@ -180,13 +177,6 @@ int ProcessManager::fork_process(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
-#ifdef LAB_NET
-  if (!xv::net::inherit(p->pid, np->pid))
-  {
-    reap(np);
-    return -1;
-  }
-#endif
   np->descriptors_.inherit_from(p->descriptors_);
   np->directory_.inherit_from(p->directory_);
 
@@ -263,9 +253,6 @@ void ProcessManager::exit_process(int status, int signal)
     xv::print::panic("init exiting");
   }
 
-#ifdef LAB_NET
-  xv::net::release_owner(p->pid);
-#endif
   groups_.exit_terminal(p->membership_);
   waits_.cancel(*p);
   p->descriptors_.close_all();

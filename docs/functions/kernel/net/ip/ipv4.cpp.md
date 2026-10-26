@@ -9,6 +9,7 @@
 - [`xv::net::Ipv4Layer::mtu_for`](ipv4.cpp.md#fn-3a0cbb19a9a3cb97)
 - [`xv::net::Ipv4Layer::receive`](ipv4.cpp.md#fn-0a3554f93eae9eb7)
 - [`xv::net::Ipv4Layer::send`](ipv4.cpp.md#fn-ec39a5d6caadee7f)
+- [`xv::net::Ipv4Layer::send_bootstrap`](ipv4.cpp.md#fn-d38f175c28a36890)
 - [`xv::net::Ipv4Layer::source_for`](ipv4.cpp.md#fn-e20391cb067e3d28)
 - [`xv::net::Ipv4Layer::tick`](ipv4.cpp.md#fn-a0dc11b7e7393d13)
 
@@ -91,5 +92,20 @@
 
 ```doxygen
 @fn void xv::net::Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
-@brief 检查注册入口、状态和 IPv4 基础字段，拒绝时累计接口丢弃；验证后携带入口身份重组或分派，不持配置锁调用上层。
+@brief 先验证入站接口及 IPv4 基础字段，再把未分片的 UDP 启动协议候选交给受限接收器。
+@details 活动 DHCP 可在尚无地址时消费匹配回复；其他报文仍必须通过本机目的地址检查，然后重组或正常分派，非法基础字段计作丢弃。
+```
+
+<a id="fn-d38f175c28a36890"></a>
+
+## `xv::net::Ipv4Layer::send_bootstrap`
+
+```doxygen
+@fn int xv::net::Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source = 0)
+@brief 为活动接口上的 DHCP 客户端构造 IPv4 广播报文，不依赖已有地址或路由。
+@param interface 已发布、启用且运行 DHCP 的非成员接口。
+@param packet 已含 UDP 首部与 DHCP 数据、预留二十字节 IP 首部的页面。
+@param source 初次获取为零，重新绑定为接口仍拥有的租约地址。
+@return 零或负 errno，失败保留未移交页面。
+@details 只允许 UDP 68 到 67；设置 DF 并检查 MTU，随后交二层广播出口。
 ```

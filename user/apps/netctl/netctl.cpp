@@ -66,7 +66,9 @@ unsigned device(const char *name)
              "       netctl neigh flush DEV\n"
              "       netctl bridge create|delete|flush|fdb BR\n"
              "       netctl bridge addport|delport BR DEV\n"
-             "       netctl bridge show [BR]\n");
+             "       netctl bridge show [BR]\n"
+             "       netctl dhcp start|stop|renew|show DEV\n"
+             "       netctl dhcp wait DEV [SECONDS]\n");
   exit(1);
 }
 void show(const char *what, unsigned filter)
@@ -83,6 +85,7 @@ void show(const char *what, unsigned filter)
       if (r.gateway) { printf(" via "); ip(r.gateway); }
       printf(" metric %u", r.metric);
       if (r.source) { printf(" src "); ip(r.source); }
+      if (r.flags & NET_CONFIG_DHCP) printf(" dhcp");
       printf("%s\n", r.flags & NET_ROUTE_AUTOMATIC ? " automatic" : "");
     }
   }
@@ -112,7 +115,7 @@ void show(const char *what, unsigned filter)
         auto item = request(); item.ifindex = r.ifindex; item.index = i;
         if (!call(!strcmp(what,"addr") ? NETCTL_ADDRESS : NETCTL_NEIGHBOR, item)) break;
         printf("%s ", r.name); ip(item.address);
-        if (!strcmp(what,"addr")) printf("/%u\n", item.prefix);
+        if (!strcmp(what,"addr")) printf("/%u%s\n", item.prefix,item.flags&NET_CONFIG_DHCP ? " dhcp" : "");
         else { printf(" "); mac(item.mac); printf(" expires %llu ms\n", item.expires_ms); }
       }
     }
@@ -170,10 +173,74 @@ void bridge_command(int argc, char **argv)
   call(operation,r);
 }
 
+const char *dhcp_state(unsigned state)
+{
+  switch (state)
+  {
+    case DHCP_OFF:return "OFF";
+    case DHCP_SELECTING:return "SELECTING";
+    case DHCP_REQUESTING:return "REQUESTING";
+    case DHCP_BOUND:return "BOUND";
+    case DHCP_RENEWING:return "RENEWING";
+    case DHCP_REBINDING:return "REBINDING";
+    case DHCP_FAILED:return "FAILED";
+    case DHCP_STOPPING:return "STOPPING";
+    default:return "UNKNOWN";
+  }
+}
+void dhcp_show(unsigned id)
+{
+  auto r=request(); r.ifindex=id; call(NETCTL_DHCP_STATUS,r);
+  printf("%s DHCP %s",r.name,dhcp_state(r.flags));
+  if (r.address)
+  {
+    printf(" ip "); ip(r.address); printf("/%u gateway ",r.prefix); ip(r.gateway);
+    printf(" dns "); ip(r.source); printf(" server "); ip(r.metric);
+    printf(" lease %llu ms renew %llu ms rebind %llu ms",r.expires_ms,r.rx_packets,r.tx_packets);
+  }
+  printf(" retries %u error %u\n",r.mtu,r.index);
+}
+void dhcp_command(int argc,char **argv)
+{
+  if (argc==2 || (argc>=3 && !strcmp(argv[2],"show")))
+  {
+    if (argc>4) usage();
+    if (argc==4) { dhcp_show(device(argv[3])); return; }
+    for (unsigned i=0;;++i)
+    {
+      auto r=request(); r.index=i; if (!call(NETCTL_LINK,r)) return;
+      dhcp_show(r.ifindex);
+    }
+  }
+  if (argc<4 || argc>5) usage();
+  auto r=request(); r.ifindex=device(argv[3]);
+  if (!strcmp(argv[2],"wait"))
+  {
+    unsigned seconds=20;
+    if (argc==5 && !number(argv[4],seconds,3600)) usage();
+    for (unsigned tick=0;;++tick)
+    {
+      auto status=request(); status.ifindex=r.ifindex; call(NETCTL_DHCP_STATUS,status);
+      if (status.flags==DHCP_BOUND) { dhcp_show(r.ifindex); return; }
+      if (status.flags==DHCP_OFF || status.flags==DHCP_FAILED) fail("DHCP is not acquiring a lease",-110);
+      if (tick>=seconds*10) fail("DHCP wait timed out",-110);
+      pause(1);
+    }
+  }
+  if (argc!=4) usage();
+  unsigned operation;
+  if (!strcmp(argv[2],"start")) operation=NETCTL_DHCP_START;
+  else if (!strcmp(argv[2],"stop")) operation=NETCTL_DHCP_STOP;
+  else if (!strcmp(argv[2],"renew")) operation=NETCTL_DHCP_RENEW;
+  else { usage(); }
+  call(operation,r);
+}
+
 }
 extern "C" int main(int argc, char **argv)
 {
   if (argc < 2) usage();
+  if (!strcmp(argv[1],"dhcp")) { dhcp_command(argc,argv); exit(0); }
   if (!strcmp(argv[1],"bridge")) { bridge_command(argc,argv); exit(0); }
   const char *what = argv[1];
   if (strcmp(what,"link") && strcmp(what,"addr") && strcmp(what,"route") && strcmp(what,"neigh") && strcmp(what,"stats")) usage();

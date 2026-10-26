@@ -1,14 +1,20 @@
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
+add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
+target_link_libraries(user_dns PRIVATE xv_options)
+add_library(user_http STATIC runtime/http/codec.cpp runtime/http/client.cpp)
+target_link_libraries(user_http PRIVATE xv_options PUBLIC user_dns)
 function(xv_add_program source)
   get_filename_component(name "${source}" NAME_WE)
   add_executable(user_${name} "${source}" $<TARGET_OBJECTS:user_runtime>)
-  target_link_libraries(user_${name} PRIVATE xv_options)
+  target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns)
   target_link_options(user_${name} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/curl/curl.cpp
+  apps/nslookup/nslookup.cpp
   apps/netctl/netctl.cpp
   apps/cat/cat.cpp
   apps/echo/echo.cpp
@@ -20,6 +26,9 @@ set(programs
   apps/mkdir/mkdir.cpp
   apps/rm/rm.cpp
   apps/pty/pty.cpp
+  tests/httptest.cpp
+  tests/dnstest.cpp
+  tests/dhcptest.cpp
   tests/bridgetest.cpp
   tests/netctltest.cpp
   tests/nettest.cpp

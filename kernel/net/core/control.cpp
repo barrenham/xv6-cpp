@@ -21,7 +21,7 @@ int NetworkManager::inspect(unsigned operation, netctl_request &request)
     const auto &r = routes_.routes_[index];
     out.ifindex = r.interface->id(); out.address = r.network; out.prefix = r.prefix;
     out.gateway = r.gateway; out.metric = r.metric; out.source = r.source;
-    out.flags = r.owner ? NET_ROUTE_AUTOMATIC : 0;
+    out.flags = (r.owner ? NET_ROUTE_AUTOMATIC : 0) | (r.lease_owner ? NET_CONFIG_DHCP : 0);
   }
   else
   {
@@ -31,7 +31,7 @@ int NetworkManager::inspect(unsigned operation, netctl_request &request)
     if (operation == NETCTL_ADDRESS)
     {
       if (index >= interface->address_count()) return 0;
-      auto a = interface->address(index); out.address = a.address; out.prefix = a.prefix;
+      auto a = interface->address(index); out.address = a.address; out.prefix = a.prefix; out.flags = a.owner ? NET_CONFIG_DHCP : 0;
     }
     else if (operation == NETCTL_LINK)
     {
@@ -82,6 +82,7 @@ int NetworkManager::mutate(unsigned operation, const netctl_request &r, NetworkI
     else
     {
       if (position == interface.address_count_) return -ENOENT;
+      if (interface.addresses_[position].owner) return -EBUSY;
       for (unsigned i = position+1; i < interface.address_count_; ++i) interface.addresses_[i-1] = interface.addresses_[i];
       interface.addresses_[--interface.address_count_] = {};
       for (unsigned i = 0; i < routes_.count_;)
@@ -103,7 +104,7 @@ int NetworkManager::mutate(unsigned operation, const netctl_request &r, NetworkI
         route.gateway == r.gateway && route.metric == r.metric && route.source == r.source)
     {
       if (operation == NETCTL_ADD_ROUTE) return -EEXIST;
-      if (route.owner) return -EBUSY;
+      if (route.owner || route.lease_owner) return -EBUSY;
       remove_route(i); return 0;
     }
   }
@@ -118,6 +119,8 @@ int NetworkManager::execute(unsigned operation, netctl_request &request)
   if (request.version != NETCTL_VERSION || request.size != sizeof(request)) return -EINVAL;
   if (operation >= NETCTL_BRIDGE_CREATE && operation <= NETCTL_BRIDGE_FLUSH_FDB)
     return bridges_ ? bridges_->execute(operation, request) : -EOPNOTSUPP;
+  if (operation >= NETCTL_DHCP_START && operation <= NETCTL_DHCP_RENEW)
+    return dhcp_ ? dhcp_->execute(operation,request) : -EOPNOTSUPP;
   NetworkInterface *interface;
   int result;
   {

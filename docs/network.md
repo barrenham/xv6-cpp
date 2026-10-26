@@ -1,6 +1,6 @@
 # 分层 IPv4、TCP/UDP 与 socket
 
-实现前的网络基线已提交并推送为 `bb2a632`。E1000 现支持启动期发现多块设备及共享中断；原来混合在 `stack.cpp` 的 Ethernet/ARP/IP/UDP 处理已经拆开。`stack.cpp` 现在只保留旧实验 PID 端口 API 的兼容适配。
+实现前的网络基线已提交并推送为 `bb2a632`。E1000 现支持启动期发现多块设备及共享中断；原来混合在 `stack.cpp` 的 Ethernet/ARP/IP/UDP 处理已经拆开。旧实验 PID 端口 API、`stack.cpp` 兼容适配和旧系统调用已移除，UDP 收发统一进入 SocketRegistry/UdpSocket。
 
 ## 架构与所有权
 
@@ -33,7 +33,7 @@ flowchart TD
 | `kernel/net/ip/` | IPv4 首部验证、最长前缀选路、有限分片重组、ICMP |
 | `kernel/net/transport/` | UDP/TCP 校验与报文编码、重传计时器 |
 | `kernel/net/socket/` | 抽象 Socket、InetSocket 共性、具体 TCP/UDP socket 与注册表 |
-| `kernel/net/platform/` | 页分配、单调时间、用户复制、当前 PID、可中断等待 |
+| `kernel/net/platform/` | 页分配、单调时间、用户复制、可中断等待 |
 | `kernel/syscall/syssocket.cpp` | socket ABI 校验、地址转换、File 安装和失败回滚 |
 | `kernel/drivers/net/e1000/` | 硬件 DMA 收发及完成页回收，不知道 TCP 或用户描述符 |
 
@@ -53,8 +53,8 @@ cmake --build build/dev --target qemu
 
 `qemu` 和 `qemu-gdb` 默认带 E1000，启动输出 `e1000: ready`，随后逐接口输出实际配置。自动测试选择临时宿主机端口、独立磁盘副本并结束 QEMU；单核/三核各在同次启动连续运行两轮。
 
-- `network_contract` 使用同一协议实现和可控时钟，验证短包、校验和、队列上限、绑定继承与耗尽、ARP、反序分片重组/重叠拒绝/超时、ICMP Echo、SYN/数据重传、重复数据去重、乱序恢复、非法 ACK/RST、超时和分配回滚；最终检查所有网络页面归还。
-- `network_1cpu/3cpu` 保留旧 UDP API 的真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
+- `network_contract` 使用同一协议实现和可控时钟，验证短包、校验和、队列上限、socket 容量与释放、ARP、反序分片重组/重叠拒绝/超时、ICMP Echo、SYN/数据重传、重复数据去重、乱序恢复、非法 ACK/RST、超时和分配回滚；最终检查所有网络页面归还。
+- `network_1cpu/3cpu` 使用 socket/sendto/recvfrom 验证真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
 - `multinet_1cpu/3cpu` 验证双子网、相同端口绑定不同本地地址、共享 PCI INTx 与每设备 MAC。
 - `socket_1cpu/3cpu` 验证 UDP 描述符、fstat、poll、dup/fork、非阻塞、TCP 主动/被动连接、18 KB 流传输、零窗口后恢复、半关闭、EOF、连接拒绝及回环 TCP。
 
@@ -121,7 +121,7 @@ read/write、accept、sendto、recvfrom 的等待可被信号中断，沿用 EIN
 
 ## IP、ARP 与计时
 
-默认 QEMU 策略为 eth0 配置 `10.0.2.15/24` 和网关 `10.0.2.2`；MAC 从对应设备 EEPROM 读取。多接口、可选地址和隧道配置见 [接口与选路说明](network-interfaces.md)。静态路由按最长前缀和 metric 选择出口；每个以太接口独立解析 ARP，回环与隧道直接处理纯 IP。IPv4 不做主机间路由转发。
+默认通过 QEMU 内置 DHCP 服务获取地址、掩码和网关，首次地址常见为 `10.0.2.15/24`，不再预写该值；MAC 从对应设备 EEPROM 读取。见 [DHCP 说明](network-dhcp.md)，`netctl dhcp wait eth0` 可等待租约。多接口、可选地址和隧道配置见 [接口与选路说明](network-interfaces.md)。静态路由按最长前缀和 metric 选择出口；每个以太接口独立解析 ARP，回环与隧道直接处理纯 IP。IPv4 不做主机间路由转发。
 
 有限重组按入站接口/源/目的/id/protocol 匹配，支持反序到片，逐字节位图检测重叠，重叠时整体丢弃。最多四个重组槽，每报最多4062字节 IP 负载，15秒到期；出站设置 DF，超 MTU 返回错误。ICMP 当前处理 Echo Request/Reply 和 UDP 无绑定端口的不可达回复。
 
@@ -144,10 +144,19 @@ TCP 覆盖 SYN-SENT、SYN-RECEIVED、ESTABLISHED、FIN-WAIT-1/2、CLOSING、CLOS
 | TCP backlog / 每连接 RX | 8 / 4096字节 |
 | TCP 未确认发送段 / MSS上限 | 1 / 1460字节 |
 | UDP socket 接收队列 / 出站负载 | 16报 / 最多4042字节，另受出口 MTU 限制（MTU1500时1472字节） |
-| 旧 PID UDP 端口 / 引用 | 32 / 256 |
 
-这是可与宿主机互通的教学主机栈，尚未覆盖生产 TCP 的全部功能：没有多段滑动发送窗口、拥塞窗口增长、快速重传/SACK、窗口扩大、时间戳、URG接口或加密随机 ISN；乱序不暂存。也未实现 DHCP、IPv6、通用 socket 选项/消息向量、组播和出站 IPv4 分片。容量耗尽会返回错误或丢包，TCP通过重传恢复；TIME_WAIT对象占用注册槽，不能把“应用已 close”理解为立即可复用四元组。
+这是可与宿主机互通的教学主机栈，尚未覆盖生产 TCP 的全部功能：没有多段滑动发送窗口、拥塞窗口增长、快速重传/SACK、窗口扩大、时间戳、URG接口或加密随机 ISN；乱序不暂存。DHCP 自动取址已实现；尚未实现 IPv6、通用 socket 选项/消息向量、组播和出站 IPv4 分片。容量耗尽会返回错误或丢包，TCP通过重传恢复；TIME_WAIT对象占用注册槽，不能把“应用已 close”理解为立即可复用四元组。
 
 协议核对依据：[IPv4 RFC791](https://www.rfc-editor.org/rfc/rfc791.html)、[ICMP RFC792](https://www.rfc-editor.org/rfc/rfc792.html)、[TCP RFC9293](https://www.rfc-editor.org/rfc/rfc9293.html)、[重传计时 RFC6298](https://www.rfc-editor.org/rfc/rfc6298.html)。这些来源用于核对协议字段和行为，不表示本教学子集实现了全部标准要求。
 
 函数级 Doxygen 位于 [网络总导航](functions/kernel/README.md#net)，可从 [IP](functions/kernel/net/ip/ipv4.cpp.md)、[TCP socket](functions/kernel/net/socket/tcp_socket.cpp.md)、[UDP socket](functions/kernel/net/socket/udp_socket.cpp.md)、[文件流](functions/kernel/io/object.cppm.md) 进入。索引生成和原生 hover 边界见 [工具说明](functions/README.md)。
+
+用户态域名解析与 `nslookup` 已实现，支持 DHCP DNS、IPv4 A/CNAME、UDP 与 TCP 回退，见 [DNS 说明](network-dns.md)。
+
+HTTP 用户态客户端与 `curl` 已实现，支持流式响应、分块解码、重定向和文件下载，见 [HTTP 说明](network-http.md)。
+
+UDP 的端口占用、接收队列和生命周期统一由 socket 管理。fork 共享 File 引用，close/exit 经描述符表回收；不再有独立 PID 端口表、网络继承/退出回调或旧 bind(port)/send/recv/unbind 系统调用。旧编号 30–33 为空，不重新分配现有系统调用编号。UDP 68 继续由内核 DHCP 保留。
+
+配置访问由 `ConfigurationGuard` 统一保护。Guard 在检查配置锁 owner 前先关闭本地中断，避免检查期间被抢占并迁移 CPU；每个 Guard 独立配对恢复关中断计数，只有实际 acquire 的实例负责 release。支持嵌套调用、调用前已关中断和借用已有配置锁。临界区仍禁止睡眠、发包回调及反向获取 ARP/设备锁，锁外快照的对象存活和代次校验另行维护。见 [独立函数说明](functions/kernel/net/interface/configuration.cppm.md)。
+
+`network_contract` 包含针对配置 Guard 的确定性测试：另一线程持锁时，归属查询必须已经处于关中断作用域；还验证竞争互斥、嵌套、已有中断禁用作用域、借用手工持锁和提前返回的计数恢复。宿主机用线程局部计数模拟关中断，实际内核中断恢复另由单核/三核 QEMU 网络回归覆盖。

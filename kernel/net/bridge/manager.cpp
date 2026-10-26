@@ -32,7 +32,7 @@ BridgeInterface *BridgeManager::find(unsigned id)
 }
 bool BridgeManager::unused(NetworkInterface &interface) const
 {
-  if (interface.address_count()) return false;
+  if (interface.address_count() || interface.dhcp_active()) return false;
   for (unsigned i = 0; i < routes_.count_; ++i)
     if (routes_.routes_[i].interface == &interface || routes_.routes_[i].owner == interface.id()) return false;
   return true;

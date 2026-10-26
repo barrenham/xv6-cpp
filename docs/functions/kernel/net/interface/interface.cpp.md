@@ -8,12 +8,14 @@
 - [`xv::net::InterfaceRegistry::seal`](interface.cpp.md#fn-6dc874d592d4900e)
 - [`xv::net::InterfaceRegistry::tick`](interface.cpp.md#fn-11570218be60251c)
 - [`xv::net::NetworkInterface::accepts_destination`](interface.cpp.md#fn-afdbdf714f5adc2b)
+- [`xv::net::NetworkInterface::account_send`](interface.cpp.md#fn-c99a4c9b5b90a08c)
 - [`xv::net::NetworkInterface::add_address`](interface.cpp.md#fn-29e4fdf0db63d8be)
 - [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
 - [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
 - [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
 - [`xv::net::NetworkInterface::receive_drop`](interface.cpp.md#fn-72713f8a1c6e3db4)
 - [`xv::net::NetworkInterface::send`](interface.cpp.md#fn-02e2a99c0121b11a)
+- [`xv::net::NetworkInterface::send_bootstrap`](interface.cpp.md#fn-4486a19c308f9201)
 - [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
 - [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
 - [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
@@ -120,15 +122,6 @@
 @brief 原子增加接口或 IP 基础验证拒绝计数；不包含所有驱动和传输层丢包。
 ```
 
-<a id="fn-02e2a99c0121b11a"></a>
-
-## `xv::net::NetworkInterface::send`
-
-```doxygen
-@fn int xv::net::NetworkInterface::send(Packet &packet, unsigned next_hop)
-@brief 统一调用出口 transmit 并计数。
-@details 成功表示出口已接受，包含 ARP 排队；负返回计作发送错误，按调用前纯 IP 长度累计字节。
-```
 <a id="fn-bfd9e34fed60845d"></a>
 
 ## `xv::net::InterfaceRegistry::find`
@@ -154,4 +147,35 @@
 ```doxygen
 @fn void xv::net::InterfaceRegistry::tick(unsigned long now)
 @brief 先在配置锁内复制最多八个稳定接口指针，再解锁调用各接口定时维护；桥注销不释放对象，避免回调期间悬空或反向持锁。
+```
+<a id="fn-02e2a99c0121b11a"></a>
+
+## `xv::net::NetworkInterface::send`
+
+```doxygen
+@fn int xv::net::NetworkInterface::send(Packet &packet, unsigned next_hop)
+@brief 通过具体接口发送普通 IP 报文并统一累计纯 IP 发送统计。
+@details 成功代表出口已接管或排队，负返回计作错误；按发送前长度计字节，页面所有权由具体出口契约决定。
+```
+
+<a id="fn-4486a19c308f9201"></a>
+
+## `xv::net::NetworkInterface::send_bootstrap`
+
+```doxygen
+@fn int xv::net::NetworkInterface::send_bootstrap(Packet &packet)
+@brief 调用启动协议发送能力并按发送前纯 IP 长度累计统一统计。
+@details 默认接口不支持；调用者只能通过受限的 IPv4 DHCP 入口使用，不能把无地址发送开放给普通 socket。
+```
+
+<a id="fn-c99a4c9b5b90a08c"></a>
+
+## `xv::net::NetworkInterface::account_send`
+
+```doxygen
+@fn int xv::net::NetworkInterface::account_send(unsigned length, int result)
+@brief 根据出口返回值原子累计发送成功、字节或错误。
+@param length 发送前纯 IP 长度。
+@param result 出口返回值。
+@return 原样返回 result，不修改页面所有权。
 ```

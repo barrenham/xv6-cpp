@@ -2,6 +2,7 @@
 #include "kernel/process/signals/signal_abi.h"
 #include "kernel/net/socket/socket.h"
 #include "kernel/net/control.h"
+#include "dns/dns.h"
 extern "C" {
 #pragma once
 #ifdef LAB_MMAP
@@ -80,12 +81,6 @@ int tcgetattr(int, struct termios *);
 int tcsetattr(int, int, const struct termios *);
 int tcflush(int, int);
 void cfmakeraw(struct termios *);
-#ifdef LAB_NET
-int bind(uint16);
-int unbind(uint16);
-int send(uint16, uint32, uint16, const char *, uint32);
-int recv(uint16, uint32 *, uint16 *, char *, uint32);
-#endif
 #ifdef LAB_PGTBL
 int ugetpid(void);
 uint64 pgpte(void *);

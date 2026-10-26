@@ -81,7 +81,7 @@
 @details allocate 创建持锁的新描述符。复制用户地址空间、处理函数与屏蔽字，但不复制待处理信号；活动信号帧地址链随已复制用户栈一起继承。复制 TrapFrame 并把 a0 置零，继承文件引用和工作目录引用，复制名字。
 @details 释放新进程锁后取得家庭锁，继承组成员身份并设置 parent。再取得新进程锁，发布 Runnable，最后释放锁返回 PID。父子关系先于可运行状态发布。
 @note 文件描述符引用同一 File，所以文件偏移和 O_NONBLOCK 共享；用户地址空间通过 AddressSpace::copy_to 按其既有策略复制。
-@details 在复制地址空间后、发布子进程前调用网络 inherit，原子共享父进程的 UDP 绑定引用；句柄容量不足时 reap 未发布子进程并返回 -1。
+@details UDP/TCP socket 与其他描述符一起通过 DescriptorTable/File 引用继承共享，不再维护额外的 PID 绑定表或网络 fork 回调。
 ```
 
 <a id="lifecycle-processmanager-reparent"></a>
@@ -114,7 +114,7 @@
 @note 用户地址空间、trapframe 与描述符本体由父进程的 wait/reap 释放；Zombie 保留可查询的退出状态。
 @see ProcessManager::reap
 @see ProcessManager::reparent
-@details 进入终止清理时首先释放当前 PID 的 UDP 绑定引用。正常 exit 和信号终止共用此路径；最后一个持有者释放端口的全部排队页。
+@details socket 经 descriptors_.close_all 与其他描述符统一关闭；最后一个 File 引用释放时调用具体 socket 后端回收排队页。正常 exit 和信号终止共用此路径。
 ```
 
 <a id="lifecycle-processmanager-wakeup"></a>

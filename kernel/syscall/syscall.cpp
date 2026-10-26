@@ -69,12 +69,6 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_setsid: return sys_setsid;
   case SYS_sigsend: return sys_sigsend;
   case SYS_sigdisposition: return sys_sigdisposition;
-#ifdef LAB_NET
-  case SYS_bind: return sys_bind;
-  case SYS_unbind: return sys_unbind;
-  case SYS_send: return sys_send;
-  case SYS_recv: return sys_recv;
-#endif
 #ifdef LAB_PGTBL
   case SYS_pgpte: return sys_pgpte;
   case SYS_vmprint: return sys_vmprint;
@@ -106,7 +100,7 @@ void dispatch()
     p->begin_system_call();
     auto result = static_cast<unsigned long>(p->finish_system_call(num, argument, handler()));
     bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
-                       num == SYS_waitpid || num == SYS_recv || num == SYS_accept || num == SYS_recvfrom || num == SYS_sendto || num == SYS_pause || num == SYS_sigsuspend;
+                       num == SYS_waitpid || num == SYS_accept || num == SYS_recvfrom || num == SYS_sendto || num == SYS_pause || num == SYS_sigsuspend;
     if (result == ~0UL && restartable && p->stop_requested())
     {
       // Retry an interrupted operation after continuation. Partial transfers

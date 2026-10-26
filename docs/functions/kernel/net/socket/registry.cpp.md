@@ -19,8 +19,8 @@
 
 ```doxygen
 @fn void xv::net::SocketRegistry::initialize()
-@brief SocketRegistry：启动时初始化统一网络条件锁；socket 状态、UDP 绑定与旧 API 端口表遵循同一把锁。
-@details 启动时初始化统一网络条件锁；socket 状态、UDP 绑定与旧 API 端口表遵循同一把锁。
+@brief SocketRegistry：启动时初始化统一网络条件锁；socket 状态与 UDP/TCP 绑定遵循同一把锁。
+@details 启动时初始化统一网络条件锁；socket 状态与 UDP/TCP 绑定遵循同一把锁。
 ```
 
 <a id="fn-8ebcbaf798cf3b49"></a>
@@ -72,9 +72,9 @@
 
 ```doxygen
 @fn unsigned short xv::net::SocketRegistry::ephemeral(unsigned protocol)
-@brief SocketRegistry：持注册锁从 49152..65535 循环选择未占用端口，耗尽返回零，避免与已注册连接/旧 UDP 端口冲突。
+@brief SocketRegistry：持注册锁从 49152..65535 循环选择未占用端口，耗尽返回零，避免与已注册 socket 端口冲突。
 @pre 调用者持有统一注册锁。
-@details 持注册锁从 49152..65535 循环选择未占用端口，耗尽返回零，避免与已注册连接/旧 UDP 端口冲突。
+@details 持注册锁从 49152..65535 循环选择未占用端口，耗尽返回零，避免与已注册 socket 端口冲突。
 ```
 
 <a id="fn-9bba05169d63bfe0"></a>
@@ -111,6 +111,12 @@
 ## `xv::net::SocketRegistry::port_used`
 
 ```doxygen
-@fn bool xv::net::SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except, unsigned local_address) const
-@brief 在注册锁保护下按协议、端口和本地地址判断占用；不同具体地址可复用端口，ANY 或旧 PID 绑定与所有具体地址冲突。
+@fn bool xv::net::SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except = nullptr, unsigned local_address = 0) const
+@brief 在统一 socket 登记表中检查协议、本地地址与端口是否冲突。
+@param protocol TCP 为 6，UDP 为 17，两个协议的端口空间独立。
+@param except 排除正在检查或绑定的对象，可为空。
+@param local_address 零表示通配地址；通配绑定与任意同号绑定冲突，具体地址可区分复用。
+@return 端口不可用为 true，否则 false。
+@pre 调用者持有注册锁。
+@note UDP 68 仍为内核 DHCP 客户端保留；没有 PID 端口兼容表。
 ```

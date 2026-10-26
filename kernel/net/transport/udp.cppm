@@ -20,6 +20,6 @@ public:
 private:
   Ipv4Layer &ip_;
   IcmpProtocol &icmp_;
-  DatagramSink *sinks_[4]{};
+  DatagramSink *sink_ = nullptr;
 };
 }

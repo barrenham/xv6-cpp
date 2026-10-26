@@ -129,6 +129,11 @@ def main():
                 try:
                     expect('e1000: ready')
                     expect('$ ')
+                    start = cursor
+                    process.stdin.write(b'netctl dhcp show eth0\n'); process.stdin.flush(); expect('$ ')
+                    if b'DHCP OFF' not in transcript[start:cursor]:
+                        process.stdin.write(b'netctl dhcp wait eth0\n'); process.stdin.flush()
+                        expect('eth0 DHCP BOUND'); expect('$ ')
                     for _ in range(2):
                         process.stdin.write(f'sockettest {udp.getsockname()[1]} {tcp.getsockname()[1]} {refused_port}\n'.encode())
                         process.stdin.flush()

@@ -100,13 +100,28 @@ def main():
             collect(0.03)
             peers[port].sendto(packet, addresses[port])
             received = collect()
+            # QEMU E1000 defers RX for up to one second after an RCTL write.
+            deadline = time.monotonic()+2
+            while any(not received[i] for i in outputs) and time.monotonic()<deadline:
+                more = collect(0.05)
+                for i in range(len(peers)):
+                    received[i].extend(more[i])
+            more = collect(0.1)
+            for i in range(len(peers)):
+                received[i].extend(more[i])
             for i, frames in enumerate(received):
-                assert frames == ([packet] if i in outputs else []), (port, i, outputs, frames)
+                if frames != ([packet] if i in outputs else []):
+                    run('netctl bridge fdb br0')
+                    run('netctl stats')
+                    raise AssertionError((port, i, outputs, frames))
         try:
             expect('e1000: ready'); expect('$ ')
             for i in range(3):
-                run(f'netctl route del default dev eth{i} via 10.0.{2+i}.2 metric {i*10}')
-                run(f'netctl addr del 10.0.{2+i}.15/24 dev eth{i}')
+                status = run(f'netctl dhcp show eth{i}')
+                run(f'netctl dhcp stop eth{i}')
+                if b'DHCP OFF' in status:
+                    run(f'netctl route del default dev eth{i} via 10.0.{2+i}.2 metric {i*10}')
+                    run(f'netctl addr del 10.0.{2+i}.15/24 dev eth{i}')
             for round_number in range(2):
                 run('netctl bridge create br0')
                 link = run('netctl link show br0')

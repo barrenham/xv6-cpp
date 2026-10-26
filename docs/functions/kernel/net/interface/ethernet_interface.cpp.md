@@ -5,6 +5,7 @@
 - [`xv::net::EthernetInterface::initialize`](ethernet_interface.cpp.md#fn-6aa7b41af4f709cb)
 - [`xv::net::EthernetInterface::receive`](ethernet_interface.cpp.md#fn-00530c658ce99424)
 - [`xv::net::EthernetInterface::transmit`](ethernet_interface.cpp.md#fn-3e698439f28e1935)
+- [`xv::net::EthernetInterface::transmit_bootstrap`](ethernet_interface.cpp.md#fn-6a23b3040e6fa382)
 
 <a id="fn-6aa7b41af4f709cb"></a>
 
@@ -31,4 +32,13 @@
 ```doxygen
 @fn int xv::net::EthernetInterface::transmit(Packet &packet, unsigned next_hop)
 @brief 拒绝已作为桥成员的接口直接发送 IP，并检查 UP、载波、地址与 MTU；本机广播直接编码，单播经本接口 ARP，桥本机子类复用相同流程。
+```
+<a id="fn-6a23b3040e6fa382"></a>
+
+## `xv::net::EthernetInterface::transmit_bootstrap`
+
+```doxygen
+@fn int xv::net::EthernetInterface::transmit_bootstrap(Packet &packet)
+@brief 以广播 MAC 发送指定接口上的完整 IPv4 DHCP 包，允许接口尚无 IPv4 地址。
+@details 仍检查 UP、载波、MTU 和桥归属；以太接口与桥本机入口共用，桥成员不能直接发起 DHCP。IPv4 层负责受限端口及源地址校验。
 ```

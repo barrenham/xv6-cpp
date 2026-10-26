@@ -27,6 +27,7 @@ public:
   unsigned id() const { return id_; }
   const char *name() const { return name_; }
   unsigned mtu() const { return mtu_; }
+  bool dhcp_active() const { ConfigurationGuard guard; return dhcp_active_; }
   bool up() const { ConfigurationGuard guard; return up_; }
   unsigned generation() const { ConfigurationGuard guard; return generation_; }
   InterfaceStatistics statistics() const;
@@ -51,6 +52,8 @@ public:
   bool set_up(bool up);
   void attach(IpReceiver &receiver) { receiver_ = &receiver; }
   void deliver(Packet &packet);
+  int send_bootstrap(Packet &packet);
+  virtual int transmit_bootstrap(Packet &) { return -95; }
   virtual int transmit(Packet &packet, unsigned next_hop) = 0;
   virtual void tick(unsigned long) {}
 protected:
@@ -59,10 +62,13 @@ private:
   friend class InterfaceRegistry;
   friend class NetworkManager;
   friend class BridgeManager;
+  friend class LeaseConfiguration;
+  friend class DhcpManager;
+  int account_send(unsigned length, int result);
   unsigned id_;
   const char *name_;
   unsigned mtu_;
-  bool up_ = false, sealed_ = false;
+  bool up_ = false, sealed_ = false, dhcp_active_ = false;
   Ipv4Address addresses_[4]{};
   unsigned address_count_ = 0, generation_ = 0;
   InterfaceStatistics statistics_{};

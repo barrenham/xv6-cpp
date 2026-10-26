@@ -177,7 +177,7 @@
     "kind": "InstanceMethod",
     "hover_expectation": "source-comment",
     "usr": "c:@N@xv@N@process@S@ProcessManager@F@fork_process#",
-    "source_sha256": "4b89e75efeb12ed70feeca3d6ac081fb94deaff3e5f0109a9589d7c88b9ee776"
+    "source_sha256": "03f841a9c7570ea71a94fe59c1bf1b1e193d85b6d5648b32f4cc1f2e1fe7499e"
   },
   {
     "anchor": "lifecycle-processmanager-reparent",
@@ -201,7 +201,7 @@
     "kind": "InstanceMethod",
     "hover_expectation": "source-comment",
     "usr": "c:@N@xv@N@process@S@ProcessManager@F@exit_process#I#I#",
-    "source_sha256": "86fbc5e0809c85c56b300ff0c61d317f991da7e7ff52775e6914c038b28b1b4c"
+    "source_sha256": "4ed64efa3f2f3514919ae560785e8a393d7d88a380734092b08ac497747de5ae"
   },
   {
     "anchor": "lifecycle-processmanager-wakeup",
@@ -9341,7 +9341,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@Process@F@finish_system_call#I#l#L#",
     "hover_expectation": "observe",
-    "source_sha256": "6dc7471b21b8fbdb3bbf2c1acca391f6840e186c2ad87696b1ae5dbdf1761bf1"
+    "source_sha256": "07a9dfc365a82dd13af6bfb2d8c2f7480d3ec8af81d5df072f644b1b0f6d30d0"
   },
   {
     "anchor": "fn-5e15db3a4f0c6cdb",
@@ -12812,7 +12812,7 @@
     "kind": "Function",
     "usr": "c:syscall.cpp@N@xv@N@syscall@F@lookup_syscall#I#",
     "hover_expectation": "observe",
-    "source_sha256": "60b547b3546495281ff0e1eeab1c13fc7a235bdcfdb9a1e7874cf402c582edb8"
+    "source_sha256": "f083b99b7fbd81c4a2519182542d0fb426c2c8c83e5e6670ef8b6a2c6f66aa87"
   },
   {
     "anchor": "fn-b83b0bfa82c48ee9",
@@ -12825,7 +12825,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@dispatch#",
     "hover_expectation": "observe",
-    "source_sha256": "b35b07dc35bd70e829afdbda2e9b9239983a14ec6f27972adf676191454be33a"
+    "source_sha256": "877952591d8e55b45f7e13818151d0e981b36b8cd78aa037562ba1b200be4dd8"
   },
   {
     "anchor": "fn-7564cff018f6113b",
@@ -14125,62 +14125,6 @@
     "source_sha256": "e6200ad69cfdc987122dca4080ed399445883f698fce2df65e5a4ca2cc269761"
   },
   {
-    "anchor": "fn-7add8f742a0f380b",
-    "document": "docs/functions/kernel/syscall/handlers.cppm.md",
-    "source": "kernel/syscall/handlers.cppm",
-    "spelling": "sys_bind",
-    "qualified": "xv::syscall::sys_bind",
-    "signature": "unsigned long sys_bind(void)",
-    "fn": "unsigned long xv::syscall::sys_bind(void)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@syscall@F@sys_bind#",
-    "hover_expectation": "external",
-    "indexable": true,
-    "source_sha256": "af233d06e77aef14151321dc26bff5ce50f2e5c2709e6b73bc3121316aff66ac"
-  },
-  {
-    "anchor": "fn-fdefa0ba0439a4a9",
-    "document": "docs/functions/kernel/syscall/handlers.cppm.md",
-    "source": "kernel/syscall/handlers.cppm",
-    "spelling": "sys_unbind",
-    "qualified": "xv::syscall::sys_unbind",
-    "signature": "unsigned long sys_unbind(void)",
-    "fn": "unsigned long xv::syscall::sys_unbind(void)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@syscall@F@sys_unbind#",
-    "hover_expectation": "external",
-    "indexable": true,
-    "source_sha256": "1191353421a433e9b81aea8be1c00809de6e1413dcf086b198f524eebb88b1ea"
-  },
-  {
-    "anchor": "fn-2528203d05b39b5f",
-    "document": "docs/functions/kernel/syscall/handlers.cppm.md",
-    "source": "kernel/syscall/handlers.cppm",
-    "spelling": "sys_send",
-    "qualified": "xv::syscall::sys_send",
-    "signature": "unsigned long sys_send(void)",
-    "fn": "unsigned long xv::syscall::sys_send(void)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@syscall@F@sys_send#",
-    "hover_expectation": "external",
-    "indexable": true,
-    "source_sha256": "31bf7c88bc7f24be32e4114a94744966cace6b59b02fa00cd62104711fc115d6"
-  },
-  {
-    "anchor": "fn-0e996b82215416d8",
-    "document": "docs/functions/kernel/syscall/handlers.cppm.md",
-    "source": "kernel/syscall/handlers.cppm",
-    "spelling": "sys_recv",
-    "qualified": "xv::syscall::sys_recv",
-    "signature": "unsigned long sys_recv(void)",
-    "fn": "unsigned long xv::syscall::sys_recv(void)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@syscall@F@sys_recv#",
-    "hover_expectation": "external",
-    "indexable": true,
-    "source_sha256": "b6f690470cfef99ac5e6f76dc95a9730d366b890be233c1bb4a7d3417bc1d352"
-  },
-  {
     "anchor": "fn-1d55124bdf88bbe8",
     "document": "docs/functions/kernel/syscall/handlers.cppm.md",
     "source": "kernel/syscall/handlers.cppm",
@@ -15180,84 +15124,6 @@
     "hover_expectation": "external"
   },
   {
-    "anchor": "fn-46a4f2ccb5a7fd32",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "bind",
-    "qualified": "xv::net::bind",
-    "signature": "int bind(unsigned short number)",
-    "fn": "int xv::net::bind(unsigned short number)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@bind#s#",
-    "source_sha256": "ad805302d62920408fc339435bcffc4cb19db97d8b42c92291bd21ad6a3c37f9",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-57f8814a97b1bb0c",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "unbind",
-    "qualified": "xv::net::unbind",
-    "signature": "int unbind(unsigned short number)",
-    "fn": "int xv::net::unbind(unsigned short number)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@unbind#s#",
-    "source_sha256": "e3ffb7eaacac4e5e0400409f926fbb4dcfe7173cbffb4130beb736beb21c571b",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-aa8207c3fb16e1a3",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "send",
-    "qualified": "xv::net::send",
-    "signature": "int send(unsigned short source, unsigned destination, unsigned short port, unsigned long data, unsigned length)",
-    "fn": "int xv::net::send(unsigned short source, unsigned destination, unsigned short port, unsigned long data, unsigned length)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@send#s#i#s#l#i#",
-    "source_sha256": "15f278f68ba7dcec7d1aa90f62080f9e3be6d500fc10d616c1f14e1b21e00757",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-f08e19a5999a9d51",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "receive",
-    "qualified": "xv::net::receive",
-    "signature": "int receive(unsigned short number, unsigned long source, unsigned long source_port,\n            unsigned long data, unsigned capacity)",
-    "fn": "int xv::net::receive(unsigned short number, unsigned long source, unsigned long source_port, unsigned long data, unsigned capacity)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@receive#s#l#l#l#i#",
-    "source_sha256": "63488d78b16b8d39d448cec0a559c8d43c6b9af21e3f9d4144c223d17da1f6e9",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-735598ae0bc0796c",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "inherit",
-    "qualified": "xv::net::inherit",
-    "signature": "bool inherit(int parent, int child)",
-    "fn": "bool xv::net::inherit(int parent, int child)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@inherit#I#I#",
-    "source_sha256": "8bd073efaaa94b4076cc1178f2c33a5fe0401e68aeca0ecd92610291fc377b82",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-bf547a36e1223a9c",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "release_owner",
-    "qualified": "xv::net::release_owner",
-    "signature": "void release_owner(int owner)",
-    "fn": "void xv::net::release_owner(int owner)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@release_owner#I#",
-    "source_sha256": "33376ad97611f9c1277ac49da8c504ab30bef6a21f1af27eb1eda656ae54b0af",
-    "hover_expectation": "external"
-  },
-  {
     "anchor": "fn-a39640ebe645b6ba",
     "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
     "source": "kernel/net/platform/kernel_platform.cpp",
@@ -15281,19 +15147,6 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@net@N@detail@F@free_page#*v#",
     "source_sha256": "aab278fe28d361a708515410c0e66a716189e5df6830962a4868d38ad91869d3",
-    "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-7079e964eeda41e2",
-    "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
-    "source": "kernel/net/platform/kernel_platform.cpp",
-    "spelling": "owner",
-    "qualified": "xv::net::detail::owner",
-    "signature": "int owner()",
-    "fn": "int xv::net::detail::owner()",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@N@detail@F@owner#",
-    "source_sha256": "8e3fe0f05538dc3a1dabfd34ecb46839b6ea5de6bdc40279211042e647d34422",
     "hover_expectation": "external"
   },
   {
@@ -15373,32 +15226,6 @@
     "usr": "c:@N@xv@N@net@N@detail@F@wake#*v#",
     "source_sha256": "fd3f8bc5df7f4f2ac88435511fb2961e0481f1e66aca6e05212b7cc84bb3d24e",
     "hover_expectation": "external"
-  },
-  {
-    "anchor": "fn-f9950e87e799e97a",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "find",
-    "qualified": "xv::net::find",
-    "signature": "Handle *find(unsigned short number, int owner)",
-    "fn": "Handle *xv::net::find(unsigned short number, int owner)",
-    "kind": "Function",
-    "usr": "c:stack.cpp@N@xv@N@net@aN@F@find#s#I#",
-    "source_sha256": "06772058942f177c820daa69f3792a984d56778b30db25693fc8316b276d4919",
-    "hover_expectation": "observe"
-  },
-  {
-    "anchor": "fn-eb042b1c44d295d5",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "detach",
-    "qualified": "xv::net::detach",
-    "signature": "void detach(Handle &h)",
-    "fn": "void xv::net::detach(Handle &h)",
-    "kind": "Function",
-    "usr": "c:stack.cpp@N@xv@N@net@aN@F@detach#&$@N@xv@N@net@aN@S@Handle#",
-    "source_sha256": "c33dc92121b12f81c6d787eecc897fbced00810914aa830594710d3ffd9bd273",
-    "hover_expectation": "observe"
   },
   {
     "anchor": "fn-597161c987b8107f",
@@ -15557,19 +15384,6 @@
     "hover_expectation": "observe"
   },
   {
-    "anchor": "fn-75964e7f4e71a814",
-    "document": "docs/functions/kernel/net/core/service.cpp.md",
-    "source": "kernel/net/core/service.cpp",
-    "spelling": "udp_protocol",
-    "qualified": "xv::net::udp_protocol",
-    "signature": "UdpProtocol &udp_protocol()",
-    "fn": "UdpProtocol &xv::net::udp_protocol()",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@udp_protocol#",
-    "source_sha256": "46f6ead368d84a0cea8a07bc21571944872a5b3b731ac56f6fa76ad89da4c509",
-    "hover_expectation": "observe"
-  },
-  {
     "anchor": "fn-a6dd2cdb97db1848",
     "document": "docs/functions/kernel/net/core/service.cpp.md",
     "source": "kernel/net/core/service.cpp",
@@ -15605,20 +15419,7 @@
     "fn": "void xv::net::timer_tick()",
     "kind": "Function",
     "usr": "c:@N@xv@N@net@F@timer_tick#",
-    "source_sha256": "7fb46dbde1b76633af3f61686d5a4b3493d720332090c4887df34b0cddd8de05",
-    "hover_expectation": "observe"
-  },
-  {
-    "anchor": "fn-2c6316eefc279413",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "initialize_legacy_udp",
-    "qualified": "xv::net::initialize_legacy_udp",
-    "signature": "void initialize_legacy_udp()",
-    "fn": "void xv::net::initialize_legacy_udp()",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@initialize_legacy_udp#",
-    "source_sha256": "ca507e548064ef6ea39c4e54f1e651195bbecffc67eb74665bece0b209c6df37",
+    "source_sha256": "06b2af5d0fe4f92d623521bd62e0d165e97b365e78d56e0949a29a32a066a085",
     "hover_expectation": "observe"
   },
   {
@@ -16389,19 +16190,6 @@
     "hover_expectation": "observe"
   },
   {
-    "anchor": "fn-70bad3dd1519b0d6",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "legacy_port_used",
-    "qualified": "xv::net::legacy_port_used",
-    "signature": "bool legacy_port_used(unsigned short port)",
-    "fn": "bool xv::net::legacy_port_used(unsigned short port)",
-    "kind": "Function",
-    "usr": "c:@N@xv@N@net@F@legacy_port_used#s#",
-    "source_sha256": "b6280bf78c1f70e22f294060d052e283afd9ebbdbc1166f1a27657f112446105",
-    "hover_expectation": "observe"
-  },
-  {
     "anchor": "fn-d1a904f28f9e59a5",
     "document": "docs/functions/kernel/net/socket/socket.cppm.md",
     "source": "kernel/net/socket/socket.cppm",
@@ -17104,32 +16892,6 @@
     "hover_expectation": "observe"
   },
   {
-    "anchor": "fn-f9bbe368471e7b58",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "legacy_lock",
-    "qualified": "xv::net::legacy_lock",
-    "signature": "xv::sync::SpinLock &legacy_lock()",
-    "fn": "xv::sync::SpinLock &xv::net::legacy_lock()",
-    "kind": "Function",
-    "usr": "c:stack.cpp@N@xv@N@net@aN@F@legacy_lock#",
-    "source_sha256": "c3e566bd30e59e6e9d1fe429f740c553e342befda3c3e3c023b913b40f7320d2",
-    "hover_expectation": "observe"
-  },
-  {
-    "anchor": "fn-ba813c95f31783b0",
-    "document": "docs/functions/kernel/net/stack.cpp.md",
-    "source": "kernel/net/stack.cpp",
-    "spelling": "deliver",
-    "qualified": "xv::net::LegacyUdp::deliver",
-    "signature": "bool deliver(Packet &packet, Endpoint source, Endpoint destination, unsigned offset, unsigned length) override",
-    "fn": "bool xv::net::LegacyUdp::deliver(Packet &packet, Endpoint source, Endpoint destination, unsigned offset, unsigned length)",
-    "kind": "InstanceMethod",
-    "usr": "c:stack.cpp@N@xv@N@net@aN@S@LegacyUdp@F@deliver#&$@N@xv@N@net@S@Packet#$@N@xv@N@net@S@Endpoint#S2_#i#i#",
-    "source_sha256": "6d24019069d3c0fe526de2760444633f27cf52a45d14b7065a2dc5346fcbcc0f",
-    "hover_expectation": "observe"
-  },
-  {
     "anchor": "fn-c48947286fe2884c",
     "document": "docs/functions/kernel/net/transport/retransmission_timer.cppm.md",
     "source": "kernel/net/transport/retransmission_timer.cppm",
@@ -17243,7 +17005,7 @@
     "fn": "void xv::net::UdpProtocol::attach(DatagramSink &sink)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@UdpProtocol@F@attach#&$@N@xv@N@net@S@DatagramSink#",
-    "source_sha256": "079009ffd25898901408607bd64345da963a0626a08855fd8b64776190fef9ec",
+    "source_sha256": "7c2e5aa2ae96502c60d85af5abc980af6fd71caec16243b272604e654dc8e6da",
     "hover_expectation": "observe"
   },
   {
@@ -17256,7 +17018,7 @@
     "fn": "void xv::net::UdpProtocol::receive(Packet &packet, const IpDatagram &d)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@UdpProtocol@F@receive#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
-    "source_sha256": "3bd931c891745ad2ad88041e2c98bc4e4977c385170fa04be962447005e64fe4",
+    "source_sha256": "64e661288e03129858cc7332dc65b7c8dbb2fa1eb25012fc7c20e35b85c4b165",
     "hover_expectation": "observe"
   },
   {
@@ -18401,7 +18163,7 @@
     "fn": "bool xv::net::qemu_defaults()",
     "kind": "Function",
     "usr": "c:service.cpp@N@xv@N@net@aN@F@qemu_defaults#",
-    "source_sha256": "bd99bdc60c37794cdb226baf266d3415a4e7cf96f037cbc8ab1d0778cb6ed8e9"
+    "source_sha256": "1595ec61ba2736f20ab9acfa8d088dab15b27702dca8a99a58388a057a6c6800"
   },
   {
     "anchor": "fn-850f3daf0de0f624",
@@ -18436,11 +18198,11 @@
     "source": "kernel/net/core/service.cpp",
     "spelling": "initialize",
     "qualified": "xv::net::initialize",
-    "signature": "void initialize(NetworkSetup *setup)",
-    "fn": "void xv::net::initialize(NetworkSetup *setup)",
+    "signature": "void initialize(NetworkSetup *setup = nullptr)",
+    "fn": "void xv::net::initialize(NetworkSetup *setup = nullptr)",
     "kind": "Function",
     "usr": "c:@N@xv@N@net@F@initialize#*$@N@xv@N@net@S@NetworkSetup#",
-    "source_sha256": "31f829ab027831e1421eecfe1651ad7ab23469cd5a8628813b0efaf4a68a54b7"
+    "source_sha256": "0cf92cc13a97ac3652bee72e7064a647ef066d61e39fc6f448428150874b696c"
   },
   {
     "anchor": "fn-6aa7b41af4f709cb",
@@ -19229,11 +18991,11 @@
     "source": "kernel/net/ip/ipv4.cpp",
     "spelling": "Ipv4Layer::receive",
     "qualified": "xv::net::Ipv4Layer::receive",
-    "signature": "void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)",
+    "signature": "void receive(NetworkInterface &interface, Packet &packet) override",
     "fn": "void xv::net::Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
-    "source_sha256": "943595eca987a71775781cf3e93da16f8d7817aa6d384d58662394eb7ca089a5"
+    "source_sha256": "c8f44ae197855909d028934fbafffa26b0ad6efb395469f09a3d6182d04ff69b"
   },
   {
     "anchor": "fn-501941cbcccc2bee",
@@ -19424,11 +19186,11 @@
     "source": "kernel/net/socket/registry.cpp",
     "spelling": "SocketRegistry::port_used",
     "qualified": "xv::net::SocketRegistry::port_used",
-    "signature": "bool SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except, unsigned local_address) const",
-    "fn": "bool xv::net::SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except, unsigned local_address) const",
+    "signature": "bool port_used(unsigned protocol, unsigned short port, const InetSocket *except = nullptr, unsigned local_address = 0) const",
+    "fn": "bool xv::net::SocketRegistry::port_used(unsigned protocol, unsigned short port, const InetSocket *except = nullptr, unsigned local_address = 0) const",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@port_used#i#s#*1$@N@xv@N@net@S@InetSocket#i#1",
-    "source_sha256": "eb098bc8d244445eab3415ce23711adf1173fe22628638e3957c16d2b3b7af36"
+    "source_sha256": "1eea4aeb41dde4735c92d376f96754c29129e4dc07c175d036222f5906aa2c81"
   },
   {
     "anchor": "fn-6f6a373445d7f0ae",
@@ -19450,11 +19212,11 @@
     "source": "kernel/net/core/control.cpp",
     "spelling": "NetworkManager::inspect",
     "qualified": "xv::net::NetworkManager::inspect",
-    "signature": "int NetworkManager::inspect(unsigned operation, netctl_request &request)",
+    "signature": "int inspect(unsigned operation, netctl_request &request)",
     "fn": "int xv::net::NetworkManager::inspect(unsigned operation, netctl_request &request)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@NetworkManager@F@inspect#i#&$@S@netctl_request#",
-    "source_sha256": "8cd13be25ab3d5c3d233fa56eabe0620dfcfc505452ed591c10a50c33cfa796a"
+    "source_sha256": "efb24de1a8f070420346972cad897345a7c4562735bdf643164773e6d32a88f1"
   },
   {
     "anchor": "fn-4bb10e3a91b412f9",
@@ -19463,11 +19225,11 @@
     "source": "kernel/net/core/control.cpp",
     "spelling": "NetworkManager::mutate",
     "qualified": "xv::net::NetworkManager::mutate",
-    "signature": "int NetworkManager::mutate(unsigned operation, const netctl_request &r, NetworkInterface &interface)",
-    "fn": "int xv::net::NetworkManager::mutate(unsigned operation, const netctl_request &r, NetworkInterface &interface)",
+    "signature": "int mutate(unsigned operation, const netctl_request &request, NetworkInterface &interface)",
+    "fn": "int xv::net::NetworkManager::mutate(unsigned operation, const netctl_request &request, NetworkInterface &interface)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@NetworkManager@F@mutate#i#&1$@S@netctl_request#&$@N@xv@N@net@S@NetworkInterface#",
-    "source_sha256": "4a92b8a0e3408f54e6b02c6b1a9965256bb6551d9c69b516283002b8f1f80fae"
+    "source_sha256": "2e6fd7bef04f7410473ffeb22a4a1a7f6f1766247c1be65d1775892c918c4242"
   },
   {
     "anchor": "fn-77ff706bfd0958c0",
@@ -19476,11 +19238,11 @@
     "source": "kernel/net/core/control.cpp",
     "spelling": "NetworkManager::execute",
     "qualified": "xv::net::NetworkManager::execute",
-    "signature": "int NetworkManager::execute(unsigned operation, netctl_request &request)",
+    "signature": "int execute(unsigned operation, netctl_request &request)",
     "fn": "int xv::net::NetworkManager::execute(unsigned operation, netctl_request &request)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@NetworkManager@F@execute#i#&$@S@netctl_request#",
-    "source_sha256": "2ca62f8727868c9a3aca43e3ed3d46b766e71198120e0bc18bee197dbb5e4767"
+    "source_sha256": "23331c3e8f93068448eae3d2dc6aff0d04a6d258a0dec557ee8158a4d9080f26"
   },
   {
     "anchor": "fn-6f0e1f01771f2e2f",
@@ -19519,7 +19281,7 @@
     "fn": "xv::net::ConfigurationGuard::ConfigurationGuard()",
     "kind": "Constructor",
     "usr": "c:@N@xv@N@net@S@ConfigurationGuard@F@ConfigurationGuard#",
-    "source_sha256": "b138a81c0582d2bb5ab7fa39e1ecd6bcadab0f6b7e157b6ef334540deeef75dc"
+    "source_sha256": "5a598526634d4d6f4e29588f36481c18b214c2bad856b65e7e4db4eb6af53572"
   },
   {
     "anchor": "fn-be2b3f12d7b2d373",
@@ -19532,7 +19294,7 @@
     "fn": "xv::net::ConfigurationGuard::~ConfigurationGuard()",
     "kind": "Constructor",
     "usr": "c:@N@xv@N@net@S@ConfigurationGuard@F@~ConfigurationGuard#",
-    "source_sha256": "5c6b81f28d293562045676323024f2e45dee283d8db26944fc81ddae0fe6a770"
+    "source_sha256": "95a2fd56ce645e905b48ee70b044b81739d07f2997e5a66358479dfddca99c9f"
   },
   {
     "anchor": "fn-137bf23101d30d90",
@@ -19619,11 +19381,11 @@
     "source": "kernel/net/interface/interface.cpp",
     "spelling": "NetworkInterface::send",
     "qualified": "xv::net::NetworkInterface::send",
-    "signature": "int NetworkInterface::send(Packet &packet, unsigned next_hop)",
+    "signature": "int send(Packet &packet, unsigned next_hop)",
     "fn": "int xv::net::NetworkInterface::send(Packet &packet, unsigned next_hop)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@NetworkInterface@F@send#&$@N@xv@N@net@S@Packet#i#",
-    "source_sha256": "e7182cbb385a8aa657d781d7c47c13556ba5868bb02cff7d9b6b09a183db74d5"
+    "source_sha256": "c4603ddef974d0e59dd139699f1de8abd8ab68937c4b377340a25d426c7cec59"
   },
   {
     "anchor": "fn-f3c8aa01de8e327c",
@@ -19944,11 +19706,11 @@
     "source": "kernel/net/bridge/manager.cpp",
     "spelling": "BridgeManager::unused",
     "qualified": "xv::net::BridgeManager::unused",
-    "signature": "bool BridgeManager::unused(NetworkInterface &interface) const",
+    "signature": "bool unused(NetworkInterface &interface) const",
     "fn": "bool xv::net::BridgeManager::unused(NetworkInterface &interface) const",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@BridgeManager@F@unused#&$@N@xv@N@net@S@NetworkInterface#1",
-    "source_sha256": "025ef97f141b10c33073c3f875d8653d9028e7c1558e6848d0010c3b26f9a78a"
+    "source_sha256": "ffa47d29aecc6abf85c849c1c07f9d8697759785ca40aea0e3e7c5585e656c6f"
   },
   {
     "anchor": "fn-9249cf80bd2b818c",
@@ -19962,19 +19724,6 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@BridgeManager@F@membership#&$@N@xv@N@net@S@BridgeInterface#&$@N@xv@N@net@S@NetworkInterface#b#",
     "source_sha256": "77b117ce8402b1f78d25661f8f971f839e0ae4f1de01300f028bf8ac62aea54a"
-  },
-  {
-    "anchor": "fn-e2eba91bdd66e7c2",
-    "document": "docs/functions/kernel/net/core/control.cppm.md",
-    "hover_expectation": "observe",
-    "source": "kernel/net/core/control.cppm",
-    "spelling": "NetworkManager",
-    "qualified": "xv::net::NetworkManager::NetworkManager",
-    "signature": "constexpr NetworkManager(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback, BridgeManager *bridges = nullptr) : interfaces_(interfaces), routes_(routes), loopback_(loopback), bridges_(bridges)",
-    "fn": "xv::net::NetworkManager::NetworkManager(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback, BridgeManager *bridges = nullptr)",
-    "kind": "Constructor",
-    "usr": "c:@N@xv@N@net@S@NetworkManager@F@NetworkManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#*$@N@xv@N@net@S@BridgeManager#",
-    "source_sha256": "97dcb82ac9a9a02c52dc50bd56527373719cb084b299ea57cb1845620af9bda7"
   },
   {
     "anchor": "fn-b249acc31eb1ae38",
@@ -20248,5 +19997,330 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@Layer2Port@F@dispatch_frame#&$@N@xv@N@net@S@Packet#",
     "source_sha256": "f7cc61285174949c8452be6852ebb47c8cd0d9948c48121e6ada3e90a82fc240"
+  },
+  {
+    "anchor": "fn-3e5feadf3cb71a73",
+    "document": "docs/functions/kernel/net/core/control.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor",
+    "source": "kernel/net/core/control.cppm",
+    "spelling": "NetworkManager",
+    "qualified": "xv::net::NetworkManager::NetworkManager",
+    "signature": "constexpr NetworkManager(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback, BridgeManager *bridges = nullptr, DhcpManager *dhcp = nullptr) : interfaces_(interfaces), routes_(routes), loopback_(loopback), bridges_(bridges), dhcp_(dhcp)",
+    "fn": "xv::net::NetworkManager::NetworkManager(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback, BridgeManager *bridges = nullptr, DhcpManager *dhcp = nullptr)",
+    "usr": "c:@N@xv@N@net@S@NetworkManager@F@NetworkManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#*$@N@xv@N@net@S@BridgeManager#*$@N@xv@N@net@S@DhcpManager#",
+    "source_sha256": "f50207348a69651dff6ee9235a6d9ee5645d8d3ef5fd8a391ee63c85a68465bc"
+  },
+  {
+    "anchor": "fn-19acae0e87259110",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::initialize",
+    "qualified": "xv::net::DhcpManager::initialize",
+    "signature": "void initialize()",
+    "fn": "void xv::net::DhcpManager::initialize()",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@initialize#",
+    "source_sha256": "4e0d83e1c99685d9ac4275fc4e7209a09fcb7ba087132cfea66cd438a14fecb9"
+  },
+  {
+    "anchor": "fn-8786da367c47a7df",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::find",
+    "qualified": "xv::net::DhcpManager::find",
+    "signature": "Client *find(NetworkInterface &interface)",
+    "fn": "Client *xv::net::DhcpManager::find(NetworkInterface &interface)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@find#&$@N@xv@N@net@S@NetworkInterface#",
+    "source_sha256": "4cbb33c9d19351ad77c17d1898d153e99630ada8b8f8d51d9d1dfe2643aebc46"
+  },
+  {
+    "anchor": "fn-5497dbe215ae9a52",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::select",
+    "qualified": "xv::net::DhcpManager::select",
+    "signature": "void select(Client &client,unsigned long now,unsigned delay = 0)",
+    "fn": "void xv::net::DhcpManager::select(Client &client,unsigned long now,unsigned delay = 0)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@select#&$@N@xv@N@net@S@DhcpManager@S@Client#l#i#",
+    "source_sha256": "feb73eec9fa04a82eb7b3c68ace1f3cce6f2c51090a2310fd3624f749916a316"
+  },
+  {
+    "anchor": "fn-d4e4da766bebabfb",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::execute",
+    "qualified": "xv::net::DhcpManager::execute",
+    "signature": "int execute(unsigned operation,netctl_request &request)",
+    "fn": "int xv::net::DhcpManager::execute(unsigned operation,netctl_request &request)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
+    "source_sha256": "7763b0d9f32d8294adb51208aaca758c0a4014a98388a13e96ff2f1c977bd20f"
+  },
+  {
+    "anchor": "fn-f736e585f22f8be7",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::transmit",
+    "qualified": "xv::net::DhcpManager::transmit",
+    "signature": "int transmit(const Client &snapshot,unsigned type = 0)",
+    "fn": "int xv::net::DhcpManager::transmit(const Client &snapshot,unsigned type = 0)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@transmit#&1$@N@xv@N@net@S@DhcpManager@S@Client#i#",
+    "source_sha256": "532a433f3e4f63d79c51084ddd26a160e8bf942cf5d3d1f5f1640925588f756e"
+  },
+  {
+    "anchor": "fn-46570f71ac652ac6",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::receive_bootstrap",
+    "qualified": "xv::net::DhcpManager::receive_bootstrap",
+    "signature": "bool receive_bootstrap(NetworkInterface &interface,Packet &packet,const IpDatagram &datagram) override",
+    "fn": "bool xv::net::DhcpManager::receive_bootstrap(NetworkInterface &interface,Packet &packet,const IpDatagram &datagram)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
+    "source_sha256": "b5483b36cae77bab4879a3ee5999bf56b9931c4a636bba8382e45b3a21a4a06a"
+  },
+  {
+    "anchor": "fn-40a1e0ee6745de59",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/client.cpp",
+    "spelling": "DhcpManager::tick",
+    "qualified": "xv::net::DhcpManager::tick",
+    "signature": "void tick(unsigned long now)",
+    "fn": "void xv::net::DhcpManager::tick(unsigned long now)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@tick#l#",
+    "source_sha256": "ceb4fd94c8b4f3c0babdc58b0be8d48aa6c2cdfd6f1ae6500de81e94625f546d"
+  },
+  {
+    "anchor": "fn-956037c41b834553",
+    "document": "docs/functions/kernel/net/dhcp/client.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor",
+    "source": "kernel/net/dhcp/client.cppm",
+    "spelling": "DhcpManager",
+    "qualified": "xv::net::DhcpManager::DhcpManager",
+    "signature": "constexpr DhcpManager(InterfaceRegistry &interfaces,Ipv4Layer &ip,LeaseConfiguration &configuration) : interfaces_(interfaces), ip_(ip), configuration_(configuration)",
+    "fn": "xv::net::DhcpManager::DhcpManager(InterfaceRegistry &interfaces,Ipv4Layer &ip,LeaseConfiguration &configuration)",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@DhcpManager#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@Ipv4Layer#&$@N@xv@N@net@S@LeaseConfiguration#",
+    "source_sha256": "f17d23ee42fe2c5f26ef380c52e06c82308231455ea69bf7c66b0bf7bade9abb"
+  },
+  {
+    "anchor": "fn-585913184002ca08",
+    "document": "docs/functions/kernel/net/dhcp/lease.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/lease.cpp",
+    "spelling": "LeaseConfiguration::install",
+    "qualified": "xv::net::LeaseConfiguration::install",
+    "signature": "int install(NetworkInterface &interface, const DhcpLease &lease, bool &changed)",
+    "fn": "int xv::net::LeaseConfiguration::install(NetworkInterface &interface, const DhcpLease &lease, bool &changed)",
+    "usr": "c:@N@xv@N@net@S@LeaseConfiguration@F@install#&$@N@xv@N@net@S@NetworkInterface#&1$@N@xv@N@net@S@DhcpLease#&b#",
+    "source_sha256": "ae6fcff274c4fdaad48f964665bd28ea8b1478c65dd7070e54cfdfc4feea8cf5"
+  },
+  {
+    "anchor": "fn-02f977e5647590a0",
+    "document": "docs/functions/kernel/net/dhcp/lease.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/dhcp/lease.cpp",
+    "spelling": "LeaseConfiguration::remove",
+    "qualified": "xv::net::LeaseConfiguration::remove",
+    "signature": "bool remove(NetworkInterface &interface)",
+    "fn": "bool xv::net::LeaseConfiguration::remove(NetworkInterface &interface)",
+    "usr": "c:@N@xv@N@net@S@LeaseConfiguration@F@remove#&$@N@xv@N@net@S@NetworkInterface#",
+    "source_sha256": "baf15c31a15c6011281d2de89671f569d362f3bfee115a56f8fe42ed46edc042"
+  },
+  {
+    "anchor": "fn-9dce38b4e813e716",
+    "document": "docs/functions/kernel/net/dhcp/lease.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor",
+    "source": "kernel/net/dhcp/lease.cppm",
+    "spelling": "LeaseConfiguration",
+    "qualified": "xv::net::LeaseConfiguration::LeaseConfiguration",
+    "signature": "constexpr LeaseConfiguration(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback) : interfaces_(interfaces), routes_(routes), loopback_(loopback)",
+    "fn": "xv::net::LeaseConfiguration::LeaseConfiguration(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback)",
+    "usr": "c:@N@xv@N@net@S@LeaseConfiguration@F@LeaseConfiguration#&$@N@xv@N@net@S@InterfaceRegistry#&$@N@xv@N@net@S@RoutingTable#&$@N@xv@N@net@S@NetworkInterface#",
+    "source_sha256": "55411cd9085e37fd7d7ebb8ca108994663f299dadc42b423a99d90787dc4fec0"
+  },
+  {
+    "anchor": "fn-deb698e6bd4db06e",
+    "document": "docs/functions/kernel/net/dhcp/message.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "StaticMethod",
+    "source": "kernel/net/dhcp/message.cpp",
+    "spelling": "DhcpCodec::encode",
+    "qualified": "xv::net::DhcpCodec::encode",
+    "signature": "static unsigned encode(unsigned char *buffer, unsigned capacity, const DhcpRequest &request)",
+    "fn": "unsigned xv::net::DhcpCodec::encode(unsigned char *buffer, unsigned capacity, const DhcpRequest &request)",
+    "usr": "c:@N@xv@N@net@S@DhcpCodec@F@encode#*c#i#&1$@N@xv@N@net@S@DhcpRequest#S",
+    "source_sha256": "0f172e29d6197bbafeb144dff26204f221b54868c271a1ea763c70f8498887c2"
+  },
+  {
+    "anchor": "fn-cc3e4c98fe31fac2",
+    "document": "docs/functions/kernel/net/dhcp/message.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "StaticMethod",
+    "source": "kernel/net/dhcp/message.cpp",
+    "spelling": "DhcpCodec::options",
+    "qualified": "xv::net::DhcpCodec::options",
+    "signature": "static bool options(const unsigned char *data, unsigned length, DhcpReply &reply, unsigned &overload, bool main)",
+    "fn": "bool xv::net::DhcpCodec::options(const unsigned char *data, unsigned length, DhcpReply &reply, unsigned &overload, bool main)",
+    "usr": "c:@N@xv@N@net@S@DhcpCodec@F@options#*1c#i#&$@N@xv@N@net@S@DhcpReply#&i#b#S",
+    "source_sha256": "ac257d07d3cead03fd4e1d35f55c17b0b5406d75618d35ef92d19d21e938d57a"
+  },
+  {
+    "anchor": "fn-824eb37f1fb744c3",
+    "document": "docs/functions/kernel/net/dhcp/message.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "StaticMethod",
+    "source": "kernel/net/dhcp/message.cpp",
+    "spelling": "DhcpCodec::decode",
+    "qualified": "xv::net::DhcpCodec::decode",
+    "signature": "static bool decode(const unsigned char *buffer, unsigned length, DhcpReply &reply)",
+    "fn": "bool xv::net::DhcpCodec::decode(const unsigned char *buffer, unsigned length, DhcpReply &reply)",
+    "usr": "c:@N@xv@N@net@S@DhcpCodec@F@decode#*1c#i#&$@N@xv@N@net@S@DhcpReply#S",
+    "source_sha256": "11a12cb94e761b55dba2eeabc50fcd5e8187bff1dcd38a3ba88087ef78f3cfa4"
+  },
+  {
+    "anchor": "fn-9113b1a20b9723b9",
+    "document": "docs/functions/kernel/net/dhcp/message.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "StaticMethod",
+    "source": "kernel/net/dhcp/message.cpp",
+    "spelling": "DhcpCodec::lease",
+    "qualified": "xv::net::DhcpCodec::lease",
+    "signature": "static bool lease(const DhcpReply &reply, DhcpLease &result)",
+    "fn": "bool xv::net::DhcpCodec::lease(const DhcpReply &reply, DhcpLease &result)",
+    "usr": "c:@N@xv@N@net@S@DhcpCodec@F@lease#&1$@N@xv@N@net@S@DhcpReply#&$@N@xv@N@net@S@DhcpLease#S",
+    "source_sha256": "4b73f1334ec5ad51093490da7d18344040ad0edd2fb2fc61bc8908175fd884ac"
+  },
+  {
+    "anchor": "fn-6a23b3040e6fa382",
+    "document": "docs/functions/kernel/net/interface/ethernet_interface.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/interface/ethernet_interface.cpp",
+    "spelling": "EthernetInterface::transmit_bootstrap",
+    "qualified": "xv::net::EthernetInterface::transmit_bootstrap",
+    "signature": "int transmit_bootstrap(Packet &packet) override",
+    "fn": "int xv::net::EthernetInterface::transmit_bootstrap(Packet &packet)",
+    "usr": "c:@N@xv@N@net@S@EthernetInterface@F@transmit_bootstrap#&$@N@xv@N@net@S@Packet#",
+    "source_sha256": "eede6bb10cf27a3fb941ce26e66c32dfbf51c35df681dbbe7a5e0ba5ec5b6701"
+  },
+  {
+    "anchor": "fn-4486a19c308f9201",
+    "document": "docs/functions/kernel/net/interface/interface.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/interface/interface.cpp",
+    "spelling": "NetworkInterface::send_bootstrap",
+    "qualified": "xv::net::NetworkInterface::send_bootstrap",
+    "signature": "int send_bootstrap(Packet &packet)",
+    "fn": "int xv::net::NetworkInterface::send_bootstrap(Packet &packet)",
+    "usr": "c:@N@xv@N@net@S@NetworkInterface@F@send_bootstrap#&$@N@xv@N@net@S@Packet#",
+    "source_sha256": "a3570fa760b4e6bfc0180071749de45ceaf393e7571f95f220fa2eecd65b9592"
+  },
+  {
+    "anchor": "fn-c99a4c9b5b90a08c",
+    "document": "docs/functions/kernel/net/interface/interface.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/interface/interface.cpp",
+    "spelling": "NetworkInterface::account_send",
+    "qualified": "xv::net::NetworkInterface::account_send",
+    "signature": "int account_send(unsigned length, int result)",
+    "fn": "int xv::net::NetworkInterface::account_send(unsigned length, int result)",
+    "usr": "c:@N@xv@N@net@S@NetworkInterface@F@account_send#i#I#",
+    "source_sha256": "d2cba4a21ee29379f0171ca2c1797790c7a4d48d114616f0ff9bf5e31905545f"
+  },
+  {
+    "anchor": "fn-85aa8fb35261e0b3",
+    "document": "docs/functions/kernel/net/interface/interface.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/interface/interface.cppm",
+    "spelling": "dhcp_active",
+    "qualified": "xv::net::NetworkInterface::dhcp_active",
+    "signature": "bool dhcp_active() const",
+    "fn": "bool xv::net::NetworkInterface::dhcp_active() const",
+    "usr": "c:@N@xv@N@net@S@NetworkInterface@F@dhcp_active#1",
+    "source_sha256": "7e71f7b8fddb5ca6d54d2144c73ea0971c3f0e2081caef6bef7729a350aea066"
+  },
+  {
+    "anchor": "fn-6d7f4d82c2a0b4ef",
+    "document": "docs/functions/kernel/net/interface/interface.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/interface/interface.cppm",
+    "spelling": "transmit_bootstrap",
+    "qualified": "xv::net::NetworkInterface::transmit_bootstrap",
+    "signature": "virtual int transmit_bootstrap(Packet &)",
+    "fn": "int xv::net::NetworkInterface::transmit_bootstrap(Packet &)",
+    "usr": "c:@N@xv@N@net@S@NetworkInterface@F@transmit_bootstrap#&$@N@xv@N@net@S@Packet#",
+    "source_sha256": "d693472a89b7d67b1a9e0a71a816b178205b6025b7deda2c04db25939fa81187"
+  },
+  {
+    "anchor": "fn-d38f175c28a36890",
+    "document": "docs/functions/kernel/net/ip/ipv4.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/ip/ipv4.cpp",
+    "spelling": "Ipv4Layer::send_bootstrap",
+    "qualified": "xv::net::Ipv4Layer::send_bootstrap",
+    "signature": "int send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source = 0)",
+    "fn": "int xv::net::Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source = 0)",
+    "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@send_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#i#",
+    "source_sha256": "f31ef19e4fb40900bcaab078a86f1e80d877dc807d691843bed8a0639e1f3740"
+  },
+  {
+    "anchor": "fn-3bebdee13a445ad8",
+    "document": "docs/functions/kernel/net/ip/ipv4.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/ip/ipv4.cppm",
+    "spelling": "receive_bootstrap",
+    "qualified": "xv::net::Ipv4Bootstrap::receive_bootstrap",
+    "signature": "virtual bool receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &datagram) = 0",
+    "fn": "bool xv::net::Ipv4Bootstrap::receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &datagram)",
+    "usr": "c:@N@xv@N@net@S@Ipv4Bootstrap@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
+    "source_sha256": "73260821bce5aec6d0cf878f9b810fdcd41dd81d391db6891f1fa9ddf25ed54b"
+  },
+  {
+    "anchor": "fn-dc28cbdeba540453",
+    "document": "docs/functions/kernel/net/ip/ipv4.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor",
+    "source": "kernel/net/ip/ipv4.cppm",
+    "spelling": "~Ipv4Bootstrap",
+    "qualified": "xv::net::Ipv4Bootstrap::~Ipv4Bootstrap",
+    "signature": "~Ipv4Bootstrap() = default",
+    "fn": "xv::net::Ipv4Bootstrap::~Ipv4Bootstrap()",
+    "usr": "c:@N@xv@N@net@S@Ipv4Bootstrap@F@~Ipv4Bootstrap#",
+    "source_sha256": "ba6ff37dde98f547d965e860410d29f8bff7bfab6df42d89782a84260dc0dc53"
+  },
+  {
+    "anchor": "fn-6a0a31ea650c206e",
+    "document": "docs/functions/kernel/net/ip/ipv4.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod",
+    "source": "kernel/net/ip/ipv4.cppm",
+    "spelling": "attach_bootstrap",
+    "qualified": "xv::net::Ipv4Layer::attach_bootstrap",
+    "signature": "void attach_bootstrap(Ipv4Bootstrap &handler)",
+    "fn": "void xv::net::Ipv4Layer::attach_bootstrap(Ipv4Bootstrap &handler)",
+    "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@attach_bootstrap#&$@N@xv@N@net@S@Ipv4Bootstrap#",
+    "source_sha256": "45396825c282a930c16025c0c2fff90c7d6b65a5fd13dca3ad2b503d950e6194"
   }
 ]

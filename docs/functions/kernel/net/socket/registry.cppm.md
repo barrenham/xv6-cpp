@@ -2,7 +2,6 @@
 
 ## 函数导航
 
-- [`xv::net::legacy_port_used`](../stack.cpp.md#fn-70bad3dd1519b0d6)
 - [`xv::net::socket_registry`](../core/service.cpp.md#fn-a6dd2cdb97db1848)
 - [`xv::net::InetSocket::InetSocket`](registry.cppm.md#fn-d46e3a4682fc0941)
 - [`xv::net::InetSocket::accept`](inet_socket.cpp.md#fn-d2da4b830d20ce65)

@@ -26,7 +26,9 @@ target_compile_options(xv_options INTERFACE
 )
 # Direct LLD linkage makes host libraries and C++ startup objects impossible to pull in.
 set(CMAKE_CXX_LINK_EXECUTABLE "${XV_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+option(XV_NET_DHCP "Acquire network addresses with DHCP at boot" ON)
 add_subdirectory(kernel)
+target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}>)
 add_subdirectory(user)
 add_subdirectory(tools/mkfs)
 configure_file(README.xv6 "${PROJECT_BINARY_DIR}/README" COPYONLY)
@@ -176,3 +178,30 @@ foreach(cpus 1 3)
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
   set_tests_properties(bridge_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME dhcp_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --dhcp)
+  set_tests_properties(dhcp_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
+endforeach()
+
+foreach(cpus 1 3)
+  add_test(NAME dns_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/dns_network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+  set_tests_properties(dns_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
+endforeach()
+
+add_test(NAME dns_contract COMMAND "${PROJECT_BINARY_DIR}/dns_contract")
+set_tests_properties(dns_contract PROPERTIES TIMEOUT 10 LABELS network)
+
+foreach(cpus 1 3)
+  add_test(NAME http_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/http_network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+  set_tests_properties(http_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS network)
+endforeach()
+
+add_test(NAME http_contract COMMAND "${PROJECT_BINARY_DIR}/http_contract")
+set_tests_properties(http_contract PROPERTIES TIMEOUT 10 LABELS network)

@@ -54,12 +54,6 @@ unsigned long sys_sigreturn(void);
 unsigned long sys_sigsend(void);
 unsigned long sys_sigdisposition(void);
 
-#ifdef LAB_NET
-unsigned long sys_bind(void);
-unsigned long sys_unbind(void);
-unsigned long sys_send(void);
-unsigned long sys_recv(void);
-#endif
 #ifdef LAB_PGTBL
 unsigned long sys_pgpte(void);
 unsigned long sys_vmprint(void);

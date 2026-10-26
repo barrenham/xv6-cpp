@@ -9,6 +9,13 @@ struct IpDatagram
   unsigned source, destination, protocol, offset, length;
   NetworkInterface *interface;
 };
+class Ipv4Bootstrap
+{
+public:
+  virtual bool receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &datagram) = 0;
+protected:
+  ~Ipv4Bootstrap() = default;
+};
 class IpProtocol
 {
 public:
@@ -23,6 +30,8 @@ public:
       : interfaces_(interfaces), routes_(routes) {}
   void initialize();
   void attach(unsigned protocol, IpProtocol &handler);
+  void attach_bootstrap(Ipv4Bootstrap &handler) { bootstrap_ = &handler; }
+  int send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source = 0);
   Packet allocate(unsigned length);
   int send(Packet &packet, unsigned destination, unsigned protocol, unsigned source = 0,
            const NetworkInterface *via = nullptr);
@@ -45,6 +54,7 @@ private:
   } assemblies_[4]{};
   xv::sync::SpinLock lock_;
   unsigned identification_ = 0;
+  Ipv4Bootstrap *bootstrap_ = nullptr;
   InterfaceRegistry &interfaces_;
   RoutingTable &routes_;
 };

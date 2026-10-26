@@ -200,6 +200,7 @@ add_executable(network_contract
   "${XV_ROOT}/tests/network_interfaces.cpp"
   "${XV_ROOT}/tests/network_control.cpp"
   "${XV_ROOT}/tests/bridge_contract.cpp"
+  "${XV_ROOT}/tests/dhcp_contract.cpp"
   "${XV_ROOT}/tests/network_test_device.cpp"
   "${XV_ROOT}/tests/network_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
@@ -215,3 +216,15 @@ target_link_libraries(network_contract PRIVATE Threads::Threads)
 set_target_properties(network_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(network_contract)
 xv_add_driver_interfaces(network_contract)
+
+add_executable(dns_contract "${XV_ROOT}/tests/dns_contract.cpp" "${XV_ROOT}/user/runtime/dns/codec.cpp")
+target_include_directories(dns_contract PRIVATE "${XV_ROOT}")
+target_compile_features(dns_contract PRIVATE cxx_std_20)
+target_compile_options(dns_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(dns_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(http_contract "${XV_ROOT}/tests/http_contract.cpp" "${XV_ROOT}/user/runtime/http/codec.cpp")
+target_include_directories(http_contract PRIVATE "${XV_ROOT}")
+target_compile_features(http_contract PRIVATE cxx_std_20)
+target_compile_options(http_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(http_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

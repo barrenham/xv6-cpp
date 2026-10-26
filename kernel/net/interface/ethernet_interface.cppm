@@ -14,6 +14,7 @@ public:
   bool carrier() const override { return link_.carrier(); }
   Layer2Port *layer2() override { return &link_; }
   unsigned master() const override { return link_.master(); }
+  int transmit_bootstrap(Packet &packet) override;
   int transmit(Packet &packet, unsigned next_hop) override;
   bool neighbor(unsigned index, NeighborInfo &result) override { return arp_.neighbor(index, result); }
   void invalidate() override { arp_.clear(); }

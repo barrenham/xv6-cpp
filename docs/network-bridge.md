@@ -31,7 +31,14 @@ netctl link show eth0
 netctl addr add 10.20.0.1/24 dev br0
 ```
 
-加入桥前，成员必须没有自己的 IPv4 地址，也没有以该成员为出口或归其所有的路由。默认 QEMU 配置需要先清理，例如：
+加入桥前，成员必须没有自己的 IPv4 地址、活动 DHCP 客户端，也没有以该成员为出口或归其所有的路由。默认 DHCP 启动先执行：
+
+```sh
+netctl dhcp stop eth0
+netctl dhcp stop eth1
+```
+
+停止会清理租约所属地址和路由；如果使用旧静态启动或手工配置，还需清理，例如：
 
 ```sh
 netctl route del default dev eth0 via 10.0.2.2
@@ -46,7 +53,9 @@ netctl addr del 10.0.3.15/24 dev eth1
 
 桥 MAC 在启动时从首个有效接口 MAC 派生，设置本地管理位并对两个桥槽作区分；没有可用 MAC 时使用固定本地回退种子。MAC 在桥槽生命周期内不变，重新创建也不变。多台实例接入同一网络时应为底层网卡提供各自唯一的 MAC。
 
-清理示例：
+桥可使用 `netctl dhcp start br0` 自动取址，详见 [DHCP 说明](network-dhcp.md)。此时清理前先执行 `netctl dhcp stop br0`，不要直接删除租约地址。
+
+以下是桥使用手工地址时的清理示例：
 
 ```sh
 netctl bridge flush br0

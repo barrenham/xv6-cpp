@@ -95,6 +95,15 @@ int NetworkInterface::send(Packet &packet, unsigned next_hop)
 {
   unsigned length = packet.size();
   int result = transmit(packet, next_hop);
+  return account_send(length,result);
+}
+int NetworkInterface::send_bootstrap(Packet &packet)
+{
+  unsigned length=packet.size();
+  return account_send(length,transmit_bootstrap(packet));
+}
+int NetworkInterface::account_send(unsigned length,int result)
+{
   if (result < 0) __atomic_fetch_add(&statistics_.tx_errors, 1ULL, __ATOMIC_RELAXED);
   else
   {
