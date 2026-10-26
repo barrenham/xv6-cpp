@@ -56,7 +56,7 @@ cmake --build build/dev --target qemu
 - `network_contract` 使用同一协议实现和可控时钟，验证短包、校验和、队列上限、socket 容量与释放、ARP、反序分片重组/重叠拒绝/超时、ICMP Echo、SYN/数据重传、重复数据去重、乱序恢复、非法 ACK/RST、超时和分配回滚；最终检查所有网络页面归还。
 - `network_1cpu/3cpu` 使用 socket/sendto/recvfrom 验证真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
 - `multinet_1cpu/3cpu` 验证双子网、相同端口绑定不同本地地址、共享 PCI INTx 与每设备 MAC。
-- `socket_1cpu/3cpu` 验证 UDP 描述符、fstat、poll、dup/fork、非阻塞、TCP 主动/被动连接、18 KB 流传输、零窗口后恢复、半关闭、EOF、连接拒绝及回环 TCP。
+- `socket_1cpu/3cpu` 验证 UDP 描述符、fstat、poll、dup/fork、非阻塞、TCP 主动/被动连接、256 KiB 主动/被动流传输与 512 KiB 同时收发、零窗口后恢复、半关闭、EOF、连接拒绝及回环 TCP。
 
 `tests/socket_network.py` 自动启动宿主机 UDP/TCP 回显服务及客体 TCP 监听端口转发。手动运行 `sockettest` 需要传入宿主机 UDP 回显端口、TCP 回显端口和拒绝连接端口，并在程序输出 `listening` 后连接转发的客体 TCP2021；建议直接使用自动测试完成整套验证。
 
@@ -117,7 +117,7 @@ socket 最后一个 File 引用消失才触发 close；dup/fork 引用共享同�
 
 read/write、accept、sendto、recvfrom 的等待可被信号中断，沿用 EINTR/SA_RESTART。connect 被信号中断后保留在途连接，不自动重复连接；应用可继续 poll/SO_ERROR 或 close。
 
-旧实验 `bind(port)`、五参数 `send/recv` 和 `unbind(port)` 仍保留；旧 bind 与新的三参数 bind 使用 C++ 重载兼容，底层 fd 绑定系统调用命名为 `sockbind`。旧接口使用 PID 引用，socket 使用 File 引用，两者共享 UDP 端口占用检查。
+UDP 与 TCP 均通过 File/socket 管理，端口绑定系统调用为 `sockbind`，用户运行库提供三参数 `bind` 包装。旧 PID 端口接口已删除。
 
 ## IP、ARP 与计时
 
@@ -141,11 +141,11 @@ TCP 覆盖 SYN-SENT、SYN-RECEIVED、ESTABLISHED、FIN-WAIT-1/2、CLOSING、CLOS
 | 每以太接口 ARP 邻居 / 待解析报文 | 16 / 8 |
 | IPv4 重组槽 / 回环队列 | 4 / 16 |
 | socket 注册表 | 64个对象，含未接受和关闭中的 TCP |
-| TCP backlog / 每连接 RX | 8 / 4096字节 |
-| TCP 未确认发送段 / MSS上限 | 1 / 1460字节 |
+| TCP backlog / 每连接 RX / TX | 8 / 16 KiB / 16 KiB |
+| TCP 在途数据 / MSS 上限 | 受对端窗口和 NewReno 拥塞窗口共同限制 / 1460 字节 |
 | UDP socket 接收队列 / 出站负载 | 16报 / 最多4042字节，另受出口 MTU 限制（MTU1500时1472字节） |
 
-这是可与宿主机互通的教学主机栈，尚未覆盖生产 TCP 的全部功能：没有多段滑动发送窗口、拥塞窗口增长、快速重传/SACK、窗口扩大、时间戳、URG接口或加密随机 ISN；乱序不暂存。DHCP 自动取址已实现；尚未实现 IPv6、通用 socket 选项/消息向量、组播和出站 IPv4 分片。容量耗尽会返回错误或丢包，TCP通过重传恢复；TIME_WAIT对象占用注册槽，不能把“应用已 close”理解为立即可复用四元组。
+TCP 使用 16 KiB 收发环、乱序重排、累计 ACK、NewReno 拥塞控制、快速重传和 RTO/persist 计时，连接状态与测试见 [TCP 说明](network-tcp.md)。TIME_WAIT 对象继续占用注册槽，关闭中的连接由注册表维护至回收。IPv6、组播、出站 IPv4 分片和消息向量尚未实现。
 
 协议核对依据：[IPv4 RFC791](https://www.rfc-editor.org/rfc/rfc791.html)、[ICMP RFC792](https://www.rfc-editor.org/rfc/rfc792.html)、[TCP RFC9293](https://www.rfc-editor.org/rfc/rfc9293.html)、[重传计时 RFC6298](https://www.rfc-editor.org/rfc/rfc6298.html)。这些来源用于核对协议字段和行为，不表示本教学子集实现了全部标准要求。
 

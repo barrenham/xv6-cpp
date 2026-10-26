@@ -2,7 +2,6 @@
 
 ## 函数导航
 
-- [`xv::net::create_socket`](registry.cpp.md#fn-75b80a83f7b1ba17)
 - [`xv::net::SocketRegistry::add`](registry.cpp.md#fn-8ebcbaf798cf3b49)
 - [`xv::net::SocketRegistry::create`](registry.cpp.md#fn-b6e4a131f2727ec9)
 - [`xv::net::SocketRegistry::create_child`](registry.cpp.md#fn-312d78452a442d45)
@@ -12,6 +11,7 @@
 - [`xv::net::SocketRegistry::initialize`](registry.cpp.md#fn-659351b0c1327217)
 - [`xv::net::SocketRegistry::port_used`](registry.cpp.md#fn-843c6c84c36d20b9)
 - [`xv::net::SocketRegistry::tick`](registry.cpp.md#fn-c06a8341d8d22f53)
+- [`xv::net::create_socket`](registry.cpp.md#fn-75b80a83f7b1ba17)
 
 <a id="fn-659351b0c1327217"></a>
 
@@ -61,9 +61,9 @@
 
 ```doxygen
 @fn TcpSocket *xv::net::SocketRegistry::create_child()
-@brief SocketRegistry：持注册锁构造一个 TcpSocket 并申请其独立 4096 字节 RX 页。
+@brief SocketRegistry：持注册锁构造一个 TcpSocket，并申请其 16 KiB 发送环和 16 KiB 接收环。
 @pre 调用者持有统一注册锁。
-@details 持注册锁构造一个 TcpSocket 并申请其独立 4096 字节 RX 页。任一阶段失败都析构并归还已经分配的页；被动连接随后由 listener 标记为未接受。
+@details 持注册锁构造一个 TcpSocket，并申请其 16 KiB 发送环和 16 KiB 接收环。九个页面分配阶段中任一步失败都析构并归还已经分配的页；被动连接随后由 listener 标记为未接受。
 ```
 
 <a id="fn-5f18bd69e55bbc95"></a>

@@ -1,8 +1,11 @@
 module xv.net:tcp_socket;
 import :tcp;
 import :retransmission_timer;
+import :stream_buffer;
+import :congestion;
 namespace xv::net
 {
+unsigned tcp_peer_mss(const unsigned char *segment, unsigned length);
 enum class TcpState { Closed, Listen, SynSent, SynReceived, Established, FinWait1, FinWait2,
                       Closing, CloseWait, LastAck, TimeWait };
 class TcpSocket final : public InetSocket
@@ -28,25 +31,32 @@ public:
   TcpState state() const { return state_; }
   void passive(TcpSocket &listener, Endpoint local, Endpoint peer, const unsigned char *syn, unsigned length);
 private:
-  void emit(unsigned flags, const void *data = nullptr, unsigned length = 0);
-  void queue(unsigned flags, const void *data, unsigned length);
-  void acknowledge(unsigned acknowledgement);
+  int segment(unsigned sequence, unsigned flags, const void *data = nullptr, unsigned length = 0);
+  void emit(unsigned flags);
+  void synchronize(unsigned sequence);
+  void pump();
+  void retransmit();
+  void persist(unsigned long now);
+  void acknowledge(unsigned acknowledgement, bool duplicate);
+  bool update_window(unsigned sequence, unsigned acknowledgement, unsigned window);
   void finish();
   void fail(int error);
   void enter_time_wait();
   unsigned window() const;
+  unsigned mss() const;
   friend class TcpProtocol;
   TcpState state_ = TcpState::Closed;
   TcpSocket *listener_ = nullptr;
   unsigned backlog_ = 0;
-  unsigned send_unacknowledged_ = 0, send_next_ = 0, receive_next_ = 0;
-  unsigned peer_window_ = 65535, peer_mss_ = 536;
-  unsigned receive_head_ = 0, receive_count_ = 0;
-  unsigned char *receive_buffer_ = nullptr;
-  unsigned char transmit_buffer_[1460]{};
-  unsigned flight_sequence_ = 0, flight_flags_ = 0, flight_length_ = 0, retries_ = 0;
+  unsigned send_unacknowledged_ = 0, send_next_ = 0, syn_sequence_ = 0, fin_sequence_ = 0;
+  unsigned peer_window_ = 65535, peer_mss_ = 536, window_sequence_ = 0, window_ack_ = 0;
+  unsigned retries_ = 0, persist_interval_ = 1000, advertised_right_ = 0;
+  TcpSendBuffer transmit_;
+  TcpReceiveBuffer receive_;
+  TcpCongestion congestion_;
   RetransmissionTimer retransmission_;
-  unsigned long idle_deadline_ = 0;
-  bool flight_ = false, read_shutdown_ = false, write_shutdown_ = false, peer_finished_ = false;
+  unsigned long idle_deadline_ = 0, persist_deadline_ = 0, last_activity_ = 0;
+  bool syn_pending_ = false, fin_sent_ = false, fin_acked_ = false;
+  bool read_shutdown_ = false, write_shutdown_ = false;
 };
 }

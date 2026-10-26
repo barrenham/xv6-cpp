@@ -1,5 +1,6 @@
 module;
 #include <cstring>
+#include <vector>
 module xv.drivers;
 namespace
 {
@@ -7,6 +8,7 @@ xv::drivers::EthernetReceiver *receiver;
 unsigned char captured[4096];
 unsigned captured_length;
 bool available = true, accept = true;
+std::vector<std::vector<unsigned char>> frames;
 extern "C" void net_test_free(void *page);
 extern "C" void *net_test_allocate();
 class FakeNetwork final : public xv::drivers::EthernetDevice
@@ -20,6 +22,8 @@ public:
     if (!accept) return false;
     std::memcpy(captured, page, length);
     captured_length = length;
+    auto *bytes = static_cast<unsigned char *>(page);
+    frames.emplace_back(bytes,bytes+length);
     auto *sent = static_cast<unsigned char *>(page);
     bool arp = length == 42 && sent[12] == 8 && sent[13] == 6 && sent[21] == 1;
     unsigned char reply[42];
@@ -52,3 +56,8 @@ extern "C" void net_test_deliver(void *page, unsigned length) { receiver->receiv
 extern "C" void net_test_capture(void *data, unsigned *length)
 { std::memcpy(data, captured, captured_length); *length = captured_length; }
 extern "C" void net_test_device(bool online, bool transmit) { available = online; accept = transmit; }
+
+extern "C" void net_test_clear_frames() { frames.clear(); }
+extern "C" unsigned net_test_frame_count() { return frames.size(); }
+extern "C" unsigned net_test_frame(unsigned index, void *out)
+{ if (index >= frames.size()) return 0; const auto &frame = frames[index]; std::memcpy(out,frame.data(),frame.size()); return frame.size(); }

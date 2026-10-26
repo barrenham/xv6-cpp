@@ -6,6 +6,7 @@ extern "C" void run_network_interface_contracts();
 extern "C" void run_network_control_contracts();
 extern "C" void run_bridge_contracts();
 extern "C" void run_dhcp_contracts();
+extern "C" void run_tcp_contracts();
 extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *, unsigned);
 extern "C" void net_test_capture(void *, unsigned *);
@@ -19,8 +20,6 @@ namespace
 void check(bool okay, const char *message)
 { if (!okay) { std::fprintf(stderr, "network FAIL: %s\n", message); std::exit(1); } }
 void tick(unsigned long now) { net_test_clock(now); xv::net::timer_tick(); }
-unsigned get32(const unsigned char *p) { return (unsigned(p[0])<<24) | (unsigned(p[1])<<16) | (unsigned(p[2])<<8) | p[3]; }
-void put32(unsigned char *p, unsigned n) { p[0]=n>>24; p[1]=n>>16; p[2]=n>>8; p[3]=n; }
 unsigned long address(const void *p) { return reinterpret_cast<unsigned long>(p); }
 void put16(unsigned char *p, unsigned n) { p[0] = n >> 8; p[1] = n; }
 unsigned get16(const unsigned char *p) { return (unsigned(p[0]) << 8) | p[1]; }
@@ -41,18 +40,6 @@ void inject(const unsigned char *data, unsigned length)
   void *page = net_test_allocate();
   std::memcpy(page, data, length);
   net_test_deliver(page, length);
-}
-void tcp_reply(unsigned char *out, const unsigned char *sent, unsigned sequence,
-               unsigned acknowledgement, unsigned flags, const char *data = nullptr, unsigned length = 0)
-{
-  std::memcpy(out, sent, 34); std::memcpy(out, sent+6, 6); std::memcpy(out+6, sent, 6);
-  std::memcpy(out+26, sent+30, 4); std::memcpy(out+30, sent+26, 4);
-  std::memset(out+34, 0, 20+length); put16(out+34, get16(sent+36)); put16(out+36, get16(sent+34));
-  put32(out+38, sequence); put32(out+42, acknowledgement); out[46] = 0x50; out[47] = flags;
-  put16(out+48, 4096); if (length) std::memcpy(out+54, data, length);
-  unsigned char pseudo[12+1460+20]; std::memcpy(pseudo, out+26, 8); pseudo[8]=0; pseudo[9]=6;
-  put16(pseudo+10, 20+length); std::memcpy(pseudo+12, out+34, 20+length);
-  put16(out+50, checksum(pseudo, 32+length)); put16(out+16, 40+length); ip_checksum(out);
 }
 
 int receive(xv::net::Socket *socket, char *data, unsigned capacity)
@@ -168,45 +155,7 @@ int main()
   check(captured_length == 45 && icmp[34] == 0 && checksum(icmp+34, 11) == 0, "ICMP echo");
   datagram->close();
   net_test_clear_interrupt();
-  auto *stream = xv::net::create_socket(1, 6);
-  check(stream && stream->connect({0x0a000202, 9000}, true) == -115, "nonblocking TCP SYN");
-  unsigned char syn[4096], response[4096], data_segment[4096]; unsigned syn_length;
-  net_test_capture(syn, &syn_length); unsigned initial = get32(syn+38);
-  check(syn_length == 58 && syn[47] == 2, "SYN with MSS");
-  tick(17000); net_test_capture(response, &captured_length);
-  check(response[47] == 2 && get32(response+38) == initial, "SYN retransmission");
-  tcp_reply(response, syn, 4000, initial+1, 18); inject(response, 54);
-  check(stream->poll(nullptr)&4, "TCP established writable");
-  check(stream->write({address("hello"), true}, 5) == 5, "TCP data queued");
-  net_test_capture(data_segment, &captured_length);
-  unsigned next = get32(data_segment+38)+5;
-  check(stream->write({address("again"), true}, 5) == -11, "unacknowledged send backpressure");
-  tcp_reply(response, data_segment, 4001, next+100, 16); inject(response, 54);
-  check(stream->write({address("again"), true}, 5) == -11, "future ACK rejected");
-  tick(19000); net_test_capture(response, &captured_length);
-  check(captured_length == 59 && get32(response+38) == get32(data_segment+38) && !std::memcmp(response+54, "hello", 5), "data retransmission");
-  tcp_reply(response, data_segment, 4001, next, 24, "hello", 5); inject(response, 59); inject(response, 59);
-  check(stream->read({address(data), true}, sizeof(data)) == 5 && !std::memcmp(data, "hello", 5), "duplicate data delivered once");
-  check(stream->read({address(data), true}, sizeof(data)) == -11, "duplicate not requeued");
-  tcp_reply(response, data_segment, 4008, next, 24, "gap", 3); inject(response, 57);
-  check(stream->read({address(data), true}, sizeof(data)) == -11, "out of order waits for retransmission");
-  tcp_reply(response, data_segment, 4006, next, 24, "ab", 2); inject(response, 56);
-  tcp_reply(response, data_segment, 4008, next, 24, "gap", 3); inject(response, 57);
-  check(stream->read({address(data), true}, sizeof(data)) == 5 && !std::memcmp(data, "abgap", 5), "gap recovery");
-  tcp_reply(response, data_segment, 4012, next, 20); inject(response, 54);
-  check(!(stream->poll(nullptr)&8), "inexact RST challenged");
-  tcp_reply(response, data_segment, 4011, next, 20); inject(response, 54);
-  check((stream->poll(nullptr)&8) && stream->read({address(data), true}, 1) == -104, "valid RST closes stream");
-  stream->close(); check(net_test_pages() == 0, "reset socket resources released");
-  stream = xv::net::create_socket(1, 6);
-  check(stream && stream->connect({0x0a000202, 9001}, true) == -115, "timeout connect");
-  for (unsigned long now = 19500; now <= 250000; now += 500) tick(now);
-  check(stream->error() == 110, "bounded retry timeout"); stream->close();
-  check(net_test_pages() == 0, "all packet and socket pages released");
-
-  net_test_fail_after(1);
-  check(xv::net::create_socket(1, 6) == nullptr && net_test_pages() == 0, "TCP partial allocation rollback");
-  net_test_fail_after(-1);
+  run_tcp_contracts();
   run_network_interface_contracts();
   run_network_control_contracts();
   run_bridge_contracts();

@@ -34,6 +34,7 @@ set(programs
   tests/nettest.cpp
   tests/multinet.cpp
   tests/sockettest.cpp
+  tests/tcpduplex.cpp
   tests/ptytest.cpp
   apps/sh/sh.cpp
   apps/sync/sync.cpp

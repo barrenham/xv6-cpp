@@ -10,7 +10,7 @@
 | [fs](#fs) | 26 | 208 |
 | [io](#io) | 2 | 16 |
 | [memory](#memory) | 22 | 173 |
-| [net](#net) | 56 | 321 |
+| [net](#net) | 60 | 360 |
 | [process](#process) | 58 | 323 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
@@ -18,7 +18,7 @@
 | [trap](#trap) | 20 | 89 |
 | [tty](#tty) | 1 | 0 |
 
-范围：262 个文件；默认 1491 个唯一 C++ 函数，连同条件接口与汇编入口共 1556 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：266 个文件；默认 1530 个唯一 C++ 函数，连同条件接口与汇编入口共 1595 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -203,6 +203,10 @@
 - [`kernel/net/dhcp/lease.cppm`](net/dhcp/lease.cppm.md)
 - [`kernel/net/dhcp/message.cpp`](net/dhcp/message.cpp.md)
 - [`kernel/net/dhcp/message.cppm`](net/dhcp/message.cppm.md)
+- [`kernel/net/transport/stream_buffer.cppm`](net/transport/stream_buffer.cppm.md)
+- [`kernel/net/transport/congestion.cppm`](net/transport/congestion.cppm.md)
+- [`kernel/net/socket/tcp_sender.cpp`](net/socket/tcp_sender.cpp.md)
+- [`kernel/net/socket/tcp_receiver.cpp`](net/socket/tcp_receiver.cpp.md)
 
 <a id="process"></a>
 

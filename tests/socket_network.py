@@ -110,14 +110,14 @@ def main():
                             data = os.read(key.fd, 65536)
                             transcript.extend(data)
                             log.write_bytes(transcript)
-                            if b'panic:' in transcript or b'sockettest: FAIL:' in transcript:
+                            if b'panic:' in transcript or b'usertrap():' in transcript or any(marker in transcript and b'\n' in transcript[transcript.find(marker):] for marker in (b'sockettest: FAIL:', b'tcpduplex: FAIL:')):
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 def inbound():
                     try:
                         with socket.create_connection(('127.0.0.1', forward_port), timeout=8) as connection:
                             connection.settimeout(10)
-                            data = bytes((i*11+3)&255 for i in range(7000))
+                            data = bytes((i*11+3)&255 for i in range(262144))
                             connection.sendall(data)
                             connection.shutdown(socket.SHUT_WR)
                             reply = bytearray()
@@ -145,6 +145,11 @@ def main():
                         guest_peer.join(timeout=1)
                         assert not guest_peer.is_alive()
                         assert not failures, failures
+                    process.stdin.write(f'tcpduplex {tcp.getsockname()[1]}\n'.encode())
+                    process.stdin.flush()
+                    expect('tcpduplex: 512 KiB duplex ALL PASSED', timeout=40)
+                    expect('$ ')
+                    assert not failures, failures
                     print(f'socket network: {args.cpus} CPUs, active/passive TCP, UDP and loopback passed')
                 finally:
                     process.terminate()

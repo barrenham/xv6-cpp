@@ -14,6 +14,7 @@ function(xv_add_net_modules target)
     "${module_root}/link/ethernet.cppm" "${module_root}/link/arp.cppm"
     "${module_root}/ip/ipv4.cppm" "${module_root}/ip/icmp.cppm"
     "${module_root}/transport/retransmission_timer.cppm"
+    "${module_root}/transport/stream_buffer.cppm" "${module_root}/transport/congestion.cppm"
     "${module_root}/transport/udp.cppm" "${module_root}/transport/tcp.cppm"
     "${module_root}/socket/socket.cppm" "${module_root}/socket/registry.cppm"
     "${module_root}/socket/udp_socket.cppm" "${module_root}/socket/tcp_socket.cppm")
@@ -29,6 +30,6 @@ function(xv_add_net_modules target)
     "${module_root}/link/ethernet.cpp" "${module_root}/link/arp.cpp"
     "${module_root}/ip/ipv4.cpp" "${module_root}/ip/icmp.cpp"
     "${module_root}/transport/udp.cpp" "${module_root}/transport/tcp_protocol.cpp"
-    "${module_root}/socket/tcp_socket.cpp" "${module_root}/socket/registry.cpp"
+    "${module_root}/socket/tcp_socket.cpp" "${module_root}/socket/tcp_sender.cpp" "${module_root}/socket/tcp_receiver.cpp" "${module_root}/socket/registry.cpp"
     "${module_root}/socket/inet_socket.cpp" "${module_root}/socket/udp_socket.cpp")
 endfunction()

@@ -6,7 +6,7 @@
 #include "user/runtime/user.h"
 namespace
 {
-char sent[20000], received[20000];
+char sent[262144], received[262144];
 void check(bool good, const char *message)
 { if (!good) { fprintf(2, "sockettest: FAIL: %s\n", message); exit(1); } }
 sockaddr_in address(unsigned ip, unsigned port)
@@ -15,7 +15,7 @@ sockaddr *sa(sockaddr_in &a) { return reinterpret_cast<sockaddr *>(&a); }
 void write_all(int fd, const char *data, int length)
 {
   for (int offset = 0; offset < length;)
-  { int n = write(fd, data+offset, length-offset); check(n > 0, "stream write"); offset += n; }
+  { int n = write(fd, data+offset, length-offset); if (n<=0) fprintf(2,"sockettest: write result %d at %d/%d\n",n,offset,length); check(n > 0, "stream write"); offset += n; }
 }
 void read_all(int fd, char *data, int length)
 {
@@ -64,10 +64,10 @@ extern "C" int main(int argc, char **argv)
   check(getsockopt(tcp, SOL_SOCKET, SO_ERROR, &error, &size) == 0 && error == 0, "connect status");
   check(fcntl(tcp, F_SETFL, 0) == 0, "blocking TCP");
   size = sizeof(peer); check(getpeername(tcp, sa(peer), &size) == 0 && ntohs(peer.sin_port) == tcp_port, "peer name");
-  write_all(tcp, sent, 18000);
+  write_all(tcp, sent, 262144);
   check(shutdown(tcp, SHUT_WR) == 0, "TCP half close");
-  read_all(tcp, received, 18000);
-  check(!memcmp(sent, received, 18000), "TCP stream content");
+  read_all(tcp, received, 262144);
+  check(!memcmp(sent, received, 262144), "TCP stream content");
   check(read(tcp, received, 1) == 0, "TCP EOF"); close(tcp);
   tcp = socket(AF_INET, SOCK_STREAM, 0); host = address(0x0a000202, refused_port);
   check(connect(tcp, sa(host), sizeof(host)) == -ECONNREFUSED, "TCP refusal"); close(tcp);
@@ -81,7 +81,7 @@ extern "C" int main(int argc, char **argv)
   p = {server, POLLIN, 0}; check(poll(&p, 1, 10000) == 1, "listener poll");
   size = sizeof(peer); int connection = accept(server, sa(peer), &size);
   check(connection >= 0, "accept");
-  read_all(connection, received, 7000); write_all(connection, received, 7000);
+  read_all(connection, received, 262144); write_all(connection, received, 262144);
   check(shutdown(connection, SHUT_WR) == 0, "accepted shutdown");
   check(read(connection, received, 1) == 0, "accepted peer EOF");
   close(connection); close(server);
