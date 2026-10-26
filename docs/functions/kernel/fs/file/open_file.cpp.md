@@ -10,6 +10,7 @@
 
 ## 函数导航
 
+- [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-3619f8a51976d854)
 - [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-bda8b34bb94e637a)
 - [`xv::fs::DeviceRegistry::get`](open_file.cpp.md#fn-ad2454960d73ee76)
 - [`xv::fs::File::nonblocking`](open_file.cpp.md#fn-6ae1d9a30631a953)
@@ -29,6 +30,7 @@
 - [`xv::fs::OpenFileTable::retain`](open_file.cpp.md#fn-5dc21f043fc5419d)
 - [`xv::fs::OpenFileTable::stat`](open_file.cpp.md#fn-bc87515094e34bf0)
 - [`xv::fs::OpenFileTable::write`](open_file.cpp.md#fn-0115ff202f5e535d)
+- [`xv::fs::open_registered_device`](open_file.cpp.md#fn-9dc9a9219a36d4e9)
 
 <a id="fn-6ae1d9a30631a953"></a>
 
@@ -69,6 +71,16 @@
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
+<a id="fn-319840ebccd17589"></a>
+
+## `xv::fs::OpenFileTable::allocate`
+
+```doxygen
+@fn File *xv::fs::OpenFileTable::allocate()
+@brief 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。
+@details 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。ref=-1 的关闭中槽仍占用，不能提前重用其内置适配器存储。失败返回 nullptr。
+```
+
 <a id="fn-5dc21f043fc5419d"></a>
 
 ## `xv::fs::OpenFileTable::retain`
@@ -80,42 +92,6 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard` → `detail::fail`。
 @details 需要特别跟踪的条件：`file->ref < 1`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`file`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-bda8b34bb94e637a"></a>
-
-## `xv::fs::DeviceRegistry::attach`
-
-```doxygen
-@fn void xv::fs::DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
-@brief 字符设备登记表：关联后端对象、接收器或组成员。
-@param major 字符设备主设备号。
-@param device 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::fail`。
-@details 本函数可见的状态更新包括：`devices_[major] = &device;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`major >= NDEV`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
-
-<a id="fn-ad2454960d73ee76"></a>
-
-## `xv::fs::DeviceRegistry::get`
-
-```doxygen
-@fn xv::drivers::CharacterDevice *xv::fs::DeviceRegistry::get(int major) const
-@brief 字符设备登记表：读取或计算 `major >= 0 && major < NDEV ? devices_[major] : nullptr`，返回当前查询结果。
-@param major 字符设备主设备号。
-@return 各分支实际返回：`major >= 0 && major < NDEV ? devices_[major] : nullptr`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-319840ebccd17589"></a>
-
-## `xv::fs::OpenFileTable::allocate`
-
-```doxygen
-@fn File *xv::fs::OpenFileTable::allocate()
-@brief 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。
-@details 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。ref=-1 的关闭中槽仍占用，不能提前重用其内置适配器存储。失败返回 nullptr。
 ```
 
 <a id="fn-68d546d0ff9f6adb"></a>
@@ -133,9 +109,9 @@
 ## `xv::fs::OpenFileTable::bind_inode`
 
 ```doxygen
-@fn void xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)
-@brief 按 inode 的设备属性在 File 的64字节对齐存储内 placement 构造 InodeBackend 或 DeviceBackend，再设置统一对象指针和访问模式。
-@details 按 inode 的设备属性在 File 的64字节对齐存储内 placement 构造 InodeBackend 或 DeviceBackend，再设置统一对象指针和访问模式。不分配额外物理页；接收调用者拥有的 inode 引用。每次打开的新 InodeBackend 偏移从零开始。
+@fn bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)
+@brief 为一次打开构造节点后端并报告初始化是否成功。
+@details 设备调用所属文件系统的 open_device 取得独立会话。快照文件系统为只读文件或目录分配一页并生成打开时内容，失败归还页面；成功才发布 backend 并接管 inode 引用。失败时调用者仍负责释放 inode 和未绑定 File。
 ```
 
 <a id="fn-71d5734b8a7caee5"></a>
@@ -208,6 +184,16 @@
 @details 调用后端虚 poll 登记通道及取得就绪位，随后只按 File 的读写权限过滤 POLLIN/POLLOUT；无后端为 POLLNVAL，不再按资源类型分派。
 ```
 
+<a id="fn-bda8b34bb94e637a"></a>
+
+## `xv::fs::DeviceRegistry::attach`
+
+```doxygen
+@fn void xv::fs::DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
+@brief 在启动阶段登记一个静态字符设备及其名称和设备号。
+@details 旧形式登记未命名的 minor=0 设备；命名形式复制最多 13 字节名称，拒绝斜杠、点目录、重复名称、重复 major/minor、容量超限及封存后的修改。设备实例必须保持系统级生命周期，注册阶段不允许并发使用。
+```
+
 <a id="fn-34475d43f15a5471"></a>
 
 ## `xv::fs::OpenFileTable::configure`
@@ -236,4 +222,32 @@
 @fn xv::io::IoObject *xv::fs::OpenFileTable::object(File *file) const
 @brief 返回 File 所持有的统一 IoObject 借用指针，空 File 指针或尚未绑定时返回 nullptr。
 @details 返回 File 所持有的统一 IoObject 借用指针，空 File 指针或尚未绑定时返回 nullptr。调用者必须保持有效 File 引用，不因查询而增加拥有权。
+```
+<a id="fn-3619f8a51976d854"></a>
+
+## `xv::fs::DeviceRegistry::attach`
+
+```doxygen
+@fn void xv::fs::DeviceRegistry::attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device)
+@brief 在启动阶段登记一个静态字符设备及其名称和设备号。
+@details 旧形式登记未命名的 minor=0 设备；命名形式复制最多 13 字节名称，拒绝斜杠、点目录、重复名称、重复 major/minor、容量超限及封存后的修改。设备实例必须保持系统级生命周期，注册阶段不允许并发使用。
+```
+
+<a id="fn-ad2454960d73ee76"></a>
+
+## `xv::fs::DeviceRegistry::get`
+
+```doxygen
+@fn xv::drivers::CharacterDevice *xv::fs::DeviceRegistry::get(int major, int minor) const
+@brief 按 major 和 minor 精确查询字符设备。
+@details 负值或未登记的组合返回 nullptr；minor 缺省为零。封存后注册表只读，I/O 路径无需注册锁；返回的指针只借用静态设备。
+```
+<a id="fn-9dc9a9219a36d4e9"></a>
+
+## `xv::fs::open_registered_device`
+
+```doxygen
+@fn xv::drivers::CharacterDevice *xv::fs::open_registered_device(Inode *node, bool nonblocking)
+@brief 按 major/minor 查询工厂并打开字符设备会话。
+@details 找不到设备或工厂分配失败返回 nullptr。静态设备可返回自身，ptmx 工厂返回新的 PTY 主端；返回引用由 File 最后关闭负责。
 ```

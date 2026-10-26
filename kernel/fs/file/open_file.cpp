@@ -89,15 +89,35 @@ void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readabl
   __atomic_store_n(&file.status_flags_, mode | (nonblocking ? O_NONBLOCK : 0), __ATOMIC_RELEASE);
 }
 
-void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
+bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
                                bool nonblocking)
 {
   static_assert(sizeof(InodeBackend) <= File::BackendBytes && alignof(InodeBackend) <= 16);
   static_assert(sizeof(DeviceBackend) <= File::BackendBytes && alignof(DeviceBackend) <= 16);
   xv::io::IoObject *backend;
-  if (node.kind() == T_DEVICE) backend = new (file.backend_storage_) DeviceBackend(node);
-  else backend = new (file.backend_storage_) InodeBackend(node);
+  if (node.kind() == T_DEVICE)
+  {
+    auto *session = node.owner().open_device(&node, nonblocking);
+    if (!session) return false;
+    backend = new (file.backend_storage_) DeviceBackend(node, *session);
+  }
+  else
+  {
+    char *snapshot = nullptr;
+    unsigned length = 0;
+    if (node.owner().snapshot_reads())
+    {
+      if (writable) return false;
+      snapshot = static_cast<char *>(detail::allocate_page());
+      if (!snapshot) return false;
+      int result = node.owner().snapshot(&node, snapshot, 4096);
+      if (result < 0) { detail::free_page(snapshot); return false; }
+      length = result;
+    }
+    backend = new (file.backend_storage_) InodeBackend(node, snapshot, length);
+  }
   configure(file, *backend, readable, writable, nonblocking);
+  return true;
 }
 
 void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
@@ -157,17 +177,44 @@ unsigned OpenFileTable::poll(File *file, xv::sync::PollTable *table)
   return events;
 }
 
-void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
+xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking)
 {
-  if (major >= NDEV)
-  {
-    detail::fail("device registry: invalid major");
-  }
-  devices_[major] = &device;
+  auto *device = devices().get(node->device_major(), node->device_minor());
+  return device ? device->open(nonblocking) : nullptr;
 }
 
-xv::drivers::CharacterDevice *DeviceRegistry::get(int major) const
+void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
 {
-  return major >= 0 && major < NDEV ? devices_[major] : nullptr;
+  attach("", major, 0, device);
+}
+
+void DeviceRegistry::attach(const char *name, unsigned major, unsigned minor,
+                            xv::drivers::CharacterDevice &device)
+{
+  unsigned length = 0;
+  while (name[length] && length < 14) ++length;
+  if (sealed_ || major >= NDEV || minor > 32767 || length >= 14 || count_ == NDEV ||
+      (length && (detail::compare(name, ".", 14) == 0 || detail::compare(name, "..", 14) == 0)))
+    detail::fail("device registry: invalid registration");
+  for (unsigned i = 0; i < length; ++i)
+    if (name[i] == '/') detail::fail("device registry: invalid name");
+  for (unsigned i = 0; i < count_; ++i)
+    if ((entries_[i].major == major && entries_[i].minor == minor) ||
+        (length && detail::compare(entries_[i].name, name, 14) == 0))
+      detail::fail("device registry: duplicate registration");
+  auto &record = entries_[count_++];
+  detail::copy_fixed(record.name, name, 14);
+  record.major = major;
+  record.minor = minor;
+  record.device = &device;
+}
+
+xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
+{
+  if (major < 0 || minor < 0) return nullptr;
+  for (unsigned i = 0; i < count_; ++i)
+    if (entries_[i].major == static_cast<unsigned>(major) &&
+        entries_[i].minor == static_cast<unsigned>(minor)) return entries_[i].device;
+  return nullptr;
 }
 } // namespace xv::fs

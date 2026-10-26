@@ -40,7 +40,7 @@ public:
   File *allocate();
   File *retain(File *file);
   void release(File *file);
-  void bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false);
+  bool bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
@@ -66,14 +66,28 @@ class DeviceRegistry final
 public:
 
   constexpr DeviceRegistry() = default;
+  struct Entry
+  {
+    char name[14]{};
+    unsigned major = 0;
+    unsigned minor = 0;
+    xv::drivers::CharacterDevice *device = nullptr;
+  };
   void attach(unsigned major, xv::drivers::CharacterDevice &device);
-  xv::drivers::CharacterDevice *get(int major) const;
+  void attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device);
+  xv::drivers::CharacterDevice *get(int major, int minor = 0) const;
+  unsigned count() const { return count_; }
+  const Entry &entry(unsigned index) const { return entries_[index]; }
+  void seal() { sealed_ = true; }
 
 private:
 
-  xv::drivers::CharacterDevice *devices_[NDEV]{};
+  Entry entries_[NDEV]{};
+  unsigned count_ = 0;
+  bool sealed_ = false;
 };
 
 DeviceRegistry &devices();
+xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking);
 bool create_pipe(File **read_end, File **write_end);
 } // namespace xv::fs

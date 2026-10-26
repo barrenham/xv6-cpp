@@ -705,7 +705,7 @@ extern "C"
   {
     static char buf[100];
     int fd;
-    while ((fd = open("console", O_RDWR)) >= 0)
+    while ((fd = open("/dev/console", O_RDWR)) >= 0)
     {
       if (fd >= 3)
       {

@@ -6,19 +6,19 @@
 | --- | ---: | ---: |
 | [arch](#arch) | 4 | 49 |
 | [boot](#boot) | 6 | 8 |
-| [drivers](#drivers) | 33 | 218 |
-| [fs](#fs) | 26 | 208 |
+| [drivers](#drivers) | 33 | 231 |
+| [fs](#fs) | 32 | 312 |
 | [io](#io) | 2 | 16 |
-| [memory](#memory) | 22 | 173 |
+| [memory](#memory) | 22 | 175 |
 | [net](#net) | 60 | 360 |
-| [process](#process) | 58 | 323 |
+| [process](#process) | 58 | 326 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
 | [syscall](#syscall) | 12 | 72 |
 | [trap](#trap) | 20 | 89 |
 | [tty](#tty) | 1 | 0 |
 
-范围：266 个文件；默认 1530 个唯一 C++ 函数，连同条件接口与汇编入口共 1595 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：272 个文件；默认 1652 个唯一 C++ 函数，连同条件接口与汇编入口共 1717 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -108,6 +108,12 @@
 - [`kernel/fs/inode/filesystem.cppm`](fs/inode/filesystem.cppm.md)
 - [`kernel/fs/inode/inode.cppm`](fs/inode/inode.cppm.md)
 - [`kernel/fs/inode/xv6_filesystem.cpp`](fs/inode/xv6_filesystem.cpp.md)
+- [`kernel/fs/devfs/devfs.cppm`](fs/devfs/devfs.cppm.md)
+- [`kernel/fs/devfs/devfs.cpp`](fs/devfs/devfs.cpp.md)
+- [`kernel/fs/vfs/vfs.cpp`](fs/vfs/vfs.cpp.md)
+- [`kernel/fs/vfs/vfs.cppm`](fs/vfs/vfs.cppm.md)
+- [`kernel/fs/procfs/procfs.cpp`](fs/procfs/procfs.cpp.md)
+- [`kernel/fs/procfs/procfs.cppm`](fs/procfs/procfs.cppm.md)
 
 <a id="io"></a>
 

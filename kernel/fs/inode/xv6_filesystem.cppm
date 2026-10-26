@@ -21,6 +21,12 @@ public:
     return "xv6 disk filesystem";
   }
 
+  Inode *root() override { return get(device_, ROOTINO); }
+  Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset) override;
+  Inode *create_at(Inode *directory, const char *name, short type, short major, short minor) override;
+  int link_at(Inode *directory, const char *name, Inode *target) override;
+  int unlink_at(Inode *directory, const char *name) override;
+  xv::drivers::CharacterDevice *open_device(Inode *node, bool nonblocking) override;
   void initialize(int device) override;
   void initialize_inodes() override;
   Inode *allocate(unsigned device, short type) override;
@@ -36,11 +42,6 @@ public:
   int write(Inode *node, int user, unsigned long source, unsigned offset,
             unsigned count) override;
   void stat(Inode *node, Stat *result) override;
-  Inode *lookup(const char *path) override;
-  Inode *lookup_parent(const char *path, char *name) override;
-  Inode *create(char *path, short type, short major, short minor) override;
-  int link(char *old_path, char *new_path) override;
-  int unlink(char *path) override;
 
 private:
 
@@ -53,10 +54,9 @@ private:
   void reclaim(int device);
   unsigned map_block(Inode *node, unsigned block);
   static int compare_names(const char *first, const char *second);
-  Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset);
   int link_entry(Inode *directory, const char *name, unsigned number);
-  Inode *walk_path(const char *path, int parent, char *name);
   int directory_empty(Inode *directory);
+  unsigned device_ = ROOTDEV;
   BlockCache &cache_;
   Journal &journal_;
   superblock layout_{};

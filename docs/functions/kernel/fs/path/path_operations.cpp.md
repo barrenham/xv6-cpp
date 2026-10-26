@@ -11,85 +11,12 @@
 ## 函数导航
 
 - [`xv::fs::Xv6FileSystem::compare_names`](path_operations.cpp.md#fn-2582fcda97170617)
-- [`xv::fs::Xv6FileSystem::create`](path_operations.cpp.md#fn-a0d31dedbcf7f673)
+- [`xv::fs::Xv6FileSystem::create_at`](path_operations.cpp.md#fn-c7e8c6cda59e8d12)
 - [`xv::fs::Xv6FileSystem::directory_empty`](path_operations.cpp.md#fn-349493cbf4320e0a)
-- [`xv::fs::Xv6FileSystem::link`](path_operations.cpp.md#fn-13afb769dcabb57b)
+- [`xv::fs::Xv6FileSystem::link_at`](path_operations.cpp.md#fn-603e65641638664d)
 - [`xv::fs::Xv6FileSystem::link_entry`](path_operations.cpp.md#fn-2c549cede9fc1d13)
-- [`xv::fs::Xv6FileSystem::lookup`](path_operations.cpp.md#fn-0b09ef09763d844a)
 - [`xv::fs::Xv6FileSystem::lookup_entry`](path_operations.cpp.md#fn-004094c7c5387803)
-- [`xv::fs::Xv6FileSystem::lookup_parent`](path_operations.cpp.md#fn-3c571ed40b048be1)
-- [`xv::fs::Xv6FileSystem::unlink`](path_operations.cpp.md#fn-885ae8493e8a4843)
-- [`xv::fs::Xv6FileSystem::walk_path`](path_operations.cpp.md#fn-a49b0d1e488e894d)
-- [`xv::fs::skip_element`](path_operations.cpp.md#fn-5fe1a12a0d3cbb98)
-
-<a id="fn-0b09ef09763d844a"></a>
-
-## `xv::fs::Xv6FileSystem::lookup`
-
-```doxygen
-@fn Inode *xv::fs::Xv6FileSystem::lookup(const char *path)
-@brief xv6 inode 文件系统：按路径或键查找对象。
-@param path 待解析的零结尾路径字符串。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`walk_path`。
-@return 各分支实际返回：`walk_path(path, 0, name)`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-3c571ed40b048be1"></a>
-
-## `xv::fs::Xv6FileSystem::lookup_parent`
-
-```doxygen
-@fn Inode *xv::fs::Xv6FileSystem::lookup_parent(const char *path, char *name)
-@brief xv6 inode 文件系统：查找路径末尾元素的父目录。
-@param path 待解析的零结尾路径字符串。
-@param name 名称键或调试名称。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`walk_path`。
-@return 各分支实际返回：`walk_path(path, 1, name)`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-a0d31dedbcf7f673"></a>
-
-## `xv::fs::Xv6FileSystem::create`
-
-```doxygen
-@fn Inode *xv::fs::Xv6FileSystem::create(char *path, short type, short major, short minor)
-@brief xv6 inode 文件系统：建立新的文件系统对象。
-@param path 待解析的零结尾路径字符串。
-@param type 本次操作使用的 type 值。
-@param major 字符设备主设备号。
-@param minor 本次操作使用的 minor 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lookup_parent` → `lock` → `unlock_release` → `lookup_entry` → `allocate` → `update` → `link_entry`。
-@details 本函数可见的状态更新包括：`ip->major = major;`；`ip->minor = minor;`；`ip->nlink = 1;`；`ip->nlink = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`(dp = lookup_parent(path, name)) == 0`；`dp->nlink == 0`；`type == T_DIR && dp->nlink >= NLINK_MAX`；`(ip = lookup_entry(dp, name, 0)) != 0`；`type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE)`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`0`；`ip`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-13afb769dcabb57b"></a>
-
-## `xv::fs::Xv6FileSystem::link`
-
-```doxygen
-@fn int xv::fs::Xv6FileSystem::link(char *old, char *new_path)
-@brief xv6 inode 文件系统：建立新的目录链接并维护链接计数。
-@param old 原有状态或源页表。
-@param new_path 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`transaction` → `lookup` → `lock` → `unlock_release` → `update` → `unlock` → `lookup_parent` → `link_entry` → `release`。
-@details 需要特别跟踪的条件：`(ip = lookup(old)) == 0`；`ip->type == T_DIR`；`ip->nlink >= NLINK_MAX`；`(dp = lookup_parent(new_path, name)) == 0`；`dp->nlink == 0`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
-<a id="fn-885ae8493e8a4843"></a>
-
-## `xv::fs::Xv6FileSystem::unlink`
-
-```doxygen
-@fn int xv::fs::Xv6FileSystem::unlink(char *path)
-@brief xv6 inode 文件系统：解除目录链接并处理对应对象的最后引用。
-@param path 待解析的零结尾路径字符串。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`transaction` → `lookup_parent` → `lock` → `compare_names` → `lookup_entry` → `detail::fail` → `directory_empty` → `unlock_release` → `detail::fill` → `write` → `update`。
-@details 需要特别跟踪的条件：`(dp = lookup_parent(path, name)) == 0`；`compare_names(name, ".") == 0 || compare_names(name, "..") == 0`；`(ip = lookup_entry(dp, name, &off)) == 0`；`ip->nlink < 1`；`ip->type == T_DIR && !directory_empty(ip)`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
-```
+- [`xv::fs::Xv6FileSystem::unlink_at`](path_operations.cpp.md#fn-5b4b6b7276311573)
 
 <a id="fn-2582fcda97170617"></a>
 
@@ -135,21 +62,6 @@
 @return 各分支实际返回：`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
-<a id="fn-a49b0d1e488e894d"></a>
-
-## `xv::fs::Xv6FileSystem::walk_path`
-
-```doxygen
-@fn Inode *xv::fs::Xv6FileSystem::walk_path(const char *path, int nameiparent, char *name)
-@brief xv6 inode 文件系统：逐段解析路径并推进当前 inode 引用。
-@param path 待解析的零结尾路径字符串。
-@param nameiparent 本次操作使用的 nameiparent 值。
-@param name 名称键或调试名称。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`get` → `detail::current_directory` → `skip_element` → `lock` → `unlock_release` → `unlock` → `lookup_entry` → `release`。
-@details 需要特别跟踪的条件：`*path == '/'`；`(path = skip_element(path, name)) != 0`；`ip->type != T_DIR`；`ip->nlink == 0`；`nameiparent && *path == '\0'`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`0`；`ip`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
 <a id="fn-349493cbf4320e0a"></a>
 
 ## `xv::fs::Xv6FileSystem::directory_empty`
@@ -163,17 +75,32 @@
 @return 各分支实际返回：`0`；`1`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
-<a id="fn-5fe1a12a0d3cbb98"></a>
+<a id="fn-c7e8c6cda59e8d12"></a>
 
-## `xv::fs::skip_element`
+## `xv::fs::Xv6FileSystem::create_at`
 
 ```doxygen
-@fn static const char *xv::fs::skip_element(const char *path, char *name)
-@brief 文件描述、inode、路径、块缓存与日志事务：跳过路径分隔符并取出下一段名字。
-@param path 待解析的零结尾路径字符串。
-@param name 名称键或调试名称。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::move`。
-@details 本函数可见的状态更新包括：`name[len] = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`*path == '/'`；`*path == 0`；`*path != '/' && *path != 0`；`len >= DIRSIZ`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`0`；`path`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn Inode *xv::fs::Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short major, short minor)
+@brief 在借用的父目录中创建磁盘 inode。
+@details 外层须有磁盘事务，父目录未锁定且有引用。拒绝孤儿目录和链接数溢出，已有普通文件或设备可按 T_FILE 打开；新目录建立 . 和 ..。失败回滚新 inode，成功返回锁定的子引用，不释放父引用。
+```
+
+<a id="fn-603e65641638664d"></a>
+
+## `xv::fs::Xv6FileSystem::link_at`
+
+```doxygen
+@fn int xv::fs::Xv6FileSystem::link_at(Inode *dp, const char *name, Inode *ip)
+@brief 在同一磁盘目录中增加目标硬链接。
+@details 借用两个未锁定引用，要求外层事务。拒绝目录、无链接节点和 nlink 溢出；先保护目标链接数再加锁修改父目录，目录写入失败时回滚目标链接数。父目录已删除或设备不同则失败。
+```
+
+<a id="fn-5b4b6b7276311573"></a>
+
+## `xv::fs::Xv6FileSystem::unlink_at`
+
+```doxygen
+@fn int xv::fs::Xv6FileSystem::unlink_at(Inode *dp, const char *name)
+@brief 从借用的磁盘目录中删除一个目录项。
+@details 要求外层事务及未锁定父引用。加锁后拒绝 .、.. 和非空目录，清空目录项并更新父子链接数，释放查得的子引用；父引用由调用者释放。
 ```

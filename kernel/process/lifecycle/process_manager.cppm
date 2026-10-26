@@ -38,6 +38,7 @@ public:
   bool may_read_terminal(void *terminal);
   void wakeup(void *channel);
   void dump();
+  bool snapshot_after(int after, ProcessInfo &result);
   int get_process_group();
   int set_process_group(int pid, int group);
   int get_session(int pid);

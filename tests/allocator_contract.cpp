@@ -566,12 +566,15 @@ int main(int argc, char **argv)
   expect_panic([&] { memory.deallocate(reinterpret_cast<void *>(Begin - PageSize)); });
   expect_panic([&] { memory.deallocate(reinterpret_cast<void *>(Limit)); });
   expect_panic([&] { memory.deallocate(reinterpret_cast<void *>(Begin + 1)); });
+  unsigned long initial_free = memory.free_pages();
+  check(initial_free == Count, "initial free page accounting");
   auto *page = memory.allocate();
-  check(page != nullptr, "allocate initial page");
+  check(page != nullptr && memory.free_pages() + 1 == initial_free, "allocate initial page and account");
   check(!memory.split_to_pages(page, SuperpageOrder + 1),
         "unsupported split leaves ownership unchanged");
   check(memory.split_to_pages(page, 0), "single page ownership remains valid");
   memory.deallocate(page);
+  check(memory.free_pages() == initial_free, "free page accounting restored");
   expect_panic([&] { memory.deallocate(page); });
 
   auto drain = [&]
@@ -594,6 +597,7 @@ int main(int argc, char **argv)
       }
       pages.push_back(p);
     }
+    check(memory.free_pages() == 0, "exhausted free page accounting");
     check(pages.size() == Count,
           "every usable page remains recoverable after exhaustion");
     // Free alternating pages first, then the rest, to exercise fragmented merges.
@@ -606,6 +610,7 @@ int main(int argc, char **argv)
     }
   };
   drain();
+  check(memory.free_pages() == initial_free, "fragmented free accounting");
   if (buddy)
   {
     for (unsigned order = 1; order <= SuperpageOrder; ++order)

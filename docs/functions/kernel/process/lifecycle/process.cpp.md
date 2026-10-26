@@ -20,10 +20,8 @@
 
 ```doxygen
 @fn void xv::process::Process::set_name(const char *label)
-@brief 进程描述符：设置名称。
-@param label 保存在对象中的调试标签，字符串需在使用期间有效。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::runtime::copy_string`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 在进程锁内更新调试名称。
+@details exec 发布名称时与进程快照读取互斥，复制结果以零终止。调用者不能已持有本进程锁；当前调用来自成功 exec 的拥有线程。
 ```
 
 <a id="fn-9d91050686d2abd0"></a>

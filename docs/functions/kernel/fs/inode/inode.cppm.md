@@ -14,9 +14,12 @@
 - [`xv::fs::Inode::Inode`](inode.cppm.md#fn-ce1d59b251e7f9b6)
 - [`xv::fs::Inode::device`](inode.cppm.md#fn-3ab6e7ac1fc633f4)
 - [`xv::fs::Inode::device_major`](inode.cppm.md#fn-5a5bffa518341fb7)
+- [`xv::fs::Inode::device_minor`](inode.cppm.md#fn-ccd4307dbfd4e34c)
 - [`xv::fs::Inode::kind`](inode.cppm.md#fn-8713cbf297ee2c61)
+- [`xv::fs::Inode::linked`](inode.cppm.md#fn-be30d22e631437a0)
 - [`xv::fs::Inode::number`](inode.cppm.md#fn-1e309501f8f708b5)
 - [`xv::fs::Inode::operator=`](inode.cppm.md#fn-79f72614e3968738)
+- [`xv::fs::Inode::owner`](inode.cppm.md#fn-43932e0d5580a438)
 - [`xv::fs::Inode::size_bytes`](inode.cppm.md#fn-24de649f4aa36caa)
 
 <a id="fn-74d62c7bb35d2b2a"></a>
@@ -100,4 +103,33 @@
 @fn unsigned xv::fs::Inode::size_bytes() const
 @brief 缓存 inode 对象：读取或计算 `size`，返回当前查询结果。
 @return 各分支实际返回：`size`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-43932e0d5580a438"></a>
+
+## `xv::fs::Inode::owner`
+
+```doxygen
+@fn FileSystem &xv::fs::Inode::owner() const
+@brief 取得该节点所属的文件系统实例。
+@details owner_ 在 inode 表初始化时绑定，此后节点复用不改变归属。VFS 按该实例转发引用、锁、元数据与读写操作；不根据设备号猜测后端。
+```
+
+<a id="fn-ccd4307dbfd4e34c"></a>
+
+## `xv::fs::Inode::device_minor`
+
+```doxygen
+@fn short xv::fs::Inode::device_minor() const
+@brief 取得设备节点的 minor 号。
+@details 调用者持有 inode 锁或已取得不可变 devfs 节点；与 major 一起用于注册表精确分派。
+```
+
+<a id="fn-be30d22e631437a0"></a>
+
+## `xv::fs::Inode::linked`
+
+```doxygen
+@fn bool xv::fs::Inode::linked() const
+@brief 判断节点是否仍有目录链接。
+@details 在 inode 锁内读取 nlink；路径遍历拒绝进入已经删除的目录。此值不是内存引用计数。
 ```

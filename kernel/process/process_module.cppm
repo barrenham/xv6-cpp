@@ -38,6 +38,7 @@ void wakeup(void *channel);
 PollWait make_poll_wait();
 void poll_timer_tick(unsigned long milliseconds);
 void dump();
+bool snapshot_after(int after, ProcessInfo &result);
 int copy_in(void *destination, bool user, unsigned long source, unsigned long count);
 int copy_out(bool user, unsigned long destination, const void *source,
              unsigned long count);

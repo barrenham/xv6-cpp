@@ -1,6 +1,9 @@
 module xv.fs;
 import :lru;
 import :xv6;
+import :devfs;
+import :vfs;
+import :procfs;
 
 namespace xv::fs
 {
@@ -8,7 +11,10 @@ namespace
 {
 constinit LruBlockCache system_cache;
 constinit Journal system_journal(system_cache);
-constinit Xv6FileSystem system_filesystem(system_cache, system_journal);
+constinit Xv6FileSystem disk_filesystem(system_cache, system_journal);
+constinit DevFileSystem device_filesystem;
+constinit ProcFileSystem process_filesystem;
+constinit VirtualFileSystem system_filesystem(disk_filesystem, device_filesystem, &process_filesystem);
 constinit OpenFileTable system_files;
 constinit DeviceRegistry system_devices;
 } // namespace
@@ -23,7 +29,7 @@ Journal &journal()
   return system_journal;
 }
 
-FileSystem &filesystem()
+VirtualFileSystem &filesystem()
 {
   return system_filesystem;
 }

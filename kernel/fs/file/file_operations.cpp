@@ -10,13 +10,21 @@ namespace xv::fs
 {
 void InodeBackend::close()
 {
-  { Transaction transaction; filesystem().release(node_); }
+  { Transaction transaction(node_->owner().persistent()); filesystem().release(node_); }
+  if (snapshot_) detail::free_page(snapshot_);
   this->~InodeBackend();
 }
 int InodeBackend::read(xv::io::Buffer destination, int count)
 {
-  LockedInode guard(filesystem(), *node_);
-  int result = filesystem().read(node_, 1, destination.address, offset_, count);
+  LockedInode guard(node_->owner(), *node_);
+  int result;
+  if (snapshot_)
+  {
+    unsigned part = offset_ < length_ ? length_ - offset_ : 0;
+    if (part > static_cast<unsigned>(count)) part = count;
+    result = part && detail::copy_out(true, destination.address, snapshot_ + offset_, part) < 0 ? -1 : static_cast<int>(part);
+  }
+  else result = filesystem().read(node_, 1, destination.address, offset_, count);
   if (result > 0) offset_ += result;
   return result;
 }
@@ -32,7 +40,7 @@ int InodeBackend::write(xv::io::Buffer source, int count)
     int result;
     {
       Transaction transaction;
-      LockedInode guard(filesystem(), *node_);
+      LockedInode guard(node_->owner(), *node_);
       result = filesystem().write(node_, 1, source.address+done, offset_, part);
       if (result > 0) offset_ += result;
     }
@@ -43,40 +51,42 @@ int InodeBackend::write(xv::io::Buffer source, int count)
 }
 int InodeBackend::stat(xv::io::Metadata &value)
 {
-  LockedInode guard(filesystem(), *node_);
+  LockedInode guard(node_->owner(), *node_);
   filesystem().stat(node_, &value);
+  if (snapshot_) value.size = length_;
   return 0;
 }
 unsigned InodeBackend::poll(xv::sync::PollTable *) { return POLLIN | POLLOUT; }
 void DeviceBackend::close()
 {
-  { Transaction transaction; filesystem().release(node_); }
+  session_->close();
+  { Transaction transaction(node_->owner().persistent()); filesystem().release(node_); }
   this->~DeviceBackend();
 }
 int DeviceBackend::read(xv::io::Buffer destination, int count)
 {
-  auto *device = devices().get(major_);
+  auto *device = session_;
   return device ? device->read({xv::drivers::AddressSpace::User, destination.address, destination.nonblocking}, count) : -1;
 }
 int DeviceBackend::write(xv::io::Buffer source, int count)
 {
-  auto *device = devices().get(major_);
+  auto *device = session_;
   return device ? device->write({xv::drivers::AddressSpace::User, source.address, source.nonblocking}, count) : -1;
 }
 int DeviceBackend::stat(xv::io::Metadata &value)
 {
-  LockedInode guard(filesystem(), *node_);
+  LockedInode guard(node_->owner(), *node_);
   filesystem().stat(node_, &value);
   return 0;
 }
 unsigned DeviceBackend::poll(xv::sync::PollTable *table)
 {
-  auto *device = devices().get(major_);
+  auto *device = session_;
   return device ? device->poll(table) : POLLERR;
 }
 int DeviceBackend::ioctl(unsigned request, xv::io::Buffer argument)
 {
-  auto *device = devices().get(major_);
+  auto *device = session_;
   return device ? device->ioctl(request, {xv::drivers::AddressSpace::User, argument.address, argument.nonblocking}) : -1;
 }
 void PipeBackend::close() { pipe_->close(writable_); this->~PipeBackend(); }

@@ -16,6 +16,9 @@ parser.add_argument('--qemu', required=True)
 parser.add_argument('--kernel', required=True)
 parser.add_argument('--image', required=True)
 parser.add_argument('--regression', action='store_true')
+parser.add_argument('--devfs', action='store_true')
+parser.add_argument('--named-pty', action='store_true')
+parser.add_argument('--procfs', action='store_true')
 parser.add_argument('--process-scaling', action='store_true')
 parser.add_argument('--tty', action='store_true')
 parser.add_argument('--process-groups', action='store_true')
@@ -45,7 +48,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -67,6 +70,10 @@ def expect(token, timeout=30):
                 transcript.extend(data)
                 sys.stdout.buffer.write(data)
                 sys.stdout.buffer.flush()
+                if b'namedptytest: FAIL:' in transcript or b'procfstest: FAIL:' in transcript:
+                    raise RuntimeError('named PTY or procfs contract failed')
+                if b'devfstest: FAIL:' in transcript:
+                    raise RuntimeError('devfs contract failed')
                 if b'jobtest: FAIL:' in transcript:
                     raise RuntimeError('job control contract failed')
                 if b'fgtest: FAIL:' in transcript:
@@ -555,6 +562,29 @@ try:
                   ('echo SIGNAL_SHELL_OK', 'SIGNAL_SHELL_OK\n')]
     if args.foreground or args.jobs or args.pty or args.nonblock or args.sigchld:
         checks = []
+    if args.devfs:
+        checks = []
+        for cmd, token in [('devfstest', 'devfstest: all tests succeeded'),
+                           ('ls /dev', 'zero'), ('cd /dev', None),
+                           ('/ls .', 'zero'), ('/echo discarded > null', None),
+                           ('cd ..', None), ('ls dev', 'console')]:
+            start = len(transcript)
+            cursor = start
+            process.stdin.write((cmd + '\n').encode())
+            process.stdin.flush()
+            if token:
+                expect(token, timeout=30)
+            expect('$ ')
+            output = transcript[start:]
+            if any(error in output for error in [b'cannot cd', b'open failed', b'ls: cannot', b'exec ',
+                                                 b'open null failed']):
+                raise RuntimeError(f'devfs shell command failed: {cmd}')
+    if args.named_pty:
+        checks = [('namedptytest', 'namedptytest: all tests succeeded')]
+    if args.procfs:
+        checks = [('procfstest', 'procfstest: all tests succeeded'),
+                  ('ps', 'PID PPID PGID SID STATE KiB NAME'),
+                  ('free', 'Mem:'), ('cat /proc/uptime', '.')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
     for cmd, token in checks:

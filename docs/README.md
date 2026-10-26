@@ -3,7 +3,7 @@
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：266 个文件，1595 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：272 个文件，1717 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。
@@ -14,6 +14,12 @@
 - [分层 IPv4、TCP/UDP 与 socket 开发说明](network.md)。
 
 - [统一 File 后端与能力接口](io.md)。
+
+- [VFS 与 devfs](devfs.md)：设备目录、挂载路径、字符设备与生命周期。
+
+- [命名 PTY](named-pty.md)：ptmx、pts、设备会话及编号生命周期。
+
+- [procfs 与 ps/free](procfs.md)：进程快照、内存统计与用户态工具。
 
 - [网络接口、多网卡选路与 IP-in-IP 隧道](network-interfaces.md)。
 

@@ -9,6 +9,14 @@ export import :signals;
 
 export namespace xv::process
 {
+struct ProcessInfo
+{
+  int pid = 0, parent = 0, group = 0, session = 0;
+  unsigned long bytes = 0;
+  char state = 0;
+  char name[16]{};
+};
+
 enum class ProcessState
 {
   Unused,

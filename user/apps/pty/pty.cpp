@@ -89,7 +89,12 @@ extern "C" int main(int argc, char **argv)
 {
   int fds[2];
   termios saved;
-  if (tcgetattr(0, &saved) < 0 || tcgetpgrp(0) != getpgrp() || openpty(fds) < 0)
+  char slave_path[32];
+  fds[0] = posix_openpt(O_RDWR);
+  bool opened = fds[0] >= 0 && grantpt(fds[0]) == 0 && unlockpt(fds[0]) == 0 &&
+                ptsname_r(fds[0], slave_path, sizeof(slave_path)) == 0;
+  fds[1] = opened ? open(slave_path, O_RDWR) : -1;
+  if (tcgetattr(0, &saved) < 0 || tcgetpgrp(0) != getpgrp() || fds[1] < 0)
   {
     fprintf(2, "pty: foreground terminal required or allocation failed\n");
     exit(1);

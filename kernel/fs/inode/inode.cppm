@@ -9,6 +9,8 @@ export namespace xv::fs
 {
 using Stat = ::stat;
 class Xv6FileSystem;
+class DevFileSystem;
+class FileSystem;
 
 class Inode final
 {
@@ -22,6 +24,10 @@ public:
   {
     return type;
   }
+
+  FileSystem &owner() const { return *owner_; }
+  short device_minor() const { return minor; }
+  bool linked() const { return nlink != 0; }
 
   short device_major() const
   {
@@ -46,6 +52,9 @@ public:
 private:
 
   friend class Xv6FileSystem;
+  friend class DevFileSystem;
+  friend class ProcFileSystem;
+  FileSystem *owner_ = nullptr;
   unsigned dev = 0;
   unsigned inum = 0;
   int ref = 0;

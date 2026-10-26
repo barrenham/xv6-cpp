@@ -10,6 +10,11 @@
 
 ## 函数导航
 
+- [`xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`](qemu_virt.cpp.md#fn-9d462dc2b56e9df5)
+- [`xv::drivers::PciNetworkInterrupt::handle_interrupt`](qemu_virt.cpp.md#fn-3ef9ccf1cd9c3d06)
+- [`xv::drivers::PciNetworkInterrupt::initialize`](qemu_virt.cpp.md#fn-5af1d4c6af322afc)
+- [`xv::drivers::PciNetworkInterrupt::irq`](qemu_virt.cpp.md#fn-2f668257e023a5a7)
+- [`xv::drivers::PciNetworkInterrupt::name`](qemu_virt.cpp.md#fn-47bf194bc003f4c4)
 - [`xv::drivers::block_device`](qemu_virt.cpp.md#fn-72e31996ffc2b022)
 - [`xv::drivers::console`](qemu_virt.cpp.md#fn-cb18263197838102)
 - [`xv::drivers::handle_external_interrupt`](qemu_virt.cpp.md#fn-8819b4e9b6bdacb6)
@@ -22,11 +27,6 @@
 - [`xv::drivers::network_device_count`](qemu_virt.cpp.md#fn-0f6db43d3d7dce07)
 - [`xv::drivers::serial_port`](qemu_virt.cpp.md#fn-ee46a944352f0df2)
 - [`xv::drivers::terminal_timer_tick`](qemu_virt.cpp.md#fn-a345578c92b3adb7)
-- [`xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`](qemu_virt.cpp.md#fn-9d462dc2b56e9df5)
-- [`xv::drivers::PciNetworkInterrupt::handle_interrupt`](qemu_virt.cpp.md#fn-3ef9ccf1cd9c3d06)
-- [`xv::drivers::PciNetworkInterrupt::initialize`](qemu_virt.cpp.md#fn-5af1d4c6af322afc)
-- [`xv::drivers::PciNetworkInterrupt::irq`](qemu_virt.cpp.md#fn-2f668257e023a5a7)
-- [`xv::drivers::PciNetworkInterrupt::name`](qemu_virt.cpp.md#fn-47bf194bc003f4c4)
 
 <a id="fn-cacccb8b1ed2107b"></a>
 
@@ -34,9 +34,17 @@
 
 ```doxygen
 @fn void xv::drivers::initialize_console()
-@brief 设备对象、MMIO、设备中断与终端数据流：初始化控制台。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`terminal.initialize` → `initialize_ptys` → `uart.attach` → `uart.initialize` → `xv::fs::devices` → `attach`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 初始化板级终端并登记 console 与 ptmx。
+@details 在启动阶段初始化 TTY、PTY 注册锁及 UART，登记静态控制台 1/0 和 PTY 多路复用工厂 4/0；devfs 发布目录前封存注册表。实际 PTY 会话只在打开 ptmx 时分配。
+```
+
+<a id="fn-ea116721d09e5c14"></a>
+
+## `xv::drivers::initialize_interrupts`
+
+```doxygen
+@fn void xv::drivers::initialize_interrupts()
+@brief 启动期扫描最多四个 E1000，设置插槽及共享 IRQ，然后初始化统一中断路由。
 ```
 
 <a id="fn-bea9233c904d33be"></a>
@@ -158,15 +166,6 @@
 ```doxygen
 @fn void xv::drivers::PciNetworkInterrupt::handle_interrupt()
 @brief 遍历所有已发现网卡，对 IRQ 与本线路一致的设备逐个处理；支持多个 PCI 插槽共享 INTx。
-```
-
-<a id="fn-ea116721d09e5c14"></a>
-
-## `xv::drivers::initialize_interrupts`
-
-```doxygen
-@fn void xv::drivers::initialize_interrupts()
-@brief 启动期扫描最多四个 E1000，设置插槽及共享 IRQ，然后初始化统一中断路由。
 ```
 
 <a id="fn-0f6db43d3d7dce07"></a>

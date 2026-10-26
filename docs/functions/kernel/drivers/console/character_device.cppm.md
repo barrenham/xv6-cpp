@@ -13,6 +13,7 @@
 - [`xv::drivers::CharacterDevice::CharacterDevice`](character_device.cppm.md#fn-149998f34d50f2a8)
 - [`xv::drivers::CharacterDevice::close`](character_device.cppm.md#fn-16e23ef5c5540a67)
 - [`xv::drivers::CharacterDevice::ioctl`](character_device.cppm.md#fn-c85b367e0cb4f3d1)
+- [`xv::drivers::CharacterDevice::open`](character_device.cppm.md#fn-8e129258047e8761)
 - [`xv::drivers::CharacterDevice::poll`](character_device.cppm.md#fn-9885d48feba8adf5)
 - [`xv::drivers::CharacterDevice::put_sync`](character_device.cppm.md#fn-621660e7b36c91d2)
 - [`xv::drivers::CharacterDevice::read`](character_device.cppm.md#fn-0644cee71cd0ad7a)
@@ -107,4 +108,13 @@
 @brief 结束设备对象、MMIO、设备中断与终端数据流的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-8e129258047e8761"></a>
+
+## `xv::drivers::CharacterDevice::open`
+
+```doxygen
+@fn virtual CharacterDevice *xv::drivers::CharacterDevice::open(bool)
+@brief 为一次独立打开取得一个字符设备会话。
+@details 默认返回自身，适用于系统生命周期的静态设备。动态工厂覆盖此方法分配会话，失败返回 nullptr；成功引用交给 DeviceBackend，最后一个共享 File 关闭时调用一次 close。dup/fork 不再次调用 open。
 ```

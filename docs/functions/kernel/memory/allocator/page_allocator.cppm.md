@@ -10,13 +10,6 @@
 
 ## 函数导航
 
-- [`xv::memory::allocator`](allocator_service.cpp.md#fn-f2b789758ee2f161)
-- [`xv::memory::boot_initialize`](../boot/kalloc.cpp.md#fn-df1a8ede82b392e0)
-- [`xv::memory::configured_allocator_kind`](../boot/kalloc.cpp.md#fn-d516d0e9e55b7d40)
-- [`xv::memory::initialize`](allocator_service.cpp.md#fn-e42f08f40f678227)
-- [`xv::memory::initialize`](allocator_service.cpp.md#fn-6294cdfa90bca295)
-- [`xv::memory::initialize`](allocator_service.cpp.md#fn-e58331769ab453a3)
-- [`xv::memory::initialize`](allocator_service.cpp.md#fn-8b1954f8cb6eb078)
 - [`xv::memory::OwnedPage::OwnedPage`](page_allocator.cppm.md#fn-53943cb33dde74c2)
 - [`xv::memory::OwnedPage::OwnedPage`](page_allocator.cppm.md#fn-4546c6c36537a1d1)
 - [`xv::memory::OwnedPage::get`](page_allocator.cppm.md#fn-20606b5bb86c3931)
@@ -26,8 +19,10 @@
 - [`xv::memory::OwnedPage::~OwnedPage`](page_allocator.cppm.md#fn-3aed0e148ae49606)
 - [`xv::memory::PhysicalPageAllocator::PhysicalPageAllocator`](page_allocator.cppm.md#fn-79ac4dcfa04f3171)
 - [`xv::memory::PhysicalPageAllocator::PhysicalPageAllocator`](page_allocator.cppm.md#fn-3eb49283b5507fd3)
+- [`xv::memory::PhysicalPageAllocator::account_free`](page_allocator.cppm.md#fn-975602334a091791)
 - [`xv::memory::PhysicalPageAllocator::allocate`](page_allocator.cppm.md#fn-7ac143f8956b1adf)
 - [`xv::memory::PhysicalPageAllocator::deallocate`](page_allocator.cppm.md#fn-c57d63731d54d1aa)
+- [`xv::memory::PhysicalPageAllocator::free_pages`](page_allocator.cppm.md#fn-e59eaf9e12a96638)
 - [`xv::memory::PhysicalPageAllocator::initialize_layout`](page_allocator.cppm.md#fn-96aea7f14e47df24)
 - [`xv::memory::PhysicalPageAllocator::layout`](page_allocator.cppm.md#fn-2ca98cd28a6d8551)
 - [`xv::memory::PhysicalPageAllocator::max_order`](page_allocator.cppm.md#fn-454d11f0d5090566)
@@ -37,6 +32,13 @@
 - [`xv::memory::PhysicalPageAllocator::split_to_pages`](page_allocator.cppm.md#fn-e80d757ba18133f2)
 - [`xv::memory::PhysicalPageAllocator::supports`](page_allocator.cppm.md#fn-15a873757be5f764)
 - [`xv::memory::PhysicalPageAllocator::~PhysicalPageAllocator`](page_allocator.cppm.md#fn-f8b502c882826938)
+- [`xv::memory::allocator`](allocator_service.cpp.md#fn-f2b789758ee2f161)
+- [`xv::memory::boot_initialize`](../boot/kalloc.cpp.md#fn-df1a8ede82b392e0)
+- [`xv::memory::configured_allocator_kind`](../boot/kalloc.cpp.md#fn-d516d0e9e55b7d40)
+- [`xv::memory::initialize`](allocator_service.cpp.md#fn-e42f08f40f678227)
+- [`xv::memory::initialize`](allocator_service.cpp.md#fn-6294cdfa90bca295)
+- [`xv::memory::initialize`](allocator_service.cpp.md#fn-e58331769ab453a3)
+- [`xv::memory::initialize`](allocator_service.cpp.md#fn-8b1954f8cb6eb078)
 
 <a id="fn-3eb49283b5507fd3"></a>
 
@@ -262,4 +264,23 @@
 @brief 物理页所有权句柄：释放当前引用或归还对象占用的资源。
 @details 本函数可见的状态更新包括：`page_ = nullptr;`。局部临时变量与对象字段应按作用域区分。
 @return 各分支实际返回：`page`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-e59eaf9e12a96638"></a>
+
+## `xv::memory::PhysicalPageAllocator::free_pages`
+
+```doxygen
+@fn unsigned long xv::memory::PhysicalPageAllocator::free_pages() const
+@brief 原子读取当前空闲物理页计数。
+@details 以 4 KiB 页为单位，任意阶块按页数计入；并发分配与归还期间为观测值，调用返回后无保留责任。
+```
+
+<a id="fn-975602334a091791"></a>
+
+## `xv::memory::PhysicalPageAllocator::account_free`
+
+```doxygen
+@fn void xv::memory::PhysicalPageAllocator::account_free(long pages)
+@brief 原子调整空闲物理页计数。
+@details 派生分配器在成功分配时减去 2^order，归还时加回原始块页数；分裂已拥有块不改变数量。仅调整统计，不改变空闲链表或资源所有权。
 ```

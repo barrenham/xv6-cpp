@@ -82,7 +82,7 @@ static void ready(const char *mode)
 
 extern "C" int main(int argc, char **argv)
 {
-  int terminal = open("console", O_RDWR);
+  int terminal = open("/dev/console", O_RDWR);
   check(terminal >= 0, "console open");
   check(sigdisposition(SIGINT, SIGNAL_DEFAULT) == SIGNAL_DEFAULT,
         "shell restored child SIGINT default");

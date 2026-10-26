@@ -56,8 +56,8 @@ void flags()
   reap(child);
   check(fcntl(fds[0], F_GETFL) == O_RDONLY, "fork shares open-file status");
   close(alias); close(fds[0]); close(fds[1]);
-  int first = open("console", O_RDONLY | O_NONBLOCK);
-  int second = open("console", O_RDONLY);
+  int first = open("/dev/console", O_RDONLY | O_NONBLOCK);
+  int second = open("/dev/console", O_RDONLY);
   check(first >= 0 && second >= 0 && fcntl(first, F_GETFL) == O_NONBLOCK &&
         fcntl(second, F_GETFL) == O_RDONLY, "independent opens of one TTY");
   check(read(first, copy, 1) == -EAGAIN && read(first, copy, 0) == 0,

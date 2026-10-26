@@ -20,11 +20,14 @@
 - [`xv::fs::detail::fill`](kernel_platform.cpp.md#fn-1f96e9ad94b54ca8)
 - [`xv::fs::detail::free_page`](kernel_platform.cpp.md#fn-2edb4be43f545533)
 - [`xv::fs::detail::killed`](kernel_platform.cpp.md#fn-a4b206516ef7c6e3)
+- [`xv::fs::detail::memory_info`](kernel_platform.cpp.md#fn-e2f78f5fd9feb4a0)
 - [`xv::fs::detail::move`](kernel_platform.cpp.md#fn-7edb69559eaac2a2)
 - [`xv::fs::detail::prepare_interruptible_sleep`](kernel_platform.cpp.md#fn-fcf4728d931b520f)
 - [`xv::fs::detail::prepare_sleep`](kernel_platform.cpp.md#fn-ab640082c3d8f293)
+- [`xv::fs::detail::process_after`](kernel_platform.cpp.md#fn-d36c15ba7da69bbe)
 - [`xv::fs::detail::report`](kernel_platform.cpp.md#fn-f79daff3187ea060)
 - [`xv::fs::detail::sleep`](kernel_platform.cpp.md#fn-cc457fade9ae62c6)
+- [`xv::fs::detail::uptime_ticks`](kernel_platform.cpp.md#fn-0d0decfcd0e63551)
 - [`xv::fs::detail::wakeup`](kernel_platform.cpp.md#fn-aec05456dbae85c7)
 
 <a id="fn-fcf4728d931b520f"></a>
@@ -233,4 +236,33 @@
 @param message 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::print::panic`。
 @return 不返回正常调用点；后续执行流由异常终止、调度或特权级切换接管。
+```
+<a id="fn-d36c15ba7da69bbe"></a>
+
+## `xv::fs::detail::process_after`
+
+```doxygen
+@fn bool xv::fs::detail::process_after(int after, ProcessRecord &result)
+@brief 把进程服务的复制记录适配为 procfs 平台记录。
+@details 读取 PID 大于 after 的最小进程，逐字段及定长名称复制，未找到返回 false。文件系统不依赖进程存储布局。
+```
+
+<a id="fn-0d0decfcd0e63551"></a>
+
+## `xv::fs::detail::uptime_ticks`
+
+```doxygen
+@fn unsigned long xv::fs::detail::uptime_ticks()
+@brief 读取系统运行时钟的 tick 快照。
+@details 委托 TickClock::uptime，以系统时钟锁同步；QEMU virt 的当前间隔为 100 ms，格式化由 procfs 完成。
+```
+
+<a id="fn-e2f78f5fd9feb4a0"></a>
+
+## `xv::fs::detail::memory_info`
+
+```doxygen
+@fn void xv::fs::detail::memory_info(unsigned long &total_kib, unsigned long &free_kib)
+@brief 取得分配器管理总页数与空闲页数，换算为 KiB。
+@details 总量为所有 usable 区间页数之和，排除内核、保留区与分配器元数据；空闲量来自原子计数。该指标不代表进程虚拟地址空间总和。
 ```

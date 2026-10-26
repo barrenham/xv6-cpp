@@ -14,6 +14,7 @@ namespace xv::process
 {
 void Process::set_name(const char *label)
 {
+  xv::sync::ScopedLock guard(lock);
   xv::runtime::copy_string(name, label, sizeof(name));
 }
 

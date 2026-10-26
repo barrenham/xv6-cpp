@@ -1,13 +1,5 @@
 # `kernel/process/process_module.cppm`
 
-开发职责：进程对象生命周期、组身份、调度、等待与信号。
-
-源码：[打开实际文件](../../../../kernel/process/process_module.cppm)。文档不会加入源码或生成额外 C++ 声明。
-
-模块身份：`xv.process`。
-
-直接模块依赖：`:registers`, `:resources`, `:address_space`, `:process`, `:scheduler`, `:executable`, `:poll`。依赖仅表示可见接口，不代表所有服务都在初始化时调用。
-
 ## 函数导航
 
 - [`xv::process::claim_terminal`](lifecycle/service.cpp.md#fn-4884f3bab775fd24)
@@ -36,6 +28,7 @@
 - [`xv::process::set_signal_disposition`](lifecycle/service.cpp.md#fn-bb3030848b31cf05)
 - [`xv::process::set_terminal_foreground`](lifecycle/service.cpp.md#fn-2684c802094d44d8)
 - [`xv::process::sleep`](sleep.md#sleep-sleep)
+- [`xv::process::snapshot_after`](lifecycle/service.cpp.md#fn-4f4ab884257688de)
 - [`xv::process::terminal_foreground`](lifecycle/service.cpp.md#fn-9d295666c0ed021d)
 - [`xv::process::wait`](service.md#service-wait)
 - [`xv::process::wait_for_child`](service.md#service-wait-for-child)

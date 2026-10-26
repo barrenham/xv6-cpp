@@ -33,6 +33,8 @@ public:
     return layout_;
   }
 
+  unsigned long free_pages() const { return __atomic_load_n(&free_pages_, __ATOMIC_ACQUIRE); }
+
   virtual MemorySize metadata_bytes(PageIndex pages) const = 0;
 
   // Returns an aligned, contiguous 2^order-page block, or nullptr on failure.
@@ -49,6 +51,8 @@ protected:
   PhysicalPageAllocator() = default;
 
   PhysicalMemoryLayout layout_;
+  unsigned long free_pages_ = 0;
+  void account_free(long pages) { __atomic_fetch_add(&free_pages_, pages, __ATOMIC_ACQ_REL); }
   // Boot-owned objects live forever; deletion through the interface is forbidden.
   ~PhysicalPageAllocator() = default;
 

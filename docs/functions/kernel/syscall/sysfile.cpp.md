@@ -10,6 +10,8 @@
 
 ## 函数导航
 
+- [`xv::syscall::argfd`](sysfile.cpp.md#fn-7564cff018f6113b)
+- [`xv::syscall::fdalloc`](sysfile.cpp.md#fn-e1520dac81970d65)
 - [`xv::syscall::sys_chdir`](sysfile.cpp.md#fn-5db6c22d9b99841b)
 - [`xv::syscall::sys_close`](sysfile.cpp.md#fn-4692a7b4aafb1a42)
 - [`xv::syscall::sys_dup`](sysfile.cpp.md#fn-d76ff7559f643ffa)
@@ -27,8 +29,6 @@
 - [`xv::syscall::sys_sync`](sysfile.cpp.md#fn-f630890d41c7271a)
 - [`xv::syscall::sys_unlink`](sysfile.cpp.md#fn-4aa7dc56022e07b7)
 - [`xv::syscall::sys_write`](sysfile.cpp.md#fn-dc225934cc4ef27f)
-- [`xv::syscall::argfd`](sysfile.cpp.md#fn-7564cff018f6113b)
-- [`xv::syscall::fdalloc`](sysfile.cpp.md#fn-e1520dac81970d65)
 
 <a id="fn-4fdcb85095f658e9"></a>
 
@@ -143,11 +143,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_open(void)
-@brief 系统调用入口：open；从用户参数转入内核服务并返回 ABI 结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`argument_integer` → `argument_string` → `xv::fs::filesystem` → `create` → `lookup` → `lock` → `ip->kind` → `unlock_release` → `ip->device_major` → `xv::fs::files` → `allocate` → `fdalloc`。
-@details 需要特别跟踪的条件：`(n = argument_string(0, path, MAXPATH)) < 0`；`omode & O_CREATE`；`ip == 0`；`(ip = xv::fs::filesystem().lookup(path)) == 0`；`ip->kind() == T_DIR && (omode & ~O_NONBLOCK) != O_RDONLY`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`-1`；`fd`。应结合上面的条件检查区分正常值、空值和错误值。
-@note 系统调用处理函数使用内核 64 位返回通道；负错误值经无符号类型传回时保持位模式，由用户 ABI 按相应整型解释。
+@brief 通过 VFS 打开节点并在成功初始化后接管设备或快照。
+@details 路径解析仍使用磁盘事务；只读后端拒绝普通文件写打开与截断。绑定设备会话或生成快照失败时，从进程表撤下已安装 fd 并释放 File 与 inode，成功才解锁并返回描述符。
 ```
 
 <a id="fn-dc225934cc4ef27f"></a>

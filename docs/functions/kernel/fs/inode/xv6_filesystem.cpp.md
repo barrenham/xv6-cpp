@@ -19,6 +19,7 @@
 - [`xv::fs::Xv6FileSystem::initialize_inodes`](xv6_filesystem.cpp.md#fn-8e9ee55da6c91ffd)
 - [`xv::fs::Xv6FileSystem::lock`](xv6_filesystem.cpp.md#fn-6d014e00edddc19a)
 - [`xv::fs::Xv6FileSystem::map_block`](xv6_filesystem.cpp.md#fn-e115e4280d884517)
+- [`xv::fs::Xv6FileSystem::open_device`](xv6_filesystem.cpp.md#fn-9f79fb79bd4090b4)
 - [`xv::fs::Xv6FileSystem::read`](xv6_filesystem.cpp.md#fn-dd71262a05693ac2)
 - [`xv::fs::Xv6FileSystem::read_super`](xv6_filesystem.cpp.md#fn-8886c17d9bd7f74a)
 - [`xv::fs::Xv6FileSystem::reclaim`](xv6_filesystem.cpp.md#fn-63ef700d59c2ecf4)
@@ -64,11 +65,8 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::initialize(int dev)
-@brief xv6 inode 文件系统：建立该对象开始工作所需的初始状态。
-@param dev 块设备编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`read_super` → `detail::fail` → `journal_.initialize` → `reclaim`。
-@details 需要特别跟踪的条件：`layout_.magic != FSMAGIC`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 初始化指定磁盘的布局、日志恢复与孤儿回收。
+@details 保存根节点使用的 device_，读取并验证超级块，然后初始化 Journal 并清理无链接 inode。必须在可睡眠的首个进程上下文调用。
 ```
 
 <a id="fn-e9142d5fbb52fb87"></a>
@@ -117,9 +115,8 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::initialize_inodes()
-@brief xv6 inode 文件系统：初始化inodes。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`inode_lock_.init` → `lock.init`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 初始化磁盘 inode 表及其归属和锁。
+@details 为全部缓存槽绑定本实例 owner_，初始化 inode_lock_ 与逐节点睡眠锁。启动时执行一次，随后初始进程可以先取得尚未加载磁盘内容的根引用。
 ```
 
 <a id="fn-071e023c7d9e28d2"></a>
@@ -339,4 +336,13 @@
 @details 需要特别跟踪的条件：`off > ip->size || off + n < off`；`off + n > MAXFILE * BSIZE`；`addr == 0`；`detail::copy_in(bp->bytes() + (off % BSIZE), user_src, src, m) == -1`；`off > ip->size`。这些条件决定检查、重试或提前返回路径。
 @note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
 @return 各分支实际返回：`-1`；`tot`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-9f79fb79bd4090b4"></a>
+
+## `xv::fs::Xv6FileSystem::open_device`
+
+```doxygen
+@fn xv::drivers::CharacterDevice *xv::fs::Xv6FileSystem::open_device(Inode *node, bool nonblocking)
+@brief 为磁盘中的设备节点打开登记会话。
+@details 委托 open_registered_device 按完整设备号查找工厂，支持静态字符设备及会话工厂；节点引用由调用者继续持有，失败返回 nullptr。
 ```

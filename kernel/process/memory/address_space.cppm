@@ -24,6 +24,7 @@ public:
     return size_;
   }
 
+  unsigned long observed_size() const { return __atomic_load_n(&observed_size_, __ATOMIC_ACQUIRE); }
   bool create(void *trap_frame, void *user_info);
   void reset();
   void swap(AddressSpace &other);
@@ -42,5 +43,6 @@ private:
 
   PageTable table_ = nullptr;
   unsigned long size_ = 0;
+  unsigned long observed_size_ = 0;
 };
 } // namespace xv::process

@@ -6,7 +6,8 @@ namespace xv::fs
 class InodeBackend final : public xv::io::IoObject
 {
 public:
-  explicit InodeBackend(Inode &node) : node_(&node) {}
+  explicit InodeBackend(Inode &node, char *snapshot = nullptr, unsigned length = 0)
+      : node_(&node), snapshot_(snapshot), length_(length) {}
   void close() override;
   int read(xv::io::Buffer destination, int count) override;
   int write(xv::io::Buffer source, int count) override;
@@ -15,11 +16,13 @@ public:
 private:
   Inode *node_;
   unsigned offset_ = 0;
+  char *snapshot_ = nullptr;
+  unsigned length_ = 0;
 };
 class DeviceBackend final : public xv::io::IoObject, public xv::io::DeviceControl
 {
 public:
-  explicit DeviceBackend(Inode &node) : node_(&node), major_(node.device_major()) {}
+  DeviceBackend(Inode &node, xv::drivers::CharacterDevice &session) : node_(&node), session_(&session) {}
   void close() override;
   int read(xv::io::Buffer destination, int count) override;
   int write(xv::io::Buffer source, int count) override;
@@ -30,7 +33,7 @@ public:
   { return id == xv::io::DeviceControl::Id ? static_cast<xv::io::DeviceControl *>(this) : nullptr; }
 private:
   Inode *node_;
-  short major_;
+  xv::drivers::CharacterDevice *session_;
 };
 class PipeBackend final : public xv::io::IoObject
 {

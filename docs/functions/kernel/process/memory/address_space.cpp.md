@@ -30,12 +30,7 @@
 ```doxygen
 @fn bool xv::process::AddressSpace::create(void *trap_frame, void *user_info)
 @brief 进程用户地址空间：建立新的文件系统对象。
-@param trap_frame 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param user_info 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::create_user_table` → `xv::memory::map_user_pages` → `xv::memory::free_user_table` → `xv::memory::unmap_user_pages`。
-@details 本函数可见的状态更新包括：`table_ = pagetable;`；`size_ = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`pagetable == 0`；`xv::memory::map_user_pages(pagetable, TRAMPOLINE, PGSIZE, (uint64)trampoline, PTE_R | PTE_X) < 0`；`xv::memory::map_user_pages(pagetable, TRAPFRAME, PGSIZE, reinterpret_cast<uint64>(trap_frame), PTE_R | PTE_W) < 0`；`xv::memory::map_user_pages(pagetable, USYSCALL, PGSIZE, reinterpret_cast<uint64>(user_info), PTE_R | PTE_U) < 0`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::create_user_table` → `xv::memory::map_user_pages` → `xv::memory::free_user_table` → `xv::memory::unmap_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-71495b3b41ddb9ad"></a>
@@ -45,10 +40,7 @@
 ```doxygen
 @fn void xv::process::AddressSpace::reset()
 @brief 进程用户地址空间：清理当前持有状态并恢复空对象。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::unmap_user_pages` → `xv::memory::free_user_table`。
-@details 本函数可见的状态更新包括：`table_ = nullptr;`；`size_ = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!table_`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::unmap_user_pages` → `xv::memory::free_user_table`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-5fd205292faac723"></a>
@@ -58,9 +50,7 @@
 ```doxygen
 @fn void xv::process::AddressSpace::swap(AddressSpace &other)
 @brief 进程用户地址空间：swap。
-@param other 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 本函数可见的状态更新包括：`table_ = other.table_;`；`other.table_ = table;`；`size_ = other.size_;`；`other.size_ = size;`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 本函数可见的状态更新包括：`table_ = other.table_;`；`other.table_ = table;`；`size_ = other.size_;`；`other.size_ = size;`。局部临时变量与对象字段应按作用域区分。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-f441ea3cfe631614"></a>
@@ -70,11 +60,7 @@
 ```doxygen
 @fn bool xv::process::AddressSpace::copy_to(AddressSpace &child) const
 @brief 进程用户地址空间：复制当前对象内容到另一个拥有者。
-@param child 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::clone_user_pages`。
-@details 本函数可见的状态更新包括：`child.size_ = size_;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`xv::memory::clone_user_pages(table_, child.table_, size_) < 0`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::clone_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-75a8c7ea8deccbc3"></a>
@@ -84,12 +70,7 @@
 ```doxygen
 @fn int xv::process::AddressSpace::resize(int bytes, bool eager)
 @brief 进程用户地址空间：调整用户地址空间的逻辑长度与映射。
-@param bytes 本次操作使用的 字节区域 值。
-@param eager 本次操作使用的 eager 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages` → `xv::memory::deallocate_user_pages`。
-@details 本函数可见的状态更新包括：`size_ = next;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`bytes > 0`；`next + bytes < next || next + bytes > UTOP`；`eager`；`!next`；`bytes < 0`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages` → `xv::memory::deallocate_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-6a2eebb0fa906335"></a>
@@ -99,12 +80,7 @@
 ```doxygen
 @fn bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions)
 @brief 进程用户地址空间：扩展地址空间到指定结束边界。
-@param end 本次操作使用的 结束边界 值。
-@param permissions 本次操作使用的 permissions 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages`。
-@details 本函数可见的状态更新包括：`size_ = next;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!next`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
 ```
 
 <a id="fn-55c0283e7aac7f96"></a>

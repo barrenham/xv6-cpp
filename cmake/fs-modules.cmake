@@ -9,6 +9,7 @@ function(xv_add_fs_interfaces target)
       "${module_root}/journal/journal.cppm"
       "${module_root}/inode/inode.cppm"
       "${module_root}/inode/filesystem.cppm"
+      "${module_root}/vfs/vfs.cppm"
       "${module_root}/file/open_file.cppm"
   )
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
@@ -22,6 +23,8 @@ function(xv_add_fs_internals target)
     FILES
       "${module_root}/cache/lru_block_cache.cppm"
       "${module_root}/inode/xv6_filesystem.cppm"
+      "${module_root}/devfs/devfs.cppm"
+      "${module_root}/procfs/procfs.cppm"
       "${module_root}/file/file_operations.cppm"
       "${module_root}/pipe/pipe.cppm"
       "${module_root}/platform/platform.cppm"

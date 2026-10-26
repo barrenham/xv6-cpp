@@ -68,6 +68,8 @@ struct winsize
 #define TIOCGWINSZ 0x5413
 #define TIOCSWINSZ 0x5414
 #define FIONREAD 0x541b
+#define TIOCGPTN 0x80045430
+#define TIOCSPTLCK 0x40045431
 #define TCSANOW 0
 #define TCSADRAIN 1
 #define TCSAFLUSH 2

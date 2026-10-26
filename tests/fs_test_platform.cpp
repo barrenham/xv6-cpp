@@ -22,6 +22,10 @@ module xv.fs;
 import :lru;
 import :xv6;
 import :pipe;
+import :vfs;
+import :devfs;
+import :procfs;
+import :platform;
 
 namespace xv::fs::test
 {
@@ -112,6 +116,11 @@ MemoryDisk disk;
 LruBlockCache block_cache(&disk);
 Journal log(block_cache);
 Xv6FileSystem fs(block_cache, log);
+DevFileSystem devfs;
+ProcFileSystem procfs;
+VirtualFileSystem vfs(fs, devfs, &procfs);
+bool process_alive = true;
+unsigned long fake_free = 2048;
 OpenFileTable file_table;
 DeviceRegistry registry;
 Inode *cwd = nullptr;
@@ -238,7 +247,7 @@ File *open_node(const char *path, bool create = false, short type = T_FILE,
 {
   Transaction transaction;
   auto *node =
-      create ? fs.create(const_cast<char *>(path), type, major, 0) : fs.lookup(path);
+      create ? vfs.create(const_cast<char *>(path), type, major, 0) : vfs.lookup(path);
   check(node != nullptr, "lookup/open inode");
   if (!create)
   {
@@ -246,7 +255,7 @@ File *open_node(const char *path, bool create = false, short type = T_FILE,
   }
   auto *file = file_table.allocate();
   check(file != nullptr, "allocate open file");
-  file_table.bind_inode(*file, *node, true, true);
+  check(file_table.bind_inode(*file, *node, true, true), "bind inode");
   fs.unlock(node);
   return file;
 }
@@ -282,10 +291,10 @@ void file_contract()
   check(file_table.stat(reader, reinterpret_cast<unsigned long>(&value)) == 0 &&
             value.size == input.size(),
         "file metadata");
-  check(fs.link(const_cast<char *>("/fscheck"), const_cast<char *>("/fsalias")) == 0,
+  check(vfs.link(const_cast<char *>("/fscheck"), const_cast<char *>("/fsalias")) == 0,
         "create hard link");
-  check(fs.unlink(const_cast<char *>("/fscheck")) == 0 &&
-            fs.unlink(const_cast<char *>("/fsalias")) == 0,
+  check(vfs.unlink(const_cast<char *>("/fscheck")) == 0 &&
+            vfs.unlink(const_cast<char *>("/fsalias")) == 0,
         "unlink both names while open");
   check(file_table.stat(reader, reinterpret_cast<unsigned long>(&value)) == 0 &&
             value.nlink == 0,
@@ -294,7 +303,7 @@ void file_contract()
   file_table.release(duplicate); // Last reference truncates/frees the unlinked inode.
   {
     Transaction transaction;
-    check(!fs.lookup("/fscheck") && !fs.lookup("/fsalias"), "unlinked names absent");
+    check(!vfs.lookup("/fscheck") && !vfs.lookup("/fsalias"), "unlinked names absent");
   }
 
   auto *again = open_node("/fsreuse", true);
@@ -313,7 +322,7 @@ void file_contract()
             output[0] == input[0],
         "copy failure does not advance open-file offset");
   file_table.release(failed_copy);
-  check(fs.unlink(const_cast<char *>("/fsreuse")) == 0, "remove reused file");
+  check(vfs.unlink(const_cast<char *>("/fsreuse")) == 0, "remove reused file");
 }
 
 class TestCharacter final : public xv::drivers::CharacterDevice
@@ -321,6 +330,9 @@ class TestCharacter final : public xv::drivers::CharacterDevice
 public:
 
   std::string output;
+  unsigned opens = 0, closes = 0;
+  CharacterDevice *open(bool) override { ++opens; return this; }
+  void close() override { ++closes; }
 
   const char *name() const override
   {
@@ -355,9 +367,8 @@ public:
 
 void device_contract()
 {
-  registry.attach(2, character);
   check(!registry.get(-1) && !registry.get(NDEV), "device major bounds");
-  auto *file = open_node("/fsdevice", true, T_DEVICE, 2);
+  auto *file = open_node("/fsdevice", true, T_DEVICE, 5);
   char message[] = "device";
   check(file_table.write(file, reinterpret_cast<unsigned long>(message), 6) == 6 &&
             character.output == "device",
@@ -370,8 +381,12 @@ void device_contract()
   check(file_table.stat(file, reinterpret_cast<unsigned long>(&value)) == 0 &&
             value.type == T_DEVICE,
         "device-node metadata");
+  auto *alias = file_table.retain(file);
   file_table.release(file);
-  check(fs.unlink(const_cast<char *>("/fsdevice")) == 0, "remove device node");
+  check(character.opens == 1 && character.closes == 0, "device session shared by dup");
+  file_table.release(alias);
+  check(character.closes == 1, "device session closed exactly once");
+  check(vfs.unlink(const_cast<char *>("/fsdevice")) == 0, "remove device node");
 }
 
 void pipe_contract()
@@ -499,7 +514,7 @@ void concurrent_contract()
                     data == copy,
                 "concurrent inode data");
           file_table.release(file);
-          check(fs.unlink(path) == 0, "concurrent unlink");
+          check(vfs.unlink(path) == 0, "concurrent unlink");
         });
   }
   for (auto &worker : workers)
@@ -520,6 +535,123 @@ void concurrent_contract()
     file_table.release(file);
   }
 }
+File *open_virtual(const char *path)
+{
+  Transaction transaction;
+  auto *node = vfs.lookup(path);
+  check(node != nullptr, "VFS lookup");
+  vfs.lock(node);
+  auto *file = file_table.allocate();
+  check(file != nullptr, "devfs open file slot");
+  check(file_table.bind_inode(*file, *node, true, node->kind() != T_DIR && !node->owner().read_only()), "bind VFS inode");
+  vfs.unlock(node);
+  return file;
+}
+
+void devfs_contract()
+{
+  unsigned writes = disk.writes.size();
+  auto *directory = open_virtual("///dev//.");
+  dirent entries[7]{};
+  auto address = reinterpret_cast<unsigned long>(entries);
+  check(file_table.read(directory, address, 3) == 3 &&
+        file_table.read(directory, address + 3, sizeof(entries) - 3) == sizeof(entries) - 3,
+        "unaligned synthetic directory reads");
+  check(entries[0].inum == entries[1].inum && !std::strcmp(entries[2].name, "console") &&
+        !std::strcmp(entries[3].name, "aux") && !std::strcmp(entries[4].name, "null") &&
+        !std::strcmp(entries[5].name, "zero") && !std::strcmp(entries[6].name, "pts"), "registry-backed directory records");
+  check(file_table.read(directory, address, 1) == 0, "directory EOF");
+  file_table.release(directory);
+  auto *zero = open_virtual("/dev/zero");
+  char bytes[513]; std::memset(bytes, 1, sizeof(bytes));
+  check(file_table.read(zero, reinterpret_cast<unsigned long>(bytes), sizeof(bytes)) == sizeof(bytes),
+        "zero read spans multiple copies");
+  for (char byte : bytes) check(!byte, "zero bytes");
+  fail_copy = true;
+  check(file_table.read(zero, address, 1) == -1, "zero copyout fault");
+  fail_copy = false;
+  check(file_table.poll(zero) == (POLLIN | POLLOUT), "zero readiness");
+  check(file_table.ioctl(zero, 123, 0) == -1, "unsupported device ioctl");
+  file_table.release(zero);
+  auto *null = open_virtual("/dev/null");
+  check(file_table.write(null, address, sizeof(entries)) == sizeof(entries) &&
+        file_table.read(null, address, 1) == 0, "null discard and EOF");
+  auto *duplicate = file_table.retain(null);
+  file_table.release(null);
+  check(file_table.write(duplicate, address, 1) == 1, "dup keeps device alive");
+  file_table.release(duplicate);
+  check(registry.get(5, 1) == &character && !registry.get(5, 2), "minor dispatch");
+  auto *minor = open_virtual("/dev/aux");
+  check(file_table.read(minor, address, 1) == 1, "named nonzero minor");
+  file_table.release(minor);
+  {
+    Transaction transaction;
+    auto *root = cwd;
+    cwd = vfs.lookup("/dev");
+    auto *parent = vfs.lookup("../dev/../.");
+    check(parent && &parent->owner() == &fs && parent->number() == ROOTINO,
+          "mount-root parent traversal from cwd");
+    vfs.release(parent);
+    auto *relative = vfs.lookup("./null");
+    check(relative && &relative->owner() == &devfs, "relative devfs lookup");
+    vfs.release(relative);
+    check(!vfs.create(const_cast<char *>("new"), T_FILE, 0, 0), "devfs rejects creation");
+    auto *existing = vfs.create(const_cast<char *>("zero"), T_FILE, 0, 0);
+    check(existing != nullptr, "O_CREATE on existing device");
+    vfs.unlock_release(existing);
+    vfs.release(cwd);
+    cwd = root;
+  }
+  check(vfs.unlink(const_cast<char *>("/dev")) == -1 &&
+        vfs.unlink(const_cast<char *>("/dev/../dev")) == -1 &&
+        vfs.unlink(const_cast<char *>("/dev/null")) == -1, "immutable mount and device entries");
+  check(vfs.link(const_cast<char *>("/dev/null"), const_cast<char *>("/bad-dev-link")) == -1,
+        "cross-filesystem hard link rejected");
+  expect_panic([] { registry.attach("late", 9, 0, character); });
+  std::vector<std::thread> workers;
+  for (int i = 0; i < 6; ++i) workers.emplace_back([] {
+    for (int j = 0; j < 200; ++j)
+    {
+      auto *file = open_virtual("/dev/null");
+      check(file_table.write(file, 0, 1) == 1, "concurrent discard");
+      file_table.release(file);
+    }
+  });
+  for (auto &worker : workers) worker.join();
+  check(disk.writes.size() == writes, "devfs operations never write disk");
+}
+
+void procfs_contract()
+{
+  auto *memory = open_virtual("/proc/meminfo");
+  check(allocated_pages == 1, "one page per proc snapshot");
+  fake_free = 1024;
+  char data[512]{};
+  check(file_table.read(memory, reinterpret_cast<unsigned long>(data), sizeof(data) - 1) > 0 &&
+        std::strstr(data, "MemFree: 2048 kB"), "open snapshot is stable");
+  file_table.release(memory);
+  memory = open_virtual("/proc/meminfo");
+  std::memset(data, 0, sizeof(data));
+  check(file_table.read(memory, reinterpret_cast<unsigned long>(data), sizeof(data) - 1) > 0 &&
+        std::strstr(data, "MemFree: 1024 kB"), "new open refreshes snapshot");
+  file_table.release(memory);
+  auto *status = open_virtual("/proc/7/status");
+  process_alive = false;
+  fail_copy = true;
+  check(file_table.read(status, reinterpret_cast<unsigned long>(data), 1) == -1, "snapshot copy failure");
+  fail_copy = false;
+  std::memset(data, 0, sizeof(data));
+  check(file_table.read(status, reinterpret_cast<unsigned long>(data), sizeof(data) - 1) > 0 &&
+        std::strstr(data, "Name: worker") && std::strstr(data, "Pid: 7"),
+        "snapshot survives process removal and failed copy");
+  file_table.release(status);
+  {
+    Transaction transaction;
+    check(!vfs.lookup("/proc/7/status"), "removed PID cannot be opened");
+  }
+  check(allocated_pages == 0, "all proc snapshot pages released");
+}
+
 } // namespace xv::fs::test
 
 namespace xv::fs
@@ -534,9 +666,9 @@ Journal &journal()
   return test::log;
 }
 
-FileSystem &filesystem()
+VirtualFileSystem &filesystem()
 {
-  return test::fs;
+  return test::vfs;
 }
 
 OpenFileTable &files()
@@ -557,6 +689,16 @@ void initialize_cache()
 
 namespace xv::fs::detail
 {
+bool process_after(int after, ProcessRecord &record)
+{
+  if (!test::process_alive || after >= 7) return false;
+  record = {}; record.pid = 7; record.parent = 1; record.group = 7; record.session = 1;
+  record.bytes = 8192; record.state = 'S'; std::strcpy(record.name, "worker");
+  return true;
+}
+unsigned long uptime_ticks() { return 10; }
+void memory_info(unsigned long &total, unsigned long &free) { total = 4096; free = test::fake_free; }
+
 void prepare_interruptible_sleep(void *channel)
 {
   xv_test_prepare_sleep(channel);
@@ -584,7 +726,7 @@ bool killed()
 
 Inode *current_directory()
 {
-  return test::cwd ? test::fs.retain(test::cwd) : nullptr;
+  return test::cwd ? test::cwd->owner().retain(test::cwd) : nullptr;
 }
 
 int copy_in(void *destination, bool, unsigned long source, unsigned count)
@@ -661,15 +803,19 @@ extern "C" int run_fs_contracts(const char *image)
   block_cache.initialize();
   cache_contract();
   journal_contract();
-  fs.initialize_inodes();
+  registry.attach("console", 5, 0, character);
+  registry.attach("aux", 5, 1, character);
+  vfs.initialize_inodes();
   file_table.initialize();
-  fs.initialize(1);
-  cwd = fs.lookup("/");
+  vfs.initialize(1);
+  cwd = vfs.lookup("/");
   file_contract();
   device_contract();
   pipe_contract();
   backend_contract();
   concurrent_contract();
+  devfs_contract();
+  procfs_contract();
   {
     xv::fs::Transaction transaction;
     fs.release(cwd);

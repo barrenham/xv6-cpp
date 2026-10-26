@@ -48,7 +48,13 @@ public:
   Endpoint &master() { return master_; }
   Endpoint &slave() { return slave_; }
   Pty *next = nullptr;
-  unsigned references = 2; // One per File, not per dup/fork descriptor.
+  unsigned references = 2;
+  unsigned slave_files = 1;
+  bool named = false;
+  bool slave_locked = true;
+  unsigned number = 0;
+  bool published = false;
+  void attach_slave();
 
 private:
   static constexpr unsigned Capacity = 1024;

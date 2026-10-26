@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::fs::journal`](../service.cpp.md#fn-fde437052d31cdd9)
 - [`xv::fs::Journal::Journal`](journal.cppm.md#fn-17149b6d55129134)
 - [`xv::fs::Journal::Journal`](journal.cppm.md#fn-6cb3a5a184fdb474)
 - [`xv::fs::Journal::begin`](journal.cpp.md#fn-68275ab1a63eaf6b)
@@ -28,9 +27,11 @@
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-e26e176641d6293e)
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-1065f6193f43c5ac)
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-b65a1bef83b0fe63)
+- [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-03718a79a3d72eff)
 - [`xv::fs::Transaction::finish`](journal.cppm.md#fn-4108a82c8eef8888)
 - [`xv::fs::Transaction::operator=`](journal.cppm.md#fn-93f6b3379a9a5409)
 - [`xv::fs::Transaction::~Transaction`](journal.cppm.md#fn-b41989f478512a14)
+- [`xv::fs::journal`](../service.cpp.md#fn-fde437052d31cdd9)
 
 <a id="fn-17149b6d55129134"></a>
 
@@ -133,4 +134,13 @@
 @details 本函数可见的状态更新包括：`journal_ = nullptr;`。局部临时变量与对象字段应按作用域区分。
 @details 需要特别跟踪的条件：`journal_`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-03718a79a3d72eff"></a>
+
+## `xv::fs::Transaction::Transaction`
+
+```doxygen
+@fn inline explicit xv::fs::Transaction::Transaction(bool persistent)
+@brief 按持久性要求建立条件磁盘事务。
+@details persistent 为 true 时调用全局 Journal::begin，否则保持空守卫。析构或 finish 只结束实际取得的事务；内存文件系统关闭使用 false，不申请日志容量。
 ```

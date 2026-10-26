@@ -92,175 +92,29 @@ int Xv6FileSystem::link_entry(Inode *dp, const char *name, uint inum)
   return 0;
 }
 
-// Paths
-
-// Copy the next path element from path into name.
-// Return a pointer to the element following the copied one.
-// The returned path has no leading slashes,
-// so the caller can check *path=='\0' to see if the name is the last one.
-// If no name to remove, return 0.
-//
-// Examples:
-//   skip_element("a/bb/c", name) = "bb/c", setting name = "a"
-//   skip_element("///a//bb", name) = "bb", setting name = "a"
-//   skip_element("a", name) = "", setting name = "a"
-//   skip_element("", name) = skip_element("////", name) = 0
-//
-static const char *skip_element(const char *path, char *name)
+int Xv6FileSystem::link_at(Inode *dp, const char *name, Inode *ip)
 {
-  const char *s;
-  int len;
-
-  while (*path == '/')
-  {
-    path++;
-  }
-  if (*path == 0)
-  {
-    return 0;
-  }
-  s = path;
-  while (*path != '/' && *path != 0)
-  {
-    path++;
-  }
-  len = path - s;
-  if (len >= DIRSIZ)
-  {
-    detail::move(name, s, DIRSIZ);
-  }
-  else
-  {
-    detail::move(name, s, len);
-    name[len] = 0;
-  }
-  while (*path == '/')
-  {
-    path++;
-  }
-  return path;
-}
-
-// Look up and return the inode for a path name.
-// If parent != 0, return the inode for the parent and copy the final
-// path element into name, which must have room for DIRSIZ bytes.
-// Must be called inside a transaction since it calls release().
-Inode *Xv6FileSystem::walk_path(const char *path, int nameiparent, char *name)
-{
-  Inode *ip, *next;
-
-  if (*path == '/')
-  {
-    ip = get(ROOTDEV, ROOTINO);
-  }
-  else
-  {
-    ip = detail::current_directory();
-  }
-
-  while ((path = skip_element(path, name)) != 0)
-  {
-    lock(ip);
-    if (ip->type != T_DIR)
-    {
-      unlock_release(ip);
-      return 0;
-    }
-    if (ip->nlink == 0)
-    {
-      unlock_release(ip);
-      return 0;
-    }
-    if (nameiparent && *path == '\0')
-    {
-      // Stop one level early.
-      unlock(ip);
-      return ip;
-    }
-    if ((next = lookup_entry(ip, name, 0)) == 0)
-    {
-      unlock_release(ip);
-      return 0;
-    }
-    unlock_release(ip);
-    ip = next;
-  }
-  if (nameiparent)
-  {
-    release(ip);
-    return 0;
-  }
-  return ip;
-}
-
-Inode *Xv6FileSystem::lookup(const char *path)
-{
-  char name[DIRSIZ];
-  return walk_path(path, 0, name);
-}
-
-Inode *Xv6FileSystem::lookup_parent(const char *path, char *name)
-{
-  return walk_path(path, 1, name);
-}
-
-int Xv6FileSystem::link(char *old, char *new_path)
-{
-  char name[DIRSIZ];
-  Inode *dp, *ip;
-
-  Transaction transaction(journal_);
-  if ((ip = lookup(old)) == 0)
-  {
-    return -1;
-  }
-
+  if (&ip->owner() != this || &dp->owner() != this) return -1;
   lock(ip);
-  if (ip->type == T_DIR)
+  if (ip->type == T_DIR || ip->nlink == 0 || ip->nlink >= NLINK_MAX)
   {
-    unlock_release(ip);
+    unlock(ip);
     return -1;
   }
-
-  if (ip->nlink >= NLINK_MAX)
-  {
-    unlock_release(ip);
-    return -1;
-  }
-
-  ip->nlink++;
+  ++ip->nlink;
   update(ip);
   unlock(ip);
-
-  if ((dp = lookup_parent(new_path, name)) == 0)
-  {
-    goto bad;
-  }
   lock(dp);
-  // dp may have been unlinked while we resolved it; linking into an
-  // orphaned directory leaks ip (itrunc discards the record without
-  // dropping ip->nlink).  create() has the same guard.
-  if (dp->nlink == 0)
+  int result = dp->nlink && dp->dev == ip->dev ? link_entry(dp, name, ip->inum) : -1;
+  unlock(dp);
+  if (result < 0)
   {
-    unlock_release(dp);
-    goto bad;
+    lock(ip);
+    --ip->nlink;
+    update(ip);
+    unlock(ip);
   }
-  if (dp->dev != ip->dev || link_entry(dp, name, ip->inum) < 0)
-  {
-    unlock_release(dp);
-    goto bad;
-  }
-  unlock_release(dp);
-  release(ip);
-
-  return 0;
-
-bad:
-  lock(ip);
-  ip->nlink--;
-  update(ip);
-  unlock_release(ip);
-  return -1;
+  return result;
 }
 
 // Is the directory dp empty except for "." and ".." ?
@@ -283,19 +137,11 @@ int Xv6FileSystem::directory_empty(Inode *dp)
   return 1;
 }
 
-int Xv6FileSystem::unlink(char *path)
+int Xv6FileSystem::unlink_at(Inode *dp, const char *name)
 {
-  Inode *ip, *dp;
+  Inode *ip;
   struct dirent de;
-  char name[DIRSIZ];
   uint off;
-
-  Transaction transaction(journal_);
-  if ((dp = lookup_parent(path, name)) == 0)
-  {
-    return -1;
-  }
-
   lock(dp);
 
   // Cannot unlink "." or "..".
@@ -330,7 +176,7 @@ int Xv6FileSystem::unlink(char *path)
     dp->nlink--;
     update(dp);
   }
-  unlock_release(dp);
+  unlock(dp);
 
   ip->nlink--;
   update(ip);
@@ -339,38 +185,31 @@ int Xv6FileSystem::unlink(char *path)
   return 0;
 
 bad:
-  unlock_release(dp);
+  unlock(dp);
   return -1;
 }
 
-Inode *Xv6FileSystem::create(char *path, short type, short major, short minor)
+Inode *Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short major, short minor)
 {
-  Inode *ip, *dp;
-  char name[DIRSIZ];
-
-  if ((dp = lookup_parent(path, name)) == 0)
-  {
-    return 0;
-  }
-
+  Inode *ip;
   lock(dp);
 
   if (dp->nlink == 0)
   {
-    unlock_release(dp);
+    unlock(dp);
     return 0;
   }
 
   // a new directory's ".." would push dp->nlink past its maximum
   if (type == T_DIR && dp->nlink >= NLINK_MAX)
   {
-    unlock_release(dp);
+    unlock(dp);
     return 0;
   }
 
   if ((ip = lookup_entry(dp, name, 0)) != 0)
   {
-    unlock_release(dp);
+    unlock(dp);
     lock(ip);
     if (type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
     {
@@ -382,7 +221,7 @@ Inode *Xv6FileSystem::create(char *path, short type, short major, short minor)
 
   if ((ip = allocate(dp->dev, type)) == 0)
   {
-    unlock_release(dp);
+    unlock(dp);
     return 0;
   }
 
@@ -413,7 +252,7 @@ Inode *Xv6FileSystem::create(char *path, short type, short major, short minor)
     update(dp);
   }
 
-  unlock_release(dp);
+  unlock(dp);
 
   return ip;
 
@@ -422,7 +261,7 @@ fail:
   ip->nlink = 0;
   update(ip);
   unlock_release(ip);
-  unlock_release(dp);
+  unlock(dp);
   return 0;
 }
 

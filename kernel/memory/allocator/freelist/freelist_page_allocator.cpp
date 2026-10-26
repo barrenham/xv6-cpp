@@ -40,6 +40,7 @@ void *FreeListPageAllocator::allocate(unsigned order)
   Run *page = head_;
   if (page)
   {
+    account_free(-1);
     head_ = page->next;
     states_[layout_.ram().page_index(PhysicalAddress::from_pointer(page))] = Allocated;
   }
@@ -73,6 +74,7 @@ void FreeListPageAllocator::deallocate(void *address, unsigned order)
   page->next = head_;
   head_ = page;
   state = Free;
+  account_free(1);
   lock_.release();
 }
 

@@ -38,8 +38,8 @@
 
 ```doxygen
 @fn void xv::fs::InodeBackend::close()
-@brief 在 Transaction 内归还拥有的 inode 引用，必要时完成 unlink 后的截断与日志操作，随后显式析构 File 内置对象；不释放 File 存储。
-@details 在 Transaction 内归还拥有的 inode 引用，必要时完成 unlink 后的截断与日志操作，随后显式析构 File 内置对象；不释放 File 存储。
+@brief 释放节点引用、快照页面并析构后端。
+@details 根据节点所属文件系统选择条件磁盘事务；快照独立于原进程的生命周期，在最后一个共享 File 关闭时归还。
 ```
 
 <a id="fn-483ee20032be6151"></a>
@@ -48,8 +48,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::read(xv::io::Buffer destination, int count)
-@brief 持 inode 睡眠锁按本打开对象的 offset_ 读取用户数据，正进度才增加偏移。
-@details 持 inode 睡眠锁按本打开对象的 offset_ 读取用户数据，正进度才增加偏移。dup/fork 共享同一 Backend，独立 open 分别构造对象，偏移互不影响。
+@brief 按共享偏移读取打开时快照或实际节点数据。
+@details 在所属文件系统节点锁内串行更新 offset。快照裁剪到固定 length 并执行用户复制，失败不推进偏移；普通磁盘/设备目录沿用节点 read。
 ```
 
 <a id="fn-1bb8e957e0af8807"></a>
@@ -58,8 +58,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::write(xv::io::Buffer source, int count)
-@brief 保存原有 MAXOPBLOCKS 事务分段写策略；在事务和 inode 锁内按本打开对象偏移写入并更新正进度，保留原有中断及短写返回约定。
-@details 保存原有 MAXOPBLOCKS 事务分段写策略；在事务和 inode 锁内按本打开对象偏移写入并更新正进度，保留原有中断及短写返回约定。
+@brief 把普通文件写入拆成日志容量允许的事务。
+@details 每段在所属节点锁内写入并推进偏移，信号或短写按既有规则返回。procfs 在绑定和 open 权限阶段拒绝写后端，不进入此路径。
 ```
 
 <a id="fn-f0d5394ca9774a31"></a>
@@ -68,8 +68,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::stat(xv::io::Metadata &value)
-@brief 持 inode 锁把文件系统元数据填到内核 Metadata，返回0；不在后端锁内执行用户 copy_out。
-@details 持 inode 锁把文件系统元数据填到内核 Metadata，返回0；不在后端锁内执行用户 copy_out。
+@brief 读取节点元数据并在有快照时填入快照长度。
+@details 使用 inode 所属文件系统的锁和 stat；不重新生成快照，因此 fstat 的大小与本次打开的 EOF 一致。
 ```
 
 <a id="fn-5fada80fee636ddb"></a>
@@ -88,8 +88,8 @@
 
 ```doxygen
 @fn void xv::fs::DeviceBackend::close()
-@brief 只在事务中归还设备节点 inode 引用并析构内置适配器，不关闭全局 CharacterDevice 实例，保持控制台生命周期语义。
-@details 只在事务中归还设备节点 inode 引用并析构内置适配器，不关闭全局 CharacterDevice 实例，保持控制台生命周期语义。
+@brief 关闭会话并释放节点引用，最后析构适配器。
+@details 先归还具体会话，PTY 可挂断或减少从端计数，再按节点持久性选择事务释放 inode。动态节点仍持 PTY 固定引用，确保会话关闭期间编号不会被提前复用；全局静态设备 close 为空操作。
 ```
 
 <a id="fn-b9b2f2e24e02b04c"></a>
@@ -98,8 +98,8 @@
 
 ```doxygen
 @fn int xv::fs::DeviceBackend::read(xv::io::Buffer destination, int count)
-@brief 按保存的 major 查询长期存活字符设备，传递用户地址和 File 非阻塞标志；设备缺失返回 -1，不使用 inode 文件偏移。
-@details 按保存的 major 查询长期存活字符设备，传递用户地址和 File 非阻塞标志；设备缺失返回 -1，不使用 inode 文件偏移。
+@brief 向本次打开取得的设备会话转发 read。
+@details 使用已取得的 CharacterDevice 会话指针，不在每次 I/O 重新按设备号查找，保证旧描述符仍指向原会话。传入用户缓冲、共享非阻塞标志或等待表；访问权限由 File 层过滤。
 ```
 
 <a id="fn-e5321d7ef73dc31e"></a>
@@ -108,8 +108,8 @@
 
 ```doxygen
 @fn int xv::fs::DeviceBackend::write(xv::io::Buffer source, int count)
-@brief 按 major 借用字符设备并转发用户 Buffer 与非阻塞状态；不存在设备时返回 -1。
-@details 按 major 借用字符设备并转发用户 Buffer 与非阻塞状态；不存在设备时返回 -1。
+@brief 向本次打开取得的设备会话转发 write。
+@details 使用已取得的 CharacterDevice 会话指针，不在每次 I/O 重新按设备号查找，保证旧描述符仍指向原会话。传入用户缓冲、共享非阻塞标志或等待表；访问权限由 File 层过滤。
 ```
 
 <a id="fn-9655ed01c03eea58"></a>
@@ -118,8 +118,8 @@
 
 ```doxygen
 @fn int xv::fs::DeviceBackend::stat(xv::io::Metadata &value)
-@brief 持 inode 锁读取设备节点真实元数据到 Metadata，保留设备节点 inode 身份。
-@details 持 inode 锁读取设备节点真实元数据到 Metadata，保留设备节点 inode 身份。
+@brief 在所属文件系统节点锁内读取设备元数据。
+@details 统计来自被本 File 引用的节点，动态设备名撤下后已有 fd 仍保留原节点身份。
 ```
 
 <a id="fn-efd08a89bd78b547"></a>
@@ -128,8 +128,8 @@
 
 ```doxygen
 @fn unsigned xv::fs::DeviceBackend::poll(xv::sync::PollTable *table)
-@brief 把 PollTable 交给对应字符设备登记通道并读取状态；无设备报告 POLLERR。
-@details 把 PollTable 交给对应字符设备登记通道并读取状态；无设备报告 POLLERR。
+@brief 向本次打开取得的设备会话转发 poll。
+@details 使用已取得的 CharacterDevice 会话指针，不在每次 I/O 重新按设备号查找，保证旧描述符仍指向原会话。传入用户缓冲、共享非阻塞标志或等待表；访问权限由 File 层过滤。
 ```
 
 <a id="fn-a21fe337437e1214"></a>
@@ -138,8 +138,8 @@
 
 ```doxygen
 @fn int xv::fs::DeviceBackend::ioctl(unsigned request, xv::io::Buffer argument)
-@brief 独立 DeviceControl 能力实现，查询 major 对应字符设备并以用户地址转发控制请求；无设备返回 -1。
-@details 独立 DeviceControl 能力实现，查询 major 对应字符设备并以用户地址转发控制请求；无设备返回 -1。
+@brief 向本次打开取得的设备会话转发 ioctl。
+@details 使用已取得的 CharacterDevice 会话指针，不在每次 I/O 重新按设备号查找，保证旧描述符仍指向原会话。传入用户缓冲、共享非阻塞标志或等待表；访问权限由 File 层过滤。
 ```
 
 <a id="fn-d129694fa64d854e"></a>

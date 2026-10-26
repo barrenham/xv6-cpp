@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::process::first_return`](first_return.cpp.md#fn-f06f00214daff1d9)
 - [`xv::process::ProcessManager::ProcessManager`](process_manager.cppm.md#fn-b0cae405c6f752ad)
 - [`xv::process::ProcessManager::allocate`](../lifecycle.md#lifecycle-processmanager-allocate)
 - [`xv::process::ProcessManager::allocate_pid`](../lifecycle.md#lifecycle-processmanager-allocate-pid)
@@ -38,6 +37,7 @@
 - [`xv::process::ProcessManager::set_process_group`](../groups/group_operations.cpp.md#fn-da222928090ae0f5)
 - [`xv::process::ProcessManager::set_signal_disposition`](../signals/signal_delivery.cpp.md#fn-51bd3bad2bb3bae7)
 - [`xv::process::ProcessManager::set_terminal_foreground`](../groups/group_operations.cpp.md#fn-855c9b132f03c0ea)
+- [`xv::process::ProcessManager::snapshot_after`](process_manager.cpp.md#fn-bbc335370e273170)
 - [`xv::process::ProcessManager::terminal_foreground`](../groups/group_operations.cpp.md#fn-58daa43bb91047a3)
 - [`xv::process::ProcessManager::wait`](../wait/wait_child.cpp.md#fn-15b2744ee3edc5d8)
 - [`xv::process::ProcessManager::wait_child`](../wait/wait_child.cpp.md#fn-d7ca44eff96231ec)
@@ -45,6 +45,7 @@
 - [`xv::process::ProcessManager::wake_for_signal`](../signals/signal_delivery.cpp.md#fn-5a8dcf9b719eaa90)
 - [`xv::process::ProcessManager::wake_signal_waiters`](../signals/signal_delivery.cpp.md#fn-e54dae23e0a9982b)
 - [`xv::process::ProcessManager::wakeup`](../lifecycle.md#lifecycle-processmanager-wakeup)
+- [`xv::process::first_return`](first_return.cpp.md#fn-f06f00214daff1d9)
 
 <a id="fn-b0cae405c6f752ad"></a>
 

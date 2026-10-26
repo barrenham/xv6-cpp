@@ -2,7 +2,6 @@
 
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
-#include "kernel/drivers/device_numbers.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
 
@@ -15,10 +14,7 @@ main(void)
 {
   int pid, wpid;
 
-  if (open("console", O_RDWR) < 0) {
-    mknod("console", CONSOLE, 0);
-    open("console", O_RDWR);
-  }
+  if (open("/dev/console", O_RDWR) != 0) exit(1);
   dup(0); // stdout
   dup(0); // stderr
 

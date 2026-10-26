@@ -11,7 +11,10 @@
 | `cache/` | `BlockCache` 抽象、LRU 实现、`Buffer` 与移动式 `BlockHandle` |
 | `journal/` | redo journal、事务容量预留、恢复与 `Transaction` 守卫 |
 | `inode/` | `Inode`、`FileSystem` 抽象、xv6 磁盘实现与块分配 |
-| `path/` | 路径遍历、目录项、创建、硬链接和 unlink |
+| `path/` | 磁盘目录项、创建、硬链接和 unlink |
+| `vfs/` | 公共路径解析、节点归属分发与挂载边界 |
+| `devfs/` | 合成设备目录、null/zero 与动态 pts 节点 |
+| `procfs/` | 系统与进程信息的只读内容快照 |
 | `file/` | 打开文件表、引用计数、统一 IoObject 后端及适配器和字符设备注册表 |
 | `pipe/` | 管道环形缓冲、等待唤醒和两端生命周期 |
 | `platform/` | 进程、内存和内核原语适配及私有引用操作桥接 |
@@ -21,6 +24,10 @@
 classDiagram
   BlockCache <|-- LruBlockCache
   FileSystem <|-- Xv6FileSystem
+  VirtualFileSystem --> FileSystem : mount / owner dispatch
+  FileSystem <|-- DevFileSystem
+  FileSystem <|-- ProcFileSystem
+  Inode --> FileSystem : owner
   File --> IoObject
   IoObject <|-- InodeBackend
   IoObject <|-- DeviceBackend
@@ -91,7 +98,7 @@ void update_in_transaction(unsigned allocated_data_block)
 
 `LockedInode` 管理已持引用的 inode 睡眠锁，不负责释放 inode 引用。它和事务的
 作用域顺序必须确保 inode 锁在事务提交前释放。引用释放可能截断文件并写日志，
-因此 `FileSystem::release()` 必须处于事务中；进程目录的替换和清理保留这一要求。
+因此磁盘节点的 `FileSystem::release()` 必须处于事务中；devfs 节点仅更新内存引用计数。
 
 ## inode、路径与打开文件
 
@@ -99,7 +106,7 @@ void update_in_transaction(unsigned allocated_data_block)
 管理。调用方仅通过 `kind()`、`device_major()` 等读取必要信息，相关元数据
 要求调用者持有 inode 锁。
 
-路径遍历、目录创建、硬链接、unlink 和孤儿回收仍使用现有算法。路径修改逻辑
+路径遍历统一由 VFS 处理；磁盘目录创建、硬链接、unlink 和孤儿回收保留原有算法。节点修改逻辑
 已移到文件系统实现，系统调用层负责读取用户参数和安装描述符。`create()`
 要求调用者处于事务中，成功返回一个带引用且已锁定的 inode；`lookup()` 返回
 带引用、未锁定的 inode。相对路径从进程当前目录取得独立引用。
@@ -129,8 +136,8 @@ ioctl 和 socket 操作查询独立能力接口。inode 偏移位于每次打开
 
 服务实例采用 `constinit`，不增加全局构造/析构运行时。启动时依次初始化块缓存、
 inode 表和打开文件表；磁盘驱动就绪后，初始进程在可睡眠上下文初始化磁盘 FS、
-日志恢复和孤儿回收。当前仍是一个 root 文件系统与一个块设备，未增加 VFS
-挂载表、多磁盘路由、extent、其他磁盘格式或动态更换已使用的缓存实例。
+日志恢复和孤儿回收。当前使用一个磁盘根文件系统，并在 `/dev`、`/proc` 分别挂载设备和进程信息文件系统。挂载规则与
+设备注册见 [VFS 与 devfs](../../docs/devfs.md)。
 
 原有 stat 布局和打开标志保留；新增 O_NONBLOCK 与 fcntl 状态操作。磁盘结构、直接/间接块规则和 mkfs 格式保持不变。原
 `file.h`、`buf.h`、`device_switch.h` 及 `resource_fwd.h` 已移除，运行时调用方导入
@@ -159,7 +166,7 @@ ctest --preset freelist --output-on-failure
 python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 ```
 
-`OpenFileTable::ioctl()` 只接受设备文件，通过设备主设备号找到
+`OpenFileTable::ioctl()` 只接受设备文件，通过设备 major/minor 找到
 `CharacterDevice` 并转发请求。TTY 的 termios 和用户复制由驱动层处理，
 文件系统不解析终端设置；普通文件及管道返回 -1。
 

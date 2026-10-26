@@ -34,6 +34,7 @@
 - [`xv::process::set_process_group`](service.cpp.md#fn-34091ebc76bb444c)
 - [`xv::process::set_signal_disposition`](service.cpp.md#fn-bb3030848b31cf05)
 - [`xv::process::set_terminal_foreground`](service.cpp.md#fn-2684c802094d44d8)
+- [`xv::process::snapshot_after`](service.cpp.md#fn-4f4ab884257688de)
 - [`xv::process::terminal_foreground`](service.cpp.md#fn-9d295666c0ed021d)
 - [`xv::process::wait`](../service.md#service-wait)
 - [`xv::process::wait_channels`](service.cpp.md#fn-00fe184141e83bc3)
@@ -318,4 +319,13 @@
 @details 需要特别跟踪的条件：`user`。这些条件决定检查、重试或提前返回路径。
 @note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
 @return 各分支实际返回：`current()->memory().copy_out(destination, source, count)`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-4f4ab884257688de"></a>
+
+## `xv::process::snapshot_after`
+
+```doxygen
+@fn bool xv::process::snapshot_after(int after, ProcessInfo &result)
+@brief 向调用者提供一条复制的进程观测记录。
+@details 委托 ProcessManager，输出包含 PID、父 PID、组/会话、状态、名称与已发布地址空间大小，不暴露内部指针。
 ```

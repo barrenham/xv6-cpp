@@ -17,6 +17,7 @@
 - [`xv::process::AddressSpace::create`](address_space.cpp.md#fn-ac548aaaa82b1697)
 - [`xv::process::AddressSpace::grow_to`](address_space.cpp.md#fn-6a2eebb0fa906335)
 - [`xv::process::AddressSpace::handle_fault`](address_space.cpp.md#fn-ef1a8c8627cc3494)
+- [`xv::process::AddressSpace::observed_size`](address_space.cppm.md#fn-cb49f7f1bc6816c9)
 - [`xv::process::AddressSpace::operator=`](address_space.cppm.md#fn-437f6c3b170e27e4)
 - [`xv::process::AddressSpace::page_table`](address_space.cppm.md#fn-919b3424bf5d5b3e)
 - [`xv::process::AddressSpace::protect_guard`](address_space.cpp.md#fn-55c0283e7aac7f96)
@@ -77,4 +78,13 @@
 @fn unsigned long xv::process::AddressSpace::size() const
 @brief 进程用户地址空间：读取或计算 `size_`，返回当前查询结果。
 @return 各分支实际返回：`size_`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-cb49f7f1bc6816c9"></a>
+
+## `xv::process::AddressSpace::observed_size`
+
+```doxygen
+@fn unsigned long xv::process::AddressSpace::observed_size() const
+@brief 原子读取供进程观测使用的地址空间字节数。
+@details 拥有线程在成功创建、调整、复制、交换和清理后发布独立 observed_size_。观察者不访问活动页表，也不对原先仅拥有线程访问的 size_ 进行并发读取。
 ```

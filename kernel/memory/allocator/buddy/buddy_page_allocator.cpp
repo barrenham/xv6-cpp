@@ -94,6 +94,7 @@ void *BuddyPageAllocator::allocate(unsigned order)
     insert(pa.advanced(detail::block_size(found)), found);
     area_[found].lock.release();
   }
+  account_free(-(1L << order));
   set_tag(layout_.ram().page_index(pa), AllocBase + static_cast<int>(order));
   detail::fill(pa.pointer(), 5, detail::block_size(order));
   return pa.pointer();
@@ -117,6 +118,7 @@ void BuddyPageAllocator::deallocate(void *mem, unsigned order)
     detail::fail("deallocate: range or alignment");
   }
   claim(pa, order);
+  account_free(1L << order);
   detail::fill(mem, 1, detail::block_size(order));
 
   for (;;)

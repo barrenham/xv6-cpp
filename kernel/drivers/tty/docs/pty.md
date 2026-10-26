@@ -2,7 +2,7 @@
 
 `openpty(int fds[2])` 返回两个可读写的文件描述符：`fds[0]` 为 master，
 `fds[1]` 为 slave。这是本项目的系统调用 ABI（48），并非 libc 的五参数
-openpty，也不是 Linux 的 `/dev/ptmx` / `/dev/pts` 接口。
+openpty。当前还提供 [命名 PTY](../../../../docs/named-pty.md)，终端代理 `pty` 已改用 `/dev/ptmx` 和 `/dev/pts/N`。
 
 ## 使用
 
@@ -39,7 +39,7 @@ SerialPort 实现该接口，以保留 UART 行为；PTY 的 Output 实现把输
 环形缓冲。TTY 和行规程因此共用字符处理、termios、读取条件及信号生成。
 
 每对 PTY 在一个分配器页内构造，拥有行规程、TTY、两个 Endpoint 和 1024
-字节输出缓冲。输入沿用行规程的 128 个槽。File 新增 Endpoint 种类，直接
+字节输出缓冲。输入沿用行规程的 128 个槽。匿名 File 使用 EndpointBackend，直接
 引用设备对象，无需占用设备主设备号或创建 inode。dup/fork 保留同一个 File；
 仅 File 的最后引用释放时才调用 Endpoint::close。两个端点都关闭后，从
 时钟通知链表移除该对 PTY，析构并释放页面。时钟遍历与释放由同一个锁保护，
@@ -59,8 +59,7 @@ SerialPort 实现该接口，以保留 UART 行为；PTY 的 Output 实现把输
 - timer_tick 通知活动 PTY，使 slave 的 VMIN/VTIME 使用已有 TTY 计时规则。
 
 锁的方向为 TTY 状态锁 -> PTY 输出锁；关闭端点必须先释放输出锁，再执行
-TTY hangup。列表锁只保护计时遍历和生命周期，关闭时在退出 TTY 操作后才
-取得列表锁。页回收发生在所有链表访问之外。
+TTY hangup。列表锁只保护计时遍历和生命周期，关闭时先在列表锁内维护会话计数和发布状态，释放列表锁后执行 TTY 挂断。页回收发生在所有链表访问之外。
 
 ## ioctl 与关闭
 

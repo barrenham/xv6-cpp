@@ -11,5 +11,8 @@ target_sources(kernel PRIVATE
   pipe/pipe.cpp
   pipe/pipe_factory.cpp
   platform/kernel_platform.cpp
+  vfs/vfs.cpp
+  devfs/devfs.cpp
+  procfs/procfs.cpp
   service.cpp
 )

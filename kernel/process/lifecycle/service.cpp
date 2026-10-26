@@ -183,4 +183,8 @@ int copy_out(bool user, unsigned long destination, const void *source,
   xv::runtime::move(reinterpret_cast<void *>(destination), source, count);
   return 0;
 }
+bool snapshot_after(int after, ProcessInfo &result)
+{
+  return process_manager.snapshot_after(after, result);
+}
 } // namespace xv::process

@@ -4,6 +4,16 @@ import :inode;
 
 namespace xv::fs::detail
 {
+struct ProcessRecord
+{
+  int pid = 0, parent = 0, group = 0, session = 0;
+  unsigned long bytes = 0;
+  char state = 0;
+  char name[16]{};
+};
+bool process_after(int after, ProcessRecord &result);
+unsigned long uptime_ticks();
+void memory_info(unsigned long &total_kib, unsigned long &free_kib);
 void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
 void sleep();

@@ -10,14 +10,6 @@
 
 ## 函数导航
 
-- [`xv::drivers::create_pty`](pty.cpp.md#fn-8801034b0305377a)
-- [`xv::drivers::initialize_ptys`](pty.cpp.md#fn-0c7545d488e75354)
-- [`xv::drivers::pty_timer_tick`](pty.cpp.md#fn-b050f1554cf27075)
-- [`xv::drivers::Pty::close`](pty.cpp.md#fn-5c7a739984ad05b7)
-- [`xv::drivers::Pty::initialize`](pty.cpp.md#fn-87ffb0376d0f4542)
-- [`xv::drivers::Pty::read_master`](pty.cpp.md#fn-26ae6ac8d5631f7d)
-- [`xv::drivers::Pty::release`](pty.cpp.md#fn-c67e15beca56bec0)
-- [`xv::drivers::Pty::write_master`](pty.cpp.md#fn-f40800f626106299)
 - [`xv::drivers::Pty::Endpoint::close`](pty.cpp.md#fn-2f858e49784ccac1)
 - [`xv::drivers::Pty::Endpoint::ioctl`](pty.cpp.md#fn-6b6a9388f115d902)
 - [`xv::drivers::Pty::Endpoint::poll`](pty.cpp.md#fn-e30ef808741bf1eb)
@@ -27,6 +19,26 @@
 - [`xv::drivers::Pty::Output::put_sync`](pty.cpp.md#fn-c576e0a8d12cb145)
 - [`xv::drivers::Pty::Output::transmit`](pty.cpp.md#fn-ee0c89905868fc1c)
 - [`xv::drivers::Pty::Output::writable`](pty.cpp.md#fn-b1d57a724fdf31ed)
+- [`xv::drivers::Pty::attach_slave`](pty.cpp.md#fn-71b2427af9997333)
+- [`xv::drivers::Pty::close`](pty.cpp.md#fn-5c7a739984ad05b7)
+- [`xv::drivers::Pty::initialize`](pty.cpp.md#fn-87ffb0376d0f4542)
+- [`xv::drivers::Pty::read_master`](pty.cpp.md#fn-26ae6ac8d5631f7d)
+- [`xv::drivers::Pty::release`](pty.cpp.md#fn-c67e15beca56bec0)
+- [`xv::drivers::Pty::write_master`](pty.cpp.md#fn-f40800f626106299)
+- [`xv::drivers::PtyMultiplexer::initialize`](pty.cpp.md#fn-00ffdebf9a16a0e5)
+- [`xv::drivers::PtyMultiplexer::name`](pty.cpp.md#fn-669cf64d505a317d)
+- [`xv::drivers::PtyMultiplexer::open`](pty.cpp.md#fn-6c66c151d344922e)
+- [`xv::drivers::PtyMultiplexer::put_sync`](pty.cpp.md#fn-8d65e03b3b216626)
+- [`xv::drivers::PtyMultiplexer::read`](pty.cpp.md#fn-52ac1df58dda7779)
+- [`xv::drivers::PtyMultiplexer::write`](pty.cpp.md#fn-bd78a775363ec033)
+- [`xv::drivers::create_pty`](pty.cpp.md#fn-8801034b0305377a)
+- [`xv::drivers::initialize_ptys`](pty.cpp.md#fn-0c7545d488e75354)
+- [`xv::drivers::named_pty_ids`](pty.cpp.md#fn-e22085482cfe7284)
+- [`xv::drivers::open_named_pty`](pty.cpp.md#fn-e64b849fb108aed9)
+- [`xv::drivers::ptmx`](pty.cpp.md#fn-1ed26c2173290846)
+- [`xv::drivers::pty_timer_tick`](pty.cpp.md#fn-b050f1554cf27075)
+- [`xv::drivers::release_named_pty`](pty.cpp.md#fn-46f405daa2728273)
+- [`xv::drivers::retain_named_pty`](pty.cpp.md#fn-9706e46ba2bd1bf4)
 
 <a id="fn-0c7545d488e75354"></a>
 
@@ -95,14 +107,8 @@
 
 ```doxygen
 @fn void xv::drivers::Pty::close(bool master)
-@brief 匿名伪终端对：关闭当前端点或释放文件关联。
-@param master 本次操作使用的 主端点 值。
-@details 先在输出锁下记录端点关闭并通知读写等待者，再释放输出锁处理 TTY 挂断，避免与 TTY 回显的反向取锁形成循环。最终通过引用释放决定是否销毁整对端点。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `detail::wake_processes` → `lock_.release` → `detail::hangup_terminal` → `terminal_.hangup` → `release`。
-@details 本函数可见的状态更新包括：`master_open_ = false;`；`slave_open_ = false;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`master`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 关闭一个主端或从端会话并归还对象引用。
+@details 注册锁保护发布状态与 slave_files，输出锁保护连接标志和等待通道。主端最终关闭撤下设备名并挂断终端；只有最后从端关闭才切断主端读连接。命名从端关闭不永久挂断 TTY，以允许主端存续期间重新打开；匿名 PTY 保留原挂断行为。
 ```
 
 <a id="fn-ee0c89905868fc1c"></a>
@@ -231,14 +237,8 @@
 
 ```doxygen
 @fn int xv::drivers::Pty::Endpoint::ioctl(unsigned request, IoBuffer argument)
-@brief PTY 文件端点：分派设备控制请求并处理参数复制。
-@param request 本次操作使用的 请求 值。
-@param argument 本次操作使用的 argument 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`pair_.lock_.acquire` → `pair_.lock_.release` → `detail::copy_out` → `pair_.terminal_.ioctl`。
-@details 需要特别跟踪的条件：`master_ && request == TIOCSCTTY`；`master_ && request == FIONREAD`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`pair_.lock_.acquire` → `pair_.lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`-1`；`detail::copy_out(argument.space == AddressSpace::User, argument.address, &count, sizeof(count))`；`pair_.terminal_.ioctl(request, argument)`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 处理 PTY 编号和锁请求，其余终端控制转发 TTY。
+@details TIOCGPTN 仅对命名主端返回编号，TIOCSPTLCK 复制用户参数后在注册锁内改变从端打开锁；错误用户指针失败。主端禁止成为控制终端，FIONREAD 返回主端输出队列字节数；其余请求沿用 TTY。
 ```
 
 <a id="fn-e30ef808741bf1eb"></a>
@@ -264,4 +264,123 @@
 @brief PTY 文件端点：关闭当前端点或释放文件关联。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`pair_.close`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-1ed26c2173290846"></a>
+
+## `xv::drivers::ptmx`
+
+```doxygen
+@fn CharacterDevice &xv::drivers::ptmx()
+@brief 借用静态 PTY 多路复用工厂。
+@details 板级把此对象登记为 /dev/ptmx；它本身不传输数据，每次 open 才分配独立主端及终端。
+```
+
+<a id="fn-9706e46ba2bd1bf4"></a>
+
+## `xv::drivers::retain_named_pty`
+
+```doxygen
+@fn bool xv::drivers::retain_named_pty(unsigned number)
+@brief 按已发布编号取得一个 PTY 节点固定引用。
+@details 在 PTY 注册锁内查找仍有主端的命名对并增加 references，失败返回 false。devfs 动态 inode 在首个引用时固定该编号，避免仍被旧节点引用的编号提前复用。
+```
+
+<a id="fn-46f405daa2728273"></a>
+
+## `xv::drivers::release_named_pty`
+
+```doxygen
+@fn void xv::drivers::release_named_pty(unsigned number)
+@brief 归还一个 devfs 节点持有的 PTY 固定引用。
+@details 调用者已经持有对应编号的固定引用，先在注册锁内定位稳定对象，释放注册锁后调用 release。最后引用删除注册记录并回收对象页；节点固定引用保证查找后对象不会提前释放。
+```
+
+<a id="fn-e64b849fb108aed9"></a>
+
+## `xv::drivers::open_named_pty`
+
+```doxygen
+@fn CharacterDevice *xv::drivers::open_named_pty(unsigned number)
+@brief 取得一个解锁且仍有主端的 PTY 从端会话。
+@details 注册锁内验证编号、发布状态和从端锁，增加会话引用及 slave_files，再在输出锁内恢复连接状态。多个独立打开共用同一终端，每次成功都对应一次 close；失败不取得引用。
+```
+
+<a id="fn-e22085482cfe7284"></a>
+
+## `xv::drivers::named_pty_ids`
+
+```doxygen
+@fn unsigned xv::drivers::named_pty_ids(unsigned *numbers, unsigned capacity)
+@brief 按编号顺序复制当前已发布 PTY 列表。
+@details 持注册锁扫描，最多写 capacity 个编号并返回数量；主端最终关闭后不再列出，旧从端或节点仍可保留对象和编号。输出不含裸对象指针。
+```
+
+<a id="fn-71b2427af9997333"></a>
+
+## `xv::drivers::Pty::attach_slave`
+
+```doxygen
+@fn void xv::drivers::Pty::attach_slave()
+@brief 在新从端会话建立时恢复连接状态。
+@details 调用者持 PTY 注册锁；内部取得输出锁，设置 slave_open_ 并唤醒主端读等待。命名对最后从端关闭后可以再次打开，终端设置保持。
+```
+
+<a id="fn-669cf64d505a317d"></a>
+
+## `xv::drivers::PtyMultiplexer::name`
+
+```doxygen
+@fn const char *xv::drivers::PtyMultiplexer::name() const override
+@brief 返回 PTY 工厂设备名 ptmx。
+@details 返回静态字符串，登记设备名称时不分配会话。
+```
+
+<a id="fn-00ffdebf9a16a0e5"></a>
+
+## `xv::drivers::PtyMultiplexer::initialize`
+
+```doxygen
+@fn void xv::drivers::PtyMultiplexer::initialize() override
+@brief 保留无额外初始化工作的设备接口。
+@details 全局 PTY 列表锁由 initialize_ptys 提前初始化，会话初始化放在 open 中完成。
+```
+
+<a id="fn-8d65e03b3b216626"></a>
+
+## `xv::drivers::PtyMultiplexer::put_sync`
+
+```doxygen
+@fn void xv::drivers::PtyMultiplexer::put_sync(int) override
+@brief 忽略对工厂本身的同步输出。
+@details 工厂不代表一个终端会话，实际主从端在 open 成功后返回。
+```
+
+<a id="fn-52ac1df58dda7779"></a>
+
+## `xv::drivers::PtyMultiplexer::read`
+
+```doxygen
+@fn int xv::drivers::PtyMultiplexer::read(IoBuffer, int) override
+@brief 拒绝直接读取工厂对象。
+@details 返回 -1；File 从 open 取得具体主端后只对会话执行 I/O。
+```
+
+<a id="fn-bd78a775363ec033"></a>
+
+## `xv::drivers::PtyMultiplexer::write`
+
+```doxygen
+@fn int xv::drivers::PtyMultiplexer::write(IoBuffer, int) override
+@brief 拒绝直接写入工厂对象。
+@details 返回 -1；数据传输由 open 返回的具体主端实现。
+```
+
+<a id="fn-6c66c151d344922e"></a>
+
+## `xv::drivers::PtyMultiplexer::open`
+
+```doxygen
+@fn CharacterDevice *xv::drivers::PtyMultiplexer::open(bool) override
+@brief 分配并发布一个独立的命名 PTY 主端。
+@details 先申请并初始化对象页，再在注册锁内寻找 0..63 的空闲编号，初始从端锁定，仅持一个主端会话引用。编号耗尽时析构并回收页面，失败不发布对象；旧从端或节点固定引用存续期间不复用其编号。
 ```

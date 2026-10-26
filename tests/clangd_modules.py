@@ -230,7 +230,7 @@ void xv_clangd_module_probe()
         (7, 'ExecutableLoader', 'executable_loader', 'executable_loader.cppm', ['name', 'load']),
         (8, 'BlockCache', 'cache', 'block_cache.cppm', ['read', 'write', 'pin', 'unpin', 'release']),
         (9, 'Journal', 'journal', 'journal.cppm', ['begin', 'end', 'record', 'sync']),
-        (10, 'FileSystem', 'filesystem', 'filesystem.cppm', ['lookup', 'create', 'link', 'unlink', 'read', 'write']),
+        (10, 'FileSystem', 'filesystem', 'filesystem.cppm', ['lookup_entry', 'create_at', 'link_at', 'unlink_at', 'read', 'write']),
         (11, 'OpenFileTable', 'files', 'open_file.cppm', ['allocate', 'retain', 'release', 'read', 'write', 'stat', 'ioctl']),
         (12, 'DeviceRegistry', 'devices', 'open_file.cppm', ['attach', 'get']),
         (13, 'TrapController', 'controller', 'trap_controller.cppm',
@@ -238,13 +238,16 @@ void xv_clangd_module_probe()
         (14, 'TickClock', 'clock', 'tick_clock.cppm', ['initialize', 'interrupt', 'uptime', 'pause']),
         (15, 'KernelPageTable', 'kernel_page_table', 'kernel_page_table.cppm',
          ['initialize', 'activate_hart', 'root']),
+        (16, 'VirtualFileSystem', 'filesystem', 'vfs.cppm', ['lookup', 'create', 'link', 'unlink', 'mount']),
     ]:
         namespace = ('memory' if type_name == 'KernelPageTable' else
                      'trap' if type_name in ['TrapController', 'TickClock'] else
                      'process' if type_name in ['Process', 'Scheduler', 'ExecutableLoader'] else
-                     'fs' if type_name in ['BlockCache', 'Journal', 'FileSystem', 'OpenFileTable', 'DeviceRegistry']
+                     'fs' if type_name in ['BlockCache', 'Journal', 'FileSystem', 'VirtualFileSystem', 'OpenFileTable', 'DeviceRegistry']
                      else 'drivers')
         initializer = f'xv::{namespace}::{service}()'
+        if type_name == 'FileSystem':
+            initializer = 'xv::fs::filesystem().root()->owner()'
         if type_name == 'Process':
             initializer = '*' + initializer
         probe = driver_text + (
@@ -401,6 +404,13 @@ void xv_clangd_module_probe()
                      'kernel/process/storage/kernel_platform.cpp',
                      'kernel/process/exec/elf_loader.cpp',
                      'tests/fs_contract.cpp', 'tests/fs_test_platform.cpp',
+                     'kernel/fs/vfs/vfs.cppm', 'kernel/fs/vfs/vfs.cpp',
+                     'kernel/fs/devfs/devfs.cppm', 'kernel/fs/devfs/devfs.cpp',
+                     'user/tests/devfstest.cpp',
+                     'user/tests/namedptytest.cpp', 'user/tests/procfstest.cpp',
+                     'user/apps/ps/ps.cpp', 'user/apps/free/free.cpp',
+                     'user/runtime/pty.cpp', 'tests/fs_driver_platform.cpp',
+                     'kernel/fs/procfs/procfs.cppm', 'kernel/fs/procfs/procfs.cpp',
                      'kernel/fs/fs.cppm', 'kernel/fs/cache/lru_block_cache.cpp',
                      'kernel/fs/journal/journal.cpp', 'kernel/fs/inode/xv6_filesystem.cpp',
                      'kernel/fs/path/path_operations.cpp',

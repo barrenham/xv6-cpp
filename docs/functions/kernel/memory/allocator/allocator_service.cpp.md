@@ -23,14 +23,7 @@
 ```doxygen
 @fn bool xv::memory::initialize(AllocatorKind kind, const BootMemoryInfo &memory, PhysicalAddress first_usable)
 @brief 物理页所有权、地址范围、页表和用户内存复制：建立该对象开始工作所需的初始状态。
-@param kind 本次操作使用的 种类 值。
-@param memory 启动内存信息或地址空间对象。
-@param first_usable 允许分配器使用的首个物理地址。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`memory.ram` → `detected.page_aligned` → `ram.empty` → `detected.begin` → `detected.end` → `ram.begin` → `is_aligned` → `ram.end` → `planned.configure` → `memory.reservation_count` → `memory.reservation` → `reservation.range.begin`。
-@details 本函数可见的状态更新包括：`selected->layout_ = planned;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!planned.configure(ram, first_usable)`；`reservation.no_map && reservation.range.begin() < first_usable && reservation.range.end() > ram.begin()`；`!planned.reserve(reservation.range, reservation.no_map)`；`!__atomic_compare_exchange_n(&initializing, &expected, 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)`；`!planned.reserve_metadata(selected->metadata_bytes(ram.page_count())) || planned.usable_pages() == 0`。这些条件决定检查、重试或提前返回路径。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`PhysicalAddress::from_pointer` → `initialize` → `PhysicalMemoryRange`。 布局初始化完成后按 usable 区间总页数设置空闲页计数，再发布活动分配器。
 ```
 
 <a id="fn-6294cdfa90bca295"></a>

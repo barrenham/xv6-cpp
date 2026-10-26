@@ -71,17 +71,27 @@ void Pty::release()
   detail::free_terminal_page(this);
 }
 
+void Pty::attach_slave()
+{
+  xv::sync::ScopedLock guard(lock_);
+  slave_open_ = true;
+  detail::wake_processes(&written_);
+}
+
 void Pty::close(bool master)
 {
+  ptys_lock.acquire();
+  bool last_slave = !master && --slave_files == 0;
+  if (master) published = false;
   lock_.acquire();
   if (master) master_open_ = false;
-  else slave_open_ = false;
+  else if (last_slave) slave_open_ = false;
   detail::wake_processes(&read_);
   detail::wake_processes(&written_);
   lock_.release();
-  // No output lock across TTY calls: input echo takes TTY -> output locks.
+  ptys_lock.release();
   if (master) detail::hangup_terminal(&terminal_);
-  terminal_.hangup();
+  if (master || (!named && last_slave)) terminal_.hangup();
   release();
 }
 
@@ -239,6 +249,22 @@ int Pty::Endpoint::write(IoBuffer source, int count)
 
 int Pty::Endpoint::ioctl(unsigned request, IoBuffer argument)
 {
+  if (request == TIOCGPTN)
+  {
+    if (!master_ || !pair_.named) return -1;
+    unsigned number = pair_.number;
+    return detail::copy_out(argument.space == AddressSpace::User, argument.address, &number, sizeof(number));
+  }
+  if (request == TIOCSPTLCK)
+  {
+    if (!master_ || !pair_.named) return -1;
+    int locked;
+    if (detail::copy_in(&locked, argument.space == AddressSpace::User, argument.address, sizeof(locked)) < 0) return -1;
+    xv::sync::ScopedLock guard(ptys_lock);
+    pair_.slave_locked = locked != 0;
+    return 0;
+  }
+
   if (master_ && request == TIOCSCTTY) return -1;
   if (master_ && request == FIONREAD)
   {
@@ -276,4 +302,87 @@ void Pty::Endpoint::close()
 {
   pair_.close(master_);
 }
+namespace
+{
+class PtyMultiplexer final : public CharacterDevice
+{
+public:
+  const char *name() const override { return "ptmx"; }
+  void initialize() override {}
+  void put_sync(int) override {}
+  int read(IoBuffer, int) override { return -1; }
+  int write(IoBuffer, int) override { return -1; }
+  CharacterDevice *open(bool) override
+  {
+    auto *page = detail::allocate_dma_page();
+    if (!page) return nullptr;
+    auto *pair = new (page) Pty;
+    pair->initialize();
+    ptys_lock.acquire();
+    unsigned number;
+    for (number = 0; number < MaxNamedPtys; ++number)
+    {
+      auto *p = ptys;
+      while (p && (!p->named || p->number != number)) p = p->next;
+      if (!p) break;
+    }
+    if (number == MaxNamedPtys)
+    {
+      ptys_lock.release();
+      pair->~Pty(); detail::free_terminal_page(page);
+      return nullptr;
+    }
+    pair->named = true;
+    pair->number = number;
+    pair->published = true;
+    pair->references = 1;
+    pair->slave_files = 0;
+    pair->next = ptys;
+    ptys = pair;
+    ptys_lock.release();
+    return &pair->master();
+  }
+};
+constinit PtyMultiplexer multiplexer;
+}
+CharacterDevice &ptmx() { return multiplexer; }
+bool retain_named_pty(unsigned number)
+{
+  xv::sync::ScopedLock guard(ptys_lock);
+  for (auto *p = ptys; p; p = p->next)
+    if (p->named && p->number == number && p->published) { ++p->references; return true; }
+  return false;
+}
+void release_named_pty(unsigned number)
+{
+  ptys_lock.acquire();
+  auto *pair = ptys;
+  while (pair && (!pair->named || pair->number != number)) pair = pair->next;
+  if (!pair) detail::fail("pty: stale node pin");
+  ptys_lock.release();
+  pair->release();
+}
+CharacterDevice *open_named_pty(unsigned number)
+{
+  xv::sync::ScopedLock guard(ptys_lock);
+  for (auto *p = ptys; p; p = p->next)
+    if (p->named && p->number == number && p->published && !p->slave_locked)
+    {
+      ++p->references;
+      ++p->slave_files;
+      p->attach_slave();
+      return &p->slave();
+    }
+  return nullptr;
+}
+unsigned named_pty_ids(unsigned *numbers, unsigned capacity)
+{
+  xv::sync::ScopedLock guard(ptys_lock);
+  unsigned count = 0;
+  for (unsigned i = 0; i < MaxNamedPtys && count < capacity; ++i)
+    for (auto *p = ptys; p; p = p->next)
+      if (p->named && p->number == i && p->published) { numbers[count++] = i; break; }
+  return count;
+}
+
 }

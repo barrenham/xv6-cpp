@@ -62,6 +62,7 @@ bool AddressSpace::create(void *trap_frame, void *user_info)
 
   table_ = pagetable;
   size_ = 0;
+  __atomic_store_n(&observed_size_, size_, __ATOMIC_RELEASE);
   return true;
 }
 
@@ -83,6 +84,7 @@ void AddressSpace::reset()
   xv::memory::free_user_table(pagetable, size_);
   table_ = nullptr;
   size_ = 0;
+  __atomic_store_n(&observed_size_, size_, __ATOMIC_RELEASE);
 }
 
 void AddressSpace::swap(AddressSpace &other)
@@ -92,7 +94,9 @@ void AddressSpace::swap(AddressSpace &other)
   other.table_ = table;
   auto size = size_;
   size_ = other.size_;
+  __atomic_store_n(&observed_size_, size_, __ATOMIC_RELEASE);
   other.size_ = size;
+  __atomic_store_n(&other.observed_size_, other.size_, __ATOMIC_RELEASE);
 }
 
 bool AddressSpace::copy_to(AddressSpace &child) const
@@ -102,6 +106,7 @@ bool AddressSpace::copy_to(AddressSpace &child) const
     return false;
   }
   child.size_ = size_;
+  __atomic_store_n(&child.observed_size_, child.size_, __ATOMIC_RELEASE);
   return true;
 }
 
@@ -132,6 +137,7 @@ int AddressSpace::resize(int bytes, bool eager)
     next = xv::memory::deallocate_user_pages(table_, size_, size_ + bytes);
   }
   size_ = next;
+  __atomic_store_n(&observed_size_, size_, __ATOMIC_RELEASE);
   return 0;
 }
 
@@ -143,6 +149,7 @@ bool AddressSpace::grow_to(unsigned long end, int permissions)
     return false;
   }
   size_ = next;
+  __atomic_store_n(&observed_size_, size_, __ATOMIC_RELEASE);
   return true;
 }
 

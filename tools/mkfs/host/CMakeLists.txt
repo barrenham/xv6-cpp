@@ -94,6 +94,10 @@ xv_add_fs_interfaces(process_contract)
 add_executable(fs_contract
   "${XV_ROOT}/tests/fs_contract.cpp"
   "${XV_ROOT}/tests/fs_test_platform.cpp"
+  "${XV_ROOT}/tests/fs_driver_platform.cpp"
+  "${XV_ROOT}/kernel/fs/procfs/procfs.cpp"
+  "${XV_ROOT}/kernel/fs/vfs/vfs.cpp"
+  "${XV_ROOT}/kernel/fs/devfs/devfs.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"

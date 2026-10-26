@@ -10,15 +10,6 @@
 
 ## 函数导航
 
-- [`xv::drivers::Pty::Pty`](pty.cppm.md#fn-641b7bd25da0e490)
-- [`xv::drivers::Pty::close`](pty.cpp.md#fn-5c7a739984ad05b7)
-- [`xv::drivers::Pty::initialize`](pty.cpp.md#fn-87ffb0376d0f4542)
-- [`xv::drivers::Pty::master`](pty.cppm.md#fn-0467a3889175eb9a)
-- [`xv::drivers::Pty::read_master`](pty.cpp.md#fn-26ae6ac8d5631f7d)
-- [`xv::drivers::Pty::release`](pty.cpp.md#fn-c67e15beca56bec0)
-- [`xv::drivers::Pty::slave`](pty.cppm.md#fn-14b4438a00e7698b)
-- [`xv::drivers::Pty::timer_tick`](pty.cppm.md#fn-472fec063d5d3e43)
-- [`xv::drivers::Pty::write_master`](pty.cpp.md#fn-f40800f626106299)
 - [`xv::drivers::Pty::Endpoint::Endpoint`](pty.cppm.md#fn-2a29792ec8741c5d)
 - [`xv::drivers::Pty::Endpoint::close`](pty.cpp.md#fn-2f858e49784ccac1)
 - [`xv::drivers::Pty::Endpoint::initialize`](pty.cppm.md#fn-e2b0ec44c77e19ee)
@@ -33,6 +24,16 @@
 - [`xv::drivers::Pty::Output::put_sync`](pty.cpp.md#fn-c576e0a8d12cb145)
 - [`xv::drivers::Pty::Output::transmit`](pty.cpp.md#fn-ee0c89905868fc1c)
 - [`xv::drivers::Pty::Output::writable`](pty.cpp.md#fn-b1d57a724fdf31ed)
+- [`xv::drivers::Pty::Pty`](pty.cppm.md#fn-641b7bd25da0e490)
+- [`xv::drivers::Pty::attach_slave`](pty.cpp.md#fn-71b2427af9997333)
+- [`xv::drivers::Pty::close`](pty.cpp.md#fn-5c7a739984ad05b7)
+- [`xv::drivers::Pty::initialize`](pty.cpp.md#fn-87ffb0376d0f4542)
+- [`xv::drivers::Pty::master`](pty.cppm.md#fn-0467a3889175eb9a)
+- [`xv::drivers::Pty::read_master`](pty.cpp.md#fn-26ae6ac8d5631f7d)
+- [`xv::drivers::Pty::release`](pty.cpp.md#fn-c67e15beca56bec0)
+- [`xv::drivers::Pty::slave`](pty.cppm.md#fn-14b4438a00e7698b)
+- [`xv::drivers::Pty::timer_tick`](pty.cppm.md#fn-472fec063d5d3e43)
+- [`xv::drivers::Pty::write_master`](pty.cpp.md#fn-f40800f626106299)
 
 <a id="fn-23a70e9b25368462"></a>
 

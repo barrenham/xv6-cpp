@@ -37,6 +37,10 @@ int waitpid(int pid, int *status, int options);
 int pipe(int *);
 // Anonymous PTY: fds[0] is master, fds[1] is slave.
 int openpty(int fds[2]);
+int posix_openpt(int flags);
+int grantpt(int fd);
+int unlockpt(int fd);
+int ptsname_r(int fd, char *buffer, unsigned length);
 int poll(struct pollfd *fds, int count, int timeout_ms);
 int fcntl(int fd, int command, ...);
 int write(int, const void *, int);

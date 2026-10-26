@@ -22,6 +22,7 @@ class CharacterDevice : public Device
 {
 public:
 
+  virtual CharacterDevice *open(bool) { return this; }
   virtual int read(IoBuffer destination, int count) = 0;
   virtual int write(IoBuffer source, int count) = 0;
   virtual void put_sync(int character) = 0;

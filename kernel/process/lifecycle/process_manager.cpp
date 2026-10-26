@@ -360,4 +360,36 @@ void ProcessManager::dump()
   Listing listing;
   store_.visit(listing);
 }
+bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
+{
+  class Snapshot final : public ProcessVisitor
+  {
+  public:
+    Snapshot(int after, ProcessInfo &result, ProcessGroups &groups)
+        : after_(after), result_(result), groups_(groups) {}
+    void visit(Process &process) override
+    {
+      if (process.state == ProcessState::Unused || process.pid <= after_ ||
+          (found && process.pid >= result_.pid)) return;
+      result_ = {};
+      result_.pid = process.pid;
+      result_.parent = process.parent ? process.parent->pid : 0;
+      result_.group = groups_.get_group(process.membership_);
+      result_.session = groups_.get_session(process.membership_, 0);
+      result_.bytes = process.memory_.observed_size();
+      const char states[] = "?USRRTZ";
+      result_.state = states[static_cast<unsigned>(process.state)];
+      xv::runtime::move(result_.name, process.name, sizeof(result_.name));
+      found = true;
+    }
+    bool found = false;
+  private:
+    int after_;
+    ProcessInfo &result_;
+    ProcessGroups &groups_;
+  } snapshot(after, result, groups_);
+  xv::sync::ScopedLock family(wait_lock_);
+  store_.visit(snapshot);
+  return snapshot.found;
+}
 } // namespace xv::process

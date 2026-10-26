@@ -79,6 +79,21 @@ foreach(ram 64 257 2048 2049)
 endforeach()
 
 foreach(cpus 1 3)
+  foreach(feature named-pty procfs)
+    add_test(NAME ${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+      --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+      --${feature} --cpus ${cpus})
+    set_tests_properties(${feature}_${cpus}cpu PROPERTIES TIMEOUT 45 LABELS fs)
+  endforeach()
+
+  add_test(NAME devfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --devfs --cpus ${cpus})
+  set_tests_properties(devfs_${cpus}cpu PROPERTIES TIMEOUT 40 LABELS fs)
   add_test(NAME sigchld_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"

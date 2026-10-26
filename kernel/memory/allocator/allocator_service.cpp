@@ -83,6 +83,9 @@ bool initialize(AllocatorKind kind, const BootMemoryInfo &memory,
   }
   selected->layout_ = planned;
   selected->initialize_layout();
+  selected->free_pages_ = 0;
+  for (unsigned i = 0; i < planned.usable_count(); ++i)
+    selected->free_pages_ += planned.usable(i).page_count();
   __atomic_store_n(&active, selected, __ATOMIC_RELEASE);
   return true;
 }

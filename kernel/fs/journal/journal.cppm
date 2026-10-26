@@ -58,6 +58,11 @@ public:
     journal_->begin();
   }
 
+  inline explicit Transaction(bool persistent) : journal_(persistent ? &journal() : nullptr)
+  {
+    if (journal_) journal_->begin();
+  }
+
   inline Transaction() : Transaction(journal())
   {
   }

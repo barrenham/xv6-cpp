@@ -99,11 +99,7 @@
 ```doxygen
 @fn void *xv::memory::BuddyPageAllocator::allocate(unsigned order)
 @brief 伙伴物理页分配器：分配并取得对象或存储资源。
-@param order 物理块阶数，一个块包含 2 的 order 次方个页面。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock.acquire` → `PhysicalAddress::from_pointer` → `remove_block` → `lock.release` → `pa.is_null` → `insert` → `pa.advanced` → `detail::block_size` → `set_tag` → `layout_.ram` → `page_index` → `detail::fill`。
-@details 需要特别跟踪的条件：`order > SuperpageOrder`；`area_[found].head`；`!pa.is_null()`；`pa.is_null()`；`found > order`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`lock.acquire` → `lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：`0`；`pa.pointer()`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock.acquire` → `PhysicalAddress::from_pointer` → `remove_block` → `lock.release` → `pa.is_null` → `insert` → `pa.advanced` → `detail::block_size` → `set_tag` → `layout_.ram` → `page_index` → `detail::fill`。 成功分配按原始阶扣减空闲页，成功归还加回原始页数；仅统计变化，不改变原有分裂、合并、poison 与所有权校验。
 ```
 
 <a id="fn-6f33683dd35acc36"></a>
@@ -128,12 +124,7 @@
 ```doxygen
 @fn void xv::memory::BuddyPageAllocator::deallocate(void *mem, unsigned order)
 @brief 伙伴物理页分配器：把已分配的存储归还分配器。
-@param mem 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param order 物理块阶数，一个块包含 2 的 order 次方个页面。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`PhysicalAddress::from_pointer` → `valid_block` → `detail::fail` → `claim` → `detail::fill` → `detail::block_size` → `lock.acquire` → `layout_.ram` → `page_index` → `page_count` → `page_tag` → `page_address`。
-@details 需要特别跟踪的条件：`!valid_block(pa, order)`；`order < SuperpageOrder && buddy < layout_.ram().page_count() && page_tag(buddy) == FreeBase + static_cast<int>(order)`；`buddy_pa < pa`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`lock.acquire` → `lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`PhysicalAddress::from_pointer` → `valid_block` → `detail::fail` → `claim` → `detail::fill` → `detail::block_size` → `lock.acquire` → `layout_.ram` → `page_index` → `page_count` → `page_tag` → `page_address`。 成功分配按原始阶扣减空闲页，成功归还加回原始页数；仅统计变化，不改变原有分裂、合并、poison 与所有权校验。
 ```
 
 <a id="fn-2d9e53492f4ac4fd"></a>

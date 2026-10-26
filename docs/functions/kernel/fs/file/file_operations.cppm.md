@@ -38,26 +38,6 @@
 - [`xv::fs::PipeBackend::read`](file_operations.cpp.md#fn-b4fd0e70d6fa5ac3)
 - [`xv::fs::PipeBackend::write`](file_operations.cpp.md#fn-687505aae3abce7a)
 
-<a id="fn-41bd7f233b77588b"></a>
-
-## `xv::fs::InodeBackend::InodeBackend`
-
-```doxygen
-@fn xv::fs::InodeBackend::InodeBackend(Inode &node)
-@brief 构造 InodeBackend。
-@details 接收拥有的 inode 引用，初始化本次打开偏移为零。
-```
-
-<a id="fn-13c9a137c3cbe09c"></a>
-
-## `xv::fs::DeviceBackend::DeviceBackend`
-
-```doxygen
-@fn xv::fs::DeviceBackend::DeviceBackend(Inode &node)
-@brief 构造 DeviceBackend。
-@details 接收设备节点 inode 引用并保存 major，不拥有全局字符设备实例。
-```
-
 <a id="fn-bb772dcd8a7f33f5"></a>
 
 ## `xv::fs::DeviceBackend::capability`
@@ -96,4 +76,23 @@
 @fn xv::io::Capability *xv::fs::EndpointBackend::capability(xv::io::CapabilityId id)
 @brief 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
 @details 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
+```
+<a id="fn-41bd7f233b77588b"></a>
+
+## `xv::fs::InodeBackend::InodeBackend`
+
+```doxygen
+@fn explicit xv::fs::InodeBackend::InodeBackend(Inode &node, char *snapshot = nullptr, unsigned length = 0)
+@brief 接管 inode 引用及可选的每次打开内容快照。
+@details 快照缓冲和 length 已由文件表准备，构造不再分配；offset 从零开始。独立打开各有后端，dup/fork 共享同一后端。
+```
+
+<a id="fn-13c9a137c3cbe09c"></a>
+
+## `xv::fs::DeviceBackend::DeviceBackend`
+
+```doxygen
+@fn xv::fs::DeviceBackend::DeviceBackend(Inode &node, xv::drivers::CharacterDevice &session)
+@brief 接管设备节点引用和一次成功打开的会话。
+@details 会话已由文件系统工厂取得，构造不再调用 open；最后 close 调用会话 close 一次，再释放节点引用。
 ```

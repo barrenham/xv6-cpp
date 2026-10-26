@@ -36,13 +36,13 @@ ioctl 通过 `query<DeviceControl>(object)` 调用，网络系统调用通过 `q
 
 ## 具体后端
 
-- `InodeBackend` 接收一个 inode 引用并保存本次打开的 offset。读写在原 inode 锁内更新偏移；大写入仍按日志容量切分事务。
-- `DeviceBackend` 接收设备节点 inode 引用，保存 major 并借用全局 CharacterDevice。关闭只释放节点引用，不关闭全局控制台实例。
+- `InodeBackend` 接收 inode 引用和共享偏移；procfs 另持有本次打开的内容快照。读写在所属节点锁内更新偏移，磁盘大写入按日志容量切分事务。
+- `DeviceBackend` 接收设备节点引用及工厂成功打开的 CharacterDevice 会话。每个独立 open 取得一个会话，dup/fork 共享它；最后关闭先调用会话 close，再按节点归属释放 inode。
 - `PipeBackend` 保存共享 Pipe 指针和本端方向，两端 File 各自负责最终关闭对应方向。
 - `EndpointBackend` 接收匿名 CharacterDevice 端点关闭责任，转发 TTY/PTY 读写、poll 和 ioctl。
 - `TcpSocket/UdpSocket` 直接作为 IoObject 绑定 File，保留协议队列及原有异步关闭逻辑。
 
-前四种适配器在 File 的64字节、16字节对齐内置存储中 placement 构造，编译期检查容量和对齐，不额外分配物理页。Socket 沿用网络工厂的对象页和协议缓冲，由自己的 close/destroy 路径管理。
+前四种适配器在 File 的64字节、16字节对齐内置存储中 placement 构造，编译期检查容量和对齐，不额外分配物理页。Socket 沿用网络工厂的对象页和协议缓冲，由自己的 close/destroy 路径管理。设备工厂可以另分配会话页，procfs 为一次打开分配快照页；这些资源在最后关闭时回收。
 
 ## 生命周期与偏移
 
@@ -71,3 +71,5 @@ backend->close()：可睡眠、可析构内置后端
 `fs_contract` 增加通用后端探针，验证虚调用、元数据、设备控制能力、非阻塞标志、非最后引用不关闭，以及阻塞 close 期间的槽位保留和表锁释放；原有共享偏移测试外，增加独立 open 偏移测试。
 
 集成验证包括完整 `usertests -q`、原生文件系统/进程/网络契约，以及单核/三核 PTY、poll、非阻塞和 socket 通信。函数说明仍在 [IoObject 文档](functions/kernel/io/object.cppm.md)、[后端实现](functions/kernel/fs/file/file_operations.cpp.md) 与 [File 管理](functions/kernel/fs/file/open_file.cpp.md)，不注入源码。
+
+设备命名空间、挂载边界与启动注册规则见 [VFS 与 devfs](devfs.md)。

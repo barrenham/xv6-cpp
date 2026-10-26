@@ -1,4 +1,4 @@
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
 target_link_libraries(user_dns PRIVATE xv_options)
@@ -13,6 +13,10 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/ps/ps.cpp
+  apps/free/free.cpp
+  tests/namedptytest.cpp
+  tests/procfstest.cpp
   apps/curl/curl.cpp
   apps/nslookup/nslookup.cpp
   apps/netctl/netctl.cpp
@@ -28,6 +32,7 @@ set(programs
   apps/pty/pty.cpp
   tests/httptest.cpp
   tests/dnstest.cpp
+  tests/devfstest.cpp
   tests/dhcptest.cpp
   tests/bridgetest.cpp
   tests/netctltest.cpp

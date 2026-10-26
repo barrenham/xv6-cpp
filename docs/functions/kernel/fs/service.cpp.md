@@ -63,9 +63,9 @@
 ## `xv::fs::filesystem`
 
 ```doxygen
-@fn FileSystem &xv::fs::filesystem()
-@brief 文件描述、inode、路径、块缓存与日志事务：读取或计算 `system_filesystem`，返回当前查询结果。
-@return 各分支实际返回：`system_filesystem`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn VirtualFileSystem &xv::fs::filesystem()
+@brief 取得统一路径命名空间的 VFS 实例。
+@details 返回类型为 VirtualFileSystem，具体磁盘、devfs 与 procfs 通过节点 owner 分发。VFS 不再继承文件系统后端接口，后端无需提供独立路径包装。
 ```
 
 <a id="fn-fde437052d31cdd9"></a>

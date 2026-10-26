@@ -175,7 +175,8 @@ uint64 sys_open(void)
     }
   }
 
-  if (ip->kind() == T_DEVICE && (ip->device_major() < 0 || ip->device_major() >= NDEV))
+  if (ip->kind() == T_FILE && ip->owner().read_only() &&
+      ((omode & O_ACCMODE) != O_RDONLY || (omode & O_TRUNC)))
   {
     xv::fs::filesystem().unlock_release(ip);
     return -1;
@@ -191,8 +192,14 @@ uint64 sys_open(void)
     return -1;
   }
 
-  xv::fs::files().bind_inode(*f, *ip, !(omode & O_WRONLY),
-                             (omode & O_WRONLY) || (omode & O_RDWR), omode & O_NONBLOCK);
+  if (!xv::fs::files().bind_inode(*f, *ip, !(omode & O_WRONLY),
+                                (omode & O_WRONLY) || (omode & O_RDWR), omode & O_NONBLOCK))
+  {
+    xv::process::current()->files().take(fd);
+    xv::fs::files().release(f);
+    xv::fs::filesystem().unlock_release(ip);
+    return -1;
+  }
 
   if ((omode & O_TRUNC) && ip->kind() == T_FILE)
   {

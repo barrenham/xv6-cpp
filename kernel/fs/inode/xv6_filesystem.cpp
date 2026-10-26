@@ -10,6 +10,9 @@ import :xv6;
 
 namespace xv::fs
 {
+xv::drivers::CharacterDevice *Xv6FileSystem::open_device(Inode *node, bool nonblocking)
+{ return open_registered_device(node, nonblocking); }
+
 static unsigned min(unsigned first, unsigned second)
 {
   return first < second ? first : second;
@@ -28,6 +31,7 @@ void Xv6FileSystem::read_super(int dev, superblock *layout)
 // Init fs
 void Xv6FileSystem::initialize(int dev)
 {
+  device_ = dev;
   read_super(dev, &layout_);
   if (layout_.magic != FSMAGIC)
   {
@@ -173,6 +177,7 @@ void Xv6FileSystem::initialize_inodes()
   inode_lock_.init("itable");
   for (i = 0; i < NINODE; i++)
   {
+    inodes_[i].owner_ = this;
     inodes_[i].lock.init("inode");
   }
 }

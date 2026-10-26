@@ -1,13 +1,5 @@
 # `kernel/process/lifecycle/process_manager.cpp`
 
-开发职责：进程对象生命周期、组身份、调度、等待与信号。
-
-源码：[打开实际文件](../../../../../kernel/process/lifecycle/process_manager.cpp)。文档不会加入源码或生成额外 C++ 声明。
-
-模块身份：`xv.process`。
-
-直接模块依赖：`xv.print`, `xv.runtime`, `xv.fs`, `:manager`, `xv.memory`。依赖仅表示可见接口，不代表所有服务都在初始化时调用。
-
 ## 函数导航
 
 - [`xv::process::ProcessManager::allocate`](../lifecycle.md#lifecycle-processmanager-allocate)
@@ -20,4 +12,15 @@
 - [`xv::process::ProcessManager::kill`](../lifecycle.md#lifecycle-processmanager-kill)
 - [`xv::process::ProcessManager::reap`](../lifecycle.md#lifecycle-processmanager-reap)
 - [`xv::process::ProcessManager::reparent`](../lifecycle.md#lifecycle-processmanager-reparent)
+- [`xv::process::ProcessManager::snapshot_after`](process_manager.cpp.md#fn-bbc335370e273170)
 - [`xv::process::ProcessManager::wakeup`](../lifecycle.md#lifecycle-processmanager-wakeup)
+
+<a id="fn-bbc335370e273170"></a>
+
+## `xv::process::ProcessManager::snapshot_after`
+
+```doxygen
+@fn bool xv::process::ProcessManager::snapshot_after(int after, ProcessInfo &result)
+@brief 复制 PID 大于给定值的最小活动进程信息。
+@details 先取得家族锁，再由存储遍历逐进程加锁，以保护父指针、状态与名称。组/会话经组锁查询，地址空间大小读取独立原子发布值；回调不睡眠，不保留 Process 指针。返回 false 表示没有后续 PID。
+```

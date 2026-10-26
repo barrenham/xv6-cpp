@@ -10,9 +10,29 @@ import xv.runtime;
 import :platform;
 import xv.process;
 import xv.memory;
+import xv.trap;
 
 namespace xv::fs::detail
 {
+bool process_after(int after, ProcessRecord &result)
+{
+  xv::process::ProcessInfo value;
+  if (!xv::process::snapshot_after(after, value)) return false;
+  result.pid = value.pid; result.parent = value.parent;
+  result.group = value.group; result.session = value.session;
+  result.bytes = value.bytes; result.state = value.state;
+  xv::runtime::move(result.name, value.name, sizeof(result.name));
+  return true;
+}
+unsigned long uptime_ticks() { return xv::trap::clock().uptime(); }
+void memory_info(unsigned long &total_kib, unsigned long &free_kib)
+{
+  auto &allocator = xv::memory::allocator();
+  total_kib = 0;
+  for (unsigned i = 0; i < allocator.layout().usable_count(); ++i)
+    total_kib += allocator.layout().usable(i).page_count() * 4;
+  free_kib = allocator.free_pages() * 4;
+}
 void prepare_interruptible_sleep(void *channel)
 {
   xv::process::prepare_interruptible_sleep(channel);

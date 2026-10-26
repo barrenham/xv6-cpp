@@ -59,7 +59,8 @@ void initialize_console()
   initialize_ptys();
   uart.attach(terminal);
   uart.initialize();
-  xv::fs::devices().attach(CONSOLE, terminal);
+  xv::fs::devices().attach("console", CONSOLE, 0, terminal);
+  xv::fs::devices().attach("ptmx", 4, 0, ptmx());
 }
 
 void initialize_interrupts()

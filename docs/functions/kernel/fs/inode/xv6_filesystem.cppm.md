@@ -14,33 +14,32 @@
 - [`xv::fs::Xv6FileSystem::allocate`](xv6_filesystem.cpp.md#fn-071e023c7d9e28d2)
 - [`xv::fs::Xv6FileSystem::allocate_block`](xv6_filesystem.cpp.md#fn-5a13ce655a471c2a)
 - [`xv::fs::Xv6FileSystem::compare_names`](../path/path_operations.cpp.md#fn-2582fcda97170617)
-- [`xv::fs::Xv6FileSystem::create`](../path/path_operations.cpp.md#fn-a0d31dedbcf7f673)
+- [`xv::fs::Xv6FileSystem::create_at`](../path/path_operations.cpp.md#fn-c7e8c6cda59e8d12)
 - [`xv::fs::Xv6FileSystem::directory_empty`](../path/path_operations.cpp.md#fn-349493cbf4320e0a)
 - [`xv::fs::Xv6FileSystem::free_block`](xv6_filesystem.cpp.md#fn-9f690bb8450d7917)
 - [`xv::fs::Xv6FileSystem::free_inode`](xv6_filesystem.cpp.md#fn-55c1f3a16e6a8da9)
 - [`xv::fs::Xv6FileSystem::get`](xv6_filesystem.cpp.md#fn-9e44fd39e00d972e)
 - [`xv::fs::Xv6FileSystem::initialize`](xv6_filesystem.cpp.md#fn-e1029df290612731)
 - [`xv::fs::Xv6FileSystem::initialize_inodes`](xv6_filesystem.cpp.md#fn-8e9ee55da6c91ffd)
-- [`xv::fs::Xv6FileSystem::link`](../path/path_operations.cpp.md#fn-13afb769dcabb57b)
+- [`xv::fs::Xv6FileSystem::link_at`](../path/path_operations.cpp.md#fn-603e65641638664d)
 - [`xv::fs::Xv6FileSystem::link_entry`](../path/path_operations.cpp.md#fn-2c549cede9fc1d13)
 - [`xv::fs::Xv6FileSystem::lock`](xv6_filesystem.cpp.md#fn-6d014e00edddc19a)
-- [`xv::fs::Xv6FileSystem::lookup`](../path/path_operations.cpp.md#fn-0b09ef09763d844a)
 - [`xv::fs::Xv6FileSystem::lookup_entry`](../path/path_operations.cpp.md#fn-004094c7c5387803)
-- [`xv::fs::Xv6FileSystem::lookup_parent`](../path/path_operations.cpp.md#fn-3c571ed40b048be1)
 - [`xv::fs::Xv6FileSystem::map_block`](xv6_filesystem.cpp.md#fn-e115e4280d884517)
 - [`xv::fs::Xv6FileSystem::name`](xv6_filesystem.cppm.md#fn-76aed8d1c1501404)
+- [`xv::fs::Xv6FileSystem::open_device`](xv6_filesystem.cpp.md#fn-9f79fb79bd4090b4)
 - [`xv::fs::Xv6FileSystem::read`](xv6_filesystem.cpp.md#fn-dd71262a05693ac2)
 - [`xv::fs::Xv6FileSystem::read_super`](xv6_filesystem.cpp.md#fn-8886c17d9bd7f74a)
 - [`xv::fs::Xv6FileSystem::reclaim`](xv6_filesystem.cpp.md#fn-63ef700d59c2ecf4)
 - [`xv::fs::Xv6FileSystem::release`](xv6_filesystem.cpp.md#fn-488eb6e0a79dde7a)
 - [`xv::fs::Xv6FileSystem::retain`](xv6_filesystem.cpp.md#fn-cf818bc3fcef07af)
+- [`xv::fs::Xv6FileSystem::root`](xv6_filesystem.cppm.md#fn-f988ee945b669ddc)
 - [`xv::fs::Xv6FileSystem::stat`](xv6_filesystem.cpp.md#fn-380640571e8b5b9b)
 - [`xv::fs::Xv6FileSystem::truncate`](xv6_filesystem.cpp.md#fn-c1850e2e3bb309e8)
-- [`xv::fs::Xv6FileSystem::unlink`](../path/path_operations.cpp.md#fn-885ae8493e8a4843)
+- [`xv::fs::Xv6FileSystem::unlink_at`](../path/path_operations.cpp.md#fn-5b4b6b7276311573)
 - [`xv::fs::Xv6FileSystem::unlock`](xv6_filesystem.cpp.md#fn-93ed9249a65b47aa)
 - [`xv::fs::Xv6FileSystem::unlock_release`](xv6_filesystem.cpp.md#fn-45dcd30b8fa7a526)
 - [`xv::fs::Xv6FileSystem::update`](xv6_filesystem.cpp.md#fn-d23dade71242312c)
-- [`xv::fs::Xv6FileSystem::walk_path`](../path/path_operations.cpp.md#fn-a49b0d1e488e894d)
 - [`xv::fs::Xv6FileSystem::write`](xv6_filesystem.cpp.md#fn-b5be87921570227b)
 - [`xv::fs::Xv6FileSystem::zero_block`](xv6_filesystem.cpp.md#fn-e9142d5fbb52fb87)
 
@@ -65,4 +64,13 @@
 @fn const char *xv::fs::Xv6FileSystem::name() const override
 @brief xv6 inode 文件系统：读取或计算 `"`，返回当前查询结果。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-f988ee945b669ddc"></a>
+
+## `xv::fs::Xv6FileSystem::root`
+
+```doxygen
+@fn Inode *xv::fs::Xv6FileSystem::root() override
+@brief 取得本磁盘 ROOTINO 的未锁定引用。
+@details 使用保存的 device_，不读取磁盘内容；首次 lock 才加载节点。启动前默认 ROOTDEV，以支持创建初始进程的工作目录。
 ```
