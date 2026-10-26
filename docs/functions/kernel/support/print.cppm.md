@@ -13,4 +13,3 @@
 - [`xv::print::panicked`](printk.cpp.md#fn-98ce96df281386b6)
 - [`xv::print::panicking`](printk.cpp.md#fn-4b43183d43eaac56)
 - [`xv::print::printk`](printk.cpp.md#fn-87cc2e541b7ec985)
-

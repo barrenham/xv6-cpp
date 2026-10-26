@@ -5,6 +5,7 @@ module;
 #include "kernel/trap/arch/riscv/entry.h"
 
 module xv.trap;
+import xv.net;
 
 import xv.arch;
 
@@ -170,6 +171,7 @@ void service_timer_devices()
   {
     xv::process::poll_timer_tick(xv::arch::r_time() / 10000);
     xv::drivers::terminal_timer_tick();
+    xv::net::timer_tick();
   }
 }
 

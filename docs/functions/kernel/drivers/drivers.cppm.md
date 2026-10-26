@@ -22,4 +22,3 @@
 - [`xv::drivers::pty_timer_tick`](tty/pty/pty.cpp.md#fn-b050f1554cf27075)
 - [`xv::drivers::serial_port`](board/qemu_virt.cpp.md#fn-ee46a944352f0df2)
 - [`xv::drivers::terminal_timer_tick`](board/qemu_virt.cpp.md#fn-a345578c92b3adb7)
-

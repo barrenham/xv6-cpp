@@ -16,4 +16,3 @@
 - [`xv::process::WaitChannels::prepare`](../wait-channels.md#wait-waitchannels-prepare)
 - [`xv::process::WaitChannels::unlink`](../wait-channels.md#wait-waitchannels-unlink)
 - [`xv::process::WaitChannels::wake`](../wait-channels.md#wait-waitchannels-wake)
-

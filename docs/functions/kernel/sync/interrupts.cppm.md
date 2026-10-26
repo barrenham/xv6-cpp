@@ -10,4 +10,3 @@
 
 - [`xv::sync::pop_interrupts_off`](platform/kernel_platform.cpp.md#fn-225d9917867056a8)
 - [`xv::sync::push_interrupts_off`](platform/kernel_platform.cpp.md#fn-b33b7a25f520fd67)
-

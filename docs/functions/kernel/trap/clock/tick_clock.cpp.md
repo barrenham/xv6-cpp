@@ -14,4 +14,3 @@
 - [`xv::trap::TickClock::interrupt`](../tick-clock.md#clock-tickclock-interrupt)
 - [`xv::trap::TickClock::pause`](../tick-clock.md#clock-tickclock-pause)
 - [`xv::trap::TickClock::uptime`](../tick-clock.md#clock-tickclock-uptime)
-

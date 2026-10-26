@@ -316,18 +316,6 @@
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
-<a id="fn-8bf053cbd79e3fd0"></a>
-
-## `xv::trap::detail::service_timer_devices`
-
-```doxygen
-@fn void xv::trap::detail::service_timer_devices()
-@brief 陷阱快照、事件分派、设备服务及特权级返回：处理定时器devices。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`hart_id` → `xv::process::poll_timer_tick` → `xv::arch::r_time` → `xv::drivers::terminal_timer_tick`。
-@details 需要特别跟踪的条件：`hart_id() == 0`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
-
 <a id="fn-a4eda3906392ae77"></a>
 
 ## `xv::trap::detail::prepare_interruptible_sleep`
@@ -375,4 +363,17 @@
 @param channel 等待条件或通知对象的地址键；不能在未结束登记时销毁对应对象。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::wakeup`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-8bf053cbd79e3fd0"></a>
+
+## `xv::trap::detail::service_timer_devices`
+
+```doxygen
+@fn void xv::trap::detail::service_timer_devices()
+@brief 陷阱快照、事件分派、设备服务及特权级返回：处理定时器devices。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`hart_id` → `xv::process::poll_timer_tick` → `xv::arch::r_time` → `xv::drivers::terminal_timer_tick`。
+@details 需要特别跟踪的条件：`hart_id() == 0`。这些条件决定检查、重试或提前返回路径。
+@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 只在 hart 0 调用网络 timer_tick，处理 ARP 请求重试、IPv4 分片超时与回环队列、TCP 重传及关闭状态回收；不会在计时器中执行用户地址复制。
 ```

@@ -7,7 +7,7 @@ namespace xv::drivers
 void E1000::initialize()
 {
   lock_.init("e1000");
-  if (!receiver_ || !detail::configure_e1000(0x40000000UL)) return;
+  if (!receiver_ || !detail::configure_e1000(base_, slot_)) return;
   registers_.write32(0xd8, ~0U);
   registers_.write32(0, registers_.read32(0) | (1U << 26));
   unsigned tries = 100000;
@@ -15,6 +15,16 @@ void E1000::initialize()
   if (!tries) return;
   registers_.write32(0xd8, ~0U);
   registers_.read32(0xc0);
+  for (unsigned word = 0; word < 3; ++word)
+  {
+    registers_.write32(0x14, 1 | (word << 8));
+    unsigned budget = 100000;
+    while (!(registers_.read32(0x14) & 0x10) && --budget) {}
+    if (!budget) return;
+    unsigned value = registers_.read32(0x14) >> 16;
+    mac_[word*2] = value; mac_[word*2+1] = value >> 8;
+  }
+  if (mac_[0] & 1) return;
   for (unsigned i = 0; i < Count; ++i)
   {
     received_[i] = detail::allocate_dma_page();
@@ -38,8 +48,9 @@ void E1000::initialize()
   registers_.write32(0x2808, sizeof(rx_));
   registers_.write32(0x2810, 0);
   registers_.write32(0x2818, Count - 1);
-  registers_.write32(0x5400, 0x12005452);
-  registers_.write32(0x5404, 0x80005634);
+  registers_.write32(0x5400, unsigned(mac_[0]) | (unsigned(mac_[1])<<8) |
+                           (unsigned(mac_[2])<<16) | (unsigned(mac_[3])<<24));
+  registers_.write32(0x5404, 0x80000000U | mac_[4] | (unsigned(mac_[5])<<8));
   for (unsigned i = 0; i < 128; ++i) registers_.write32(0x5200 + i * 4, 0);
   registers_.write32(0x410, 10 | (8 << 10) | (6 << 20));
   registers_.write32(0x400, 2 | 8 | (0x10 << 4) | (0x40 << 12));

@@ -288,3 +288,59 @@ __signal_return:
  ecall
  # A failed restoration must not execute arbitrary stack bytes.
  ebreak
+
+.global socket
+socket:
+ li a7, SYS_socket
+ ecall
+ ret
+.global sockbind
+sockbind:
+ li a7, SYS_sockbind
+ ecall
+ ret
+.global connect
+connect:
+ li a7, SYS_connect
+ ecall
+ ret
+.global listen
+listen:
+ li a7, SYS_listen
+ ecall
+ ret
+.global accept
+accept:
+ li a7, SYS_accept
+ ecall
+ ret
+.global sendto
+sendto:
+ li a7, SYS_sendto
+ ecall
+ ret
+.global recvfrom
+recvfrom:
+ li a7, SYS_recvfrom
+ ecall
+ ret
+.global shutdown
+shutdown:
+ li a7, SYS_shutdown
+ ecall
+ ret
+.global getsockname
+getsockname:
+ li a7, SYS_getsockname
+ ecall
+ ret
+.global getpeername
+getpeername:
+ li a7, SYS_getpeername
+ ecall
+ ret
+.global getsockopt
+getsockopt:
+ li a7, SYS_getsockopt
+ ecall
+ ret

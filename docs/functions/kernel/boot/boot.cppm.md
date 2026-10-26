@@ -10,4 +10,3 @@
 
 - [`xv::boot::enter`](start.cpp.md#fn-caadfb68f7c23853)
 - [`xv::boot::run`](main.cpp.md#fn-83525a5281519558)
-

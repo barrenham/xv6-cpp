@@ -21,4 +21,3 @@
 - [`xv::process::ProcessManager::reap`](../lifecycle.md#lifecycle-processmanager-reap)
 - [`xv::process::ProcessManager::reparent`](../lifecycle.md#lifecycle-processmanager-reparent)
 - [`xv::process::ProcessManager::wakeup`](../lifecycle.md#lifecycle-processmanager-wakeup)
-

@@ -1,4 +1,3 @@
-target_sources(kernel PRIVATE
-  FILE_SET net_modules TYPE CXX_MODULES FILES net.cppm platform/platform.cppm
-)
-target_sources(kernel PRIVATE stack.cpp platform/kernel_platform.cpp)
+include("${PROJECT_SOURCE_DIR}/cmake/net-modules.cmake")
+xv_add_net_modules(kernel)
+target_sources(kernel PRIVATE platform/kernel_platform.cpp)

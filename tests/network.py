@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--kernel', required=True)
     parser.add_argument('--image', required=True)
     parser.add_argument('--cpus', type=int, default=3)
+    parser.add_argument('--multi', action='store_true')
     args = parser.parse_args()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer:
         peer.bind(('127.0.0.1', 0))
@@ -45,10 +46,13 @@ def main():
                            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0',
                            '-netdev', 'user,id=net0', '-device',
                            'e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56']
+                if args.multi:
+                    command += ['-netdev', 'user,id=net1,net=10.0.3.0/24,host=10.0.3.2,dhcpstart=10.0.3.15',
+                                '-device', 'e1000,netdev=net1,bus=pcie.0,addr=05.0,mac=52:54:00:12:34:57']
                 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT, bufsize=0)
                 transcript = bytearray()
-                log = Path(args.image).parent/f'network-{args.cpus}cpu.log'
+                log = Path(args.image).parent/f'{"multinet" if args.multi else "network"}-{args.cpus}cpu.log'
                 selector = selectors.DefaultSelector()
                 selector.register(process.stdout, selectors.EVENT_READ)
                 cursor = 0
@@ -65,7 +69,7 @@ def main():
                         for key, _ in selector.select(0.1):
                             data = os.read(key.fd, 65536)
                             transcript.extend(data)
-                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript:
+                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript:
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
@@ -73,13 +77,15 @@ def main():
                     expect('$ ')
                     # Repeat in the same boot: exit must release all resources.
                     for _ in range(2):
-                        process.stdin.write(f'nettest {peer.getsockname()[1]}\n'.encode())
+                        program = 'multinet' if args.multi else 'nettest'
+                        process.stdin.write(f'{program} {peer.getsockname()[1]}\n'.encode())
                         process.stdin.flush()
-                        expect('nettest: ALL PASSED')
+                        expect('multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
                         expect('$ ')
-                    assert len(received) >= 170, len(received)
+                    assert len(received) >= (160 if args.multi else 170), len(received)
                     assert any(len(p) == 1472 for p in received)
-                    assert b'' in received
+                    if not args.multi:
+                        assert b'' in received
                     print(f'network: {args.cpus} CPUs, {len(received)} datagrams, all passed')
                 finally:
                     process.terminate()

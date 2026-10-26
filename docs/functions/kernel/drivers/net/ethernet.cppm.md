@@ -2,17 +2,16 @@
 
 ## 函数导航
 
-- [`xv::drivers::initialize_network`](../board/qemu_virt.cpp.md#fn-b676d9440f8d6421)
-- [`xv::drivers::network_device`](../board/qemu_virt.cpp.md#fn-59f08ec5772b85b6)
+- [`xv::drivers::initialize_network`](../board/qemu_virt.cpp.md#fn-a202b21c5c06ed23)
+- [`xv::drivers::network_device`](../board/qemu_virt.cpp.md#fn-0dd9355aa5e189f6)
+- [`xv::drivers::network_device_count`](../board/qemu_virt.cpp.md#fn-0f6db43d3d7dce07)
+- [`xv::drivers::EthernetDevice::carrier`](ethernet.cppm.md#fn-0a75b7ad9c57762f)
+- [`xv::drivers::EthernetDevice::mac_address`](ethernet.cppm.md#fn-835a79075d06aef8)
 - [`xv::drivers::EthernetDevice::online`](ethernet.cppm.md#fn-759d5d8b3299891d)
 - [`xv::drivers::EthernetDevice::transmit`](ethernet.cppm.md#fn-7340f363f0949924)
 - [`xv::drivers::EthernetDevice::~EthernetDevice`](ethernet.cppm.md#fn-79a6be906dbdfcdd)
 - [`xv::drivers::EthernetReceiver::receive_frame`](ethernet.cppm.md#fn-af5421b98e5d86b2)
 - [`xv::drivers::EthernetReceiver::~EthernetReceiver`](ethernet.cppm.md#fn-0d52ec251209d344)
-
-
-独立 Doxygen 开发文档；运行代码位于 `kernel/`。
-
 
 <a id="fn-af5421b98e5d86b2"></a>
 
@@ -67,4 +66,21 @@
 @fn xv::drivers::EthernetDevice::~EthernetDevice()
 @brief 销毁以太网设备接口基类部分。
 @details protected 非虚析构禁止通过接口删除；板级设备静态存活，接口只提供借用访问。
+```
+<a id="fn-0a75b7ad9c57762f"></a>
+
+## `xv::drivers::EthernetDevice::carrier`
+
+```doxygen
+@fn bool xv::drivers::EthernetDevice::carrier() const
+@brief 默认把驱动就绪视作载波可用；具体硬件可覆盖实际链路检测。
+```
+
+<a id="fn-835a79075d06aef8"></a>
+
+## `xv::drivers::EthernetDevice::mac_address`
+
+```doxygen
+@fn void xv::drivers::EthernetDevice::mac_address(unsigned char *destination) const
+@brief 以太设备契约：向至少六字节目标缓冲区提供此设备 MAC，不把该属性施加给三层虚拟接口。
 ```

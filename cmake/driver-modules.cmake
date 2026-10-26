@@ -1,4 +1,7 @@
 function(xv_add_driver_interfaces target)
+  target_sources(${target} PRIVATE FILE_SET io_interfaces TYPE CXX_MODULES
+    BASE_DIRS "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/io"
+    FILES "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/io/object.cppm")
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/drivers")
   target_sources(${target} PRIVATE
     FILE_SET driver_interfaces TYPE CXX_MODULES

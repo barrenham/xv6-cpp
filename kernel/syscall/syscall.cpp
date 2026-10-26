@@ -19,6 +19,17 @@ static SyscallHandler lookup_syscall(int number)
   switch (number)
   {
     // clang-format off
+  case SYS_socket: return sys_socket;
+  case SYS_sockbind: return sys_sockbind;
+  case SYS_connect: return sys_connect;
+  case SYS_listen: return sys_listen;
+  case SYS_accept: return sys_accept;
+  case SYS_sendto: return sys_sendto;
+  case SYS_recvfrom: return sys_recvfrom;
+  case SYS_shutdown: return sys_shutdown;
+  case SYS_getsockname: return sys_getsockname;
+  case SYS_getpeername: return sys_getpeername;
+  case SYS_getsockopt: return sys_getsockopt;
   case SYS_fork: return sys_fork;
   case SYS_exit: return sys_exit;
   case SYS_wait: return sys_wait;
@@ -94,7 +105,7 @@ void dispatch()
     p->begin_system_call();
     auto result = static_cast<unsigned long>(p->finish_system_call(num, argument, handler()));
     bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
-                       num == SYS_waitpid || num == SYS_recv || num == SYS_pause || num == SYS_sigsuspend;
+                       num == SYS_waitpid || num == SYS_recv || num == SYS_accept || num == SYS_recvfrom || num == SYS_sendto || num == SYS_pause || num == SYS_sigsuspend;
     if (result == ~0UL && restartable && p->stop_requested())
     {
       // Retry an interrupted operation after continuation. Partial transfers

@@ -9,4 +9,3 @@
 ## 函数导航
 
 - [`xv::boot::detail::device_tree`](start.cpp.md#fn-6e4debad43d43f5f)
-

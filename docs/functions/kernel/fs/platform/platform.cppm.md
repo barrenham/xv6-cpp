@@ -26,4 +26,3 @@
 - [`xv::fs::detail::report`](kernel_platform.cpp.md#fn-f79daff3187ea060)
 - [`xv::fs::detail::sleep`](kernel_platform.cpp.md#fn-cc457fade9ae62c6)
 - [`xv::fs::detail::wakeup`](kernel_platform.cpp.md#fn-aec05456dbae85c7)
-

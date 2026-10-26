@@ -11,4 +11,3 @@
 - [`xv::process::detail::allocate_group_page`](kernel_platform.cpp.md#fn-260b981f8ba4b97f)
 - [`xv::process::detail::free_group_page`](kernel_platform.cpp.md#fn-6e0f34dce9194c4c)
 - [`xv::process::detail::group_fail`](kernel_platform.cpp.md#fn-1898d24834d875a8)
-

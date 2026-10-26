@@ -12,10 +12,13 @@ class EthernetDevice
 {
 public:
   virtual bool online() const = 0;
+  virtual bool carrier() const { return online(); }
+  virtual void mac_address(unsigned char *destination) const = 0;
   virtual bool transmit(void *page, unsigned length) = 0;
 protected:
   ~EthernetDevice() = default;
 };
-EthernetDevice &network_device();
-void initialize_network(EthernetReceiver &receiver);
+unsigned network_device_count();
+EthernetDevice &network_device(unsigned index = 0);
+void initialize_network(EthernetReceiver &receiver, unsigned index = 0);
 }

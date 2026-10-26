@@ -13,4 +13,3 @@
 - [`xv::process::detail::free_kernel_stack`](kernel_platform.cpp.md#fn-0ccd821dd7af8126)
 - [`xv::process::detail::free_process_page`](kernel_platform.cpp.md#fn-470a48c1e3751448)
 - [`xv::process::detail::storage_fail`](kernel_platform.cpp.md#fn-81d9f378847f3b25)
-

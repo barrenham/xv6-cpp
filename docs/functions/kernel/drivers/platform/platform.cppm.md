@@ -35,4 +35,3 @@
 - [`xv::drivers::detail::terminal_milliseconds`](kernel_platform.cpp.md#fn-bd48ea235f0c5241)
 - [`xv::drivers::detail::wake_processes`](kernel_platform.cpp.md#fn-63de6592afe7b624)
 - [`xv::drivers::detail::zero_page`](kernel_platform.cpp.md#fn-20570dfe40006a2d)
-

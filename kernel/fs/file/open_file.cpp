@@ -5,6 +5,7 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/support/placement_new.hpp"
 
 module xv.fs;
 import :platform;
@@ -13,13 +14,6 @@ import :pipe;
 
 namespace xv::fs
 {
-namespace
-{
-constinit InodeOperations inode_operations;
-constinit DeviceOperations device_operations;
-constinit PipeOperations pipe_operations;
-} // namespace
-
 bool File::nonblocking() const
 {
   return __atomic_load_n(&status_flags_, __ATOMIC_ACQUIRE) & O_NONBLOCK;
@@ -52,7 +46,7 @@ File *OpenFileTable::allocate()
     if (file.ref == 0)
     {
       file.ref = 1;
-      file.type = File::Kind::None;
+      file.backend_ = nullptr;
       return &file;
     }
   }
@@ -72,183 +66,92 @@ File *OpenFileTable::retain(File *file)
 
 void OpenFileTable::release(File *file)
 {
-  File detached;
   lock_.acquire();
-  if (file->ref < 1)
-  {
-    detail::fail("file: release dead reference");
-  }
-  if (--file->ref > 0)
-  {
-    lock_.release();
-    return;
-  }
-  detached.type = file->type;
-  detached.pipe = file->pipe;
-  detached.node = file->node;
-  detached.writable = file->writable;
-  detached.major = file->major;
-  detached.endpoint = file->endpoint;
-  file->type = File::Kind::None;
+  if (file->ref < 1) detail::fail("file: release dead reference");
+  if (--file->ref > 0) { lock_.release(); return; }
+  file->ref = -1;
+  auto *backend = file->backend_;
   lock_.release();
-  // Final release can sleep and must happen outside the table's spinlock.
-  switch (detached.type)
-  {
-  case File::Kind::Pipe:
-    pipe_operations.close(detached);
-    break;
-  case File::Kind::Inode:
-    inode_operations.close(detached);
-    break;
-  case File::Kind::Device:
-    device_operations.close(detached);
-    break;
-  case File::Kind::Endpoint:
-    detached.endpoint->close();
-    break;
-  case File::Kind::None:
-    break;
-  }
+  if (backend) backend->close();
+  lock_.acquire();
+  file->backend_ = nullptr;
+  file->ref = 0;
+  lock_.release();
 }
 
-void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
-                               bool nonblocking)
+void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable,
+                              bool writable, bool nonblocking)
 {
-  file.type = node.kind() == T_DEVICE ? File::Kind::Device : File::Kind::Inode;
-  file.major = node.device_major();
-  file.node = &node;
-  file.offset = 0;
+  file.backend_ = &object;
   file.readable = readable;
   file.writable = writable;
   unsigned mode = readable ? (writable ? O_RDWR : O_RDONLY) : O_WRONLY;
   __atomic_store_n(&file.status_flags_, mode | (nonblocking ? O_NONBLOCK : 0), __ATOMIC_RELEASE);
 }
 
+void OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
+                               bool nonblocking)
+{
+  static_assert(sizeof(InodeBackend) <= File::BackendBytes && alignof(InodeBackend) <= 16);
+  static_assert(sizeof(DeviceBackend) <= File::BackendBytes && alignof(DeviceBackend) <= 16);
+  xv::io::IoObject *backend;
+  if (node.kind() == T_DEVICE) backend = new (file.backend_storage_) DeviceBackend(node);
+  else backend = new (file.backend_storage_) InodeBackend(node);
+  configure(file, *backend, readable, writable, nonblocking);
+}
+
 void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
 {
-  file.type = File::Kind::Endpoint;
-  file.endpoint = &endpoint;
-  file.readable = file.writable = true;
-  __atomic_store_n(&file.status_flags_, O_RDWR, __ATOMIC_RELEASE);
+  static_assert(sizeof(EndpointBackend) <= File::BackendBytes && alignof(EndpointBackend) <= 16);
+  auto *backend = new (file.backend_storage_) EndpointBackend(endpoint);
+  configure(file, *backend, true, true, false);
+}
+
+void OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking)
+{
+  configure(file, object, true, true, nonblocking);
+}
+
+xv::io::IoObject *OpenFileTable::object(File *file) const
+{
+  return file ? file->backend_ : nullptr;
 }
 
 void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
 {
-  file.type = File::Kind::Pipe;
-  file.pipe = &pipe;
-  file.readable = !writable;
-  file.writable = writable;
-  __atomic_store_n(&file.status_flags_, writable ? O_WRONLY : O_RDONLY, __ATOMIC_RELEASE);
+  static_assert(sizeof(PipeBackend) <= File::BackendBytes && alignof(PipeBackend) <= 16);
+  auto *backend = new (file.backend_storage_) PipeBackend(pipe, writable);
+  configure(file, *backend, !writable, writable, false);
 }
 
 int OpenFileTable::read(File *file, unsigned long address, int count)
 {
-  if (!file->readable || count < 0)
-  {
-    return -1;
-  }
-  if (file->type == File::Kind::Endpoint)
-    return file->endpoint->read({xv::drivers::AddressSpace::User, address, file->nonblocking()}, count);
-  FileOperations *operations = nullptr;
-  switch (file->type)
-  {
-  case File::Kind::Inode:
-    operations = &inode_operations;
-    break;
-  case File::Kind::Device:
-    operations = &device_operations;
-    break;
-  case File::Kind::Pipe:
-    operations = &pipe_operations;
-    break;
-  default:
-    detail::fail("file: invalid read kind");
-  }
-  return operations->read(*file, address, count);
+  if (!file->readable || count < 0 || !file->backend_) return -1;
+  return file->backend_->read({address, file->nonblocking()}, count);
 }
 
 int OpenFileTable::write(File *file, unsigned long address, int count)
 {
-  if (!file->writable || count < 0)
-  {
-    return -1;
-  }
-  if (file->type == File::Kind::Endpoint)
-    return file->endpoint->write({xv::drivers::AddressSpace::User, address, file->nonblocking()}, count);
-  FileOperations *operations = nullptr;
-  switch (file->type)
-  {
-  case File::Kind::Inode:
-    operations = &inode_operations;
-    break;
-  case File::Kind::Device:
-    operations = &device_operations;
-    break;
-  case File::Kind::Pipe:
-    operations = &pipe_operations;
-    break;
-  default:
-    detail::fail("file: invalid write kind");
-  }
-  return operations->write(*file, address, count);
+  if (!file->writable || count < 0 || !file->backend_) return -1;
+  return file->backend_->write({address, file->nonblocking()}, count);
 }
 
 int OpenFileTable::stat(File *file, unsigned long address)
 {
-  if (file->type == File::Kind::Endpoint)
-  {
-    Stat value{};
-    value.type = T_DEVICE;
-    value.nlink = 1;
-    return detail::copy_out(true, address, &value, sizeof(value));
-  }
-  if (file->type == File::Kind::Inode)
-  {
-    return inode_operations.stat(*file, address);
-  }
-  if (file->type == File::Kind::Device)
-  {
-    return device_operations.stat(*file, address);
-  }
-  return -1;
+  xv::io::Metadata value{};
+  if (!file->backend_ || file->backend_->stat(value) < 0) return -1;
+  return detail::copy_out(true, address, &value, sizeof(value));
 }
 
 int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
 {
-  if (file->type == File::Kind::Endpoint)
-    return file->endpoint->ioctl(request, {xv::drivers::AddressSpace::User, argument});
-  if (file->type != File::Kind::Device)
-  {
-    return -1;
-  }
-  auto *device = devices().get(file->major);
-  return device ? device->ioctl(request, {xv::drivers::AddressSpace::User, argument})
-                : -1;
+  auto *control = xv::io::query<xv::io::DeviceControl>(file->backend_);
+  return control ? control->ioctl(request, {argument, file->nonblocking()}) : -1;
 }
 
 unsigned OpenFileTable::poll(File *file, xv::sync::PollTable *table)
 {
-  unsigned events;
-  switch (file->type)
-  {
-  case File::Kind::Pipe:
-    events = file->pipe->poll(file->writable, table);
-    break;
-  case File::Kind::Endpoint:
-    events = file->endpoint->poll(table);
-    break;
-  case File::Kind::Device:
-  {
-    auto *device = devices().get(file->major);
-    events = device ? device->poll(table) : POLLERR;
-    break;
-  }
-  case File::Kind::Inode:
-    events = POLLIN | POLLOUT;
-    break;
-  default:
-    return POLLNVAL;
-  }
+  unsigned events = file->backend_ ? file->backend_->poll(table) : POLLNVAL;
   if (!file->readable) events &= ~POLLIN;
   if (!file->writable) events &= ~POLLOUT;
   return events;

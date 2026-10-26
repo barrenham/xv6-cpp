@@ -181,7 +181,8 @@ long Process::finish_system_call(int number, unsigned long argument, long result
   int signal = pending_signals_.caught_signal();
   if (result != -1 || !syscall_interrupted_ || !signal) return result;
   bool restartable = number == SYS_read || number == SYS_write ||
-                     number == SYS_wait || number == SYS_waitpid || number == SYS_recv;
+                     number == SYS_wait || number == SYS_waitpid || number == SYS_recv || number == SYS_accept ||
+                     number == SYS_recvfrom || number == SYS_sendto;
   if (restartable && (pending_signals_.action(signal).flags & SA_RESTART))
   {
     trapframe->epc -= 4;

@@ -39,4 +39,3 @@
 - [`xv::trap::detail::user_page_table_token`](../arch/riscv/kernel_platform.cpp.md#fn-fb9cf283bc7dc87e)
 - [`xv::trap::detail::wakeup`](../arch/riscv/kernel_platform.cpp.md#fn-372407f34cc73123)
 - [`xv::trap::detail::yield_current`](../arch/riscv/kernel_platform.cpp.md#fn-b99841e868c4b5b2)
-

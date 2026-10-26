@@ -18,20 +18,6 @@
 - [`xv::memory::KernelPageTable::unmap_process_stack`](kernel_page_table.cpp.md#fn-98155d2b3976236b)
 - [`xv::memory::make_kernel_page_table`](kernel_page_table.cpp.md#fn-0da538a390ac61bc)
 
-<a id="fn-0da538a390ac61bc"></a>
-
-## `xv::memory::make_kernel_page_table`
-
-```doxygen
-@fn pagetable_t xv::memory::make_kernel_page_table()
-@brief 物理页所有权、地址范围、页表和用户内存复制：make内核页表。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`owned` → `xv::memory::allocator` → `owned.root` → `xv::print::panic` → `xv::memory::map_kernel_range` → `layout` → `layout.direct_count` → `layout.direct` → `region.begin` → `raw` → `region.end` → `owned.view`。
-@details 本函数可见的状态更新包括：`boundaries[2] = {range.begin().raw(), range.end().raw() - 1};`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!kpgtbl`；`begin < region.end().raw()`；`!owned.view().translate((uint64)etext - 1, translated) || (translated.permissions & PTE_W) || !(translated.permissions & PTE_X)`；`!owned.view().translate((uint64)etext, translated) || !(translated.permissions & PTE_W) || (translated.permissions & PTE_X)`；`!owned.view().translate(va, translated) || translated.physical.raw() != va`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`owned.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：`static_cast<pagetable_t>(owned.release())`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
 <a id="fn-b348ddac60edd845"></a>
 
 ## `xv::memory::KernelPageTable::initialize`
@@ -104,4 +90,12 @@
 @fn KernelPageTable &xv::memory::kernel_page_table()
 @brief 物理页所有权、地址范围、页表和用户内存复制：读取或计算 `shared_kernel_page_table`，返回当前查询结果。
 @return 各分支实际返回：`shared_kernel_page_table`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-0da538a390ac61bc"></a>
+
+## `xv::memory::make_kernel_page_table`
+
+```doxygen
+@fn pagetable_t xv::memory::make_kernel_page_table()
+@brief 建立内核页表与设备映射；E1000 MMIO 窗口扩至 0x80000，覆盖四个设备各 0x20000 的 BAR，继续保留既有内核映射和分配失败处理。
 ```

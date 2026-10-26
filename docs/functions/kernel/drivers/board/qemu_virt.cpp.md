@@ -16,11 +16,17 @@
 - [`xv::drivers::initialize_console`](qemu_virt.cpp.md#fn-cacccb8b1ed2107b)
 - [`xv::drivers::initialize_hart`](qemu_virt.cpp.md#fn-bea9233c904d33be)
 - [`xv::drivers::initialize_interrupts`](qemu_virt.cpp.md#fn-ea116721d09e5c14)
-- [`xv::drivers::initialize_network`](qemu_virt.cpp.md#fn-b676d9440f8d6421)
+- [`xv::drivers::initialize_network`](qemu_virt.cpp.md#fn-a202b21c5c06ed23)
 - [`xv::drivers::interrupt_controller`](qemu_virt.cpp.md#fn-276393f76c615b60)
-- [`xv::drivers::network_device`](qemu_virt.cpp.md#fn-59f08ec5772b85b6)
+- [`xv::drivers::network_device`](qemu_virt.cpp.md#fn-0dd9355aa5e189f6)
+- [`xv::drivers::network_device_count`](qemu_virt.cpp.md#fn-0f6db43d3d7dce07)
 - [`xv::drivers::serial_port`](qemu_virt.cpp.md#fn-ee46a944352f0df2)
 - [`xv::drivers::terminal_timer_tick`](qemu_virt.cpp.md#fn-a345578c92b3adb7)
+- [`xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`](qemu_virt.cpp.md#fn-9d462dc2b56e9df5)
+- [`xv::drivers::PciNetworkInterrupt::handle_interrupt`](qemu_virt.cpp.md#fn-3ef9ccf1cd9c3d06)
+- [`xv::drivers::PciNetworkInterrupt::initialize`](qemu_virt.cpp.md#fn-5af1d4c6af322afc)
+- [`xv::drivers::PciNetworkInterrupt::irq`](qemu_virt.cpp.md#fn-2f668257e023a5a7)
+- [`xv::drivers::PciNetworkInterrupt::name`](qemu_virt.cpp.md#fn-47bf194bc003f4c4)
 
 <a id="fn-cacccb8b1ed2107b"></a>
 
@@ -30,17 +36,6 @@
 @fn void xv::drivers::initialize_console()
 @brief 设备对象、MMIO、设备中断与终端数据流：初始化控制台。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`terminal.initialize` → `initialize_ptys` → `uart.attach` → `uart.initialize` → `xv::fs::devices` → `attach`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
-
-<a id="fn-ea116721d09e5c14"></a>
-
-## `xv::drivers::initialize_interrupts`
-
-```doxygen
-@fn void xv::drivers::initialize_interrupts()
-@brief 设备对象、MMIO、设备中断与终端数据流：初始化interrupts。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`router.initialize`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
@@ -120,24 +115,83 @@
 @return 各分支实际返回：`plic`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
-<a id="fn-b676d9440f8d6421"></a>
+<a id="fn-9d462dc2b56e9df5"></a>
+
+## `xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`
+
+```doxygen
+@fn xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt(unsigned irq)
+@brief 构造对象并保存稳定身份或借用的层间依赖，初始化空状态；不执行网络 I/O，依赖与名称须比对象存活更久。
+```
+
+<a id="fn-47bf194bc003f4c4"></a>
+
+## `xv::drivers::PciNetworkInterrupt::name`
+
+```doxygen
+@fn const char *xv::drivers::PciNetworkInterrupt::name() const
+@brief 返回共享 PCI 以太 INTx 中断源的诊断名称。
+```
+
+<a id="fn-2f668257e023a5a7"></a>
+
+## `xv::drivers::PciNetworkInterrupt::irq`
+
+```doxygen
+@fn unsigned xv::drivers::PciNetworkInterrupt::irq() const
+@brief 返回该中断源服务的 PLIC 线路号。
+```
+
+<a id="fn-5af1d4c6af322afc"></a>
+
+## `xv::drivers::PciNetworkInterrupt::initialize`
+
+```doxygen
+@fn void xv::drivers::PciNetworkInterrupt::initialize()
+@brief 共享中断源无需独立硬件初始化；E1000 初始化负责设备寄存器。
+```
+
+<a id="fn-3ef9ccf1cd9c3d06"></a>
+
+## `xv::drivers::PciNetworkInterrupt::handle_interrupt`
+
+```doxygen
+@fn void xv::drivers::PciNetworkInterrupt::handle_interrupt()
+@brief 遍历所有已发现网卡，对 IRQ 与本线路一致的设备逐个处理；支持多个 PCI 插槽共享 INTx。
+```
+
+<a id="fn-ea116721d09e5c14"></a>
+
+## `xv::drivers::initialize_interrupts`
+
+```doxygen
+@fn void xv::drivers::initialize_interrupts()
+@brief 启动期扫描最多四个 E1000，设置插槽及共享 IRQ，然后初始化统一中断路由。
+```
+
+<a id="fn-0f6db43d3d7dce07"></a>
+
+## `xv::drivers::network_device_count`
+
+```doxygen
+@fn unsigned xv::drivers::network_device_count()
+@brief 返回启动扫描发现的 E1000 数量，范围零至四。
+```
+
+<a id="fn-a202b21c5c06ed23"></a>
 
 ## `xv::drivers::initialize_network`
 
 ```doxygen
-@fn void xv::drivers::initialize_network(EthernetReceiver &receiver)
-@brief 连接协议接收者并在启动阶段初始化板载 E1000。
-@param receiver 生命周期覆盖整个运行期的协议接收者。
-@pre 分配器、内核映射、进程等待机制已初始化，其他 hart 尚未进入调度。
-@details 先 attach，再初始化网卡；没有设备或分配失败时保留离线状态。
+@fn void xv::drivers::initialize_network(EthernetReceiver &receiver, unsigned index)
+@brief 为指定已发现设备挂接接收器并初始化硬件，超出发现数量则不操作。
 ```
 
-<a id="fn-59f08ec5772b85b6"></a>
+<a id="fn-0dd9355aa5e189f6"></a>
 
 ## `xv::drivers::network_device`
 
 ```doxygen
-@fn EthernetDevice &xv::drivers::network_device()
-@brief 取得 QEMU virt 板级唯一以太网设备。
-@return 静态 EthernetDevice 引用；须通过 online 查询是否可收发。
+@fn EthernetDevice &xv::drivers::network_device(unsigned index)
+@brief 借用指定静态 E1000 对象；索引必须小于四，使用设备前还须核对发现数量。
 ```

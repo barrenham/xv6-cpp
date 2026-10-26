@@ -22,6 +22,7 @@
 @brief 用户参数校验、描述符取得及系统调用返回 ABI：把系统调用编号映射到内部处理函数。
 @param number 本次操作使用的 编号 值。
 @return 各分支实际返回：`sys_fork`；`sys_exit`；`sys_wait`；`sys_waitpid`；`sys_openpty`；`sys_poll`；`sys_fcntl`；`sys_sigaction`；`sys_sigprocmask`；`sys_sigpending`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 分派 socket、sockbind、connect、listen、accept、sendto、recvfrom、shutdown、getsockname、getpeername、getsockopt（编号 55..65），保留旧 UDP 端口 API。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>
@@ -35,4 +36,5 @@
 @details 需要特别跟踪的条件：`handler`；`result == ~0UL && restartable && p->stop_requested()`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 @details LAB_NET 下启用 bind/unbind/send/recv。recv 等待因停止信号返回 -1 时，和其他可重启阻塞调用一样恢复首参数并回退 PC，继续后重新执行。
+@details 因停止信号中断的 accept/recvfrom/sendto 与旧阻塞调用一样回退系统调用 PC。Socket 的 read/write 沿用原有分派、部分进度与信号处理。
 ```

@@ -13,6 +13,8 @@ module;
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/fs/poll.h"
+#include "kernel/fs/fcntl.h"
 
 #include "native_wait.h"
 
@@ -271,6 +273,11 @@ void file_contract()
                         output.size() - 77) == static_cast<int>(output.size() - 77),
         "dup shares open-file offset");
   check(input == output, "direct/indirect file data");
+  auto *independent = open_node("/fscheck");
+  unsigned char first;
+  check(file_table.read(independent, reinterpret_cast<unsigned long>(&first), 1) == 1 && first == input[0],
+        "separate open owns an independent backend offset");
+  file_table.release(independent);
   Stat value{};
   check(file_table.stat(reader, reinterpret_cast<unsigned long>(&value)) == 0 &&
             value.size == input.size(),
@@ -411,6 +418,63 @@ void pipe_contract()
         "closed reader rejects writes");
   file_table.release(writer);
   check(allocated_pages == 0, "closed-reader pipe lifetime");
+}
+
+class BackendProbe final : public xv::io::IoObject, public xv::io::DeviceControl
+{
+public:
+  std::atomic<bool> closing{false}, finish{false};
+  int closes = 0;
+  int read(xv::io::Buffer destination, int count) override
+  {
+    check(destination.nonblocking, "File forwards nonblocking to generic backend");
+    return count;
+  }
+  int write(xv::io::Buffer source, int count) override
+  { check(!source.nonblocking, "updated shared status reaches generic backend"); return count; }
+  int stat(xv::io::Metadata &value) override
+  { value = {}; value.type = T_DEVICE; value.size = 123; return 0; }
+  unsigned poll(xv::sync::PollTable *) override { return POLLIN | POLLOUT; }
+  int ioctl(unsigned request, xv::io::Buffer argument) override
+  { return request == 77 && argument.address == 88 ? 99 : -1; }
+  xv::io::Capability *capability(xv::io::CapabilityId id) override
+  { return id == xv::io::DeviceControl::Id ? static_cast<xv::io::DeviceControl *>(this) : nullptr; }
+  void close() override
+  {
+    ++closes;
+    closing.store(true);
+    while (!finish.load()) std::this_thread::yield();
+  }
+};
+void backend_contract()
+{
+  static_assert(std::is_abstract_v<xv::io::IoObject>);
+  static_assert(!std::is_copy_constructible_v<xv::io::IoObject>);
+  static_assert(!std::is_destructible_v<xv::io::IoObject>);
+  BackendProbe probe;
+  auto *file = file_table.allocate(); check(file != nullptr, "allocate generic backend File");
+  file_table.bind_object(*file, probe, true);
+  check(file_table.object(file) == &probe && xv::io::query<xv::io::DeviceControl>(&probe), "typed capability query");
+  check(probe.capability(xv::io::CapabilityId::Socket) == nullptr, "unavailable capability rejected");
+  check(file_table.read(file, 0, 7) == 7, "generic read dispatch");
+  auto *alias = file_table.retain(file);
+  check(file_table.fcntl(alias, F_SETFL, 0) == 0 && file_table.write(file, 0, 9) == 9, "generic write and shared flags");
+  Stat value{};
+  check(file_table.stat(file, reinterpret_cast<unsigned long>(&value)) == 0 && value.size == 123, "backend defines metadata");
+  check(file_table.ioctl(file, 77, 88) == 99, "device control capability dispatch");
+  check(file_table.poll(file) == (POLLIN|POLLOUT), "generic poll dispatch");
+  file_table.release(alias); check(probe.closes == 0, "nonfinal File release keeps backend alive");
+  std::vector<File *> occupied;
+  for (int i = 0; i < NFILE-1; ++i)
+  { auto *other = file_table.allocate(); check(other != nullptr, "fill File table for close race"); occupied.push_back(other); }
+  std::thread closer([&] { file_table.release(file); });
+  while (!probe.closing.load()) std::this_thread::yield();
+  check(file_table.allocate() == nullptr, "closing backend storage is reserved without holding table lock");
+  probe.finish.store(true); closer.join();
+  check(probe.closes == 1, "final reference closes backend exactly once");
+  auto *reused = file_table.allocate(); check(reused == file, "slot reusable after backend close completes");
+  file_table.release(reused);
+  for (auto *other : occupied) file_table.release(other);
 }
 
 void concurrent_contract()
@@ -604,6 +668,7 @@ extern "C" int run_fs_contracts(const char *image)
   file_contract();
   device_contract();
   pipe_contract();
+  backend_contract();
   concurrent_contract();
   {
     xv::fs::Transaction transaction;

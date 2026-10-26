@@ -2,123 +2,97 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
-#include "kernel/fs/stat.h"
-
+#include "kernel/fs/poll.h"
 module xv.fs;
 import :platform;
 import :operations;
-
 namespace xv::fs
 {
-void InodeOperations::close(File &file)
+void InodeBackend::close()
 {
-  Transaction transaction;
-  filesystem().release(file.node);
+  { Transaction transaction; filesystem().release(node_); }
+  this->~InodeBackend();
 }
-
-int InodeOperations::read(File &file, unsigned long address, int count)
+int InodeBackend::read(xv::io::Buffer destination, int count)
 {
-  LockedInode guard(filesystem(), *file.node);
-  int result = filesystem().read(file.node, 1, address, file.offset, count);
-  if (result > 0)
-  {
-    file.offset += result;
-  }
+  LockedInode guard(filesystem(), *node_);
+  int result = filesystem().read(node_, 1, destination.address, offset_, count);
+  if (result > 0) offset_ += result;
   return result;
 }
-
-int InodeOperations::write(File &file, unsigned long address, int count)
+int InodeBackend::write(xv::io::Buffer source, int count)
 {
   const int maximum = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
   int done = 0;
   while (done < count)
   {
-    if (detail::killed())
-    {
-      return done ? done : -1;
-    }
-    int part = count - done;
-    if (part > maximum)
-    {
-      part = maximum;
-    }
+    if (detail::killed()) return done ? done : -1;
+    int part = count-done;
+    if (part > maximum) part = maximum;
     int result;
     {
       Transaction transaction;
-      LockedInode guard(filesystem(), *file.node);
-      result = filesystem().write(file.node, 1, address + done, file.offset, part);
-      if (result > 0)
-      {
-        file.offset += result;
-      }
+      LockedInode guard(filesystem(), *node_);
+      result = filesystem().write(node_, 1, source.address+done, offset_, part);
+      if (result > 0) offset_ += result;
     }
-    if (result != part)
-    {
-      break;
-    }
+    if (result != part) break;
     done += result;
   }
   return done == count ? count : -1;
 }
-
-int InodeOperations::stat(File &file, unsigned long address)
+int InodeBackend::stat(xv::io::Metadata &value)
 {
-  Stat value;
-  {
-    LockedInode guard(filesystem(), *file.node);
-    filesystem().stat(file.node, &value);
-  }
-  return detail::copy_out(true, address, &value, sizeof(value));
+  LockedInode guard(filesystem(), *node_);
+  filesystem().stat(node_, &value);
+  return 0;
 }
-
-void DeviceOperations::close(File &file)
+unsigned InodeBackend::poll(xv::sync::PollTable *) { return POLLIN | POLLOUT; }
+void DeviceBackend::close()
 {
-  Transaction transaction;
-  filesystem().release(file.node);
+  { Transaction transaction; filesystem().release(node_); }
+  this->~DeviceBackend();
 }
-
-int DeviceOperations::read(File &file, unsigned long address, int count)
+int DeviceBackend::read(xv::io::Buffer destination, int count)
 {
-  auto *device = devices().get(file.major);
-  if (!device)
-  {
-    return -1;
-  }
-  return device->read({xv::drivers::AddressSpace::User, address, file.nonblocking()}, count);
+  auto *device = devices().get(major_);
+  return device ? device->read({xv::drivers::AddressSpace::User, destination.address, destination.nonblocking}, count) : -1;
 }
-
-int DeviceOperations::write(File &file, unsigned long address, int count)
+int DeviceBackend::write(xv::io::Buffer source, int count)
 {
-  auto *device = devices().get(file.major);
-  if (!device)
-  {
-    return -1;
-  }
-  return device->write({xv::drivers::AddressSpace::User, address, file.nonblocking()}, count);
+  auto *device = devices().get(major_);
+  return device ? device->write({xv::drivers::AddressSpace::User, source.address, source.nonblocking}, count) : -1;
 }
-
-int DeviceOperations::stat(File &file, unsigned long address)
+int DeviceBackend::stat(xv::io::Metadata &value)
 {
-  Stat value;
-  {
-    LockedInode guard(filesystem(), *file.node);
-    filesystem().stat(file.node, &value);
-  }
-  return detail::copy_out(true, address, &value, sizeof(value));
+  LockedInode guard(filesystem(), *node_);
+  filesystem().stat(node_, &value);
+  return 0;
 }
-
-void PipeOperations::close(File &file)
+unsigned DeviceBackend::poll(xv::sync::PollTable *table)
 {
-  file.pipe->close(file.writable);
+  auto *device = devices().get(major_);
+  return device ? device->poll(table) : POLLERR;
 }
-
-int PipeOperations::read(File &file, unsigned long address, int count)
+int DeviceBackend::ioctl(unsigned request, xv::io::Buffer argument)
 {
-  return file.pipe->read(address, count, file.nonblocking());
+  auto *device = devices().get(major_);
+  return device ? device->ioctl(request, {xv::drivers::AddressSpace::User, argument.address, argument.nonblocking}) : -1;
 }
-
-int PipeOperations::write(File &file, unsigned long address, int count)
-{
-  return file.pipe->write(address, count, file.nonblocking());
+void PipeBackend::close() { pipe_->close(writable_); this->~PipeBackend(); }
+int PipeBackend::read(xv::io::Buffer destination, int count)
+{ return pipe_->read(destination.address, count, destination.nonblocking); }
+int PipeBackend::write(xv::io::Buffer source, int count)
+{ return pipe_->write(source.address, count, source.nonblocking); }
+unsigned PipeBackend::poll(xv::sync::PollTable *table) { return pipe_->poll(writable_, table); }
+void EndpointBackend::close() { endpoint_->close(); this->~EndpointBackend(); }
+int EndpointBackend::read(xv::io::Buffer destination, int count)
+{ return endpoint_->read({xv::drivers::AddressSpace::User, destination.address, destination.nonblocking}, count); }
+int EndpointBackend::write(xv::io::Buffer source, int count)
+{ return endpoint_->write({xv::drivers::AddressSpace::User, source.address, source.nonblocking}, count); }
+int EndpointBackend::stat(xv::io::Metadata &value)
+{ value = {}; value.type = static_cast<short>(xv::io::MetadataKind::Device); value.nlink = 1; return 0; }
+unsigned EndpointBackend::poll(xv::sync::PollTable *table) { return endpoint_->poll(table); }
+int EndpointBackend::ioctl(unsigned request, xv::io::Buffer argument)
+{ return endpoint_->ioctl(request, {xv::drivers::AddressSpace::User, argument.address, argument.nonblocking}); }
 }
-} // namespace xv::fs

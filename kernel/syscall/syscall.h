@@ -58,3 +58,15 @@
 #define SYS_sigprocmask 52
 #define SYS_sigpending 53
 #define SYS_sigsuspend 54
+
+#define SYS_socket 55
+#define SYS_sockbind 56
+#define SYS_connect 57
+#define SYS_listen 58
+#define SYS_accept 59
+#define SYS_sendto 60
+#define SYS_recvfrom 61
+#define SYS_shutdown 62
+#define SYS_getsockname 63
+#define SYS_getpeername 64
+#define SYS_getsockopt 65

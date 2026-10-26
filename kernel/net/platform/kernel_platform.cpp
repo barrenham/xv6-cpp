@@ -1,11 +1,15 @@
 module xv.net;
 import :platform;
 import xv.memory;
+import xv.arch;
 import xv.process;
+import xv.print;
 namespace xv::net::detail
 {
+[[noreturn]] void fail(const char *message) { xv::print::panic(message); }
 void *allocate_page() { return xv::memory::allocator().allocate(); }
 void free_page(void *page) { xv::memory::allocator().deallocate(page); }
+unsigned long milliseconds() { return xv::arch::r_time() / 10000; }
 int owner() { return xv::process::current()->id(); }
 bool interrupted() { return xv::process::current()->is_killed(); }
 int copy_in(void *destination, unsigned long source, unsigned count)

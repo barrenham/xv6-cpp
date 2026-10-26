@@ -20,6 +20,8 @@ set(programs
   apps/rm/rm.cpp
   apps/pty/pty.cpp
   tests/nettest.cpp
+  tests/multinet.cpp
+  tests/sockettest.cpp
   tests/ptytest.cpp
   apps/sh/sh.cpp
   apps/sync/sync.cpp

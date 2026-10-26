@@ -15,4 +15,3 @@
 - [`xv::process::detail::resource_fail`](kernel_platform.cpp.md#fn-2efdaf57a891b47c)
 - [`xv::process::detail::retain_file`](kernel_platform.cpp.md#fn-3c7590afb7fcdf81)
 - [`xv::process::detail::retain_inode`](kernel_platform.cpp.md#fn-ceceb92a86a7781d)
-

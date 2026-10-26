@@ -45,7 +45,7 @@ pagetable_t make_kernel_page_table()
                                PTE_R | PTE_W);
 
   // pci.c maps the e1000's registers here.
-  xv::memory::map_kernel_range(kpgtbl, 0x40000000L, 0x40000000L, 0x20000,
+  xv::memory::map_kernel_range(kpgtbl, 0x40000000L, 0x40000000L, 0x80000,
                                PTE_R | PTE_W);
 #endif
 

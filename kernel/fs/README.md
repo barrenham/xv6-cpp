@@ -12,7 +12,7 @@
 | `journal/` | redo journal、事务容量预留、恢复与 `Transaction` 守卫 |
 | `inode/` | `Inode`、`FileSystem` 抽象、xv6 磁盘实现与块分配 |
 | `path/` | 路径遍历、目录项、创建、硬链接和 unlink |
-| `file/` | 打开文件表、引用计数、三种 I/O 策略和字符设备注册表 |
+| `file/` | 打开文件表、引用计数、统一 IoObject 后端及适配器和字符设备注册表 |
 | `pipe/` | 管道环形缓冲、等待唤醒和两端生命周期 |
 | `platform/` | 进程、内存和内核原语适配及私有引用操作桥接 |
 | `service.cpp` | 唯一实例及依赖装配 |
@@ -21,9 +21,12 @@
 classDiagram
   BlockCache <|-- LruBlockCache
   FileSystem <|-- Xv6FileSystem
-  FileOperations <|-- InodeOperations
-  FileOperations <|-- DeviceOperations
-  FileOperations <|-- PipeOperations
+  File --> IoObject
+  IoObject <|-- InodeBackend
+  IoObject <|-- DeviceBackend
+  IoObject <|-- PipeBackend
+  IoObject <|-- EndpointBackend
+  IoObject <|-- Socket
   BlockHandle --> BlockCache
   Transaction --> Journal
   Journal --> BlockCache
@@ -33,7 +36,7 @@ classDiagram
   DeviceRegistry --> CharacterDevice
 ```
 
-具体 LRU、xv6 磁盘实现、管道和文件操作策略均为内部模块分区。公开接口不依赖
+具体 LRU、xv6 磁盘实现、管道和具体文件后端均为内部模块分区。公开接口不依赖
 进程模块；内核平台实现导入 `xv.process`，处理用户复制、killed 检查、当前目录
 以及等待和唤醒。进程资源接口可以导入 FS 类型，接口依赖图仍然无环。
 
@@ -101,15 +104,18 @@ void update_in_transaction(unsigned allocated_data_block)
 要求调用者处于事务中，成功返回一个带引用且已锁定的 inode；`lookup()` 返回
 带引用、未锁定的 inode。相对路径从进程当前目录取得独立引用。
 
-打开文件由固定容量 `OpenFileTable` 管理。`allocate()` 返回一个拥有的引用；
-`retain()` 增加共享引用；`release()` 在最后一个引用释放时，先归还槽位，再在
-表自旋锁之外关闭底层对象。`bind_inode()` 接收一个 inode 引用，`bind_pipe()`
-绑定已创建管道的一端。绑定前不能把分配到的空文件用于 I/O。
+`OpenFileTable` 通过自旋锁保护引用分配和计数。`File` 只保存公共状态与一个
+`IoObject*`；实际 inode、管道方向、设备/端点和网络状态由具体后端维护。
+适配器放在 File 的内置对齐存储中，不为每次打开额外分配物理页。
 
-I/O 通过 `FileOperations` 策略分派到 inode、字符设备或管道。inode 文件的
-偏移量在 inode 锁内更新，dup/fork 仍共享同一个打开文件偏移；大写入继续按
-MAXOPBLOCKS 限制切分成多次事务。最后关闭设备/普通文件在事务内释放 inode。
-`File` 不通过析构自动关闭，引用所有权由打开文件表统一管理。
+最后一次 release 在表锁内把引用设为关闭中的 -1，再解锁调用后端 close；
+清理完成后才把槽位设为零，避免内置对象存储提前复用。后端关闭可睡眠，
+整个关闭期间不持文件表锁。未绑定 File 的失败回滚也沿用此路径。
+
+读写和 poll 直接虚调用后端，元数据由后端提供并统一复制到用户空间。
+ioctl 和 socket 操作查询独立能力接口。inode 偏移位于每次打开的 InodeBackend，
+独立 open 各有偏移，dup/fork 仍共享后端与偏移；大写入保留事务切分规则。
+完整接口、生命周期与测试见 [统一 I/O 说明](../../docs/io.md)。
 
 `DeviceRegistry` 保存 `CharacterDevice *`，板级启动注册实际控制台。注册只在
 其他 CPU/进程开始使用设备之前进行，设备实例必须在系统运行期保持有效。

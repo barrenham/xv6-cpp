@@ -1,59 +1,62 @@
 module xv.fs:operations;
-
 import :file;
 import :pipe;
-
 namespace xv::fs
 {
-class FileOperations
+class InodeBackend final : public xv::io::IoObject
 {
 public:
-
-  virtual void close(File &file) = 0;
-  virtual int read(File &file, unsigned long address, int count) = 0;
-  virtual int write(File &file, unsigned long address, int count) = 0;
-  virtual int stat(File &file, unsigned long address) = 0;
-
-protected:
-
-  constexpr FileOperations() = default;
-  ~FileOperations() = default;
+  explicit InodeBackend(Inode &node) : node_(&node) {}
+  void close() override;
+  int read(xv::io::Buffer destination, int count) override;
+  int write(xv::io::Buffer source, int count) override;
+  int stat(xv::io::Metadata &value) override;
+  unsigned poll(xv::sync::PollTable *table) override;
+private:
+  Inode *node_;
+  unsigned offset_ = 0;
 };
-
-class InodeOperations final : public FileOperations
+class DeviceBackend final : public xv::io::IoObject, public xv::io::DeviceControl
 {
 public:
-
-  constexpr InodeOperations() = default;
-  void close(File &file) override;
-  int read(File &file, unsigned long address, int count) override;
-  int write(File &file, unsigned long address, int count) override;
-  int stat(File &file, unsigned long address) override;
+  explicit DeviceBackend(Inode &node) : node_(&node), major_(node.device_major()) {}
+  void close() override;
+  int read(xv::io::Buffer destination, int count) override;
+  int write(xv::io::Buffer source, int count) override;
+  int stat(xv::io::Metadata &value) override;
+  unsigned poll(xv::sync::PollTable *table) override;
+  int ioctl(unsigned request, xv::io::Buffer argument) override;
+  xv::io::Capability *capability(xv::io::CapabilityId id) override
+  { return id == xv::io::DeviceControl::Id ? static_cast<xv::io::DeviceControl *>(this) : nullptr; }
+private:
+  Inode *node_;
+  short major_;
 };
-
-class DeviceOperations final : public FileOperations
+class PipeBackend final : public xv::io::IoObject
 {
 public:
-
-  constexpr DeviceOperations() = default;
-  void close(File &file) override;
-  int read(File &file, unsigned long address, int count) override;
-  int write(File &file, unsigned long address, int count) override;
-  int stat(File &file, unsigned long address) override;
+  PipeBackend(Pipe &pipe, bool writable) : pipe_(&pipe), writable_(writable) {}
+  void close() override;
+  int read(xv::io::Buffer destination, int count) override;
+  int write(xv::io::Buffer source, int count) override;
+  unsigned poll(xv::sync::PollTable *table) override;
+private:
+  Pipe *pipe_;
+  bool writable_;
 };
-
-class PipeOperations final : public FileOperations
+class EndpointBackend final : public xv::io::IoObject, public xv::io::DeviceControl
 {
 public:
-
-  constexpr PipeOperations() = default;
-  void close(File &file) override;
-  int read(File &file, unsigned long address, int count) override;
-  int write(File &file, unsigned long address, int count) override;
-
-  int stat(File &, unsigned long) override
-  {
-    return -1;
-  }
+  explicit EndpointBackend(xv::drivers::CharacterDevice &endpoint) : endpoint_(&endpoint) {}
+  void close() override;
+  int read(xv::io::Buffer destination, int count) override;
+  int write(xv::io::Buffer source, int count) override;
+  int stat(xv::io::Metadata &value) override;
+  unsigned poll(xv::sync::PollTable *table) override;
+  int ioctl(unsigned request, xv::io::Buffer argument) override;
+  xv::io::Capability *capability(xv::io::CapabilityId id) override
+  { return id == xv::io::DeviceControl::Id ? static_cast<xv::io::DeviceControl *>(this) : nullptr; }
+private:
+  xv::drivers::CharacterDevice *endpoint_;
 };
-} // namespace xv::fs
+}

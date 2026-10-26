@@ -1,7 +1,14 @@
 export module xv.net;
+export import :socket;
+export import :ethernet_interface;
+export import :loopback;
+export import :tunnel;
 export namespace xv::net
 {
-void initialize();
+void initialize(NetworkSetup *setup = nullptr);
+const InterfaceRegistry &interfaces();
+const RoutingTable &routing_table();
+void timer_tick();
 int bind(unsigned short port);
 int unbind(unsigned short port);
 int send(unsigned short source, unsigned destination, unsigned short port,

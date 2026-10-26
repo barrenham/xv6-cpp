@@ -177,8 +177,12 @@ Ctrl-] 返回外层；`ptytest` 检查数据传输、背压和生命周期。API
 
 独立的函数级开发说明与 clangd 原生 Doxygen 悬浮文档见 [开发文档入口](docs/README.md)。
 
-## E1000 与 UDP 网络
+## 分层网络与 socket
 
-`qemu` 目标默认启用 Intel 82540EM 网卡。内核已接入 PCI、PLIC 中断、DMA 收发、ARP 应答及 IPv4/UDP，并提供 `bind/unbind/send/recv`。端口支持 fork 继承和退出回收，阻塞接收支持 EINTR/SA_RESTART。
+`qemu` 目标默认启用 E1000。网络已分为 Ethernet、动态 ARP、IPv4（最长前缀路由/有限分片重组）、ICMP、UDP/TCP 和 socket；协议层通过类接口组装，报文页由 Packet RAII 管理。NetworkInterface 将身份、地址和媒体能力分开，支持多 E1000、独立 ARP、回环和 IP-in-IP；见 [接口与选路](docs/network-interfaces.md)。
 
-构建后执行 `ctest --test-dir build/dev --output-on-failure -R '^network_'`，运行原生协议测试及单核/三核真实 UDP 往返。手动使用 `nettest` 的回显服务、端口转发和当前功能范围见 [网络开发说明](docs/network.md)。
+Socket 以 `xv.io::IoObject` 接入 File，支持 `socket/bind/connect/listen/accept/sendto/recvfrom/shutdown`，并共用 `read/write/close`、`poll`、`O_NONBLOCK`、`dup/fork` 与信号等待机制。旧 UDP 实验 API 保留。
+
+执行 `ctest --test-dir build/dev --output-on-failure -R '^(network_.*|socket_[13]cpu|multinet_[13]cpu)$'` 可验证协议边界及单核/三核真实 UDP、TCP 主动/被动连接和回环。配置、示例与教学 TCP 的资源/功能边界见 [网络开发说明](docs/network.md)。
+
+File 的统一后端接口、具体适配器和关闭期间的槽位生命周期见 [统一 I/O 说明](docs/io.md)。

@@ -13,4 +13,3 @@
 - [`xv::process::prepare_interruptible_sleep`](../sleep.md#sleep-prepare-interruptible-sleep)
 - [`xv::process::prepare_sleep`](../sleep.md#sleep-prepare-sleep)
 - [`xv::process::sleep`](../sleep.md#sleep-sleep)
-

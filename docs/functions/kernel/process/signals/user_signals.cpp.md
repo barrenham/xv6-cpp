@@ -108,23 +108,6 @@
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
-<a id="fn-2c3b9b20d500a9c5"></a>
-
-## `xv::process::Process::finish_system_call`
-
-```doxygen
-@fn long xv::process::Process::finish_system_call(int number, unsigned long argument, long result)
-@brief 进程描述符：根据捕获信号及重启策略整理系统调用结果。
-@param number 本次操作使用的 编号 值。
-@param argument 本次操作使用的 argument 值。
-@param result 本次操作使用的 result 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`stop_requested` → `pending_signals_.caught_signal` → `pending_signals_.action`。
-@details 本函数可见的状态更新包括：`suspend_restarted_ = true;`；`trapframe->epc -= 4;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`number == SYS_sigsuspend && result == -1 && stop_requested()`；`result != -1 || !syscall_interrupted_ || !signal`；`restartable && (pending_signals_.action(signal).flags & SA_RESTART)`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`result`；`argument`；`-EINTR`。应结合上面的条件检查区分正常值、空值和错误值。
-@details UDP recv 与 read/write/wait/waitpid 一样支持 SA_RESTART；捕获信号且未启用重启时返回 -EINTR，重启时回退系统调用 PC 并恢复首参数。
-```
-
 <a id="fn-a4af1623ff74134d"></a>
 
 ## `xv::process::Process::enter_signal_handler`
@@ -152,4 +135,22 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`memory.size` → `xv::memory::walk_entry` → `memory.page_table`。
 @details 需要特别跟踪的条件：`address >= memory.size() || (address & 1)`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`false`；`entry && (*entry & (PTE_V | PTE_U | PTE_X)) == (PTE_V | PTE_U | PTE_X)`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+
+<a id="fn-2c3b9b20d500a9c5"></a>
+
+## `xv::process::Process::finish_system_call`
+
+```doxygen
+@fn long xv::process::Process::finish_system_call(int number, unsigned long argument, long result)
+@brief 进程描述符：根据捕获信号及重启策略整理系统调用结果。
+@param number 本次操作使用的 编号 值。
+@param argument 本次操作使用的 argument 值。
+@param result 本次操作使用的 result 值。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`stop_requested` → `pending_signals_.caught_signal` → `pending_signals_.action`。
+@details 本函数可见的状态更新包括：`suspend_restarted_ = true;`；`trapframe->epc -= 4;`。局部临时变量与对象字段应按作用域区分。
+@details 需要特别跟踪的条件：`number == SYS_sigsuspend && result == -1 && stop_requested()`；`result != -1 || !syscall_interrupted_ || !signal`；`restartable && (pending_signals_.action(signal).flags & SA_RESTART)`。这些条件决定检查、重试或提前返回路径。
+@return 各分支实际返回：`result`；`argument`；`-EINTR`。应结合上面的条件检查区分正常值、空值和错误值。
+@details UDP recv 与 read/write/wait/waitpid 一样支持 SA_RESTART；捕获信号且未启用重启时返回 -EINTR，重启时回退系统调用 PC 并恢复首参数。
+@details accept、recvfrom、sendto 加入可 SA_RESTART 重启的阻塞调用；read/write 已覆盖 Socket 字节流。connect 中断保留在途连接，应用可 poll 查询，避免自动重复发起 connect。
 ```

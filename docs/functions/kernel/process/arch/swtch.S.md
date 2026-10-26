@@ -8,3 +8,7 @@
 ## 汇编入口与共享 ABI
 
 - [`xv::process::swtch`](registers.cppm.md#fn-e6e7257048f20d62)
+
+## 函数导航
+
+本文件提供类型、常量、模块重导出或汇编入口；参见文件概览。

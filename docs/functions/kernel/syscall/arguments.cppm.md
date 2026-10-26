@@ -13,4 +13,3 @@
 - [`xv::syscall::argument_string`](arguments.cpp.md#fn-3b44f8e5224d3f08)
 - [`xv::syscall::fetch_address`](arguments.cpp.md#fn-212d775f8e97566b)
 - [`xv::syscall::fetch_string`](arguments.cpp.md#fn-0b7f374ee7496d9c)
-

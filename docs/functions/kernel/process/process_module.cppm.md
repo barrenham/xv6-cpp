@@ -40,4 +40,3 @@
 - [`xv::process::wait`](service.md#service-wait)
 - [`xv::process::wait_for_child`](service.md#service-wait-for-child)
 - [`xv::process::wakeup`](service.md#service-wakeup)
-

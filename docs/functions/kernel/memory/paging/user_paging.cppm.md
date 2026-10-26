@@ -26,4 +26,3 @@
 - [`xv::memory::translate_user_page`](vm.cpp.md#fn-3be6479c7074a2cd)
 - [`xv::memory::unmap_user_pages`](vm.cpp.md#fn-99f83a0dbe555628)
 - [`xv::memory::walk_entry`](vm.cpp.md#fn-f2c541337b31c9a9)
-

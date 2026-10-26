@@ -17,4 +17,3 @@
 - [`xv::process::SchedulerContext::prepare_cpu`](scheduler_context.cpp.md#fn-8eb37916f4622bf5)
 - [`xv::process::SchedulerContext::suspend`](scheduler_context.cpp.md#fn-cba1163ffee29c4e)
 - [`xv::process::SchedulerContext::yield`](scheduler_context.cpp.md#fn-5bdf0a1333169edf)
-

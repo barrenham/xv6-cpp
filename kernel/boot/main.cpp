@@ -39,7 +39,20 @@ void initialize_bootstrap_hart()
   xv::fs::files().initialize();
   xv::drivers::block_device().initialize();
   xv::net::initialize();
-  xv::print::printk("e1000: %s\n", xv::drivers::network_device().online() ? "ready (10.0.2.15)" : "not present");
+  xv::print::printk("e1000: %s\n", xv::drivers::network_device().online() ? "ready" : "not present");
+  for (unsigned i = 0; i < xv::net::interfaces().count(); ++i)
+  {
+    auto *interface = xv::net::interfaces().at(i);
+    xv::print::printk("net: %s mtu=%d %s\n", interface->name(), interface->mtu(),
+                      interface->up() && interface->carrier() ? "up" : "down");
+    for (unsigned n = 0; n < interface->address_count(); ++n)
+    {
+      auto address = interface->address(n);
+      xv::print::printk("net: %s %d.%d.%d.%d/%d\n", interface->name(),
+          address.address>>24, (address.address>>16)&255, (address.address>>8)&255,
+          address.address&255, address.prefix);
+    }
+  }
   xv::process::create_initial_process();
 }
 

@@ -4,39 +4,13 @@ module xv.net;
 import :platform;
 import xv.drivers;
 import xv.sync;
+import :services;
+import :registry;
+import :udp;
 namespace xv::net
 {
 namespace
 {
-constexpr unsigned LocalIp = 0x0a00020f;
-constexpr unsigned char LocalMac[6] = {0x52,0x54,0,0x12,0x34,0x56};
-constexpr unsigned char GatewayMac[6] = {0x52,0x55,0x0a,0,2,2};
-unsigned read16(const unsigned char *p) { return (unsigned(p[0]) << 8) | p[1]; }
-unsigned read32(const unsigned char *p) { return (read16(p) << 16) | read16(p+2); }
-void write16(unsigned char *p, unsigned n) { p[0] = n >> 8; p[1] = n; }
-void write32(unsigned char *p, unsigned n) { write16(p, n >> 16); write16(p+2, n); }
-void bytes(void *to, const void *from, unsigned n)
-{
-  auto *d = static_cast<unsigned char *>(to);
-  auto *s = static_cast<const unsigned char *>(from);
-  while (n--) *d++ = *s++;
-}
-bool equal(const unsigned char *a, const unsigned char *b, unsigned n)
-{
-  while (n--) if (*a++ != *b++) return false;
-  return true;
-}
-unsigned sum(const unsigned char *data, unsigned length, unsigned value = 0)
-{
-  while (length >= 2) { value += read16(data); data += 2; length -= 2; }
-  if (length) value += unsigned(*data) << 8;
-  while (value >> 16) value = (value & 0xffff) + (value >> 16);
-  return value;
-}
-void ethernet(unsigned char *p, const unsigned char *destination, unsigned type)
-{
-  bytes(p, destination, 6); bytes(p+6, LocalMac, 6); write16(p+12, type);
-}
 struct Message
 {
   void *page = nullptr;
@@ -50,7 +24,7 @@ struct Port
   Message messages[16]{};
 };
 struct Handle { int owner = 0; Port *port = nullptr; };
-constinit xv::sync::SpinLock lock;
+xv::sync::SpinLock &legacy_lock() { return socket_registry().lock(); }
 constinit Port ports[32];
 constinit Handle handles[256];
 Handle *find(unsigned short number, int owner)
@@ -74,82 +48,41 @@ void detach(Handle &h)
   p.number = 0;
   detail::wake(&p);
 }
-class Stack final : public xv::drivers::EthernetReceiver
+class LegacyUdp final : public DatagramSink
 {
 public:
-  void receive_frame(void *page, unsigned length) override;
-private:
-  void arp(const unsigned char *p, unsigned length);
-  bool udp(void *page, unsigned length);
-};
-constinit Stack stack;
-void Stack::arp(const unsigned char *p, unsigned length)
-{
-  if (length < 42 || read16(p+14) != 1 || read16(p+16) != 0x800 ||
-      p[18] != 6 || p[19] != 4 || read16(p+20) != 1 ||
-      read32(p+38) != LocalIp || !equal(p+6, p+22, 6)) return;
-  auto *reply = static_cast<unsigned char *>(detail::allocate_page());
-  if (!reply) return;
-  ethernet(reply, p+22, 0x806);
-  bytes(reply+14, p+14, 8); write16(reply+20, 2);
-  bytes(reply+22, LocalMac, 6); write32(reply+28, LocalIp);
-  bytes(reply+32, p+22, 6); bytes(reply+38, p+28, 4);
-  if (!xv::drivers::network_device().transmit(reply, 42)) detail::free_page(reply);
-}
-bool Stack::udp(void *page, unsigned length)
-{
-  auto *p = static_cast<unsigned char *>(page);
-  if (length < 42) return false;
-  auto *ip = p+14;
-  unsigned header = (ip[0] & 15) * 4;
-  unsigned total = read16(ip+2);
-  if ((ip[0] >> 4) != 4 || header < 20 || total < header+8 ||
-      total > length-14 || !ip[8] || ip[9] != 17 ||
-      (read16(ip+6) & 0xbfff) || read32(ip+16) != LocalIp ||
-      sum(ip, header) != 0xffff) return false;
-  auto *udp = ip+header;
-  unsigned size = read16(udp+4);
-  if (size < 8 || size != total-header || !read16(udp+2)) return false;
-  if (read16(udp+6) && sum(udp, size, sum(ip+12, 8, 17+size)) != 0xffff)
-    return false;
-  xv::sync::ScopedLock guard(lock);
-  for (auto &port : ports)
-    if (port.number == read16(udp+2))
+  bool deliver(Packet &packet, Endpoint source, Endpoint destination, unsigned offset, unsigned length) override
+  {
+    xv::sync::ScopedLock guard(legacy_lock());
+    for (auto &port : ports) if (port.number == destination.port)
     {
-      if (port.count == 16) return false;
-      port.messages[(port.head+port.count) % 16] =
-          {page, read32(ip+12), static_cast<unsigned short>(read16(udp)),
-           static_cast<unsigned short>(14+header+8), static_cast<unsigned short>(size-8)};
-      ++port.count;
-      detail::wake(&port);
+      if (port.count < 16)
+      {
+        port.messages[(port.head+port.count)%16] = {packet.release(), source.address,
+            source.port, static_cast<unsigned short>(offset), static_cast<unsigned short>(length)};
+        ++port.count; detail::wake(&port);
+      }
       return true;
     }
-  return false;
-}
-void Stack::receive_frame(void *page, unsigned length)
-{
-  auto *p = static_cast<unsigned char *>(page);
-  constexpr unsigned char broadcast[6] = {255,255,255,255,255,255};
-  if (length >= 14 && (equal(p, LocalMac, 6) || equal(p, broadcast, 6)))
-  {
-    auto type = read16(p+12);
-    if (type == 0x806) arp(p, length);
-    else if (type == 0x800 && udp(page, length)) return;
+    return false;
   }
-  detail::free_page(page);
+};
+constinit LegacyUdp legacy;
+
 }
-}
-void initialize()
+void initialize_legacy_udp() { udp_protocol().attach(legacy); }
+bool legacy_port_used(unsigned short port)
 {
-  lock.init("udp ports");
-  xv::drivers::initialize_network(stack);
+  for (auto &p : ports) if (p.number == port) return true;
+  return false;
 }
 int bind(unsigned short number)
 {
   if (!number || !xv::drivers::network_device().online()) return -1;
-  xv::sync::ScopedLock guard(lock);
+  xv::sync::ScopedLock guard(legacy_lock());
   Port *free_port = nullptr;
   Handle *free_handle = nullptr;
+  if (socket_registry().port_used(17, number)) return -1;
   for (auto &p : ports)
   {
     if (p.number == number) return -1;
@@ -164,7 +97,7 @@ int bind(unsigned short number)
 }
 int unbind(unsigned short number)
 {
-  xv::sync::ScopedLock guard(lock);
+  xv::sync::ScopedLock guard(legacy_lock());
   auto *h = find(number, detail::owner());
   if (!h) return -1;
   detach(*h);
@@ -172,7 +105,7 @@ int unbind(unsigned short number)
 }
 bool inherit(int parent, int child)
 {
-  xv::sync::ScopedLock guard(lock);
+  xv::sync::ScopedLock guard(legacy_lock());
   unsigned needed = 0, available = 0;
   for (auto &h : handles)
   {
@@ -193,7 +126,7 @@ bool inherit(int parent, int child)
 }
 void release_owner(int owner)
 {
-  xv::sync::ScopedLock guard(lock);
+  xv::sync::ScopedLock guard(legacy_lock());
   for (auto &h : handles) if (h.owner == owner) detach(h);
 }
 int send(unsigned short source, unsigned destination, unsigned short port,
@@ -201,32 +134,21 @@ int send(unsigned short source, unsigned destination, unsigned short port,
 {
   if (!source || !destination || !port || length > 1472 ||
       !xv::drivers::network_device().online()) return -1;
-  auto *p = static_cast<unsigned char *>(detail::allocate_page());
-  if (!p) return -1;
-  ethernet(p, GatewayMac, 0x800);
-  auto *ip = p+14;
-  for (unsigned i = 0; i < 28; ++i) ip[i] = 0;
-  ip[0] = 0x45; ip[8] = 64; ip[9] = 17;
-  write16(ip+2, 28+length); write16(ip+6, 0x4000);
-  write32(ip+12, LocalIp); write32(ip+16, destination);
-  write16(ip+10, ~sum(ip, 20));
-  auto *udp = ip+20;
-  write16(udp, source); write16(udp+2, port); write16(udp+4, 8+length);
-  if (detail::copy_in(udp+8, data, length) < 0) { detail::free_page(p); return -1; }
-  auto checksum = static_cast<unsigned short>(~sum(udp, 8+length, sum(ip+12, 8, 17+8+length)));
-  write16(udp+6, checksum ? checksum : 0xffff);
-  if (!xv::drivers::network_device().transmit(p, 42+length))
-  { detail::free_page(p); return -EAGAIN; }
-  return 0;
+  auto packet = Packet::allocate(length);
+  if (!packet) return -1;
+  if (detail::copy_in(packet.data(), data, length) < 0) return -1;
+  int result = udp_protocol().send({0, source},
+                                  {destination, port}, packet.data(), length);
+  return result < 0 ? (result == -EAGAIN ? result : -1) : 0;
 }
 int receive(unsigned short number, unsigned long source, unsigned long source_port,
             unsigned long data, unsigned capacity)
 {
-  lock.acquire();
+  legacy_lock().acquire();
   for (;;)
   {
     auto *h = find(number, detail::owner());
-    if (!h || detail::interrupted()) { lock.release(); return -1; }
+    if (!h || detail::interrupted()) { legacy_lock().release(); return -1; }
     auto &p = *h->port;
     if (p.count)
     {
@@ -234,7 +156,7 @@ int receive(unsigned short number, unsigned long source, unsigned long source_po
       p.messages[p.head] = {};
       p.head = (p.head+1) % 16;
       --p.count;
-      lock.release();
+      legacy_lock().release();
       unsigned copied = message.length < capacity ? message.length : capacity;
       bool bad = detail::copy_out(source, &message.source, sizeof(message.source)) < 0 ||
                  detail::copy_out(source_port, &message.port, sizeof(message.port)) < 0 ||
@@ -243,9 +165,9 @@ int receive(unsigned short number, unsigned long source, unsigned long source_po
       return bad ? -1 : static_cast<int>(copied);
     }
     detail::prepare_sleep(&p);
-    lock.release();
+    legacy_lock().release();
     detail::sleep();
-    lock.acquire();
+    legacy_lock().acquire();
   }
 }
 }

@@ -4,6 +4,7 @@ module;
 export module xv.fs:file;
 export import :filesystem;
 export import xv.drivers;
+export import xv.io;
 
 export namespace xv::fs
 {
@@ -21,27 +22,13 @@ public:
 private:
 
   friend class OpenFileTable;
-  friend class InodeOperations;
-  friend class DeviceOperations;
-  friend class PipeOperations;
-  enum class Kind
-  {
-    None,
-    Pipe,
-    Inode,
-    Device,
-    Endpoint
-  };
-  Kind type = Kind::None;
+  static constexpr unsigned BackendBytes = 64;
   int ref = 0;
   unsigned status_flags_ = 0;
   bool readable = false;
   bool writable = false;
-  Pipe *pipe = nullptr;
-  Inode *node = nullptr;
-  unsigned offset = 0;
-  short major = 0;
-  xv::drivers::CharacterDevice *endpoint = nullptr;
+  xv::io::IoObject *backend_ = nullptr;
+  alignas(16) unsigned char backend_storage_[BackendBytes]{};
 };
 
 class OpenFileTable final
@@ -56,6 +43,8 @@ public:
   void bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
+  void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
+  xv::io::IoObject *object(File *file) const;
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
@@ -65,6 +54,7 @@ public:
 
 private:
 
+  void configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking);
   xv::sync::SpinLock lock_;
   File files_[NFILE]{};
 };

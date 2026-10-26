@@ -1,5 +1,6 @@
 #pragma once
 #include "kernel/process/signals/signal_abi.h"
+#include "kernel/net/socket/socket.h"
 extern "C" {
 #pragma once
 #ifdef LAB_MMAP
@@ -14,6 +15,17 @@ struct termios;
 struct pollfd;
 struct sigaction;
 
+int socket(int domain, int type, int protocol);
+int sockbind(int fd, const struct sockaddr *address, socklen_t length);
+int connect(int fd, const struct sockaddr *address, socklen_t length);
+int listen(int fd, int backlog);
+int accept(int fd, struct sockaddr *address, socklen_t *length);
+int sendto(int fd, const void *data, int length, int flags, const struct sockaddr *address, socklen_t address_length);
+int recvfrom(int fd, void *data, int length, int flags, struct sockaddr *address, socklen_t *address_length);
+int shutdown(int fd, int how);
+int getsockname(int fd, struct sockaddr *address, socklen_t *length);
+int getpeername(int fd, struct sockaddr *address, socklen_t *length);
+int getsockopt(int fd, int level, int option, void *value, socklen_t *length);
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -111,3 +123,10 @@ void *malloc(uint);
 void free(void *);
 
 }
+
+inline int bind(int fd, const sockaddr *address, socklen_t length)
+{ return sockbind(fd, address, length); }
+inline int send(int fd, const void *data, int length, int flags)
+{ return sendto(fd, data, length, flags, nullptr, 0); }
+inline int recv(int fd, void *data, int length, int flags)
+{ return recvfrom(fd, data, length, flags, nullptr, nullptr); }
