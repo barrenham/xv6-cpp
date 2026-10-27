@@ -12,6 +12,7 @@
 - [`xv::drivers::initialize_ptys`](tty/pty/pty.cpp.md#fn-0c7545d488e75354)
 - [`xv::drivers::interrupt_controller`](board/qemu_virt.cpp.md#fn-276393f76c615b60)
 - [`xv::drivers::named_pty_ids`](tty/pty/pty.cpp.md#fn-e22085482cfe7284)
+- [`xv::drivers::named_pty_owner`](tty/pty/pty.cpp.md#fn-e0fbfb0d92d6e5b5)
 - [`xv::drivers::open_named_pty`](tty/pty/pty.cpp.md#fn-e64b849fb108aed9)
 - [`xv::drivers::ptmx`](tty/pty/pty.cpp.md#fn-1ed26c2173290846)
 - [`xv::drivers::pty_timer_tick`](tty/pty/pty.cpp.md#fn-b050f1554cf27075)

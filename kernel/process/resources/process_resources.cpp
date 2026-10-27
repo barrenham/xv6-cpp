@@ -7,6 +7,7 @@ namespace xv::process
 
 xv::fs::File *DescriptorTable::get(int descriptor) const
 {
+  xv::sync::ScopedLock guard(lock_);
   return descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr;
 }
 
@@ -16,6 +17,7 @@ int DescriptorTable::install(xv::fs::File *owned)
   {
     return -1;
   }
+  xv::sync::ScopedLock guard(lock_);
   for (int i = 0; i < Capacity; ++i)
   {
     if (!entries_[i])
@@ -29,7 +31,8 @@ int DescriptorTable::install(xv::fs::File *owned)
 
 xv::fs::File *DescriptorTable::take(int descriptor)
 {
-  auto *owned = get(descriptor);
+  xv::sync::ScopedLock guard(lock_);
+  auto *owned = descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr;
   if (owned)
   {
     entries_[descriptor] = nullptr;
@@ -85,13 +88,31 @@ void DescriptorTable::inherit_from(const DescriptorTable &parent)
       detail::resource_fail("descriptor table: child is not empty");
     }
   }
-  for (int i = 0; i < Capacity; ++i)
+  parent.snapshot(entries_, Capacity);
+}
+
+unsigned DescriptorTable::snapshot(xv::fs::File **references, unsigned capacity) const
+{
+  xv::sync::ScopedLock guard(lock_);
+  unsigned count = 0;
+  for (unsigned i = 0; i < capacity; ++i)
   {
-    if (auto *file = parent.get(i))
-    {
-      entries_[i] = detail::retain_file(file);
-    }
+    references[i] = i < Capacity && entries_[i] ? detail::retain_file(entries_[i]) : nullptr;
+    if (references[i]) ++count;
   }
+  return count;
+}
+
+unsigned DescriptorTable::inspect(xv::fs::FileInfo *entries, unsigned capacity) const
+{
+  xv::sync::ScopedLock guard(lock_);
+  unsigned count = 0;
+  for (unsigned i = 0; i < capacity; ++i)
+  {
+    entries[i] = {};
+    if (i < Capacity && entries_[i] && detail::file_info(entries_[i], entries[i])) ++count;
+  }
+  return count;
 }
 
 xv::fs::Inode *WorkingDirectory::duplicate() const

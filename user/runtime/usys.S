@@ -29,11 +29,6 @@ kill:
  li a7, SYS_kill
  ecall
  ret
-.global exec
-exec:
- li a7, SYS_exec
- ecall
- ret
 .global fstat
 fstat:
  li a7, SYS_fstat
@@ -328,5 +323,101 @@ getsockopt:
 .global netctl
 netctl:
  li a7, SYS_netctl
+ ecall
+ ret
+
+.global execve
+execve:
+ li a7, SYS_execve
+ ecall
+ ret
+
+.global getuid
+getuid:
+ li a7, SYS_getuid
+ ecall
+ ret
+
+.global geteuid
+geteuid:
+ li a7, SYS_geteuid
+ ecall
+ ret
+
+.global getgid
+getgid:
+ li a7, SYS_getgid
+ ecall
+ ret
+
+.global getegid
+getegid:
+ li a7, SYS_getegid
+ ecall
+ ret
+
+.global setuid
+setuid:
+ li a7, SYS_setuid
+ ecall
+ ret
+
+.global seteuid
+seteuid:
+ li a7, SYS_seteuid
+ ecall
+ ret
+
+.global setgid
+setgid:
+ li a7, SYS_setgid
+ ecall
+ ret
+
+.global setegid
+setegid:
+ li a7, SYS_setegid
+ ecall
+ ret
+
+.global getgroups
+getgroups:
+ li a7, SYS_getgroups
+ ecall
+ ret
+
+.global setgroups
+setgroups:
+ li a7, SYS_setgroups
+ ecall
+ ret
+
+.global umask
+umask:
+ li a7, SYS_umask
+ ecall
+ ret
+
+.global chmod
+chmod:
+ li a7, SYS_chmod
+ ecall
+ ret
+
+.global chown
+chown:
+ li a7, SYS_chown
+ ecall
+ ret
+
+.global access
+access:
+ li a7, SYS_access
+ ecall
+ ret
+
+.global stat
+stat:
+ li a7, SYS_stat
  ecall
  ret

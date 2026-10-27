@@ -175,6 +175,10 @@ uint64 sys_open(void)
     }
   }
 
+  unsigned access_mode = (omode & O_ACCMODE) == O_WRONLY ? 2 : (omode & O_ACCMODE) == O_RDWR ? 6 : 4;
+  if ((omode & O_ACCMODE) == 3 || !xv::fs::filesystem().allowed(ip, access_mode | ((omode & O_TRUNC) && ip->kind() == T_FILE ? 2 : 0)))
+  { xv::fs::filesystem().unlock_release(ip); return -1; }
+
   if (ip->kind() == T_FILE && ip->owner().read_only() &&
       ((omode & O_ACCMODE) != O_RDONLY || (omode & O_TRUNC)))
   {
@@ -257,7 +261,7 @@ uint64 sys_chdir(void)
     return -1;
   }
   xv::fs::filesystem().lock(ip);
-  if (ip->kind() != T_DIR)
+  if (ip->kind() != T_DIR || !xv::fs::filesystem().allowed(ip, 1))
   {
     xv::fs::filesystem().unlock_release(ip);
     return -1;
@@ -267,61 +271,41 @@ uint64 sys_chdir(void)
   return 0;
 }
 
-uint64 sys_exec(void)
+namespace
 {
-  char path[MAXPATH], *argv[MAXARG];
-  int i;
-  uint64 uargv, uarg;
-  int ret;
-
-  argument_address(1, &uargv);
-  if (argument_string(0, path, MAXPATH) < 0)
+struct ArgumentVector
+{
+  char *items[MAXARG]{};
+  ~ArgumentVector()
+  { for (auto *item : items) if (item) xv::memory::allocator().deallocate(item); }
+  bool copy(uint64 address)
   {
-    return -1;
+    if (!address) return false;
+    for (unsigned i = 0; i < MAXARG; ++i)
+    {
+      uint64 argument;
+      if (address > ~0UL - i * sizeof(uint64) || fetch_address(address + i * sizeof(uint64), &argument) < 0) return false;
+      if (!argument) return true;
+      if (i == MAXARG - 1) return false;
+      items[i] = static_cast<char *>(xv::memory::allocator().allocate());
+      if (!items[i] || fetch_string(argument, items[i], PGSIZE) < 0) return false;
+    }
+    return false;
   }
-  xv::runtime::fill(argv, 0, sizeof(argv));
-  for (i = 0;; i++)
-  {
-    if (i >= xv::runtime::array_size(argv))
-    {
-      goto bad;
-    }
-    if (fetch_address(uargv + sizeof(uint64) * i, (uint64 *)&uarg) < 0)
-    {
-      goto bad;
-    }
-    if (uarg == 0)
-    {
-      argv[i] = 0;
-      break;
-    }
-    argv[i] = static_cast<char *>(xv::memory::allocator().allocate());
-    if (argv[i] == 0)
-    {
-      goto bad;
-    }
-    if (fetch_string(uarg, argv[i], PGSIZE) < 0)
-    {
-      goto bad;
-    }
-  }
-
-  ret = xv::process::execute(path, argv);
-
-  for (i = 0; i < xv::runtime::array_size(argv) && argv[i] != 0; i++)
-  {
-    xv::memory::allocator().deallocate(argv[i]);
-  }
-
-  return ret;
-
-bad:
-  for (i = 0; i < xv::runtime::array_size(argv) && argv[i] != 0; i++)
-  {
-    xv::memory::allocator().deallocate(argv[i]);
-  }
-  return -1;
+};
+uint64 execute_image(bool with_environment)
+{
+  char path[MAXPATH]; uint64 arguments, environment = 0;
+  argument_address(1, &arguments);
+  if (with_environment) argument_address(2, &environment);
+  if (argument_string(0, path, MAXPATH) < 0) return -1;
+  ArgumentVector argv, envp;
+  if (!argv.copy(arguments) || (environment && !envp.copy(environment))) return -1;
+  return xv::process::execute(path, argv.items, envp.items);
 }
+}
+uint64 sys_exec() { return execute_image(false); }
+uint64 sys_execve() { return execute_image(true); }
 
 uint64 sys_pipe(void)
 {
@@ -416,5 +400,61 @@ uint64 sys_sync(void)
 {
   xv::fs::journal().sync();
   return 0;
+}
+namespace
+{
+uint64 attributes(bool ownership)
+{
+  char path[MAXPATH]; int first, second = -1;
+  argument_integer(1, &first); if (ownership) argument_integer(2, &second);
+  if (argument_string(0, path, MAXPATH) < 0) return -1;
+  xv::fs::Transaction transaction;
+  auto *node = xv::fs::filesystem().lookup(path);
+  if (!node) return -1;
+  xv::fs::filesystem().lock(node);
+  auto who = xv::process::current()->credentials().snapshot();
+  bool valid = !node->owner().read_only() && (who.effective_uid == 0 || who.effective_uid == node->uid());
+  unsigned uid = node->uid(), gid = node->gid(), mode = node->mode();
+  if (ownership)
+  {
+    valid &= first >= -1 && first <= 65534 && second >= -1 && second <= 65534;
+    if (first >= 0) { valid &= who.effective_uid == 0 || static_cast<unsigned>(first) == uid; uid = first; }
+    if (second >= 0)
+    {
+      bool member = who.effective_gid == static_cast<unsigned>(second);
+      for (unsigned i = 0; i < who.group_count; ++i) member |= who.groups[i] == static_cast<unsigned>(second);
+      valid &= who.effective_uid == 0 || member; gid = second;
+    }
+  }
+  else { valid &= first >= 0 && !(first & ~01777); mode = first; }
+  if (valid) node->owner().attributes(node, uid, gid, mode);
+  xv::fs::filesystem().unlock_release(node);
+  return valid ? 0 : -1;
+}
+}
+uint64 sys_chmod() { return attributes(false); }
+uint64 sys_chown() { return attributes(true); }
+uint64 sys_access()
+{
+  char path[MAXPATH]; int mode; argument_integer(1, &mode);
+  if ((mode & ~7) || argument_string(0, path, MAXPATH) < 0) return -1;
+  xv::fs::Transaction transaction;
+  auto *node = xv::fs::filesystem().lookup(path, true);
+  if (!node) return -1;
+  xv::fs::filesystem().lock(node);
+  bool allowed = xv::fs::filesystem().allowed(node, mode, true);
+  xv::fs::filesystem().unlock_release(node); return allowed ? 0 : -1;
+}
+uint64 sys_stat()
+{
+  char path[MAXPATH]; uint64 address; argument_address(1, &address);
+  if (argument_string(0, path, MAXPATH) < 0) return -1;
+  xv::fs::Transaction transaction;
+  auto *node = xv::fs::filesystem().lookup(path);
+  if (!node) return -1;
+  xv::fs::Stat value{};
+  xv::fs::filesystem().lock(node); xv::fs::filesystem().stat(node, &value);
+  xv::fs::filesystem().unlock_release(node);
+  return xv::process::current()->memory().copy_out(address, &value, sizeof(value));
 }
 } // namespace xv::syscall

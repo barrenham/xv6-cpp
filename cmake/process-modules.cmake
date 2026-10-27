@@ -23,6 +23,7 @@ function(xv_add_process_interfaces target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/process_module.cppm"
+      "${module_root}/credentials/credentials.cppm"
       "${module_root}/wait/poll_wait.cppm"
       "${module_root}/arch/registers.cppm"
       "${module_root}/resources/process_resources.cppm"

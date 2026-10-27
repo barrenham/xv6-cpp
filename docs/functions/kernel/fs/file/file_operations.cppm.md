@@ -77,16 +77,6 @@
 @brief 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
 @details 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
 ```
-<a id="fn-41bd7f233b77588b"></a>
-
-## `xv::fs::InodeBackend::InodeBackend`
-
-```doxygen
-@fn explicit xv::fs::InodeBackend::InodeBackend(Inode &node, char *snapshot = nullptr, unsigned length = 0)
-@brief 接管 inode 引用及可选的每次打开内容快照。
-@details 快照缓冲和 length 已由文件表准备，构造不再分配；offset 从零开始。独立打开各有后端，dup/fork 共享同一后端。
-```
-
 <a id="fn-13c9a137c3cbe09c"></a>
 
 ## `xv::fs::DeviceBackend::DeviceBackend`
@@ -95,4 +85,13 @@
 @fn xv::fs::DeviceBackend::DeviceBackend(Inode &node, xv::drivers::CharacterDevice &session)
 @brief 接管设备节点引用和一次成功打开的会话。
 @details 会话已由文件系统工厂取得，构造不再调用 open；最后 close 调用会话 close 一次，再释放节点引用。
+```
+<a id="fn-41bd7f233b77588b"></a>
+
+## `xv::fs::InodeBackend::InodeBackend`
+
+```doxygen
+@fn xv::fs::InodeBackend::InodeBackend(Inode &node, bool snapshot, PageBuffer &contents)
+@brief 接管 inode 引用和可选的动态页链快照。
+@details 构造将准备好的 PageBuffer 转移到内置后端，不另分配控制对象页；snapshot 标记区分内容快照与实际节点读取。dup/fork 共享后端和文件偏移。
 ```

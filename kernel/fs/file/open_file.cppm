@@ -9,6 +9,16 @@ export import xv.io;
 export namespace xv::fs
 {
 class Pipe;
+enum class FileKind : unsigned { Unknown, Node, Pipe, Terminal, Socket };
+struct FileInfo
+{
+  unsigned long identity = 0;
+  unsigned flags = 0;
+  FileKind kind = FileKind::Unknown;
+  short type = 0;
+  unsigned device = 0;
+  unsigned inode = 0;
+};
 
 class File final
 {
@@ -25,6 +35,8 @@ private:
   static constexpr unsigned BackendBytes = 64;
   int ref = 0;
   unsigned status_flags_ = 0;
+  bool ready_ = false;
+  FileInfo identity_;
   bool readable = false;
   bool writable = false;
   xv::io::IoObject *backend_ = nullptr;
@@ -45,6 +57,7 @@ public:
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
   xv::io::IoObject *object(File *file) const;
+  bool describe(File *file, FileInfo &result) const;
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
@@ -54,9 +67,10 @@ public:
 
 private:
 
-  void configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking);
+  void configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking, FileKind kind, const Inode *node = nullptr);
   xv::sync::SpinLock lock_;
   File files_[NFILE]{};
+  unsigned long next_identity_ = 1;
 };
 
 OpenFileTable &files();

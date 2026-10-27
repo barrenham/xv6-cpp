@@ -271,7 +271,7 @@ static void exec_inheritance()
           sigprocmask(SIG_BLOCK, &blocked, nullptr) == 0 && sigsend(getpid(), SIGUSR1) == 0,
           "prepare exec signals");
     char *args[] = {const_cast<char *>("signaltest"), const_cast<char *>("exec-check"), nullptr};
-    exec("signaltest", args); exit(99);
+    exec("/usr/tests/signaltest", args); exit(99);
   }
   int status;
   check(wait(&status) == child && status == SIGNAL_EXIT_STATUS(SIGUSR1), "exec default delivery");

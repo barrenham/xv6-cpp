@@ -6,19 +6,19 @@
 | --- | ---: | ---: |
 | [arch](#arch) | 4 | 49 |
 | [boot](#boot) | 6 | 8 |
-| [drivers](#drivers) | 33 | 231 |
-| [fs](#fs) | 32 | 312 |
+| [drivers](#drivers) | 33 | 234 |
+| [fs](#fs) | 38 | 367 |
 | [io](#io) | 2 | 16 |
 | [memory](#memory) | 22 | 175 |
 | [net](#net) | 60 | 360 |
-| [process](#process) | 58 | 326 |
+| [process](#process) | 59 | 341 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
-| [syscall](#syscall) | 12 | 72 |
+| [syscall](#syscall) | 12 | 92 |
 | [trap](#trap) | 20 | 89 |
 | [tty](#tty) | 1 | 0 |
 
-范围：272 个文件；默认 1652 个唯一 C++ 函数，连同条件接口与汇编入口共 1717 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：279 个文件；默认 1745 个唯一 C++ 函数，连同条件接口与汇编入口共 1810 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -84,6 +84,7 @@
 
 - [`kernel/fs/service.cpp`](fs/service.cpp.md)
 - [`kernel/fs/fs.cppm`](fs/fs.cppm.md)
+- [`kernel/fs/image_paths.h`](fs/image_paths.h.md)
 - [`kernel/fs/fcntl.h`](fs/fcntl.h.md)
 - [`kernel/fs/stat.h`](fs/stat.h.md)
 - [`kernel/fs/poll.h`](fs/poll.h.md)
@@ -114,6 +115,11 @@
 - [`kernel/fs/vfs/vfs.cppm`](fs/vfs/vfs.cppm.md)
 - [`kernel/fs/procfs/procfs.cpp`](fs/procfs/procfs.cpp.md)
 - [`kernel/fs/procfs/procfs.cppm`](fs/procfs/procfs.cppm.md)
+- [`kernel/fs/buffer/page_buffer.cpp`](fs/buffer/page_buffer.cpp.md)
+- [`kernel/fs/buffer/page_buffer.cppm`](fs/buffer/page_buffer.cppm.md)
+- [`kernel/fs/ramfs/ramfs.cpp`](fs/ramfs/ramfs.cpp.md)
+- [`kernel/fs/ramfs/ramfs.cppm`](fs/ramfs/ramfs.cppm.md)
+- [`kernel/fs/permissions.cpp`](fs/permissions.cpp.md)
 
 <a id="io"></a>
 
@@ -276,6 +282,7 @@
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cpp`](process/scheduler/queues/fifo_ready_queue.cpp.md)
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cppm`](process/scheduler/queues/fifo_ready_queue.cppm.md)
 - [`kernel/process/scheduler/queues/ready_queue.cppm`](process/scheduler/queues/ready_queue.cppm.md)
+- [`kernel/process/credentials/credentials.cppm`](process/credentials/credentials.cppm.md)
 
 <a id="support"></a>
 

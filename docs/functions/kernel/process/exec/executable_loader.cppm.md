@@ -10,14 +10,14 @@
 
 ## 函数导航
 
-- [`xv::process::executable_loader`](elf_loader.cpp.md#fn-8a4db1fa5d5b6b13)
-- [`xv::process::execute`](elf_loader.cpp.md#fn-51cf014f3d7bbc3b)
 - [`xv::process::ExecutableLoader::ExecutableLoader`](executable_loader.cppm.md#fn-bddc2a517ac5e216)
 - [`xv::process::ExecutableLoader::ExecutableLoader`](executable_loader.cppm.md#fn-5855c0a2fb1c0f54)
 - [`xv::process::ExecutableLoader::load`](executable_loader.cppm.md#fn-38c2b8267e0e0284)
 - [`xv::process::ExecutableLoader::name`](executable_loader.cppm.md#fn-d209fc69858331be)
 - [`xv::process::ExecutableLoader::operator=`](executable_loader.cppm.md#fn-6a14f53f908da8f8)
 - [`xv::process::ExecutableLoader::~ExecutableLoader`](executable_loader.cppm.md#fn-23d934078b39e374)
+- [`xv::process::executable_loader`](elf_loader.cpp.md#fn-8a4db1fa5d5b6b13)
+- [`xv::process::execute`](elf_loader.cpp.md#fn-51cf014f3d7bbc3b)
 
 <a id="fn-5855c0a2fb1c0f54"></a>
 
@@ -52,20 +52,6 @@
 @return 返回类型为 `const char *() const`；本条目没有可独立分析的普通函数体，具体返回约定见对应实现及调用方。
 ```
 
-<a id="fn-38c2b8267e0e0284"></a>
-
-## `xv::process::ExecutableLoader::load`
-
-```doxygen
-@fn virtual int xv::process::ExecutableLoader::load(Process &process, const char *path, char *const *arguments)
-@brief 进程对象生命周期、组身份、调度、等待与信号：校验并装载候选可执行映像。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@param path 待解析的零结尾路径字符串。
-@param arguments 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 这是纯虚接口契约，当前类型不提供可执行函数体；具体语义由派生实现完成。应从实际注入的设备、调度器或存储对象继续跟踪调用，不应把接口声明当成同步实现。
-@return 返回类型为 `int (Process &, const char *, char *const *)`；本条目没有可独立分析的普通函数体，具体返回约定见对应实现及调用方。
-```
-
 <a id="fn-bddc2a517ac5e216"></a>
 
 ## `xv::process::ExecutableLoader::ExecutableLoader`
@@ -86,4 +72,13 @@
 @brief 结束进程对象生命周期、组身份、调度、等待与信号的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-38c2b8267e0e0284"></a>
+
+## `xv::process::ExecutableLoader::load`
+
+```doxygen
+@fn virtual int xv::process::ExecutableLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment) = 0
+@brief 定义参数及环境的可执行映像装载契约。
+@details 实现必须在全部验证和用户栈复制成功后一次提交；输入向量由调用者拥有，装载器不接管字符串页。失败不能改变当前映像与凭据。
 ```

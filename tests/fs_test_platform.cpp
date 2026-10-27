@@ -25,6 +25,7 @@ import :pipe;
 import :vfs;
 import :devfs;
 import :procfs;
+import :ramfs;
 import :platform;
 
 namespace xv::fs::test
@@ -44,7 +45,7 @@ static_assert(!std::is_copy_constructible_v<BlockHandle>);
 static_assert(std::is_nothrow_move_constructible_v<BlockHandle>);
 static_assert(!std::is_copy_constructible_v<Transaction>);
 static_assert(sizeof(superblock) == 32);
-static_assert(sizeof(dinode) == 64);
+static_assert(sizeof(dinode) == 128);
 static_assert(sizeof(dirent) == 16);
 
 class MemoryDisk final : public xv::drivers::BlockDevice
@@ -118,7 +119,11 @@ Journal log(block_cache);
 Xv6FileSystem fs(block_cache, log);
 DevFileSystem devfs;
 ProcFileSystem procfs;
-VirtualFileSystem vfs(fs, devfs, &procfs);
+RamFileSystem ramfs;
+VirtualFileSystem vfs(fs, devfs, &procfs, &ramfs);
+int baseline_pages = 0;
+int bulk_processes = 0;
+thread_local int page_budget = -1;
 bool process_alive = true;
 unsigned long fake_free = 2048;
 OpenFileTable file_table;
@@ -126,6 +131,7 @@ DeviceRegistry registry;
 Inode *cwd = nullptr;
 thread_local bool killed = false;
 thread_local bool fail_copy = false;
+thread_local detail::Identity caller_identity;
 std::atomic<int> allocated_pages{0};
 
 template <class Operation> void expect_panic(Operation operation)
@@ -251,12 +257,12 @@ File *open_node(const char *path, bool create = false, short type = T_FILE,
   check(node != nullptr, "lookup/open inode");
   if (!create)
   {
-    fs.lock(node);
+    vfs.lock(node);
   }
   auto *file = file_table.allocate();
   check(file != nullptr, "allocate open file");
   check(file_table.bind_inode(*file, *node, true, true), "bind inode");
-  fs.unlock(node);
+  vfs.unlock(node);
   return file;
 }
 
@@ -421,7 +427,7 @@ void pipe_contract()
   producer.join();
   check(data == result, "pipe wraparound and EOF after writer closes");
   file_table.release(reader);
-  check(allocated_pages == 0, "pipe page released after both endpoints close");
+  check(allocated_pages == baseline_pages, "pipe page released after both endpoints close");
 
   check(create_pipe(&reader, &writer), "create killed-reader pipe");
   killed = true;
@@ -432,7 +438,7 @@ void pipe_contract()
   check(file_table.write(writer, reinterpret_cast<unsigned long>(part), 1) == -1,
         "closed reader rejects writes");
   file_table.release(writer);
-  check(allocated_pages == 0, "closed-reader pipe lifetime");
+  check(allocated_pages == baseline_pages, "closed-reader pipe lifetime");
 }
 
 class BackendProbe final : public xv::io::IoObject, public xv::io::DeviceControl
@@ -543,7 +549,7 @@ File *open_virtual(const char *path)
   vfs.lock(node);
   auto *file = file_table.allocate();
   check(file != nullptr, "devfs open file slot");
-  check(file_table.bind_inode(*file, *node, true, node->kind() != T_DIR && !node->owner().read_only()), "bind VFS inode");
+  check(file_table.bind_inode(*file, *node, true, node->kind() != T_DIR && (node->kind() == T_DEVICE || !node->owner().read_only())), "bind VFS inode");
   vfs.unlock(node);
   return file;
 }
@@ -624,7 +630,7 @@ void devfs_contract()
 void procfs_contract()
 {
   auto *memory = open_virtual("/proc/meminfo");
-  check(allocated_pages == 1, "one page per proc snapshot");
+  check(allocated_pages == baseline_pages + 1, "one page per proc snapshot");
   fake_free = 1024;
   char data[512]{};
   check(file_table.read(memory, reinterpret_cast<unsigned long>(data), sizeof(data) - 1) > 0 &&
@@ -649,7 +655,129 @@ void procfs_contract()
     Transaction transaction;
     check(!vfs.lookup("/proc/7/status"), "removed PID cannot be opened");
   }
-  check(allocated_pages == 0, "all proc snapshot pages released");
+  check(allocated_pages == baseline_pages, "all proc snapshot pages released");
+}
+
+void expanded_contract()
+{
+  process_alive = true;
+  auto *self = open_virtual("/proc/self/status");
+  char text[512]{};
+  check(file_table.read(self, reinterpret_cast<unsigned long>(text), sizeof(text) - 1) > 0 &&
+        std::strstr(text, "Pid: 7"), "self alias");
+  file_table.release(self);
+  auto *descriptor = open_virtual("/proc/7/fd/0");
+  std::memset(text, 0, sizeof(text));
+  check(file_table.read(descriptor, reinterpret_cast<unsigned long>(text), sizeof(text) - 1) > 0 &&
+        std::strstr(text, "Type: pipe") && std::strstr(text, "Identity: 123"), "descriptor metadata");
+  file_table.release(descriptor);
+  bulk_processes = 400;
+  auto *directory = open_virtual("/proc");
+  Stat metadata{};
+  check(file_table.stat(directory, reinterpret_cast<unsigned long>(&metadata)) == 0 && metadata.size > 4096,
+        "proc directory spans pages");
+  dirent record{}; unsigned children = 0;
+  while (file_table.read(directory, reinterpret_cast<unsigned long>(&record), sizeof(record)) == sizeof(record))
+    if (record.name[0] >= '1' && record.name[0] <= '9') ++children;
+  check(children == 400, "complete large proc directory");
+  file_table.release(directory);
+  {
+    Transaction transaction;
+    auto *node = vfs.lookup("/proc"); vfs.lock(node);
+    auto *file = file_table.allocate(); check(file != nullptr, "failed snapshot file slot");
+    page_budget = 1;
+    check(!file_table.bind_inode(*file, *node, true, false), "snapshot allocation failure");
+    page_budget = -1;
+    file_table.release(file); vfs.unlock_release(node);
+  }
+  bulk_processes = 0;
+  check(allocated_pages == baseline_pages, "failed snapshot frees all pages");
+}
+
+void ramfs_contract()
+{
+  unsigned writes = disk.writes.size();
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>("/tmp/test"), T_DIR, 0, 0);
+    check(node != nullptr, "RAM directory create"); vfs.unlock_release(node);
+  }
+  {
+    Transaction transaction;
+    page_budget = 0;
+    check(!vfs.create(const_cast<char *>("/tmp/test/oom"), T_FILE, 0, 0), "RAM node allocation failure");
+    page_budget = -1;
+  }
+  auto *file = open_node("/tmp/test/data", true);
+  std::vector<unsigned char> input(140000), output(input.size());
+  for (unsigned i = 0; i < input.size(); ++i) input[i] = i * 37;
+  check(file_table.write(file, reinterpret_cast<unsigned long>(input.data()), input.size()) == input.size(), "large RAM write");
+  auto *reader = open_virtual("/tmp/test/data");
+  check(file_table.read(reader, reinterpret_cast<unsigned long>(output.data()), output.size()) == output.size() && output == input,
+        "large RAM contents across page boundaries");
+  check(vfs.link(const_cast<char *>("/tmp/test/data"), const_cast<char *>("/tmp/test/alias")) == 0, "RAM hard link");
+  check(vfs.unlink(const_cast<char *>("/tmp/test/data")) == 0 && vfs.unlink(const_cast<char *>("/tmp/test/alias")) == 0,
+        "RAM unlink while open");
+  Stat metadata{};
+  check(file_table.stat(file, reinterpret_cast<unsigned long>(&metadata)) == 0 && metadata.nlink == 0,
+        "unlinked RAM file remains valid");
+  file_table.release(reader); file_table.release(file);
+  auto *partial = open_node("/tmp/test/partial", true);
+  char bytes[10000]{};
+  page_budget = 1;
+  check(file_table.write(partial, reinterpret_cast<unsigned long>(bytes), sizeof(bytes)) == 4096 - sizeof(void *),
+        "RAM partial write on page allocation failure");
+  page_budget = -1;
+  check(vfs.unlink(const_cast<char *>("/tmp/test/partial")) == 0, "partial file unlink");
+  file_table.release(partial);
+  check(vfs.unlink(const_cast<char *>("/tmp/test")) == 0, "RAM directory removal");
+  std::vector<std::thread> workers;
+  for (int worker = 0; worker < 4; ++worker) workers.emplace_back([worker] {
+    for (int round = 0; round < 30; ++round)
+    {
+      char path[32]; std::snprintf(path, sizeof(path), "/tmp/thread%d", worker);
+      auto *file = open_node(path, true);
+      char data[200]{};
+      check(file_table.write(file, reinterpret_cast<unsigned long>(data), sizeof(data)) == sizeof(data), "concurrent RAM write");
+      check(vfs.unlink(path) == 0, "concurrent RAM unlink"); file_table.release(file);
+    }
+  });
+  for (auto &worker : workers) worker.join();
+  check(disk.writes.size() == writes, "RAM operations do not write disk");
+  check(allocated_pages == baseline_pages + 1, "RAM file and directory pages reclaimed, root slot page retained");
+  ++baseline_pages;
+}
+
+void security_contract()
+{
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>("/native-security"), T_FILE, 0, 0);
+    check(node != nullptr, "security inode fixture");
+    node->owner().attributes(node, 1000, 100, 0640);
+    vfs.unlock_release(node);
+  }
+  caller_identity.uid = 1001; caller_identity.gid = 101;
+  caller_identity.groups[0] = 100; caller_identity.group_count = 1;
+  {
+    Transaction transaction;
+    auto *node = vfs.lookup("/native-security"); check(node != nullptr, "security lookup"); vfs.lock(node);
+    check(vfs.allowed(node, 4) && !vfs.allowed(node, 2) && node->uid() == 1000 && node->mode() == 0640,
+          "persistent ownership and group mode");
+    vfs.unlock_release(node);
+  }
+  caller_identity = {};
+  check(vfs.unlink(const_cast<char *>("/native-security")) == 0, "security fixture cleanup");
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>("/tmp/sticky-security"), T_FILE, 0, 0);
+    check(node != nullptr, "sticky fixture"); node->owner().attributes(node, 1000, 100, 0600); vfs.unlock_release(node);
+  }
+  caller_identity.uid = 1001;
+  check(vfs.unlink(const_cast<char *>("/tmp/sticky-security")) < 0, "sticky rejects foreign unlink");
+  caller_identity.uid = 1000;
+  check(vfs.unlink(const_cast<char *>("/tmp/sticky-security")) == 0, "sticky permits owner unlink");
+  caller_identity = {};
 }
 
 } // namespace xv::fs::test
@@ -689,12 +817,26 @@ void initialize_cache()
 
 namespace xv::fs::detail
 {
+Identity identity(bool) { return test::caller_identity; }
 bool process_after(int after, ProcessRecord &record)
 {
+  if (test::bulk_processes)
+  {
+    if (after >= test::bulk_processes) return false;
+    record = {}; record.pid = after + 1; record.state = 'S'; std::strcpy(record.name, "bulk"); return true;
+  }
   if (!test::process_alive || after >= 7) return false;
   record = {}; record.pid = 7; record.parent = 1; record.group = 7; record.session = 1;
   record.bytes = 8192; record.state = 'S'; std::strcpy(record.name, "worker");
   return true;
+}
+int current_pid() { return 7; }
+int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity)
+{
+  if (pid != 7 || !test::process_alive || !capacity) return -1;
+  records[0] = {}; records[0].descriptor = 0;
+  records[0].file.identity = 123; records[0].file.kind = FileKind::Pipe;
+  return 1;
 }
 unsigned long uptime_ticks() { return 10; }
 void memory_info(unsigned long &total, unsigned long &free) { total = 4096; free = test::fake_free; }
@@ -751,6 +893,8 @@ int copy_out(bool, unsigned long destination, const void *source, unsigned count
 
 void *allocate_page()
 {
+  if (test::page_budget == 0) return nullptr;
+  if (test::page_budget > 0) --test::page_budget;
   auto *page = std::aligned_alloc(4096, 4096);
   if (page)
   {
@@ -808,6 +952,7 @@ extern "C" int run_fs_contracts(const char *image)
   vfs.initialize_inodes();
   file_table.initialize();
   vfs.initialize(1);
+  baseline_pages = allocated_pages;
   cwd = vfs.lookup("/");
   file_contract();
   device_contract();
@@ -816,12 +961,15 @@ extern "C" int run_fs_contracts(const char *image)
   concurrent_contract();
   devfs_contract();
   procfs_contract();
+  expanded_contract();
+  ramfs_contract();
+  security_contract();
   {
     xv::fs::Transaction transaction;
-    fs.release(cwd);
+    vfs.release(cwd);
     cwd = nullptr;
   }
-  check(allocated_pages == 0, "no leaked pipe pages");
+  check(allocated_pages == baseline_pages, "no leaked pipe pages");
   std::puts("filesystem contracts: passed");
   return 0;
 }

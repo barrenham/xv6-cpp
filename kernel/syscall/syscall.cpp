@@ -19,6 +19,22 @@ static SyscallHandler lookup_syscall(int number)
   switch (number)
   {
     // clang-format off
+  case SYS_execve: return sys_execve;
+  case SYS_getuid: return sys_getuid;
+  case SYS_geteuid: return sys_geteuid;
+  case SYS_getgid: return sys_getgid;
+  case SYS_getegid: return sys_getegid;
+  case SYS_setuid: return sys_setuid;
+  case SYS_seteuid: return sys_seteuid;
+  case SYS_setgid: return sys_setgid;
+  case SYS_setegid: return sys_setegid;
+  case SYS_getgroups: return sys_getgroups;
+  case SYS_setgroups: return sys_setgroups;
+  case SYS_umask: return sys_umask;
+  case SYS_chmod: return sys_chmod;
+  case SYS_chown: return sys_chown;
+  case SYS_access: return sys_access;
+  case SYS_stat: return sys_stat;
   case SYS_netctl: return sys_netctl;
   case SYS_socket: return sys_socket;
   case SYS_sockbind: return sys_sockbind;

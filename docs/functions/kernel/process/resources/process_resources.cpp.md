@@ -15,7 +15,9 @@
 - [`xv::process::DescriptorTable::duplicate`](process_resources.cpp.md#fn-bf8e7f337214198f)
 - [`xv::process::DescriptorTable::get`](process_resources.cpp.md#fn-5eee207e9f21abc9)
 - [`xv::process::DescriptorTable::inherit_from`](process_resources.cpp.md#fn-067c825dc4aed5b6)
+- [`xv::process::DescriptorTable::inspect`](process_resources.cpp.md#fn-7de3cc7234d49dc7)
 - [`xv::process::DescriptorTable::install`](process_resources.cpp.md#fn-9ff2e78e57ca3144)
+- [`xv::process::DescriptorTable::snapshot`](process_resources.cpp.md#fn-a133852fe02f0f86)
 - [`xv::process::DescriptorTable::take`](process_resources.cpp.md#fn-5f35dd820658a6cc)
 - [`xv::process::WorkingDirectory::clear`](process_resources.cpp.md#fn-3db3072ad2b9394a)
 - [`xv::process::WorkingDirectory::duplicate`](process_resources.cpp.md#fn-4f397a6c89c47ea5)
@@ -28,9 +30,8 @@
 
 ```doxygen
 @fn xv::fs::File *xv::process::DescriptorTable::get(int descriptor) const
-@brief 进程文件描述符表：读取或计算 `descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr`，返回当前查询结果。
-@param descriptor 本次操作使用的 descriptor 值。
-@return 各分支实际返回：`descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在描述符表锁内取得一个借用的 File 指针。
+@details 只供所属进程的单一执行线程继续使用；锁释放后借用不保护任意跨进程访问，观测者应使用 inspect，继承应使用 snapshot。
 ```
 
 <a id="fn-9ff2e78e57ca3144"></a>
@@ -39,11 +40,8 @@
 
 ```doxygen
 @fn int xv::process::DescriptorTable::install(xv::fs::File *owned)
-@brief 进程文件描述符表：把已提交日志安装到原始数据块位置。
-@param owned 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 本函数可见的状态更新包括：`entries_[i] = owned;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!owned`；`!entries_[i]`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`-1`；`i`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在描述符表锁内安装一个已拥有的文件引用。
+@details 寻找空槽，成功接管引用并返回 fd，失败保持调用者拥有权。未完成绑定的 File 由发布标志阻止被观测。
 ```
 
 <a id="fn-5f35dd820658a6cc"></a>
@@ -52,12 +50,8 @@
 
 ```doxygen
 @fn xv::fs::File *xv::process::DescriptorTable::take(int descriptor)
-@brief 进程文件描述符表：从集合中摘取一个符合选择条件的成员。
-@param descriptor 本次操作使用的 descriptor 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`get`。
-@details 本函数可见的状态更新包括：`entries_[descriptor] = nullptr;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`owned`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`owned`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在描述符表锁内撤下并转交一个引用。
+@details 撤下后才在外层执行可能睡眠的 File::release/close，不能把后端关闭放进描述符自旋锁。
 ```
 
 <a id="fn-315befdfc4ab2c6d"></a>
@@ -103,12 +97,8 @@
 
 ```doxygen
 @fn void xv::process::DescriptorTable::inherit_from(const DescriptorTable &parent)
-@brief 进程文件描述符表：继承来源。
-@param parent 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::resource_fail` → `parent.get` → `detail::retain_file`。
-@details 本函数可见的状态更新包括：`entries_[i] = detail::retain_file(file);`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`this == &parent`；`entries_[i]`；`auto *file = parent.get(i)`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 为未发布子进程复制父进程的描述符引用。
+@details 拒绝自继承或非空目标，使用父表 snapshot 在一把表锁内增加所有文件引用，保留 dup/fork 的共享 File 语义。子进程的发布仍由进程锁与调度流程保护。
 ```
 
 <a id="fn-4f397a6c89c47ea5"></a>
@@ -159,4 +149,23 @@
 @details 本函数可见的状态更新包括：`directory_ = parent.duplicate();`。局部临时变量与对象字段应按作用域区分。
 @details 需要特别跟踪的条件：`directory_ || this == &parent`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-a133852fe02f0f86"></a>
+
+## `xv::process::DescriptorTable::snapshot`
+
+```doxygen
+@fn unsigned xv::process::DescriptorTable::snapshot(xv::fs::File **references, unsigned capacity) const
+@brief 在表锁内复制并保留各 fd 的文件引用。
+@details 只调用不会睡眠的 retain_file，输出按原 fd 下标排列，调用者负责在锁外归还引用。用于 fork 继承；procfs 元数据观测使用不转移引用的 inspect。
+```
+
+<a id="fn-7de3cc7234d49dc7"></a>
+
+## `xv::process::DescriptorTable::inspect`
+
+```doxygen
+@fn unsigned xv::process::DescriptorTable::inspect(xv::fs::FileInfo *entries, unsigned capacity) const
+@brief 在表锁内复制各 fd 的已发布身份和标志。
+@details 描述符槽的现存引用在锁内保持 File 存活；元数据查询不加节点锁、不执行 stat/close。输出空项清零，返回有效项数；因此观测不会延长目标文件寿命或触发最后关闭。
 ```

@@ -11,19 +11,13 @@ namespace xv::fs
 void InodeBackend::close()
 {
   { Transaction transaction(node_->owner().persistent()); filesystem().release(node_); }
-  if (snapshot_) detail::free_page(snapshot_);
   this->~InodeBackend();
 }
 int InodeBackend::read(xv::io::Buffer destination, int count)
 {
   LockedInode guard(node_->owner(), *node_);
   int result;
-  if (snapshot_)
-  {
-    unsigned part = offset_ < length_ ? length_ - offset_ : 0;
-    if (part > static_cast<unsigned>(count)) part = count;
-    result = part && detail::copy_out(true, destination.address, snapshot_ + offset_, part) < 0 ? -1 : static_cast<int>(part);
-  }
+  if (snapshot_) result = contents_.read(offset_, true, destination.address, count);
   else result = filesystem().read(node_, 1, destination.address, offset_, count);
   if (result > 0) offset_ += result;
   return result;
@@ -39,21 +33,21 @@ int InodeBackend::write(xv::io::Buffer source, int count)
     if (part > maximum) part = maximum;
     int result;
     {
-      Transaction transaction;
+      Transaction transaction(node_->owner().persistent());
       LockedInode guard(node_->owner(), *node_);
       result = filesystem().write(node_, 1, source.address+done, offset_, part);
       if (result > 0) offset_ += result;
     }
+    if (result > 0) done += result;
     if (result != part) break;
-    done += result;
   }
-  return done == count ? count : -1;
+  return done ? done : (count == 0 ? 0 : -1);
 }
 int InodeBackend::stat(xv::io::Metadata &value)
 {
   LockedInode guard(node_->owner(), *node_);
   filesystem().stat(node_, &value);
-  if (snapshot_) value.size = length_;
+  if (snapshot_) value.size = contents_.size();
   return 0;
 }
 unsigned InodeBackend::poll(xv::sync::PollTable *) { return POLLIN | POLLOUT; }

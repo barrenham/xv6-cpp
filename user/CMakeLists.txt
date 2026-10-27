@@ -1,5 +1,7 @@
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
+add_library(user_accounts STATIC runtime/accounts.cpp)
+target_link_libraries(user_accounts PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
 target_link_libraries(user_dns PRIVATE xv_options)
 add_library(user_http STATIC runtime/http/codec.cpp runtime/http/client.cpp)
@@ -10,13 +12,30 @@ function(xv_add_program source)
   target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns)
   target_link_options(user_${name} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
+  if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
+    set(destination "/usr/tests/${name}")
+  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "netctl")
+    set(destination "/sbin/${name}")
+  else()
+    set(destination "/bin/${name}")
+  endif()
+  set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t0755\t${destination}\t$<TARGET_FILE:user_${name}>\n" PARENT_SCOPE)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/id/id.cpp
+  apps/useradd/useradd.cpp
+  apps/su/su.cpp
+  apps/chmod/chmod.cpp
+  apps/chown/chown.cpp
+  apps/env/env.cpp
   apps/ps/ps.cpp
   apps/free/free.cpp
   tests/namedptytest.cpp
   tests/procfstest.cpp
+  tests/ramfstest.cpp
+  tests/envtest.cpp
+  tests/permissiontest.cpp
   apps/curl/curl.cpp
   apps/nslookup/nslookup.cpp
   apps/netctl/netctl.cpp
@@ -69,8 +88,15 @@ foreach(source IN LISTS programs)
   xv_add_program("${source}")
 endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
+set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
+
+target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp)
 
 # Poll contracts reuse the PTY test executable and installed inode.
 target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.cpp)
 
 target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/child_signals.cpp tests/signal_registers.S)
+
+foreach(program init id su useradd chown sh)
+  target_link_libraries(user_${program} PRIVATE user_accounts)
+endforeach()

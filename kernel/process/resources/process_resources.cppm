@@ -8,8 +8,7 @@ export import xv.fs;
 
 export namespace xv::process
 {
-// Each process has one kernel execution thread. Its descriptor table and cwd
-// are accessed only by that thread, or before a fork child is published.
+// Descriptor snapshots may observe another process; cwd stays owner-thread managed.
 class DescriptorTable final
 {
 public:
@@ -27,9 +26,12 @@ public:
   int duplicate(int descriptor);
   void close_all();
   void inherit_from(const DescriptorTable &parent);
+  unsigned snapshot(xv::fs::File **references, unsigned capacity) const;
+  unsigned inspect(xv::fs::FileInfo *entries, unsigned capacity) const;
 
 private:
 
+  mutable xv::sync::SpinLock lock_;
   xv::fs::File *entries_[Capacity]{};
 };
 

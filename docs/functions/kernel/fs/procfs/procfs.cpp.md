@@ -19,19 +19,11 @@
 - [`xv::fs::Text::Text`](procfs.cpp.md#fn-0a0d9ec0c1338ec9)
 - [`xv::fs::Text::append`](procfs.cpp.md#fn-0f0c4ca26414028d)
 - [`xv::fs::Text::field`](procfs.cpp.md#fn-4ccdd58043fe99ba)
+- [`xv::fs::Text::good`](procfs.cpp.md#fn-35b1ca8866c82d1e)
 - [`xv::fs::Text::number`](procfs.cpp.md#fn-92a34cf2de670a84)
-- [`xv::fs::Text::size`](procfs.cpp.md#fn-7c67ec963fec4fe8)
-- [`xv::fs::pid_name`](procfs.cpp.md#fn-3771c76d893a1ad0)
-
-<a id="fn-0a0d9ec0c1338ec9"></a>
-
-## `xv::fs::Text::Text`
-
-```doxygen
-@fn xv::fs::Text::Text(char *buffer, unsigned capacity)
-@brief 借用一个有容量上限的 procfs 内容缓冲。
-@details 构造清空写入位置和失败标记，不分配空间，不转移缓冲所有权。
-```
+- [`xv::fs::component_number`](procfs.cpp.md#fn-d517311402dd3534)
+- [`xv::fs::file_kind`](procfs.cpp.md#fn-ee0b4055ed93f099)
+- [`xv::fs::number_name`](procfs.cpp.md#fn-6a664ab5b71ab094)
 
 <a id="fn-0f0c4ca26414028d"></a>
 
@@ -39,8 +31,8 @@
 
 ```doxygen
 @fn void xv::fs::Text::append(const char *text)
-@brief 把零终止文本追加到有界缓冲。
-@details 逐字节检查容量，容量不足置失败标记；缓冲内容不额外追加终止符，snapshot 根据实际长度返回。
+@brief 将文本追加到动态页链并累计失败状态。
+@details 计算零终止文本长度后追加，分配或复制失败时记录 failed_。生成方最终检查 good，不把已生成前缀当作完整内容发布。
 ```
 
 <a id="fn-92a34cf2de670a84"></a>
@@ -63,26 +55,6 @@
 @details 用于 meminfo 和 status 格式，调用 append/number 的顺序固定，共享容量限制。
 ```
 
-<a id="fn-7c67ec963fec4fe8"></a>
-
-## `xv::fs::Text::size`
-
-```doxygen
-@fn int xv::fs::Text::size() const
-@brief 返回已生成内容长度或失败。
-@details 容量不足时返回 -1，防止把截断内容发布为成功快照；正常返回字节数，不包含隐式零终止符。
-```
-
-<a id="fn-3771c76d893a1ad0"></a>
-
-## `xv::fs::pid_name`
-
-```doxygen
-@fn int xv::fs::pid_name(const char *name)
-@brief 把一个目录组件解析为正 PID。
-@details 拒绝空名称、前导零、非数字和超过有符号 int 的值；输入沿用 DIRSIZ 范围，失败返回 -1。
-```
-
 <a id="fn-731ba950b1042b0b"></a>
 
 ## `xv::fs::ProcFileSystem::initialize_inodes`
@@ -99,18 +71,8 @@
 
 ```doxygen
 @fn void xv::fs::ProcFileSystem::initialize(int device)
-@brief 建立 procfs 根及 meminfo、uptime 元数据。
-@details 保存 stat 使用的文件系统设备号，前三个槽分别代表根目录和两个静态文件。PID 目录及 status 后续按需从缓存取得。
-```
-
-<a id="fn-90753126637513eb"></a>
-
-## `xv::fs::ProcFileSystem::get`
-
-```doxygen
-@fn Inode *xv::fs::ProcFileSystem::get(unsigned kind, unsigned pid)
-@brief 取得指定内容种类和 PID 的缓存节点。
-@details 在引用锁内优先复用同一活动节点，否则初始化无人引用的槽。PID 目录与 status 有不同 inode 号；缓存耗尽返回 nullptr，已持引用的槽不会被复用。
+@brief 初始化 procfs 的静态只读节点。
+@details 目录 0555、静态文件 0444，属主组均为 root；运行期进程节点在 get 中按目标凭据建立缓存身份。
 ```
 
 <a id="fn-d20670821de275d2"></a>
@@ -189,8 +151,8 @@
 
 ```doxygen
 @fn void xv::fs::ProcFileSystem::stat(Inode *node, Stat *result)
-@brief 复制 procfs 合成节点身份和类型。
-@details 调用者持节点锁，输出先清零；打开后端另用其快照真实长度填入 size，避免为 stat 重新枚举进程。
+@brief 复制 procfs 节点及权限元数据。
+@details 输出合成设备、编号、类型、链接和 uid/gid/mode；路径 stat 不生成文本，打开后的 fstat 由快照后端给出内容大小。
 ```
 
 <a id="fn-0512bfc7f1743007"></a>
@@ -199,18 +161,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::ProcFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *)
-@brief 查找根静态文件、PID 目录或其 status。
-@details 调用者持目录锁，点路径返回内部父子引用。数字 PID 和 status 都验证目标仍存在；不保留进程对象指针，已退出并回收的 PID 不再被新查找打开。
-```
-
-<a id="fn-a48454ff4df79560"></a>
-
-## `xv::fs::ProcFileSystem::snapshot`
-
-```doxygen
-@fn int xv::fs::ProcFileSystem::snapshot(Inode *node, char *buffer, unsigned capacity)
-@brief 生成 meminfo、uptime、进程状态或目录内容。
-@details 在节点锁内向给定内核缓冲生成完整快照；目录沿用 dirent ABI。状态包含名称、PID/父 PID、组/会话和虚拟大小，内存以 KiB 计；PID 已消失或容量不足返回 -1。当前 File 缓冲为一页，根目录最多容纳 252 个 PID 记录。
+@brief 解析静态信息、self、PID、status 和 fd 层级。
+@details self 在查找时解析为当前 PID 的目录；fd 子项验证编号并复制描述符表确认其仍存在。点目录正确处理 fd 目录的父 PID 目录，挂载根向外跳转由 VFS 处理；每次成功返回新的未锁定节点引用。
 ```
 
 <a id="fn-603705cd3aba4822"></a>
@@ -219,6 +171,76 @@
 
 ```doxygen
 @fn int xv::fs::ProcFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)
-@brief 为低层内核读取临时生成内容并复制所需范围。
-@details 申请一页临时缓冲，生成快照、裁剪 offset/count 并 copy_out，最后归还页面。普通 File 读取使用打开时快照，不会每次调用此入口重新生成。
+@brief 为低层内核读取临时生成动态内容。
+@details 使用局部 PageBuffer 生成后裁剪读取，离开作用域归还所有页。普通 File 读取其打开时快照，不会每次重新枚举。
+```
+
+<a id="fn-0a0d9ec0c1338ec9"></a>
+
+## `xv::fs::Text::Text`
+
+```doxygen
+@fn explicit xv::fs::Text::Text(PageBuffer &buffer)
+@brief 借用动态页链生成 procfs 文本。
+@details 不再接收固定容量指针；内容通过 PageBuffer 按需分配，构造不分配页面。
+```
+
+<a id="fn-35b1ca8866c82d1e"></a>
+
+## `xv::fs::Text::good`
+
+```doxygen
+@fn bool xv::fs::Text::good() const
+@brief 检查整份文本是否完整生成。
+@details 任何一次追加失败都会返回 false，不以已生成长度掩盖分配错误。
+```
+
+<a id="fn-d517311402dd3534"></a>
+
+## `xv::fs::component_number`
+
+```doxygen
+@fn int xv::fs::component_number(const char *name, bool zero = false)
+@brief 把目录组件解析为非负或正十进制编号。
+@details PID 模式拒绝零，fd 模式允许单个零；两种模式都拒绝前导零、非数字和 int 溢出。输入沿用 DIRSIZ 范围，失败返回 -1。
+```
+
+<a id="fn-6a664ab5b71ab094"></a>
+
+## `xv::fs::number_name`
+
+```doxygen
+@fn void xv::fs::number_name(unsigned value, char *output)
+@brief 把 PID 或 fd 编号格式化为目录名称。
+@details 使用固定反向数字数组，输出零终止；调用者提供至少十六字节空间，不申请堆或物理页。
+```
+
+<a id="fn-ee0b4055ed93f099"></a>
+
+## `xv::fs::file_kind`
+
+```doxygen
+@fn const char *xv::fs::file_kind(const FileInfo &file)
+@brief 将已复制的文件种类转换为 procfs 文本标签。
+@details 节点按 inode 类型区分 file/directory/device，其他种类为 pipe、terminal、socket 或 unknown。不检查正在运行的后端对象。
+```
+
+<a id="fn-90753126637513eb"></a>
+
+## `xv::fs::ProcFileSystem::get`
+
+```doxygen
+@fn Inode *xv::fs::ProcFileSystem::get(unsigned kind, unsigned pid, unsigned descriptor)
+@brief 取得带目标身份的 procfs 动态节点。
+@details 先确认 PID 仍存在，缓存键包括 kind/PID/fd 与有效 uid/gid，避免凭据变化复用旧属性。PID 目录 0555、status 0444、fd 目录 0500、fd 文件 0400；引用发布前完成初始化。
+```
+
+<a id="fn-a48454ff4df79560"></a>
+
+## `xv::fs::ProcFileSystem::snapshot`
+
+```doxygen
+@fn bool xv::fs::ProcFileSystem::snapshot(Inode *node, PageBuffer &buffer)
+@brief 生成进程信息与描述符的打开时快照。
+@details status 增加 Uid/Euid/Gid/Egid。fd 枚举调用带实时身份检查的进程服务；跨页 PageBuffer 分配或目标检查失败时返回 false，调用方销毁全部临时内容。
 ```

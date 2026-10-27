@@ -25,7 +25,7 @@ bool Process::create_image(AddressSpace &image)
 
 void Process::commit_image(AddressSpace &image, unsigned long entry,
                            unsigned long stack, unsigned long arguments,
-                           const char *path)
+                           const char *path, unsigned long environment)
 {
   // All fallible loading has completed. Linearize successful exec against a
   // parent attempting setpgid before publishing the new image.
@@ -37,6 +37,7 @@ void Process::commit_image(AddressSpace &image, unsigned long entry,
   trapframe->epc = entry;
   trapframe->sp = stack;
   trapframe->a1 = arguments;
+  trapframe->a2 = environment;
   const char *last = path;
   for (auto *c = path; *c; ++c)
   {

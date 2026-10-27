@@ -65,7 +65,8 @@ int ProcessManager::send_signal(int target, int signal)
     {
       return -1;
     }
-    if (process == initial_ && signal != 0)
+    if ((process == initial_ && signal != 0) ||
+        !Credentials::may_signal(current()->credentials().snapshot(), process->credentials().snapshot()))
     {
       process->lock.release();
       return -1;
@@ -86,14 +87,15 @@ int ProcessManager::send_signal(int target, int signal)
   {
   public:
 
-    Post(Process *initial, int signal) : initial_(initial), signal_(signal)
+    Post(Process *initial, int signal, CredentialState sender) : initial_(initial), signal_(signal), sender_(sender)
     {
     }
 
     void visit(ProcessMembership &member) override
     {
       auto *process = member.owner();
-      if (!process || (process == initial_ && signal_ != 0))
+      if (!process || (process == initial_ && signal_ != 0) ||
+          !Credentials::may_signal(sender_, process->credentials().snapshot()))
       {
         return;
       }
@@ -110,7 +112,8 @@ int ProcessManager::send_signal(int target, int signal)
 
     Process *initial_;
     int signal_;
-  } post(initial_, signal);
+    CredentialState sender_;
+  } post(initial_, signal, current()->credentials().snapshot());
 
   // Membership pins embedded owners only during this callback. Post atomically
   // under the group lock; never invert the lifetime path's process -> group order.

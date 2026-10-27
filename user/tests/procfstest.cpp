@@ -14,6 +14,81 @@ int read_all(int fd, char *data, int capacity, int step)
   { int n = read(fd, data + used, step); if (n < 0) return -1; if (!n) break; used += n; }
   data[used] = 0; return used;
 }
+void descriptor_path(int fd, char *path)
+{
+  strcpy(path, "/proc/self/fd/"); unsigned used = strlen(path);
+  char digits[12]; unsigned count = 0;
+  do { digits[count++] = '0' + fd % 10; fd /= 10; } while (fd);
+  while (count) path[used++] = digits[--count];
+  path[used] = 0;
+}
+void descriptors()
+{
+  char data[512], path[64];
+  check(proc::read("/proc/self/status", data, sizeof(data)) > 0 && proc::number(data, "Pid") == getpid(), "self alias");
+  int file = open("/tmp/fd-target", O_CREATE | O_RDWR);
+  check(file >= 0 && fcntl(file, F_SETFL, O_NONBLOCK) == 0, "descriptor fixture");
+  int alias = dup(file); check(alias >= 0, "descriptor duplicate");
+  descriptor_path(file, path);
+  check(proc::read(path, data, sizeof(data)) > 0 && proc::number(data, "Descriptor") == file &&
+        (proc::number(data, "Flags") & O_NONBLOCK), "descriptor flags");
+  int identity = proc::number(data, "Identity");
+  descriptor_path(alias, path);
+  check(proc::read(path, data, sizeof(data)) > 0 && proc::number(data, "Identity") == identity, "dup identity");
+  descriptor_path(file, path); int snapshot = open(path, O_RDONLY); check(snapshot >= 0, "descriptor content snapshot");
+  close(file);
+  int replacement = open("/tmp/fd-other", O_CREATE | O_RDWR); check(replacement == file, "descriptor slot reuse");
+  check(proc::read(path, data, sizeof(data)) > 0 && proc::number(data, "Identity") != identity, "reused slot new identity");
+  check(read_all(snapshot, data, sizeof(data), 1) > 0 && proc::number(data, "Identity") == identity, "old snapshot retains identity");
+  close(snapshot); close(alias); close(replacement);
+  int fds[2]; check(pipe(fds) == 0, "pipe observation"); descriptor_path(fds[0], path);
+  check(proc::read(path, data, sizeof(data)) > 0 && !memcmp(proc::field(data, "Type"), "pipe", 4), "pipe kind");
+  close(fds[0]); close(fds[1]);
+  int socket_fd = socket(AF_INET, SOCK_DGRAM, 0); check(socket_fd >= 0, "socket observation"); descriptor_path(socket_fd, path);
+  check(proc::read(path, data, sizeof(data)) > 0 && !memcmp(proc::field(data, "Type"), "socket", 6), "socket kind"); close(socket_fd);
+  check(unlink("/tmp/fd-target") == 0 && unlink("/tmp/fd-other") == 0, "descriptor fixture cleanup");
+}
+void descriptor_race()
+{
+  int child = fork(); check(child >= 0, "descriptor race fork");
+  if (!child)
+  {
+    for (int i = 0; i < 500; ++i)
+    {
+      int fd = open("/tmp/fd-race", O_CREATE | O_RDWR);
+      check(fd >= 0 && write(fd, "x", 1) == 1 && unlink("/tmp/fd-race") == 0, "descriptor race writer");
+      close(fd);
+    }
+    exit(0);
+  }
+  char path[64]; proc::path(child, path); strcpy(path + strlen(path) - 6, "fd");
+  for (int i = 0; i < 200; ++i)
+  {
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) break;
+    dirent entry; while (read(fd, &entry, sizeof(entry)) == sizeof(entry)) {}
+    close(fd);
+  }
+  int status; check(wait(&status) == child && status == 0, "descriptor race child");
+}
+void large_directory()
+{
+  constexpr int Children = 300;
+  int gate[2]; check(pipe(gate) == 0, "large process gate");
+  for (int i = 0; i < Children; ++i)
+  {
+    int child = fork(); check(child >= 0, "large process fork");
+    if (!child) { close(gate[1]); char byte; read(gate[0], &byte, 1); close(gate[0]); exit(0); }
+  }
+  close(gate[0]);
+  int directory = open("/proc", O_RDONLY); check(directory >= 0, "large proc open");
+  struct stat metadata{}; check(fstat(directory, &metadata) == 0 && metadata.size > 4096, "dynamic proc snapshot size");
+  dirent entry{}; int records = 0;
+  while (read(directory, &entry, sizeof(entry)) == sizeof(entry)) if (entry.name[0] >= '1' && entry.name[0] <= '9') ++records;
+  close(directory); check(records >= Children + 2, "all live processes listed");
+  close(gate[1]);
+  for (int i = 0; i < Children; ++i) { int status; check(wait(&status) > 0 && status == 0, "large process reap"); }
+}
 }
 extern "C" int main()
 {
@@ -50,5 +125,6 @@ extern "C" int main()
   while (read(fd, &entry, sizeof(entry)) == sizeof(entry)) if (atoi(entry.name) == getpid()) found = true;
   close(fd); check(found, "process enumeration");
   for (int i = 0; i < 200; ++i) { fd = open("/proc/meminfo", O_RDONLY); check(fd >= 0, "repeat snapshot"); close(fd); }
+  descriptors(); descriptor_race(); large_directory();
   printf("procfstest: all tests succeeded\n"); exit(0);
 }

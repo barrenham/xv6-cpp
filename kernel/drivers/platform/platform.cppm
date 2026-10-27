@@ -2,6 +2,8 @@ module xv.drivers:platform;
 
 namespace xv::drivers::detail
 {
+unsigned effective_uid();
+unsigned effective_gid();
 void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
 void sleep_process();

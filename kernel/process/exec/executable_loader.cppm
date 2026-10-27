@@ -13,7 +13,7 @@ public:
   virtual const char *name() const = 0;
   // Build and validate a new image, then commit it to the current process.
   // Failure preserves the process's old address space and saved registers.
-  virtual int load(Process &process, const char *path, char *const *arguments) = 0;
+  virtual int load(Process &process, const char *path, char *const *arguments, char *const *environment) = 0;
 
 protected:
 
@@ -22,5 +22,5 @@ protected:
 };
 
 ExecutableLoader &executable_loader();
-int execute(const char *path, char *const *arguments);
+int execute(const char *path, char *const *arguments, char *const *environment = nullptr);
 } // namespace xv::process

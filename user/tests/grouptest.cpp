@@ -71,7 +71,7 @@ static void exec_rules()
                     ready_text,
                     gate_text,
                     nullptr};
-    exec("grouptest", args);
+    exec("/usr/tests/grouptest", args);
     check(false, "exec helper");
   }
   close(ready[1]);

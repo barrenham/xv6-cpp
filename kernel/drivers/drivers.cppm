@@ -24,6 +24,7 @@ bool create_pty(CharacterDevice **master, CharacterDevice **slave);
 inline constexpr unsigned MaxNamedPtys = 64;
 CharacterDevice &ptmx();
 bool retain_named_pty(unsigned number);
+bool named_pty_owner(unsigned number, unsigned &uid, unsigned &gid);
 void release_named_pty(unsigned number);
 CharacterDevice *open_named_pty(unsigned number);
 unsigned named_pty_ids(unsigned *numbers, unsigned capacity);

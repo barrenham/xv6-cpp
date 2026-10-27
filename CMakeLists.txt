@@ -32,9 +32,16 @@ target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}
 add_subdirectory(user)
 add_subdirectory(tools/mkfs)
 configure_file(README.xv6 "${PROJECT_BINARY_DIR}/README" COPYONLY)
+set(XV_FS_DIRECTORIES "")
+foreach(directory /bin /sbin /usr /usr/tests /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /home)
+  string(APPEND XV_FS_DIRECTORIES "dir\t0755\t${directory}\n")
+endforeach()
+string(APPEND XV_FS_DIRECTORIES "dir\t01777\t/tmp\ndir\t0700\t/root\n")
+file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
+  CONTENT "${XV_FS_DIRECTORIES}file\t0644\t/usr/share/doc/xv6/README\t${PROJECT_BINARY_DIR}/README\n${XV_FS_ENTRIES}")
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs.img"
-  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs.img" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
-  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
   VERBATIM)
 add_custom_target(image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs.img")
 set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${PROJECT_BINARY_DIR}/fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
@@ -43,6 +50,10 @@ list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
+add_test(NAME image_layout COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/image_layout.py"
+  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --image "${PROJECT_BINARY_DIR}/fs.img"
+  --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv")
+set_tests_properties(image_layout PROPERTIES TIMEOUT 30 LABELS fs)
 add_test(NAME signal_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract" --signals)
 set_tests_properties(signal_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME process_groups_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract")
@@ -64,7 +75,7 @@ set_tests_properties(sync_contract PROPERTIES TIMEOUT 45 LABELS sync)
 add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")
 set_tests_properties(boot_smoke PROPERTIES TIMEOUT 120)
 add_test(NAME user_regression COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}" --regression)
-set_tests_properties(user_regression PROPERTIES TIMEOUT 270)
+set_tests_properties(user_regression PROPERTIES TIMEOUT 330)
 foreach(kind buddy freelist)
   add_test(NAME allocator_contract_${kind} COMMAND "${PROJECT_BINARY_DIR}/allocator_contract" ${kind})
   set_tests_properties(allocator_contract_${kind} PROPERTIES TIMEOUT 45 LABELS memory)
@@ -79,7 +90,7 @@ foreach(ram 64 257 2048 2049)
 endforeach()
 
 foreach(cpus 1 3)
-  foreach(feature named-pty procfs)
+  foreach(feature named-pty procfs ramfs environment permissions)
     add_test(NAME ${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
       --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"

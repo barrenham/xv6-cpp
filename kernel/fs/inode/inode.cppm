@@ -20,6 +20,11 @@ public:
   Inode(const Inode &) = delete;
   Inode &operator=(const Inode &) = delete;
 
+  unsigned uid() const { return uid_; }
+  unsigned gid() const { return gid_; }
+  unsigned mode() const { return mode_; }
+  void security_stat(Stat *result) const { result->uid = uid_; result->gid = gid_; result->mode = mode_; }
+
   short kind() const
   {
     return type;
@@ -51,9 +56,12 @@ public:
 
 private:
 
+  friend class FileSystem;
   friend class Xv6FileSystem;
   friend class DevFileSystem;
   friend class ProcFileSystem;
+  friend class RamFileSystem;
+  void *context_ = nullptr;
   FileSystem *owner_ = nullptr;
   unsigned dev = 0;
   unsigned inum = 0;
@@ -64,6 +72,8 @@ private:
   short major = 0;
   short minor = 0;
   short nlink = 0;
+  unsigned uid_ = 0, gid_ = 0;
+  unsigned short mode_ = 0;
   unsigned size = 0;
   unsigned addrs[NDIRECT + 1]{};
 };

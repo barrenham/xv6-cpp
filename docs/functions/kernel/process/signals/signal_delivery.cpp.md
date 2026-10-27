@@ -26,13 +26,8 @@
 
 ```doxygen
 @fn int xv::process::ProcessManager::send_signal(int target, int signal)
-@brief 进程生命周期管理器：按 PID 或进程组选择目标并登记信号。
-@param target 本次操作使用的 target 值。
-@param signal 待查询、投递或处理的信号编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`supported_signal` → `Pid` → `id_` → `matches` → `key` → `store_.find` → `process->lock.release` → `process->pending_signals_.post` → `wake_for_signal` → `notify_child_events` → `Post` → `initial_`。
-@details 需要特别跟踪的条件：`(signal != 0 && !supported_signal(signal)) || target == -1 || target < -0x7fffffff`；`target > 0`；`!process`；`process == initial_ && signal != 0`；`signal && process->state != ProcessState::Zombie`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`process->lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：`-1`；`process.state != ProcessState::Unused && process.pid == id_`；`0`；无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 授权并向 PID 或进程组发送信号。
+@details 发送前保存调用者凭据，每个目标按真实/保存 UID 规则独立判断；信号 0 只探测权限。用户请求与内核终端产生的组通知分开，避免中断上下文依赖 current。
 ```
 
 <a id="fn-f31a3cd50df7bcf4"></a>

@@ -6,6 +6,19 @@
 
 extern "C" {
 
+char *fmtname(char *path);
+static bool detailed = false;
+void show(char *path, const struct stat &entry)
+{
+  if (!detailed) { printf("%s %d %d %d\n", fmtname(path), entry.type, entry.ino, (int)entry.size); return; }
+  char mode[11]; mode[0] = entry.type == T_DIR ? 'd' : entry.type == T_DEVICE ? 'c' : '-';
+  const char bits[] = "rwx";
+  for (unsigned i = 0; i < 9; ++i) mode[i + 1] = entry.mode & (1U << (8 - i)) ? bits[i % 3] : '-';
+  if (entry.mode & 01000) mode[9] = mode[9] == 'x' ? 't' : 'T';
+  mode[10] = 0;
+  printf("%s %d %d %d %lu %s\n", mode, entry.nlink, entry.uid, entry.gid, entry.size, fmtname(path));
+}
+
 char *
 fmtname(char *path)
 {
@@ -48,7 +61,7 @@ ls(char *path)
   switch (st.type) {
   case T_DEVICE:
   case T_FILE:
-    printf("%s %d %d %d\n", fmtname(path), st.type, st.ino, (int)st.size);
+    show(path, st);
     break;
 
   case T_DIR:
@@ -68,7 +81,7 @@ ls(char *path)
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, (int)st.size);
+      show(buf, st);
     }
     break;
   }
@@ -80,11 +93,13 @@ main(int argc, char *argv[])
 {
   int i;
 
-  if (argc < 2) {
+  int first = 1;
+  if (argc > 1 && strcmp(argv[1], "-l") == 0) { detailed = true; ++first; }
+  if (argc == first) {
     ls(".");
     exit(0);
   }
-  for (i = 1; i < argc; i++)
+  for (i = first; i < argc; i++)
     ls(argv[i]);
   exit(0);
 }

@@ -47,6 +47,9 @@ File *OpenFileTable::allocate()
     {
       file.ref = 1;
       file.backend_ = nullptr;
+      __atomic_store_n(&file.ready_, false, __ATOMIC_RELAXED);
+      file.identity_ = {};
+      file.identity_.identity = next_identity_++;
       return &file;
     }
   }
@@ -80,13 +83,18 @@ void OpenFileTable::release(File *file)
 }
 
 void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable,
-                              bool writable, bool nonblocking)
+                              bool writable, bool nonblocking, FileKind kind, const Inode *node)
 {
+  file.identity_.kind = kind;
+  if (node)
+  { file.identity_.type = node->kind(); file.identity_.device = node->device(); file.identity_.inode = node->number(); }
+  else file.identity_.type = kind == FileKind::Socket ? T_SOCKET : kind == FileKind::Terminal ? T_DEVICE : 0;
   file.backend_ = &object;
   file.readable = readable;
   file.writable = writable;
   unsigned mode = readable ? (writable ? O_RDWR : O_RDONLY) : O_WRONLY;
   __atomic_store_n(&file.status_flags_, mode | (nonblocking ? O_NONBLOCK : 0), __ATOMIC_RELEASE);
+  __atomic_store_n(&file.ready_, true, __ATOMIC_RELEASE);
 }
 
 bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
@@ -103,20 +111,12 @@ bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writ
   }
   else
   {
-    char *snapshot = nullptr;
-    unsigned length = 0;
-    if (node.owner().snapshot_reads())
-    {
-      if (writable) return false;
-      snapshot = static_cast<char *>(detail::allocate_page());
-      if (!snapshot) return false;
-      int result = node.owner().snapshot(&node, snapshot, 4096);
-      if (result < 0) { detail::free_page(snapshot); return false; }
-      length = result;
-    }
-    backend = new (file.backend_storage_) InodeBackend(node, snapshot, length);
+    PageBuffer contents;
+    bool snapshot = node.owner().snapshot_reads();
+    if (snapshot && (writable || !node.owner().snapshot(&node, contents))) return false;
+    backend = new (file.backend_storage_) InodeBackend(node, snapshot, contents);
   }
-  configure(file, *backend, readable, writable, nonblocking);
+  configure(file, *backend, readable, writable, nonblocking, FileKind::Node, &node);
   return true;
 }
 
@@ -124,12 +124,12 @@ void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endp
 {
   static_assert(sizeof(EndpointBackend) <= File::BackendBytes && alignof(EndpointBackend) <= 16);
   auto *backend = new (file.backend_storage_) EndpointBackend(endpoint);
-  configure(file, *backend, true, true, false);
+  configure(file, *backend, true, true, false, FileKind::Terminal);
 }
 
 void OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking)
 {
-  configure(file, object, true, true, nonblocking);
+  configure(file, object, true, true, nonblocking, object.capability(xv::io::CapabilityId::Socket) ? FileKind::Socket : FileKind::Unknown);
 }
 
 xv::io::IoObject *OpenFileTable::object(File *file) const
@@ -137,11 +137,19 @@ xv::io::IoObject *OpenFileTable::object(File *file) const
   return file ? file->backend_ : nullptr;
 }
 
+bool OpenFileTable::describe(File *file, FileInfo &result) const
+{
+  if (!file || !__atomic_load_n(&file->ready_, __ATOMIC_ACQUIRE)) return false;
+  result = file->identity_;
+  result.flags = __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
+  return true;
+}
+
 void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
 {
   static_assert(sizeof(PipeBackend) <= File::BackendBytes && alignof(PipeBackend) <= 16);
   auto *backend = new (file.backend_storage_) PipeBackend(pipe, writable);
-  configure(file, *backend, !writable, writable, false);
+  configure(file, *backend, !writable, writable, false, FileKind::Pipe);
 }
 
 int OpenFileTable::read(File *file, unsigned long address, int count)

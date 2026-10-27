@@ -2,6 +2,22 @@ module xv.syscall:handlers;
 
 namespace xv::syscall
 {
+unsigned long sys_stat();
+unsigned long sys_access();
+unsigned long sys_chown();
+unsigned long sys_chmod();
+unsigned long sys_umask();
+unsigned long sys_setgroups();
+unsigned long sys_getgroups();
+unsigned long sys_setegid();
+unsigned long sys_setgid();
+unsigned long sys_seteuid();
+unsigned long sys_setuid();
+unsigned long sys_getegid();
+unsigned long sys_getgid();
+unsigned long sys_geteuid();
+unsigned long sys_getuid();
+unsigned long sys_execve();
 // Prototypes for the functions that handle system calls.
 unsigned long sys_netctl();
 unsigned long sys_socket();

@@ -1,3 +1,4 @@
+#include "kernel/fs/image_paths.h"
 #include "kernel/support/param.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
@@ -86,7 +87,7 @@ copyout(char *s)
   for (int ai = 0; ai < sizeof(addrs) / sizeof(addrs[0]); ai++) {
     uint64 addr = addrs[ai];
 
-    int fd = open("README", 0);
+    int fd = open(XV_README_PATH, 0);
     if (fd < 0) {
       printf("open(README) failed\n");
       exit(1);
@@ -185,7 +186,7 @@ copyinstr2(char *s)
       big[i] = 'x';
     big[PGSIZE] = '\0';
     char *args2[] = {big, big, big, 0};
-    ret = exec("echo", args2);
+    ret = exec("/bin/echo", args2);
     if (ret != -1) {
       printf("exec(echo, BIG) returned %d, not -1\n", fd);
       exit(1);
@@ -277,7 +278,7 @@ rwsbrk(char *s)
   close(fd);
   unlink("rwsbrk");
 
-  fd = open("README", O_RDONLY);
+  fd = open(XV_README_PATH, O_RDONLY);
   if (fd < 0) {
     printf("open(README) failed\n");
     exit(1);
@@ -527,7 +528,7 @@ opentest(char *s)
 {
   int fd;
 
-  fd = open("echo", 0);
+  fd = open("/bin/echo", 0);
   if (fd < 0) {
     printf("%s: open echo failed!\n", s);
     exit(1);
@@ -710,7 +711,7 @@ exectest(char *s)
       fprintf(errfd, "%s: wrong fd\n", s);
       exit(1);
     }
-    if (exec("echo", echoargv) < 0) {
+    if (exec("/bin/echo", echoargv) < 0) {
       fprintf(errfd, "%s: exec echo failed\n", s);
       exit(1);
     }
@@ -1516,7 +1517,7 @@ linkunlink(char *s)
     if ((x % 3) == 0) {
       close(open("x", O_RDWR | O_CREATE));
     } else if ((x % 3) == 1) {
-      link("cat", "x");
+      link("/bin/cat", "x");
     } else {
       unlink("x");
     }
@@ -1903,7 +1904,7 @@ dirfile(char *s)
     printf("%s: unlink dirfile/xx succeeded!\n", s);
     exit(1);
   }
-  if (link("README", "dirfile/xx") == 0) {
+  if (link(XV_README_PATH, "dirfile/xx") == 0) {
     printf("%s: link to dirfile/xx succeeded!\n", s);
     exit(1);
   }
@@ -1943,7 +1944,7 @@ iref(char *s)
     }
 
     mkdir("");
-    link("README", "");
+    link(XV_README_PATH, "");
     fd = open("", O_CREATE);
     if (fd >= 0)
       close(fd);
@@ -2320,7 +2321,7 @@ bigargtest(char *s)
     args[MAXARG - 1] = 0;
     // this exec() should fail (and return) because the
     // arguments are too large.
-    exec("echo", args);
+    exec("/bin/echo", args);
     fd = open("bigarg-ok", O_CREATE);
     close(fd);
     exit(0);
@@ -2397,7 +2398,7 @@ void
 argptest(char *s)
 {
   int fd;
-  fd = open("init", O_RDONLY);
+  fd = open(XV_INIT_PATH, O_RDONLY);
   if (fd < 0) {
     printf("%s: open failed\n", s);
     exit(1);
@@ -2584,7 +2585,7 @@ badarg(char *s)
     char *argv[2];
     argv[0] = (char *)0xffffffff;
     argv[1] = 0;
-    exec("echo", argv);
+    exec("/bin/echo", argv);
   }
 
   exit(0);
@@ -2688,7 +2689,7 @@ lazy_copy(char *s)
     0x3fffffe000, 0x3ffffff000, 0x4000000000, 0x8000000000,
   };
   for (int i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
-    int fd = open("README", 0);
+    int fd = open(XV_README_PATH, 0);
     if (fd < 0) {
       printf("cannot open README\n");
       exit(1);
@@ -3171,7 +3172,7 @@ execout(char *s)
 
       close(1);
       char *args[] = {"echo", "x", 0};
-      exec("echo", args);
+      exec("/bin/echo", args);
       exit(0);
     } else {
       wait((int *)0);

@@ -14,6 +14,7 @@
 - [`xv::fs::DevFileSystem::open_device`](devfs.cpp.md#fn-77a253e4e89cb39a)
 - [`xv::fs::DevFileSystem::persistent`](devfs.cppm.md#fn-764f161c37df7fdb)
 - [`xv::fs::DevFileSystem::read`](devfs.cpp.md#fn-b088477df66b3ab4)
+- [`xv::fs::DevFileSystem::read_only`](devfs.cppm.md#fn-309b642156ff6da6)
 - [`xv::fs::DevFileSystem::release`](devfs.cpp.md#fn-6dacf32c76c227d1)
 - [`xv::fs::DevFileSystem::retain`](devfs.cpp.md#fn-e24bb911f90a0865)
 - [`xv::fs::DevFileSystem::root`](devfs.cppm.md#fn-81706a03ed59f77d)
@@ -63,4 +64,13 @@
 @fn Inode *xv::fs::DevFileSystem::root() override
 @brief 取得 devfs 根目录的未锁定引用。
 @details 根为固定节点表的第零项，引用计数经 references_ 保护；调用者负责释放。
+```
+<a id="fn-309b642156ff6da6"></a>
+
+## `xv::fs::DevFileSystem::read_only`
+
+```doxygen
+@fn bool xv::fs::DevFileSystem::read_only() const override
+@brief 声明 devfs 命名空间和元数据只读。
+@details 返回 true；权限检查对字符设备的数据写入保留例外，仍需满足节点的写权限位。
 ```

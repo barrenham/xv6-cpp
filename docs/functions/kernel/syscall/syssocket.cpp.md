@@ -2,6 +2,10 @@
 
 ## 函数导航
 
+- [`xv::syscall::input_address`](syssocket.cpp.md#fn-b5d122765e74f3d7)
+- [`xv::syscall::install`](syssocket.cpp.md#fn-8981757f3db9e0ef)
+- [`xv::syscall::output_address`](syssocket.cpp.md#fn-8de84deafbadc94e)
+- [`xv::syscall::socket_argument`](syssocket.cpp.md#fn-693314695aed9d5a)
 - [`xv::syscall::sys_accept`](syssocket.cpp.md#fn-a551ee0c6cc31b66)
 - [`xv::syscall::sys_connect`](syssocket.cpp.md#fn-6cc9bb91284d2288)
 - [`xv::syscall::sys_getpeername`](syssocket.cpp.md#fn-ad79d7621aebac76)
@@ -13,10 +17,6 @@
 - [`xv::syscall::sys_shutdown`](syssocket.cpp.md#fn-936eb95148b68d1d)
 - [`xv::syscall::sys_sockbind`](syssocket.cpp.md#fn-08947764259f8414)
 - [`xv::syscall::sys_socket`](syssocket.cpp.md#fn-1248323fc95ac4c4)
-- [`xv::syscall::input_address`](syssocket.cpp.md#fn-b5d122765e74f3d7)
-- [`xv::syscall::install`](syssocket.cpp.md#fn-8981757f3db9e0ef)
-- [`xv::syscall::output_address`](syssocket.cpp.md#fn-8de84deafbadc94e)
-- [`xv::syscall::socket_argument`](syssocket.cpp.md#fn-693314695aed9d5a)
 
 <a id="fn-1248323fc95ac4c4"></a>
 
@@ -35,9 +35,8 @@
 
 ```doxygen
 @fn unsigned long xv::syscall::sys_sockbind()
-@brief Socket 系统调用：读取 sockaddr_in 后把 Socket 绑定到本机/ANY/回环地址；与旧单端口 bind 系统调用并存。。
-@details 读取 sockaddr_in 后把 Socket 绑定到本机/ANY/回环地址；与旧单端口 bind 系统调用并存。
-@return 实际 fd/字节数或约定成功值；失败返回负错误。
+@brief 绑定 socket 本地地址和端口。
+@details 复制并校验地址，1..1023 端口要求有效 UID 为 0；端口 0 的自动分配及普通端口对普通用户开放，其余状态校验由 socket 实现。
 ```
 
 <a id="fn-6cc9bb91284d2288"></a>
@@ -139,26 +138,6 @@
 @return 实际 fd/字节数或约定成功值；失败返回负错误。
 ```
 
-<a id="fn-b5d122765e74f3d7"></a>
-
-## `xv::syscall::input_address`
-
-```doxygen
-@fn bool xv::syscall::input_address(unsigned long address, unsigned length, xv::net::Endpoint &endpoint)
-@brief 从用户空间读取至少 sockaddr_in 长度。
-@details 从用户空间读取至少 sockaddr_in 长度，校验 AF_INET，并把网络字节序 IPv4/端口转换为内部 Endpoint。
-```
-
-<a id="fn-8de84deafbadc94e"></a>
-
-## `xv::syscall::output_address`
-
-```doxygen
-@fn int xv::syscall::output_address(unsigned long address, unsigned long length, xv::net::Endpoint endpoint)
-@brief 按用户 socklen_t 容量截断复制 sockaddr_in。
-@details 按用户 socklen_t 容量截断复制 sockaddr_in，并输出实际长度16；地址为空时允许调用者省略来源信息，非法用户地址返回 -1。
-```
-
 <a id="fn-693314695aed9d5a"></a>
 
 ## `xv::syscall::socket_argument`
@@ -177,4 +156,23 @@
 @fn int xv::syscall::install(xv::net::Socket *socket, bool nonblocking)
 @brief 分配 File 后以 bind_object 接收新 socket 的 close 责任，再安装进当前描述符表。
 @details 分配 File 后以 bind_object 接收新 socket 的 close 责任，再安装进当前描述符表。分配失败调用 socket close，安装失败释放 File，由统一生命周期回滚。
+```
+<a id="fn-b5d122765e74f3d7"></a>
+
+## `xv::syscall::input_address`
+
+```doxygen
+@fn bool xv::syscall::input_address(unsigned long address, unsigned length, xv::net::Endpoint &endpoint)
+@brief 从用户空间读取至少 sockaddr_in 长度。
+@details 从用户空间读取至少 sockaddr_in 长度，校验 AF_INET，并把网络字节序 IPv4/端口转换为内部 Endpoint。
+```
+
+<a id="fn-8de84deafbadc94e"></a>
+
+## `xv::syscall::output_address`
+
+```doxygen
+@fn int xv::syscall::output_address(unsigned long address, unsigned long length, xv::net::Endpoint endpoint)
+@brief 按用户 socklen_t 容量截断复制 sockaddr_in。
+@details 按用户 socklen_t 容量截断复制 sockaddr_in，并输出实际长度16；地址为空时允许调用者省略来源信息，非法用户地址返回 -1。
 ```

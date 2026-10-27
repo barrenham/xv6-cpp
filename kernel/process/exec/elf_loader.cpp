@@ -32,6 +32,8 @@ public:
     if (inode_)
     {
       xv::fs::filesystem().lock(inode_);
+      if (inode_->kind() != 2 || !xv::fs::filesystem().allowed(inode_, 1))
+      { xv::fs::filesystem().unlock_release(inode_); inode_ = nullptr; }
     }
   }
 
@@ -135,7 +137,7 @@ bool load_segment(AddressSpace &image, ExecutableFile &file, const proghdr &segm
 }
 } // namespace
 
-int ElfLoader::load(Process &process, const char *path, char *const *arguments)
+int ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
 {
   PendingImage candidate;
   ExecutableFile file(path);
@@ -190,6 +192,23 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments)
   candidate.memory.protect_guard(rounded);
   auto stack = candidate.memory.size();
   auto bottom = stack - USERSTACK * PGSIZE;
+  unsigned long user_environment[MAXENV];
+  unsigned env_count = 0;
+  for (; environment && environment[env_count]; ++env_count)
+  {
+    if (env_count >= MAXENV - 1) return -1;
+    unsigned long bytes = xv::runtime::length(environment[env_count]) + 1;
+    if (bytes > stack - bottom) return -1;
+    stack = (stack - bytes) & ~15UL;
+    if (stack < bottom || candidate.memory.copy_out(stack, environment[env_count], bytes) < 0) return -1;
+    user_environment[env_count] = stack;
+  }
+  user_environment[env_count] = 0;
+  unsigned long environment_bytes = (env_count + 1) * sizeof(unsigned long);
+  if (environment_bytes > stack - bottom) return -1;
+  stack = (stack - environment_bytes) & ~15UL;
+  if (stack < bottom || candidate.memory.copy_out(stack, user_environment, environment_bytes) < 0) return -1;
+  unsigned long environment_address = stack;
   unsigned long user_arguments[MAXARG];
   unsigned count = 0;
   for (; arguments[count]; ++count)
@@ -224,7 +243,7 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments)
     return -1;
   }
 
-  process.commit_image(candidate.memory, header.entry, stack, stack, path);
+  process.commit_image(candidate.memory, header.entry, stack, stack, path, environment_address);
   // candidate now owns the old image, released only after the successful swap.
   return count;
 }
@@ -234,8 +253,8 @@ ExecutableLoader &executable_loader()
   return loader;
 }
 
-int execute(const char *path, char *const *arguments)
+int execute(const char *path, char *const *arguments, char *const *environment)
 {
-  return executable_loader().load(*current(), path, arguments);
+  return executable_loader().load(*current(), path, arguments, environment);
 }
 } // namespace xv::process

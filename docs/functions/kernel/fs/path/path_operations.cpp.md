@@ -81,8 +81,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short major, short minor)
-@brief 在借用的父目录中创建磁盘 inode。
-@details 外层须有磁盘事务，父目录未锁定且有引用。拒绝孤儿目录和链接数溢出，已有普通文件或设备可按 T_FILE 打开；新目录建立 . 和 ..。失败回滚新 inode，成功返回锁定的子引用，不释放父引用。
+@brief 在磁盘父目录创建并返回锁定节点。
+@details 父锁内验证目录仍有链接及 W/X；设备创建仅 root。新节点使用有效 uid/gid，文件 0666、目录 0777、设备 0600 再扣除 umask；失败回滚引用和链接。
 ```
 
 <a id="fn-603e65641638664d"></a>
@@ -91,8 +91,8 @@
 
 ```doxygen
 @fn int xv::fs::Xv6FileSystem::link_at(Inode *dp, const char *name, Inode *ip)
-@brief 在同一磁盘目录中增加目标硬链接。
-@details 借用两个未锁定引用，要求外层事务。拒绝目录、无链接节点和 nlink 溢出；先保护目标链接数再加锁修改父目录，目录写入失败时回滚目标链接数。父目录已删除或设备不同则失败。
+@brief 在磁盘目录添加已有文件的硬链接。
+@details 拒绝跨后端和目录目标；父目录锁内验证 W/X 与链接状态，发布目录项失败时撤销增加的链接数。调用者维持磁盘事务。
 ```
 
 <a id="fn-5b4b6b7276311573"></a>
@@ -101,6 +101,6 @@
 
 ```doxygen
 @fn int xv::fs::Xv6FileSystem::unlink_at(Inode *dp, const char *name)
-@brief 从借用的磁盘目录中删除一个目录项。
-@details 要求外层事务及未锁定父引用。加锁后拒绝 .、.. 和非空目录，清空目录项并更新父子链接数，释放查得的子引用；父引用由调用者释放。
+@brief 在磁盘目录删除目录项。
+@details 父子节点锁内检查父 W/X 及 sticky：root、目录属主或目标属主可删；仍拒绝点目录及非空目录。日志化目录项和链接数，最后引用回收由 inode 生命周期管理。
 ```

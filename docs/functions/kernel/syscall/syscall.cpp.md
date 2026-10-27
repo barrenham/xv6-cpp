@@ -13,6 +13,16 @@
 - [`xv::syscall::dispatch`](syscall.cpp.md#fn-b83b0bfa82c48ee9)
 - [`xv::syscall::lookup_syscall`](syscall.cpp.md#fn-819d52ac7b54dd49)
 
+<a id="fn-819d52ac7b54dd49"></a>
+
+## `xv::syscall::lookup_syscall`
+
+```doxygen
+@fn static SyscallHandler xv::syscall::lookup_syscall(int number)
+@brief 分派系统调用号到处理函数。
+@details 新增 execve、凭据/组/umask、chmod/chown/access 与独立 stat 分派，原有编号保持。未知编号返回空处理器，由入口统一报告错误。
+```
+
 <a id="fn-b83b0bfa82c48ee9"></a>
 
 ## `xv::syscall::dispatch`
@@ -25,12 +35,4 @@
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 @details LAB_NET 下启用 bind/unbind/send/recv。recv 等待因停止信号返回 -1 时，和其他可重启阻塞调用一样恢复首参数并回退 PC，继续后重新执行。
 @details 因停止信号中断的 accept/recvfrom/sendto 与 read/write/wait/waitpid 一样回退系统调用 PC。Socket 的 read/write 沿用原有分派、部分进度与信号处理。
-```
-<a id="fn-819d52ac7b54dd49"></a>
-
-## `xv::syscall::lookup_syscall`
-
-```doxygen
-@fn SyscallHandler xv::syscall::lookup_syscall(int number)
-@brief 按共享 ABI 系统调用号选择私有处理函数，包含 netctl 管理入口；条件实验号沿用编译开关，未知编号返回空处理器。已删除旧 UDP 系统调用，30 至 33 不再分派；现有 socket 系统调用编号保持不变。
 ```

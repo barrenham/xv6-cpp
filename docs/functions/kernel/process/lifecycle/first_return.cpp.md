@@ -18,11 +18,9 @@
 
 ```doxygen
 @fn void xv::process::first_return()
-@brief 进程对象生命周期、组身份、调度、等待与信号：首项返回。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`current` → `p->lock.release` → `__atomic_load_n` → `xv::fs::filesystem` → `initialize` → `__atomic_store_n` → `execute` → `xv::print::panic` → `xv::trap::return_to_user`。
-@details 本函数可见的状态更新包括：`p->trapframe->a0 = execute("/init", arguments);`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`__atomic_load_n(&first, __ATOMIC_ACQUIRE)`；`p->trapframe->a0 == -1`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`p->lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 各分支实际返回：`_to_user()`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在进程首次调度时准备文件系统并进入用户态。
+@pre 调度器持有当前进程锁，本函数先释放该锁，再进行可能睡眠的文件系统初始化。
+@details 初始进程恢复并挂载文件系统，然后从 XV_INIT_PATH 指定的 /sbin/init 装载首个用户程序。参数首项使用相同路径，装载结果写入 trapframe.a0；失败触发 panic。其他进程跳过首轮初始化并按自己的已准备上下文返回用户态。
+@note first 标记用 acquire/release 发布初始化完成状态，确保其他核心观察到已就绪的系统服务。
+@return 经 return_to_user 进入用户态，不普通返回到调度调用点。
 ```

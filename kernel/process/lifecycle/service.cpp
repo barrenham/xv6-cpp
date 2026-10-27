@@ -187,4 +187,6 @@ bool snapshot_after(int after, ProcessInfo &result)
 {
   return process_manager.snapshot_after(after, result);
 }
+int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
+{ return process_manager.inspect_files(pid, entries, capacity); }
 } // namespace xv::process

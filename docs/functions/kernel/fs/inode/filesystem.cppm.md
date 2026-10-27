@@ -13,6 +13,7 @@
 - [`xv::fs::FileSystem::FileSystem`](filesystem.cppm.md#fn-b4ac6c4cbbce1f37)
 - [`xv::fs::FileSystem::FileSystem`](filesystem.cppm.md#fn-fe4eb86d8c242275)
 - [`xv::fs::FileSystem::allocate`](filesystem.cppm.md#fn-d9a7a26c2a809ad7)
+- [`xv::fs::FileSystem::attributes`](filesystem.cppm.md#fn-2001e08446fe2a2c)
 - [`xv::fs::FileSystem::create_at`](filesystem.cppm.md#fn-e1fd6bfced25fe7e)
 - [`xv::fs::FileSystem::initialize`](filesystem.cppm.md#fn-4c4ed942fc0d3cde)
 - [`xv::fs::FileSystem::initialize_inodes`](filesystem.cppm.md#fn-07de6482d4dc8016)
@@ -402,7 +403,16 @@
 ## `xv::fs::FileSystem::snapshot`
 
 ```doxygen
-@fn virtual int xv::fs::FileSystem::snapshot(Inode *, char *, unsigned)
-@brief 把节点的打开时内容复制到内核快照缓冲。
-@details 调用者锁定节点，buffer/capacity 为已分配的内核缓冲。成功返回字节数，容量不足或对象已退出返回 -1，不能发布半份内容。默认不支持；实现不得把活动内核对象指针交给用户。
+@fn virtual bool xv::fs::FileSystem::snapshot(Inode *, PageBuffer &)
+@brief 把节点的打开时内容追加到动态页链。
+@details 调用者锁定节点并提供独立 PageBuffer，成功返回 true，生成或分配失败返回 false。调用方销毁失败缓冲，不发布半份内容；默认实现不支持。
+```
+<a id="fn-2001e08446fe2a2c"></a>
+
+## `xv::fs::FileSystem::attributes`
+
+```doxygen
+@fn void xv::fs::FileSystem::attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
+@brief 在所属节点锁内更新安全属性。
+@details 同时写入 uid/gid/mode 并调用后端 update。调用者先完成权限和范围验证，磁盘后端还需要日志事务；不自行获取节点锁。
 ```

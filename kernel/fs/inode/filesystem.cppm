@@ -4,6 +4,7 @@ module;
 export module xv.fs:filesystem;
 
 export import :inode;
+export import :buffer;
 export import :journal;
 export import xv.drivers;
 
@@ -18,6 +19,8 @@ public:
   virtual const char *name() const = 0;
   virtual void initialize(int device) = 0;
   virtual void initialize_inodes() = 0;
+  void attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
+  { node->uid_ = uid; node->gid_ = gid; node->mode_ = mode; update(node); }
   virtual bool persistent() const { return true; }
   virtual Inode *root() = 0;
   virtual Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset) = 0;
@@ -40,7 +43,7 @@ public:
   virtual xv::drivers::CharacterDevice *open_device(Inode *, bool) { return nullptr; }
   virtual bool snapshot_reads() const { return false; }
   virtual bool read_only() const { return false; }
-  virtual int snapshot(Inode *, char *, unsigned) { return -1; }
+  virtual bool snapshot(Inode *, PageBuffer &) { return false; }
 
 protected:
 

@@ -64,7 +64,7 @@ void DevFileSystem::initialize(int device)
     auto &node = nodes_[count_];
     node.dev = device;
     node.inum = count_ + 1;
-    node.type = T_DEVICE;
+    node.type = T_DEVICE; node.uid_ = node.gid_ = 0; node.mode_ = detail::compare(record.name, "console", DIRSIZ) == 0 ? 0600 : 0666;
     node.major = record.major;
     node.minor = record.minor;
     node.valid = 1;
@@ -73,21 +73,21 @@ void DevFileSystem::initialize(int device)
   auto &directory = nodes_[0];
   directory.dev = device;
   directory.inum = 1;
-  directory.type = T_DIR;
+  directory.type = T_DIR; directory.mode_ = 0555;
   directory.valid = 1;
   directory.nlink = 1;
   directory.size = (count_ + 3) * sizeof(dirent);
   auto &pts = nodes_[PtsRoot];
   pts.dev = device;
   pts.inum = PtsRoot + 1;
-  pts.type = T_DIR;
+  pts.type = T_DIR; pts.mode_ = 0555;
   pts.valid = pts.nlink = 1;
   pts.size = (2 + xv::drivers::MaxNamedPtys) * sizeof(dirent);
   for (unsigned i = 0; i < xv::drivers::MaxNamedPtys; ++i)
   {
     auto &node = nodes_[PtsStart + i];
     node.dev = device; node.inum = PtsStart + i + 1;
-    node.type = T_DEVICE; node.major = 5; node.minor = i;
+    node.type = T_DEVICE; node.uid_ = node.gid_ = 0; node.mode_ = 0600; node.major = 5; node.minor = i;
     node.valid = node.nlink = 1;
   }
 }
@@ -116,7 +116,7 @@ void DevFileSystem::stat(Inode *node, Stat *result)
   result->ino = node->inum;
   result->type = node->type;
   result->nlink = node->nlink;
-  result->size = node->size;
+  result->size = node->size; node->security_stat(result);
 }
 namespace
 {
@@ -185,8 +185,12 @@ Inode *DevFileSystem::lookup_entry(Inode *directory, const char *name, unsigned 
     }
     if (!xv::drivers::retain_named_pty(number)) return nullptr;
     auto *node = &nodes_[PtsStart + number];
+    unsigned owner, group;
+    bool ownership = xv::drivers::named_pty_owner(number, owner, group);
+    if (!ownership) { xv::drivers::release_named_pty(number); return nullptr; }
     references_.acquire();
     bool already_pinned = node->ref++ != 0;
+    if (!already_pinned) { node->uid_ = owner; node->gid_ = group; }
     references_.release();
     if (already_pinned) xv::drivers::release_named_pty(number);
     if (offset) *offset = (number + 2) * sizeof(dirent);

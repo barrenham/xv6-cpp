@@ -3,6 +3,7 @@
 ## 函数导航
 
 - [`xv::fs::VirtualFileSystem::allocate`](vfs.cpp.md#fn-b14436f73059aab1)
+- [`xv::fs::VirtualFileSystem::allowed`](vfs.cpp.md#fn-abf62fef3e7f21c5)
 - [`xv::fs::VirtualFileSystem::create`](vfs.cpp.md#fn-6591de3da7091bf9)
 - [`xv::fs::VirtualFileSystem::create_at`](vfs.cpp.md#fn-6139d98544fd4958)
 - [`xv::fs::VirtualFileSystem::enter_mount`](vfs.cpp.md#fn-4860e29021bbf700)
@@ -35,8 +36,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize_inodes()
-@brief 初始化磁盘、devfs 及可选 procfs 的节点表。
-@details 启动早期只建立锁和 owner，不访问磁盘或生成动态内容。
+@brief 初始化所有已装配后端的节点锁和归属。
+@details 为磁盘/devfs 及可选 procfs/ramfs 建立基础同步；RAM 根的实际分配推迟到首个进程中的 initialize。
 ```
 
 <a id="fn-e6a15b643dd8c735"></a>
@@ -45,8 +46,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize(int device)
-@brief 恢复磁盘并建立 /dev 与可选 /proc 挂载。
-@details 在首个进程可睡眠上下文初始化磁盘，然后在一个事务内建立启动挂载并冻结挂载表；根路径查询仍可在此前供初始进程取得引用。
+@brief 恢复磁盘并依次挂载 /dev、/proc 和 /tmp。
+@details 启动事务只负责覆盖目录和挂载关系；RAM 文件内容不写磁盘。全部装配后冻结三个记录，运行期没有新增 mount/unmount 系统调用。
 ```
 
 <a id="fn-7cbd893bc133ef55"></a>
@@ -67,26 +68,6 @@
 @fn Inode *xv::fs::VirtualFileSystem::enter_mount(Inode *node)
 @brief 把覆盖目录引用转换为对应挂载根引用。
 @details 遍历启动后只读的挂载记录，以 owner/device/inode 身份匹配；命中时释放覆盖引用并取得根引用，否则原样返回。
-```
-
-<a id="fn-81e896ba99fe170a"></a>
-
-## `xv::fs::VirtualFileSystem::walk`
-
-```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name)
-@brief 逐组件解析多个挂载后端间的路径。
-@details 从绝对根或工作目录独立引用开始，锁定目录并拒绝孤儿目录。进入任一覆盖节点时跳转到挂载根；挂载根的 .. 回到记录父目录，普通父路径由后端查找。成功返回未锁定引用，失败释放临时引用；磁盘引用释放由外层事务保护。
-```
-
-<a id="fn-f4cf807217fcb7f0"></a>
-
-## `xv::fs::VirtualFileSystem::lookup`
-
-```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path)
-@brief 取得跨挂载路径对应的未锁定引用。
-@details 委托 walk 完成绝对/相对路径、重复斜杠、点目录与挂载转换；路径不存在或中间节点不可遍历返回 nullptr。调用者负责释放引用及磁盘事务。
 ```
 
 <a id="fn-8bfb0d7b5ac233f1"></a>
@@ -287,4 +268,33 @@
 @fn bool xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
 @brief 在启动阶段把一个节点后端挂载到目录。
 @details 调用者已初始化后端节点锁并持磁盘事务。复用或创建覆盖目录，保存覆盖节点、挂载根与父目录的长期引用；拒绝非目录、重复挂载、冻结后修改及超过三个记录。后端 initialize 只在验证路径之后执行。
+```
+<a id="fn-81e896ba99fe170a"></a>
+
+## `xv::fs::VirtualFileSystem::walk`
+
+```doxygen
+@fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real)
+@brief 逐组件解析挂载路径并检查目录搜索权限。
+@details 每次锁定目录后验证 X，处理点目录和挂载边界。real 模式将真实身份贯穿全部组件供 access 使用；返回新的未锁定引用或失败，临时引用始终归还。
+```
+
+<a id="fn-f4cf807217fcb7f0"></a>
+
+## `xv::fs::VirtualFileSystem::lookup`
+
+```doxygen
+@fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real)
+@brief 以指定凭据模式查找完整路径。
+@details 默认有效身份；real=true 用于 access 的真实身份路径搜索。委托 walk，成功返回调用者负责归还的未锁定引用。
+```
+
+<a id="fn-abf62fef3e7f21c5"></a>
+
+## `xv::fs::VirtualFileSystem::allowed`
+
+```doxygen
+@fn bool xv::fs::VirtualFileSystem::allowed(Inode *node, unsigned requested, bool real)
+@brief 委托公共节点访问策略。
+@details 调用者持节点锁；requested 是 R/W/X 位，real 决定真实或有效身份，不在包装层重复获取节点锁。
 ```

@@ -9,6 +9,9 @@
 #include "kernel/tty/termios.h"
 #include "kernel/process/signals/signal.h"
 #include "kernel/process/wait/wait.h"
+#include "environment.h"
+
+namespace shell { void prompt(); }
 
 extern "C"
 {
@@ -64,6 +67,7 @@ extern "C"
     struct cmd *cmd;
   };
 
+  bool parent_environment(char *line);
   int fork1(void); // Fork but panics on failure.
   void panic(char *);
   struct cmd *parsecmd(char *);
@@ -95,18 +99,21 @@ extern "C"
       {
         exit(1);
       }
+      if (!shell::prepare(ecmd->argv)) { fprintf(2, "sh: environment expansion failed\n"); exit(1); }
+      { int status = shell::builtin(ecmd->argv); if (status >= 0) exit(status); }
       // A list coordinator may reach its right-hand EXEC while ignoring SIGINT.
       sigdisposition(SIGINT, SIGNAL_DEFAULT);
       sigdisposition(SIGTSTP, SIGNAL_DEFAULT);
       sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
-      exec(ecmd->argv[0], ecmd->argv);
+      execvp(ecmd->argv[0], ecmd->argv);
       fprintf(2, "exec %s failed\n", ecmd->argv[0]);
       break;
 
     case REDIR:
       rcmd = (struct redircmd *)cmd;
       close(rcmd->fd);
-      if (open(rcmd->file, rcmd->mode) < 0)
+      rcmd->file = shell::expand(rcmd->file);
+      if (!rcmd->file || open(rcmd->file, rcmd->mode) < 0)
       {
         fprintf(2, "open %s failed\n", rcmd->file);
         exit(1);
@@ -117,19 +124,24 @@ extern "C"
     case LIST:
       sigdisposition(SIGINT, SIGNAL_IGNORE);
       lcmd = (struct listcmd *)cmd;
-      if (fork1() == 0)
       {
-        sigdisposition(SIGINT, SIGNAL_DEFAULT);
-        sigdisposition(SIGTSTP, SIGNAL_DEFAULT);
-        sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
-        runcmd(lcmd->left);
-      }
-      {
-        int status;
-        wait(&status);
-        if (status >= 128)
+        bool handled = false;
+        if (lcmd->left->type == EXEC)
         {
-          exit(status);
+          auto *left = reinterpret_cast<execcmd *>(lcmd->left);
+          unsigned first = 0; while (left->argv[first] && shell::assignment(left->argv[first])) ++first;
+          const char *name = left->argv[first];
+          if (!name || !strcmp(name, "export") || !strcmp(name, "unset") || !strcmp(name, "cd") || !strcmp(name, "umask"))
+          { handled = true; if (!shell::prepare(left->argv) || shell::builtin(left->argv) != 0) fprintf(2, "sh: builtin failed\n"); }
+        }
+        if (!handled)
+        {
+          if (fork1() == 0)
+          {
+            sigdisposition(SIGINT, SIGNAL_DEFAULT); sigdisposition(SIGTSTP, SIGNAL_DEFAULT); sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
+            runcmd(lcmd->left);
+          }
+          int status; wait(&status); if (status >= 128) exit(status);
         }
       }
       runcmd(lcmd->right);
@@ -292,7 +304,7 @@ extern "C"
     bool modes_valid;
     int flags;
     termios modes;
-    char command[100];
+    char command[512];
     Job *next;
   };
 
@@ -315,7 +327,23 @@ extern "C"
 
   static void show_job(Job *job, const char *state)
   {
-    printf("[%d] %s %s\n", job->id, state, job->command);
+    char line[sizeof(job->command) + 48];
+    unsigned used = 0;
+    auto append = [&](const char *text)
+    {
+      while (*text && used < sizeof(line)) line[used++] = *text++;
+    };
+    append("[");
+    char digits[12];
+    unsigned count = 0, id = job->id;
+    do { digits[count++] = '0' + id % 10; id /= 10; } while (id);
+    while (count) line[used++] = digits[--count];
+    append("] ");
+    append(state);
+    append(" ");
+    append(job->command);
+    append("\n");
+    write(1, line, used);
   }
 
   static bool refresh_jobs(bool separate_line = false, Job *foreground = nullptr)
@@ -371,14 +399,14 @@ extern "C"
 
   int getcmd(char *buf, int nbuf)
   {
-    write(2, "$ ", 2);
+    shell::prompt();
     memset(buf, 0, nbuf);
     int used = 0;
     while (used + 1 < nbuf)
     {
       if (service_children(true))
       {
-        write(2, "$ ", 2);
+        shell::prompt();
         if (used) write(2, buf, used);
       }
       pollfd events[] = {{0, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
@@ -703,7 +731,7 @@ extern "C"
 
   int main(void)
   {
-    static char buf[100];
+    static char buf[512];
     int fd;
     while ((fd = open("/dev/console", O_RDWR)) >= 0)
     {
@@ -731,18 +759,7 @@ extern "C"
         continue;
       }
       refresh_jobs();
-      if (cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' ')
-      {
-        cmd[strlen(cmd) - 1] = 0;
-        if (chdir(cmd + 3) < 0)
-        {
-          fprintf(2, "cannot cd %s\n", cmd + 3);
-        }
-      }
-      else
-      {
-        launch_command(cmd);
-      }
+      if (!parent_environment(cmd)) launch_command(cmd);
     }
     sigdisposition(SIGCHLD, SIGNAL_DEFAULT);
     for (Job *job = jobs_head; job; job = job->next)
@@ -753,6 +770,24 @@ extern "C"
     {
     }
     exit(0);
+  }
+
+  bool parent_environment(char *line)
+  {
+    if (!shell::parent_candidate(line)) return false;
+    char *copy = static_cast<char *>(malloc(strlen(line) + 1)); if (!copy) return true;
+    strcpy(copy, line); auto *tree = parsecmd(copy);
+    if (tree->type != EXEC) { free(copy); return false; }
+    auto *command = reinterpret_cast<execcmd *>(tree);
+    unsigned first = 0; while (command->argv[first] && shell::assignment(command->argv[first])) ++first;
+    const char *name = command->argv[first];
+    bool candidate = !name || !strcmp(name, "export") || !strcmp(name, "unset") || !strcmp(name, "cd") || !strcmp(name, "umask");
+    if (candidate)
+    {
+      if (!shell::prepare(command->argv) || shell::builtin(command->argv) != 0) fprintf(2, "sh: invalid environment command\n");
+      for (unsigned i = 0; command->argv[i]; ++i) free(command->argv[i]);
+    }
+    free(tree); free(copy); return candidate;
   }
 
   void panic(char *s)
@@ -880,9 +915,14 @@ extern "C"
       break;
     default:
       ret = 'a';
-      while (s < es && !strchr(whitespace, *s) && !strchr(symbols, *s))
-      {
-        s++;
+      { char quote = 0;
+        while (s < es && (quote || (!strchr(whitespace, *s) && !strchr(symbols, *s))))
+        {
+          if (*s == '\\' && quote != '\'' && s + 1 < es) { s += 2; continue; }
+          if ((*s == '\'' || *s == '"') && (!quote || quote == *s)) quote = quote ? 0 : *s;
+          ++s;
+        }
+        if (quote) panic("unterminated quote");
       }
       break;
     }

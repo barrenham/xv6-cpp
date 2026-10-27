@@ -179,6 +179,7 @@ int ProcessManager::fork_process(void)
 
   np->descriptors_.inherit_from(p->descriptors_);
   np->directory_.inherit_from(p->directory_);
+  np->credentials_.inherit(p->credentials_);
 
   xv::runtime::copy_string(np->name, p->name, sizeof(p->name));
 
@@ -323,7 +324,7 @@ int ProcessManager::kill(int pid)
   {
     return -1;
   }
-  if (process == initial_)
+  if (process == initial_ || !Credentials::may_signal(current()->credentials().snapshot(), process->credentials().snapshot()))
   {
     process->lock.release();
     return -1;
@@ -376,6 +377,9 @@ bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
       result_.parent = process.parent ? process.parent->pid : 0;
       result_.group = groups_.get_group(process.membership_);
       result_.session = groups_.get_session(process.membership_, 0);
+      auto credentials = process.credentials_.snapshot();
+      result_.uid = credentials.uid; result_.effective_uid = credentials.effective_uid;
+      result_.gid = credentials.gid; result_.effective_gid = credentials.effective_gid;
       result_.bytes = process.memory_.observed_size();
       const char states[] = "?USRRTZ";
       result_.state = states[static_cast<unsigned>(process.state)];
@@ -391,5 +395,26 @@ bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
   xv::sync::ScopedLock family(wait_lock_);
   store_.visit(snapshot);
   return snapshot.found;
+}
+int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
+{
+  if (pid < 1 || capacity < DescriptorTable::Capacity) return -1;
+  class Pid final : public ProcessPredicate
+  {
+  public:
+    explicit Pid(int pid) : pid_(pid) {}
+    bool matches(Process &process) override
+    { return process.id() == pid_ && process.state != ProcessState::Unused; }
+  private:
+    int pid_;
+  } predicate(pid);
+  auto *process = store_.find(predicate);
+  if (!process) return -1;
+  auto caller = current()->credentials().snapshot(), target = process->credentials().snapshot();
+  if (caller.effective_uid != 0 && (caller.effective_uid != target.uid || target.uid != target.effective_uid))
+  { process->lock.release(); return -1; }
+  int count = process->files().inspect(entries, capacity);
+  process->lock.release();
+  return count;
 }
 } // namespace xv::process

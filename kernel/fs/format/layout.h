@@ -23,7 +23,7 @@ struct superblock {
   uint bmapstart;  // Block number of first free map block
 };
 
-#define FSMAGIC 0x10203040
+#define FSMAGIC 0x10203041
 
 #define NDIRECT   12
 #define NINDIRECT (BSIZE / sizeof(uint))
@@ -38,6 +38,10 @@ struct dinode {
   short nlink;             // Number of links to inode in file system
   uint size;               // Size of file (bytes)
   uint addrs[NDIRECT + 1]; // Data block addresses
+  uint uid, gid;
+  ushort mode;
+  ushort reserved;
+  uchar padding[52];
 };
 
 // Inodes per block.

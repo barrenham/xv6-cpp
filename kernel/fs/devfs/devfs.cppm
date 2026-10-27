@@ -10,6 +10,7 @@ public:
   constexpr DevFileSystem() = default;
   const char *name() const override { return "devfs"; }
   bool persistent() const override { return false; }
+  bool read_only() const override { return true; }
   void initialize(int device) override;
   void initialize_inodes() override;
   Inode *root() override { return retain(&nodes_[0]); }

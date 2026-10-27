@@ -1,7 +1,7 @@
 # 文件系统模块
 
 统一入口为 `import xv.fs;`。文件系统运行时类型属于具名模块；磁盘格式和
-用户 ABI 仍使用共享头文件。现有文件系统镜像、用户程序、mkfs 继续兼容。
+用户 ABI 仍使用共享头文件。权限扩展使用 128 字节磁盘 inode 和新版 FSMAGIC；旧镜像需重新生成，见 [用户与权限](../../docs/users-permissions.md)。
 
 | 目录或文件 | 职责 |
 | --- | --- |
@@ -14,7 +14,9 @@
 | `path/` | 磁盘目录项、创建、硬链接和 unlink |
 | `vfs/` | 公共路径解析、节点归属分发与挂载边界 |
 | `devfs/` | 合成设备目录、null/zero 与动态 pts 节点 |
-| `procfs/` | 系统与进程信息的只读内容快照 |
+| `procfs/` | 系统、进程与描述符信息的动态只读快照 |
+| `ramfs/` | /tmp 的内存节点、目录、文件与引用回收 |
+| `buffer/` | RAM 内容和打开快照共用的动态页链 |
 | `file/` | 打开文件表、引用计数、统一 IoObject 后端及适配器和字符设备注册表 |
 | `pipe/` | 管道环形缓冲、等待唤醒和两端生命周期 |
 | `platform/` | 进程、内存和内核原语适配及私有引用操作桥接 |
@@ -27,6 +29,7 @@ classDiagram
   VirtualFileSystem --> FileSystem : mount / owner dispatch
   FileSystem <|-- DevFileSystem
   FileSystem <|-- ProcFileSystem
+  FileSystem <|-- RamFileSystem
   Inode --> FileSystem : owner
   File --> IoObject
   IoObject <|-- InodeBackend
@@ -136,7 +139,7 @@ ioctl 和 socket 操作查询独立能力接口。inode 偏移位于每次打开
 
 服务实例采用 `constinit`，不增加全局构造/析构运行时。启动时依次初始化块缓存、
 inode 表和打开文件表；磁盘驱动就绪后，初始进程在可睡眠上下文初始化磁盘 FS、
-日志恢复和孤儿回收。当前使用一个磁盘根文件系统，并在 `/dev`、`/proc` 分别挂载设备和进程信息文件系统。挂载规则与
+日志恢复和孤儿回收。当前使用一个磁盘根文件系统，并在 `/dev`、`/proc`、`/tmp` 挂载设备、进程信息和 RAM 文件系统。挂载规则与
 设备注册见 [VFS 与 devfs](../../docs/devfs.md)。
 
 原有 stat 布局和打开标志保留；新增 O_NONBLOCK 与 fcntl 状态操作。磁盘结构、直接/间接块规则和 mkfs 格式保持不变。原

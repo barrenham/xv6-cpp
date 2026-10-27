@@ -1,4 +1,9 @@
 #pragma once
+#define F_OK 0
+#define X_OK 1
+#define W_OK 2
+#define R_OK 4
+#define S_ISVTX 01000
 #define O_RDONLY 0x000
 #define O_WRONLY 0x001
 #define O_RDWR   0x002

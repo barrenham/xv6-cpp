@@ -20,6 +20,7 @@
 - [`xv::fs::OpenFileTable::bind_object`](open_file.cpp.md#fn-5b6c8b6fa35ede20)
 - [`xv::fs::OpenFileTable::bind_pipe`](open_file.cpp.md#fn-28ec255ef808a0a2)
 - [`xv::fs::OpenFileTable::configure`](open_file.cpp.md#fn-34475d43f15a5471)
+- [`xv::fs::OpenFileTable::describe`](open_file.cpp.md#fn-66c95719b54955f5)
 - [`xv::fs::OpenFileTable::fcntl`](open_file.cpp.md#fn-3a55abe43cfd3ddc)
 - [`xv::fs::OpenFileTable::initialize`](open_file.cpp.md#fn-6b5a5967a8ffe320)
 - [`xv::fs::OpenFileTable::ioctl`](open_file.cpp.md#fn-227fb8963ea0dda0)
@@ -77,8 +78,8 @@
 
 ```doxygen
 @fn File *xv::fs::OpenFileTable::allocate()
-@brief 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。
-@details 在全局表锁下寻找 ref 为零的空槽，设为一个拥有引用并清空后端。ref=-1 的关闭中槽仍占用，不能提前重用其内置适配器存储。失败返回 nullptr。
+@brief 取得一个打开文件槽并分配稳定的打开实例标识。
+@details 在表锁内寻找 ref 为零的槽，清空发布标记与旧身份，分配递增 identity，建立未绑定引用。观察者在 configure 完成前不能取得其描述信息。
 ```
 
 <a id="fn-5dc21f043fc5419d"></a>
@@ -110,8 +111,8 @@
 
 ```doxygen
 @fn bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)
-@brief 为一次打开构造节点后端并报告初始化是否成功。
-@details 设备调用所属文件系统的 open_device 取得独立会话。快照文件系统为只读文件或目录分配一页并生成打开时内容，失败归还页面；成功才发布 backend 并接管 inode 引用。失败时调用者仍负责释放 inode 和未绑定 File。
+@brief 为 inode 打开构造设备、普通节点或动态快照后端。
+@details 设备会话沿用 owner.open_device；快照以局部 PageBuffer 按需增长，失败时 RAII 归还所有已分配页，成功后转移到 File 内置后端。发布节点身份，失败不消费调用者的 inode 引用。
 ```
 
 <a id="fn-71d5734b8a7caee5"></a>
@@ -120,8 +121,8 @@
 
 ```doxygen
 @fn void xv::fs::OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
-@brief 在 File 内置存储构造 EndpointBackend，接收调用者的字符端点关闭责任，设可读写；PTY 最后引用释放时才关闭端点。
-@details 在 File 内置存储构造 EndpointBackend，接收调用者的字符端点关闭责任，设可读写；PTY 最后引用释放时才关闭端点。
+@brief 接管匿名字符端点并发布 terminal 种类。
+@details 在 File 内置存储构造 EndpointBackend，端点最终 close 责任不变；观测身份不包含内核对象地址。
 ```
 
 <a id="fn-28ec255ef808a0a2"></a>
@@ -130,8 +131,8 @@
 
 ```doxygen
 @fn void xv::fs::OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
-@brief 在 File 内置存储构造带方向的 PipeBackend，读端只读、写端只写。
-@details 在 File 内置存储构造带方向的 PipeBackend，读端只读、写端只写。两个 File 共享 Pipe 缓冲对象，分别在最后引用关闭对应方向。
+@brief 接管一个管道端并发布 pipe 种类。
+@details 保存原有读写方向与关闭责任，描述信息使用打开实例 identity，不向 procfs 暴露 Pipe 指针。
 ```
 
 <a id="fn-ca0e6e5ab12e2355"></a>
@@ -194,24 +195,14 @@
 @details 旧形式登记未命名的 minor=0 设备；命名形式复制最多 13 字节名称，拒绝斜杠、点目录、重复名称、重复 major/minor、容量超限及封存后的修改。设备实例必须保持系统级生命周期，注册阶段不允许并发使用。
 ```
 
-<a id="fn-34475d43f15a5471"></a>
-
-## `xv::fs::OpenFileTable::configure`
-
-```doxygen
-@fn void xv::fs::OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking)
-@brief 在 File 尚未发布到描述符表时安装唯一 IoObject 指针、访问权限与共享打开标志。
-@details 在 File 尚未发布到描述符表时安装唯一 IoObject 指针、访问权限与共享打开标志。后端 close 责任转交 File；此函数不额外分配或 retain 后端。
-```
-
 <a id="fn-5b6c8b6fa35ede20"></a>
 
 ## `xv::fs::OpenFileTable::bind_object`
 
 ```doxygen
 @fn void xv::fs::OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking)
-@brief 把外部构造的 IoObject（例如 socket）绑定到可读写 File，传递非阻塞状态；File 最后引用仅调用对象 close，由对象决定立即释放或异步清理。
-@details 把外部构造的 IoObject（例如 socket）绑定到可读写 File，传递非阻塞状态；File 最后引用仅调用对象 close，由对象决定立即释放或异步清理。
+@brief 绑定已拥有的通用 I/O 对象并发布资源种类。
+@details 通过 Socket 能力识别 socket，其余对象为 unknown。不调用可能睡眠的 stat，先准备元数据再发布后端；真实对象由其 close 管理。
 ```
 
 <a id="fn-2e5a0e8ff1089c2a"></a>
@@ -250,4 +241,23 @@
 @fn xv::drivers::CharacterDevice *xv::fs::open_registered_device(Inode *node, bool nonblocking)
 @brief 按 major/minor 查询工厂并打开字符设备会话。
 @details 找不到设备或工厂分配失败返回 nullptr。静态设备可返回自身，ptmx 工厂返回新的 PTY 主端；返回引用由 File 最后关闭负责。
+```
+<a id="fn-34475d43f15a5471"></a>
+
+## `xv::fs::OpenFileTable::configure`
+
+```doxygen
+@fn void xv::fs::OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking, FileKind kind, const Inode *node)
+@brief 发布完整的后端、访问标志和不可变文件身份。
+@details 绑定阶段先记录资源种类及可选 inode 类型、设备号和编号，再设置后端和共享标志，最后以 release 存储 ready_。describe 以 acquire 检查，避免读取尚未初始化的 fd。
+```
+
+<a id="fn-66c95719b54955f5"></a>
+
+## `xv::fs::OpenFileTable::describe`
+
+```doxygen
+@fn bool xv::fs::OpenFileTable::describe(File *file, FileInfo &result) const
+@brief 复制已发布 File 的不可变身份与当前共享标志。
+@details 调用者持有 File 引用，或持描述符表锁阻止本槽被取走。acquire 检查 ready_ 后复制 identity/kind/type/device/inode，原子读取 flags；不加节点锁、不调用后端、不分配和不睡眠。
 ```

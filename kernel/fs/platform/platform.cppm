@@ -1,17 +1,32 @@
 module xv.fs:platform;
 
 import :inode;
+import :file;
 
 namespace xv::fs::detail
 {
 struct ProcessRecord
 {
   int pid = 0, parent = 0, group = 0, session = 0;
+  unsigned uid = 0, effective_uid = 0, gid = 0, effective_gid = 0;
   unsigned long bytes = 0;
   char state = 0;
   char name[16]{};
 };
+struct DescriptorRecord { int descriptor = -1; FileInfo file; };
+struct Identity
+{
+  unsigned uid = 0, gid = 0;
+  unsigned groups[16]{};
+  unsigned group_count = 0;
+  unsigned mask = 0022;
+};
+Identity identity(bool real = false);
+bool allowed(Inode *node, unsigned requested, bool real = false);
+bool may_remove(Inode *directory, Inode *target);
 bool process_after(int after, ProcessRecord &result);
+int current_pid();
+int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity);
 unsigned long uptime_ticks();
 void memory_info(unsigned long &total_kib, unsigned long &free_kib);
 void prepare_sleep(void *channel);

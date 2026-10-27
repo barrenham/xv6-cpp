@@ -68,3 +68,35 @@
 #define SYS_getsockopt 65
 
 #define SYS_netctl 66
+
+#define SYS_execve 67
+
+#define SYS_getuid 68
+
+#define SYS_geteuid 69
+
+#define SYS_getgid 70
+
+#define SYS_getegid 71
+
+#define SYS_setuid 72
+
+#define SYS_seteuid 73
+
+#define SYS_setgid 74
+
+#define SYS_setegid 75
+
+#define SYS_getgroups 76
+
+#define SYS_setgroups 77
+
+#define SYS_umask 78
+
+#define SYS_chmod 79
+
+#define SYS_chown 80
+
+#define SYS_access 81
+
+#define SYS_stat 82

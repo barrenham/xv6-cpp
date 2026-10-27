@@ -11,6 +11,9 @@ xv::fs::File *retain_file(xv::fs::File *file)
   return xv::fs::files().retain(file);
 }
 
+bool file_info(xv::fs::File *file, xv::fs::FileInfo &result)
+{ return xv::fs::files().describe(file, result); }
+
 void release_file(xv::fs::File *file)
 {
   xv::fs::files().release(file);

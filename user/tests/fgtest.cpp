@@ -107,7 +107,9 @@ extern "C" int main(int argc, char **argv)
       pause(1);
     }
     check(sigsend(pid, 0) == -1, "background reaped by init");
-    printf("fgtest: background survived\n");
+    const char message[] = "fgtest: background survived\n";
+    check(write(1, message, sizeof(message) - 1) == sizeof(message) - 1,
+          "atomic background result");
     return 0;
   }
   const char *mode = argc > 1 ? argv[1] : "spin";

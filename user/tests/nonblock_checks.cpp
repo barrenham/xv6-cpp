@@ -1,3 +1,4 @@
+#include "kernel/fs/image_paths.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/io_status.h"
@@ -63,7 +64,7 @@ void flags()
   check(read(first, copy, 1) == -EAGAIN && read(first, copy, 0) == 0,
         "nonblocking serial input");
   close(first); close(second);
-  int regular = open("README", O_RDONLY | O_NONBLOCK);
+  int regular = open(XV_README_PATH, O_RDONLY | O_NONBLOCK);
   check(regular >= 0 && read(regular, copy, 1) == 1, "regular file accepts nonblock");
   close(regular);
   int directory = open(".", O_RDONLY | O_NONBLOCK);
@@ -78,7 +79,7 @@ void flags()
   {
     check(setpgid(0, 0) == 0, "background proxy group");
     char *arguments[] = {const_cast<char *>("pty"), nullptr};
-    exec("pty", arguments);
+    exec("/bin/pty", arguments);
     exit(99);
   }
   int status;

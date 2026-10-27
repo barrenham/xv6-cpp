@@ -16,6 +16,8 @@
 - [`xv::drivers::detail::copy_out`](kernel_platform.cpp.md#fn-1db6985a841bb5f6)
 - [`xv::drivers::detail::detach_terminal`](kernel_platform.cpp.md#fn-3d096ebff7f651ec)
 - [`xv::drivers::detail::dump_processes`](kernel_platform.cpp.md#fn-ce42a49f7c7724a2)
+- [`xv::drivers::detail::effective_gid`](kernel_platform.cpp.md#fn-2ad5e47c5b7c85c0)
+- [`xv::drivers::detail::effective_uid`](kernel_platform.cpp.md#fn-cfe16d3dd98c5c31)
 - [`xv::drivers::detail::fail`](kernel_platform.cpp.md#fn-bd791d74ae9d922d)
 - [`xv::drivers::detail::free_dma_page`](kernel_platform.cpp.md#fn-2d8e5b711a2c2aec)
 - [`xv::drivers::detail::free_terminal_page`](kernel_platform.cpp.md#fn-f60843cb4cde0d78)
@@ -360,4 +362,23 @@
 @fn void xv::drivers::detail::free_dma_page(void *page)
 @brief 把已经结束硬件所有权的 DMA 页归还物理分配器。
 @param page 完整且独占的分配页，不得仍在 RX/TX 环中被设备使用。
+```
+<a id="fn-cfe16d3dd98c5c31"></a>
+
+## `xv::drivers::detail::effective_uid`
+
+```doxygen
+@fn unsigned xv::drivers::detail::effective_uid()
+@brief 取得当前进程有效 UID。
+@details 只在进程上下文调用，凭据快照在独立自旋锁内复制，供 PTY 创建时记录拥有者。
+```
+
+<a id="fn-2ad5e47c5b7c85c0"></a>
+
+## `xv::drivers::detail::effective_gid`
+
+```doxygen
+@fn unsigned xv::drivers::detail::effective_gid()
+@brief 取得当前进程有效 GID。
+@details 只在进程上下文调用，返回快照中的有效组，供 PTY 节点记录所属组。
 ```

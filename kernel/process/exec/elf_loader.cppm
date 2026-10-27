@@ -15,6 +15,6 @@ public:
     return "ELF64";
   }
 
-  int load(Process &process, const char *path, char *const *arguments) override;
+  int load(Process &process, const char *path, char *const *arguments, char *const *environment) override;
 };
 } // namespace xv::process

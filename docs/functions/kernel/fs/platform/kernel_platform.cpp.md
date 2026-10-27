@@ -16,9 +16,12 @@
 - [`xv::fs::detail::copy_in`](kernel_platform.cpp.md#fn-73ff94af3db47c5c)
 - [`xv::fs::detail::copy_out`](kernel_platform.cpp.md#fn-092f21133e90643a)
 - [`xv::fs::detail::current_directory`](kernel_platform.cpp.md#fn-f7b6f6a96cd5d89c)
+- [`xv::fs::detail::current_pid`](kernel_platform.cpp.md#fn-89d386033a15eb3c)
+- [`xv::fs::detail::descriptor_snapshot`](kernel_platform.cpp.md#fn-2eb27cd7b4d7c8ad)
 - [`xv::fs::detail::fail`](kernel_platform.cpp.md#fn-15b1609ad1be02bf)
 - [`xv::fs::detail::fill`](kernel_platform.cpp.md#fn-1f96e9ad94b54ca8)
 - [`xv::fs::detail::free_page`](kernel_platform.cpp.md#fn-2edb4be43f545533)
+- [`xv::fs::detail::identity`](kernel_platform.cpp.md#fn-64fd9fffd257e7c3)
 - [`xv::fs::detail::killed`](kernel_platform.cpp.md#fn-a4b206516ef7c6e3)
 - [`xv::fs::detail::memory_info`](kernel_platform.cpp.md#fn-e2f78f5fd9feb4a0)
 - [`xv::fs::detail::move`](kernel_platform.cpp.md#fn-7edb69559eaac2a2)
@@ -243,8 +246,8 @@
 
 ```doxygen
 @fn bool xv::fs::detail::process_after(int after, ProcessRecord &result)
-@brief 把进程服务的复制记录适配为 procfs 平台记录。
-@details 读取 PID 大于 after 的最小进程，逐字段及定长名称复制，未找到返回 false。文件系统不依赖进程存储布局。
+@brief 复制下一个 PID 的进程与凭据信息。
+@details 通过进程快照服务取得 uid/euid/gid/egid 和原有调度、内存信息；失败不发布记录，procfs 不保留活进程对象。
 ```
 
 <a id="fn-0d0decfcd0e63551"></a>
@@ -265,4 +268,32 @@
 @fn void xv::fs::detail::memory_info(unsigned long &total_kib, unsigned long &free_kib)
 @brief 取得分配器管理总页数与空闲页数，换算为 KiB。
 @details 总量为所有 usable 区间页数之和，排除内核、保留区与分配器元数据；空闲量来自原子计数。该指标不代表进程虚拟地址空间总和。
+```
+<a id="fn-89d386033a15eb3c"></a>
+
+## `xv::fs::detail::current_pid`
+
+```doxygen
+@fn int xv::fs::detail::current_pid()
+@brief 取得执行当前文件系统操作的进程 PID。
+@details 仅在已调度的进程上下文调用，用于 /proc/self 的查找时解析；不保留 Process 指针。
+```
+
+<a id="fn-2eb27cd7b4d7c8ad"></a>
+
+## `xv::fs::detail::descriptor_snapshot`
+
+```doxygen
+@fn int xv::fs::detail::descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity)
+@brief 取得目标进程已发布描述符的复制信息。
+@details 使用进程服务在进程锁和短暂描述符表锁内复制 FileInfo，随后筛选有效 identity 并附加 fd 号。全程不调用后端、不取得节点睡眠锁、不释放文件引用，避免观测路径触发最后关闭和嵌套日志事务。
+```
+<a id="fn-64fd9fffd257e7c3"></a>
+
+## `xv::fs::detail::identity`
+
+```doxygen
+@fn Identity xv::fs::detail::identity(bool real)
+@brief 复制当前进程的文件系统身份。
+@details real 参数选择真实或有效 uid/gid，附加组及 umask 从同一份凭据快照复制；不向文件系统暴露 Process 指针。
 ```

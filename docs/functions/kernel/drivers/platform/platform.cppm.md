@@ -1,11 +1,5 @@
 # `kernel/drivers/platform/platform.cppm`
 
-开发职责：设备对象、MMIO、设备中断与终端数据流。
-
-源码：[打开实际文件](../../../../../kernel/drivers/platform/platform.cppm)。文档不会加入源码或生成额外 C++ 声明。
-
-模块身份：`xv.drivers:platform`。
-
 ## 函数导航
 
 - [`xv::drivers::detail::allocate_dma_page`](kernel_platform.cpp.md#fn-3e2497f9a8bb8a76)
@@ -14,6 +8,8 @@
 - [`xv::drivers::detail::copy_out`](kernel_platform.cpp.md#fn-1db6985a841bb5f6)
 - [`xv::drivers::detail::detach_terminal`](kernel_platform.cpp.md#fn-3d096ebff7f651ec)
 - [`xv::drivers::detail::dump_processes`](kernel_platform.cpp.md#fn-ce42a49f7c7724a2)
+- [`xv::drivers::detail::effective_gid`](kernel_platform.cpp.md#fn-2ad5e47c5b7c85c0)
+- [`xv::drivers::detail::effective_uid`](kernel_platform.cpp.md#fn-cfe16d3dd98c5c31)
 - [`xv::drivers::detail::fail`](kernel_platform.cpp.md#fn-bd791d74ae9d922d)
 - [`xv::drivers::detail::free_dma_page`](kernel_platform.cpp.md#fn-2d8e5b711a2c2aec)
 - [`xv::drivers::detail::free_terminal_page`](kernel_platform.cpp.md#fn-f60843cb4cde0d78)

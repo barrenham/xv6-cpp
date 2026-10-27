@@ -21,6 +21,8 @@ import xv.memory;
 
 namespace xv::drivers::detail
 {
+unsigned effective_uid() { return xv::process::current()->credentials().snapshot().effective_uid; }
+unsigned effective_gid() { return xv::process::current()->credentials().snapshot().effective_gid; }
 void prepare_interruptible_sleep(void *channel)
 {
   xv::process::prepare_interruptible_sleep(channel);

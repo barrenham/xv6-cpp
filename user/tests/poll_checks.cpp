@@ -1,3 +1,4 @@
+#include "kernel/fs/image_paths.h"
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/poll.h"
@@ -46,7 +47,7 @@ void abi()
   pollfd invalid[] = {{-1, POLLIN, -1}, {NOFILE, 0, 0}};
   check(poll(invalid, 2, -1) == 1 && invalid[0].revents == 0 &&
         invalid[1].revents == POLLNVAL, "ignored and invalid descriptors");
-  int regular = open("README", O_RDONLY);
+  int regular = open(XV_README_PATH, O_RDONLY);
   check(regular >= 0 && query(regular, POLLIN | POLLOUT) == POLLIN,
         "regular file and access mask");
   close(regular);

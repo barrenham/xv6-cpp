@@ -15,12 +15,16 @@
 - [`xv::fs::Inode::device`](inode.cppm.md#fn-3ab6e7ac1fc633f4)
 - [`xv::fs::Inode::device_major`](inode.cppm.md#fn-5a5bffa518341fb7)
 - [`xv::fs::Inode::device_minor`](inode.cppm.md#fn-ccd4307dbfd4e34c)
+- [`xv::fs::Inode::gid`](inode.cppm.md#fn-46829fb36972585b)
 - [`xv::fs::Inode::kind`](inode.cppm.md#fn-8713cbf297ee2c61)
 - [`xv::fs::Inode::linked`](inode.cppm.md#fn-be30d22e631437a0)
+- [`xv::fs::Inode::mode`](inode.cppm.md#fn-1484ada3ece710b0)
 - [`xv::fs::Inode::number`](inode.cppm.md#fn-1e309501f8f708b5)
 - [`xv::fs::Inode::operator=`](inode.cppm.md#fn-79f72614e3968738)
 - [`xv::fs::Inode::owner`](inode.cppm.md#fn-43932e0d5580a438)
+- [`xv::fs::Inode::security_stat`](inode.cppm.md#fn-7eb78ef75b2a23ea)
 - [`xv::fs::Inode::size_bytes`](inode.cppm.md#fn-24de649f4aa36caa)
+- [`xv::fs::Inode::uid`](inode.cppm.md#fn-a0cbe5f7055d5402)
 
 <a id="fn-74d62c7bb35d2b2a"></a>
 
@@ -132,4 +136,43 @@
 @fn bool xv::fs::Inode::linked() const
 @brief 判断节点是否仍有目录链接。
 @details 在 inode 锁内读取 nlink；路径遍历拒绝进入已经删除的目录。此值不是内存引用计数。
+```
+<a id="fn-a0cbe5f7055d5402"></a>
+
+## `xv::fs::Inode::uid`
+
+```doxygen
+@fn unsigned xv::fs::Inode::uid() const
+@brief 读取节点属主 UID。
+@details 调用者持有效引用及所属后端节点锁；此访问器不查询进程凭据。
+```
+
+<a id="fn-46829fb36972585b"></a>
+
+## `xv::fs::Inode::gid`
+
+```doxygen
+@fn unsigned xv::fs::Inode::gid() const
+@brief 读取节点所属组 GID。
+@details 调用者持有效引用及所属后端节点锁，组成员判断由公共权限策略完成。
+```
+
+<a id="fn-1484ada3ece710b0"></a>
+
+## `xv::fs::Inode::mode`
+
+```doxygen
+@fn unsigned xv::fs::Inode::mode() const
+@brief 读取节点访问权限位。
+@details 返回 rwx 与 sticky 位；类型由独立 type 表示，不混入 mode。
+```
+
+<a id="fn-7eb78ef75b2a23ea"></a>
+
+## `xv::fs::Inode::security_stat`
+
+```doxygen
+@fn void xv::fs::Inode::security_stat(Stat *result) const
+@brief 复制节点属主、组和权限到 stat。
+@details 调用者持节点锁，统一磁盘、RAM 和合成节点的用户 ABI 字段；不修改其他状态字段。
 ```

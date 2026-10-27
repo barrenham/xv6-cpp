@@ -140,11 +140,8 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::update(Inode *ip)
-@brief xv6 inode 文件系统：把内存中的 inode 元数据写回缓存块。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_.read` → `IBLOCK` → `bp->bytes` → `detail::move` → `journal_.record` → `bp.reset`。
-@details 本函数可见的状态更新包括：`dip->type = ip->type;`；`dip->major = ip->major;`；`dip->minor = ip->minor;`；`dip->nlink = ip->nlink;`；`dip->size = ip->size;`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 将 inode 元数据写入日志缓冲。
+@details 持节点锁及磁盘事务，按 128 字节 dinode 布局写入 uid/gid/mode 及既有块映射，最后登记日志块。格式版本与旧 64 字节 inode 不兼容。
 ```
 
 <a id="fn-9e44fd39e00d972e"></a>
@@ -182,13 +179,8 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::lock(Inode *ip)
-@brief xv6 inode 文件系统：取得对象状态所需的互斥保护。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::fail` → `ip->lock.acquire` → `cache_.read` → `IBLOCK` → `bp->bytes` → `detail::move` → `bp.reset`。
-@details 本函数可见的状态更新包括：`ip->type = dip->type;`；`ip->major = dip->major;`；`ip->minor = dip->minor;`；`ip->nlink = dip->nlink;`；`ip->size = dip->size;`；`ip->valid = 1;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`ip == 0 || ip->ref < 1`；`ip->valid == 0`；`ip->type == 0`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`ip->lock.acquire`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 锁定磁盘 inode 并按需加载缓存。
+@details 持有效引用取得睡眠锁，首次从 128 字节 dinode 读取类型、块地址与 uid/gid/mode；无效类型触发内核错误，后续访问复用缓存。
 ```
 
 <a id="fn-93ed9249a65b47aa"></a>
@@ -294,11 +286,8 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::stat(Inode *ip, Stat *st)
-@brief xv6 inode 文件系统：stat。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param st 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 本函数可见的状态更新包括：`st->dev = ip->dev;`；`st->ino = ip->inum;`；`st->type = ip->type;`；`st->nlink = ip->nlink;`；`st->size = ip->size;`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 复制磁盘 inode 的用户可见状态。
+@details 调用者持节点锁；输出原有类型、链接、大小及安全属性，权限检查由打开或路径系统调用执行。
 ```
 
 <a id="fn-dd71262a05693ac2"></a>

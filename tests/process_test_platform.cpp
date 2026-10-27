@@ -11,6 +11,9 @@ xv::fs::File *retain_file(xv::fs::File *file)
   return static_cast<xv::fs::File *>(test_retain_file(file));
 }
 
+bool file_info(xv::fs::File *file, xv::fs::FileInfo &result)
+{ result = {}; result.identity = reinterpret_cast<unsigned long>(file); return file != nullptr; }
+
 void release_file(xv::fs::File *file)
 {
   test_release_file(file);

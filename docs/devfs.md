@@ -1,6 +1,6 @@
 # VFS 与 devfs
 
-系统保留 xv6 日志磁盘作为根文件系统，启动时挂载 `/dev` 和 `/proc`。init 从 `/dev/console` 打开标准输入，再用 dup 建立标准输出和错误输出。
+系统保留 xv6 日志磁盘作为根文件系统，启动时挂载 `/dev`、`/proc` 和 `/tmp`。init 从 `/dev/console` 打开标准输入，再用 dup 建立标准输出和错误输出。
 
 ```mermaid
 flowchart TD
@@ -63,7 +63,7 @@ devfstest
 
 设备节点与根目录存放在固定内存表中。引用计数用自旋锁保护，节点操作沿用 inode 睡眠锁约定；引用降到零不销毁设备节点。设备 read/write 和 devfs 最后关闭不使用磁盘日志。路径系统调用仍保留外层磁盘事务，因为解析可能穿越磁盘目录并释放磁盘引用。
 
-启动挂载表最多三个记录，当前使用 `/dev` 和 `/proc`，运行期不提供 mount/unmount。静态设备注册表保持封存；动态 pts 名称来自驱动的发布状态。PTS inode 取得首个引用时固定 PTY，最后引用释放后解除固定，因此旧 fd 和临时路径引用都不会误指向复用编号的新会话。块设备文件与 `/dev/tty` 尚未加入。
+启动挂载表最多三个记录，当前使用 `/dev`、`/proc` 和 `/tmp`，运行期不提供 mount/unmount。静态设备注册表保持封存；动态 pts 名称来自驱动的发布状态。PTS inode 取得首个引用时固定 PTY，最后引用释放后解除固定，因此旧 fd 和临时路径引用都不会误指向复用编号的新会话。块设备文件与 `/dev/tty` 尚未加入。
 
 ## 验证
 
@@ -75,3 +75,9 @@ ctest --test-dir build/dev --output-on-failure -R '^(fs_contract|devfs_[13]cpu)$
 原生 `fs_contract` 使用实际 VFS/devfs 实现，验证合成目录的非对齐读取、minor 分派、复制失败、相对路径、挂载保护、并发打开，以及这些操作不产生磁盘写入。QEMU 单核/三核 `devfstest` 验证用户指针错误、设备内容、poll/ioctl、dup/fork、重复打开和并发子进程；脚本同时检查 shell 的目录遍历与设备重定向。
 
 函数文档保存在 [VFS 实现](functions/kernel/fs/vfs/vfs.cpp.md)、[devfs 实现](functions/kernel/fs/devfs/devfs.cpp.md) 和 [设备注册表](functions/kernel/fs/file/open_file.cpp.md)，通过现有外部索引显示 Doxygen hover。
+
+## 用户与权限
+
+设备节点权限：console 为 root:root 0600，null/zero/ptmx 为 0666，命名 pts 为创建者有效 uid/gid 的 0600。目录与元数据只读，字符设备数据按节点权限授权；su 继续使用继承的标准终端 fd。
+
+完整规则见 [用户、组与权限](users-permissions.md)。

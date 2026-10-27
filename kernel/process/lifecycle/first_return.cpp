@@ -1,5 +1,6 @@
 module;
 #include "kernel/support/param.h"
+#include "kernel/fs/image_paths.h"
 
 module xv.process;
 
@@ -30,8 +31,8 @@ void first_return()
 
     // We can invoke execute() now that file system is initialized.
     // Put the return value (argc) of kexec into a0.
-    char *arguments[] = {const_cast<char *>("/init"), nullptr};
-    p->trapframe->a0 = execute("/init", arguments);
+    char *arguments[] = {const_cast<char *>(XV_INIT_PATH), nullptr};
+    p->trapframe->a0 = execute(XV_INIT_PATH, arguments);
     if (p->trapframe->a0 == -1)
     {
       xv::print::panic("exec");

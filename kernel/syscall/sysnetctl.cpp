@@ -15,6 +15,9 @@ unsigned long sys_netctl()
   netctl_request request;
   auto &memory = xv::process::current()->memory();
   if (memory.copy_in(&request, address, sizeof(request)) < 0) return -EFAULT;
+  bool query = operation == NETCTL_LINK || operation == NETCTL_ADDRESS || operation == NETCTL_ROUTE ||
+               operation == NETCTL_NEIGHBOR || operation == NETCTL_BRIDGE_PORT || operation == NETCTL_BRIDGE_FDB || operation == NETCTL_DHCP_STATUS;
+  if (!query && xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
   int result = xv::net::control(operation, request);
   if (result > 0 && memory.copy_out(address, &request, sizeof(request)) < 0) return -EFAULT;
   return result;

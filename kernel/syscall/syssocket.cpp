@@ -60,7 +60,9 @@ unsigned long sys_sockbind()
   auto *socket = socket_argument(); unsigned long address; int length;
   argument_address(1, &address); argument_integer(2, &length);
   xv::net::Endpoint local;
-  return socket && length >= 0 && input_address(address, length, local) ? socket->bind(local) : -1;
+  if (!socket || length < 0 || !input_address(address, length, local)) return -1;
+  if (local.port && local.port < 1024 && xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+  return socket->bind(local);
 }
 unsigned long sys_connect()
 {

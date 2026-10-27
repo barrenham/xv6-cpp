@@ -4,6 +4,7 @@
 
 - [`xv::fs::VirtualFileSystem::VirtualFileSystem`](vfs.cppm.md#fn-882ab7feab1cf456)
 - [`xv::fs::VirtualFileSystem::allocate`](vfs.cpp.md#fn-b14436f73059aab1)
+- [`xv::fs::VirtualFileSystem::allowed`](vfs.cpp.md#fn-abf62fef3e7f21c5)
 - [`xv::fs::VirtualFileSystem::create`](vfs.cpp.md#fn-6591de3da7091bf9)
 - [`xv::fs::VirtualFileSystem::create_at`](vfs.cpp.md#fn-6139d98544fd4958)
 - [`xv::fs::VirtualFileSystem::enter_mount`](vfs.cpp.md#fn-4860e29021bbf700)
@@ -47,7 +48,7 @@
 ## `xv::fs::VirtualFileSystem::VirtualFileSystem`
 
 ```doxygen
-@fn constexpr xv::fs::VirtualFileSystem::VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr)
-@brief 绑定磁盘根、设备后端与可选 procfs 后端。
-@details 仅保存系统生命周期引用和可选指针，不执行磁盘 I/O。挂载记录在 initialize 中建立，随后冻结。
+@fn constexpr xv::fs::VirtualFileSystem::VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr)
+@brief 绑定磁盘、设备、进程与可选 RAM 临时文件系统。
+@details 只借用系统生命周期实例，构造不分配页面或访问磁盘；可选 temporary 后端在启动时挂载到 /tmp。
 ```

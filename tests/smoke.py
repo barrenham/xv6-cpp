@@ -19,6 +19,9 @@ parser.add_argument('--regression', action='store_true')
 parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--named-pty', action='store_true')
 parser.add_argument('--procfs', action='store_true')
+parser.add_argument('--ramfs', action='store_true')
+parser.add_argument('--environment', action='store_true')
+parser.add_argument('--permissions', action='store_true')
 parser.add_argument('--process-scaling', action='store_true')
 parser.add_argument('--tty', action='store_true')
 parser.add_argument('--process-groups', action='store_true')
@@ -48,7 +51,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -70,6 +73,12 @@ def expect(token, timeout=30):
                 transcript.extend(data)
                 sys.stdout.buffer.write(data)
                 sys.stdout.buffer.flush()
+                for failure in [b'envtest: FAIL:', b'permissiontest: FAIL:']:
+                    position = transcript.find(failure)
+                    if position >= 0 and b'\n' in transcript[position:]:
+                        raise RuntimeError('environment or permission contract failed')
+                if b'ramfstest: FAIL:' in transcript:
+                    raise RuntimeError('RAM filesystem contract failed')
                 if b'namedptytest: FAIL:' in transcript or b'procfstest: FAIL:' in transcript:
                     raise RuntimeError('named PTY or procfs contract failed')
                 if b'devfstest: FAIL:' in transcript:
@@ -153,14 +162,18 @@ def foreground_checks():
     expect('FG_CAT_INPUT\n')  # cat output, proving it passed the launch barrier
     interrupt()
 
-    start = begin('fgtest background &')
-    background, _ = markers(['background'], start)[0]
-    start = begin('fgtest spin')
-    markers(['spin'], start)
-    interrupt()
-    begin(f'fgtest cleanup {background}')
-    expect('fgtest: background survived\n')
-    expect('$ ')
+    for _ in range(6):
+        start = begin('fgtest background &')
+        background, _ = markers(['background'], start)[0]
+        begin('fgtest spin')
+        markers(['spin'], start)
+        interrupt()
+        begin(f'fgtest cleanup {background}')
+        expect('fgtest: background survived\n')
+        expect('$ ')
+        completed = re.findall(rb'\[\d+\] Done fgtest background\n', transcript[start:cursor])
+        if len(completed) != 1:
+            raise RuntimeError('background completion notification was lost or interleaved')
 
     # At an idle prompt SIGINT is ignored by the shell; its partial line is flushed.
     process.stdin.write(b'echo SHOULD_NOT_RUN')
@@ -406,7 +419,7 @@ def pty_checks():
     expect('PTY_NESTED\n', timeout=5)
     expect('$ ', timeout=5)
     # Exercise multiple proxy buffers and UART nonblocking partial writes.
-    command('cat README')
+    command('cat /usr/share/doc/xv6/README')
     payload = (Path(__file__).resolve().parents[1] / 'README.xv6').read_text()
     if len(payload.encode()) <= 256:
         raise RuntimeError('PTY bulk fixture is smaller than its forwarding buffer')
@@ -566,7 +579,7 @@ try:
         checks = []
         for cmd, token in [('devfstest', 'devfstest: all tests succeeded'),
                            ('ls /dev', 'zero'), ('cd /dev', None),
-                           ('/ls .', 'zero'), ('/echo discarded > null', None),
+                           ('/bin/ls .', 'zero'), ('/bin/echo discarded > null', None),
                            ('cd ..', None), ('ls dev', 'console')]:
             start = len(transcript)
             cursor = start
@@ -581,6 +594,28 @@ try:
                 raise RuntimeError(f'devfs shell command failed: {cmd}')
     if args.named_pty:
         checks = [('namedptytest', 'namedptytest: all tests succeeded')]
+    if args.environment:
+        for cmd, prompt in [('cd /', 'root:/$ '), ('cd /tmp', 'root:/tmp$ '),
+                            ('mkdir promptdir', 'root:/tmp$ '),
+                            ('cd promptdir', 'root:/tmp/promptdir$ '),
+                            ('cd ../..', 'root:/$ '), ('cd /dev', 'root:/dev$ '),
+                            ('cd ..', 'root:/$ '), ('cd /proc', 'root:/proc$ '),
+                            ('cd ..', 'root:/$ '), ('export USER=pretend', 'root:/$ '),
+                            ('export USER=root', 'root:/$ ')]:
+            process.stdin.write((cmd + '\n').encode()); process.stdin.flush()
+            expect(cmd + '\n')
+            expect(prompt)
+        checks = [('envtest', 'envtest: all tests succeeded'),
+                  ('export XV_TEST="two words"', None), ('echo "$XV_TEST"', 'two words'),
+                  ("echo '$XV_TEST'", '$XV_TEST'), ('export XV_LIST=ready; echo "$XV_LIST"', 'ready'),
+                  ('XV_PREFIX=local env', 'XV_PREFIX=local'), ('unset XV_TEST', None),
+                  ('cd /tmp', None), ('echo PATH_SEARCH_OK', 'PATH_SEARCH_OK'), ('cd /', None)]
+    if args.permissions:
+        checks = [('permissiontest', 'permissiontest: all tests succeeded'),
+                  ('useradd alice', 'useradd: alice uid=1000'), ('su alice id', 'uid=1000(alice)'),
+                  ('id', 'uid=0(root)')]
+    if args.ramfs:
+        checks = [('ramfstest', 'ramfstest: all tests succeeded')]
     if args.procfs:
         checks = [('procfstest', 'procfstest: all tests succeeded'),
                   ('ps', 'PID PPID PGID SID STATE KiB NAME'),
@@ -590,8 +625,20 @@ try:
     for cmd, token in checks:
         process.stdin.write((cmd + '\n').encode())
         process.stdin.flush()
-        expect(token, timeout=240 if args.regression else 45)
+        expect(cmd + '\n', timeout=10)
+        if token:
+            expect(token, timeout=300 if args.regression else 45)
         expect('$ ')
+    if args.permissions:
+        for cmd, token in [('su alice', None), ('id', 'uid=1000(alice)'),
+                           ('echo "$HOME"', '/home/alice'),
+                           ('echo denied > /etc/passwd', 'open /etc/passwd failed')]:
+            process.stdin.write((cmd + '\n').encode()); process.stdin.flush()
+            expect(cmd + '\n')
+            if token: expect(token)
+            expect('alice:/home/alice$ ')
+        process.stdin.write(b'\x04'); process.stdin.flush(); expect('$ ')
+        process.stdin.write(b'id\n'); process.stdin.flush(); expect('id\n'); expect('uid=0(root)'); expect('$ ')
     print('\nSmoke test passed')
 finally:
     log_file.close()

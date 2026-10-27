@@ -116,7 +116,7 @@ extern "C" int main(int argc, char **argv)
     if (dup(fds[1]) != 0 || dup(fds[1]) != 1 || dup(fds[1]) != 2) exit(1);
     close(fds[1]);
     char *shell[] = {const_cast<char *>("sh"), nullptr};
-    exec(argc > 1 ? argv[1] : "sh", argc > 1 ? argv + 1 : shell);
+    execvp(argc > 1 ? argv[1] : "sh", argc > 1 ? argv + 1 : shell);
     fprintf(2, "pty: exec failed\n");
     exit(1);
   }

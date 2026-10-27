@@ -10,6 +10,7 @@
 
 ## 函数导航
 
+- [`xv::process::detail::file_info`](kernel_platform.cpp.md#fn-b7d0d35d044ea777)
 - [`xv::process::detail::release_file`](kernel_platform.cpp.md#fn-568d85df4de98c23)
 - [`xv::process::detail::release_inode`](kernel_platform.cpp.md#fn-2f9bae0e0cdb8afe)
 - [`xv::process::detail::resource_fail`](kernel_platform.cpp.md#fn-2efdaf57a891b47c)
@@ -74,4 +75,13 @@
 @param message 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::print::panic`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-b7d0d35d044ea777"></a>
+
+## `xv::process::detail::file_info`
+
+```doxygen
+@fn bool xv::process::detail::file_info(xv::fs::File *file, xv::fs::FileInfo &result)
+@brief 复制 File 已发布的非阻塞描述信息。
+@details 内核适配委托 OpenFileTable::describe；调用者持描述符表锁，现存槽的引用阻止最后关闭，不需要增加并随后释放文件引用。
 ```

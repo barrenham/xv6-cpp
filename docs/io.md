@@ -42,7 +42,7 @@ ioctl 通过 `query<DeviceControl>(object)` 调用，网络系统调用通过 `q
 - `EndpointBackend` 接收匿名 CharacterDevice 端点关闭责任，转发 TTY/PTY 读写、poll 和 ioctl。
 - `TcpSocket/UdpSocket` 直接作为 IoObject 绑定 File，保留协议队列及原有异步关闭逻辑。
 
-前四种适配器在 File 的64字节、16字节对齐内置存储中 placement 构造，编译期检查容量和对齐，不额外分配物理页。Socket 沿用网络工厂的对象页和协议缓冲，由自己的 close/destroy 路径管理。设备工厂可以另分配会话页，procfs 为一次打开分配快照页；这些资源在最后关闭时回收。
+前四种适配器在 File 的64字节、16字节对齐内置存储中 placement 构造，编译期检查容量和对齐，不额外分配物理页。Socket 沿用网络工厂的对象页和协议缓冲，由自己的 close/destroy 路径管理。设备工厂可以另分配会话页，procfs 为一次打开按需分配快照页链；这些资源在最后关闭时回收。
 
 ## 生命周期与偏移
 
@@ -73,3 +73,11 @@ backend->close()：可睡眠、可析构内置后端
 集成验证包括完整 `usertests -q`、原生文件系统/进程/网络契约，以及单核/三核 PTY、poll、非阻塞和 socket 通信。函数说明仍在 [IoObject 文档](functions/kernel/io/object.cppm.md)、[后端实现](functions/kernel/fs/file/file_operations.cpp.md) 与 [File 管理](functions/kernel/fs/file/open_file.cpp.md)，不注入源码。
 
 设备命名空间、挂载边界与启动注册规则见 [VFS 与 devfs](devfs.md)。
+
+`FileInfo` 保存打开实例的递增 identity、种类与节点身份，configure 完成后才发布。描述符表的 inspect 在短暂表锁内复制这些字段及原子 flags，不调用 stat、不取得节点锁，也不增加或释放 File 引用；procfs 观测因此不会触发目标文件最后关闭。fork 使用另一条 snapshot 接口保留文件引用。
+
+## 用户与权限
+
+Stat 增加 uid/gid/mode。路径 stat 使用独立系统调用，不再先 open，因此无需最终文件 R 权限；目录搜索仍需要 X。open 时授予 fd 读写能力，后续 chmod 或降权不撤销已经打开的描述符。
+
+完整规则见 [用户、组与权限](users-permissions.md)。

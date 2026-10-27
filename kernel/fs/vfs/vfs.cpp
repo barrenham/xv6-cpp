@@ -11,6 +11,7 @@ void VirtualFileSystem::initialize_inodes()
   disk_.initialize_inodes();
   devices_.initialize_inodes();
   if (processes_) processes_->initialize_inodes();
+  if (temporary_) temporary_->initialize_inodes();
 }
 void VirtualFileSystem::initialize(int device)
 {
@@ -18,6 +19,7 @@ void VirtualFileSystem::initialize(int device)
   Transaction transaction;
   if (!mount("/dev", devices_, device + 1)) detail::fail("VFS: cannot mount /dev");
   if (processes_ && !mount("/proc", *processes_, device + 2)) detail::fail("VFS: cannot mount /proc");
+  if (temporary_ && !mount("/tmp", *temporary_, device + 3)) detail::fail("VFS: cannot mount /tmp");
   frozen_ = true;
 }
 bool VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
@@ -59,7 +61,7 @@ Inode *VirtualFileSystem::enter_mount(Inode *node)
     }
   return node;
 }
-Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name)
+Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real)
 {
   Inode *node = *path == '/' ? root() : detail::current_directory();
   if (!node) return nullptr;
@@ -76,7 +78,7 @@ Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name)
     if (length < DIRSIZ) name[length] = 0;
     while (*path == '/') ++path;
     lock(node);
-    if (node->kind() != T_DIR || !node->linked())
+    if (node->kind() != T_DIR || !node->linked() || !detail::allowed(node, 1, real))
     {
       unlock_release(node);
       return nullptr;
@@ -100,10 +102,10 @@ Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name)
   release(node);
   return nullptr;
 }
-Inode *VirtualFileSystem::lookup(const char *path)
+Inode *VirtualFileSystem::lookup(const char *path, bool real)
 {
   char name[DIRSIZ];
-  return walk(path, false, name);
+  return walk(path, false, name, real);
 }
 Inode *VirtualFileSystem::lookup_parent(const char *path, char *name) { return walk(path, true, name); }
 Inode *VirtualFileSystem::create(char *path, short type, short major, short minor)
@@ -149,6 +151,8 @@ int VirtualFileSystem::read(Inode *node, int user, unsigned long destination, un
 { return node->owner().read(node, user, destination, offset, count); }
 int VirtualFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count)
 { return node->owner().write(node, user, source, offset, count); }
+bool VirtualFileSystem::allowed(Inode *node, unsigned requested, bool real)
+{ return detail::allowed(node, requested, real); }
 void VirtualFileSystem::stat(Inode *node, Stat *result) { node->owner().stat(node, result); }
 Inode *VirtualFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offset)
 { return directory->owner().lookup_entry(directory, name, offset); }

@@ -105,7 +105,7 @@ int Xv6FileSystem::link_at(Inode *dp, const char *name, Inode *ip)
   update(ip);
   unlock(ip);
   lock(dp);
-  int result = dp->nlink && dp->dev == ip->dev ? link_entry(dp, name, ip->inum) : -1;
+  int result = dp->nlink && detail::allowed(dp, 3) && dp->dev == ip->dev ? link_entry(dp, name, ip->inum) : -1;
   unlock(dp);
   if (result < 0)
   {
@@ -156,6 +156,9 @@ int Xv6FileSystem::unlink_at(Inode *dp, const char *name)
   }
   lock(ip);
 
+  if (!detail::may_remove(dp, ip))
+  { unlock_release(ip); goto bad; }
+
   if (ip->nlink < 1)
   {
     detail::fail("unlink: nlink < 1");
@@ -194,7 +197,7 @@ Inode *Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short m
   Inode *ip;
   lock(dp);
 
-  if (dp->nlink == 0)
+  if (dp->nlink == 0 || !detail::allowed(dp, 3) || (type == T_DEVICE && detail::identity().uid != 0))
   {
     unlock(dp);
     return 0;
@@ -229,6 +232,8 @@ Inode *Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short m
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
+  { auto who = detail::identity(); ip->uid_ = who.uid; ip->gid_ = who.gid;
+    ip->mode_ = (type == T_DIR ? 0777 : type == T_DEVICE ? 0600 : 0666) & ~who.mask; }
   update(ip);
 
   if (type == T_DIR)

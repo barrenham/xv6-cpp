@@ -318,6 +318,7 @@ public:
     if (!page) return nullptr;
     auto *pair = new (page) Pty;
     pair->initialize();
+    pair->uid = detail::effective_uid(); pair->gid = detail::effective_gid();
     ptys_lock.acquire();
     unsigned number;
     for (number = 0; number < MaxNamedPtys; ++number)
@@ -351,6 +352,14 @@ bool retain_named_pty(unsigned number)
   xv::sync::ScopedLock guard(ptys_lock);
   for (auto *p = ptys; p; p = p->next)
     if (p->named && p->number == number && p->published) { ++p->references; return true; }
+  return false;
+}
+bool named_pty_owner(unsigned number, unsigned &uid, unsigned &gid)
+{
+  xv::sync::ScopedLock guard(ptys_lock);
+  for (auto *pair = ptys; pair; pair = pair->next)
+    if (pair->named && pair->number == number)
+    { uid = pair->uid; gid = pair->gid; return true; }
   return false;
 }
 void release_named_pty(unsigned number)

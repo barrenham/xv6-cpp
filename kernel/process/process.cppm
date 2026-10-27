@@ -6,12 +6,14 @@ export import :address_space;
 import xv.sync;
 import :identity;
 export import :signals;
+export import :credentials;
 
 export namespace xv::process
 {
 struct ProcessInfo
 {
   int pid = 0, parent = 0, group = 0, session = 0;
+  unsigned uid = 0, effective_uid = 0, gid = 0, effective_gid = 0;
   unsigned long bytes = 0;
   char state = 0;
   char name[16]{};
@@ -87,6 +89,9 @@ public:
     return memory_;
   }
 
+  Credentials &credentials() { return credentials_; }
+  const Credentials &credentials() const { return credentials_; }
+
   DescriptorTable &files()
   {
     return descriptors_;
@@ -99,7 +104,7 @@ public:
 
   bool create_image(AddressSpace &image);
   void commit_image(AddressSpace &image, unsigned long entry, unsigned long stack,
-                    unsigned long arguments, const char *path);
+                    unsigned long arguments, const char *path, unsigned long environment = 0);
 
 private:
 
@@ -141,6 +146,7 @@ private:
   TrapFrame *trapframe = nullptr;
   void *usyscall = nullptr;
   Context context{};
+  Credentials credentials_;
   DescriptorTable descriptors_;
   WorkingDirectory directory_;
   char name[16]{};

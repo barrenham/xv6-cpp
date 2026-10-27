@@ -10,14 +10,13 @@
 
 ## 函数导航
 
-- [`xv::process::cpu_id`](arch/cpu.cpp.md#fn-38c0b9f44adde749)
-- [`xv::process::current`](arch/cpu.cpp.md#fn-3674a9cba9c27758)
-- [`xv::process::current_cpu`](arch/cpu.cpp.md#fn-eaa0d9fcd809861d)
 - [`xv::process::Process::Process`](process.cppm.md#fn-4994347ef002a2f9)
 - [`xv::process::Process::Process`](process.cppm.md#fn-8f111832cbfaa884)
 - [`xv::process::Process::begin_system_call`](signals/user_signals.cpp.md#fn-58ff4ed2bf6d42b0)
 - [`xv::process::Process::commit_image`](lifecycle/process.cpp.md#fn-97213cc0f22d399e)
 - [`xv::process::Process::create_image`](lifecycle/process.cpp.md#fn-9d91050686d2abd0)
+- [`xv::process::Process::credentials`](process.cppm.md#fn-49caab07f1a46655)
+- [`xv::process::Process::credentials`](process.cppm.md#fn-96836ea87a81f92a)
 - [`xv::process::Process::debug_name`](process.cppm.md#fn-66a9229e537d779c)
 - [`xv::process::Process::directory`](process.cppm.md#fn-0c3708fa5ad3c9e2)
 - [`xv::process::Process::enter_signal_handler`](signals/user_signals.cpp.md#fn-a4af1623ff74134d)
@@ -41,6 +40,9 @@
 - [`xv::process::Process::stop_requested`](process.cppm.md#fn-5e15db3a4f0c6cdb)
 - [`xv::process::Process::termination_status`](signals/process_signals.cpp.md#fn-5e63eeb4721e2fa0)
 - [`xv::process::Process::~Process`](process.cppm.md#fn-1a52c83822d8ab9a)
+- [`xv::process::cpu_id`](arch/cpu.cpp.md#fn-38c0b9f44adde749)
+- [`xv::process::current`](arch/cpu.cpp.md#fn-3674a9cba9c27758)
+- [`xv::process::current_cpu`](arch/cpu.cpp.md#fn-eaa0d9fcd809861d)
 
 <a id="fn-1a52c83822d8ab9a"></a>
 
@@ -175,4 +177,23 @@
 @brief 构造进程描述符，建立本重载要求的成员初值和借用关系。
 @details 使用编译器生成的默认成员行为。普通标量是否被初始化取决于成员默认初始化器和调用方的值初始化方式，不能把 default 一概当作清零。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+<a id="fn-49caab07f1a46655"></a>
+
+## `xv::process::Process::credentials`
+
+```doxygen
+@fn Credentials &xv::process::Process::credentials()
+@brief 取得进程只读凭据控制对象。
+@details 返回 const 借用，通常调用 snapshot 取得一致值；不能跨进程寿命保留引用。
+```
+
+<a id="fn-96836ea87a81f92a"></a>
+
+## `xv::process::Process::credentials`
+
+```doxygen
+@fn const Credentials &xv::process::Process::credentials() const
+@brief 取得进程只读凭据控制对象。
+@details 返回 const 借用，通常调用 snapshot 取得一致值；不能跨进程寿命保留引用。
 ```

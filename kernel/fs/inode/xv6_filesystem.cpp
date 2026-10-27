@@ -226,6 +226,7 @@ void Xv6FileSystem::update(Inode *ip)
   dip->minor = ip->minor;
   dip->nlink = ip->nlink;
   dip->size = ip->size;
+  dip->uid = ip->uid_; dip->gid = ip->gid_; dip->mode = ip->mode_;
   detail::move(dip->addrs, ip->addrs, sizeof(ip->addrs));
   journal_.record(*bp);
   bp.reset();
@@ -305,6 +306,7 @@ void Xv6FileSystem::lock(Inode *ip)
     ip->minor = dip->minor;
     ip->nlink = dip->nlink;
     ip->size = dip->size;
+    ip->uid_ = dip->uid; ip->gid_ = dip->gid; ip->mode_ = dip->mode;
     detail::move(ip->addrs, dip->addrs, sizeof(ip->addrs));
     bp.reset();
     ip->valid = 1;
@@ -512,6 +514,7 @@ void Xv6FileSystem::stat(Inode *ip, Stat *st)
   st->type = ip->type;
   st->nlink = ip->nlink;
   st->size = ip->size;
+  ip->security_stat(st);
 }
 
 // Read data from inode.

@@ -25,6 +25,7 @@
 - [`xv::process::ProcessManager::get_process_group`](../groups/group_operations.cpp.md#fn-5273c2c990423d82)
 - [`xv::process::ProcessManager::get_session`](../groups/group_operations.cpp.md#fn-4d575d2c1c9debae)
 - [`xv::process::ProcessManager::initialize`](../lifecycle.md#lifecycle-processmanager-initialize)
+- [`xv::process::ProcessManager::inspect_files`](process_manager.cpp.md#fn-eb5e5ec736ff1777)
 - [`xv::process::ProcessManager::kill`](../lifecycle.md#lifecycle-processmanager-kill)
 - [`xv::process::ProcessManager::may_read_terminal`](../groups/group_operations.cpp.md#fn-6ef8f28b8535c2e1)
 - [`xv::process::ProcessManager::notify_child_events`](../signals/signal_delivery.cpp.md#fn-8b264f5ebddc7cc5)

@@ -41,15 +41,7 @@
 ## `xv::process::Process::commit_image`
 
 ```doxygen
-@fn void xv::process::Process::commit_image(AddressSpace &image, unsigned long entry, unsigned long stack, unsigned long arguments, const char *path)
-@brief 进程描述符：提交已经完成全部可失败步骤的新用户映像。
-@param image 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param entry 需要链接或解析的条目。
-@param stack 本次操作使用的 栈 值。
-@param arguments 本次操作使用的 arguments 值。
-@param path 待解析的零结尾路径字符串。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`process_manager.did_exec` → `memory_.swap` → `pending_signals_.on_exec` → `set_name`。
-@details 本函数可见的状态更新包括：`signal_depth_ = 0;`；`suspended_mask_ = suspend_restarted_ = false;`；`suspend_restarted_ = false;`；`trapframe->epc = entry;`；`trapframe->sp = stack;`；`trapframe->a1 = arguments;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`*c == '/'`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@fn void xv::process::Process::commit_image(AddressSpace &image, unsigned long entry, unsigned long stack, unsigned long arguments, const char *path, unsigned long environment)
+@brief 提交候选地址空间与用户入口寄存器。
+@details 交换新旧地址空间，保存入口、栈、argv 到 a1 与 envp 到 a2，再销毁旧映像；argc 由系统调用返回路径写 a0。调用者已完成全部可失败操作。
 ```

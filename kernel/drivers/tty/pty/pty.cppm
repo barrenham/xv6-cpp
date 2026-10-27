@@ -53,6 +53,7 @@ public:
   bool named = false;
   bool slave_locked = true;
   unsigned number = 0;
+  unsigned uid = 0, gid = 0;
   bool published = false;
   void attach_slave();
 

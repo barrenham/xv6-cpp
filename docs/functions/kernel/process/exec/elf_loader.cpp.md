@@ -10,11 +10,7 @@
 
 ## 函数导航
 
-- [`xv::process::executable_loader`](elf_loader.cpp.md#fn-8a4db1fa5d5b6b13)
-- [`xv::process::execute`](elf_loader.cpp.md#fn-51cf014f3d7bbc3b)
 - [`xv::process::ElfLoader::load`](elf_loader.cpp.md#fn-7873c234f30790ee)
-- [`xv::process::load_segment`](elf_loader.cpp.md#fn-3e3febc45083bc1e)
-- [`xv::process::permissions`](elf_loader.cpp.md#fn-eb4a30b848de2d54)
 - [`xv::process::ExecutableFile::ExecutableFile`](elf_loader.cpp.md#fn-6e5b5d819ece94a1)
 - [`xv::process::ExecutableFile::ExecutableFile`](elf_loader.cpp.md#fn-6e69081813061c93)
 - [`xv::process::ExecutableFile::close`](elf_loader.cpp.md#fn-a12ac0a24317f534)
@@ -26,6 +22,10 @@
 - [`xv::process::PendingImage::PendingImage`](elf_loader.cpp.md#fn-b2cf62537f82e72a)
 - [`xv::process::PendingImage::operator=`](elf_loader.cpp.md#fn-e1ba00541bfceede)
 - [`xv::process::PendingImage::~PendingImage`](elf_loader.cpp.md#fn-8ed3391bb42667ba)
+- [`xv::process::executable_loader`](elf_loader.cpp.md#fn-8a4db1fa5d5b6b13)
+- [`xv::process::execute`](elf_loader.cpp.md#fn-51cf014f3d7bbc3b)
+- [`xv::process::load_segment`](elf_loader.cpp.md#fn-3e3febc45083bc1e)
+- [`xv::process::permissions`](elf_loader.cpp.md#fn-eb4a30b848de2d54)
 
 <a id="fn-6e69081813061c93"></a>
 
@@ -33,12 +33,8 @@
 
 ```doxygen
 @fn explicit xv::process::ExecutableFile::ExecutableFile(const char *path)
-@brief 构造可执行文件引用，建立本重载要求的成员初值和借用关系。
-@param path 待解析的零结尾路径字符串。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::fs::filesystem` → `lookup` → `lock`。
-@details 本函数可见的状态更新包括：`inode_ = xv::fs::filesystem().lookup(const_cast<char *>(path));`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`inode_`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 打开并验证可执行文件。
+@details 路径搜索使用有效身份，持节点锁要求普通文件且满足 X；即使 root 也要求某个执行位。失败释放引用，不建立候选映像。
 ```
 
 <a id="fn-567434fd12eba0bf"></a>
@@ -183,23 +179,6 @@
 @return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
-<a id="fn-7873c234f30790ee"></a>
-
-## `xv::process::ElfLoader::load`
-
-```doxygen
-@fn int xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments)
-@brief ELF 映像加载器：校验并装载候选可执行映像。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@param path 待解析的零结尾路径字符串。
-@param arguments 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`file` → `file.read` → `process.create_image` → `candidate.memory.grow_to` → `permissions` → `load_segment` → `file.close` → `PGROUNDUP` → `candidate.memory.size` → `candidate.memory.protect_guard` → `xv::runtime::length` → `candidate.memory.copy_out`。
-@details 本函数可见的状态更新包括：`user_arguments[count] = stack;`；`user_arguments[count] = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!file || !file.read(0, &header, sizeof(header)) || header.magic != ELF_MAGIC`；`!process.create_image(candidate.memory)`；`offset < header.phoff`；`!file.read(offset, &segment, sizeof(segment))`；`segment.type != ELF_PROG_LOAD`。这些条件决定检查、重试或提前返回路径。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`-1`；`count`。应结合上面的条件检查区分正常值、空值和错误值。
-```
-
 <a id="fn-8a4db1fa5d5b6b13"></a>
 
 ## `xv::process::executable_loader`
@@ -210,15 +189,22 @@
 @return 各分支实际返回：`loader`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
+<a id="fn-7873c234f30790ee"></a>
+
+## `xv::process::ElfLoader::load`
+
+```doxygen
+@fn int xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
+@brief 构造并提交包含参数与环境的新用户映像。
+@details 候选地址空间独立装载 ELF，把环境字符串、envp、参数字符串及 argv 复制到对齐用户栈。受 MAXARG/MAXENV 与单页栈容量限制，任一失败保留旧映像；提交时以 a2 传 envp，凭据保持不变。
+```
+
 <a id="fn-51cf014f3d7bbc3b"></a>
 
 ## `xv::process::execute`
 
 ```doxygen
-@fn int xv::process::execute(const char *path, char *const *arguments)
-@brief 进程对象生命周期、组身份、调度、等待与信号：执行 ELF 加载并替换当前用户映像。
-@param path 待解析的零结尾路径字符串。
-@param arguments 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`executable_loader` → `load` → `current`。
-@return 各分支实际返回：`executable_loader().load(*current(), path, arguments)`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn int xv::process::execute(const char *path, char *const *arguments, char *const *environment)
+@brief 执行带显式环境的映像装载服务。
+@details 委托当前进程的 ExecutableLoader；environment 为 nullptr 表示空环境，成功替换映像，失败返回 -1 且调用者原映像仍可继续。
 ```

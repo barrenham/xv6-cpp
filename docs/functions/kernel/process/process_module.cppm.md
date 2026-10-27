@@ -15,6 +15,7 @@
 - [`xv::process::get_process_group`](lifecycle/service.cpp.md#fn-c482d8945fdaf0ab)
 - [`xv::process::get_session`](lifecycle/service.cpp.md#fn-39121e4d5139c870)
 - [`xv::process::initialize`](service.md#service-initialize)
+- [`xv::process::inspect_files`](lifecycle/service.cpp.md#fn-afb7bb771f923c6c)
 - [`xv::process::kill`](lifecycle/service.cpp.md#fn-42491b6e530470a7)
 - [`xv::process::make_poll_wait`](lifecycle/service.cpp.md#fn-c10951196ee0a808)
 - [`xv::process::may_read_terminal`](lifecycle/service.cpp.md#fn-a0836e0fefde5729)

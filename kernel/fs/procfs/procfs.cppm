@@ -10,7 +10,7 @@ public:
   bool persistent() const override { return false; }
   bool read_only() const override { return true; }
   bool snapshot_reads() const override { return true; }
-  int snapshot(Inode *node, char *buffer, unsigned capacity) override;
+  bool snapshot(Inode *node, PageBuffer &buffer) override;
   void initialize(int device) override;
   void initialize_inodes() override;
   Inode *root() override { return retain(&nodes_[0]); }
@@ -31,7 +31,7 @@ public:
   void stat(Inode *node, Stat *result) override;
 private:
   static constexpr unsigned NodeCount = 256;
-  Inode *get(unsigned kind, unsigned pid);
+  Inode *get(unsigned kind, unsigned pid, unsigned descriptor = 0);
   xv::sync::SpinLock references_;
   Inode nodes_[NodeCount]{};
   unsigned device_ = 0;

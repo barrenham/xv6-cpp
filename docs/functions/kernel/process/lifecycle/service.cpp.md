@@ -23,6 +23,7 @@
 - [`xv::process::get_process_group`](service.cpp.md#fn-c482d8945fdaf0ab)
 - [`xv::process::get_session`](service.cpp.md#fn-39121e4d5139c870)
 - [`xv::process::initialize`](../service.md#service-initialize)
+- [`xv::process::inspect_files`](service.cpp.md#fn-afb7bb771f923c6c)
 - [`xv::process::kill`](service.cpp.md#fn-42491b6e530470a7)
 - [`xv::process::make_poll_wait`](service.cpp.md#fn-c10951196ee0a808)
 - [`xv::process::may_read_terminal`](service.cpp.md#fn-a0836e0fefde5729)
@@ -328,4 +329,13 @@
 @fn bool xv::process::snapshot_after(int after, ProcessInfo &result)
 @brief 向调用者提供一条复制的进程观测记录。
 @details 委托 ProcessManager，输出包含 PID、父 PID、组/会话、状态、名称与已发布地址空间大小，不暴露内部指针。
+```
+<a id="fn-afb7bb771f923c6c"></a>
+
+## `xv::process::inspect_files`
+
+```doxygen
+@fn int xv::process::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
+@brief 向文件系统提供目标进程的描述符观测服务。
+@details 委托 ProcessManager，容量不足或 PID 无效/消失返回 -1；成功返回有效项数量，数组按 fd 下标保存，无效项 identity 为零。
 ```

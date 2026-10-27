@@ -160,8 +160,32 @@ static void directory_contract()
         "directory references balanced");
 }
 
+static void credential_contract()
+{
+  Credentials parent, child;
+  unsigned groups[] = {10, 20};
+  check(parent.set_gid(100) == 0 && parent.set_groups(groups, 2) == 0 && parent.set_mask(0077) == 0022,
+        "root credential setup");
+  check(parent.set_uid(1000) == 0, "drop all user identities");
+  child.inherit(parent);
+  auto snapshot = child.snapshot();
+  check(snapshot.uid == 1000 && snapshot.effective_uid == 1000 && snapshot.saved_uid == 1000 &&
+        snapshot.gid == 100 && snapshot.group_count == 2 && snapshot.groups[1] == 20 && snapshot.mask == 0077,
+        "credential inheritance includes groups and mask");
+  check(child.set_uid(0) < 0 && child.set_uid(0, true) < 0 && child.set_gid(0) < 0 && child.set_groups(nullptr, 0) < 0,
+        "unprivileged credentials cannot escalate");
+  Credentials temporary;
+  check(temporary.set_uid(1000, true) == 0 && temporary.snapshot().uid == 0 && temporary.set_uid(0, true) == 0,
+        "saved privileged identity can be restored");
+  check(temporary.set_uid(65535) < 0 && temporary.set_groups(nullptr, 17) < 0, "credential bounds");
+  auto foreign = snapshot; foreign.uid = foreign.effective_uid = foreign.saved_uid = 1001;
+  check(!Credentials::may_signal(snapshot, foreign) && Credentials::may_signal(snapshot, snapshot) &&
+        Credentials::may_signal(temporary.snapshot(), foreign), "signal identity rules");
+}
+
 int main()
 {
+  credential_contract();
   descriptor_contract();
   directory_contract();
   std::puts("process resource contracts: passed");

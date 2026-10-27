@@ -115,8 +115,8 @@
 
 ```doxygen
 @fn void xv::fs::DevFileSystem::initialize(int device)
-@brief 构建静态设备目录、pts 根及命名从端节点槽。
-@details 登记 null/zero 并封存启动注册表，静态条目取自设备名称记录。另建 pts 子目录和 64 个按编号固定的动态节点槽；槽本身常驻内存，仅在有主端发布时可查找。
+@brief 初始化只读设备命名空间及节点权限。
+@details 根与 pts 目录为 root 的 0555，console 为 0600，其余静态字符设备为 0666。设备读写与目录/元数据只读分别判断。
 ```
 
 <a id="fn-e24bb911f90a0865"></a>
@@ -175,8 +175,8 @@
 
 ```doxygen
 @fn void xv::fs::DevFileSystem::stat(Inode *node, Stat *result)
-@brief 把合成 inode 元数据填入 stat。
-@details 要求节点已锁定，先清空输出再填入文件系统设备号、inode 号、类型、链接数和大小。设备节点大小为零，目录大小为合成目录项总长度。
+@brief 读取设备节点状态与安全属性。
+@details 先清零输出，复制设备身份、类型和链接数，再通过 security_stat 输出 uid/gid/mode；调用者持节点锁。
 ```
 
 <a id="fn-b088477df66b3ab4"></a>
@@ -195,8 +195,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::DevFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offset)
-@brief 查找静态设备、pts 目录或当前已发布的数字从端。
-@details 调用者持目录锁。数字名称拒绝前导零、非数字和越界；先固定对应 PTY 再在引用锁内取得节点，已有节点引用时归还多取的固定引用。点目录处理文件系统内部父子关系，挂载根向外跳转由 VFS 完成。
+@brief 查找静态设备或活动命名 PTY。
+@details 动态 pts 的拥有者来自创建者凭据，模式 0600。先查询 PTY 拥有者再取引用锁，避免锁序反转；新缓存槽在引用发布前写好属性，已有引用保持编号固定。
 ```
 
 <a id="fn-fb5edfa93d9d9127"></a>

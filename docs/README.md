@@ -3,7 +3,7 @@
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：272 个文件，1717 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：279 个文件，1810 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。
@@ -19,7 +19,9 @@
 
 - [命名 PTY](named-pty.md)：ptmx、pts、设备会话及编号生命周期。
 
-- [procfs 与 ps/free](procfs.md)：进程快照、内存统计与用户态工具。
+- [procfs 与 ps/free](procfs.md)：动态快照、描述符观测、内存统计与用户态工具。
+
+- [RAM 文件系统](ramfs.md)：/tmp、按页存储、目录与文件生命周期。
 
 - [网络接口、多网卡选路与 IP-in-IP 隧道](network-interfaces.md)。
 
@@ -34,3 +36,7 @@
 - [HTTP 客户端与 curl](network-http.md)：流式下载、重定向、HTTP 定界、用户态类库与测试。
 
 - [TCP 滑动窗口与连接管理](network-tcp.md)：收发队列、乱序重排、NewReno、重传与关闭。
+
+- [环境变量与 shell](environment.md)：环境继承、execve、PATH、引号和内建命令。
+
+- [用户、组与权限](users-permissions.md)：凭据、账户工具、文件权限、授权边界与磁盘格式。

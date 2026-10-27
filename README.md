@@ -5,8 +5,9 @@
 ## 功能
 
 - **内存**：设备树 RAM 发现、伙伴/链表页分配器、Sv39 页表与大页映射。
-- **进程**：多核调度、动态进程登记、信号处理、进程组与 shell 作业控制。
-- **文件与终端**：日志文件系统、VFS/devfs、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
+- **进程**：多核调度、动态进程登记、信号处理、进程组、shell 作业控制与环境变量。
+- **文件与终端**：日志文件系统、VFS、devfs/ramfs、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
+- **用户与权限**：UID/GID、附加组、文件权限、umask、useradd/su、chmod/chown。
 - **网络**：E1000、IPv4、ARP、ICMP、TCP/UDP、socket、多网卡、网桥与 IP-in-IP 隧道。
 - **网络应用**：DHCP 自动取址、DNS 解析、netctl、nslookup 和 HTTP curl。
 

@@ -4,6 +4,10 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <string>
+#include <vector>
+#include <map>
+#include <fstream>
 
 #define stat xv6_stat // avoid clash with host struct stat
 #include "kernel/support/types.h"
@@ -22,7 +26,8 @@ int nlog = LOGBLOCKS + 1; // Header followed by LOGBLOCKS data blocks.
 int nmeta;   // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks; // Number of data blocks
 
-int fsfd;
+int fsfd = -1;
+std::string temporary_image;
 struct superblock sb;
 char zeroes[BSIZE];
 uint freeinode = 1;
@@ -60,34 +65,102 @@ xint(uint x)
   return y;
 }
 
-int
-main(int argc, char *argv[])
+[[noreturn]] void error(const char *message)
 {
-  int i, cc, fd;
-  uint rootino, inum, off;
-  struct dirent de;
-  char buf[BSIZE];
-  struct dinode din;
+  fprintf(stderr, "mkfs: %s\n", message);
+  if (fsfd >= 0) close(fsfd);
+  if (!temporary_image.empty()) unlink(temporary_image.c_str());
+  exit(1);
+}
 
-  static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
+struct ImageEntry
+{
+  std::string kind, path, source;
+  ushort mode;
+};
 
-  if (argc < 2) {
-    fprintf(stderr, "Usage: mkfs fs.img files...\n");
-    exit(1);
+void validate_path(const std::string &path)
+{
+  if (path.size() < 2 || path.size() >= MAXPATH || path.front() != '/' || path.back() == '/')
+    error("image path must be a canonical absolute path");
+  size_t start = 1;
+  while (start < path.size())
+  {
+    size_t end = path.find('/', start);
+    if (end == std::string::npos) end = path.size();
+    std::string component = path.substr(start, end - start);
+    if (component.empty() || component == "." || component == ".." || component.size() > DIRSIZ)
+      error("invalid image path component");
+    start = end + 1;
   }
+}
 
+std::vector<ImageEntry> read_manifest(const char *path)
+{
+  std::ifstream input(path);
+  if (!input) error("cannot open image manifest");
+  std::vector<ImageEntry> entries;
+  std::map<std::string, bool> names;
+  std::string line;
+  while (std::getline(input, line))
+  {
+    if (line.empty() || line[0] == '#') continue;
+    std::vector<std::string> fields;
+    size_t start = 0;
+    for (;;)
+    {
+      size_t end = line.find('\t', start);
+      fields.push_back(line.substr(start, end == std::string::npos ? end : end - start));
+      if (end == std::string::npos) break;
+      start = end + 1;
+    }
+    if (fields.size() < 3 ||
+        (fields[0] == "dir" ? fields.size() != 3 : fields[0] != "file" || fields.size() != 4))
+      error("expected dir<TAB>mode<TAB>path or file<TAB>mode<TAB>path<TAB>source");
+    if (fields[1].empty() || fields[1].size() > 5) error("invalid file mode");
+    unsigned mode = 0;
+    for (char digit : fields[1])
+    {
+      if (digit < '0' || digit > '7') error("file mode must be octal");
+      mode = mode * 8 + digit - '0';
+    }
+    if (mode > 01777) error("unsupported file mode");
+    validate_path(fields[2]);
+    if (!names.emplace(fields[2], true).second) error("duplicate image path");
+    if (fields[0] == "file" && fields[3].empty()) error("empty host source path");
+    entries.push_back({fields[0], fields[2], fields.size() == 4 ? fields[3] : "", static_cast<ushort>(mode)});
+  }
+  if (!input.eof()) error("cannot read image manifest");
+  return entries;
+}
+
+void directory_entry(uint parent, const char *name, uint number)
+{
+  struct dirent entry{};
+  entry.inum = xshort(number);
+  strncpy(entry.name, name, DIRSIZ);
+  iappend(parent, &entry, sizeof(entry));
+}
+
+int main(int argc, char *argv[])
+{
+  static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
+  if (argc != 4 || strcmp(argv[2], "--manifest"))
+    error("usage: mkfs fs.img --manifest fs-manifest.tsv");
+  auto entries = read_manifest(argv[3]);
   assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
-  fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
-  if (fsfd < 0)
-    die(argv[1]);
+  std::string pattern = std::string(argv[1]) + ".tmp.XXXXXX";
+  std::vector<char> temporary(pattern.begin(), pattern.end());
+  temporary.push_back(0);
+  fsfd = mkstemp(temporary.data());
+  if (fsfd < 0) die(argv[1]);
+  temporary_image = temporary.data();
 
-  // 1 fs block = 1 disk sector
   nmeta = 2 + nlog + ninodeblocks + nbitmap;
   nblocks = FSSIZE - nmeta;
-
-  sb.magic = FSMAGIC;
+  sb.magic = xint(FSMAGIC);
   sb.size = xint(FSSIZE);
   sb.nblocks = xint(nblocks);
   sb.ninodes = xint(NINODES);
@@ -95,72 +168,63 @@ main(int argc, char *argv[])
   sb.logstart = xint(2);
   sb.inodestart = xint(2 + nlog);
   sb.bmapstart = xint(2 + nlog + ninodeblocks);
+  printf("nmeta %d blocks %d total %d\n", nmeta, nblocks, FSSIZE);
+  freeblock = nmeta;
+  for (int i = 0; i < FSSIZE; ++i) wsect(i, zeroes);
+  char buffer[BSIZE]{};
+  memmove(buffer, &sb, sizeof(sb));
+  wsect(1, buffer);
 
-  printf(
-    "nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
-    nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
-
-  freeblock = nmeta; // the first free block that we can allocate
-
-  for (i = 0; i < FSSIZE; i++)
-    wsect(i, zeroes);
-
-  memset(buf, 0, sizeof(buf));
-  memmove(buf, &sb, sizeof(sb));
-  wsect(1, buf);
-
-  rootino = ialloc(T_DIR);
-  assert(rootino == ROOTINO);
-
-  bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
-  strcpy(de.name, ".");
-  iappend(rootino, &de, sizeof(de));
-
-  bzero(&de, sizeof(de));
-  de.inum = xshort(rootino);
-  strcpy(de.name, "..");
-  iappend(rootino, &de, sizeof(de));
-
-  for (i = 2; i < argc; i++) {
-    char *shortname = strrchr(argv[i], '/');
-    shortname = shortname ? shortname + 1 : argv[i];
-
-    if ((fd = open(argv[i], 0)) < 0)
-      die(argv[i]);
-
-    // Skip leading _ in name when writing to file system.
-    // The binaries are named _rm, _cat, etc. to keep the
-    // build operating system from trying to execute them
-    // in place of system binaries like rm and cat.
-    if (shortname[0] == '_')
-      shortname += 1;
-
-    assert(strlen(shortname) <= DIRSIZ);
-
-    inum = ialloc(T_FILE);
-
-    bzero(&de, sizeof(de));
-    de.inum = xshort(inum);
-    strncpy(de.name, shortname, DIRSIZ);
-    iappend(rootino, &de, sizeof(de));
-
-    while ((cc = read(fd, buf, sizeof(buf))) > 0)
-      iappend(inum, buf, cc);
-
-    close(fd);
+  uint root = ialloc(T_DIR);
+  assert(root == ROOTINO);
+  directory_entry(root, ".", root);
+  directory_entry(root, "..", root);
+  std::map<std::string, uint> nodes{{"/", root}};
+  for (const auto &entry : entries)
+  {
+    size_t slash = entry.path.rfind('/');
+    std::string parent_path = slash == 0 ? "/" : entry.path.substr(0, slash);
+    auto found = nodes.find(parent_path);
+    if (found == nodes.end()) error("parent directory must precede its children in manifest");
+    uint parent = found->second;
+    struct dinode directory;
+    rinode(parent, &directory);
+    if (xshort(directory.type) != T_DIR) error("image parent is not a directory");
+    uint number = ialloc(entry.kind == "dir" ? T_DIR : T_FILE);
+    struct dinode node;
+    rinode(number, &node);
+    node.mode = xshort(entry.mode);
+    winode(number, &node);
+    directory_entry(parent, entry.path.c_str() + slash + 1, number);
+    nodes.emplace(entry.path, number);
+    if (entry.kind == "dir")
+    {
+      directory_entry(number, ".", number);
+      directory_entry(number, "..", parent);
+      directory.nlink = xshort(xshort(directory.nlink) + 1);
+      struct dinode updated;
+      rinode(parent, &updated);
+      updated.nlink = directory.nlink;
+      winode(parent, &updated);
+    }
+    else
+    {
+      int fd = open(entry.source.c_str(), O_RDONLY);
+      if (fd < 0) die(entry.source.c_str());
+      ssize_t count;
+      while ((count = read(fd, buffer, sizeof(buffer))) > 0) iappend(number, buffer, count);
+      if (count < 0) die("read host file");
+      if (close(fd) < 0) die("close host file");
+    }
   }
-
-  // fix size of root inode dir
-  rinode(rootino, &din);
-  off = xint(din.size);
-  off = ((off / BSIZE) + 1) * BSIZE;
-  din.size = xint(off);
-  winode(rootino, &din);
-
   balloc(freeblock);
-
-  exit(0);
+  if (fsync(fsfd) < 0) die("fsync image");
+  if (close(fsfd) < 0) die("close image");
+  fsfd = -1;
+  if (rename(temporary_image.c_str(), argv[1]) < 0) die("publish image");
+  temporary_image.clear();
+  printf("installed %zu entries\n", entries.size());
+  return 0;
 }
 
 void
@@ -211,31 +275,36 @@ rsect(uint sec, void *buf)
 uint
 ialloc(ushort type)
 {
+  if (freeinode >= NINODES) error("out of image inodes");
   uint inum = freeinode++;
   struct dinode din;
 
   bzero(&din, sizeof(din));
   din.type = xshort(type);
+  din.uid = din.gid = 0; din.mode = xshort(type == T_DIR ? 0755 : 0644);
   din.nlink = xshort(1);
   din.size = xint(0);
   winode(inum, &din);
   return inum;
 }
 
-void
-balloc(int used)
+void balloc(int used)
 {
-  uchar buf[BSIZE];
-  int i;
-
+  if (used > FSSIZE) error("image exceeds disk capacity");
   printf("balloc: first %d blocks have been allocated\n", used);
-  assert(used < BPB);
-  bzero(buf, BSIZE);
-  for (i = 0; i < used; i++) {
-    buf[i / 8] = buf[i / 8] | (0x1 << (i % 8));
+  for (int block = 0; block < nbitmap; ++block)
+  {
+    uchar bytes[BSIZE]{};
+    for (int bit = 0; bit < BPB && block * BPB + bit < used; ++bit)
+      bytes[bit / 8] |= 1 << (bit % 8);
+    wsect(xint(sb.bmapstart) + block, bytes);
   }
-  printf("balloc: write bitmap block at sector %d\n", sb.bmapstart);
-  wsect(sb.bmapstart, buf);
+}
+
+uint allocate_block()
+{
+  if (freeblock >= FSSIZE) error("out of image blocks");
+  return freeblock++;
 }
 
 constexpr uint min(uint a, uint b) { return a < b ? a : b; }
@@ -255,26 +324,26 @@ iappend(uint inum, void *xp, int n)
   // printf("append inum %d at off %d sz %d\n", inum, off, n);
   while (n > 0) {
     fbn = off / BSIZE;
-    assert(fbn < MAXFILE);
+    if (fbn >= MAXFILE) error("host file exceeds maximum xv6 file size");
     if (fbn < NDIRECT) {
       if (xint(din.addrs[fbn]) == 0) {
-        din.addrs[fbn] = xint(freeblock++);
+        din.addrs[fbn] = xint(allocate_block());
       }
       x = xint(din.addrs[fbn]);
     } else {
       if (xint(din.addrs[NDIRECT]) == 0) {
-        din.addrs[NDIRECT] = xint(freeblock++);
+        din.addrs[NDIRECT] = xint(allocate_block());
       }
       rsect(xint(din.addrs[NDIRECT]), (char *)indirect);
       if (indirect[fbn - NDIRECT] == 0) {
-        indirect[fbn - NDIRECT] = xint(freeblock++);
+        indirect[fbn - NDIRECT] = xint(allocate_block());
         wsect(xint(din.addrs[NDIRECT]), (char *)indirect);
       }
       x = xint(indirect[fbn - NDIRECT]);
     }
     n1 = min(n, (fbn + 1) * BSIZE - off);
     rsect(x, buf);
-    bcopy(p, buf + off - (fbn * BSIZE), n1);
+    bcopy(p, buf + (off - fbn * BSIZE), n1);
     wsect(x, buf);
     n -= n1;
     off += n1;
@@ -288,5 +357,5 @@ void
 die(const char *s)
 {
   perror(s);
-  exit(1);
+  error("host I/O failed");
 }

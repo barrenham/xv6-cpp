@@ -38,8 +38,8 @@
 
 ```doxygen
 @fn void xv::fs::InodeBackend::close()
-@brief 释放节点引用、快照页面并析构后端。
-@details 根据节点所属文件系统选择条件磁盘事务；快照独立于原进程的生命周期，在最后一个共享 File 关闭时归还。
+@brief 释放节点引用并析构页链快照。
+@details 持久节点使用条件磁盘事务，RAM/procfs 节点只更新内存归属。析构 PageBuffer 回收任意数量的快照页，不再假定单页内容。
 ```
 
 <a id="fn-483ee20032be6151"></a>
@@ -48,8 +48,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::read(xv::io::Buffer destination, int count)
-@brief 按共享偏移读取打开时快照或实际节点数据。
-@details 在所属文件系统节点锁内串行更新 offset。快照裁剪到固定 length 并执行用户复制，失败不推进偏移；普通磁盘/设备目录沿用节点 read。
+@brief 按共享偏移读取动态快照或实际节点。
+@details 在所属文件系统锁内串行化偏移。快照调用 PageBuffer 跨页复制，普通文件委托节点 read；仅用实际成功字节数推进，失败复制不会跳过未完成部分。
 ```
 
 <a id="fn-1bb8e957e0af8807"></a>
@@ -58,8 +58,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::write(xv::io::Buffer source, int count)
-@brief 把普通文件写入拆成日志容量允许的事务。
-@details 每段在所属节点锁内写入并推进偏移，信号或短写按既有规则返回。procfs 在绑定和 open 权限阶段拒绝写后端，不进入此路径。
+@brief 分段写节点并保留部分成功的字节数。
+@details 每段在所属节点锁内写入，只有持久后端预留日志事务。RAM 文件使用内存页，不进入磁盘日志；内存耗尽或复制失败时返回已完成量，完全未完成返回 -1，空写返回 0。
 ```
 
 <a id="fn-f0d5394ca9774a31"></a>
@@ -68,8 +68,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::stat(xv::io::Metadata &value)
-@brief 读取节点元数据并在有快照时填入快照长度。
-@details 使用 inode 所属文件系统的锁和 stat；不重新生成快照，因此 fstat 的大小与本次打开的 EOF 一致。
+@brief 读取节点元数据，并用动态快照长度覆盖打开文件大小。
+@details 快照大小与本次打开的内容和 EOF 一致，不重新生成内容；普通 RAM/磁盘文件大小来自所属节点。
 ```
 
 <a id="fn-5fada80fee636ddb"></a>

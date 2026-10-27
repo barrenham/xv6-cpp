@@ -34,6 +34,7 @@
 - [`xv::drivers::create_pty`](pty.cpp.md#fn-8801034b0305377a)
 - [`xv::drivers::initialize_ptys`](pty.cpp.md#fn-0c7545d488e75354)
 - [`xv::drivers::named_pty_ids`](pty.cpp.md#fn-e22085482cfe7284)
+- [`xv::drivers::named_pty_owner`](pty.cpp.md#fn-e0fbfb0d92d6e5b5)
 - [`xv::drivers::open_named_pty`](pty.cpp.md#fn-e64b849fb108aed9)
 - [`xv::drivers::ptmx`](pty.cpp.md#fn-1ed26c2173290846)
 - [`xv::drivers::pty_timer_tick`](pty.cpp.md#fn-b050f1554cf27075)
@@ -381,6 +382,16 @@
 
 ```doxygen
 @fn CharacterDevice *xv::drivers::PtyMultiplexer::open(bool) override
-@brief 分配并发布一个独立的命名 PTY 主端。
-@details 先申请并初始化对象页，再在注册锁内寻找 0..63 的空闲编号，初始从端锁定，仅持一个主端会话引用。编号耗尽时析构并回收页面，失败不发布对象；旧从端或节点固定引用存续期间不复用其编号。
+@brief 打开新的 PTY 主端并记录会话拥有者。
+@details 按页创建 Pty，保存调用者有效 uid/gid；发布编号前准备两端引用，任一分配失败归还页和端点。节点编号仍受活动会话及 inode 固定引用保护。
+```
+
+<a id="fn-e0fbfb0d92d6e5b5"></a>
+
+## `xv::drivers::named_pty_owner`
+
+```doxygen
+@fn bool xv::drivers::named_pty_owner(unsigned number, unsigned &uid, unsigned &gid)
+@brief 查询活动命名 PTY 的创建者。
+@details 持 ptys_lock 查找编号并复制 uid/gid，找不到返回 false；不返回设备对象指针，不延长会话寿命。
 ```

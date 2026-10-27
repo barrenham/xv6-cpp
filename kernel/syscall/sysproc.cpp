@@ -285,4 +285,29 @@ uint64 sys_cpupin(void)
   return p->pin_cpu(cpu);
 }
 #endif
+uint64 sys_getuid() { return xv::process::current()->credentials().snapshot().uid; }
+uint64 sys_geteuid() { return xv::process::current()->credentials().snapshot().effective_uid; }
+uint64 sys_getgid() { return xv::process::current()->credentials().snapshot().gid; }
+uint64 sys_getegid() { return xv::process::current()->credentials().snapshot().effective_gid; }
+uint64 sys_setuid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_uid(value); }
+uint64 sys_seteuid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_uid(value, true); }
+uint64 sys_setgid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_gid(value); }
+uint64 sys_setegid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_gid(value, true); }
+uint64 sys_umask() { int mask; argument_integer(0, &mask); return xv::process::current()->credentials().set_mask(mask); }
+uint64 sys_getgroups()
+{
+  int count; uint64 address; argument_integer(0, &count); argument_address(1, &address);
+  auto state = xv::process::current()->credentials().snapshot();
+  if (!count) return state.group_count;
+  if (count < 0 || static_cast<unsigned>(count) < state.group_count) return -1;
+  if (state.group_count && xv::process::current()->memory().copy_out(address, state.groups, state.group_count * sizeof(unsigned)) < 0) return -1;
+  return state.group_count;
+}
+uint64 sys_setgroups()
+{
+  int count; uint64 address; argument_integer(0, &count); argument_address(1, &address);
+  unsigned groups[16];
+  if (count < 0 || count > 16 || (count && xv::process::current()->memory().copy_in(groups, address, count * sizeof(unsigned)) < 0)) return -1;
+  return xv::process::current()->credentials().set_groups(groups, count);
+}
 } // namespace xv::syscall

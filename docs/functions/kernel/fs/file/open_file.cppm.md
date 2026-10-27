@@ -28,6 +28,7 @@
 - [`xv::fs::OpenFileTable::bind_object`](open_file.cpp.md#fn-5b6c8b6fa35ede20)
 - [`xv::fs::OpenFileTable::bind_pipe`](open_file.cpp.md#fn-28ec255ef808a0a2)
 - [`xv::fs::OpenFileTable::configure`](open_file.cpp.md#fn-34475d43f15a5471)
+- [`xv::fs::OpenFileTable::describe`](open_file.cpp.md#fn-66c95719b54955f5)
 - [`xv::fs::OpenFileTable::fcntl`](open_file.cpp.md#fn-3a55abe43cfd3ddc)
 - [`xv::fs::OpenFileTable::initialize`](open_file.cpp.md#fn-6b5a5967a8ffe320)
 - [`xv::fs::OpenFileTable::ioctl`](open_file.cpp.md#fn-227fb8963ea0dda0)

@@ -40,6 +40,25 @@ GDB 加载 `build/dev/kernel.elf`，通过 `target remote :26000` 连接。QEMU 
 
 链表页分配器使用 `freelist` 预设：`cmake --preset freelist`、`cmake --build --preset freelist`。
 
+## 镜像中的目录
+
+| 路径 | 安装内容 |
+| --- | --- |
+| `/bin` | sh、文件操作、账户切换和普通网络应用 |
+| `/sbin` | init、useradd、netctl |
+| `/usr/tests` | 客体测试、cppdemo 和 zombie 演示程序 |
+| `/usr/share/doc/xv6/README` | 随镜像附带的 xv6 说明 |
+| `/dev`、`/proc`、`/tmp` | 启动挂载的设备、进程信息和 RAM 文件系统 |
+| `/etc`、`/home`、`/root` | 账户配置与用户目录 |
+
+根目录只安装目录，不保留程序或 README 副本。默认 PATH 为 `/bin:/sbin:/usr/tests`，因此原有命令和测试名可直接运行；从任意工作目录启动 shell 都使用 `/bin/sh`。
+
+`user/CMakeLists.txt` 按源文件类别确定目标路径；编译产物仍在 `build/dev/user/_名称`。CMake 生成 `build/dev/fs-manifest.tsv`，用 `dir<TAB>八进制权限<TAB>目标路径` 或 `file<TAB>八进制权限<TAB>目标路径<TAB>宿主文件` 明确安装映射，父目录必须先列出。宿主文件路径可以包含空格。
+
+mkfs 拒绝重复目标、非规范路径、超长组件、缺失父目录和超出磁盘格式容量的文件。镜像先写入同目录临时文件，完整写入后原子替换 `fs.img`；失败保留原镜像，正在运行的 QEMU 继续使用原先打开的镜像。重启 QEMU 后加载新布局。
+
+验证安装路径、权限、文件内容和失败回滚：`ctest --test-dir build/dev -R '^image_layout$' --output-on-failure`。
+
 ## 编辑器
 
 先完成一次构建，clangd 通过 `.clangd` 读取 `build/dev/compile_commands.json` 和 CMake 生成的模块文件。宿主机工具和契约测试使用 `build/dev/host/compile_commands.json`。

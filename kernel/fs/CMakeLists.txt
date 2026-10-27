@@ -3,6 +3,7 @@ xv_add_fs_interfaces(kernel)
 xv_add_fs_internals(kernel)
 target_sources(kernel PRIVATE
   cache/lru_block_cache.cpp
+  buffer/page_buffer.cpp
   journal/journal.cpp
   inode/xv6_filesystem.cpp
   path/path_operations.cpp
@@ -14,5 +15,7 @@ target_sources(kernel PRIVATE
   vfs/vfs.cpp
   devfs/devfs.cpp
   procfs/procfs.cpp
+  ramfs/ramfs.cpp
+  permissions.cpp
   service.cpp
 )

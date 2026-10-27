@@ -6,8 +6,8 @@ namespace xv::fs
 class InodeBackend final : public xv::io::IoObject
 {
 public:
-  explicit InodeBackend(Inode &node, char *snapshot = nullptr, unsigned length = 0)
-      : node_(&node), snapshot_(snapshot), length_(length) {}
+  InodeBackend(Inode &node, bool snapshot, PageBuffer &contents)
+      : node_(&node), snapshot_(snapshot) { contents_.take(contents); }
   void close() override;
   int read(xv::io::Buffer destination, int count) override;
   int write(xv::io::Buffer source, int count) override;
@@ -16,8 +16,8 @@ public:
 private:
   Inode *node_;
   unsigned offset_ = 0;
-  char *snapshot_ = nullptr;
-  unsigned length_ = 0;
+  bool snapshot_ = false;
+  PageBuffer contents_;
 };
 class DeviceBackend final : public xv::io::IoObject, public xv::io::DeviceControl
 {
