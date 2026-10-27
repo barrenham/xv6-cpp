@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise the HTTP library and curl CLI against controlled real TCP peers."""
+from console_login import login_root
 import argparse
 import os
 from pathlib import Path
@@ -175,7 +176,7 @@ def main():
                     # Console echoes the command; only subsequent bytes are output.
                     return text.split('\n', 1)[1]
                 try:
-                    expect('$ ')
+                    login_root(expect, process)
                     run('netctl dhcp wait eth0')
                     expect('eth0 DHCP BOUND')
                     expect('$ ')

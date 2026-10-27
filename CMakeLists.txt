@@ -44,14 +44,22 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
   VERBATIM)
 add_custom_target(image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs.img")
+# Keep test enrollment independent of the disk used by interactive QEMU sessions.
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
+  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  VERBATIM)
+add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
 set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${PROJECT_BINARY_DIR}/fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
 enable_testing()
+add_test(NAME password_hash_contract COMMAND "${PROJECT_BINARY_DIR}/password_hash_contract")
+set_tests_properties(password_hash_contract PROPERTIES TIMEOUT 15 LABELS users)
 add_test(NAME image_layout COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/image_layout.py"
-  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --image "${PROJECT_BINARY_DIR}/fs.img"
+  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --image "${PROJECT_BINARY_DIR}/fs-test.img"
   --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv")
 set_tests_properties(image_layout PROPERTIES TIMEOUT 30 LABELS fs)
 add_test(NAME signal_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract" --signals)
@@ -64,7 +72,7 @@ add_test(NAME runtime_contract COMMAND "${PROJECT_BINARY_DIR}/runtime_contract")
 set_tests_properties(runtime_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 add_test(NAME trap_contract COMMAND "${PROJECT_BINARY_DIR}/trap_contract")
 set_tests_properties(trap_contract PROPERTIES TIMEOUT 45 LABELS trap)
-add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" "${PROJECT_BINARY_DIR}/fs.img")
+add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" "${PROJECT_BINARY_DIR}/fs-test.img")
 set_tests_properties(fs_contract PROPERTIES TIMEOUT 45 LABELS fs)
 add_test(NAME process_contract COMMAND "${PROJECT_BINARY_DIR}/process_contract")
 set_tests_properties(process_contract PROPERTIES TIMEOUT 45 LABELS process)
@@ -72,9 +80,9 @@ add_test(NAME driver_contract COMMAND "${PROJECT_BINARY_DIR}/driver_contract")
 set_tests_properties(driver_contract PROPERTIES TIMEOUT 45 LABELS drivers)
 add_test(NAME sync_contract COMMAND "${PROJECT_BINARY_DIR}/sync_contract")
 set_tests_properties(sync_contract PROPERTIES TIMEOUT 45 LABELS sync)
-add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")
+add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")
 set_tests_properties(boot_smoke PROPERTIES TIMEOUT 120)
-add_test(NAME user_regression COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}" --regression)
+add_test(NAME user_regression COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}" --regression)
 set_tests_properties(user_regression PROPERTIES TIMEOUT 330)
 foreach(kind buddy freelist)
   add_test(NAME allocator_contract_${kind} COMMAND "${PROJECT_BINARY_DIR}/allocator_contract" ${kind})
@@ -84,84 +92,84 @@ endforeach()
 # Same kernel binary, different firmware-described RAM lengths and mapping edges.
 foreach(ram 64 257 2048 2049)
   add_test(NAME ram_${ram}MiB COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py"
-    --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib ${ram} --boot-only)
   set_tests_properties(ram_${ram}MiB PROPERTIES TIMEOUT 120 LABELS ram)
 endforeach()
 
 foreach(cpus 1 3)
-  foreach(feature named-pty procfs ramfs environment permissions)
+  foreach(feature named-pty procfs ramfs environment permissions workflow session)
     add_test(NAME ${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-      --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+      --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
       --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
       --${feature} --cpus ${cpus})
-    set_tests_properties(${feature}_${cpus}cpu PROPERTIES TIMEOUT 45 LABELS fs)
+    set_tests_properties(${feature}_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS fs)
   endforeach()
 
   add_test(NAME devfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --devfs --cpus ${cpus})
   set_tests_properties(devfs_${cpus}cpu PROPERTIES TIMEOUT 40 LABELS fs)
   add_test(NAME sigchld_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --sigchld --cpus ${cpus})
   set_tests_properties(sigchld_${cpus}cpu PROPERTIES TIMEOUT 30 LABELS process)
   add_test(NAME nonblock_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --nonblock --cpus ${cpus})
   set_tests_properties(nonblock_${cpus}cpu PROPERTIES TIMEOUT 20 LABELS io)
   add_test(NAME poll_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --poll --cpus ${cpus})
   set_tests_properties(poll_${cpus}cpu PROPERTIES TIMEOUT 15 LABELS io)
   add_test(NAME pty_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --pty --cpus ${cpus})
   set_tests_properties(pty_${cpus}cpu PROPERTIES TIMEOUT 35 LABELS tty)
   add_test(NAME jobs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --jobs --cpus ${cpus})
   set_tests_properties(jobs_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS tty)
   add_test(NAME foreground_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --foreground --cpus ${cpus})
   set_tests_properties(foreground_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS tty)
   add_test(NAME signals_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --signals --cpus ${cpus})
   set_tests_properties(signals_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
   add_test(NAME process_groups_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --process-groups --cpus ${cpus})
   set_tests_properties(process_groups_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
   add_test(NAME tty_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --tty --boot-only --cpus ${cpus})
   set_tests_properties(tty_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS tty)
   add_test(NAME process_scaling_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --process-scaling --cpus ${cpus})
   set_tests_properties(process_scaling_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
@@ -170,7 +178,7 @@ endforeach()
 foreach(cpus 1 3)
   add_test(NAME network_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(network_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
@@ -180,42 +188,42 @@ set_tests_properties(network_contract PROPERTIES TIMEOUT 10 LABELS network)
 foreach(cpus 1 3)
   add_test(NAME socket_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/socket_network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(socket_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
 foreach(cpus 1 3)
   add_test(NAME multinet_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --multi)
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --multi)
   set_tests_properties(multinet_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
 foreach(cpus 1 3)
   add_test(NAME netctl_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --management)
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --management)
   set_tests_properties(netctl_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
 foreach(cpus 1 3)
   add_test(NAME bridge_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/bridge_network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(bridge_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
 
 foreach(cpus 1 3)
   add_test(NAME dhcp_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus} --dhcp)
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --dhcp)
   set_tests_properties(dhcp_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
 
 foreach(cpus 1 3)
   add_test(NAME dns_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/dns_network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(dns_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
 
@@ -225,7 +233,7 @@ set_tests_properties(dns_contract PROPERTIES TIMEOUT 10 LABELS network)
 foreach(cpus 1 3)
   add_test(NAME http_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/http_network.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs.img" --cpus ${cpus})
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(http_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS network)
 endforeach()
 

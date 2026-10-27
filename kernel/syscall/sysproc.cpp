@@ -310,4 +310,6 @@ uint64 sys_setgroups()
   if (count < 0 || count > 16 || (count && xv::process::current()->memory().copy_in(groups, address, count * sizeof(unsigned)) < 0)) return -1;
   return xv::process::current()->credentials().set_groups(groups, count);
 }
+uint64 sys_clockticks()
+{ uint64 value; asm volatile("rdtime %0" : "=r"(value)); return value; }
 } // namespace xv::syscall

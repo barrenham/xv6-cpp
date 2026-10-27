@@ -28,6 +28,10 @@ public:
   int read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count) override;
   int write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count) override;
   void stat(Inode *node, Stat *result) override;
+  bool initialize_mount(unsigned device) override;
+  bool busy() override;
+  void shutdown() override;
+  int rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name) override;
 private:
   struct Node;
   struct Slot { Node *target = nullptr; char name[DIRSIZ]{}; };
@@ -39,6 +43,7 @@ private:
   struct Node
   {
     Inode inode;
+    Node *next = nullptr;
     Node *parent = nullptr;
     PageBuffer contents;
     DirectoryPage *directory = nullptr;
@@ -56,5 +61,7 @@ private:
   unsigned long numbers_[1024]{};
   Node *root_ = nullptr;
   unsigned device_ = 0;
+  unsigned live_references_ = 0;
+  Node *nodes_ = nullptr;
 };
 }

@@ -100,3 +100,10 @@
 #define SYS_access 81
 
 #define SYS_stat 82
+
+#define SYS_rename 83
+#define SYS_mount 84
+#define SYS_umount 85
+#define SYS_mountinfo 86
+
+#define SYS_clockticks 87

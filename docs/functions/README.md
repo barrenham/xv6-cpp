@@ -1,12 +1,12 @@
 # kernel 独立 Doxygen 函数文档
 
-已按 [kernel 全量导航](kernel/README.md) 覆盖 279 个源码/接口/共享 include/汇编文件，
-登记 1810 个函数或控制流入口条目。实际代码仍在 `kernel/`，文档集中在 `docs/`；
+已按 [kernel 全量导航](kernel/README.md) 覆盖 280 个源码/接口/共享 include/汇编文件，
+登记 1829 个函数或控制流入口条目。实际代码仍在 `kernel/`，文档集中在 `docs/`；
 不向源码添加说明、不生成额外 C++ 声明、不使用编辑器插件或 LSP 代理。
 
 ## 范围与阅读方式
 
-- 默认 dev 配置由真实 clangd 清点出 2687 处声明/定义，按 USR 归并为 1745 个唯一函数项。
+- 默认 dev 配置由真实 clangd 清点出 2721 处声明/定义，按 USR 归并为 1764 个唯一函数项。
 - 包含普通/静态函数、成员函数、内联与模板、构造/析构、运算符、删除成员及纯虚契约。
 - 额外记录 49 个共享寄存器函数、13 个仅条件配置接口，以及未作为 C++ 函数声明的 3 个汇编入口。
   swtch/kernelvec 的已有 C++ 声明与汇编实现共用条目，不重复计数。
@@ -82,4 +82,4 @@ python tools/clangd_docs/verify.py --clangd "$CONDA_PREFIX/bin/clangd"
 [索引 Documentation 字段](https://github.com/llvm/llvm-project/blob/main/clang-tools-extra/clangd/index/YAMLSerialization.cpp)、
 [配置](https://clangd.llvm.org/config)。
 
-环境、用户与权限更新后的实际验证：1556 项显示外部 Doxygen，10 项源码注释优先，179 项受原生注释优先级或索引限制，65 项仅保留独立文档；另有 5 个跨模块 Doxygen 探针通过。完整结果见 `build/docs/hover-report.json`，代码变化后需重新验证。
+编辑、登录与动态挂载更新后的实际验证：1575 项显示外部 Doxygen，10 项源码注释优先，179 项受原生注释优先级或索引限制，65 项仅保留独立文档；另有 5 个跨模块 Doxygen 探针通过。完整结果见 `build/docs/hover-report.json`，代码变化后需重新验证。

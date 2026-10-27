@@ -12,6 +12,7 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/fs/mount.h"
 
 module xv.syscall;
 
@@ -456,5 +457,42 @@ uint64 sys_stat()
   xv::fs::filesystem().lock(node); xv::fs::filesystem().stat(node, &value);
   xv::fs::filesystem().unlock_release(node);
   return xv::process::current()->memory().copy_out(address, &value, sizeof(value));
+}
+
+uint64 sys_rename()
+{
+  char old[MAXPATH], next[MAXPATH];
+  if (argument_string(0, old, MAXPATH) <= 0 || argument_string(1, next, MAXPATH) <= 0) return -1;
+  const char *paths[] = {old, next};
+  for (const char *path : paths)
+  {
+    unsigned component = 0;
+    for (const char *p = path; *p; ++p) { if (*p == '/') component = 0; else if (++component > DIRSIZ) return -1; }
+    if (!component) return -1;
+  }
+  return xv::fs::filesystem().rename(old, next);
+}
+uint64 sys_mount()
+{
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+  char path[MAXPATH], type[16];
+  if (argument_string(0, type, sizeof(type)) < 0 || argument_string(1, path, sizeof(path)) < 0 ||
+      xv::runtime::compare_text(type, "ramfs", 16) != 0) return -1;
+  return xv::fs::filesystem().mount_ram(path);
+}
+uint64 sys_umount()
+{
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+  char path[MAXPATH]; if (argument_string(0, path, sizeof(path)) < 0) return -1;
+  return xv::fs::filesystem().unmount(path);
+}
+uint64 sys_mountinfo()
+{
+  int index; uint64 address; argument_integer(0, &index); argument_address(1, &address);
+  if (index < 0) return -1;
+  mount_info record{};
+  int result = xv::fs::filesystem().mounts(index, record.path, record.type);
+  if (result && xv::process::current()->memory().copy_out(address, &record, sizeof(record)) < 0) return -1;
+  return result;
 }
 } // namespace xv::syscall

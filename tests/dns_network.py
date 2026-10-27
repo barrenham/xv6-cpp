@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """DNS resolver against deterministic host peers and QEMU's DHCP-selected DNS proxy."""
+from console_login import login_root
 import argparse
 import os
 from pathlib import Path
@@ -178,7 +179,7 @@ def main():
                 process.stdin.write((command+'\n').encode())
                 process.stdin.flush()
             try:
-                expect('$ ')
+                login_root(expect, process)
                 run('netctl dhcp wait eth0')
                 expect('eth0 DHCP BOUND')
                 expect('$ ')

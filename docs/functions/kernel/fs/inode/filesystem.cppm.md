@@ -14,9 +14,11 @@
 - [`xv::fs::FileSystem::FileSystem`](filesystem.cppm.md#fn-fe4eb86d8c242275)
 - [`xv::fs::FileSystem::allocate`](filesystem.cppm.md#fn-d9a7a26c2a809ad7)
 - [`xv::fs::FileSystem::attributes`](filesystem.cppm.md#fn-2001e08446fe2a2c)
+- [`xv::fs::FileSystem::busy`](filesystem.cppm.md#fn-dc8cd6b4c9d00f78)
 - [`xv::fs::FileSystem::create_at`](filesystem.cppm.md#fn-e1fd6bfced25fe7e)
 - [`xv::fs::FileSystem::initialize`](filesystem.cppm.md#fn-4c4ed942fc0d3cde)
 - [`xv::fs::FileSystem::initialize_inodes`](filesystem.cppm.md#fn-07de6482d4dc8016)
+- [`xv::fs::FileSystem::initialize_mount`](filesystem.cppm.md#fn-8aa1e36910af03a6)
 - [`xv::fs::FileSystem::link_at`](filesystem.cppm.md#fn-6a28e4907d41efec)
 - [`xv::fs::FileSystem::lock`](filesystem.cppm.md#fn-acc988a2c2299c7c)
 - [`xv::fs::FileSystem::lookup_entry`](filesystem.cppm.md#fn-0826404bad88e5ba)
@@ -27,8 +29,10 @@
 - [`xv::fs::FileSystem::read`](filesystem.cppm.md#fn-ee61db9886d3a952)
 - [`xv::fs::FileSystem::read_only`](filesystem.cppm.md#fn-8653de95e35e7992)
 - [`xv::fs::FileSystem::release`](filesystem.cppm.md#fn-d62ac7ac3d78ce23)
+- [`xv::fs::FileSystem::rename_at`](filesystem.cppm.md#fn-8c32a1a02aa243d3)
 - [`xv::fs::FileSystem::retain`](filesystem.cppm.md#fn-180c2d3920d9b05a)
 - [`xv::fs::FileSystem::root`](filesystem.cppm.md#fn-8f1be8d595dcc8b6)
+- [`xv::fs::FileSystem::shutdown`](filesystem.cppm.md#fn-0a67cb82735c832d)
 - [`xv::fs::FileSystem::snapshot`](filesystem.cppm.md#fn-2c57dd6d3a76d87f)
 - [`xv::fs::FileSystem::snapshot_reads`](filesystem.cppm.md#fn-1b2a3dd3b9e80c06)
 - [`xv::fs::FileSystem::stat`](filesystem.cppm.md#fn-c6de975c21634106)
@@ -415,4 +419,47 @@
 @fn void xv::fs::FileSystem::attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
 @brief 在所属节点锁内更新安全属性。
 @details 同时写入 uid/gid/mode 并调用后端 update。调用者先完成权限和范围验证，磁盘后端还需要日志事务；不自行获取节点锁。
+```
+
+<a id="fn-8aa1e36910af03a6"></a>
+
+## `xv::fs::FileSystem::initialize_mount`
+
+```doxygen
+@fn virtual bool xv::fs::FileSystem::initialize_mount(unsigned)
+@brief 尝试建立一个可动态挂载的后端实例。
+@details 默认返回 false，表示后端不提供动态实例初始化；RAM 后端覆写并在根分配失败时回滚。调用者尚未发布挂载关系。
+@return true 表示后端根已可取得；false 表示未建立实例。
+```
+
+<a id="fn-dc8cd6b4c9d00f78"></a>
+
+## `xv::fs::FileSystem::busy`
+
+```doxygen
+@fn virtual bool xv::fs::FileSystem::busy()
+@brief 判断实例是否仍存在阻止卸载的外部引用。
+@details 默认返回 true，禁止不支持安全拆卸的后端被动态销毁；RAM 后端按外部引用总数判断。
+@return true 表示不可卸载。
+```
+
+<a id="fn-0a67cb82735c832d"></a>
+
+## `xv::fs::FileSystem::shutdown`
+
+```doxygen
+@fn virtual void xv::fs::FileSystem::shutdown()
+@brief 销毁可安全卸载的后端资源。
+@details 默认不执行操作；调用前必须阻止新路径进入并证明没有外部引用，不能将此钩子用于强制卸载。
+```
+
+<a id="fn-8c32a1a02aa243d3"></a>
+
+## `xv::fs::FileSystem::rename_at`
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::rename_at(Inode *, const char *, Inode *, const char *)
+@brief 在一个后端内原子移动或替换目录项。
+@details 默认返回 -1。VFS 调用前验证点目录、环和挂载关系，具体后端检查权限、类型并更新父关系。
+@return 0 表示成功，-1 表示拒绝或失败。
 ```

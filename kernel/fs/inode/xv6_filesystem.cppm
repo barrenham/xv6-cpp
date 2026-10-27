@@ -26,6 +26,7 @@ public:
   Inode *create_at(Inode *directory, const char *name, short type, short major, short minor) override;
   int link_at(Inode *directory, const char *name, Inode *target) override;
   int unlink_at(Inode *directory, const char *name) override;
+  int rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name) override;
   xv::drivers::CharacterDevice *open_device(Inode *node, bool nonblocking) override;
   void initialize(int device) override;
   void initialize_inodes() override;

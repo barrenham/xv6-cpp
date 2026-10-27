@@ -16,7 +16,9 @@ constinit Xv6FileSystem disk_filesystem(system_cache, system_journal);
 constinit DevFileSystem device_filesystem;
 constinit ProcFileSystem process_filesystem;
 constinit RamFileSystem temporary_filesystem;
-constinit VirtualFileSystem system_filesystem(disk_filesystem, device_filesystem, &process_filesystem, &temporary_filesystem);
+constinit RamFileSystem dynamic_filesystems[4];
+constinit FileSystem *dynamic_backends[] = {&dynamic_filesystems[0], &dynamic_filesystems[1], &dynamic_filesystems[2], &dynamic_filesystems[3]};
+constinit VirtualFileSystem system_filesystem(disk_filesystem, device_filesystem, &process_filesystem, &temporary_filesystem, dynamic_backends);
 constinit OpenFileTable system_files;
 constinit DeviceRegistry system_devices;
 } // namespace

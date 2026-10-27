@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Boot an isolated disk snapshot and exercise C++ ABI, shell, VM and SMP."""
+from console_login import login_root, PASSWORD
 import argparse
 import os
 import selectors
@@ -20,6 +21,8 @@ parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--named-pty', action='store_true')
 parser.add_argument('--procfs', action='store_true')
 parser.add_argument('--ramfs', action='store_true')
+parser.add_argument('--session', action='store_true')
+parser.add_argument('--workflow', action='store_true')
 parser.add_argument('--environment', action='store_true')
 parser.add_argument('--permissions', action='store_true')
 parser.add_argument('--process-scaling', action='store_true')
@@ -51,7 +54,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -73,7 +76,7 @@ def expect(token, timeout=30):
                 transcript.extend(data)
                 sys.stdout.buffer.write(data)
                 sys.stdout.buffer.flush()
-                for failure in [b'envtest: FAIL:', b'permissiontest: FAIL:']:
+                for failure in [b'workflowtest: FAIL:', b'envtest: FAIL:', b'permissiontest: FAIL:']:
                     position = transcript.find(failure)
                     if position >= 0 and b'\n' in transcript[position:]:
                         raise RuntimeError('environment or permission contract failed')
@@ -193,7 +196,7 @@ def foreground_checks():
     expect('$ ')
     if int(re.findall(rb'fgtest: controls passed sid=(\d+)', transcript)[-1]) != session:
         raise RuntimeError('shell session changed across interrupts')
-    if transcript.count(b'init: starting sh') != 1:
+    if transcript.count(b'init: starting login') != 1:
         raise RuntimeError('Ctrl-C restarted the shell')
 
 def jobs_checks():
@@ -317,7 +320,7 @@ def jobs_checks():
     begin('echo JOBS_DONE')
     expect('JOBS_DONE\n')
     expect('$ ')
-    if transcript.count(b'init: starting sh') != 1:
+    if transcript.count(b'init: starting login') != 1:
         raise RuntimeError('job control restarted the shell')
 
 def sigchld_checks():
@@ -399,7 +402,7 @@ def sigchld_checks():
     command('jobtest descriptors')
     expect('jobtest: descriptors clean\n')
     expect('$ ')
-    if transcript.count(b'init: starting sh') != 1:
+    if transcript.count(b'init: starting login') != 1:
         raise RuntimeError('SIGCHLD restarted the shell')
 
 
@@ -473,7 +476,7 @@ def pty_checks():
     command('echo PTY_DONE')
     expect('PTY_DONE\n', timeout=5)
     expect('$ ', timeout=5)
-    if transcript.count(b'init: starting sh') != 1:
+    if transcript.count(b'init: starting login') != 1:
         raise RuntimeError('PTY proxy restarted the outer shell')
 
 def nonblock_checks():
@@ -504,12 +507,61 @@ def nonblock_checks():
     command('ptytest nbkill')
     expect('$ ', timeout=5)
     flags()
-    if transcript.count(b'init: starting sh') != 1:
+    if transcript.count(b'init: starting login') != 1:
         raise RuntimeError('nonblocking flags caused shell restart')
+
+def session_checks():
+    def send(data):
+        process.stdin.write(data if isinstance(data, bytes) else (data + '\n').encode()); process.stdin.flush()
+    def command(text, result=None):
+        send(text)
+        expect(text + '\n')
+        if result: expect(result)
+        expect('$ ')
+    send(b'echo EDI_OK\x1b[D\x1b[D\x1b[DT\x1b[F\n')
+    expect('\nEDIT_OK\n'); expect('$ ')
+    send(b'\x1b[A\n'); expect('\nEDIT_OK\n'); expect('$ ')
+    send(b'echo DRAFT_OK\x1b[A\x1b[B\n'); expect('\nDRAFT_OK\n'); expect('$ ')
+    send(b'HOME_OK\x01\x01echo \x05\n'); expect('\nHOME_OK\n'); expect('$ ')
+    send(b'pw\t\n'); expect('\n/\n'); expect('$ ')
+    command('mkdir /tmp/editpath')
+    command('echo FILE_OK > /tmp/editpath/value')
+    send(b'cat /tmp/editp\tval\t\n'); expect('\nFILE_OK\n'); expect('$ ')
+    send(b'echo CANCELLED'); expect('echo CANCELLED')
+    send(b'\x03'); expect('^C\n'); expect('$ ')
+    command('echo AFTER_CANCEL', 'AFTER_CANCEL\n')
+    for text, marker in [('workflowtest negative ; echo STATUS_MUST_NOT_RUN', b'\nSTATUS_MUST_NOT_RUN\n'),
+                         ('workflowtest negative | cat ; echo PIPE_MUST_NOT_RUN', b'\nPIPE_MUST_NOT_RUN\n')]:
+        start = len(transcript)
+        command(text)
+        if marker in transcript[start:]: raise RuntimeError('abnormal child status continued the command list')
+    command('/bin/sh')
+    send(b'\x04'); expect('$ ')
+    command('useradd alice', 'useradd: alice uid=1000')
+    command('su alice ln /etc/shadow /home/alice/shadow-copy')
+    command('ls -l /etc/shadow', '-rw------- 2 0 0')
+    send('passwd alice'); expect('New password: '); send('alice-secret-42')
+    expect('Retype password: '); send('alice-secret-42')
+    expect('passwd: password updated for alice', timeout=60); expect('$ ')
+    send(b'\x04'); expect('login: ')
+    send('root'); expect('Password: '); send('wrong-password')
+    expect('Login incorrect', timeout=60); expect('login: ')
+    send('alice'); expect('Password: '); send('alice-secret-42')
+    expect('alice:/home/alice$ ', timeout=60)
+    command('id', 'uid=1000(alice)')
+    command('cat /etc/shadow', 'cat: cannot open /etc/shadow')
+    command('cat /home/alice/shadow-copy', 'cat: cannot open /home/alice/shadow-copy')
+    command('passwd root', 'passwd: root required')
+    command('mount -t ramfs /tmp', 'mount: failed')
+    send(b'\x04'); expect('login: ')
+    send('root'); expect('Password: '); send(PASSWORD); expect('root:/root$ ', timeout=60)
+    for secret in [PASSWORD.encode(), b'alice-secret-42', b'wrong-password']:
+        if secret in transcript: raise RuntimeError('password was echoed to the console')
+    print('Session editing, completion and authenticated login checks passed')
 
 try:
     expect('physical allocator: ' + args.allocator + '\n')
-    expect('$ ')
+    login_root(expect, process)
     if args.sigchld:
         sigchld_checks()
     if args.nonblock:
@@ -610,6 +662,10 @@ try:
                   ("echo '$XV_TEST'", '$XV_TEST'), ('export XV_LIST=ready; echo "$XV_LIST"', 'ready'),
                   ('XV_PREFIX=local env', 'XV_PREFIX=local'), ('unset XV_TEST', None),
                   ('cd /tmp', None), ('echo PATH_SEARCH_OK', 'PATH_SEARCH_OK'), ('cd /', None)]
+    if args.session:
+        checks = []
+    if args.workflow:
+        checks = [('workflowtest', 'workflowtest: all tests succeeded')]
     if args.permissions:
         checks = [('permissiontest', 'permissiontest: all tests succeeded'),
                   ('useradd alice', 'useradd: alice uid=1000'), ('su alice id', 'uid=1000(alice)'),
@@ -639,6 +695,8 @@ try:
             expect('alice:/home/alice$ ')
         process.stdin.write(b'\x04'); process.stdin.flush(); expect('$ ')
         process.stdin.write(b'id\n'); process.stdin.flush(); expect('id\n'); expect('uid=0(root)'); expect('$ ')
+    if args.session:
+        session_checks()
     print('\nSmoke test passed')
 finally:
     log_file.close()

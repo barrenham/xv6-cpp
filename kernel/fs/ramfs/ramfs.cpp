@@ -10,15 +10,18 @@ namespace xv::fs
 void RamFileSystem::initialize_inodes()
 { tree_.init("ramfs tree"); references_.init("ramfs references"); }
 void RamFileSystem::initialize(int device)
+{ if (!initialize_mount(device)) detail::fail("ramfs: root allocation"); }
+bool RamFileSystem::initialize_mount(unsigned device)
 {
   device_ = device;
   tree_.acquire();
   root_ = make(T_DIR, nullptr);
-  if (!root_) detail::fail("ramfs: root allocation");
+  if (!root_) { tree_.release(); return false; }
   root_->parent = root_;
   root_->inode.nlink = 1;
   root_->inode.uid_ = root_->inode.gid_ = 0; root_->inode.mode_ = 01777;
   tree_.release();
+  return true;
 }
 Inode *RamFileSystem::root() { return retain(&root_->inode); }
 RamFileSystem::Node *RamFileSystem::make(short type, Node *parent)
@@ -31,6 +34,8 @@ RamFileSystem::Node *RamFileSystem::make(short type, Node *parent)
   auto *memory = detail::allocate_page();
   if (!memory) return nullptr;
   auto *node = new (memory) Node{};
+  node->next = nodes_; nodes_ = node;
+  { xv::sync::ScopedLock guard(references_); ++live_references_; }
   numbers_[number / 64] |= 1UL << (number % 64);
   node->inode.owner_ = this; node->inode.context_ = node;
   node->inode.dev = device_; node->inode.inum = number;
@@ -42,21 +47,22 @@ RamFileSystem::Node *RamFileSystem::make(short type, Node *parent)
   {
     node->inode.size = 2 * sizeof(dirent);
     node->parent = parent;
-    if (parent) retain(&parent->inode);
+    if (parent) { retain(&parent->inode); xv::sync::ScopedLock guard(references_); --live_references_; }
   }
   return node;
 }
 Inode *RamFileSystem::retain(Inode *node)
-{ xv::sync::ScopedLock guard(references_); ++node->ref; return node; }
+{ xv::sync::ScopedLock guard(references_); ++node->ref; ++live_references_; return node; }
 void RamFileSystem::release(Inode *node)
 {
   references_.acquire();
   if (node->ref < 1) detail::fail("ramfs: release dead reference");
-  if (node->ref > 1) { --node->ref; references_.release(); return; }
+  if (node->ref > 1) { --live_references_; --node->ref; references_.release(); return; }
   references_.release();
   bool held = tree_.holding();
   if (!held) tree_.acquire();
   references_.acquire();
+  --live_references_;
   bool destroy = --node->ref == 0 && node->nlink == 0;
   references_.release();
   if (destroy) reclaim(state(node));
@@ -66,6 +72,7 @@ void RamFileSystem::reclaim(Node *node)
 {
   while (node)
   {
+    auto **link = &nodes_; while (*link != node) link = &(*link)->next; *link = node->next;
     Node *parent = node->parent != node ? node->parent : nullptr;
     numbers_[node->inode.inum / 64] &= ~(1UL << (node->inode.inum % 64));
     while (node->directory)
@@ -230,4 +237,56 @@ void RamFileSystem::stat(Inode *node, Stat *result)
   *result = {}; result->dev = node->dev; result->ino = node->inum;
   result->type = node->type; result->nlink = node->nlink; result->size = node->size; node->security_stat(result);
 }
+bool RamFileSystem::busy()
+{
+  xv::sync::ScopedLock guard(references_);
+  return live_references_ != 2;
+}
+void RamFileSystem::shutdown()
+{
+  xv::sync::ScopedLock guard(tree_);
+  while (nodes_)
+  {
+    auto *node = nodes_; nodes_ = node->next;
+    while (node->directory)
+    {
+      auto *page = node->directory; node->directory = page->next;
+      page->~DirectoryPage(); detail::free_page(page);
+    }
+    node->~Node(); detail::free_page(node);
+  }
+  detail::fill(numbers_, 0, sizeof(numbers_));
+  root_ = nullptr; live_references_ = 0;
+}
+int RamFileSystem::rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name)
+{
+  xv::sync::ScopedLock guard(tree_);
+  auto *source = find(state(from), old_name);
+  auto *destination = find(state(to), new_name);
+  if (!source || !from->nlink || !to->nlink || !detail::allowed(from, 3) || !detail::allowed(to, 3) ||
+      !detail::may_remove(from, &source->target->inode)) return -1;
+  auto *moving = source->target;
+  if (destination && destination->target == moving) return 0;
+  if (destination && (!detail::may_remove(to, &destination->target->inode) ||
+      (moving->inode.type == T_DIR) != (destination->target->inode.type == T_DIR) ||
+      (destination->target->inode.type == T_DIR && !empty(destination->target)))) return -1;
+  if (moving->inode.type == T_DIR && from != to && to->nlink == NLINK_MAX && !destination) return -1;
+  if (destination)
+  {
+    auto *replaced = retain(&destination->target->inode);
+    if (replaced->type == T_DIR) --to->nlink;
+    --replaced->nlink; destination->target = moving; release(replaced);
+  }
+  else if (!insert(state(to), new_name, moving)) return -1;
+  source->target = nullptr;
+  if (moving->inode.type == T_DIR && from != to)
+  {
+    --from->nlink; ++to->nlink;
+    retain(to);
+    { xv::sync::ScopedLock references(references_); --live_references_; --from->ref; }
+    moving->parent = state(to);
+  }
+  return 0;
+}
+
 }

@@ -3,7 +3,7 @@
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：279 个文件，1810 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：280 个文件，1829 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。
@@ -40,3 +40,7 @@
 - [环境变量与 shell](environment.md)：环境继承、execve、PATH、引号和内建命令。
 
 - [用户、组与权限](users-permissions.md)：凭据、账户工具、文件权限、授权边界与磁盘格式。
+
+- [shell 输入编辑与补全](shell-editing.md)。
+- [pwd、cp、mv 与原子重命名](file-tools.md)。
+- [动态 RAM 挂载与生命周期](mounting.md)。

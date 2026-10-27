@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise socket descriptors and TCP active/passive opens against real host peers."""
+from console_login import login_root
 import argparse
 import os
 from pathlib import Path
@@ -128,7 +129,7 @@ def main():
                         failures.append(error)
                 try:
                     expect('e1000: ready')
-                    expect('$ ')
+                    login_root(expect, process)
                     start = cursor
                     process.stdin.write(b'netctl dhcp show eth0\n'); process.stdin.flush(); expect('$ ')
                     if b'DHCP OFF' not in transcript[start:cursor]:

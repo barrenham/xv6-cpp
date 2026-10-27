@@ -120,7 +120,9 @@ Xv6FileSystem fs(block_cache, log);
 DevFileSystem devfs;
 ProcFileSystem procfs;
 RamFileSystem ramfs;
-VirtualFileSystem vfs(fs, devfs, &procfs, &ramfs);
+RamFileSystem dynamic_filesystems[4];
+FileSystem *dynamic_backends[] = {&dynamic_filesystems[0], &dynamic_filesystems[1], &dynamic_filesystems[2], &dynamic_filesystems[3]};
+VirtualFileSystem vfs(fs, devfs, &procfs, &ramfs, dynamic_backends);
 int baseline_pages = 0;
 int bulk_processes = 0;
 thread_local int page_budget = -1;
@@ -748,6 +750,42 @@ void ramfs_contract()
   ++baseline_pages;
 }
 
+void dynamic_mount_contract()
+{
+  {
+    Transaction transaction;
+    auto *directory = vfs.create(const_cast<char *>("/tmp/mount-native"), T_DIR, 0, 0);
+    check(directory != nullptr, "dynamic mountpoint"); vfs.unlock_release(directory);
+  }
+  int baseline = allocated_pages;
+  page_budget = 0;
+  check(vfs.mount_ram("/tmp/mount-native") < 0, "mount allocation failure returns error");
+  page_budget = -1;
+  check(allocated_pages == baseline, "failed mount retains no pages");
+  for (int round = 0; round < 10; ++round)
+  {
+    check(vfs.mount_ram("/tmp/mount-native") == 0, "native dynamic mount");
+    check(vfs.mount_ram("/tmp/mount-native") < 0, "reject stacked mount");
+    auto *file = open_node("/tmp/mount-native/data", true);
+    char contents[9000]{};
+    check(file_table.write(file, reinterpret_cast<unsigned long>(contents), sizeof(contents)) == sizeof(contents), "dynamic file spans pages");
+    check(vfs.unmount("/tmp/mount-native") < 0, "open reference prevents teardown");
+    file_table.release(file);
+    // Retain an unlinked cwd to cover objects detached from the directory tree.
+    Inode *orphan;
+    {
+      Transaction transaction;
+      orphan = vfs.create(const_cast<char *>("/tmp/mount-native/orphan"), T_DIR, 0, 0);
+      check(orphan != nullptr, "dynamic orphan directory"); vfs.unlock(orphan);
+    }
+    check(vfs.unlink(const_cast<char *>("/tmp/mount-native/orphan")) == 0, "unlink held directory");
+    check(vfs.unmount("/tmp/mount-native") < 0, "orphan reference prevents teardown"); vfs.release(orphan);
+    check(vfs.unmount("/tmp/mount-native") == 0, "teardown populated filesystem");
+    check(allocated_pages == baseline, "unmount reclaims every node, directory and data page");
+  }
+  check(vfs.unlink(const_cast<char *>("/tmp/mount-native")) == 0, "mountpoint cleanup");
+}
+
 void security_contract()
 {
   {
@@ -963,6 +1001,7 @@ extern "C" int run_fs_contracts(const char *image)
   procfs_contract();
   expanded_contract();
   ramfs_contract();
+  dynamic_mount_contract();
   security_contract();
   {
     xv::fs::Transaction transaction;

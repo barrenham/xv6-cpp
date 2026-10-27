@@ -1,10 +1,11 @@
 # 用户、组与权限
 
-内核按数字 UID/GID 授权，用户态 `/etc/passwd` 负责名称映射。系统以 root shell 启动，root 可以创建账户并切换身份。
+内核按数字 UID/GID 授权，用户态 `/etc/passwd` 负责名称映射。系统启动后进入登录界面。首次启动需要设置 root 密码，没有内置默认密码；登录 root 后可以创建账户并设置其他用户密码。
 
 ```sh
 id
 useradd alice
+passwd alice
 su alice
 id
 umask 027
@@ -31,7 +32,19 @@ ls -l /tmp/alice-file
 
 `su` 读取目标账户，清空环境并设置可信 PATH/HOME/USER/SHELL，关闭 3 及以上描述符，清空附加组，先 setgid 再 setuid，最后切换到目标主目录并执行 shell 或指定命令。标准输入输出继续使用已授予的终端描述符。
 
-当前账户工具没有密码认证、登录服务、账户删除、独立组数据库或密码修改命令。账户追加不是崩溃原子更新；写入中断后管理员需要检查 passwd 和遗留锁目录。它提供本机 root 管理的多用户执行模型。
+## 登录与密码
+
+`init` 在控制台运行 `/bin/login`，登录 shell 退出后重新显示登录提示。登录成功后清空环境，设置可信 PATH/HOME/USER/SHELL，清空附加组，先设置 GID 再永久设置 UID，切换到账户主目录并执行账户 shell。用户名和密码验证失败均返回 `Login incorrect`，失败后等待 1 秒。密码输入关闭终端回显，退出输入过程恢复原设置；shell 退出后 init 也恢复控制台设置。
+
+`passwd [USER]` 当前是 root 管理工具：无参数修改 root，有参数修改指定账户。普通用户不能直接修改密码；系统没有 setuid 可执行文件或特权密码服务。`useradd` 创建的账户默认没有密码记录，不能登录，root 执行 `passwd USER` 后才可使用；`su` 仍是仅 root 使用的身份切换工具。
+
+密码为 8..63 字节，设置时需要重复输入。散列存于 root:root 0600 的 `/etc/shadow`，`/etc/passwd` 继续只保存公开账户信息。记录为 `name:pbkdf2-sha256$100000$盐的十六进制$散列的十六进制`，盐长 16 字节，派生结果 32 字节；比较结果时合并全部字节差异。算法依据 [RFC 8018 的 PBKDF2](https://www.rfc-editor.org/rfc/rfc8018.html#section-5.2) 与 [RFC 6234 的 SHA-256/HMAC](https://www.rfc-editor.org/rfc/rfc6234.html)。宿主机契约测试用独立参考实现生成的向量验证散列、分块边界、HMAC 和多种迭代次数。
+
+盐由单调硬件计时值、PID、启动 tick、账户名和旧数据库摘要生成，用于减少重复。当前没有内核 CSPRNG，盐不具备密码学随机性的保证；迭代参数面向 QEMU 教学环境，未实现生产认证所需的内存困难 KDF、持久限速策略或密码恢复服务。
+
+密码更新用 `/etc/.shadow.lock` 串行化：先以 0600 写完整临时文件，再通过同一磁盘日志事务中的 rename 原子替换 shadow，失败保留原数据库。崩溃可能遗留锁目录，管理员处理后重试。已有但无效的 root shadow 不触发首次注册流程，init 报错；没有 shadow 的旧镜像会在启动时进入首次设置。
+
+账户删除、独立组数据库尚未实现。账户追加仍不是崩溃原子更新；写入中断后管理员需要检查 passwd 和遗留锁目录。
 
 ## 文件访问
 

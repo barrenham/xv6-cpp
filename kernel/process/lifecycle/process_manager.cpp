@@ -138,7 +138,7 @@ void ProcessManager::create_initial_process(void)
     xv::print::panic("process: no initial session memory");
   }
 
-  p->directory_.replace(xv::fs::filesystem().lookup("/"));
+  p->directory_.replace(xv::fs::filesystem().root());
 
   scheduler_.make_runnable(*p);
 

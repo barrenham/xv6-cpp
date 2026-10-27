@@ -62,11 +62,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessManager::create_initial_process(void)
-@brief 建立受保护的初始进程，并将它发布到就绪队列。
-@return 无返回值；无法分配初始进程或会话时 panic。
-@pre 文件系统根对象查找已可建立工作目录引用；完整文件系统初始化和 /sbin/init 加载在首次调度路径完成。
-@details 调用 allocate，记录 initial_，创建初始会话和组，设置工作目录为根，然后在进程锁下 make_runnable，最后释放进程锁。
-@note 本函数没有直接进入用户态；调度器选中它后，Context.ra 指向的 first_return 才会继续准备用户映像。
+@brief 建立 init 进程并取得无需进程上下文的初始根引用。
+@details 初始 cwd 直接调用 filesystem().root()，不再经需要进程所有者的 VFS 命名空间睡眠锁。其余地址空间、进程组和调度发布流程保持原有约定。
 ```
 
 <a id="lifecycle-processmanager-fork-process"></a>

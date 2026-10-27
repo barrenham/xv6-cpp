@@ -18,6 +18,11 @@ unsigned long sys_getgid();
 unsigned long sys_geteuid();
 unsigned long sys_getuid();
 unsigned long sys_execve();
+unsigned long sys_clockticks();
+unsigned long sys_rename();
+unsigned long sys_mount();
+unsigned long sys_umount();
+unsigned long sys_mountinfo();
 // Prototypes for the functions that handle system calls.
 unsigned long sys_netctl();
 unsigned long sys_socket();

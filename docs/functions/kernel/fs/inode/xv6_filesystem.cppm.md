@@ -32,6 +32,7 @@
 - [`xv::fs::Xv6FileSystem::read_super`](xv6_filesystem.cpp.md#fn-8886c17d9bd7f74a)
 - [`xv::fs::Xv6FileSystem::reclaim`](xv6_filesystem.cpp.md#fn-63ef700d59c2ecf4)
 - [`xv::fs::Xv6FileSystem::release`](xv6_filesystem.cpp.md#fn-488eb6e0a79dde7a)
+- [`xv::fs::Xv6FileSystem::rename_at`](../path/path_operations.cpp.md#fn-df5473361440e15d)
 - [`xv::fs::Xv6FileSystem::retain`](xv6_filesystem.cpp.md#fn-cf818bc3fcef07af)
 - [`xv::fs::Xv6FileSystem::root`](xv6_filesystem.cppm.md#fn-f988ee945b669ddc)
 - [`xv::fs::Xv6FileSystem::stat`](xv6_filesystem.cpp.md#fn-380640571e8b5b9b)

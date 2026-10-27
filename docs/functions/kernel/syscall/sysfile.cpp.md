@@ -30,12 +30,16 @@
 - [`xv::syscall::sys_link`](sysfile.cpp.md#fn-f0e4c3a2b61b65f2)
 - [`xv::syscall::sys_mkdir`](sysfile.cpp.md#fn-697c039ba51257c6)
 - [`xv::syscall::sys_mknod`](sysfile.cpp.md#fn-a335916d7a484f15)
+- [`xv::syscall::sys_mount`](sysfile.cpp.md#fn-23199bae69c6ad55)
+- [`xv::syscall::sys_mountinfo`](sysfile.cpp.md#fn-52d39b8b47c88952)
 - [`xv::syscall::sys_open`](sysfile.cpp.md#fn-db9a14b0a5f34f13)
 - [`xv::syscall::sys_openpty`](sysfile.cpp.md#fn-6f37e9433a6bd907)
 - [`xv::syscall::sys_pipe`](sysfile.cpp.md#fn-4fdcb85095f658e9)
 - [`xv::syscall::sys_read`](sysfile.cpp.md#fn-fe1cdff590d53ee1)
+- [`xv::syscall::sys_rename`](sysfile.cpp.md#fn-7f137f88a1038fdf)
 - [`xv::syscall::sys_stat`](sysfile.cpp.md#fn-eb860ac7c93040e6)
 - [`xv::syscall::sys_sync`](sysfile.cpp.md#fn-f630890d41c7271a)
+- [`xv::syscall::sys_umount`](sysfile.cpp.md#fn-103761d03e7af163)
 - [`xv::syscall::sys_unlink`](sysfile.cpp.md#fn-4aa7dc56022e07b7)
 - [`xv::syscall::sys_write`](sysfile.cpp.md#fn-dc225934cc4ef27f)
 
@@ -365,4 +369,48 @@
 @fn uint64 xv::syscall::attributes(bool ownership)
 @brief 在事务和节点锁内校验并修改安全属性。
 @details chmod 限 root/属主且仅 01777；chown 的 -1 保持原值，非 root 属主不能转移 UID，只可改到所属主/附加组。只读后端与越界参数拒绝，成功调用所属后端 attributes 持久化。
+```
+
+<a id="fn-7f137f88a1038fdf"></a>
+
+## `xv::syscall::sys_rename`
+
+```doxygen
+@fn uint64 xv::syscall::sys_rename()
+@brief 校验用户路径并执行原子重命名。
+@details 复制两个非空 MAXPATH 路径，逐组件拒绝超过 DIRSIZ 的名称和尾部斜杠，然后转入 VFS。所有名字复制完成后才修改目录。
+@return 0 表示成功；-1 表示路径复制、格式或 VFS 失败。
+```
+
+<a id="fn-23199bae69c6ad55"></a>
+
+## `xv::syscall::sys_mount`
+
+```doxygen
+@fn uint64 xv::syscall::sys_mount()
+@brief 仅允许 root 创建 ramfs 动态挂载。
+@details 先检查有效 UID，再复制类型及路径；只接受精确 ramfs 类型，由 VFS 执行容量、目录与实例初始化检查。
+@return 0 表示成功，-1 表示授权、复制、类型或挂载失败。
+```
+
+<a id="fn-103761d03e7af163"></a>
+
+## `xv::syscall::sys_umount`
+
+```doxygen
+@fn uint64 xv::syscall::sys_umount()
+@brief 仅允许 root 卸载无使用者的动态文件系统。
+@details 检查有效 UID，复制 MAXPATH 路径，再转入 VFS 的保护与忙碌检查。
+@return 0 表示成功，-1 表示授权、复制或卸载失败。
+```
+
+<a id="fn-52d39b8b47c88952"></a>
+
+## `xv::syscall::sys_mountinfo`
+
+```doxygen
+@fn uint64 xv::syscall::sys_mountinfo()
+@brief 向用户复制一条挂载枚举记录。
+@details 读取非负索引与用户地址，在内核栈准备固定大小 mount_info；VFS 返回记录后才 copy_out，枚举结束不触及用户缓冲。
+@return 1 表示有记录，0 表示结束，-1 表示索引或复制错误。
 ```

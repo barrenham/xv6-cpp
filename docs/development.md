@@ -88,3 +88,9 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 新增应用在 `user/CMakeLists.txt` 的 `programs` 中登记。内核接口与实现在各自子系统中维护。
 
 模块设计：[启动](../kernel/boot/README.md)、[内存](../kernel/memory/README.md)、[进程](../kernel/process/README.md)、[文件系统](../kernel/fs/README.md)、[驱动](../kernel/drivers/README.md)、[同步](../kernel/sync/README.md)、[陷阱](../kernel/trap/README.md)、[网络](network.md)。
+
+## 登录与测试镜像
+
+首次启动需要设置 root 密码，然后通过 login 进入 shell。修改源码重建的 fs.img 是新的初始镜像，不迁移运行时账户和文件；正在运行的 QEMU 继续持有原来的磁盘 inode，重启后才使用路径上的新镜像。
+
+构建另外生成 fs-test.img，CTest 使用其独立临时副本，自动走首次密码设置和真实登录流程，不读取交互 QEMU 的账户状态。测试账号密码仅属于临时测试磁盘，不是系统默认密码。测试日志中的 session/workflow 按 CPU 数分别命名。

@@ -21,12 +21,16 @@ public:
   virtual void initialize_inodes() = 0;
   void attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
   { node->uid_ = uid; node->gid_ = gid; node->mode_ = mode; update(node); }
+  virtual bool initialize_mount(unsigned) { return false; }
+  virtual bool busy() { return true; }
+  virtual void shutdown() {}
   virtual bool persistent() const { return true; }
   virtual Inode *root() = 0;
   virtual Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset) = 0;
   virtual Inode *create_at(Inode *directory, const char *name, short type, short major, short minor) = 0;
   virtual int link_at(Inode *directory, const char *name, Inode *target) = 0;
   virtual int unlink_at(Inode *directory, const char *name) = 0;
+  virtual int rename_at(Inode *, const char *, Inode *, const char *) { return -1; }
   virtual Inode *allocate(unsigned device, short type) = 0;
   virtual Inode *retain(Inode *node) = 0;
   virtual void release(Inode *node) = 0;

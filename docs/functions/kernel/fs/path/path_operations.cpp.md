@@ -16,6 +16,7 @@
 - [`xv::fs::Xv6FileSystem::link_at`](path_operations.cpp.md#fn-603e65641638664d)
 - [`xv::fs::Xv6FileSystem::link_entry`](path_operations.cpp.md#fn-2c549cede9fc1d13)
 - [`xv::fs::Xv6FileSystem::lookup_entry`](path_operations.cpp.md#fn-004094c7c5387803)
+- [`xv::fs::Xv6FileSystem::rename_at`](path_operations.cpp.md#fn-df5473361440e15d)
 - [`xv::fs::Xv6FileSystem::unlink_at`](path_operations.cpp.md#fn-5b4b6b7276311573)
 
 <a id="fn-2582fcda97170617"></a>
@@ -103,4 +104,15 @@
 @fn int xv::fs::Xv6FileSystem::unlink_at(Inode *dp, const char *name)
 @brief 在磁盘目录删除目录项。
 @details 父子节点锁内检查父 W/X 及 sticky：root、目录属主或目标属主可删；仍拒绝点目录及非空目录。日志化目录项和链接数，最后引用回收由 inode 生命周期管理。
+```
+
+<a id="fn-df5473361440e15d"></a>
+
+## `xv::fs::Xv6FileSystem::rename_at`
+
+```doxygen
+@fn int xv::fs::Xv6FileSystem::rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name)
+@brief 在单个日志事务内重命名磁盘文件或目录。
+@details 父目录按 inode 号排序加锁；源/目标与父节点别名时先拒绝，避免递归取得同一 inode 锁，然后锁定源和不同的目标。检查写/执行权限、sticky 属主、类型和空目录约束；先安装目标再清除源项，目录跨父移动时改写 .. 和父链接计数。相同 inode 的两个名字保持不变。解锁后释放节点引用；调用者持有 VFS 命名空间锁和日志事务。
+@return 0 表示成功，-1 表示校验或安装失败。
 ```

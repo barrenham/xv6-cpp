@@ -10,8 +10,8 @@
 #include "kernel/process/signals/signal.h"
 #include "kernel/process/wait/wait.h"
 #include "environment.h"
+#include "editor.h"
 
-namespace shell { void prompt(); }
 
 extern "C"
 {
@@ -72,6 +72,15 @@ extern "C"
   void panic(char *);
   struct cmd *parsecmd(char *);
   void runcmd(struct cmd *) __attribute__((noreturn));
+
+  static int child_status(int child)
+  {
+    int status = 0, result;
+    do { result = waitpid(child, &status, 0); } while (result == -EINTR);
+    if (result < 0) return 255;
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
+    return WIFEXITED(status) ? WEXITSTATUS(status) : 255;
+  }
 
   // Execute cmd.  Never returns.
   void runcmd(struct cmd *cmd)
@@ -136,12 +145,13 @@ extern "C"
         }
         if (!handled)
         {
-          if (fork1() == 0)
+          int child = fork1();
+          if (child == 0)
           {
             sigdisposition(SIGINT, SIGNAL_DEFAULT); sigdisposition(SIGTSTP, SIGNAL_DEFAULT); sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
             runcmd(lcmd->left);
           }
-          int status; wait(&status); if (status >= 128) exit(status);
+          int status = child_status(child); if (status >= 128) exit(status);
         }
       }
       runcmd(lcmd->right);
@@ -179,9 +189,8 @@ extern "C"
       close(p[0]);
       close(p[1]);
       {
-        int first_status = 0, second_status = 0;
-        wait(&first_status);
-        wait(&second_status);
+        int first_status = child_status(-1);
+        int second_status = child_status(-1);
         if (first_status >= 128)
         {
           exit(first_status);
@@ -399,6 +408,7 @@ extern "C"
 
   int getcmd(char *buf, int nbuf)
   {
+    shell::Editor editor(buf, nbuf);
     shell::prompt();
     memset(buf, 0, nbuf);
     int used = 0;
@@ -406,8 +416,8 @@ extern "C"
     {
       if (service_children(true))
       {
-        shell::prompt();
-        if (used) write(2, buf, used);
+        if (editor.active()) editor.redraw(used);
+        else { shell::prompt(); if (used) write(2, buf, used); }
       }
       pollfd events[] = {{0, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
       int ready = poll(events, 2, -1);
@@ -419,6 +429,8 @@ extern "C"
       int n = read(0, &byte, 1);
       if (n == -EINTR || n == -EAGAIN) continue;
       if (n <= 0) return used ? 0 : -1;
+      if (editor.active())
+      { int action = editor.input(byte, used); if (action < 0) return -1; if (action > 0) break; continue; }
       buf[used++] = byte;
       if (byte == '\n' || byte == '\r') break;
     }

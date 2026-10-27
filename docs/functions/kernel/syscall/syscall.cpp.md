@@ -19,8 +19,9 @@
 
 ```doxygen
 @fn static SyscallHandler xv::syscall::lookup_syscall(int number)
-@brief 分派系统调用号到处理函数。
-@details 新增 execve、凭据/组/umask、chmod/chown/access 与独立 stat 分派，原有编号保持。未知编号返回空处理器，由入口统一报告错误。
+@brief 把用户 ABI 调用号映射到私有处理函数。
+@details 在已有进程、文件、信号和网络入口之外加入 rename、mount、umount、mountinfo 与 clockticks；条件实验分支仍受原有宏控制。
+@return 匹配的处理函数指针；未知调用返回 nullptr。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>

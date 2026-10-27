@@ -13,6 +13,10 @@ typedef long int off_t;
 #define SBRK_ERROR ((char *)-1)
 
 struct stat;
+struct mount_info;
+int mount(const char *type, const char *path);
+int umount(const char *path);
+int mountinfo(int index, struct mount_info *info);
 struct termios;
 struct pollfd;
 struct sigaction;
@@ -78,6 +82,8 @@ int fstat(int fd, struct stat *);
 int link(const char *, const char *);
 int mkdir(const char *);
 int chdir(const char *);
+char *getcwd(char *buffer, unsigned capacity);
+int rename(const char *old_path, const char *new_path);
 int dup(int);
 int getpid(void);
 int getuid(void); int geteuid(void); int getgid(void); int getegid(void);
@@ -94,6 +100,7 @@ int setsid(void);
 char *sys_sbrk(int, int);
 int pause(int);
 int uptime(void);
+uint64 clockticks(void);
 int sync(void);
 int ioctl(int, unsigned, unsigned long);
 int tcgetattr(int, struct termios *);

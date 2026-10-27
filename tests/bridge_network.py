@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Bridge real E1000 ports over independent raw Ethernet UDP backends."""
+from console_login import login_root
 import argparse
 import contextlib
 import os
@@ -115,7 +116,7 @@ def main():
                     run('netctl stats')
                     raise AssertionError((port, i, outputs, frames))
         try:
-            expect('e1000: ready'); expect('$ ')
+            expect('e1000: ready'); login_root(expect, process)
             for i in range(3):
                 status = run(f'netctl dhcp show eth{i}')
                 run(f'netctl dhcp stop eth{i}')

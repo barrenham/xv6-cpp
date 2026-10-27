@@ -10,6 +10,7 @@
 
 ## 函数导航
 
+- [`xv::syscall::sys_clockticks`](sysproc.cpp.md#fn-42d4b9f1d1ddbf8f)
 - [`xv::syscall::sys_cpupin`](handlers.cppm.md#fn-e260733f13c74103)
 - [`xv::syscall::sys_exit`](sysproc.cpp.md#fn-407b853e794ab99c)
 - [`xv::syscall::sys_fork`](sysproc.cpp.md#fn-c9d853f3df63566a)
@@ -419,4 +420,15 @@
 @fn uint64 xv::syscall::sys_getuid()
 @brief 取得当前真实 UID。
 @details 返回凭据快照中的 uid；账户名称由用户态 passwd 解析，不由内核管理。
+```
+
+<a id="fn-42d4b9f1d1ddbf8f"></a>
+
+## `xv::syscall::sys_clockticks`
+
+```doxygen
+@fn uint64 xv::syscall::sys_clockticks()
+@brief 读取 RISC-V 单调硬件时间计数。
+@details 在内核上下文执行 rdtime，并原样返回 64 位计数；不是墙上时间，也不是随机数。用户态通过 clockticks 包装调用。
+@return 硬件 time 计数值，单位取决于平台时基。
 ```

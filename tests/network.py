@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Real E1000 DMA, ARP and UDP round trips against a local QEMU slirp peer."""
+from console_login import login_root
 import argparse
 import os
 from pathlib import Path
@@ -76,7 +77,7 @@ def main():
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
                     expect('e1000: ready')
-                    expect('$ ')
+                    login_root(expect, process)
                     for i in range(2 if args.multi else 1):
                         start = cursor
                         process.stdin.write(f'netctl dhcp show eth{i}\n'.encode()); process.stdin.flush(); expect('$ ')

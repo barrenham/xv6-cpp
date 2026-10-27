@@ -34,6 +34,11 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_chmod: return sys_chmod;
   case SYS_chown: return sys_chown;
   case SYS_access: return sys_access;
+  case SYS_clockticks: return sys_clockticks;
+  case SYS_rename: return sys_rename;
+  case SYS_mount: return sys_mount;
+  case SYS_umount: return sys_umount;
+  case SYS_mountinfo: return sys_mountinfo;
   case SYS_stat: return sys_stat;
   case SYS_netctl: return sys_netctl;
   case SYS_socket: return sys_socket;

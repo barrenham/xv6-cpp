@@ -270,4 +270,67 @@ fail:
   return 0;
 }
 
+int Xv6FileSystem::rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name)
+{
+  Inode *first = from->inum <= to->inum ? from : to;
+  Inode *second = first == from ? to : from;
+  lock(first); if (second != first) lock(second);
+  unsigned old_offset = 0, new_offset = 0;
+  auto *source = lookup_entry(from, old_name, &old_offset);
+  auto *target = lookup_entry(to, new_name, &new_offset);
+  if (source == from || source == to || target == from || target == to)
+  {
+    if (second != first) unlock(second);
+    unlock(first);
+    if (source) release(source);
+    if (target) release(target);
+    return -1;
+  }
+  int result = -1;
+  if (source) lock(source);
+  if (target && target != source) lock(target);
+  bool valid = source && from->nlink && to->nlink && detail::allowed(from, 3) && detail::allowed(to, 3) &&
+               detail::may_remove(from, source);
+  if (target && source && target != source)
+    valid &= detail::may_remove(to, target) && ((source->type == T_DIR) == (target->type == T_DIR)) &&
+             (target->type != T_DIR || directory_empty(target));
+  if (valid && source->type == T_DIR && from != to && !target && to->nlink == NLINK_MAX) valid = false;
+  if (valid && target == source) result = 0;
+  else if (valid)
+  {
+    dirent record{}; record.inum = source->inum; detail::copy_fixed(record.name, new_name, DIRSIZ);
+    bool installed;
+    if (target) installed = write(to, 0, reinterpret_cast<uint64>(&record), new_offset, sizeof(record)) == sizeof(record);
+    else if (from == to) installed = write(from, 0, reinterpret_cast<uint64>(&record), old_offset, sizeof(record)) == sizeof(record);
+    else installed = link_entry(to, new_name, source->inum) == 0;
+    if (installed)
+    {
+      if (target || from != to)
+      {
+        dirent blank{};
+        if (write(from, 0, reinterpret_cast<uint64>(&blank), old_offset, sizeof(blank)) != sizeof(blank)) detail::fail("rename: source write");
+      }
+      if (target)
+      {
+        --target->nlink; update(target);
+        if (target->type == T_DIR) --to->nlink;
+      }
+      if (source->type == T_DIR && from != to)
+      {
+        dirent parent{}; parent.inum = to->inum; detail::copy_fixed(parent.name, "..", DIRSIZ);
+        if (write(source, 0, reinterpret_cast<uint64>(&parent), sizeof(dirent), sizeof(parent)) != sizeof(parent)) detail::fail("rename: parent write");
+        --from->nlink; ++to->nlink;
+      }
+      update(from); if (from != to) update(to);
+      result = 0;
+    }
+  }
+  if (target && target != source) unlock(target);
+  if (source) unlock(source);
+  if (second != first) unlock(second); unlock(first);
+  if (source) release(source);
+  if (target) release(target);
+  return result;
+}
+
 } // namespace xv::fs

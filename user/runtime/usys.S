@@ -421,3 +421,33 @@ stat:
  li a7, SYS_stat
  ecall
  ret
+
+.global rename
+rename:
+ li a7, SYS_rename
+ ecall
+ ret
+
+.global mount
+mount:
+ li a7, SYS_mount
+ ecall
+ ret
+
+.global umount
+umount:
+ li a7, SYS_umount
+ ecall
+ ret
+
+.global mountinfo
+mountinfo:
+ li a7, SYS_mountinfo
+ ecall
+ ret
+
+.global clockticks
+clockticks:
+ li a7, SYS_clockticks
+ ecall
+ ret

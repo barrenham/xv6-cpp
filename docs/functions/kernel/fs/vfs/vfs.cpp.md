@@ -4,6 +4,7 @@
 
 - [`xv::fs::VirtualFileSystem::allocate`](vfs.cpp.md#fn-b14436f73059aab1)
 - [`xv::fs::VirtualFileSystem::allowed`](vfs.cpp.md#fn-abf62fef3e7f21c5)
+- [`xv::fs::VirtualFileSystem::ancestor`](vfs.cpp.md#fn-35b6020510aa9401)
 - [`xv::fs::VirtualFileSystem::create`](vfs.cpp.md#fn-6591de3da7091bf9)
 - [`xv::fs::VirtualFileSystem::create_at`](vfs.cpp.md#fn-6139d98544fd4958)
 - [`xv::fs::VirtualFileSystem::enter_mount`](vfs.cpp.md#fn-4860e29021bbf700)
@@ -16,8 +17,11 @@
 - [`xv::fs::VirtualFileSystem::lookup_entry`](vfs.cpp.md#fn-5d4339ff52e6c374)
 - [`xv::fs::VirtualFileSystem::lookup_parent`](vfs.cpp.md#fn-8bfb0d7b5ac233f1)
 - [`xv::fs::VirtualFileSystem::mount`](vfs.cpp.md#fn-fd77401a8aa09874)
+- [`xv::fs::VirtualFileSystem::mount_ram`](vfs.cpp.md#fn-09eb092ae4d24474)
+- [`xv::fs::VirtualFileSystem::mounts`](vfs.cpp.md#fn-0747d0fa1f7514e8)
 - [`xv::fs::VirtualFileSystem::read`](vfs.cpp.md#fn-a35df3a283d2bfaf)
 - [`xv::fs::VirtualFileSystem::release`](vfs.cpp.md#fn-e5559898f89824ab)
+- [`xv::fs::VirtualFileSystem::rename`](vfs.cpp.md#fn-3ce7ce542ff58054)
 - [`xv::fs::VirtualFileSystem::retain`](vfs.cpp.md#fn-8e0bbe0879ea9c9e)
 - [`xv::fs::VirtualFileSystem::same`](vfs.cpp.md#fn-7cbd893bc133ef55)
 - [`xv::fs::VirtualFileSystem::stat`](vfs.cpp.md#fn-8e48167e5fe78464)
@@ -26,6 +30,7 @@
 - [`xv::fs::VirtualFileSystem::unlink_at`](vfs.cpp.md#fn-b4095b4ec764cda2)
 - [`xv::fs::VirtualFileSystem::unlock`](vfs.cpp.md#fn-a638e65a0686494e)
 - [`xv::fs::VirtualFileSystem::unlock_release`](vfs.cpp.md#fn-ad637485c5f0cda9)
+- [`xv::fs::VirtualFileSystem::unmount`](vfs.cpp.md#fn-5396bbf57ffd12ef)
 - [`xv::fs::VirtualFileSystem::update`](vfs.cpp.md#fn-39fbbef1274fce08)
 - [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-81e896ba99fe170a)
 - [`xv::fs::VirtualFileSystem::write`](vfs.cpp.md#fn-80c4191a47122858)
@@ -36,8 +41,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize_inodes()
-@brief 初始化所有已装配后端的节点锁和归属。
-@details 为磁盘/devfs 及可选 procfs/ramfs 建立基础同步；RAM 根的实际分配推迟到首个进程中的 initialize。
+@brief 初始化命名空间锁和各后端的节点同步。
+@details 启动早期初始化 namespace_，并为可选动态后端池四个实例及磁盘/devfs/procfs/临时 RAM 初始化锁；不分配挂载根，睡眠锁的实际取得推迟到进程上下文。
 ```
 
 <a id="fn-e6a15b643dd8c735"></a>
@@ -46,8 +51,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize(int device)
-@brief 恢复磁盘并依次挂载 /dev、/proc 和 /tmp。
-@details 启动事务只负责覆盖目录和挂载关系；RAM 文件内容不写磁盘。全部装配后冻结三个记录，运行期没有新增 mount/unmount 系统调用。
+@brief 恢复磁盘并建立三个受保护的启动挂载。
+@details 首个进程中初始化磁盘，在日志事务内依次建立 /dev、/proc、/tmp；任一必需挂载失败触发启动错误。运行期允许额外四个动态 RAM 实例，不再冻结全部挂载表。
 ```
 
 <a id="fn-7cbd893bc133ef55"></a>
@@ -76,8 +81,9 @@
 
 ```doxygen
 @fn Inode *xv::fs::VirtualFileSystem::lookup_parent(const char *path, char *name)
-@brief 解析父目录并复制最后一个路径分量。
-@details name 至少有 DIRSIZ 字节空间；成功返回带引用、未锁定的父节点，根路径无末级分量时失败。沿用 xv6 超长分量截断行为。
+@brief 在命名空间锁内查找路径父目录。
+@details walk 保留最终父节点引用，并在 name 写入固定 DIRSIZ 末组件。返回后释放 namespace_，后续目录修改仍须通过受同一锁保护的 VFS 包装。
+@return 未锁定父节点引用，失败返回 nullptr。
 ```
 
 <a id="fn-6591de3da7091bf9"></a>
@@ -236,8 +242,9 @@
 
 ```doxygen
 @fn Inode *xv::fs::VirtualFileSystem::create_at(Inode *directory, const char *name, short type, short major, short minor)
-@brief 把 create_at 分发给 inode 所属文件系统。
-@details 借用未锁定父目录，成功返回锁定的新引用；持久创建要求外层事务，devfs 只复用已有设备。 不根据路径前缀或设备号选择实现，也不改变调用者的锁与引用责任。
+@brief 在命名空间锁内请求所属后端建立目录项。
+@details 与 rename/mount/unmount 串行化，后端自行检查权限和已有节点；成功仍按原契约返回已锁定 inode，调用者负责解锁和释放。
+@return 已锁定 inode 引用，失败返回 nullptr。
 ```
 
 <a id="fn-71de116d242b4ba0"></a>
@@ -246,8 +253,9 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::link_at(Inode *directory, const char *name, Inode *target)
-@brief 校验节点归属后请求同一文件系统创建硬链接。
-@details 借用父目录和目标引用，不转移所有权；跨 owner 直接返回 -1，同一 owner 的实现负责锁、链接数与只读规则。磁盘修改要求外层事务。
+@brief 串行化并转发同后端硬链接。
+@details 取得命名空间锁，拒绝 directory 和 target 归属不同的后端，再由后端检查授权、名称和链接计数。
+@return 0 表示成功，-1 表示检查或后端失败。
 ```
 
 <a id="fn-b4095b4ec764cda2"></a>
@@ -256,8 +264,9 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::unlink_at(Inode *directory, const char *name)
-@brief 保护全部启动挂载的根与覆盖目录再委托删除。
-@details 借用父目录引用，锁内查找子节点并检查挂载身份，释放临时引用后解锁；保护对象返回 -1，否则委托所属文件系统。devfs/procfs 自身的只读规则由后端执行。
+@brief 在稳定挂载关系下删除目录项。
+@details 命名空间锁串行化检查和实际删除。短暂锁住目录并查找目标，拒绝覆盖点或挂载根，释放临时引用后转交后端执行目录/sticky 权限与空目录检查。
+@return 0 表示成功，-1 表示挂载保护或后端拒绝。
 ```
 
 <a id="fn-fd77401a8aa09874"></a>
@@ -266,8 +275,9 @@
 
 ```doxygen
 @fn bool xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
-@brief 在启动阶段把一个节点后端挂载到目录。
-@details 调用者已初始化后端节点锁并持磁盘事务。复用或创建覆盖目录，保存覆盖节点、挂载根与父目录的长期引用；拒绝非目录、重复挂载、冻结后修改及超过三个记录。后端 initialize 只在验证路径之后执行。
+@brief 装配一个系统生命周期的启动挂载。
+@details 仅供 initialize 串行启动阶段调用；查找或创建覆盖目录，拒绝非目录与已有挂载根，初始化借用后端并保存覆盖节点、后端根、父目录和路径。动态系统调用另走 mount_ram。
+@return 成功返回 true，容量、路径或节点检查失败返回 false。
 ```
 <a id="fn-81e896ba99fe170a"></a>
 
@@ -285,8 +295,9 @@
 
 ```doxygen
 @fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real)
-@brief 以指定凭据模式查找完整路径。
-@details 默认有效身份；real=true 用于 access 的真实身份路径搜索。委托 walk，成功返回调用者负责归还的未锁定引用。
+@brief 在稳定挂载关系下查找路径并返回独立 inode 引用。
+@details 取得 namespace_ 睡眠锁后调用 walk；返回引用固定所属后端，锁在返回前释放。必须在进程上下文中调用，初始进程建立 cwd 时直接使用 root。
+@return 未锁定节点引用；查找失败为 nullptr。
 ```
 
 <a id="fn-abf62fef3e7f21c5"></a>
@@ -297,4 +308,59 @@
 @fn bool xv::fs::VirtualFileSystem::allowed(Inode *node, unsigned requested, bool real)
 @brief 委托公共节点访问策略。
 @details 调用者持节点锁；requested 是 R/W/X 位，real 决定真实或有效身份，不在包装层重复获取节点锁。
+```
+
+<a id="fn-35b6020510aa9401"></a>
+
+## `xv::fs::VirtualFileSystem::ancestor`
+
+```doxygen
+@fn bool xv::fs::VirtualFileSystem::ancestor(Inode *possible, Inode *node)
+@brief 沿父目录关系判断一个节点是否包含另一个节点。
+@details 命名空间锁内保留待检查节点；遇到挂载根使用挂载表中的父节点，否则读取后端 ..。每一步归还旧引用；最多走 128 步，超出时保守返回 true，供环与挂载祖先保护使用。
+@return 匹配或达到遍历上限返回 true；到达根且不匹配返回 false。
+```
+
+<a id="fn-09eb092ae4d24474"></a>
+
+## `xv::fs::VirtualFileSystem::mount_ram`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::mount_ram(const char *path)
+@brief 发布最多四个独立动态 RAM 挂载中的一个。
+@details 先取得日志事务及命名空间锁，校验规范绝对路径、DIRSIZ、已有目录及非叠加关系。保留覆盖点和父引用后尝试初始化空闲后端；失败归还引用，成功设置新根 0755 并发布带路径/实例槽的记录。
+@return 0 表示成功，-1 表示路径、容量或内存检查失败。
+```
+
+<a id="fn-5396bbf57ffd12ef"></a>
+
+## `xv::fs::VirtualFileSystem::unmount`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::unmount(const char *path)
+@brief 在无外部使用者时撤销动态挂载并回收其全部页面。
+@details 事务及命名空间锁内解析目标，拒绝固定挂载和 busy 实例。移除记录后释放覆盖点/父引用，调用后端 shutdown，最后归还动态实例槽。子挂载通过其持有的父后端引用使父实例 busy。
+@return 0 表示成功，-1 表示未挂载、受保护或忙碌。
+```
+
+<a id="fn-0747d0fa1f7514e8"></a>
+
+## `xv::fs::VirtualFileSystem::mounts`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type)
+@brief 复制指定索引的挂载路径和类型。
+@details 命名空间锁内复制到内核缓冲 path[128]、type[32]。索引顺序可能随卸载交换记录而变化，多次调用不是整表快照。
+@return 1 表示一条记录，0 表示枚举结束。
+```
+
+<a id="fn-3ce7ce542ff58054"></a>
+
+## `xv::fs::VirtualFileSystem::rename`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::rename(const char *old_path, const char *new_path)
+@brief 在稳定挂载拓扑下校验并转发原子重命名。
+@details 事务与命名空间锁内查找两端父目录，拒绝跨后端、点目录、目录环、挂载点及含挂载的祖先。临时取得源/目标引用供检查，调用所属后端 rename_at 后按所有分支释放引用。
+@return 0 表示后端重命名成功，-1 表示校验或后端失败。
 ```

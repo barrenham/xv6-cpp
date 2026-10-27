@@ -1,6 +1,6 @@
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
-add_library(user_accounts STATIC runtime/accounts.cpp)
+add_library(user_accounts STATIC runtime/accounts.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
 target_link_libraries(user_dns PRIVATE xv_options)
@@ -23,6 +23,13 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/pwd/pwd.cpp
+  apps/cp/cp.cpp
+  apps/mv/mv.cpp
+  apps/login/login.cpp
+  apps/passwd/passwd.cpp
+  apps/mount/mount.cpp
+  apps/umount/umount.cpp
   apps/id/id.cpp
   apps/useradd/useradd.cpp
   apps/su/su.cpp
@@ -34,6 +41,7 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/workflowtest.cpp
   tests/envtest.cpp
   tests/permissiontest.cpp
   apps/curl/curl.cpp
@@ -90,13 +98,13 @@ endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
 set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
 
-target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp)
+target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp apps/sh/editor.cpp)
 
 # Poll contracts reuse the PTY test executable and installed inode.
 target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.cpp)
 
 target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/child_signals.cpp tests/signal_registers.S)
 
-foreach(program init id su useradd chown sh)
+foreach(program init id su useradd chown sh login passwd)
   target_link_libraries(user_${program} PRIVATE user_accounts)
 endforeach()
