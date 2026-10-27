@@ -176,7 +176,7 @@ void Sv39PageTable::count_table(const MemorySize *table, unsigned level,
   ++result.table_pages;
   for (unsigned i = 0; i < 512; ++i)
   {
-    auto entry = table[i];
+    auto entry = __atomic_load_n(&table[i], __ATOMIC_ACQUIRE);
     if (!(entry & Valid))
     {
       continue;

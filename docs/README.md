@@ -2,8 +2,9 @@
 
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
+- [虚拟区域、缺页与 COW](virtual-memory.md)：区域归属、权限分类、持锁补页和 fork 共享。
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：280 个文件，1873 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：282 个文件，1896 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。

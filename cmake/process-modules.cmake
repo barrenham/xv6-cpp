@@ -16,6 +16,7 @@ function(xv_add_process_group_internals target)
 endfunction()
 
 function(xv_add_process_interfaces target)
+  xv_add_virtual_regions_module(${target})
   xv_add_process_identity(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
   target_sources(${target} PRIVATE

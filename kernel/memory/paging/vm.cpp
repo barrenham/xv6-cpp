@@ -9,6 +9,7 @@ module;
 module xv.memory;
 
 import xv.runtime;
+import xv.arch;
 import xv.print;
 
 namespace xv::memory
@@ -370,7 +371,7 @@ void unmap_user_pages(pagetable_t pagetable, uint64 va, uint64 npages, int do_fr
     if (do_free)
     {
       uint64 pa = PTE2PA(*pte);
-      xv::memory::allocator().deallocate((void *)pa);
+      xv::memory::allocator().release_page((void *)pa);
     }
     *pte = 0;
   }
@@ -497,60 +498,36 @@ void free_user_table(pagetable_t pagetable, uint64 sz)
 // frees any allocated pages on failure.
 int clone_user_pages(pagetable_t old, pagetable_t new_table, uint64 sz)
 {
-  pte_t *pte;
-  uint64 pa, i;
-  uint flags;
-  char *mem;
-  int szinc = PGSIZE;
-  int level;
-
-  for (i = 0; i < sz; i += szinc)
+  uint64 address = 0;
+  for (; address < sz; address += PGSIZE)
   {
-    szinc = PGSIZE;
-    if ((pte = walkto(old, i, 0, 0, &level)) == 0)
-    {
-      continue;
-    }
-    if ((*pte & PTE_V) == 0)
-    {
-      continue;
-    }
-    szinc = PGSIZE;
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
+    int level;
+    auto *pte = walkto(old, address, 0, 0, &level);
+    if (!pte || !(*pte & PTE_V)) continue;
 #ifdef LAB_PGTBL
+    // Preserve 2 MiB allocation until fork, then share independent 4 KiB frames.
     if (level == 1)
     {
-      if ((mem = static_cast<char *>(
-               xv::memory::allocator().allocate(xv::memory::SuperpageOrder))) == 0)
-      {
-        goto err;
-      }
-      xv::runtime::move(mem, (char *)pa, SUPERPGSIZE);
-      if (supermap(new_table, i, (uint64)mem, flags) != 0)
-      {
-        xv::memory::allocator().deallocate(mem, xv::memory::SuperpageOrder);
-        goto err;
-      }
-      szinc = SUPERPGSIZE;
-      continue;
+      if (superdemote(pte, address, 0) < 0) goto failure;
+      pte = walk_entry(old, address, 0);
+      level = 0;
     }
 #endif
-    if ((mem = static_cast<char *>(xv::memory::allocator().allocate())) == 0)
-    {
-      goto err;
-    }
-    xv::runtime::move(mem, (char *)pa, PGSIZE);
-    if (map_user_pages(new_table, i, PGSIZE, (uint64)mem, flags) != 0)
-    {
-      xv::memory::allocator().deallocate(mem);
-      goto err;
-    }
+    if (level != 0) goto failure;
+    auto physical = PTE2PA(*pte);
+    auto flags = PTE_FLAGS(*pte);
+    if ((flags & (PTE_U | PTE_W)) == (PTE_U | PTE_W)) flags = (flags & ~PTE_W) | PTE_COW;
+    if (map_user_pages(new_table, address, PGSIZE, physical, flags) < 0) goto failure;
+    allocator().retain_page(reinterpret_cast<void *>(physical));
+    *pte = PA2PTE(physical) | flags;
   }
+  // The calling process is not concurrently executing on another hart. Each
+  // later user return switches satp and fences before reusing its translations.
+  xv::arch::sfence_vma();
   return 0;
-
-err:
-  unmap_user_pages(new_table, 0, i / PGSIZE, 1);
+failure:
+  unmap_user_pages(new_table, 0, address / PGSIZE, 1);
+  xv::arch::sfence_vma();
   return -1;
 }
 
@@ -568,191 +545,144 @@ void protect_user_guard(pagetable_t pagetable, uint64 va)
   *pte &= ~PTE_U;
 }
 
-// Copy from kernel to user.
-// Copy len bytes from src to virtual address dstva in a given page table.
-// Return 0 on success, -1 on error.
-int copy_to_user(pagetable_t pagetable, uint64 psz, uint64 dstva, const char *src,
-                 uint64 len)
+namespace
 {
-  uint64 n, va0, pa0;
-  pte_t *pte;
+unsigned permission_for(FaultAccess access)
+{
+  return access == FaultAccess::Write ? PTE_W : access == FaultAccess::Execute ? PTE_X : PTE_R;
+}
+const VirtualRegion *accessible_region(const VirtualRegions &regions, uint64 size, uint64 address,
+                                      FaultAccess access)
+{
+  auto *region = regions.find(address);
+  auto permissions = permission_for(access) | PTE_U;
+  if (!region || (region->permissions & permissions) != permissions ||
+      (address >= size && region->kind != RegionKind::Special)) return nullptr;
+  return region;
+}
+}
 
-  while (len > 0)
+FaultOutcome resolve_user_fault(pagetable_t table, uint64 size, const VirtualRegions &regions,
+                                uint64 address, FaultAccess access)
+{
+  if (address >= MAXVA) return {FaultResult::OutsideRegion};
+  auto *region = regions.find(address);
+  if (!region || (address >= size && region->kind != RegionKind::Special))
+    return {FaultResult::OutsideRegion};
+  if (!accessible_region(regions, size, address, access)) return {FaultResult::Permission};
+  int level;
+  auto *pte = walkto(table, address, 0, 0, &level);
+  if (pte && (*pte & PTE_V))
   {
-    va0 = PGROUNDDOWN(dstva);
-    if (va0 >= MAXVA)
+    if (!PTE_LEAF(*pte)) return {FaultResult::InvalidMapping};
+    if (!(*pte & PTE_U)) return {FaultResult::Permission};
+    if (access != FaultAccess::Write || !(*pte & PTE_COW) || (*pte & PTE_W))
+      return {(*pte & permission_for(access)) ? FaultResult::AlreadyMapped : FaultResult::Permission};
+    if (level != 0) return {FaultResult::InvalidMapping};
+    auto physical = PTE2PA(*pte);
+    auto flags = (PTE_FLAGS(*pte) | PTE_W) & ~PTE_COW;
+    if (allocator().page_references(reinterpret_cast<void *>(physical)) == 1)
     {
-      return -1;
+      *pte = PA2PTE(physical) | flags;
+      xv::arch::sfence_vma();
+      return {FaultResult::Resolved, physical};
     }
+    auto *page = allocator().allocate();
+    if (!page) return {FaultResult::OutOfMemory};
+    xv::runtime::move(page, reinterpret_cast<void *>(physical), PGSIZE);
+    *pte = PA2PTE(page) | flags;
+    xv::arch::sfence_vma();
+    allocator().release_page(reinterpret_cast<void *>(physical));
+    return {FaultResult::Resolved, reinterpret_cast<uint64>(page)};
+  }
+  if (!region->demand || access == FaultAccess::Execute) return {FaultResult::OutsideRegion};
+  auto *page = allocator().allocate();
+  if (!page) return {FaultResult::OutOfMemory};
+  xv::runtime::fill(page, 0, PGSIZE);
+  if (map_user_pages(table, PGROUNDDOWN(address), PGSIZE, reinterpret_cast<uint64>(page), region->permissions) < 0)
+  { allocator().deallocate(page); return {FaultResult::OutOfMemory}; }
+  xv::arch::sfence_vma();
+  return {FaultResult::Resolved, reinterpret_cast<uint64>(page)};
+}
 
-    pa0 = translate_user_page(pagetable, va0);
-    if (pa0 == 0)
-    {
-      if ((pa0 = resolve_user_fault(pagetable, psz, va0, 0)) == 0)
-      {
-        return -1;
-      }
-    }
+namespace
+{
+uint64 user_access(pagetable_t table, uint64 size, const VirtualRegions &regions,
+                   uint64 address, FaultAccess access)
+{
+  if (!accessible_region(regions, size, address, access)) return 0;
+  int level;
+  auto *pte = walkto(table, address, 0, 0, &level);
+  auto permission = static_cast<unsigned long>(permission_for(access) | PTE_U);
+  if (pte && (*pte & PTE_V) && (*pte & permission) == permission)
+    return PTE2PA(*pte) + (PGROUNDDOWN(address) & ((1UL << PXSHIFT(level)) - 1));
+  auto result = resolve_user_fault(table, size, regions, address, access);
+  return result.result == FaultResult::Resolved ? result.physical : 0;
+}
+uint64 accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 address)
+{
+  auto *region = regions.find(address);
+  auto end = region->end;
+  if (region->kind != RegionKind::Special && size < end) end = size;
+  auto page_end = PGROUNDDOWN(address) + PGSIZE;
+  if (page_end < end) end = page_end;
+  return end - address;
+}
+}
 
-    if ((pte = walk_entry(pagetable, va0, 0)) == 0)
-    {
-      // xv::print::printk("copy_to_user: pte should exist %lx %ld\n", dstva, len);
-      return -1;
-    }
-
-    // forbid copy_to_user over read-only user text pages.
-    if ((*pte & PTE_W) == 0)
-    {
-      return -1;
-    }
-
-    n = PGSIZE - (dstva - va0);
-    if (n > len)
-    {
-      n = len;
-    }
-    xv::runtime::move((void *)(pa0 + (dstva - va0)), src, n);
-
-    len -= n;
-    src += n;
-    dstva = va0 + PGSIZE;
+int copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions,
+                 uint64 destination, const char *source, uint64 bytes)
+{
+  if (bytes > MAXVA || destination >= MAXVA || bytes > MAXVA - destination) return -1;
+  while (bytes)
+  {
+    auto physical = user_access(table, size, regions, destination, FaultAccess::Write);
+    if (!physical) return -1;
+    auto count = accessible_bytes(regions, size, destination);
+    if (bytes < count) count = bytes;
+    xv::runtime::move(reinterpret_cast<void *>(physical + (destination % PGSIZE)), source, count);
+    bytes -= count; source += count; destination += count;
   }
   return 0;
 }
-
-// Copy from user to kernel.
-// Copy len bytes to dst from virtual address srcva in a given page table.
-// Return 0 on success, -1 on error.
-int copy_from_user(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva,
-                   uint64 len)
+int copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions,
+                   char *destination, uint64 source, uint64 bytes)
 {
-  uint64 n, va0, pa0;
-
-  while (len > 0)
+  if (bytes > MAXVA || source >= MAXVA || bytes > MAXVA - source) return -1;
+  while (bytes)
   {
-    va0 = PGROUNDDOWN(srcva);
-    pa0 = translate_user_page(pagetable, va0);
-    if (pa0 == 0)
-    {
-      if ((pa0 = resolve_user_fault(pagetable, psz, va0, 1)) == 0)
-      {
-        return -1;
-      }
-    }
-    n = PGSIZE - (srcva - va0);
-    if (n > len)
-    {
-      n = len;
-    }
-    xv::runtime::move(dst, (void *)(pa0 + (srcva - va0)), n);
-
-    len -= n;
-    dst += n;
-    srcva = va0 + PGSIZE;
+    auto physical = user_access(table, size, regions, source, FaultAccess::Read);
+    if (!physical) return -1;
+    auto count = accessible_bytes(regions, size, source);
+    if (bytes < count) count = bytes;
+    xv::runtime::move(destination, reinterpret_cast<void *>(physical + (source % PGSIZE)), count);
+    bytes -= count; destination += count; source += count;
   }
   return 0;
 }
-
-// Copy a null-terminated string from user to kernel.
-// Copy bytes to dst from virtual address srcva in a given page table,
-// until a '\0', or max.
-// Return 0 on success, -1 on error.
-int copy_user_string(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva,
-                     uint64 max)
+int copy_user_string(pagetable_t table, uint64 size, const VirtualRegions &regions,
+                     char *destination, uint64 source, uint64 maximum)
 {
-  uint64 n, va0, pa0;
-  int got_null = 0;
-
-  while (got_null == 0 && max > 0)
+  while (maximum)
   {
-    va0 = PGROUNDDOWN(srcva);
-    pa0 = translate_user_page(pagetable, va0);
-    if (pa0 == 0)
+    auto physical = user_access(table, size, regions, source, FaultAccess::Read);
+    if (!physical) return -1;
+    auto count = accessible_bytes(regions, size, source);
+    if (maximum < count) count = maximum;
+    auto *input = reinterpret_cast<char *>(physical + source % PGSIZE);
+    for (uint64 i = 0; i < count; ++i)
     {
-      if ((pa0 = resolve_user_fault(pagetable, psz, va0, 1)) == 0)
-      {
-        return -1;
-      }
+      *destination++ = input[i];
+      if (!input[i]) return 0;
     }
-    n = PGSIZE - (srcva - va0);
-    if (n > max)
-    {
-      n = max;
-    }
-
-    char *p = (char *)(pa0 + (srcva - va0));
-    while (n > 0)
-    {
-      if (*p == '\0')
-      {
-        *dst = '\0';
-        got_null = 1;
-        break;
-      }
-      else
-      {
-        *dst = *p;
-      }
-      --n;
-      --max;
-      p++;
-      dst++;
-    }
-
-    srcva = va0 + PGSIZE;
+    source += count; maximum -= count;
   }
-  if (got_null)
-  {
-    return 0;
-  }
-  else
-  {
-    return -1;
-  }
+  return -1;
 }
-
-// allocate and map user memory if process is referencing a page
-// that was lazily allocated in sys_sbrk().
-// returns 0 if va is invalid or already mapped, or if
-// out of physical memory, and physical address if successful.
-uint64 resolve_user_fault(pagetable_t pagetable, uint64 psz, uint64 va, int read)
+int is_user_mapped(pagetable_t table, uint64 address)
 {
-  uint64 mem;
-
-  if (va >= psz)
-  {
-    return 0;
-  }
-  va = PGROUNDDOWN(va);
-  if (is_user_mapped(pagetable, va))
-  {
-    return 0;
-  }
-  mem = (uint64)xv::memory::allocator().allocate();
-  if (mem == 0)
-  {
-    return 0;
-  }
-  xv::runtime::fill((void *)mem, 0, PGSIZE);
-  if (map_user_pages(pagetable, va, PGSIZE, mem, PTE_W | PTE_U | PTE_R) != 0)
-  {
-    xv::memory::allocator().deallocate((void *)mem);
-    return 0;
-  }
-  return mem;
-}
-
-int is_user_mapped(pagetable_t pagetable, uint64 va)
-{
-  pte_t *pte = walk_entry(pagetable, va, 0);
-  if (pte == 0)
-  {
-    return 0;
-  }
-  if (*pte & PTE_V)
-  {
-    return 1;
-  }
-  return 0;
+  if (address >= MAXVA) return 0;
+  auto *pte = walk_entry(table, address, 0);
+  return pte && (*pte & PTE_V);
 }
 } // namespace xv::memory

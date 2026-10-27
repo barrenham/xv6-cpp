@@ -141,13 +141,8 @@
 
 ```doxygen
 @fn void xv::memory::Sv39PageTable::count_table(const MemorySize *table, unsigned level, PageTableStatistics &result)
-@brief Sv39 页表对象：数量表。
-@param table 页表或 poll 登记接口；其具体类型见函数签名。
-@param level 本次操作使用的 层级 值。
-@param result 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`count_table` → `child_table`。
-@details 需要特别跟踪的条件：`!(entry & Valid)`；`entry & Leaf`；`level == 2`；`level == 1`；`level`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 递归统计不同层级的页表及叶映射。
+@details 用 acquire 原子读取每项 PTE，区分 1 GiB、2 MiB 和 4 KiB 叶子。调用者须保护下级页表节点不被回收；KernelPageTable::statistics 持区域锁提供该生命周期约束。
 ```
 
 <a id="fn-abb0ead8402f759b"></a>

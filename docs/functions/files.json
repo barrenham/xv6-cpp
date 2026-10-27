@@ -709,7 +709,6 @@
     "function_usrs": [
       "c:@N@xv@N@syscall@F@sys_ksupernpte#",
       "c:@N@xv@N@syscall@F@sys_pgpte#",
-      "c:sysvm.cpp@N@xv@N@syscall@F@cnt_level#*l#S0_#S0_#l#I#",
       "c:sysvm.cpp@N@xv@N@syscall@F@pgpte#*l#l#"
     ]
   },
@@ -795,7 +794,10 @@
       "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalMemoryRange#",
       "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#&$@N@xv@N@memory@S@BootMemorySource#$@N@xv@N@memory@S@PhysicalAddress#",
       "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#&1$@N@xv@N@memory@S@BootMemoryInfo#$@N@xv@N@memory@S@PhysicalAddress#",
-      "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#*v#S1_#"
+      "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#*v#S1_#",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@page_references#*v#1",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@release_page#*v#",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@retain_page#*v#"
     ]
   },
   {
@@ -828,6 +830,9 @@
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@metadata_bytes#l#1",
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@name#1",
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@operator=#&1$@N@xv@N@memory@S@PhysicalPageAllocator#",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@page_references#*v#1",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@release_page#*v#",
+      "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@retain_page#*v#",
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@split_to_pages#*v#i#",
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@supports#i#1",
       "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@~PhysicalPageAllocator#"
@@ -895,9 +900,9 @@
     "function_usrs": [
       "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
-      "c:@N@xv@N@memory@F@copy_from_user#*l#l#*C#l#l#",
-      "c:@N@xv@N@memory@F@copy_to_user#*l#l#l#*1C#l#",
-      "c:@N@xv@N@memory@F@copy_user_string#*l#l#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#*1C#l#",
+      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
       "c:@N@xv@N@memory@F@create_user_table#",
       "c:@N@xv@N@memory@F@deallocate_user_pages#*l#l#l#",
       "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
@@ -907,7 +912,7 @@
       "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
       "c:@N@xv@N@memory@F@print_page_table#*l#",
       "c:@N@xv@N@memory@F@protect_user_guard#*l#l#",
-      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#l#I#",
+      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@memory@F@translate_user_page#*l#l#",
       "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@walk_entry#*l#l#I#",
@@ -915,7 +920,11 @@
       "c:vm.cpp@N@xv@N@memory@F@superdemote#*l#l#I#",
       "c:vm.cpp@N@xv@N@memory@F@supermap#*l#l#l#I#",
       "c:vm.cpp@N@xv@N@memory@F@vmprint_level#*l#I#l#",
-      "c:vm.cpp@N@xv@N@memory@F@walkto#*l#l#I#I#*I#"
+      "c:vm.cpp@N@xv@N@memory@F@walkto#*l#l#I#I#*I#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_bytes#&1$@N@xv@N@memory@S@VirtualRegions#l#l#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_region#&1$@N@xv@N@memory@S@VirtualRegions#l#l#$@N@xv@N@memory@E@FaultAccess#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@permission_for#$@N@xv@N@memory@E@FaultAccess#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@user_access#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#"
     ]
   },
   {
@@ -930,10 +939,13 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@commit_stack#l#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@grow_process_stack#l#l#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@operator=#&1$@N@xv@N@memory@S@KernelPageTable#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@region#l#&$@N@xv@N@memory@S@VirtualRegion#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
-      "c:@N@xv@N@memory@S@KernelPageTable@F@root#1"
+      "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#"
     ]
   },
   {
@@ -990,10 +1002,14 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@commit_stack#l#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@grow_process_stack#l#l#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@region#l#&$@N@xv@N@memory@S@VirtualRegion#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
-      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#"
+      "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#",
+      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
+      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@map_initial_range#&$@N@xv@N@memory@S@VirtualRegions#*l#l#l#l#I#"
     ]
   },
   {
@@ -1002,9 +1018,9 @@
     "function_usrs": [
       "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
-      "c:@N@xv@N@memory@F@copy_from_user#*l#l#*C#l#l#",
-      "c:@N@xv@N@memory@F@copy_to_user#*l#l#l#*1C#l#",
-      "c:@N@xv@N@memory@F@copy_user_string#*l#l#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#*1C#l#",
+      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
       "c:@N@xv@N@memory@F@create_user_table#",
       "c:@N@xv@N@memory@F@deallocate_user_pages#*l#l#l#",
       "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
@@ -1014,7 +1030,7 @@
       "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
       "c:@N@xv@N@memory@F@print_page_table#*l#",
       "c:@N@xv@N@memory@F@protect_user_guard#*l#l#",
-      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#l#I#",
+      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@memory@F@translate_user_page#*l#l#",
       "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@walk_entry#*l#l#I#"
@@ -1815,7 +1831,7 @@
       "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
       "c:@N@xv@N@trap@N@detail@F@report_user_fault#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@request_kill#",
-      "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#b#",
+      "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#$@N@xv@N@trap@E@MemoryAccess#",
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
       "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
@@ -1971,14 +1987,16 @@
       "c:@N@xv@N@trap@N@detail@F@prepare_interruptible_sleep#*v#",
       "c:@N@xv@N@trap@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
+      "c:@N@xv@N@trap@N@detail@F@refill_stack_reserve#",
       "c:@N@xv@N@trap@N@detail@F@report_user_fault#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@request_kill#",
-      "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#b#",
+      "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#$@N@xv@N@trap@E@MemoryAccess#",
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
       "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
       "c:@N@xv@N@trap@N@detail@F@sleep#",
       "c:@N@xv@N@trap@N@detail@F@snapshot#",
+      "c:@N@xv@N@trap@N@detail@F@take_stack_frame#",
       "c:@N@xv@N@trap@N@detail@F@time#",
       "c:@N@xv@N@trap@N@detail@F@user_page_table_token#",
       "c:@N@xv@N@trap@N@detail@F@wakeup#*v#",
@@ -3224,12 +3242,13 @@
       "c:@N@xv@N@process@S@AddressSpace@F@copy_string#*C#l#l#1",
       "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
       "c:@N@xv@N@process@S@AddressSpace@F@create#*v#S0_#",
-      "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#",
-      "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#b#",
+      "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#b#",
+      "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@process@S@AddressSpace@F@observed_size#1",
       "c:@N@xv@N@process@S@AddressSpace@F@operator=#&1$@N@xv@N@process@S@AddressSpace#",
       "c:@N@xv@N@process@S@AddressSpace@F@page_table#1",
       "c:@N@xv@N@process@S@AddressSpace@F@protect_guard#l#",
+      "c:@N@xv@N@process@S@AddressSpace@F@regions#1",
       "c:@N@xv@N@process@S@AddressSpace@F@reset#",
       "c:@N@xv@N@process@S@AddressSpace@F@resize#I#b#",
       "c:@N@xv@N@process@S@AddressSpace@F@size#1",
@@ -3246,8 +3265,8 @@
       "c:@N@xv@N@process@S@AddressSpace@F@copy_string#*C#l#l#1",
       "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
       "c:@N@xv@N@process@S@AddressSpace@F@create#*v#S0_#",
-      "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#",
-      "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#b#",
+      "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#b#",
+      "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@process@S@AddressSpace@F@protect_guard#l#",
       "c:@N@xv@N@process@S@AddressSpace@F@reset#",
       "c:@N@xv@N@process@S@AddressSpace@F@resize#I#b#",
@@ -4507,5 +4526,34 @@
     "source": "kernel/fs/mount.h",
     "document": "docs/functions/kernel/fs/mount.h.md",
     "function_usrs": []
+  },
+  {
+    "source": "kernel/memory/layout/virtual_regions.cppm",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#&1$@N@xv@N@memory@S@VirtualRegions#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@find#l#1",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@operator=#&1$@N@xv@N@memory@S@VirtualRegions#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@reset#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@swap#&$@N@xv@N@memory@S@VirtualRegions#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@vacant#"
+    ]
+  },
+  {
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@find#l#1",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@reset#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@swap#&$@N@xv@N@memory@S@VirtualRegions#",
+      "c:@N@xv@N@memory@S@VirtualRegions@F@vacant#"
+    ]
   }
 ]

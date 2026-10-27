@@ -15,11 +15,15 @@
 - [`xv::memory::KernelPageTable::commit_stack`](kernel_page_table.cpp.md#fn-5492462d0bf0c840)
 - [`xv::memory::KernelPageTable::free_process_stack`](kernel_page_table.cpp.md#fn-481636a4fc87518c)
 - [`xv::memory::KernelPageTable::grow_process_stack`](kernel_page_table.cpp.md#fn-9be72da917a5498c)
+- [`xv::memory::KernelPageTable::handle_stack_fault`](kernel_page_table.cpp.md#fn-88c699cd58c7fc23)
 - [`xv::memory::KernelPageTable::initialize`](kernel_page_table.cpp.md#fn-b348ddac60edd845)
+- [`xv::memory::KernelPageTable::region`](kernel_page_table.cpp.md#fn-fe0e0ad8b52fd3f2)
 - [`xv::memory::KernelPageTable::release_stack`](kernel_page_table.cpp.md#fn-5b254a60dc9c4721)
 - [`xv::memory::KernelPageTable::root`](kernel_page_table.cpp.md#fn-792824e0d2159c11)
+- [`xv::memory::KernelPageTable::statistics`](kernel_page_table.cpp.md#fn-9d8162325a420bf9)
 - [`xv::memory::kernel_page_table`](kernel_page_table.cpp.md#fn-1f3d315da469e7cf)
 - [`xv::memory::make_kernel_page_table`](kernel_page_table.cpp.md#fn-0da538a390ac61bc)
+- [`xv::memory::map_initial_range`](kernel_page_table.cpp.md#fn-ed33004ce7e7efb6)
 
 <a id="fn-b348ddac60edd845"></a>
 
@@ -27,8 +31,8 @@
 
 ```doxygen
 @fn void xv::memory::KernelPageTable::initialize()
-@brief 建立内核共享页表及虚拟栈区域锁。
-@details 只预建高地址栈窗口的上级目录，后续每个栈独占其叶页表；目录在系统生命周期内稳定，初始不分配全部栈的物理帧。
+@brief 建立共享内核页表和栈窗口稳定目录。
+@details 构建时登记静态映射，初始化区域锁，并预建高地址栈窗口的共享上级目录；这些目录终生存在，栈的独占叶表在每次创建时准备。
 ```
 
 <a id="fn-4f82617b1488d29d"></a>
@@ -67,9 +71,9 @@
 ## `xv::memory::make_kernel_page_table`
 
 ```doxygen
-@fn pagetable_t xv::memory::make_kernel_page_table()
-@brief 建立内核恒等映射及设备窗口。
-@details VirtIO MMIO 映射扩为相邻两页以容纳系统盘和数据盘；其余内核映射、权限和大页策略保持原有流程。
+@fn pagetable_t xv::memory::make_kernel_page_table(VirtualRegions &regions)
+@brief 构建带区域登记的内核直接映射根表。
+@details 所有设备、内核文本/数据、可用 RAM 与 trampoline 映射先进入共享 VirtualRegions，再由最大页策略建立 PTE；原有文本权限、RAM 边界与映射统计自检保留。
 ```
 
 <a id="fn-5492462d0bf0c840"></a>
@@ -98,8 +102,8 @@
 
 ```doxygen
 @fn unsigned long xv::memory::KernelPageTable::allocate_process_stack()
-@brief 保留独立虚拟区域并提交初始栈页。
-@details 区域位图与物理页编号解耦；默认 2 MiB 容量、32 KiB 初始物理页，旁边保留等容量保护区。失败清理部分帧与叶表，返回零；成功标记槽并返回栈底。
+@brief 保留完整栈与保护区并准备无锁补页所需叶表。
+@details 区域锁内选空槽，登记等容量保护区及默认 2 MiB 栈，预建每个 2 MiB 段的叶表，再提交顶部 32 KiB。任一步失败回收 PTE、叶表和区域，成功后才以 release 语义发布位图。
 ```
 
 <a id="fn-9be72da917a5498c"></a>
@@ -118,6 +122,46 @@
 
 ```doxygen
 @fn void xv::memory::KernelPageTable::free_process_stack(unsigned long address)
-@brief 归还已停止进程的完整栈区域。
-@details 区域锁内校验地址和槽归属，释放已提交页和独占叶表，再清位图。非法或重复释放触发 panic；调用方必须已完成运行上下文交接。
+@brief 回收已停止执行的栈及其完整地址归属。
+@details 区域锁内验证槽归属，取消映射并释放全部已提交页和独占叶表，删除栈与保护区登记，最后清除发布位。调用方须先等待目标上下文和进程锁交接完成。
+```
+
+<a id="fn-ed33004ce7e7efb6"></a>
+
+## `xv::memory::map_initial_range`
+
+```doxygen
+@fn void xv::memory::map_initial_range(VirtualRegions &regions, pagetable_t table, unsigned long va, unsigned long pa, unsigned long bytes, int permissions)
+@brief 在登记虚拟归属后建立一个启动映射。
+@details 按地址识别设备、直接映射或 trampoline 特殊区域；reserve 拒绝重叠或 OOM 时启动失败，否则交给实际 Sv39 映射器选择页大小和写入权限。
+```
+
+<a id="fn-88c699cd58c7fc23"></a>
+
+## `xv::memory::KernelPageTable::handle_stack_fault`
+
+```doxygen
+@fn FaultResult xv::memory::KernelPageTable::handle_stack_fault(unsigned long base, unsigned long stack, unsigned long fault, FaultAccess access, void *(*frame)())
+@brief 在不取得区域或分配器锁的路径上处理栈缺页。
+@details 验证当前所有者的范围、槽位和访问类型；已映射页返回权限错误或 AlreadyMapped，禁止假装补页成功。仅使用预建叶表和传入帧提供者补齐缺失页，成功及部分失败均刷新本核 TLB。处理期间当前栈不能被销毁。
+```
+
+<a id="fn-fe0e0ad8b52fd3f2"></a>
+
+## `xv::memory::KernelPageTable::region`
+
+```doxygen
+@fn bool xv::memory::KernelPageTable::region(unsigned long address, VirtualRegion &result)
+@brief 复制一条稳定的内核虚拟区域记录。
+@details 持区域锁查询并把匹配项复制到调用者缓冲，找不到返回 false；不把锁释放后可能失效的内部指针暴露给调用者。
+```
+
+<a id="fn-9d8162325a420bf9"></a>
+
+## `xv::memory::KernelPageTable::statistics`
+
+```doxygen
+@fn PageTableStatistics xv::memory::KernelPageTable::statistics()
+@brief 在保护页表节点生命周期的锁内统计内核映射。
+@details 取得区域锁后构造 Sv39 只读视图，避免与独占栈叶表回收并发而访问释放的元数据。无锁栈补页仍可能增加叶映射，因此计数是观测值，不是全局原子快照。
 ```

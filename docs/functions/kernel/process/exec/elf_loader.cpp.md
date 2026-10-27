@@ -198,8 +198,8 @@
 
 ```doxygen
 @fn int xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
-@brief 准备完整候选镜像后提交地址空间与执行身份。
-@details 关闭可执行文件之前捕获 UID/GID/mode；所有 ELF、参数和环境准备成功后先提交镜像再应用凭据，任一前置失败不改变原进程身份。
+@brief 准备带区域登记的候选镜像后提交执行状态。
+@details 候选中登记镜像及用户栈，保护页登记失败也回滚；参数和环境 copyout 使用区域权限。所有准备成功后交换地址空间及其区域表，再应用捕获的 setid 凭据。
 ```
 
 <a id="fn-51cf014f3d7bbc3b"></a>

@@ -19,10 +19,8 @@
 
 ```doxygen
 @fn bool xv::trap::PageFaultHandler::accepts(const TrapEvent &event) const
-@brief 用户缺页处理器：判断该处理器是否负责当前陷阱原因。
-@param event 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`event.from_supervisor` → `event.cause.kind`。
-@return 各分支实际返回：`!event.from_supervisor() && (event.cause.kind() == CauseKind::LoadPageFault || event.cause.kind() == CauseKind::StorePageFault)`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 匹配用户态的读写和指令缺页。
+@details 要求异常来源不是 supervisor，内核栈缺页由更早的应急汇编入口处理，不能进入用户匿名补页逻辑。
 ```
 
 <a id="fn-b2145e70bef0bcc2"></a>
@@ -31,8 +29,6 @@
 
 ```doxygen
 @fn TrapAction xv::trap::PageFaultHandler::handle(const TrapEvent &event)
-@brief 用户缺页处理器：handle。
-@param event 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`event.cause.kind` → `detail::resolve_page_fault`。
-@return 各分支实际返回：`detail::resolve_page_fault(event.value, read) ? TrapAction::Resume : TrapAction::Unhandled`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 以明确访问类型请求用户缺页恢复。
+@details 按原因传递 Read/Write/Execute，解析成功返回 Resume 以重试原 PC，未处理返回 Unhandled 交给控制器终止进程，不推进异常指令 PC。
 ```

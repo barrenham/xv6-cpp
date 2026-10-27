@@ -51,6 +51,7 @@ set(programs
   tests/procfstest.cpp
   tests/ramfstest.cpp
   tests/storagecheck.cpp
+  tests/vmcheck.cpp
   tests/workflowtest.cpp
   tests/envtest.cpp
   tests/permissiontest.cpp

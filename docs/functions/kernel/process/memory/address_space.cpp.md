@@ -29,8 +29,8 @@
 
 ```doxygen
 @fn bool xv::process::AddressSpace::create(void *trap_frame, void *user_info)
-@brief 进程用户地址空间：建立新的文件系统对象。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::create_user_table` → `xv::memory::map_user_pages` → `xv::memory::free_user_table` → `xv::memory::unmap_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@brief 创建用户页表并登记特殊映射。
+@details 沿用 trampoline、trapframe 和只读用户 PID 页映射，再登记各自的访问权限；元数据失败通过 reset 回收全部候选资源，不发布半成品地址空间。
 ```
 
 <a id="fn-71495b3b41ddb9ad"></a>
@@ -39,8 +39,8 @@
 
 ```doxygen
 @fn void xv::process::AddressSpace::reset()
-@brief 进程用户地址空间：清理当前持有状态并恢复空对象。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::unmap_user_pages` → `xv::memory::free_user_table`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@brief 归还用户映射、页表和地址区域登记。
+@details 先移除外部拥有的特殊映射，再按用户帧共享引用释放其余映射与页表，最后清除 size、heap 起点和区域元数据。reset 显式结束所有权，调用者保证无运行中用户线程。
 ```
 
 <a id="fn-5fd205292faac723"></a>
@@ -49,8 +49,8 @@
 
 ```doxygen
 @fn void xv::process::AddressSpace::swap(AddressSpace &other)
-@brief 进程用户地址空间：swap。
-@details 本函数可见的状态更新包括：`table_ = other.table_;`；`other.table_ = table;`；`size_ = other.size_;`；`other.size_ = size;`。局部临时变量与对象字段应按作用域区分。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@brief 原子提交协议下交换镜像及其区域归属。
+@details 交换页表、size、heap 起点和 VirtualRegions 页链，再发布双方观测长度；调用方独占进程镜像，操作自身不分配内存。
 ```
 
 <a id="fn-f441ea3cfe631614"></a>
@@ -59,8 +59,8 @@
 
 ```doxygen
 @fn bool xv::process::AddressSpace::copy_to(AddressSpace &child) const
-@brief 进程用户地址空间：复制当前对象内容到另一个拥有者。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::clone_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@brief 复制区域登记并以 COW 共享用户帧。
+@details 先显式复制区域元数据，再建立共享用户页；成功后发布子 size 和 heap 起点。失败由候选进程回收其页表和元数据，父表残留 COW 允许以后独占提升。
 ```
 
 <a id="fn-75a8c7ea8deccbc3"></a>
@@ -69,8 +69,8 @@
 
 ```doxygen
 @fn int xv::process::AddressSpace::resize(int bytes, bool eager)
-@brief 进程用户地址空间：调整用户地址空间的逻辑长度与映射。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages` → `xv::memory::deallocate_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@brief 在已登记堆范围内调整逻辑 break。
+@details 正增长先登记页级 RWU 匿名区域，再按 eager 决定是否分配数据帧；失败撤销新增范围。负增长拒绝下溢和越过初始镜像/栈起点，删除区域后释放映射。只有成功才发布新 size。
 ```
 
 <a id="fn-6a2eebb0fa906335"></a>
@@ -78,9 +78,9 @@
 ## `xv::process::AddressSpace::grow_to`
 
 ```doxygen
-@fn bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions)
-@brief 进程用户地址空间：扩展地址空间到指定结束边界。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocate_user_pages`。 成功修改 size_ 后通过 release 原子存储发布 observed_size_，观察者使用独立快照，不读取活动页表或拥有线程的普通 size_。
+@fn bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions, bool stack)
+@brief 为候选镜像或用户栈登记并建立新映射。
+@details 拒绝倒退和超过 UTOP，登记页对齐范围及真实权限，分配失败撤销登记。成功更新 size 和初始 heap 起点；stack 参数区分用户栈与镜像区域。
 ```
 
 <a id="fn-55c0283e7aac7f96"></a>
@@ -89,10 +89,8 @@
 
 ```doxygen
 @fn void xv::process::AddressSpace::protect_guard(unsigned long address)
-@brief 进程用户地址空间：把给定用户页设置为保护页。
-@param address 地址参数；用户地址必须通过内存复制/映射校验路径访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::protect_user_guard`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 同时撤销保护页的区域权限与用户访问位。
+@details 先删除原登记并插入无权限 Guard，元数据失败返回 false，候选装载器据此放弃镜像；成功后清除 PTE_U，不把保护页变成可按需补页的空洞。
 ```
 
 <a id="fn-323d412cddaf0e22"></a>
@@ -112,12 +110,9 @@
 ## `xv::process::AddressSpace::handle_fault`
 
 ```doxygen
-@fn unsigned long xv::process::AddressSpace::handle_fault(unsigned long address, bool read)
-@brief 进程用户地址空间：解析或补充用户缺页映射。
-@param address 地址参数；用户地址必须通过内存复制/映射校验路径访问。
-@param read 本次操作使用的 读取 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::resolve_user_fault`。
-@return 各分支实际返回：`xv::memory::resolve_user_fault(table_, size_, address, read)`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn xv::memory::FaultOutcome xv::process::AddressSpace::handle_fault(unsigned long address, xv::memory::FaultAccess access)
+@brief 把带明确访问类型的用户异常转入区域感知解析器。
+@details 传递当前页表、逻辑大小和区域表，返回 FaultOutcome 而非把任何现存映射误当作处理成功；调用方只在 Resolved 时重试。
 ```
 
 <a id="fn-78195cebfcf9cc5a"></a>
@@ -126,13 +121,8 @@
 
 ```doxygen
 @fn int xv::process::AddressSpace::copy_in(void *destination, unsigned long source, unsigned long bytes) const
-@brief 进程用户地址空间：从指定地址空间复制数据到内核缓冲。
-@param destination 接收结果的缓冲或目标对象。
-@param source 输入数据位置或源对象。
-@param bytes 本次操作使用的 字节区域 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::copy_from_user`。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`xv::memory::copy_from_user(table_, size_, static_cast<char *>(destination), source, bytes)`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在本地址空间中按权限读取用户缓冲。
+@details 把区域表与逻辑长度交给 copy_from_user，保持懒分配、区域边界和实际 PTE 权限一致。
 ```
 
 <a id="fn-af80ee5a35af7f0e"></a>
@@ -141,13 +131,8 @@
 
 ```doxygen
 @fn int xv::process::AddressSpace::copy_out(unsigned long destination, const void *source, unsigned long bytes) const
-@brief 进程用户地址空间：把内核缓冲复制到指定地址空间。
-@param destination 接收结果的缓冲或目标对象。
-@param source 输入数据位置或源对象。
-@param bytes 本次操作使用的 字节区域 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::copy_to_user`。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`xv::memory::copy_to_user(table_, size_, destination, static_cast<const char *>(source), bytes)`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在本地址空间中写入用户缓冲并处理 COW。
+@details 把区域表与逻辑长度交给 copy_to_user，写入前必要时私有化共享帧；不允许借内核复制绕过只读或保护页。
 ```
 
 <a id="fn-99aa1b54bd7ccfab"></a>
@@ -156,10 +141,6 @@
 
 ```doxygen
 @fn int xv::process::AddressSpace::copy_string(char *destination, unsigned long source, unsigned long limit) const
-@brief 进程用户地址空间：在长度上限内复制以零结尾的字符串。
-@param destination 接收结果的缓冲或目标对象。
-@param source 输入数据位置或源对象。
-@param limit 本次操作使用的 limit 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::copy_user_string`。
-@return 各分支实际返回：`xv::memory::copy_user_string(table_, size_, destination, source, limit)`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 按本地址空间权限读取用户终止字符串。
+@details 将区域登记和逻辑长度一起传入 copy_user_string，支持合法跨页懒分配，拒绝跨出登记范围。
 ```

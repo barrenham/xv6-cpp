@@ -5,20 +5,20 @@
 | 子系统 | 文件数 | 函数/入口条目数 |
 | --- | ---: | ---: |
 | [arch](#arch) | 4 | 49 |
-| [boot](#boot) | 6 | 8 |
+| [boot](#boot) | 6 | 10 |
 | [drivers](#drivers) | 33 | 238 |
 | [fs](#fs) | 39 | 401 |
 | [io](#io) | 2 | 19 |
-| [memory](#memory) | 22 | 175 |
+| [memory](#memory) | 24 | 199 |
 | [net](#net) | 60 | 360 |
-| [process](#process) | 59 | 345 |
+| [process](#process) | 59 | 346 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
-| [syscall](#syscall) | 12 | 103 |
-| [trap](#trap) | 20 | 89 |
+| [syscall](#syscall) | 12 | 102 |
+| [trap](#trap) | 20 | 93 |
 | [tty](#tty) | 1 | 0 |
 
-范围：280 个文件；默认 1808 个唯一 C++ 函数，连同条件接口与汇编入口共 1873 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：282 个文件；默认 1831 个唯一 C++ 函数，连同条件接口与汇编入口共 1896 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -136,6 +136,8 @@
 - [`kernel/memory/memory.cppm`](memory/memory.cppm.md)
 - [`kernel/memory/layout/memlayout.h`](memory/layout/memlayout.h.md)
 - [`kernel/memory/layout/physical_memory_layout.cppm`](memory/layout/physical_memory_layout.cppm.md)
+- [`kernel/memory/layout/virtual_regions.cppm`](memory/layout/virtual_regions.cppm.md)
+- [`kernel/memory/layout/virtual_regions.cpp`](memory/layout/virtual_regions.cpp.md)
 - [`kernel/memory/address/physical_memory_range.cppm`](memory/address/physical_memory_range.cppm.md)
 - [`kernel/memory/address/physical_address.cppm`](memory/address/physical_address.cppm.md)
 - [`kernel/memory/allocator/allocator_service.cpp`](memory/allocator/allocator_service.cpp.md)

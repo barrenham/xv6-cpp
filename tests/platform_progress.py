@@ -59,6 +59,9 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent)
             g.run('sync')
         else:
             g.run('storagecheck','storagecheck: all tests succeeded')
+            g.run('vmcheck','vmcheck: regions, COW, copyout, lazy pages and protection passed')
+            if b'physical allocator: buddy' in g.text:
+                g.run('superpgfork','superpgfork: all tests succeeded')
             g.run('no_such_command || echo OR_WORKS','OR_WORKS\n')
             g.run('echo $?','0\n')
             g.run('no_such_command && echo MUST_SKIP')

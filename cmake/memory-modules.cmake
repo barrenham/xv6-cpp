@@ -1,4 +1,10 @@
 function(xv_add_memory_modules target)
+  get_target_property(has_memory_modules ${target} XV_MEMORY_MODULES)
+  if(has_memory_modules)
+    return()
+  endif()
+  set_property(TARGET ${target} PROPERTY XV_MEMORY_MODULES TRUE)
+  xv_add_virtual_regions_module(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/memory")
   target_sources(${target} PRIVATE
     FILE_SET memory_modules TYPE CXX_MODULES
@@ -18,4 +24,15 @@ function(xv_add_memory_modules target)
       "${module_root}/allocator/freelist/freelist_page_allocator.cppm"
   )
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
+endfunction()
+
+function(xv_add_virtual_regions_module target)
+  get_target_property(has_region_module ${target} XV_REGION_MODULE)
+  if(has_region_module)
+    return()
+  endif()
+  set_property(TARGET ${target} PROPERTY XV_REGION_MODULE TRUE)
+  set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/memory")
+  target_sources(${target} PRIVATE FILE_SET region_module TYPE CXX_MODULES
+    BASE_DIRS "${module_root}" FILES "${module_root}/layout/virtual_regions.cppm")
 endfunction()

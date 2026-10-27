@@ -2681,8 +2681,8 @@ lazy_copy(char *s)
   {
     void *xx = sbrk(0);
     void *ret = sbrk(-(((uint64)xx) + 1));
-    if (ret != xx) {
-      printf("sbrk(sbrk(0)+1) returned %p, not old sz\n", ret);
+    if (ret != SBRK_ERROR || sbrk(0) != xx) {
+      printf("sbrk underflow must fail without changing the break, got %p\n", ret);
       exit(1);
     }
   }

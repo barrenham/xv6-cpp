@@ -26,7 +26,7 @@ static_assert(TrapCause(TrapCause::InterruptBit | 5).kind() ==
               CauseKind::TimerInterrupt);
 static_assert(TrapCause(13).kind() == CauseKind::LoadPageFault);
 static_assert(TrapCause(15).kind() == CauseKind::StorePageFault);
-static_assert(TrapCause(12).kind() == CauseKind::Other);
+static_assert(TrapCause(12).kind() == CauseKind::InstructionPageFault);
 static_assert(TrapCause(~Word{0}).code() == TrapCause::InterruptBit - 1);
 static_assert(std::is_abstract_v<TrapHandler>);
 static_assert(!std::is_copy_constructible_v<TrapController>);
@@ -261,8 +261,8 @@ void fault_contract()
   reset(12);
   exit_check = []
   {
-    check(state.faults == 0 && state.marked == 1,
-          "instruction page faults remain unsupported");
+    check(state.faults == 1 && state.marked == 1,
+          "instruction page faults are classified and rejected");
   };
   expect_exit(42, [] { ::usertrap(); });
 }
@@ -486,13 +486,13 @@ void dispatch_external_interrupt()
   test::log("external");
 }
 
-bool resolve_page_fault(Word address, bool read)
+bool resolve_page_fault(Word address, MemoryAccess access)
 {
   ++test::state.faults;
   test::state.fault_address = address;
-  test::state.fault_read = read;
+  test::state.fault_read = access == MemoryAccess::Read;
   test::log("page_fault");
-  return test::state.resolve_success;
+  return test::state.resolve_success && access != MemoryAccess::Execute;
 }
 
 void report_user_fault(const TrapEvent &)

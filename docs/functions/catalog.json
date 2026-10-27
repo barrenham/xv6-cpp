@@ -5456,7 +5456,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#&1$@N@xv@N@memory@S@BootMemoryInfo#$@N@xv@N@memory@S@PhysicalAddress#",
     "hover_expectation": "observe",
-    "source_sha256": "ae6041ec05e21c73b7d00435ee3e61155867093dba1dd1ed7e56700f947fec0b"
+    "source_sha256": "d10f42e23dea05de8b9cde753ff91f77619c06fcc59f417ce3b52803a318ce37"
   },
   {
     "anchor": "fn-6294cdfa90bca295",
@@ -6543,12 +6543,12 @@
     "source": "kernel/memory/paging/kernel_page_table.cpp",
     "spelling": "make_kernel_page_table",
     "qualified": "xv::memory::make_kernel_page_table",
-    "signature": "pagetable_t make_kernel_page_table()",
-    "fn": "pagetable_t xv::memory::make_kernel_page_table()",
+    "signature": "pagetable_t make_kernel_page_table(VirtualRegions &regions)",
+    "fn": "pagetable_t xv::memory::make_kernel_page_table(VirtualRegions &regions)",
     "kind": "Function",
-    "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#",
+    "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
     "hover_expectation": "observe",
-    "source_sha256": "1adc13a3b8ea142e1d573d8be4d3b1aad6cb502087cfe9f5fda5d111e3236fcb"
+    "source_sha256": "4e0fa0ebc7a030fa1ec1b16afea6f90d6728289c8e70e4e9eb4e9bd704ee3708"
   },
   {
     "anchor": "fn-b348ddac60edd845",
@@ -6561,7 +6561,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
     "hover_expectation": "observe",
-    "source_sha256": "c7079c642dd252546ecc48a309a921dfa8f222fcdbe1f02be2d8ae8556c03fba"
+    "source_sha256": "9c14da7517c2070bfb1695a718036b573564492b555eecb302911fc89f39e6e9"
   },
   {
     "anchor": "fn-4f82617b1488d29d",
@@ -6753,10 +6753,10 @@
     "qualified": "xv::memory::Sv39PageTable::count_table",
     "signature": "void Sv39PageTable::count_table(const MemorySize *table, unsigned level, PageTableStatistics &result)",
     "fn": "void xv::memory::Sv39PageTable::count_table(const MemorySize *table, unsigned level, PageTableStatistics &result)",
-    "kind": "StaticMethod",
+    "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@Sv39PageTable@F@count_table#*1l#i#&$@N@xv@N@memory@S@PageTableStatistics#S",
     "hover_expectation": "observe",
-    "source_sha256": "55aa8a8285576dcd564409f53e25743fe51aa3787332aa8b9f16f6955208076d"
+    "source_sha256": "1129014515e65a614cb8b061c4b3448201f920cafbb53124f74202e921a24312"
   },
   {
     "anchor": "fn-abb0ead8402f759b",
@@ -7016,7 +7016,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
     "hover_expectation": "observe",
-    "source_sha256": "e7ab173c9fc2c68d49bae5b7cf61361f03033e9e316cbd6182fc9e986f6ec129"
+    "source_sha256": "5cd8c726573c3a407e4dfcdddb3550cf4fa838e416564a175af0ae235b84ae96"
   },
   {
     "anchor": "fn-e5328f0087ac74d2",
@@ -7042,7 +7042,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
     "hover_expectation": "observe",
-    "source_sha256": "90ffac637cb09f5110adb0d43d69c9f9a74a57f7b7b9dca4d6b77d569ef75200"
+    "source_sha256": "7ab0ee8f034cc3a07f948f56269ff9f0ed5abd9e6529a9354fe1baaebbe20662"
   },
   {
     "anchor": "fn-91a20f4d785cbe8a",
@@ -7089,12 +7089,12 @@
     "source": "kernel/memory/paging/vm.cpp",
     "spelling": "copy_to_user",
     "qualified": "xv::memory::copy_to_user",
-    "signature": "int copy_to_user(pagetable_t pagetable, uint64 psz, uint64 dstva, const char *src, uint64 len)",
-    "fn": "int xv::memory::copy_to_user(pagetable_t pagetable, uint64 psz, uint64 dstva, const char *src, uint64 len)",
+    "signature": "int copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 destination, const char *source, uint64 bytes)",
+    "fn": "int xv::memory::copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 destination, const char *source, uint64 bytes)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@memory@F@copy_to_user#*l#l#l#*1C#l#",
+    "usr": "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#*1C#l#",
     "hover_expectation": "observe",
-    "source_sha256": "73bebe67187085f39d50f0903a9a111c929f6b4d85ef1ab0db7624ebc501a9c4"
+    "source_sha256": "b723b2d18e683295c36f87c4f5f783d3a776e169725f8f056ce0286add709976"
   },
   {
     "anchor": "fn-702f4fdb8fe6d6ed",
@@ -7102,12 +7102,12 @@
     "source": "kernel/memory/paging/vm.cpp",
     "spelling": "copy_from_user",
     "qualified": "xv::memory::copy_from_user",
-    "signature": "int copy_from_user(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva, uint64 len)",
-    "fn": "int xv::memory::copy_from_user(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva, uint64 len)",
+    "signature": "int copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 bytes)",
+    "fn": "int xv::memory::copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 bytes)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@memory@F@copy_from_user#*l#l#*C#l#l#",
+    "usr": "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
     "hover_expectation": "observe",
-    "source_sha256": "be9d9d33a829ce76b27ce671c6cca216ac191bc887385ec5f833383762b9fb58"
+    "source_sha256": "283c7f73f7f77b16680ade7ca35bf0450111c47fba9d0848cf3dbe1da270c02c"
   },
   {
     "anchor": "fn-7bd0107be1202abf",
@@ -7115,12 +7115,12 @@
     "source": "kernel/memory/paging/vm.cpp",
     "spelling": "copy_user_string",
     "qualified": "xv::memory::copy_user_string",
-    "signature": "int copy_user_string(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva, uint64 max)",
-    "fn": "int xv::memory::copy_user_string(pagetable_t pagetable, uint64 psz, char *dst, uint64 srcva, uint64 max)",
+    "signature": "int copy_user_string(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 maximum)",
+    "fn": "int xv::memory::copy_user_string(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 maximum)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@memory@F@copy_user_string#*l#l#*C#l#l#",
+    "usr": "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
     "hover_expectation": "observe",
-    "source_sha256": "2b002dd370543fc6df3d7118b6956fccf4bd35dc147123fe4eb0053d2505699d"
+    "source_sha256": "0425a4b53bde2f48d85b6d50d8679d3963211c82241f339fc756839d69c8a0bd"
   },
   {
     "anchor": "fn-d315e799cdeadf7a",
@@ -7133,7 +7133,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@memory@F@is_user_mapped#*l#l#",
     "hover_expectation": "observe",
-    "source_sha256": "417d410bf93e9ff3f332942f39d50494daaf363d4f0cb6a06bf93c0a6a068f64"
+    "source_sha256": "4fda556b11d3aff085507c49350c22c5e4eb082d43e53f385a6434b469cb3571"
   },
   {
     "anchor": "fn-3fa77ef7a3677ae6",
@@ -7141,12 +7141,12 @@
     "source": "kernel/memory/paging/vm.cpp",
     "spelling": "resolve_user_fault",
     "qualified": "xv::memory::resolve_user_fault",
-    "signature": "uint64 resolve_user_fault(pagetable_t pagetable, uint64 psz, uint64 va, int read)",
-    "fn": "uint64 xv::memory::resolve_user_fault(pagetable_t pagetable, uint64 psz, uint64 va, int read)",
+    "signature": "FaultOutcome resolve_user_fault(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)",
+    "fn": "FaultOutcome xv::memory::resolve_user_fault(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#l#I#",
+    "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
     "hover_expectation": "observe",
-    "source_sha256": "aaf00ceb8fcd7b89cd76c693be6ed5e9059fd28059f69ee0214ffe8eab12828a"
+    "source_sha256": "23f9d7b01ee47ce73ad0ffcfe38396c72debca1c964b889feca51b6622f8e350"
   },
   {
     "anchor": "fn-43a58229b9ef1c31",
@@ -8694,7 +8694,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@create#*v#S0_#",
     "hover_expectation": "observe",
-    "source_sha256": "cde14054dbfbb7df3fdf6b29d7bb8c28daa2d539d3570fa33805f2b5ef4ffd0e"
+    "source_sha256": "00a2dc1b2b091e1cb940ae45c48f0bc055cb738b07b76f143a800c5e9173c1dc"
   },
   {
     "anchor": "fn-71495b3b41ddb9ad",
@@ -8707,7 +8707,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@reset#",
     "hover_expectation": "observe",
-    "source_sha256": "d180a421c446865ab380d9be266f3cf931ec5996ea8b4f8acccc9daeda0c4029"
+    "source_sha256": "e1c413cb77a7066b6ba8ba6bdbbd6b76acd12d499aa3485e525adc0c91a18245"
   },
   {
     "anchor": "fn-5fd205292faac723",
@@ -8720,7 +8720,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@swap#&$@N@xv@N@process@S@AddressSpace#",
     "hover_expectation": "observe",
-    "source_sha256": "0bc20d2a9c63595628132521c799d86e858b6d97031a0b644f235fff451695c3"
+    "source_sha256": "d35c778f47ab08dee6cb8f29563479414d40b8c94221cd5803da4f08c92de2fd"
   },
   {
     "anchor": "fn-f441ea3cfe631614",
@@ -8733,7 +8733,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
     "hover_expectation": "observe",
-    "source_sha256": "aad0eafbbad0f869f81e249a17380abd23f9f4328eafec7a7e2887c5bfaea3fd"
+    "source_sha256": "e479794632572ea6d7df080d7790732176809c4743e7535bbbe433629f069dba"
   },
   {
     "anchor": "fn-75a8c7ea8deccbc3",
@@ -8746,7 +8746,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@resize#I#b#",
     "hover_expectation": "observe",
-    "source_sha256": "8d00cd1f4840273275bfd26f473ab4e25bd91eed097876b0926db271925aabc7"
+    "source_sha256": "084d8936d2974e8a2cceab9f6023153c60ae51498b8b8260b1a50b580ab5f62f"
   },
   {
     "anchor": "fn-6a2eebb0fa906335",
@@ -8754,12 +8754,12 @@
     "source": "kernel/process/memory/address_space.cpp",
     "spelling": "AddressSpace::grow_to",
     "qualified": "xv::process::AddressSpace::grow_to",
-    "signature": "bool AddressSpace::grow_to(unsigned long end, int permissions)",
-    "fn": "bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions)",
+    "signature": "bool AddressSpace::grow_to(unsigned long end, int permissions, bool stack)",
+    "fn": "bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions, bool stack)",
     "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#b#",
     "hover_expectation": "observe",
-    "source_sha256": "9b4a95153ba8624352b36701308f2a9c8508681b9b090731fd69d436b4a4418b"
+    "source_sha256": "c3402fadec12863d6abcfca1a9078ee543a10edc03b9390b5dc4c042f347d0f8"
   },
   {
     "anchor": "fn-55c0283e7aac7f96",
@@ -8772,7 +8772,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@protect_guard#l#",
     "hover_expectation": "observe",
-    "source_sha256": "dc9fc835ec8c3a474e294e0cbcac3d808d0b7b9b1596ee07f6831164fed7a3cd"
+    "source_sha256": "86bc5aaa3d78e3192547ba47b47eed5b1cc3f89890865fced5ed781aeeb23762"
   },
   {
     "anchor": "fn-323d412cddaf0e22",
@@ -8791,14 +8791,14 @@
     "anchor": "fn-ef1a8c8627cc3494",
     "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
     "source": "kernel/process/memory/address_space.cpp",
-    "spelling": "handle_fault",
+    "spelling": "AddressSpace::handle_fault",
     "qualified": "xv::process::AddressSpace::handle_fault",
-    "signature": "unsigned long AddressSpace::handle_fault(unsigned long address, bool read)",
-    "fn": "unsigned long xv::process::AddressSpace::handle_fault(unsigned long address, bool read)",
+    "signature": "xv::memory::FaultOutcome AddressSpace::handle_fault(unsigned long address, xv::memory::FaultAccess access)",
+    "fn": "xv::memory::FaultOutcome xv::process::AddressSpace::handle_fault(unsigned long address, xv::memory::FaultAccess access)",
     "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#b#",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@handle_fault#l#$@N@xv@N@memory@E@FaultAccess#",
     "hover_expectation": "observe",
-    "source_sha256": "262d7a43415b3b6ca26bb475c93641e7b3746bd238c6b22c21d2fae0726385e9"
+    "source_sha256": "dedc5e15886cd030a060045c6a570efb19e2cf184c83725d66618c16f3252994"
   },
   {
     "anchor": "fn-78195cebfcf9cc5a",
@@ -8811,7 +8811,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_in#*v#l#l#1",
     "hover_expectation": "observe",
-    "source_sha256": "14604e7b2ad8e00d3872288b4df083ff68762092eefed0381c44ded22187e399"
+    "source_sha256": "3e83b1a8a94f410c349daf0960ab20642826e61c54ae71738b0c83ea25bfc5a5"
   },
   {
     "anchor": "fn-af80ee5a35af7f0e",
@@ -8824,7 +8824,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_out#l#*1v#l#1",
     "hover_expectation": "observe",
-    "source_sha256": "3d58bd2f862ff81b8343b5a3f8ad3653146c417f43d16c2c1c5f1dd67b3ca7e4"
+    "source_sha256": "0ad567fedf84ffa06fdd3b4651507b33cf2552a18b455c495eefe54218607bf4"
   },
   {
     "anchor": "fn-99aa1b54bd7ccfab",
@@ -8837,7 +8837,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_string#*C#l#l#1",
     "hover_expectation": "observe",
-    "source_sha256": "7bd6753c9eac10562fef16ad30d48741b8a1a93ff5933101c6649b97fc418de2"
+    "source_sha256": "5f17a2e280ec29da51b5c730e6ee5245b2461c3978215b183a1a002029b5e5e8"
   },
   {
     "anchor": "fn-876da61fe512f97c",
@@ -12542,7 +12542,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@sys_pgaccess#",
     "hover_expectation": "observe",
-    "source_sha256": "8da4f84e0c4ceef963dcb7a27e9e32b99747d4e359b22523db7c74d588800337"
+    "source_sha256": "d880697afa32706d1feb7afc7eaf80d5bff5f4565131414b84486462351d3a07"
   },
   {
     "anchor": "fn-854777261a9f0a46",
@@ -12555,7 +12555,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@sys_ksupernpte#",
     "hover_expectation": "observe",
-    "source_sha256": "33fc9a279f71975d664d4fa673213f270ecc8f281987fbe8f197192c4969f20e"
+    "source_sha256": "4e34ceed4e25575e29bca183a67fe04ef069c4a7ea1d53032f2cc1cdb891a54e"
   },
   {
     "anchor": "fn-819d52ac7b54dd49",
@@ -12620,20 +12620,7 @@
     "kind": "Function",
     "usr": "c:sysvm.cpp@N@xv@N@syscall@F@pgpte#*l#l#",
     "hover_expectation": "observe",
-    "source_sha256": "e2d3dd748640ac2c7e20d3b761932320fa6d0c74299f054ffc5e73cc7df96cf5"
-  },
-  {
-    "anchor": "fn-60d98a67c33e4923",
-    "document": "docs/functions/kernel/syscall/sysvm.cpp.md",
-    "source": "kernel/syscall/sysvm.cpp",
-    "spelling": "cnt_level",
-    "qualified": "xv::syscall::cnt_level",
-    "signature": "static void cnt_level(pagetable_t pagetable, uint64 *nsuper, uint64 *n2, uint64 va_start, int level)",
-    "fn": "static void xv::syscall::cnt_level(pagetable_t pagetable, uint64 *nsuper, uint64 *n2, uint64 va_start, int level)",
-    "kind": "Function",
-    "usr": "c:sysvm.cpp@N@xv@N@syscall@F@cnt_level#*l#S0_#S0_#l#I#",
-    "hover_expectation": "observe",
-    "source_sha256": "6f44b51803af65ce67fb14d0174e12aafc9ea34dafc84b281f634fa4ac2652aa"
+    "source_sha256": "0267236944880026f5d068080641f7c1ade41a617f653dadf2aca766f358eec3"
   },
   {
     "anchor": "fn-e31b5236fa8fe95c",
@@ -12863,12 +12850,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "resolve_page_fault",
     "qualified": "xv::trap::detail::resolve_page_fault",
-    "signature": "bool resolve_page_fault(Word address, bool read)",
-    "fn": "bool xv::trap::detail::resolve_page_fault(Word address, bool read)",
+    "signature": "bool resolve_page_fault(Word address, MemoryAccess access)",
+    "fn": "bool xv::trap::detail::resolve_page_fault(Word address, MemoryAccess access)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#b#",
+    "usr": "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#$@N@xv@N@trap@E@MemoryAccess#",
     "hover_expectation": "observe",
-    "source_sha256": "64acb946094fc7e8a1bdbb97fbb8a9dc337fc6a645459957c92485247b5418a2"
+    "source_sha256": "56c845b4334bb703081eab9e1abba1d1b1b163816fee724b5b40fbc2d85ac638"
   },
   {
     "anchor": "fn-f43a07ef20a5a6b5",
@@ -12907,7 +12894,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
     "hover_expectation": "observe",
-    "source_sha256": "f4442597d4ff4abcf995daa64c8bce416858716f8370e1800fdacebc0fcead9c"
+    "source_sha256": "d40ef37d7774a833f359c5dc90373bf95b24723123ec169214035fd35b9fdad7"
   },
   {
     "anchor": "fn-fb9cf283bc7dc87e",
@@ -13427,7 +13414,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@trap@S@TrapCause@F@kind#1",
     "hover_expectation": "observe",
-    "source_sha256": "92761c4067abaec92b8c5deab6d2a8ccdb9f42059c15529fd2caa1d819ee3d38"
+    "source_sha256": "f0066164d60ca74a8e653e6c685b3292cdca234f92b8c9c2a6357c3e3a7834c0"
   },
   {
     "anchor": "fn-b2e7b3fb3cbc4c03",
@@ -13648,7 +13635,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@trap@S@PageFaultHandler@F@accepts#&1$@N@xv@N@trap@S@TrapEvent#1",
     "hover_expectation": "observe",
-    "source_sha256": "c97b7725230bc2957308f31926956725bf79587dcb993bdd07eab225ed413394"
+    "source_sha256": "26afef9888c0adbfaf81138b65e7d208f4ab331bc1eaaa1576c09c8c952f0e14"
   },
   {
     "anchor": "fn-b2145e70bef0bcc2",
@@ -13661,7 +13648,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@trap@S@PageFaultHandler@F@handle#&1$@N@xv@N@trap@S@TrapEvent#",
     "hover_expectation": "observe",
-    "source_sha256": "b6481de76103d4f17fd25dbdab0471e297c340c69a610b4696a7e2f0663a025c"
+    "source_sha256": "262b4d2710ccad59875377c2f897184c47240299f49eba747eaa73013fb736e8"
   },
   {
     "anchor": "fn-d8b22eb1636b2b5c",
@@ -23270,7 +23257,7 @@
     "source": "kernel/process/exec/elf_loader.cpp",
     "document": "docs/functions/kernel/process/exec/elf_loader.cpp.md",
     "usr": "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
-    "source_sha256": "14c6505ca8e53caec6456764f61ee6f30295734a1397f17a8042c43ad26735e0",
+    "source_sha256": "258cbc1f34d512933e48b2309adb94f4edd181d8cd8c2ce4064b87469dead8e0",
     "qualified": "xv::process::ElfLoader::load",
     "spelling": "ElfLoader::load",
     "signature": "int ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)",
@@ -24362,7 +24349,7 @@
     "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
     "source": "kernel/memory/paging/kernel_page_table.cpp",
     "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@allocate_process_stack#",
-    "source_sha256": "bea5d565e8fa565652d12e1532ccd208048ff77ae69e0dc310b97f5196dfcbd0",
+    "source_sha256": "8d27521414d6b0265908a0a84bb5db9f110a0306379d77af499f901af06ad663",
     "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
     "signature": "unsigned long KernelPageTable::allocate_process_stack()",
     "spelling": "KernelPageTable::allocate_process_stack",
@@ -24388,7 +24375,7 @@
     "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
     "source": "kernel/memory/paging/kernel_page_table.cpp",
     "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
-    "source_sha256": "b5c771ed3ebcf24674de7f88c9784a2eff8d60aaeb43ee6a66b8b4c75badee1a",
+    "source_sha256": "61d6a4f6c91034e497a2f9b292e9d8c9bb6634e07c97b38ea17d6d9f05a01c1b",
     "qualified": "xv::memory::KernelPageTable::free_process_stack",
     "signature": "void KernelPageTable::free_process_stack(unsigned long address)",
     "spelling": "KernelPageTable::free_process_stack",
@@ -24401,7 +24388,7 @@
     "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "usr": "c:@F@kernel_stack_prepare",
-    "source_sha256": "c37425b44e04040bf3bc96e80d47584592c06a27ee36b964cf0a4d5bd50db0a5",
+    "source_sha256": "f05d0d2452ac9ce2f653e5fdb05f6b730484a296b23514b8243d8259fa2c0514",
     "qualified": "kernel_stack_prepare",
     "signature": "int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)",
     "spelling": "kernel_stack_prepare",
@@ -24440,11 +24427,323 @@
     "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "usr": "c:@N@xv@N@trap@F@scheduler_stack_top#",
-    "source_sha256": "b8f778c60bdeacc7fc3eddd496beb6ec91b50644b1c3ba4ed33f145d5c803570",
+    "source_sha256": "20d2094ae14eab8fd1090d4ed4e2f2c9a5138447b6e070b47f353fe253b0fc9d",
     "qualified": "xv::trap::scheduler_stack_top",
     "signature": "unsigned long scheduler_stack_top()",
     "spelling": "scheduler_stack_top",
     "fn": "unsigned long xv::trap::scheduler_stack_top()",
     "kind": "Function"
+  },
+  {
+    "anchor": "fn-c818c3445e9c8f6d",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/allocator/allocator_service.cpp.md",
+    "source": "kernel/memory/allocator/allocator_service.cpp",
+    "usr": "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@retain_page#*v#",
+    "source_sha256": "b61ed9bc962bb6b883831b131a7760391cbcdf1bf80375831cff3a5e69625640",
+    "qualified": "xv::memory::PhysicalPageAllocator::retain_page",
+    "signature": "void PhysicalPageAllocator::retain_page(void *address)",
+    "spelling": "PhysicalPageAllocator::retain_page",
+    "fn": "void xv::memory::PhysicalPageAllocator::retain_page(void *address)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-75415337725bd4f1",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/allocator/allocator_service.cpp.md",
+    "source": "kernel/memory/allocator/allocator_service.cpp",
+    "usr": "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@release_page#*v#",
+    "source_sha256": "d7e2aca8fc57b0fb1aa29a5a1f2e3acd1ed1669bbbb0664fdd65174024ace8d4",
+    "qualified": "xv::memory::PhysicalPageAllocator::release_page",
+    "signature": "void PhysicalPageAllocator::release_page(void *address)",
+    "spelling": "PhysicalPageAllocator::release_page",
+    "fn": "void xv::memory::PhysicalPageAllocator::release_page(void *address)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-a8098c94ba5f8e20",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/allocator/allocator_service.cpp.md",
+    "source": "kernel/memory/allocator/allocator_service.cpp",
+    "usr": "c:@N@xv@N@memory@S@PhysicalPageAllocator@F@page_references#*v#1",
+    "source_sha256": "cf5d545242b9fe4156f88a3bbd57ca313bcfba096f43e01b8329d9bada23648d",
+    "qualified": "xv::memory::PhysicalPageAllocator::page_references",
+    "signature": "unsigned PhysicalPageAllocator::page_references(void *address) const",
+    "spelling": "PhysicalPageAllocator::page_references",
+    "fn": "unsigned xv::memory::PhysicalPageAllocator::page_references(void *address) const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-31bbbc071056140a",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@vacant#",
+    "source_sha256": "7699c1effacfd5e7431c8a08f0a27d3c630ccbf952bdb6968afcf290544261c7",
+    "qualified": "xv::memory::VirtualRegions::vacant",
+    "signature": "VirtualRegion *VirtualRegions::vacant()",
+    "spelling": "VirtualRegions::vacant",
+    "fn": "VirtualRegion *xv::memory::VirtualRegions::vacant()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-0b34c082f4337941",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@find#l#1",
+    "source_sha256": "d12659930e716d918d9455984f5d72e48ce7cb122d3fde5ea38b7e0b7e32b6be",
+    "qualified": "xv::memory::VirtualRegions::find",
+    "signature": "const VirtualRegion *VirtualRegions::find(unsigned long address) const",
+    "spelling": "VirtualRegions::find",
+    "fn": "const VirtualRegion *xv::memory::VirtualRegions::find(unsigned long address) const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-df1507921742a0ed",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+    "source_sha256": "0e986290468b14857a3d18ae99bf60094629004eddc41f2047492a7c870b8519",
+    "qualified": "xv::memory::VirtualRegions::reserve",
+    "signature": "bool VirtualRegions::reserve(unsigned long begin, unsigned long end, unsigned permissions, RegionKind kind, bool demand)",
+    "spelling": "VirtualRegions::reserve",
+    "fn": "bool xv::memory::VirtualRegions::reserve(unsigned long begin, unsigned long end, unsigned permissions, RegionKind kind, bool demand)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-f443815bad1b65fd",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
+    "source_sha256": "b95b683af3c9cb170252881f2b284d6cae0f9ec0688a6a155bb6b185bd36b8c1",
+    "qualified": "xv::memory::VirtualRegions::erase",
+    "signature": "bool VirtualRegions::erase(unsigned long begin, unsigned long end)",
+    "spelling": "VirtualRegions::erase",
+    "fn": "bool xv::memory::VirtualRegions::erase(unsigned long begin, unsigned long end)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-d4b14bc4179e1517",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
+    "source_sha256": "765d44d6c16bc2fb2901892498e601ef42f3aca8038538fa906b5c59596d2c2a",
+    "qualified": "xv::memory::VirtualRegions::copy_to",
+    "signature": "bool VirtualRegions::copy_to(VirtualRegions &other) const",
+    "spelling": "VirtualRegions::copy_to",
+    "fn": "bool xv::memory::VirtualRegions::copy_to(VirtualRegions &other) const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-6db77b90e60c05c2",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@swap#&$@N@xv@N@memory@S@VirtualRegions#",
+    "source_sha256": "0d3f413536d3694231e79794443c9f5e3b23ee038c12710fe6ee9cdaba2a2aa3",
+    "qualified": "xv::memory::VirtualRegions::swap",
+    "signature": "void VirtualRegions::swap(VirtualRegions &other)",
+    "spelling": "VirtualRegions::swap",
+    "fn": "void xv::memory::VirtualRegions::swap(VirtualRegions &other)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-199c0092b683e521",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
+    "source": "kernel/memory/layout/virtual_regions.cpp",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@reset#",
+    "source_sha256": "0903e91fce8c987454d66a259735647b0c571cef858658eb1507b2e2ce5fb368",
+    "qualified": "xv::memory::VirtualRegions::reset",
+    "signature": "void VirtualRegions::reset()",
+    "spelling": "VirtualRegions::reset",
+    "fn": "void xv::memory::VirtualRegions::reset()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-1ff79176ef567392",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cppm.md",
+    "source": "kernel/memory/layout/virtual_regions.cppm",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#",
+    "source_sha256": "65c9eedce37129069e4145a7ffaa9b3cd049016f8bdc787856fdb8bcae07bae8",
+    "qualified": "xv::memory::VirtualRegions::VirtualRegions",
+    "signature": "constexpr VirtualRegions()",
+    "spelling": "VirtualRegions",
+    "fn": "constexpr xv::memory::VirtualRegions::VirtualRegions()",
+    "kind": "Constructor"
+  },
+  {
+    "anchor": "fn-1195caf03662eaaa",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cppm.md",
+    "source": "kernel/memory/layout/virtual_regions.cppm",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#&1$@N@xv@N@memory@S@VirtualRegions#",
+    "source_sha256": "fb667e830bfeb4b6ab504122123941ee2fe58a420ec59a644bc7e427df4f26d0",
+    "qualified": "xv::memory::VirtualRegions::VirtualRegions",
+    "signature": "VirtualRegions(const VirtualRegions &)",
+    "spelling": "VirtualRegions",
+    "fn": "xv::memory::VirtualRegions::VirtualRegions(const VirtualRegions &)",
+    "kind": "Constructor"
+  },
+  {
+    "anchor": "fn-25eaebefbac3b978",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/layout/virtual_regions.cppm.md",
+    "source": "kernel/memory/layout/virtual_regions.cppm",
+    "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@operator=#&1$@N@xv@N@memory@S@VirtualRegions#",
+    "source_sha256": "fa9e1303cad916b8da01df3ccb3aa10e71f4e3b568e6437a3acadeec97a9cc32",
+    "qualified": "xv::memory::VirtualRegions::operator=",
+    "signature": "VirtualRegions &operator=(const VirtualRegions &) = delete",
+    "spelling": "operator=",
+    "fn": "VirtualRegions &xv::memory::VirtualRegions::operator=(const VirtualRegions &) = delete",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-ed33004ce7e7efb6",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@map_initial_range#&$@N@xv@N@memory@S@VirtualRegions#*l#l#l#l#I#",
+    "source_sha256": "ed583704b4a68c165df819f388de37261bce62c5a14523347ac171f2845bdded",
+    "qualified": "xv::memory::map_initial_range",
+    "signature": "void map_initial_range(VirtualRegions &regions, pagetable_t table, unsigned long va, unsigned long pa, unsigned long bytes, int permissions)",
+    "spelling": "map_initial_range",
+    "fn": "void xv::memory::map_initial_range(VirtualRegions &regions, pagetable_t table, unsigned long va, unsigned long pa, unsigned long bytes, int permissions)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-88c699cd58c7fc23",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
+    "source_sha256": "2b7f85b557ba203a9cb52090a1eebce210944a6e107fa498ea722163209d1e44",
+    "qualified": "xv::memory::KernelPageTable::handle_stack_fault",
+    "signature": "FaultResult KernelPageTable::handle_stack_fault(unsigned long base, unsigned long stack, unsigned long fault, FaultAccess access, void *(*frame)())",
+    "spelling": "KernelPageTable::handle_stack_fault",
+    "fn": "FaultResult xv::memory::KernelPageTable::handle_stack_fault(unsigned long base, unsigned long stack, unsigned long fault, FaultAccess access, void *(*frame)())",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-fe0e0ad8b52fd3f2",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@region#l#&$@N@xv@N@memory@S@VirtualRegion#",
+    "source_sha256": "9f4ac09499750c4f48ca0e4b4a7447966f74e18703e1b348b91a37e36f91622d",
+    "qualified": "xv::memory::KernelPageTable::region",
+    "signature": "bool KernelPageTable::region(unsigned long address, VirtualRegion &result)",
+    "spelling": "KernelPageTable::region",
+    "fn": "bool xv::memory::KernelPageTable::region(unsigned long address, VirtualRegion &result)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-3754e1ccd5ea4e83",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/vm.cpp.md",
+    "source": "kernel/memory/paging/vm.cpp",
+    "usr": "c:vm.cpp@N@xv@N@memory@aN@F@permission_for#$@N@xv@N@memory@E@FaultAccess#",
+    "source_sha256": "a7dcd601dc0fc6201aeae53c81a897f3e4cc76a14c412916c1fc2973117a6473",
+    "qualified": "xv::memory::permission_for",
+    "signature": "unsigned permission_for(FaultAccess access)",
+    "spelling": "permission_for",
+    "fn": "unsigned xv::memory::permission_for(FaultAccess access)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-23dd8981edb0551d",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/vm.cpp.md",
+    "source": "kernel/memory/paging/vm.cpp",
+    "usr": "c:vm.cpp@N@xv@N@memory@aN@F@accessible_region#&1$@N@xv@N@memory@S@VirtualRegions#l#l#$@N@xv@N@memory@E@FaultAccess#",
+    "source_sha256": "a2a597ec711400b6c3878b1789c6ce5a7bb7524eb3260c1f58df67432e92a80a",
+    "qualified": "xv::memory::accessible_region",
+    "signature": "const VirtualRegion *accessible_region(const VirtualRegions &regions, uint64 size, uint64 address, FaultAccess access)",
+    "spelling": "accessible_region",
+    "fn": "const VirtualRegion *xv::memory::accessible_region(const VirtualRegions &regions, uint64 size, uint64 address, FaultAccess access)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-b8d6297fb97d39c6",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/vm.cpp.md",
+    "source": "kernel/memory/paging/vm.cpp",
+    "usr": "c:vm.cpp@N@xv@N@memory@aN@F@user_access#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+    "source_sha256": "2e0ebedd2363406034209ad34bcdb68de202156b9d5535e9ad999ef097d66a67",
+    "qualified": "xv::memory::user_access",
+    "signature": "uint64 user_access(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)",
+    "spelling": "user_access",
+    "fn": "uint64 xv::memory::user_access(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-02d74129c3a981dd",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/vm.cpp.md",
+    "source": "kernel/memory/paging/vm.cpp",
+    "usr": "c:vm.cpp@N@xv@N@memory@aN@F@accessible_bytes#&1$@N@xv@N@memory@S@VirtualRegions#l#l#",
+    "source_sha256": "8853f7895a495a1399a9890b1079b30681e8213e5a783d5191d2e8b75f09e484",
+    "qualified": "xv::memory::accessible_bytes",
+    "signature": "uint64 accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 address)",
+    "spelling": "accessible_bytes",
+    "fn": "uint64 xv::memory::accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 address)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-46ab68e686138ee4",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/process/memory/address_space.cppm.md",
+    "source": "kernel/process/memory/address_space.cppm",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@regions#1",
+    "source_sha256": "4d415fcbcf788d6810bc3dfc68be13f76b4c7cc4f8de1da76fd4630a0ae37def",
+    "qualified": "xv::process::AddressSpace::regions",
+    "signature": "const xv::memory::VirtualRegions &regions() const",
+    "spelling": "regions",
+    "fn": "const xv::memory::VirtualRegions &xv::process::AddressSpace::regions() const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-8b71bba6470d2230",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
+    "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@trap@N@detail@F@refill_stack_reserve#",
+    "source_sha256": "aaa40cbfafbdd16dfec86f3a94fb47c5a85d2572c5e55d01ef34f9605ed76fb0",
+    "qualified": "xv::trap::detail::refill_stack_reserve",
+    "signature": "void refill_stack_reserve()",
+    "spelling": "refill_stack_reserve",
+    "fn": "void xv::trap::detail::refill_stack_reserve()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-2d7062e5082e9be9",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
+    "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@trap@N@detail@F@take_stack_frame#",
+    "source_sha256": "4fe4d8a23940de3389657ce7e7e702f29980b608d42301ce915f57bb76b31b13",
+    "qualified": "xv::trap::detail::take_stack_frame",
+    "signature": "void *take_stack_frame()",
+    "spelling": "take_stack_frame",
+    "fn": "void *xv::trap::detail::take_stack_frame()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-9d8162325a420bf9",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#",
+    "source_sha256": "f441aa0cac26d2fe21156e7de37ce30d292494962aec75414da07da2422d932f",
+    "qualified": "xv::memory::KernelPageTable::statistics",
+    "signature": "PageTableStatistics KernelPageTable::statistics()",
+    "spelling": "KernelPageTable::statistics",
+    "fn": "PageTableStatistics xv::memory::KernelPageTable::statistics()",
+    "kind": "InstanceMethod"
   }
 ]

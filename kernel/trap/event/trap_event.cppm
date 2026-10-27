@@ -11,10 +11,13 @@ enum class CauseKind
   UserSystemCall,
   ExternalInterrupt,
   TimerInterrupt,
+  InstructionPageFault,
   LoadPageFault,
   StorePageFault,
   Other
 };
+
+enum class MemoryAccess { Read, Write, Execute };
 
 class TrapCause final
 {
@@ -60,6 +63,7 @@ public:
       {
         return CauseKind::UserSystemCall;
       }
+      if (code() == 12) return CauseKind::InstructionPageFault;
       if (code() == 13)
       {
         return CauseKind::LoadPageFault;

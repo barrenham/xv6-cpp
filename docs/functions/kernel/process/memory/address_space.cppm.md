@@ -21,6 +21,7 @@
 - [`xv::process::AddressSpace::operator=`](address_space.cppm.md#fn-437f6c3b170e27e4)
 - [`xv::process::AddressSpace::page_table`](address_space.cppm.md#fn-919b3424bf5d5b3e)
 - [`xv::process::AddressSpace::protect_guard`](address_space.cpp.md#fn-55c0283e7aac7f96)
+- [`xv::process::AddressSpace::regions`](address_space.cppm.md#fn-46ab68e686138ee4)
 - [`xv::process::AddressSpace::reset`](address_space.cpp.md#fn-71495b3b41ddb9ad)
 - [`xv::process::AddressSpace::resize`](address_space.cpp.md#fn-75a8c7ea8deccbc3)
 - [`xv::process::AddressSpace::size`](address_space.cppm.md#fn-e33a2a572a4a4cd3)
@@ -87,4 +88,14 @@
 @fn unsigned long xv::process::AddressSpace::observed_size() const
 @brief 原子读取供进程观测使用的地址空间字节数。
 @details 拥有线程在成功创建、调整、复制、交换和清理后发布独立 observed_size_。观察者不访问活动页表，也不对原先仅拥有线程访问的 size_ 进行并发读取。
+```
+
+<a id="fn-46ab68e686138ee4"></a>
+
+## `xv::process::AddressSpace::regions`
+
+```doxygen
+@fn const xv::memory::VirtualRegions &xv::process::AddressSpace::regions() const
+@brief 借用当前进程的虚拟区域登记。
+@details 供内部页表实验和用户复制路径做一致性验证；调用者必须处于所属进程的独占地址空间操作上下文，不能保存到并发 reset 或 exec 之后。
 ```

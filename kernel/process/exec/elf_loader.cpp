@@ -190,11 +190,11 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments, 
   file.close();
 
   auto rounded = PGROUNDUP(candidate.memory.size());
-  if (!candidate.memory.grow_to(rounded + (USERSTACK + 1) * PGSIZE, PTE_W))
+  if (!candidate.memory.grow_to(rounded + (USERSTACK + 1) * PGSIZE, PTE_W, true))
   {
     return -1;
   }
-  candidate.memory.protect_guard(rounded);
+  if (!candidate.memory.protect_guard(rounded)) return -1;
   auto stack = candidate.memory.size();
   auto bottom = stack - USERSTACK * PGSIZE;
   unsigned long user_environment[MAXENV];

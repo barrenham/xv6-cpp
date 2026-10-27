@@ -8,6 +8,7 @@ module;
 module xv.trap;
 import xv.net;
 import xv.memory;
+import xv.sync;
 
 import xv.arch;
 
@@ -21,6 +22,65 @@ namespace xv::trap::detail
 {
 alignas(4096) unsigned char entry_stacks[NCPU][16384]{};
 unsigned long scheduler_stacks[NCPU]{};
+constexpr unsigned StackReservePages = 64;
+struct StackReserve { void *pages[StackReservePages]{}; unsigned count = 0; };
+StackReserve stack_reserves[NCPU];
+
+void refill_stack_reserve()
+{
+  if (xv::process::current_cpu()->noff) return;
+  auto &reserve = stack_reserves[xv::process::cpu_id()];
+  while (reserve.count < StackReservePages)
+  {
+    auto *page = xv::memory::allocator().allocate();
+    if (!page) break;
+    reserve.pages[reserve.count++] = page;
+  }
+}
+void *take_stack_frame()
+{
+  if (!xv::process::current_cpu()->noff)
+    if (auto *page = xv::memory::allocator().allocate()) return page;
+  auto &reserve = stack_reserves[xv::process::cpu_id()];
+  return reserve.count ? reserve.pages[--reserve.count] : nullptr;
+}
+#if XV_VM_SELF_TEST
+__attribute__((noinline)) unsigned long stack_probe(unsigned depth)
+{
+  volatile unsigned char page[4096];
+  for (unsigned i = 0; i < sizeof(page); ++i) page[i] = depth;
+  page[4095] = depth + 1;
+  auto next = depth ? stack_probe(depth - 1) : 0;
+  return next + page[0] + page[4095];
+}
+void run_vm_kernel_probe()
+{
+  auto base = xv::process::current()->kernel_stack();
+#if XV_VM_SELF_TEST == 2
+  auto *entry = xv::memory::walk_entry(static_cast<xv::memory::PageTable>(
+      const_cast<void *>(xv::memory::kernel_page_table().root())), base + KSTACK_BYTES - PGSIZE, 0);
+  *entry &= ~PTE_W;
+  xv::arch::sfence_vma();
+  *reinterpret_cast<volatile char *>(base + KSTACK_BYTES - PGSIZE) = 0;
+#elif XV_VM_SELF_TEST == 4
+  *reinterpret_cast<volatile char *>(base - 8) = 0;
+#else
+  (void)base;
+  xv::sync::SpinLock lock;
+  lock.init("VM locked stack probe");
+  lock.acquire();
+  auto &reserve = stack_reserves[xv::process::cpu_id()];
+  auto before = __atomic_load_n(&reserve.count, __ATOMIC_ACQUIRE);
+  auto checksum = stack_probe(XV_VM_SELF_TEST == 3 ? 200 : 48);
+  auto after = __atomic_load_n(&reserve.count, __ATOMIC_ACQUIRE);
+  lock.release();
+  xv::print::printk("stack probe checksum=%lu reserve=%u->%u\n", checksum, before, after);
+  if (checksum != 2401 || after >= before) xv::print::panic("VM locked stack probe failed");
+  xv::print::printk("kernel stack locked growth: OK\n");
+#endif
+}
+#endif
+
 static_assert(TrapEvent::SupervisorPrevious == SSTATUS_SPP);
 static_assert(TrapEvent::InterruptEnable == SSTATUS_SIE);
 
@@ -99,9 +159,10 @@ void dispatch_external_interrupt()
   xv::process::service_signal_notifications();
 }
 
-bool resolve_page_fault(Word address, bool read)
+bool resolve_page_fault(Word address, MemoryAccess access)
 {
-  return xv::process::current()->memory().handle_fault(address, read) != 0;
+  return xv::process::current()->memory().handle_fault(address, access == MemoryAccess::Read ? xv::memory::FaultAccess::Read :
+      access == MemoryAccess::Write ? xv::memory::FaultAccess::Write : xv::memory::FaultAccess::Execute).result == xv::memory::FaultResult::Resolved;
 }
 
 void report_user_fault(const TrapEvent &event)
@@ -120,6 +181,10 @@ void report_user_fault(const TrapEvent &event)
 
 void prepare_user_return()
 {
+#if XV_VM_SELF_TEST
+  static bool tested = false;
+  if (!tested) { tested = true; run_vm_kernel_probe(); }
+#endif
   auto *process = xv::process::current();
   xv::arch::intr_off();
   const auto vector = TRAMPOLINE + (reinterpret_cast<Word>(uservec) -
@@ -212,18 +277,33 @@ extern "C" int kernel_stack_prepare(unsigned long stack, unsigned long cause, un
     if (stack >= KSTACK_BOTTOM && stack < KSTACK_TOP) xv::print::panic("kernel stack reserve exhausted");
     return 0;
   }
-  auto lowest = stack > base + 32768 ? stack - 32768 : base;
-  bool page_fault = cause == 13 || cause == 15;
-  bool growing = page_fault && fault >= base && fault < base + KSTACK_BYTES;
-  if (growing)
+  bool page_fault = cause == 12 || cause == 13 || cause == 15;
+  bool in_stack = fault >= base && fault < base + KSTACK_BYTES;
+  bool in_guard = fault >= base - KSTACK_BYTES && fault < base;
+  if (page_fault && (in_stack || in_guard))
   {
-    auto required = fault < stack ? fault : stack;
-    if (!xv::memory::kernel_page_table().grow_process_stack(base, required))
-      xv::print::panic("kernel stack growth failed");
+    auto access = cause == 12 ? xv::memory::FaultAccess::Execute :
+                  cause == 15 ? xv::memory::FaultAccess::Write : xv::memory::FaultAccess::Read;
+    auto result = xv::memory::kernel_page_table().handle_stack_fault(
+        base, stack, fault, access, xv::trap::detail::take_stack_frame);
+    if (result != xv::memory::FaultResult::Resolved)
+    {
+      if (result == xv::memory::FaultResult::Permission) xv::print::panic("kernel stack: protection fault");
+      if (result == xv::memory::FaultResult::AlreadyMapped) xv::print::panic("kernel stack: unexpected mapped-page fault");
+      if (result == xv::memory::FaultResult::OutsideRegion) xv::print::panic("kernel stack: guard overflow");
+      if (result == xv::memory::FaultResult::OutOfMemory) xv::print::panic("kernel stack: emergency frames exhausted");
+      xv::print::panic("kernel stack: invalid mapping");
+    }
+    // No registry/allocator lock is acquired when interrupted code owns a lock.
+    return 1;
   }
-  // Extra interrupt headroom is opportunistic under memory pressure.
-  xv::memory::kernel_page_table().grow_process_stack(base, lowest);
-  return growing ? 1 : 0;
+  if (!xv::process::current_cpu()->noff)
+  {
+    xv::trap::detail::refill_stack_reserve();
+    auto lowest = stack > base + 32768 ? stack - 32768 : base;
+    xv::memory::kernel_page_table().grow_process_stack(base, lowest);
+  }
+  return 0;
 }
 
 namespace xv::trap
@@ -232,6 +312,7 @@ unsigned long scheduler_stack_top()
 {
   auto &base = detail::scheduler_stacks[xv::process::cpu_id()];
   if (base) xv::print::panic("scheduler stack already initialized");
+  detail::refill_stack_reserve();
   base = xv::memory::kernel_page_table().allocate_process_stack();
   if (!base) xv::print::panic("scheduler stack allocation failed");
   return base + KSTACK_BYTES;

@@ -15,10 +15,13 @@
 - [`xv::memory::KernelPageTable::commit_stack`](kernel_page_table.cpp.md#fn-5492462d0bf0c840)
 - [`xv::memory::KernelPageTable::free_process_stack`](kernel_page_table.cpp.md#fn-481636a4fc87518c)
 - [`xv::memory::KernelPageTable::grow_process_stack`](kernel_page_table.cpp.md#fn-9be72da917a5498c)
+- [`xv::memory::KernelPageTable::handle_stack_fault`](kernel_page_table.cpp.md#fn-88c699cd58c7fc23)
 - [`xv::memory::KernelPageTable::initialize`](kernel_page_table.cpp.md#fn-b348ddac60edd845)
 - [`xv::memory::KernelPageTable::operator=`](kernel_page_table.cppm.md#fn-609d30eed538e9ac)
+- [`xv::memory::KernelPageTable::region`](kernel_page_table.cpp.md#fn-fe0e0ad8b52fd3f2)
 - [`xv::memory::KernelPageTable::release_stack`](kernel_page_table.cpp.md#fn-5b254a60dc9c4721)
 - [`xv::memory::KernelPageTable::root`](kernel_page_table.cpp.md#fn-792824e0d2159c11)
+- [`xv::memory::KernelPageTable::statistics`](kernel_page_table.cpp.md#fn-9d8162325a420bf9)
 - [`xv::memory::kernel_page_table`](kernel_page_table.cpp.md#fn-1f3d315da469e7cf)
 
 <a id="fn-53592a8c15ae7380"></a>

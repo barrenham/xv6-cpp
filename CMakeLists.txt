@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(xv_labs_cpp_2026 LANGUAGES CXX ASM)
+project(xv_labs_cpp_2026 VERSION 0.0.1 LANGUAGES CXX ASM)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -271,3 +271,16 @@ endforeach()
 add_test(NAME rootfs_image_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_image.py"
   --image "${PROJECT_BINARY_DIR}/fs-test.img" --qemu "${XV_QEMU}")
 set_tests_properties(rootfs_image_contract PROPERTIES TIMEOUT 20 LABELS fs)
+
+foreach(allocator buddy freelist)
+  add_test(NAME vm_${allocator}_contract COMMAND "${PROJECT_BINARY_DIR}/vm_contract" ${allocator})
+  set_tests_properties(vm_${allocator}_contract PROPERTIES TIMEOUT 30 LABELS memory)
+endforeach()
+
+# Only this implementation unit changes in diagnostic kernels; normal kernels
+# contain no test hook. The regression harness builds private objects/ELFs.
+set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/trap/arch/riscv/kernel_platform.cpp"
+  TARGET_DIRECTORY kernel PROPERTIES COMPILE_DEFINITIONS XV_VM_SELF_TEST=0)
+add_test(NAME vm_stack_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/vm_kernel.py"
+  --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
+set_tests_properties(vm_stack_contract PROPERTIES TIMEOUT 90 LABELS memory)

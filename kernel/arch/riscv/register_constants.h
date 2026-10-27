@@ -40,6 +40,7 @@ typedef uint64 *pagetable_t;
 #define PTE_W (1L << 2)
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // user can access
+#define PTE_COW (1L << 8) // software: writable private mapping shared by fork
 #define PTE_A (1L << 6) // hardware sets this when the page is accessed
 
 

@@ -1,4 +1,5 @@
 export module xv.process:address_space;
+import xv.vm_regions;
 
 export namespace xv::process
 {
@@ -30,10 +31,11 @@ public:
   void swap(AddressSpace &other);
   bool copy_to(AddressSpace &child) const;
   int resize(int bytes, bool eager = true);
-  bool grow_to(unsigned long end, int permissions);
-  void protect_guard(unsigned long address);
+  bool grow_to(unsigned long end, int permissions, bool stack = false);
+  bool protect_guard(unsigned long address);
   unsigned long translate(unsigned long address) const;
-  unsigned long handle_fault(unsigned long address, bool read);
+  xv::memory::FaultOutcome handle_fault(unsigned long address, xv::memory::FaultAccess access);
+  const xv::memory::VirtualRegions &regions() const { return regions_; }
   int copy_in(void *destination, unsigned long source, unsigned long bytes) const;
   int copy_out(unsigned long destination, const void *source,
                unsigned long bytes) const;
@@ -44,5 +46,7 @@ private:
   PageTable table_ = nullptr;
   unsigned long size_ = 0;
   unsigned long observed_size_ = 0;
+  unsigned long heap_base_ = 0;
+  xv::memory::VirtualRegions regions_;
 };
 } // namespace xv::process

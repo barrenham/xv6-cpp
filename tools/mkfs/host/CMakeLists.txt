@@ -17,6 +17,7 @@ set(XV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 add_executable(allocator_contract
   "${XV_ROOT}/tests/allocator_contract.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
+  "${XV_ROOT}/kernel/memory/layout/virtual_regions.cpp"
   "${XV_ROOT}/kernel/memory/paging/sv39_page_table.cpp"
   "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
   "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
@@ -243,3 +244,29 @@ target_include_directories(password_hash_contract PRIVATE "${XV_ROOT}")
 target_compile_features(password_hash_contract PRIVATE cxx_std_20)
 target_compile_options(password_hash_contract PRIVATE -O2 -Wall -Wextra -Werror)
 set_target_properties(password_hash_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(vm_contract
+  "${XV_ROOT}/tests/vm_contract.cpp"
+  "${XV_ROOT}/tests/allocator_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/memory/layout/virtual_regions.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/buddy/buddy_page_allocator.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/freelist/freelist_page_allocator.cpp"
+  "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
+  "${XV_ROOT}/kernel/memory/paging/vm.cpp"
+  "${XV_ROOT}/kernel/memory/paging/sv39_page_table.cpp"
+  "${XV_ROOT}/kernel/support/string.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_sources(vm_contract PRIVATE FILE_SET vm_test_modules TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/tests" FILES "${XV_ROOT}/tests/vm_arch.cppm" "${XV_ROOT}/tests/vm_print.cppm")
+xv_add_memory_modules(vm_contract)
+xv_add_sync_modules(vm_contract)
+xv_add_runtime_module(vm_contract)
+target_include_directories(vm_contract PRIVATE "${XV_ROOT}")
+target_compile_features(vm_contract PRIVATE cxx_std_20)
+target_compile_options(vm_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions -fno-builtin)
+target_compile_definitions(vm_contract PRIVATE LAB_PGTBL SOL_PGTBL)
+target_link_libraries(vm_contract PRIVATE Threads::Threads)
+set_target_properties(vm_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

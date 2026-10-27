@@ -64,10 +64,8 @@
 
 ```doxygen
 @fn constexpr CauseKind xv::trap::TrapCause::kind() const
-@brief 陷阱原因值对象：种类。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`is_interrupt` → `code`。
-@details 需要特别跟踪的条件：`is_interrupt()`；`code() == 9`；`code() == 5`；`code() == 8`；`code() == 13`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`CauseKind::ExternalInterrupt`；`CauseKind::TimerInterrupt`；`CauseKind::UserSystemCall`；`CauseKind::LoadPageFault`；`CauseKind::StorePageFault`；`CauseKind::Other`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 把 scause 解码为中断或读写执行异常类型。
+@details 保留中断最高位和原始异常号，显式识别 instruction/load/store page fault 及用户 syscall；未支持的编码返回 Other，避免把执行权限错误当作匿名数据补页。
 ```
 
 <a id="fn-b2e7b3fb3cbc4c03"></a>

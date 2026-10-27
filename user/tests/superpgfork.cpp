@@ -59,6 +59,20 @@ supercheck(char *end)
   }
 }
 
+static void cowcheck(char *end)
+{
+  uint64 start = SUPERPGROUNDUP(reinterpret_cast<uint64>(end));
+  for (int i = 0; i < 512; ++i)
+  {
+    auto *address = reinterpret_cast<int *>(start + i * PGSIZE);
+    auto pte = pgpte(address);
+    if (!(pte & PTE_COW) || (pte & PTE_W) || *address != i * PGSIZE) err("fork must share demoted pages read-only");
+    *address = i * PGSIZE + 1;
+    pte = pgpte(address);
+    if (!(pte & PTE_W) || (pte & PTE_COW)) err("COW page did not become private");
+  }
+}
+
 void
 superpg_fork()
 {
@@ -76,8 +90,8 @@ superpg_fork()
   if((pid = fork()) < 0) {
     err("fork");
   } else if(pid == 0) {
-    // check if child's address space has super pages
-    supercheck(end);
+    // Fork demotes superpages to share/copy individual 4 KiB frames.
+    cowcheck(end);
     exit(0);
   } else {
     int status;
@@ -87,6 +101,9 @@ superpg_fork()
     }
   }
 
+  for (int i = 0; i < 512; ++i)
+    if (*reinterpret_cast<int *>(SUPERPGROUNDUP(reinterpret_cast<uint64>(end)) + i * PGSIZE) != i * PGSIZE)
+      err("child COW write changed parent superpage data");
   // free super pages
   sbrk(-SZ);
   if((pid = fork()) < 0) {

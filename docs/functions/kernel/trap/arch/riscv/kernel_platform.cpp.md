@@ -28,6 +28,7 @@
 - [`xv::trap::detail::prepare_interruptible_sleep`](kernel_platform.cpp.md#fn-a4eda3906392ae77)
 - [`xv::trap::detail::prepare_sleep`](kernel_platform.cpp.md#fn-b796ab17eb6c713b)
 - [`xv::trap::detail::prepare_user_return`](kernel_platform.cpp.md#fn-1ed3457044a10998)
+- [`xv::trap::detail::refill_stack_reserve`](kernel_platform.cpp.md#fn-8b71bba6470d2230)
 - [`xv::trap::detail::report_user_fault`](kernel_platform.cpp.md#fn-f43a07ef20a5a6b5)
 - [`xv::trap::detail::request_kill`](kernel_platform.cpp.md#fn-de1ad36dd5d6359e)
 - [`xv::trap::detail::resolve_page_fault`](kernel_platform.cpp.md#fn-e5148c82fe11c46e)
@@ -36,6 +37,7 @@
 - [`xv::trap::detail::service_timer_devices`](kernel_platform.cpp.md#fn-8bf053cbd79e3fd0)
 - [`xv::trap::detail::sleep`](kernel_platform.cpp.md#fn-8655e02476dd6fd7)
 - [`xv::trap::detail::snapshot`](kernel_platform.cpp.md#fn-99ff6f6b07035421)
+- [`xv::trap::detail::take_stack_frame`](kernel_platform.cpp.md#fn-2d7062e5082e9be9)
 - [`xv::trap::detail::time`](kernel_platform.cpp.md#fn-21bfc0d68188d860)
 - [`xv::trap::detail::user_page_table_token`](kernel_platform.cpp.md#fn-fb9cf283bc7dc87e)
 - [`xv::trap::detail::wakeup`](kernel_platform.cpp.md#fn-372407f34cc73123)
@@ -203,12 +205,9 @@
 ## `xv::trap::detail::resolve_page_fault`
 
 ```doxygen
-@fn bool xv::trap::detail::resolve_page_fault(Word address, bool read)
-@brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::process::current()->memory().handle_fault(address, read) != 0`，返回当前查询结果。
-@param address 地址参数；用户地址必须通过内存复制/映射校验路径访问。
-@param read 本次操作使用的 读取 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `memory` → `handle_fault`。
-@return 各分支实际返回：`xv::process::current()->memory().handle_fault(address, read) != 0`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn bool xv::trap::detail::resolve_page_fault(Word address, MemoryAccess access)
+@brief 把读写执行异常转成进程地址空间的结构化访问请求。
+@details 转换 MemoryAccess 到 FaultAccess，仅 FaultOutcome 为 Resolved 时返回 true，其余由用户陷阱控制器报告并终止当前进程。
 ```
 
 <a id="fn-f43a07ef20a5a6b5"></a>
@@ -242,8 +241,8 @@
 
 ```doxygen
 @fn void xv::trap::detail::prepare_user_return()
-@brief 设置用户陷阱返回现场及完整虚拟栈顶。
-@details 关闭中断后切换 trampoline 入口，把 kernel_sp 设置为区域底加预留容量；保存 SATP、入口、hart 与用户 PC/状态。物理页按需增长，不将已提交边界当作栈顶。
+@brief 在正常内核中设置用户返回现场和预留栈顶。
+@details 关闭中断后安装 trampoline 返回上下文，kernel_sp 使用完整虚拟栈容量。XV_VM_SELF_TEST 非零的私有诊断内核会在首次返回前执行探针，正常构建恒为零，不执行测试代码。
 ```
 
 <a id="fn-fb9cf283bc7dc87e"></a>
@@ -383,8 +382,8 @@
 
 ```doxygen
 @fn int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)
-@brief 在每 hart 应急栈上补齐进程或调度器的内核栈。
-@details 入口保持中断关闭且不调度；按当前进程或当前 hart 选择区域。实际栈内读写缺页先只保证原 SP 和故障页所需的物理页，失败触发 panic；随后尝试额外 32 KiB 余量，该预提交失败允许继续。处理缺页返回 1 供汇编重试；普通异常返回 0，在原栈运行 kerneltrap。越界进入保护区会 panic。
+@brief 在应急入口栈上分类并处理当前内核栈异常。
+@details 从当前进程或 hart 调度器取得稳定栈归属。读写执行栈异常走无区域锁的 handle_stack_fault，仅 Resolved 才重试；权限、现存映射异常、保护区及应急帧耗尽明确 panic。普通入口只在 noff 为零时补池和尝试下方 32 KiB 余量，不在持锁时分配或调度。
 ```
 
 <a id="fn-ebe7c8cf89feb5d2"></a>
@@ -393,6 +392,26 @@
 
 ```doxygen
 @fn unsigned long xv::trap::scheduler_stack_top()
-@brief 为当前 hart 分配长期存在的可增长调度栈。
-@details 从统一虚拟栈区域服务分配，记录本 hart 栈底以支持无当前进程时的异常补页，返回预留容量顶端；重复初始化或分配失败触发 panic。仅供启动阶段、中断关闭时调用。
+@brief 准备本 hart 的应急页池和长期可增长调度栈。
+@details 启动阶段中断关闭，先尽力预留 64 页应急帧，再从统一区域服务取得栈并记录底地址，返回完整容量顶端。重复初始化或栈创建失败 panic。
+```
+
+<a id="fn-8b71bba6470d2230"></a>
+
+## `xv::trap::detail::refill_stack_reserve`
+
+```doxygen
+@fn void xv::trap::detail::refill_stack_reserve()
+@brief 在未持自旋锁时补充当前 hart 的应急物理页。
+@details noff 非零立即返回，只有安全上下文才调用物理分配器；池容量固定 64 页，OOM 停止补充而不改变已有页。调用时中断关闭，池由当前 hart 独占。
+```
+
+<a id="fn-2d7062e5082e9be9"></a>
+
+## `xv::trap::detail::take_stack_frame`
+
+```doxygen
+@fn void *xv::trap::detail::take_stack_frame()
+@brief 为实际栈缺页提供一个无需等待的物理页。
+@details 无自旋锁上下文先尝试分配器，失败再取应急池；noff 非零时只从当前 hart 池取页，不递归取得分配器锁。池空返回 nullptr，调用者明确终止而不无限重试。
 ```

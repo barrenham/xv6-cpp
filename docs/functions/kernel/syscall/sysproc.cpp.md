@@ -305,12 +305,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_pgaccess(void)
-@brief 系统调用入口：pgaccess；从用户参数转入内核服务并返回 ABI 结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `argument_address` → `argument_integer` → `PGROUNDDOWN` → `xv::runtime::fill` → `xv::memory::walk_entry` → `p->memory` → `page_table` → `PTE_LEAF` → `xv::memory::demote_user_pages` → `xv::memory::copy_to_user` → `size`。
-@details 需要特别跟踪的条件：`npages <= 0 || npages > MAXPAGES || base >= MAXVA`；`(uint64)npages > (MAXVA - base) / PGSIZE`；`pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) || !PTE_LEAF(*pte)`；`out >= MAXVA || (uint64)nbytes > MAXVA - out`；`pte == 0 || (*pte & (PTE_V | PTE_U | PTE_W)) != (PTE_V | PTE_U | PTE_W)`。这些条件决定检查、重试或提前返回路径。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
-@note 系统调用处理函数使用内核 64 位返回通道；负错误值经无符号类型传回时保持位模式，由用户 ABI 按相应整型解释。
+@brief 验证访问位采样范围并通过 COW 安全地写回位图。
+@details 输出必须已映射且为用户可写或 COW，不能是纯只读或懒空洞；采样前按需拆大页，copyout 使用区域权限并处理 COW。失败不清除输入访问位，成功后清位并刷新翻译。
 ```
 <a id="fn-898db4e88339d123"></a>
 

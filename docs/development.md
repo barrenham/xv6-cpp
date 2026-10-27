@@ -130,3 +130,11 @@ cmake --build --preset dev
 
 支持 2、4、8、16、32、64 MiB；运行时增长到配置容量为止。
 该参数调整内核栈，用户程序的用户态栈仍遵循原有布局。
+
+## 虚拟内存回归
+
+新增 vm_buddy_contract、vm_freelist_contract 和 vm_stack_contract。
+后者从真实编译数据库生成私有诊断对象和 ELF，正常内核保持 XV_VM_SELF_TEST=0；
+诊断模式验证持锁增长、权限错误、应急池耗尽及保护区访问，不改写正常 kernel.elf。
+platform-progress 的单核/五核流程还运行新 vmcheck 和更新后的 superpgfork。
+协议与边界见 [虚拟内存说明](virtual-memory.md)。

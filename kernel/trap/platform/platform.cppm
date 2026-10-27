@@ -17,7 +17,7 @@ void advance_user_pc(Word bytes);
 void enable_interrupts();
 void dispatch_system_call();
 void dispatch_external_interrupt();
-bool resolve_page_fault(Word address, bool read);
+bool resolve_page_fault(Word address, MemoryAccess access);
 void report_user_fault(const TrapEvent &event);
 [[noreturn]] void fatal(const char *message, const TrapEvent &event);
 void prepare_user_return();

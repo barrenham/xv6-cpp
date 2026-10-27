@@ -231,3 +231,11 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 poll 等待上下文由 wait/poll_wait.cppm 定义，单次调用可订阅多个对象通道；
 WaitChannels 按通道匹配通知并管理有限超时，无限等待不接收全局时钟广播。
 接口和锁顺序见 [poll 说明](../fs/poll.md)。
+
+## 地址空间与写时复制
+
+AddressSpace 持有独立 VirtualRegions，登记镜像、栈、保护区、堆和特殊映射。
+exec 在候选镜像中维护登记并随页表一起提交，fork 显式复制元数据、共享用户物理页，
+原可写映射由 COW 位保护。用户写入和内核 copyout 都会打破共享，最后一个引用才释放物理页。
+2 MiB 用户大页在 fork 时拆成 4 KiB 后共享。协议、OOM 行为和测试见
+[虚拟区域、缺页与 COW](../../docs/virtual-memory.md)。

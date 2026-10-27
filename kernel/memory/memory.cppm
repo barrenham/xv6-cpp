@@ -4,6 +4,7 @@ export module xv.memory;
 export import :address;
 export import :range;
 export import :layout;
+export import xv.vm_regions;
 export import :boot;
 export import :allocator;
 export import :sv39;

@@ -214,7 +214,7 @@ uint64 sys_pgaccess(void)
     }
   }
 
-  // Reject unmapped/read-only output pages rather than allocating them.
+  // Reject unmapped/read-only output pages; COW is logically writable.
   if (out >= MAXVA || (uint64)nbytes > MAXVA - out)
   {
     return -1;
@@ -222,7 +222,8 @@ uint64 sys_pgaccess(void)
   for (uint64 va = PGROUNDDOWN(out); va < out + nbytes; va += PGSIZE)
   {
     pte_t *pte = xv::memory::walk_entry(p->memory().page_table(), va, 0);
-    if (pte == 0 || (*pte & (PTE_V | PTE_U | PTE_W)) != (PTE_V | PTE_U | PTE_W))
+    if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) ||
+        !(*pte & (PTE_W | PTE_COW)))
     {
       return -1;
     }
@@ -242,7 +243,7 @@ uint64 sys_pgaccess(void)
       bits[i / 8] |= 1U << (i % 8);
     }
   }
-  if (xv::memory::copy_to_user(p->memory().page_table(), p->memory().size(), out,
+  if (xv::memory::copy_to_user(p->memory().page_table(), p->memory().size(), p->memory().regions(), out,
                                (char *)bits, nbytes) < 0)
   {
     return -1;
