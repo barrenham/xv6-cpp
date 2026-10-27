@@ -107,3 +107,13 @@
 #define SYS_mountinfo 86
 
 #define SYS_clockticks 87
+
+#define SYS_lseek 88
+
+#define SYS_ftruncate 89
+
+#define SYS_fsync 90
+
+#define SYS_readlink 91
+
+#define SYS_lstat 92

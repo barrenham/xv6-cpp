@@ -1,4 +1,8 @@
+module;
+#include "kernel/arch/riscv/register_constants.h"
+#include "kernel/memory/layout/memlayout.h"
 export module xv.memory:kernel_paging;
+import xv.sync;
 
 export namespace xv::memory
 {
@@ -14,14 +18,19 @@ public:
   void initialize();
   void activate_hart() const;
   const void *root() const;
-  // Internal process-stack service: slots are derived from physical page IDs.
-  unsigned long map_process_stack(unsigned long slot, void *physical);
-  void *unmap_process_stack(unsigned long address);
+  // Virtual regions are owned independently of physical page allocation.
+  unsigned long allocate_process_stack();
+  bool grow_process_stack(unsigned long address, unsigned long lowest);
+  void free_process_stack(unsigned long address);
 
 private:
 
   void *root_ = nullptr;
-  unsigned long stack_slots_ = 0;
+  unsigned long stack_slots_ = KSTACK_SLOTS;
+  unsigned long stack_bitmap_[(KSTACK_SLOTS + 63) / 64]{};
+  xv::sync::SpinLock stacks_;
+  bool commit_stack(unsigned long address, unsigned long lowest);
+  void release_stack(unsigned long address);
 };
 
 KernelPageTable &kernel_page_table();

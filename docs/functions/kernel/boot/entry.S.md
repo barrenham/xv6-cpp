@@ -25,3 +25,5 @@
 ## 汇编入口与共享 ABI
 
 - [`_entry`](entry.S.md#asm-_entry)
+
+`enter_scheduler_stack` 接受已映射的调度栈顶，设置 SP 后尾调用 `scheduler_on_stack`；此后的调度和空闲异常使用默认预留 2 MiB 的可增长栈。4 KiB 的 `stack0` 仅用于前期启动。

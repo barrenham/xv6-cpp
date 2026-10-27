@@ -10,6 +10,7 @@ module xv.memory;
 import xv.arch;
 
 import xv.print;
+import xv.runtime;
 
 extern "C" char etext[];
 extern "C" char trampoline[];
@@ -37,7 +38,7 @@ pagetable_t make_kernel_page_table()
   xv::memory::map_kernel_range(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
   // virtio mmio disk interface
-  xv::memory::map_kernel_range(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+  xv::memory::map_kernel_range(kpgtbl, VIRTIO0, VIRTIO0, 2 * PGSIZE, PTE_R | PTE_W);
 
 #ifdef LAB_NET
   // PCI-E ECAM (configuration space), for pci.c
@@ -124,17 +125,17 @@ void KernelPageTable::initialize()
     xv::print::panic("kernel page table: already initialized");
   }
   root_ = make_kernel_page_table();
-  // Reserve only page-table metadata, not process descriptors or stack frames.
-  // Each physical stack frame has a unique guarded virtual alias slot.
-  // All intermediate tables remain stable while other harts walk this root.
-  stack_slots_ = allocator().layout().ram().page_count();
-  const unsigned long leaf_span = 512 * PageSize;
-  auto bottom = KSTACK(stack_slots_ - 1) & ~(leaf_span - 1);
-  for (auto address = bottom; address < MAXVA; address += leaf_span)
+  stacks_.init("kernel stack regions");
+  // Upper-level tables are shared and stable. Each 2 MiB stack owns its leaf
+  // tables, which can be reclaimed after its process has stopped running.
+  auto *table = static_cast<PageTable>(root_);
+  for (unsigned i = PX(2, KSTACK_BOTTOM); i <= PX(2, KSTACK_TOP - 1); ++i)
   {
-    if (!walk_entry(static_cast<PageTable>(root_), address, 1))
+    if (!(table[i] & PTE_V))
     {
-      xv::print::panic("kernel stack page tables: out of memory");
+      auto *page = allocator().allocate();
+      if (!page) xv::print::panic("kernel stack directory: out of memory");
+      xv::runtime::fill(page, 0, PageSize); table[i] = PA2PTE(page) | PTE_V;
     }
   }
 }
@@ -150,46 +151,64 @@ void KernelPageTable::activate_hart() const
   xv::arch::sfence_vma();
 }
 
-unsigned long KernelPageTable::map_process_stack(unsigned long slot, void *physical)
-{
-  if (!root_ || slot >= stack_slots_)
-  {
-    return 0;
-  }
-  const auto address = KSTACK(slot);
-  auto *entry = walk_entry(static_cast<PageTable>(root_), address, 0);
-  if (!entry)
-  {
-    xv::print::panic("kernel stack: missing reserved page table");
-  }
-  unsigned long empty = 0;
-  const auto value = PA2PTE(physical) | PTE_R | PTE_W | PTE_V;
-  if (!__atomic_compare_exchange_n(entry, &empty, value, false, __ATOMIC_RELEASE,
-                                   __ATOMIC_RELAXED))
-  {
-    xv::print::panic("kernel stack: duplicate slot");
-  }
-  return address;
-}
 
-void *KernelPageTable::unmap_process_stack(unsigned long address)
+
+bool KernelPageTable::commit_stack(unsigned long address, unsigned long lowest)
 {
-  if (!root_ || address > KSTACK(0UL) ||
-      (KSTACK(0UL) - address) % (2 * PageSize) != 0 ||
-      (KSTACK(0UL) - address) / (2 * PageSize) >= stack_slots_)
+  lowest &= ~(PageSize - 1);
+  for (auto cursor = address + KSTACK_BYTES; cursor > lowest;)
   {
-    xv::print::panic("kernel stack: invalid address");
+    cursor -= PageSize;
+    auto *entry = walk_entry(static_cast<PageTable>(root_), cursor, 1);
+    if (!entry) { xv::arch::sfence_vma(); return false; }
+    if (*entry & PTE_V) continue;
+    auto *page = allocator().allocate();
+    if (!page) { xv::arch::sfence_vma(); return false; }
+    *entry = PA2PTE(page) | PTE_R | PTE_W | PTE_V;
   }
-  auto *entry = walk_entry(static_cast<PageTable>(root_), address, 0);
-  auto value = __atomic_exchange_n(entry, 0UL, __ATOMIC_ACQ_REL);
-  if (!(value & PTE_V))
+  xv::arch::sfence_vma(); return true;
+}
+void KernelPageTable::release_stack(unsigned long address)
+{
+  constexpr unsigned long span = 512 * PageSize;
+  auto *root = static_cast<PageTable>(root_);
+  for (auto cursor = address; cursor < address + KSTACK_BYTES; cursor += span)
   {
-    xv::print::panic("kernel stack: unmapped slot");
+    auto *middle = reinterpret_cast<PageTable>(PTE2PA(root[PX(2, cursor)]));
+    auto &directory = middle[PX(1, cursor)];
+    if (!(directory & PTE_V)) continue;
+    auto *leaf = reinterpret_cast<PageTable>(PTE2PA(directory)); directory = 0;
+    xv::arch::sfence_vma();
+    for (unsigned i = 0; i < 512; ++i) if (leaf[i] & PTE_V) allocator().deallocate(reinterpret_cast<void *>(PTE2PA(leaf[i])));
+    allocator().deallocate(leaf);
   }
-  // Only a descheduled, locked process can retire its stack. Dispatch fences
-  // every hart before it can reuse a slot; subordinate tables are never freed.
-  xv::arch::sfence_vma();
-  return reinterpret_cast<void *>(PTE2PA(value));
+}
+unsigned long KernelPageTable::allocate_process_stack()
+{
+  xv::sync::ScopedLock guard(stacks_);
+  unsigned long slot = 0;
+  while (slot < stack_slots_ && (stack_bitmap_[slot / 64] & (1UL << (slot % 64)))) ++slot;
+  if (slot == stack_slots_) return 0;
+  auto address = KSTACK(slot);
+  if (!commit_stack(address, address + KSTACK_BYTES - KSTACK_INITIAL_PAGES * PageSize))
+  { release_stack(address); return 0; }
+  stack_bitmap_[slot / 64] |= 1UL << (slot % 64); return address;
+}
+bool KernelPageTable::grow_process_stack(unsigned long address, unsigned long lowest)
+{
+  if (address > KSTACK(0UL) || (KSTACK(0UL) - address) % (2 * KSTACK_BYTES) || lowest < address || lowest >= address + KSTACK_BYTES) return false;
+  xv::sync::ScopedLock guard(stacks_);
+  auto slot = (KSTACK(0UL) - address) / (2 * KSTACK_BYTES);
+  if (slot >= stack_slots_ || !(stack_bitmap_[slot / 64] & (1UL << (slot % 64)))) return false;
+  return commit_stack(address, lowest);
+}
+void KernelPageTable::free_process_stack(unsigned long address)
+{
+  xv::sync::ScopedLock guard(stacks_);
+  if (address > KSTACK(0UL) || (KSTACK(0UL) - address) % (2 * KSTACK_BYTES)) xv::print::panic("kernel stack: invalid region");
+  auto slot = (KSTACK(0UL) - address) / (2 * KSTACK_BYTES);
+  if (slot >= stack_slots_ || !(stack_bitmap_[slot / 64] & (1UL << (slot % 64)))) xv::print::panic("kernel stack: unowned region");
+  release_stack(address); stack_bitmap_[slot / 64] &= ~(1UL << (slot % 64));
 }
 
 const void *KernelPageTable::root() const

@@ -44,6 +44,13 @@ public:
     for (unsigned i = 0; i < count; ++i) state_.groups[i] = groups[i];
     return 0;
   }
+  void apply_exec(unsigned uid, unsigned gid, unsigned mode)
+  {
+    xv::sync::ScopedLock guard(lock_);
+    if (mode & 04000) state_.effective_uid = uid;
+    if (mode & 02000) state_.effective_gid = gid;
+    state_.saved_uid = state_.effective_uid; state_.saved_gid = state_.effective_gid;
+  }
   unsigned set_mask(unsigned mask)
   { xv::sync::ScopedLock guard(lock_); unsigned old = state_.mask; state_.mask = mask & 0777; return old; }
   static bool may_signal(const CredentialState &sender, const CredentialState &target)

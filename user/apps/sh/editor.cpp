@@ -100,10 +100,10 @@ void scan(const char *directory, const char *prefix, bool command)
 }
 } // namespace
 
-Editor::Editor(char *line, int capacity)
+Editor::Editor(char *line, int capacity, bool interactive)
     : line_(line), capacity_(capacity), history_(history_count)
 {
-  if (tcgetattr(0, &saved_) < 0 || !(saved_.c_lflag & ICANON) ||
+  if (!interactive || tcgetattr(0, &saved_) < 0 || !(saved_.c_lflag & ICANON) ||
       !(saved_.c_lflag & ECHO))
   {
     return;

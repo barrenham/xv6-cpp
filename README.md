@@ -5,9 +5,9 @@
 ## 功能
 
 - **内存**：设备树 RAM 发现、伙伴/链表页分配器、Sv39 页表与大页映射。
-- **进程**：多核调度、动态进程登记、信号处理、进程组、shell 作业控制、历史编辑/补全与环境变量。
-- **文件与终端**：日志文件系统、VFS、devfs/ramfs、动态 RAM 挂载、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
-- **用户与权限**：UID/GID、附加组、文件权限、umask、登录与密码、useradd/su、chmod/chown。
+- **进程**：多核调度、动态进程登记、信号处理、进程组、shell 作业控制、历史编辑/补全、脚本与环境变量。
+- **文件与终端**：日志文件系统、VFS、devfs/ramfs、动态 RAM/磁盘挂载、持久 rootfs、符号链接、pwd/cp/mv、随机文件 I/O、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
+- **用户与权限**：UID/GID、附加组、文件权限、umask、登录与密码、用户/组管理、普通用户改密、chmod/chown。
 - **网络**：E1000、IPv4、ARP、ICMP、TCP/UDP、socket、多网卡、网桥与 IP-in-IP 隧道。
 - **网络应用**：DHCP 自动取址、DNS 解析、netctl、nslookup 和 HTTP curl。
 
@@ -29,7 +29,7 @@ cmake --build build/dev --target qemu
 ctest --preset dev
 ```
 
-首次启动先设置 root 密码，然后使用 root 登录；没有默认密码。系统通过 DHCP 获取地址，客体 shell 中可以运行：
+默认启动 5 核，使用 `data/rootfs.img` 作为挂载到 `/` 的持久根文件系统。首次创建以构建镜像为种子，已有旧数据盘时导入其账户及文件；没有已有密码时需要设置 root 密码，没有默认密码。登录进入 `/root`，账户位于 `/etc`，普通用户主目录位于 `/home`。后续构建不会覆盖 rootfs；内核更新直接生效，rootfs 内的用户程序不会随构建自动替换。系统通过 DHCP 获取地址，客体 shell 中可以运行：
 
 ```sh
 netctl dhcp wait eth0

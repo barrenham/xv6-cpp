@@ -13,12 +13,14 @@
 - [`xv::drivers::VirtioBlock::VirtioBlock`](virtio_block.cppm.md#fn-b23636ada5f36433)
 - [`xv::drivers::VirtioBlock::allocate_chain`](virtio_block.cpp.md#fn-f8ec5a9a894c4d73)
 - [`xv::drivers::VirtioBlock::allocate_descriptor`](virtio_block.cpp.md#fn-ec9a5a1df2982759)
+- [`xv::drivers::VirtioBlock::flush`](virtio_block.cpp.md#fn-6a305340ef7d40e8)
 - [`xv::drivers::VirtioBlock::free_chain`](virtio_block.cpp.md#fn-e4fe48e63edf2388)
 - [`xv::drivers::VirtioBlock::free_descriptor`](virtio_block.cpp.md#fn-bfd4e838d44d17f4)
 - [`xv::drivers::VirtioBlock::handle_interrupt`](virtio_block.cpp.md#fn-0b67b739b5b86885)
 - [`xv::drivers::VirtioBlock::initialize`](virtio_block.cpp.md#fn-4c7be18d8f3eca1c)
 - [`xv::drivers::VirtioBlock::irq`](virtio_block.cppm.md#fn-a613accbdfb69602)
 - [`xv::drivers::VirtioBlock::name`](virtio_block.cppm.md#fn-cd18c146369ac28e)
+- [`xv::drivers::VirtioBlock::present`](virtio_block.cpp.md#fn-3b90475ad6a2ea72)
 - [`xv::drivers::VirtioBlock::transfer`](virtio_block.cpp.md#fn-266fcc4568332ef4)
 
 <a id="fn-b23636ada5f36433"></a>

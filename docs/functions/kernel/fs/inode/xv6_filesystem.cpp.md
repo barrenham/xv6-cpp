@@ -12,6 +12,7 @@
 
 - [`xv::fs::Xv6FileSystem::allocate`](xv6_filesystem.cpp.md#fn-071e023c7d9e28d2)
 - [`xv::fs::Xv6FileSystem::allocate_block`](xv6_filesystem.cpp.md#fn-5a13ce655a471c2a)
+- [`xv::fs::Xv6FileSystem::busy`](xv6_filesystem.cpp.md#fn-2af87439a305e904)
 - [`xv::fs::Xv6FileSystem::free_block`](xv6_filesystem.cpp.md#fn-9f690bb8450d7917)
 - [`xv::fs::Xv6FileSystem::free_inode`](xv6_filesystem.cpp.md#fn-55c1f3a16e6a8da9)
 - [`xv::fs::Xv6FileSystem::get`](xv6_filesystem.cpp.md#fn-9e44fd39e00d972e)
@@ -24,6 +25,7 @@
 - [`xv::fs::Xv6FileSystem::read_super`](xv6_filesystem.cpp.md#fn-8886c17d9bd7f74a)
 - [`xv::fs::Xv6FileSystem::reclaim`](xv6_filesystem.cpp.md#fn-63ef700d59c2ecf4)
 - [`xv::fs::Xv6FileSystem::release`](xv6_filesystem.cpp.md#fn-488eb6e0a79dde7a)
+- [`xv::fs::Xv6FileSystem::resize`](xv6_filesystem.cpp.md#fn-13385ef79a786dd7)
 - [`xv::fs::Xv6FileSystem::retain`](xv6_filesystem.cpp.md#fn-cf818bc3fcef07af)
 - [`xv::fs::Xv6FileSystem::stat`](xv6_filesystem.cpp.md#fn-380640571e8b5b9b)
 - [`xv::fs::Xv6FileSystem::truncate`](xv6_filesystem.cpp.md#fn-c1850e2e3bb309e8)
@@ -256,14 +258,9 @@
 ## `xv::fs::Xv6FileSystem::map_block`
 
 ```doxygen
-@fn uint xv::fs::Xv6FileSystem::map_block(Inode *ip, uint bn)
-@brief xv6 inode 文件系统：取得或建立文件逻辑块对应的磁盘块。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param bn 本次操作使用的 bn 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`allocate_block` → `cache_.read` → `bp->bytes` → `journal_.record` → `bp.reset` → `detail::fail`。
-@details 本函数可见的状态更新包括：`ip->addrs[bn] = addr;`；`ip->addrs[NDIRECT] = addr;`；`a[bn] = addr;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`bn < NDIRECT`；`(addr = ip->addrs[bn]) == 0`；`addr == 0`；`bn < NINDIRECT`；`(addr = ip->addrs[NDIRECT]) == 0`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`0`；`addr`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn uint xv::fs::Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)
+@brief 查找或按需建立磁盘数据块映射。
+@details create 为 false 时缺失的直接或间接映射返回零，绝不分配；create 为 true 保留原有分配与日志记录行为。
 ```
 
 <a id="fn-c1850e2e3bb309e8"></a>
@@ -296,16 +293,8 @@
 
 ```doxygen
 @fn int xv::fs::Xv6FileSystem::read(Inode *ip, int user_dst, uint64 dst, uint off, uint n)
-@brief xv6 inode 文件系统：读取已有数据并按接口返回读取结果。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param user_dst 指明目标地址是否属于用户态。
-@param dst 结果缓冲起点。
-@param off 本次操作使用的 关闭 值。
-@param n 请求传输的字节数上限；成功与错误约定见本函数的返回分支。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`map_block` → `cache_.read` → `min` → `detail::copy_out` → `bp->bytes` → `bp.reset`。
-@details 需要特别跟踪的条件：`off > ip->size || off + n < off`；`off + n > ip->size`；`addr == 0`；`detail::copy_out(user_dst, dst, bp->bytes() + (off % BSIZE), m) == -1`。这些条件决定检查、重试或提前返回路径。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`0`；`tot`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 读取文件内容并对稀疏空洞补零。
+@details 只查找现有块映射，缺块用只读零缓冲复制，不因读取分配磁盘空间；仍遵守 EOF 与用户复制失败处理。
 ```
 
 <a id="fn-b5be87921570227b"></a>
@@ -314,17 +303,8 @@
 
 ```doxygen
 @fn int xv::fs::Xv6FileSystem::write(Inode *ip, int user_src, uint64 src, uint off, uint n)
-@brief xv6 inode 文件系统：提交输入数据并报告传输结果。
-@param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param user_src 指明源地址是否属于用户态。
-@param src 输入数据起点。
-@param off 本次操作使用的 关闭 值。
-@param n 请求传输的字节数上限；成功与错误约定见本函数的返回分支。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`map_block` → `cache_.read` → `min` → `detail::copy_in` → `bp->bytes` → `journal_.record` → `bp.reset` → `update`。
-@details 本函数可见的状态更新包括：`ip->size = off;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`off > ip->size || off + n < off`；`off + n > MAXFILE * BSIZE`；`addr == 0`；`detail::copy_in(bp->bytes() + (off % BSIZE), user_src, src, m) == -1`；`off > ip->size`。这些条件决定检查、重试或提前返回路径。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
-@return 各分支实际返回：`-1`；`tot`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 在文件范围内写入数据并允许 EOF 后定位。
+@details 拒绝溢出和 MAXFILE 之外的请求，仅为实际写入范围分配块；未分配间隔读取为零，成功后更新长度和 inode 映射。
 ```
 <a id="fn-9f79fb79bd4090b4"></a>
 
@@ -334,4 +314,24 @@
 @fn xv::drivers::CharacterDevice *xv::fs::Xv6FileSystem::open_device(Inode *node, bool nonblocking)
 @brief 为磁盘中的设备节点打开登记会话。
 @details 委托 open_registered_device 按完整设备号查找工厂，支持静态字符设备及会话工厂；节点引用由调用者继续持有，失败返回 nullptr。
+```
+
+<a id="fn-13385ef79a786dd7"></a>
+
+## `xv::fs::Xv6FileSystem::resize`
+
+```doxygen
+@fn int xv::fs::Xv6FileSystem::resize(Inode *node, unsigned size)
+@brief 在日志事务内调整磁盘普通文件长度。
+@details 缩短时释放超出新 EOF 的直接/间接块，清空残留尾部；增长仅修改长度，不预分配空洞。拒绝非普通文件和超出 MAXFILE 的长度。
+```
+
+<a id="fn-2af87439a305e904"></a>
+
+## `xv::fs::Xv6FileSystem::busy`
+
+```doxygen
+@fn bool xv::fs::Xv6FileSystem::busy()
+@brief 检查磁盘卷是否仍被挂载根以外的引用使用。
+@details inode 引用锁内统计缓存引用；仅剩挂载表持有的一个根引用时允许卸载，打开文件和 cwd 等引用使其忙碌。
 ```

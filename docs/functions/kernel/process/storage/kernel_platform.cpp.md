@@ -45,10 +45,8 @@
 
 ```doxygen
 @fn unsigned long xv::process::detail::allocate_kernel_stack()
-@brief 进程对象生命周期、组身份、调度、等待与信号：分配内核栈。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocator` → `memory.allocate` → `memory.layout` → `ram` → `page_index` → `xv::memory::PhysicalAddress::from_pointer` → `xv::memory::kernel_page_table` → `map_process_stack` → `memory.deallocate`。
-@details 需要特别跟踪的条件：`!physical`；`!address`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`0`；`address`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 取得一个按需增长的虚拟内核栈。
+@details 委托内存页表服务独立保留区域与初始物理页；返回栈底，零表示没有空闲槽或内存不足，不再依赖物理页编号计算别名。
 ```
 
 <a id="fn-0ccd821dd7af8126"></a>
@@ -57,10 +55,8 @@
 
 ```doxygen
 @fn void xv::process::detail::free_kernel_stack(unsigned long address)
-@brief 进程对象生命周期、组身份、调度、等待与信号：释放内核栈。
-@param address 地址参数；用户地址必须通过内存复制/映射校验路径访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::kernel_page_table` → `unmap_process_stack` → `xv::memory::allocator` → `deallocate`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 回收已停止进程的按需栈区域。
+@details 委托页表服务清映射、归还全部已提交帧与叶表，释放虚拟槽；调用时目标进程不能仍在该栈上执行。
 ```
 
 <a id="fn-81d9f378847f3b25"></a>

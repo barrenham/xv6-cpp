@@ -8,15 +8,18 @@
 
 ## 函数导航
 
-- [`xv::memory::kernel_page_table`](kernel_page_table.cpp.md#fn-1f3d315da469e7cf)
 - [`xv::memory::KernelPageTable::KernelPageTable`](kernel_page_table.cppm.md#fn-53592a8c15ae7380)
 - [`xv::memory::KernelPageTable::KernelPageTable`](kernel_page_table.cppm.md#fn-63812dcc872dc61f)
 - [`xv::memory::KernelPageTable::activate_hart`](kernel_page_table.cpp.md#fn-4f82617b1488d29d)
+- [`xv::memory::KernelPageTable::allocate_process_stack`](kernel_page_table.cpp.md#fn-6829b16b5a4aa2a3)
+- [`xv::memory::KernelPageTable::commit_stack`](kernel_page_table.cpp.md#fn-5492462d0bf0c840)
+- [`xv::memory::KernelPageTable::free_process_stack`](kernel_page_table.cpp.md#fn-481636a4fc87518c)
+- [`xv::memory::KernelPageTable::grow_process_stack`](kernel_page_table.cpp.md#fn-9be72da917a5498c)
 - [`xv::memory::KernelPageTable::initialize`](kernel_page_table.cpp.md#fn-b348ddac60edd845)
-- [`xv::memory::KernelPageTable::map_process_stack`](kernel_page_table.cpp.md#fn-e70dfce3f258395b)
 - [`xv::memory::KernelPageTable::operator=`](kernel_page_table.cppm.md#fn-609d30eed538e9ac)
+- [`xv::memory::KernelPageTable::release_stack`](kernel_page_table.cpp.md#fn-5b254a60dc9c4721)
 - [`xv::memory::KernelPageTable::root`](kernel_page_table.cpp.md#fn-792824e0d2159c11)
-- [`xv::memory::KernelPageTable::unmap_process_stack`](kernel_page_table.cpp.md#fn-98155d2b3976236b)
+- [`xv::memory::kernel_page_table`](kernel_page_table.cpp.md#fn-1f3d315da469e7cf)
 
 <a id="fn-53592a8c15ae7380"></a>
 

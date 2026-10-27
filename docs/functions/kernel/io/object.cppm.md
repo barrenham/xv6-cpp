@@ -2,7 +2,6 @@
 
 ## 函数导航
 
-- [`xv::io::query`](object.cppm.md#fn-1ecb0d678053c236)
 - [`xv::io::Capability::Capability`](object.cppm.md#fn-ecf195f263b03d0b)
 - [`xv::io::Capability::~Capability`](object.cppm.md#fn-161283e8b9341214)
 - [`xv::io::DeviceControl::DeviceControl`](object.cppm.md#fn-0c81a281ea490340)
@@ -15,9 +14,13 @@
 - [`xv::io::IoObject::operator=`](object.cppm.md#fn-e7411405250e1f87)
 - [`xv::io::IoObject::poll`](object.cppm.md#fn-56aed24c02747ed9)
 - [`xv::io::IoObject::read`](object.cppm.md#fn-651c3f8d7273e79e)
+- [`xv::io::IoObject::resize`](object.cppm.md#fn-8b94a5f55a5c7387)
+- [`xv::io::IoObject::seek`](object.cppm.md#fn-17313038b6f5d321)
 - [`xv::io::IoObject::stat`](object.cppm.md#fn-ddfd4e22b6380097)
+- [`xv::io::IoObject::sync`](object.cppm.md#fn-ee340ef0442ac5d1)
 - [`xv::io::IoObject::write`](object.cppm.md#fn-b26276ebef21c6da)
 - [`xv::io::IoObject::~IoObject`](object.cppm.md#fn-58e61b8f03e337fd)
+- [`xv::io::query`](object.cppm.md#fn-1ecb0d678053c236)
 
 <a id="fn-ecf195f263b03d0b"></a>
 
@@ -177,4 +180,34 @@
 @fn Interface *xv::io::query(IoObject *object)
 @brief 模板化能力查询：使用 Interface::Id 向 IoObject 请求 Capability 指针，只在命中时 static_cast 回明确的接口类型；空对象/未支持能力返回 nullptr。
 @details 模板化能力查询：使用 Interface::Id 向 IoObject 请求 Capability 指针，只在命中时 static_cast 回明确的接口类型；空对象/未支持能力返回 nullptr。依赖实现者遵守 ID 与接口类型对应约定，无 RTTI。
+```
+
+<a id="fn-17313038b6f5d321"></a>
+
+## `xv::io::IoObject::seek`
+
+```doxygen
+@fn virtual long xv::io::IoObject::seek(long, int)
+@brief 请求改变打开对象的共享偏移。
+@details 默认返回 -1；普通 inode 后端覆写，管道和终端保持不可寻址。
+```
+
+<a id="fn-8b94a5f55a5c7387"></a>
+
+## `xv::io::IoObject::resize`
+
+```doxygen
+@fn virtual int xv::io::IoObject::resize(unsigned)
+@brief 请求调整打开对象长度。
+@details 默认返回 -1；文件表先检查可写权限，再由普通文件后端实现。
+```
+
+<a id="fn-ee340ef0442ac5d1"></a>
+
+## `xv::io::IoObject::sync`
+
+```doxygen
+@fn virtual int xv::io::IoObject::sync()
+@brief 请求打开对象的持久化同步。
+@details 默认返回 -1，具体 inode 后端处理磁盘或 RAM 语义。
 ```

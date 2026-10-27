@@ -55,12 +55,15 @@ int copy(const char *source, const char *target)
     close(input);
     return -1;
   }
-  int output = open(target, O_CREATE | O_WRONLY | O_TRUNC);
+  int output = open(target, O_CREATE | O_WRONLY);
   if (output < 0)
   {
     close(input);
     return -1;
   }
+  if (fstat(output, &dst) < 0 || dst.type != T_FILE ||
+      (src.dev == dst.dev && src.ino == dst.ino) || ftruncate(output, 0) < 0)
+  { close(input); close(output); return -1; }
   char data[512];
   int count, result = 0;
   while ((count = read(input, data, sizeof(data))) > 0)

@@ -26,7 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for flag in ('qemu', 'kernel', 'image'):
         parser.add_argument('--' + flag, required=True)
-    parser.add_argument('--cpus', type=int, default=3)
+    parser.add_argument('--cpus', type=int, default=5)
     parser.add_argument('--public', action='store_true', help='also resolve example.com through the host upstream DNS')
     args = parser.parse_args()
     stop = threading.Event()

@@ -11,9 +11,11 @@ static bool detailed = false;
 void show(char *path, const struct stat &entry)
 {
   if (!detailed) { printf("%s %d %d %d\n", fmtname(path), entry.type, entry.ino, (int)entry.size); return; }
-  char mode[11]; mode[0] = entry.type == T_DIR ? 'd' : entry.type == T_DEVICE ? 'c' : '-';
+  char mode[11]; mode[0] = entry.type == T_DIR ? 'd' : entry.type == T_DEVICE ? 'c' : entry.type == T_SYMLINK ? 'l' : '-';
   const char bits[] = "rwx";
   for (unsigned i = 0; i < 9; ++i) mode[i + 1] = entry.mode & (1U << (8 - i)) ? bits[i % 3] : '-';
+  if (entry.mode & 04000) mode[3] = mode[3] == 'x' ? 's' : 'S';
+  if (entry.mode & 02000) mode[6] = mode[6] == 'x' ? 's' : 'S';
   if (entry.mode & 01000) mode[9] = mode[9] == 'x' ? 't' : 'T';
   mode[10] = 0;
   printf("%s %d %d %d %lu %s\n", mode, entry.nlink, entry.uid, entry.gid, entry.size, fmtname(path));
@@ -47,6 +49,7 @@ ls(char *path)
   struct dirent de;
   struct stat st;
 
+  if (lstat(path, &st) == 0 && st.type == T_SYMLINK) { show(path, st); return; }
   if ((fd = open(path, O_RDONLY)) < 0) {
     fprintf(2, "ls: cannot open %s\n", path);
     return;
@@ -77,7 +80,7 @@ ls(char *path)
         continue;
       memmove(p, de.name, DIRSIZ);
       p[DIRSIZ] = 0;
-      if (stat(buf, &st) < 0) {
+      if (lstat(buf, &st) < 0) {
         printf("ls: cannot stat %s\n", buf);
         continue;
       }

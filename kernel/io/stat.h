@@ -4,6 +4,7 @@
 #define T_FILE   2 // File
 #define T_DEVICE 3 // Device
 #define T_SOCKET 4
+#define T_SYMLINK 5
 
 struct stat {
   int dev;     // File system's disk device

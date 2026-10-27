@@ -95,6 +95,7 @@ public:
   BlockCache &operator=(const BlockCache &) = delete;
   virtual const char *name() const = 0;
   virtual void initialize() = 0;
+  virtual void flush() {}
   virtual BlockHandle read(unsigned device, unsigned block) = 0;
   virtual void write(Buffer &buffer) = 0;
   virtual void release(Buffer &buffer) = 0;

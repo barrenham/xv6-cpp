@@ -10,6 +10,7 @@
 - [`xv::fs::PageBuffer::page`](page_buffer.cpp.md#fn-7324b6e1a8cb6d8b)
 - [`xv::fs::PageBuffer::page`](page_buffer.cpp.md#fn-afb49e59fd42539a)
 - [`xv::fs::PageBuffer::read`](page_buffer.cpp.md#fn-737bf8707fc7f001)
+- [`xv::fs::PageBuffer::resize`](page_buffer.cpp.md#fn-f13fafd9d3b26469)
 - [`xv::fs::PageBuffer::size`](page_buffer.cppm.md#fn-a1b9d61afac265b6)
 - [`xv::fs::PageBuffer::take`](page_buffer.cpp.md#fn-a9cb29f61972a3dd)
 - [`xv::fs::PageBuffer::write`](page_buffer.cpp.md#fn-f0d6953988455923)

@@ -12,6 +12,7 @@
 
 - [`xv::fs::LruBlockCache::LruBlockCache`](lru_block_cache.cppm.md#fn-855477984d714ddb)
 - [`xv::fs::LruBlockCache::attach`](lru_block_cache.cppm.md#fn-5c62e7d3411efdaf)
+- [`xv::fs::LruBlockCache::flush`](lru_block_cache.cppm.md#fn-ef74295fee0cb263)
 - [`xv::fs::LruBlockCache::get`](lru_block_cache.cpp.md#fn-af4d8f5d14b2fff0)
 - [`xv::fs::LruBlockCache::initialize`](lru_block_cache.cpp.md#fn-3cd05c2218bac5b8)
 - [`xv::fs::LruBlockCache::name`](lru_block_cache.cppm.md#fn-cebf2b4a2313e6d5)
@@ -53,4 +54,14 @@
 @param device 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
 @details 本函数可见的状态更新包括：`device_ = &device;`。局部临时变量与对象字段应按作用域区分。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-ef74295fee0cb263"></a>
+
+## `xv::fs::LruBlockCache::flush`
+
+```doxygen
+@fn void xv::fs::LruBlockCache::flush() override
+@brief 将屏障传递给所绑定的块设备。
+@details 不改变缓冲引用或替换策略；日志先按顺序写出块，再通过此入口等待设备 flush。
 ```

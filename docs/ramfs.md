@@ -53,7 +53,7 @@ PageBuffer 同时用于 RAM 文件和 procfs 快照。每页含页链指针和�
 
 ```sh
 cmake --build --preset dev
-ctest --test-dir build/dev --output-on-failure -R '^(fs_contract|ramfs_[13]cpu|procfs_[13]cpu)$'
+ctest --test-dir build/dev --output-on-failure -R '^(fs_contract|ramfs_[15]cpu|procfs_[15]cpu)$'
 ```
 
 ramfstest 验证 1 MiB 文件、用户指针错误、共享偏移、跨页目录、硬链接、非空目录、删除后继续打开、截断补零、孤儿 cwd 和多进程并发。原生 fs_contract 还注入节点分配、写入中途与多页快照分配失败，并核对物理页回收及磁盘零写入。

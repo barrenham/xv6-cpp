@@ -9,6 +9,12 @@ import xv.drivers;
 import xv.memory;
 import xv.net;
 
+extern "C" [[noreturn]] void enter_scheduler_stack(unsigned long top);
+extern "C" [[noreturn]] void scheduler_on_stack()
+{
+  xv::process::scheduler().run();
+}
+
 namespace xv::boot
 {
 namespace
@@ -83,6 +89,6 @@ void initialize_secondary_hart()
     initialize_secondary_hart();
   }
 
-  xv::process::scheduler().run();
+  enter_scheduler_stack(xv::trap::scheduler_stack_top());
 }
 } // namespace xv::boot

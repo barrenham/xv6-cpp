@@ -83,7 +83,7 @@ Process *ProcessManager::allocate()
   // which returns to user space.
   xv::runtime::fill(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)first_return;
-  p->context.sp = p->kstack + PGSIZE;
+  p->context.sp = p->kstack + KSTACK_PAGES * PGSIZE;
 
   return p;
 }

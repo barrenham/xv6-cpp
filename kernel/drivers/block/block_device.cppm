@@ -18,6 +18,7 @@ public:
   // Synchronous process-context transfer. Data must remain DMA-accessible and
   // exclusively owned until return; count must be a positive sector multiple.
   // Completion state belongs to the driver, independently of filesystem buffers.
+  virtual void flush() {}
   virtual void transfer(BlockOperation operation, unsigned long sector, void *data,
                         unsigned count) = 0;
 

@@ -418,7 +418,7 @@ void Xv6FileSystem::reclaim(int dev)
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
 // returns 0 if out of disk space.
-uint Xv6FileSystem::map_block(Inode *ip, uint bn)
+uint Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)
 {
   uint addr, *a;
   BlockHandle bp;
@@ -427,6 +427,7 @@ uint Xv6FileSystem::map_block(Inode *ip, uint bn)
   {
     if ((addr = ip->addrs[bn]) == 0)
     {
+      if (!create) return 0;
       addr = allocate_block(ip->dev);
       if (addr == 0)
       {
@@ -443,6 +444,7 @@ uint Xv6FileSystem::map_block(Inode *ip, uint bn)
     // Load indirect block, allocating if necessary.
     if ((addr = ip->addrs[NDIRECT]) == 0)
     {
+      if (!create) return 0;
       addr = allocate_block(ip->dev);
       if (addr == 0)
       {
@@ -454,6 +456,7 @@ uint Xv6FileSystem::map_block(Inode *ip, uint bn)
     a = (uint *)bp->bytes();
     if ((addr = a[bn]) == 0)
     {
+      if (!create) return 0;
       addr = allocate_block(ip->dev);
       if (addr)
       {
@@ -537,13 +540,15 @@ int Xv6FileSystem::read(Inode *ip, int user_dst, uint64 dst, uint off, uint n)
 
   for (tot = 0; tot < n; tot += m, off += m, dst += m)
   {
-    uint addr = map_block(ip, off / BSIZE);
-    if (addr == 0)
+    uint addr = map_block(ip, off / BSIZE, false);
+    m = min(n - tot, BSIZE - off % BSIZE);
+    if (!addr)
     {
-      break;
+      static const unsigned char zeros[BSIZE]{};
+      if (detail::copy_out(user_dst, dst, zeros, m) < 0) return tot ? static_cast<int>(tot) : -1;
+      continue;
     }
     bp = cache_.read(ip->dev, addr);
-    m = min(n - tot, BSIZE - off % BSIZE);
     if (detail::copy_out(user_dst, dst, bp->bytes() + (off % BSIZE), m) == -1)
     {
       bp.reset();
@@ -567,7 +572,7 @@ int Xv6FileSystem::write(Inode *ip, int user_src, uint64 src, uint off, uint n)
   uint tot, m;
   BlockHandle bp;
 
-  if (off > ip->size || off + n < off)
+  if (off + n < off)
   {
     return -1;
   }
@@ -607,6 +612,39 @@ int Xv6FileSystem::write(Inode *ip, int user_src, uint64 src, uint off, uint n)
   update(ip);
 
   return tot;
+}
+
+int Xv6FileSystem::resize(Inode *node, unsigned size)
+{
+  if (node->type != T_FILE || size > MAXFILE * BSIZE) return -1;
+  unsigned keep = (size + BSIZE - 1) / BSIZE;
+  for (unsigned i = keep; i < NDIRECT; ++i)
+    if (node->addrs[i]) { free_block(node->dev, node->addrs[i]); node->addrs[i] = 0; }
+  if (node->addrs[NDIRECT])
+  {
+    auto block = cache_.read(node->dev, node->addrs[NDIRECT]);
+    auto *entries = reinterpret_cast<unsigned *>(block->bytes()); bool any = false;
+    for (unsigned i = 0; i < NINDIRECT; ++i)
+    {
+      if (i + NDIRECT >= keep && entries[i]) { free_block(node->dev, entries[i]); entries[i] = 0; }
+      any |= entries[i] != 0;
+    }
+    if (any) journal_.record(*block);
+    block.reset();
+    if (!any) { free_block(node->dev, node->addrs[NDIRECT]); node->addrs[NDIRECT] = 0; }
+  }
+  if (size < node->size && size % BSIZE)
+  {
+    auto address = map_block(node, size / BSIZE, false);
+    if (address) { auto block = cache_.read(node->dev, address); detail::fill(block->bytes() + size % BSIZE, 0, BSIZE - size % BSIZE); journal_.record(*block); }
+  }
+  node->size = size; update(node); return 0;
+}
+bool Xv6FileSystem::busy()
+{
+  xv::sync::ScopedLock guard(inode_lock_);
+  unsigned references = 0; for (auto &node : inodes_) references += node.ref;
+  return references != 1;
 }
 
 } // namespace xv::fs

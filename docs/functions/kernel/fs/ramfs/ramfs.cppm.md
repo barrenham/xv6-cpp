@@ -22,6 +22,7 @@
 - [`xv::fs::RamFileSystem::reclaim`](ramfs.cpp.md#fn-1a54a9d94f11be0a)
 - [`xv::fs::RamFileSystem::release`](ramfs.cpp.md#fn-217486517d13a8eb)
 - [`xv::fs::RamFileSystem::rename_at`](ramfs.cpp.md#fn-af0a949d4f892d41)
+- [`xv::fs::RamFileSystem::resize`](ramfs.cpp.md#fn-26a32874b953ad67)
 - [`xv::fs::RamFileSystem::retain`](ramfs.cpp.md#fn-0339515fc48a1692)
 - [`xv::fs::RamFileSystem::root`](ramfs.cpp.md#fn-5495fb0db3fbb09a)
 - [`xv::fs::RamFileSystem::shutdown`](ramfs.cpp.md#fn-854bbfaca9e5aef5)

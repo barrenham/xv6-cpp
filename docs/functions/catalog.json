@@ -141,7 +141,8 @@
     "kind": "InstanceMethod",
     "hover_expectation": "source-comment",
     "usr": "c:@N@xv@N@process@S@ProcessManager@F@allocate#",
-    "source_sha256": "e5f1c7189f91471ef30b52efee7794923a37d4058044d8fb97fd386b22d88a0d"
+    "source_sha256": "112f5ad45449fdf2a92409e5a3f6c9313032273acb70772658fc95994c531062",
+    "fn": "Process *xv::process::ProcessManager::allocate()"
   },
   {
     "anchor": "lifecycle-processmanager-reap",
@@ -385,7 +386,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@boot@F@run#",
     "hover_expectation": "observe",
-    "source_sha256": "0b52b3b4ebe7f5a87f4e8cf7356f3f347a5abbcdee6f80a0ed482bf1714743e9"
+    "source_sha256": "682d9221163bfcf7c706b2403a1c214144abe7d9049d56d5a41501200ae2bd4a"
   },
   {
     "anchor": "fn-90bc9147889a0726",
@@ -502,7 +503,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@initialize#",
     "hover_expectation": "observe",
-    "source_sha256": "de012377aaba4d241b14b253213c103eb174df659b09aa6f9afae11e2cad275d"
+    "source_sha256": "e6cde0bd267f0fdd2bd17417ee251a1e849c930a77951fda55b2ddbba5e4b071"
   },
   {
     "anchor": "fn-ec9a5a1df2982759",
@@ -567,7 +568,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@transfer#$@N@xv@N@drivers@E@BlockOperation#l#*v#i#",
     "hover_expectation": "observe",
-    "source_sha256": "5dcd7c83781fbe7a667b712f2c3f895027a9326785ef3d4398d96371251b3556"
+    "source_sha256": "9b6e4a3f36bc2cb4d0e896930cfb84d5df9c3a9ef5bd4d2731e3c623cd7f0157"
   },
   {
     "anchor": "fn-0b67b739b5b86885",
@@ -3258,7 +3259,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@fs@F@initialize_cache#",
     "hover_expectation": "observe",
-    "source_sha256": "70af5d6bf6b68a4ab4f57fa1a1483456d515ffdf124f5a235d8adcead3c9a8f1"
+    "source_sha256": "073d195146647cc70e4292a96b34841e3f653b89d17e33c68a32eb6087987d7d"
   },
   {
     "anchor": "fn-3cd05c2218bac5b8",
@@ -3414,7 +3415,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@fcntl#*$@N@xv@N@fs@S@File#I#i#",
     "hover_expectation": "observe",
-    "source_sha256": "0381cdeb90366b8ac2f3d99f4f75113cc4de93fdaeb3b3d3cc054143482393d5"
+    "source_sha256": "05ff2351148210b9fda460c53a34313e891430799567261bb86e41fbe24cf409"
   },
   {
     "anchor": "fn-6b5a5967a8ffe320",
@@ -3474,12 +3475,12 @@
     "source": "kernel/fs/file/open_file.cpp",
     "spelling": "OpenFileTable::bind_inode",
     "qualified": "xv::fs::OpenFileTable::bind_inode",
-    "signature": "bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)",
-    "fn": "bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)",
+    "signature": "bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking, bool append)",
+    "fn": "bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking, bool append)",
     "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@bind_inode#&$@N@xv@N@fs@S@File#&$@N@xv@N@fs@S@Inode#b#b#b#",
+    "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@bind_inode#&$@N@xv@N@fs@S@File#&$@N@xv@N@fs@S@Inode#b#b#b#b#",
     "hover_expectation": "observe",
-    "source_sha256": "17709b2ceb4659c5fa3ab5519745344e2cd131c5bde283d4ddd2416724ce5d0c"
+    "source_sha256": "252325b09054e80d5f349743c7c79770fa40c43d8b9d68ab36bca6f534093457"
   },
   {
     "anchor": "fn-71d5734b8a7caee5",
@@ -3531,7 +3532,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@write#*$@N@xv@N@fs@S@File#l#I#",
     "hover_expectation": "observe",
-    "source_sha256": "07be83e055cea17014dea87dce7c919f3dca423b3864e6e509dc1439a4b0e288"
+    "source_sha256": "7840f976a25813845eb6812a401e422ee03b4fdc6cd14974098a3c82780f2b5d"
   },
   {
     "anchor": "fn-bc87515094e34bf0",
@@ -4317,14 +4318,14 @@
     "anchor": "fn-e115e4280d884517",
     "document": "docs/functions/kernel/fs/inode/xv6_filesystem.cpp.md",
     "source": "kernel/fs/inode/xv6_filesystem.cpp",
-    "spelling": "map_block",
+    "spelling": "Xv6FileSystem::map_block",
     "qualified": "xv::fs::Xv6FileSystem::map_block",
-    "signature": "uint Xv6FileSystem::map_block(Inode *ip, uint bn)",
-    "fn": "uint xv::fs::Xv6FileSystem::map_block(Inode *ip, uint bn)",
+    "signature": "uint Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)",
+    "fn": "uint xv::fs::Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)",
     "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@map_block#*$@N@xv@N@fs@S@Inode#i#",
+    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@map_block#*$@N@xv@N@fs@S@Inode#i#b#",
     "hover_expectation": "observe",
-    "source_sha256": "018f1aef38466169bc738b8d5f9d8b2efb57803d6f645ba5c7ce2b7b0a823bc9"
+    "source_sha256": "c51a9dca0f370edc2e3eaf39a27d07e6fecea67aa7e5abcac50985b673a186e2"
   },
   {
     "anchor": "fn-c1850e2e3bb309e8",
@@ -4363,7 +4364,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
     "hover_expectation": "observe",
-    "source_sha256": "3a8c591abd7c7576046a707614de8655063630af143326ace1447bd63513c380"
+    "source_sha256": "0a73556259cbcc63d6a1ea3834fbb43b9f078a73674d15b8bd4230a3bcc2fac8"
   },
   {
     "anchor": "fn-b5be87921570227b",
@@ -4376,7 +4377,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
     "hover_expectation": "observe",
-    "source_sha256": "0e44bb6c0cbac49fb8dae8593f11da9d6882e258c99237ad86783e3a75ab89ee"
+    "source_sha256": "6e0540783bcc39a3a348d31dc2ec302c85cc5efcb41bf371052baf36c9d88b5f"
   },
   {
     "anchor": "fn-fbb2438a657db6f0",
@@ -4519,7 +4520,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Journal@F@recover#",
     "hover_expectation": "observe",
-    "source_sha256": "633a146a738c9c8b50cf52db88fd4c72b747d7bfc1d8d72246b2a6cfee06b161"
+    "source_sha256": "24604fde5a801687c3ca9a092a768257f81d1213371c62ddee7a8b4ba22978dc"
   },
   {
     "anchor": "fn-68275ab1a63eaf6b",
@@ -4571,7 +4572,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Journal@F@commit#",
     "hover_expectation": "observe",
-    "source_sha256": "155f1fece51c37ca2cc896c08d4f422199ca6cddb90f441cf45485f3d433dea4"
+    "source_sha256": "10540db751733f74fa660240fa35507d670821796a9c7ed3bba8cc20d580b00c"
   },
   {
     "anchor": "fn-2bff0beebb0a1b13",
@@ -4597,7 +4598,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Journal@F@sync#",
     "hover_expectation": "observe",
-    "source_sha256": "e70429ae793dda5b58dfedc92205dd2798293332d8185f5e03e0694b3431a7ba"
+    "source_sha256": "86d83483ab8d55b28bc27a19dc3b771784784d0a2fef2fbf631364c86428427b"
   },
   {
     "anchor": "fn-17149b6d55129134",
@@ -4675,7 +4676,7 @@
     "kind": "Constructor",
     "usr": "c:@N@xv@N@fs@S@Transaction@F@Transaction#",
     "hover_expectation": "observe",
-    "source_sha256": "4bfa2c9a8e98d9e0acd5ffe373e19675a1fef2800983d38b4bc467c1e36bd292"
+    "source_sha256": "79e008e4ff861f5e3691fb9e4892aaa77ae28d9c9e21f322c1f4c9462c0f89bf"
   },
   {
     "anchor": "fn-b41989f478512a14",
@@ -4727,7 +4728,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@Transaction@F@finish#",
     "hover_expectation": "observe",
-    "source_sha256": "b269f10c292a7bc86b7f2f20939f4c96559f73c4c905ac55b69fd8a0e918effe"
+    "source_sha256": "90d8c3e0f7fb12f3c7211caa33e42e1854c22f94213eb6ca3903f23c2c0e1384"
   },
   {
     "anchor": "fn-394c4a6f8b4d5c75",
@@ -6547,7 +6548,7 @@
     "kind": "Function",
     "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#",
     "hover_expectation": "observe",
-    "source_sha256": "d43dd06d83f61984804fc43c39f4bb0467873a27289002b901de5729952cae72"
+    "source_sha256": "1adc13a3b8ea142e1d573d8be4d3b1aad6cb502087cfe9f5fda5d111e3236fcb"
   },
   {
     "anchor": "fn-b348ddac60edd845",
@@ -6560,7 +6561,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
     "hover_expectation": "observe",
-    "source_sha256": "4cbfe611ffbd2cdbe3309bd3a42c18d40b6db65d4b8df4613271e7b4d117cf80"
+    "source_sha256": "c7079c642dd252546ecc48a309a921dfa8f222fcdbe1f02be2d8ae8556c03fba"
   },
   {
     "anchor": "fn-4f82617b1488d29d",
@@ -6574,32 +6575,6 @@
     "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@activate_hart#1",
     "hover_expectation": "observe",
     "source_sha256": "97b99ca0aa1120d128975d6852620304f5af554f1d97eef36a20a068cb13018b"
-  },
-  {
-    "anchor": "fn-e70dfce3f258395b",
-    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
-    "source": "kernel/memory/paging/kernel_page_table.cpp",
-    "spelling": "map_process_stack",
-    "qualified": "xv::memory::KernelPageTable::map_process_stack",
-    "signature": "unsigned long KernelPageTable::map_process_stack(unsigned long slot, void *physical)",
-    "fn": "unsigned long xv::memory::KernelPageTable::map_process_stack(unsigned long slot, void *physical)",
-    "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@map_process_stack#l#*v#",
-    "hover_expectation": "observe",
-    "source_sha256": "1ede1f57a6bed2b841489107c55af9b09988f5e93f999b2267592c1d248bb830"
-  },
-  {
-    "anchor": "fn-98155d2b3976236b",
-    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
-    "source": "kernel/memory/paging/kernel_page_table.cpp",
-    "spelling": "unmap_process_stack",
-    "qualified": "xv::memory::KernelPageTable::unmap_process_stack",
-    "signature": "void *KernelPageTable::unmap_process_stack(unsigned long address)",
-    "fn": "void *xv::memory::KernelPageTable::unmap_process_stack(unsigned long address)",
-    "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@unmap_process_stack#l#",
-    "hover_expectation": "observe",
-    "source_sha256": "7ded42eb23f32bb2871d0af0f256cb698505a18d36d960d6de110abb1038dea5"
   },
   {
     "anchor": "fn-792824e0d2159c11",
@@ -10383,7 +10358,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@N@detail@F@allocate_kernel_stack#",
     "hover_expectation": "observe",
-    "source_sha256": "cbcd64a1bc78df565063aef182dacd35eb0790e4c3cf240393a76e59e7b9e317"
+    "source_sha256": "5149e611c4470d7d0c78409a0e7cbbdad24c62c39680fea3dd81535dc4de533d"
   },
   {
     "anchor": "fn-0ccd821dd7af8126",
@@ -10396,7 +10371,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
     "hover_expectation": "observe",
-    "source_sha256": "a823d66061806b654bba449a84dbf55d0dc096c5e8a568aac857d0995d92d456"
+    "source_sha256": "02c9cd210c17c79f7806525ca19be006d18137032e608467bc644d2159dbef8c"
   },
   {
     "anchor": "fn-81d9f378847f3b25",
@@ -12281,7 +12256,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@sys_open#",
     "hover_expectation": "observe",
-    "source_sha256": "f23581aba9fb412a1a1ff7a0264d4a4068521d3091ec1994bf5228d81cf46882"
+    "source_sha256": "73e47c1b9a3661c8c72376e6f535494b8d54d96f53a59ca4febae8d103c187a5"
   },
   {
     "anchor": "fn-dc225934cc4ef27f",
@@ -12372,7 +12347,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@sys_sync#",
     "hover_expectation": "observe",
-    "source_sha256": "67a9d945121ca7498154e1c4e42a45da958b0f1fefa180522107184ae9023ca9"
+    "source_sha256": "a79169e19b911f073a223453f1bbe087e7381348f24686ba4a1c05745e601055"
   },
   {
     "anchor": "fn-868f8327fa5e0719",
@@ -12593,7 +12568,7 @@
     "kind": "Function",
     "usr": "c:syscall.cpp@N@xv@N@syscall@F@lookup_syscall#I#",
     "hover_expectation": "observe",
-    "source_sha256": "406d20fd3af92330924ecb865c8688fd8af9e89594a24b713be829ad341a7a5d"
+    "source_sha256": "c9e889920958535ac9220ff7be0c5e2c0081b79f8a61840c5e2a9a4136bbf359"
   },
   {
     "anchor": "fn-b83b0bfa82c48ee9",
@@ -12724,7 +12699,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@install_kernel_vector#",
     "hover_expectation": "observe",
-    "source_sha256": "b98a6ff18473083bae36dc2557d6215632bb4133205c9f778bbf4c759b379a45"
+    "source_sha256": "278a918f498e0109adf4d8d7d740b177aeae08e9485a5d30f022f3b95027fc78"
   },
   {
     "anchor": "fn-7efdcba7acebcf8f",
@@ -12932,7 +12907,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
     "hover_expectation": "observe",
-    "source_sha256": "2e685aeccfa7b1565d3180d159d759a6b312c1922def64c16afcc05822198842"
+    "source_sha256": "f4442597d4ff4abcf995daa64c8bce416858716f8370e1800fdacebc0fcead9c"
   },
   {
     "anchor": "fn-fb9cf283bc7dc87e",
@@ -17007,7 +16982,7 @@
     "fn": "int xv::fs::InodeBackend::write(xv::io::Buffer source, int count)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@InodeBackend@F@write#$@N@xv@N@io@S@Buffer#I#",
-    "source_sha256": "e76534942b9a411cd66dbaa7ac665a165b4c7baf84d8d07321515ae87fb82d98",
+    "source_sha256": "41172e4ba79faf526cfb38ac4c578db76e661b01e841a1ecc7205876b364019b",
     "hover_expectation": "observe"
   },
   {
@@ -21176,7 +21151,7 @@
     "source": "kernel/fs/journal/journal.cppm",
     "document": "docs/functions/kernel/fs/journal/journal.cppm.md",
     "usr": "c:@N@xv@N@fs@S@Transaction@F@Transaction#b#",
-    "source_sha256": "7de39c076cacfb92cc8c1e5823a27be550d8f44ae9152b73c6706ce16d417ac5",
+    "source_sha256": "359af7786ca5e95d9654489fb8b05d7ef6764697a54fd8f67e166764299bdd12",
     "qualified": "xv::fs::Transaction::Transaction",
     "spelling": "Transaction",
     "signature": "inline explicit Transaction(bool persistent)",
@@ -21189,7 +21164,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize_inodes#",
-    "source_sha256": "a661b79b17b308068c30e8384b7e0995052c9b728b1e8974b5e2fb17335a5798",
+    "source_sha256": "cc442f1e2300acaf7420ffcb95b326a1b055c5096113f481f3c512948ce20821",
     "qualified": "xv::fs::VirtualFileSystem::initialize_inodes",
     "spelling": "VirtualFileSystem::initialize_inodes",
     "signature": "void VirtualFileSystem::initialize_inodes()",
@@ -21202,7 +21177,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize#I#",
-    "source_sha256": "d6e9ee7535338baaf304ae19375b57c5793e7a555456cd981fe0144555792980",
+    "source_sha256": "caa7e26b005268f8bde55922c972a6f0da98a3f26e1f0da09ccaef3a3ee8acc4",
     "qualified": "xv::fs::VirtualFileSystem::initialize",
     "spelling": "VirtualFileSystem::initialize",
     "signature": "void VirtualFileSystem::initialize(int device)",
@@ -21253,12 +21228,12 @@
     "hover_expectation": "observe",
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
-    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@create#*C#S#S#S#",
-    "source_sha256": "23d8777bf9bfa8269de1464718013c2a10a3e267defbf04d3cc9826808867491",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@create#*C#S#S#S#b#",
+    "source_sha256": "3e4eea9ab57ff8c58c1fdb6dcdad07018826387588eadfee3e36f976069bf013",
     "qualified": "xv::fs::VirtualFileSystem::create",
     "spelling": "VirtualFileSystem::create",
-    "signature": "Inode *VirtualFileSystem::create(char *path, short type, short major, short minor)",
-    "fn": "Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor)",
+    "signature": "Inode *VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)",
+    "fn": "Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)",
     "kind": "InstanceMethod"
   },
   {
@@ -21267,7 +21242,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@link#*C#S0_#",
-    "source_sha256": "248c3abed36b5c90beebe34e3b99dbf1cc6f18877e49f02dc1241b9385b67a62",
+    "source_sha256": "d2c07242a24dd804d76172fef8d6e3cf313d290654fff40baea46602f9f66f41",
     "qualified": "xv::fs::VirtualFileSystem::link",
     "spelling": "VirtualFileSystem::link",
     "signature": "int VirtualFileSystem::link(char *old_path, char *new_path)",
@@ -22151,7 +22126,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount#*1C#&$@N@xv@N@fs@S@FileSystem#i#",
-    "source_sha256": "f71f562148db757a7a40d3e4a8776c2057c2f9c073823e5d1ce66649a2984bb7",
+    "source_sha256": "a24ece3434a63a61d9dff450d4a5707dc796324f151af787ab95ae0c87c7c94d",
     "qualified": "xv::fs::VirtualFileSystem::mount",
     "spelling": "VirtualFileSystem::mount",
     "signature": "bool VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)",
@@ -22723,7 +22698,7 @@
     "source": "kernel/fs/ramfs/ramfs.cpp",
     "document": "docs/functions/kernel/fs/ramfs/ramfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
-    "source_sha256": "997d1c685e94948c12aed005139d4aa1298d862413f630109f14209185735489",
+    "source_sha256": "849957af327a5676aa182a9b294e54baed4fa3333a7f97fe84aa09d3850e7ab4",
     "qualified": "xv::fs::RamFileSystem::create_at",
     "spelling": "RamFileSystem::create_at",
     "signature": "Inode *RamFileSystem::create_at(Inode *directory, const char *name, short type, short, short)",
@@ -22775,7 +22750,7 @@
     "source": "kernel/fs/ramfs/ramfs.cpp",
     "document": "docs/functions/kernel/fs/ramfs/ramfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
-    "source_sha256": "d6be488942ea3a1a039d5ebb7a8c419d5919a6e886ddc6be22738409266840d9",
+    "source_sha256": "e18098e51e436c15dc1aa6eb53bbddcb359d42546f589efdec79a90664432617",
     "qualified": "xv::fs::RamFileSystem::read",
     "spelling": "RamFileSystem::read",
     "signature": "int RamFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)",
@@ -22788,7 +22763,7 @@
     "source": "kernel/fs/ramfs/ramfs.cpp",
     "document": "docs/functions/kernel/fs/ramfs/ramfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
-    "source_sha256": "105c3c6d0f8b77d32958cab8550cf117386b56d250bbf39c195311f9e11e6e66",
+    "source_sha256": "49ad23e34480dae0d7ab017f9ee3a2c9f85a79c5a9be8c6c68ca8ad64c647b1d",
     "qualified": "xv::fs::RamFileSystem::write",
     "spelling": "RamFileSystem::write",
     "signature": "int RamFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count)",
@@ -22917,12 +22892,12 @@
     "hover_expectation": "observe",
     "source": "kernel/fs/vfs/vfs.cppm",
     "document": "docs/functions/kernel/fs/vfs/vfs.cppm.md",
-    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@VirtualFileSystem#&$@N@xv@N@fs@S@FileSystem#S0_#*S1_#S2_#*S2_#",
-    "source_sha256": "1c6b5448cc6d9a9bf74cbfd7c19836210267b6d772ad459b9c1e86c0589f3a16",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@VirtualFileSystem#&$@N@xv@N@fs@S@FileSystem#S0_#*S1_#S2_#*S2_#S2_#",
+    "source_sha256": "913f1b9d56d92cbf3343c29ad5174bf026ed674dff22637a651b97c6c00cd025",
     "qualified": "xv::fs::VirtualFileSystem::VirtualFileSystem",
     "spelling": "VirtualFileSystem",
-    "signature": "constexpr VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr, FileSystem **dynamic = nullptr)",
-    "fn": "constexpr xv::fs::VirtualFileSystem::VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr, FileSystem **dynamic = nullptr)",
+    "signature": "constexpr VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr, FileSystem **dynamic = nullptr, FileSystem *storage = nullptr)",
+    "fn": "constexpr xv::fs::VirtualFileSystem::VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr, FileSystem **dynamic = nullptr, FileSystem *storage = nullptr)",
     "kind": "Constructor"
   },
   {
@@ -23151,12 +23126,12 @@
     "hover_expectation": "observe",
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
-    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#",
-    "source_sha256": "0d169e99b63bf8128ec168a0b3f5cc5c6c2473d70b722b4c104fbaf77f59d8e3",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#",
+    "source_sha256": "478f639f67c5738670325d2d609fe5c0096c560423de6c8b76963362847cc6bb",
     "qualified": "xv::fs::VirtualFileSystem::walk",
     "spelling": "VirtualFileSystem::walk",
-    "signature": "Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real)",
-    "fn": "Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real)",
+    "signature": "Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating)",
+    "fn": "Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating)",
     "kind": "InstanceMethod"
   },
   {
@@ -23164,12 +23139,12 @@
     "hover_expectation": "observe",
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
-    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@lookup#*1C#b#",
-    "source_sha256": "601887daae3b917883e0f9ad6cdea01918b597866b9e3425bf93188077ba5785",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@lookup#*1C#b#b#",
+    "source_sha256": "98bcbdcbc51ed3f88420f68c591075fac7a7e72d962426e8c945c9a1b36aacd0",
     "qualified": "xv::fs::VirtualFileSystem::lookup",
     "spelling": "VirtualFileSystem::lookup",
-    "signature": "Inode *VirtualFileSystem::lookup(const char *path, bool real)",
-    "fn": "Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real)",
+    "signature": "Inode *VirtualFileSystem::lookup(const char *path, bool real, bool follow)",
+    "fn": "Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real, bool follow)",
     "kind": "InstanceMethod"
   },
   {
@@ -23295,7 +23270,7 @@
     "source": "kernel/process/exec/elf_loader.cpp",
     "document": "docs/functions/kernel/process/exec/elf_loader.cpp.md",
     "usr": "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
-    "source_sha256": "6aaafc7a2e6684329e5c151e722b6b65e84a4f8f52384b5ac48501a121aca2ae",
+    "source_sha256": "14c6505ca8e53caec6456764f61ee6f30295734a1397f17a8042c43ad26735e0",
     "qualified": "xv::process::ElfLoader::load",
     "spelling": "ElfLoader::load",
     "signature": "int ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)",
@@ -23620,7 +23595,7 @@
     "source": "kernel/syscall/sysfile.cpp",
     "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
     "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@F@attributes#b#",
-    "source_sha256": "980345488de02704776327174f2f337f2c1572ca9033a4b9b634504f02dfea25",
+    "source_sha256": "811ce082dff6eb69b37140e41dca59e4d9378b504db7667d5e8a9b5c0f016d72",
     "qualified": "xv::syscall::attributes",
     "spelling": "attributes",
     "signature": "uint64 attributes(bool ownership)",
@@ -23763,7 +23738,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_ram#*1C#",
-    "source_sha256": "04ecf2de4ae6c3c3db90e8741b86f987eb644c6948bafe896a1ff3467d35b722",
+    "source_sha256": "ab35582edb5ec579fd3b4a7cca847bd93ffa16262a682091dae089389e6fe40d",
     "qualified": "xv::fs::VirtualFileSystem::mount_ram",
     "spelling": "VirtualFileSystem::mount_ram",
     "signature": "int VirtualFileSystem::mount_ram(const char *path)",
@@ -23776,7 +23751,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unmount#*1C#",
-    "source_sha256": "d99ffce8b8c4998461a25a288e6c023df4d3971607e5556b243307b82f70d9c7",
+    "source_sha256": "81b55be8e828178e503f93197c4ad12e453cbc1e2692e6cfbdef8d9a25ff87e6",
     "qualified": "xv::fs::VirtualFileSystem::unmount",
     "spelling": "VirtualFileSystem::unmount",
     "signature": "int VirtualFileSystem::unmount(const char *path)",
@@ -23789,7 +23764,7 @@
     "source": "kernel/fs/vfs/vfs.cpp",
     "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
     "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mounts#i#*C#S0_#",
-    "source_sha256": "19f50a5a9f4c7142ae2924f48089393264c34f3a1c0058e3cda6d1b65038c690",
+    "source_sha256": "7157573445b1db7ce1fedbdd6ab67b449a86bbaa4e7255db7b26894b3e54bb97",
     "qualified": "xv::fs::VirtualFileSystem::mounts",
     "spelling": "VirtualFileSystem::mounts",
     "signature": "int VirtualFileSystem::mounts(unsigned index, char *path, char *type)",
@@ -23841,7 +23816,7 @@
     "source": "kernel/syscall/sysfile.cpp",
     "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
     "usr": "c:@N@xv@N@syscall@F@sys_mount#",
-    "source_sha256": "1b1410c84ba8cae8c26b12539423b427bd243410f72b1a3041cdaf5b1c90ec38",
+    "source_sha256": "0392ea9fb0313fab0c08a61c42246dea0efcec98a2ab73d5ecfcb9f8283dcee5",
     "qualified": "xv::syscall::sys_mount",
     "spelling": "sys_mount",
     "signature": "uint64 sys_mount()",
@@ -23854,7 +23829,7 @@
     "source": "kernel/syscall/sysfile.cpp",
     "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
     "usr": "c:@N@xv@N@syscall@F@sys_umount#",
-    "source_sha256": "7daab54f2272fbb5657b4c053d39e8cc624a8a124060c02abd04aa4768b624c1",
+    "source_sha256": "238f2e1251910f51c2f3e9e89bc732d96af93ac9c5ae1bd11b2a533899f5ed76",
     "qualified": "xv::syscall::sys_umount",
     "spelling": "sys_umount",
     "signature": "uint64 sys_umount()",
@@ -23872,6 +23847,604 @@
     "spelling": "sys_mountinfo",
     "signature": "uint64 sys_mountinfo()",
     "fn": "uint64 xv::syscall::sys_mountinfo()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-5896623bca3f11d6",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/drivers/block/block_device.cppm.md",
+    "source": "kernel/drivers/block/block_device.cppm",
+    "usr": "c:@N@xv@N@drivers@S@BlockDevice@F@flush#",
+    "source_sha256": "9f2d1739e58b2dd41c83a2e81c47267eba827536539a880e9987f3f035b0a7b5",
+    "qualified": "xv::drivers::BlockDevice::flush",
+    "signature": "virtual void flush()",
+    "spelling": "flush",
+    "fn": "virtual void xv::drivers::BlockDevice::flush()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-3b90475ad6a2ea72",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/drivers/block/virtio/virtio_block.cpp.md",
+    "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+    "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@present#1",
+    "source_sha256": "8fe27e40f7fbc911e35a006ffbe9cf27d26c9394f00073e69ecc792e29900580",
+    "qualified": "xv::drivers::VirtioBlock::present",
+    "signature": "bool VirtioBlock::present() const",
+    "spelling": "VirtioBlock::present",
+    "fn": "bool xv::drivers::VirtioBlock::present() const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-6a305340ef7d40e8",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/drivers/block/virtio/virtio_block.cpp.md",
+    "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+    "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@flush#",
+    "source_sha256": "50282939774d2f834ddb611ddd837318b99a7a5193293f8384461d8fe34f8663",
+    "qualified": "xv::drivers::VirtioBlock::flush",
+    "signature": "void VirtioBlock::flush()",
+    "spelling": "VirtioBlock::flush",
+    "fn": "void xv::drivers::VirtioBlock::flush()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-1f40f120d59e62df",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/drivers/board/qemu_virt.cpp.md",
+    "source": "kernel/drivers/board/qemu_virt.cpp",
+    "usr": "c:@N@xv@N@drivers@F@data_device#",
+    "source_sha256": "eb8edcc42511de02ac56d1124ead8da284966f6dd6fced9b131009e6af1f699b",
+    "qualified": "xv::drivers::data_device",
+    "signature": "BlockDevice *data_device()",
+    "spelling": "data_device",
+    "fn": "BlockDevice *xv::drivers::data_device()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-f13fafd9d3b26469",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/buffer/page_buffer.cpp.md",
+    "source": "kernel/fs/buffer/page_buffer.cpp",
+    "usr": "c:@N@xv@N@fs@S@PageBuffer@F@resize#i#",
+    "source_sha256": "0878b43357e385cbab56a94b19f8e6b62e5bd076b93917bedade930e8b2c6c04",
+    "qualified": "xv::fs::PageBuffer::resize",
+    "signature": "bool PageBuffer::resize(unsigned size)",
+    "spelling": "PageBuffer::resize",
+    "fn": "bool xv::fs::PageBuffer::resize(unsigned size)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-0b3f1fa7a7ccd3f9",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/cache/block_cache.cppm.md",
+    "source": "kernel/fs/cache/block_cache.cppm",
+    "usr": "c:@N@xv@N@fs@S@BlockCache@F@flush#",
+    "source_sha256": "9f2d1739e58b2dd41c83a2e81c47267eba827536539a880e9987f3f035b0a7b5",
+    "qualified": "xv::fs::BlockCache::flush",
+    "signature": "virtual void flush()",
+    "spelling": "flush",
+    "fn": "virtual void xv::fs::BlockCache::flush()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-ef74295fee0cb263",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/cache/lru_block_cache.cppm.md",
+    "source": "kernel/fs/cache/lru_block_cache.cppm",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@flush#",
+    "source_sha256": "d755647a7dddff6c42f1430c2036b9ca0618a4a72f8fdba5289b4f69c6d2fa46",
+    "qualified": "xv::fs::LruBlockCache::flush",
+    "signature": "void flush() override",
+    "spelling": "flush",
+    "fn": "void xv::fs::LruBlockCache::flush() override",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-87a319e476eaf4ce",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/file_operations.cpp.md",
+    "source": "kernel/fs/file/file_operations.cpp",
+    "usr": "c:@N@xv@N@fs@S@InodeBackend@F@seek#L#I#",
+    "source_sha256": "001107bc14d005f10506dda01603ef3adf962b1db34b05d319d077e374ba1cf4",
+    "qualified": "xv::fs::InodeBackend::seek",
+    "signature": "long InodeBackend::seek(long offset, int origin)",
+    "spelling": "InodeBackend::seek",
+    "fn": "long xv::fs::InodeBackend::seek(long offset, int origin)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-ae883e791f590ed4",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/file_operations.cpp.md",
+    "source": "kernel/fs/file/file_operations.cpp",
+    "usr": "c:@N@xv@N@fs@S@InodeBackend@F@resize#i#",
+    "source_sha256": "064b44c2302bdfd36112f63c7e12597c1f07e14720b3539d6bd4c1e91ed09b29",
+    "qualified": "xv::fs::InodeBackend::resize",
+    "signature": "int InodeBackend::resize(unsigned size)",
+    "spelling": "InodeBackend::resize",
+    "fn": "int xv::fs::InodeBackend::resize(unsigned size)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-1e17b13e14602c79",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/file_operations.cpp.md",
+    "source": "kernel/fs/file/file_operations.cpp",
+    "usr": "c:@N@xv@N@fs@S@InodeBackend@F@sync#",
+    "source_sha256": "d5cf8889f172a79ce2de794473022bd1df1a845314bed775a70ca61761ccbe91",
+    "qualified": "xv::fs::InodeBackend::sync",
+    "signature": "int InodeBackend::sync()",
+    "spelling": "InodeBackend::sync",
+    "fn": "int xv::fs::InodeBackend::sync()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-d97473d82762fb27",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/open_file.cpp.md",
+    "source": "kernel/fs/file/open_file.cpp",
+    "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@seek#*$@N@xv@N@fs@S@File#L#I#",
+    "source_sha256": "5ee44e751cfdb5f1fc79a06d77757dda233bdae7c79ec8f38a35b970d3c7e0b2",
+    "qualified": "xv::fs::OpenFileTable::seek",
+    "signature": "long OpenFileTable::seek(File *file, long offset, int origin)",
+    "spelling": "OpenFileTable::seek",
+    "fn": "long xv::fs::OpenFileTable::seek(File *file, long offset, int origin)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-2cc8e03aa2bb7cde",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/open_file.cpp.md",
+    "source": "kernel/fs/file/open_file.cpp",
+    "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@resize#*$@N@xv@N@fs@S@File#i#",
+    "source_sha256": "42908aff966a66f8acc1dfa7c460f7a0400e014de55fb4ba5c39438b4e7cc58a",
+    "qualified": "xv::fs::OpenFileTable::resize",
+    "signature": "int OpenFileTable::resize(File *file, unsigned size)",
+    "spelling": "OpenFileTable::resize",
+    "fn": "int xv::fs::OpenFileTable::resize(File *file, unsigned size)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-c82ab0b98fb2ba90",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/file/open_file.cpp.md",
+    "source": "kernel/fs/file/open_file.cpp",
+    "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@sync#*$@N@xv@N@fs@S@File#",
+    "source_sha256": "a5e3413fdd42b975d55258647bd55522697155b2b2be848b742405417d8235b4",
+    "qualified": "xv::fs::OpenFileTable::sync",
+    "signature": "int OpenFileTable::sync(File *file)",
+    "spelling": "OpenFileTable::sync",
+    "fn": "int xv::fs::OpenFileTable::sync(File *file)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-9bbcde7a2391bea0",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/filesystem.cppm.md",
+    "source": "kernel/fs/inode/filesystem.cppm",
+    "usr": "c:@N@xv@N@fs@S@FileSystem@F@resize#*$@N@xv@N@fs@S@Inode#i#",
+    "source_sha256": "de501bbf18d3cb64999d5d5461885ccae1d55f7a2f33145aa3ce26a1c6a86eae",
+    "qualified": "xv::fs::FileSystem::resize",
+    "signature": "virtual int resize(Inode *, unsigned)",
+    "spelling": "resize",
+    "fn": "virtual int xv::fs::FileSystem::resize(Inode *, unsigned)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-78595d0dff20b079",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/filesystem.cppm.md",
+    "source": "kernel/fs/inode/filesystem.cppm",
+    "usr": "c:@N@xv@N@fs@S@FileSystem@F@flush#",
+    "source_sha256": "9f2d1739e58b2dd41c83a2e81c47267eba827536539a880e9987f3f035b0a7b5",
+    "qualified": "xv::fs::FileSystem::flush",
+    "signature": "virtual void flush()",
+    "spelling": "flush",
+    "fn": "virtual void xv::fs::FileSystem::flush()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-ddac539018d7be66",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/filesystem.cppm.md",
+    "source": "kernel/fs/inode/filesystem.cppm",
+    "usr": "c:@N@xv@N@fs@S@FileSystem@F@transaction_log#",
+    "source_sha256": "81cb30e30844546bd7dab052038e390f7fa5203753790412494265e143796c4c",
+    "qualified": "xv::fs::FileSystem::transaction_log",
+    "signature": "virtual Journal *transaction_log()",
+    "spelling": "transaction_log",
+    "fn": "virtual Journal *xv::fs::FileSystem::transaction_log()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-13385ef79a786dd7",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/xv6_filesystem.cpp.md",
+    "source": "kernel/fs/inode/xv6_filesystem.cpp",
+    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@resize#*$@N@xv@N@fs@S@Inode#i#",
+    "source_sha256": "65fea08abc287ba5d03710a0cb1368166d102f5e47590f7630546ef185d8d26d",
+    "qualified": "xv::fs::Xv6FileSystem::resize",
+    "signature": "int Xv6FileSystem::resize(Inode *node, unsigned size)",
+    "spelling": "Xv6FileSystem::resize",
+    "fn": "int xv::fs::Xv6FileSystem::resize(Inode *node, unsigned size)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-2af87439a305e904",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/xv6_filesystem.cpp.md",
+    "source": "kernel/fs/inode/xv6_filesystem.cpp",
+    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@busy#",
+    "source_sha256": "18172dd75ba30b28cd4e4b3e28a75fc636715c840a638c45ef990a86e6692624",
+    "qualified": "xv::fs::Xv6FileSystem::busy",
+    "signature": "bool Xv6FileSystem::busy()",
+    "spelling": "Xv6FileSystem::busy",
+    "fn": "bool xv::fs::Xv6FileSystem::busy()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-45b4d7e7f52182cb",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/xv6_filesystem.cppm.md",
+    "source": "kernel/fs/inode/xv6_filesystem.cppm",
+    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@flush#",
+    "source_sha256": "ce65e026c348a1059ce616582e222590eb8551baf48f070771320c9da88465a7",
+    "qualified": "xv::fs::Xv6FileSystem::flush",
+    "signature": "void flush() override",
+    "spelling": "flush",
+    "fn": "void xv::fs::Xv6FileSystem::flush() override",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-01d6f9ac866d737d",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/inode/xv6_filesystem.cppm.md",
+    "source": "kernel/fs/inode/xv6_filesystem.cppm",
+    "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@transaction_log#",
+    "source_sha256": "a8662c5a584c5685bb1c5dcfdbba311ed840b96d98c1733dc5e374cf9081c79f",
+    "qualified": "xv::fs::Xv6FileSystem::transaction_log",
+    "signature": "Journal *transaction_log() override",
+    "spelling": "transaction_log",
+    "fn": "Journal *xv::fs::Xv6FileSystem::transaction_log() override",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-26a32874b953ad67",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/ramfs/ramfs.cpp.md",
+    "source": "kernel/fs/ramfs/ramfs.cpp",
+    "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@resize#*$@N@xv@N@fs@S@Inode#i#",
+    "source_sha256": "b2bbdc53d5635e3e43b56f208b0cc5730921c00a3a78987659cfe3cd044babdd",
+    "qualified": "xv::fs::RamFileSystem::resize",
+    "signature": "int RamFileSystem::resize(Inode *node, unsigned size)",
+    "spelling": "RamFileSystem::resize",
+    "fn": "int xv::fs::RamFileSystem::resize(Inode *node, unsigned size)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-67eba603f2e485ac",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
+    "source": "kernel/fs/vfs/vfs.cpp",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
+    "source_sha256": "656c2b49a5929579864185ef01dc9672e7e3761055f97f0f99868dc65893d9cb",
+    "qualified": "xv::fs::VirtualFileSystem::symlink",
+    "signature": "int VirtualFileSystem::symlink(const char *target, const char *path)",
+    "spelling": "VirtualFileSystem::symlink",
+    "fn": "int xv::fs::VirtualFileSystem::symlink(const char *target, const char *path)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-410eacc267e87225",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/vfs/vfs.cpp.md",
+    "source": "kernel/fs/vfs/vfs.cpp",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#",
+    "source_sha256": "77873a012a09f90aa58efba4469ad95f234f467dcd0a1e127a7cb08f85c57c17",
+    "qualified": "xv::fs::VirtualFileSystem::mount_disk",
+    "signature": "int VirtualFileSystem::mount_disk(const char *path)",
+    "spelling": "VirtualFileSystem::mount_disk",
+    "fn": "int xv::fs::VirtualFileSystem::mount_disk(const char *path)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-d4a420a6654ac25b",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/fs/vfs/vfs.cppm.md",
+    "source": "kernel/fs/vfs/vfs.cppm",
+    "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@attach_storage#&$@N@xv@N@fs@S@FileSystem#",
+    "source_sha256": "372b328453fe9cfc14d89f5c1bd958a16e0579a7c0c41d38be2e77c7322e0e2c",
+    "qualified": "xv::fs::VirtualFileSystem::attach_storage",
+    "signature": "void attach_storage(FileSystem &storage)",
+    "spelling": "attach_storage",
+    "fn": "void xv::fs::VirtualFileSystem::attach_storage(FileSystem &storage)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-17313038b6f5d321",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/io/object.cppm.md",
+    "source": "kernel/io/object.cppm",
+    "usr": "c:@N@xv@N@io@S@IoObject@F@seek#L#I#",
+    "source_sha256": "91c799fb0c4732f76df57b49450bad662438446da5c4f4f8125be50e5c848f18",
+    "qualified": "xv::io::IoObject::seek",
+    "signature": "virtual long seek(long, int)",
+    "spelling": "seek",
+    "fn": "virtual long xv::io::IoObject::seek(long, int)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-8b94a5f55a5c7387",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/io/object.cppm.md",
+    "source": "kernel/io/object.cppm",
+    "usr": "c:@N@xv@N@io@S@IoObject@F@resize#i#",
+    "source_sha256": "564fa541ae1f8de521e71d409173c563b02078c3fb0447d3753f37ee989215ea",
+    "qualified": "xv::io::IoObject::resize",
+    "signature": "virtual int resize(unsigned)",
+    "spelling": "resize",
+    "fn": "virtual int xv::io::IoObject::resize(unsigned)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-ee340ef0442ac5d1",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/io/object.cppm.md",
+    "source": "kernel/io/object.cppm",
+    "usr": "c:@N@xv@N@io@S@IoObject@F@sync#",
+    "source_sha256": "c1ae0022c2c8375fe35bdaf82e39c7da18937176ce0131f1aa4edf290de2c310",
+    "qualified": "xv::io::IoObject::sync",
+    "signature": "virtual int sync()",
+    "spelling": "sync",
+    "fn": "virtual int xv::io::IoObject::sync()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-a7a29914891e25c5",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/process/credentials/credentials.cppm.md",
+    "source": "kernel/process/credentials/credentials.cppm",
+    "usr": "c:@N@xv@N@process@S@Credentials@F@apply_exec#i#i#i#",
+    "source_sha256": "d38edec01830c466e92247878fea75eef77d7822a92b9fd9fd9d0ab198874e62",
+    "qualified": "xv::process::Credentials::apply_exec",
+    "signature": "void apply_exec(unsigned uid, unsigned gid, unsigned mode)",
+    "spelling": "apply_exec",
+    "fn": "void xv::process::Credentials::apply_exec(unsigned uid, unsigned gid, unsigned mode)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-930a35f280dcc8ee",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/process/exec/elf_loader.cpp.md",
+    "source": "kernel/process/exec/elf_loader.cpp",
+    "usr": "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@uid#1",
+    "source_sha256": "4947d9f19f39b9da8c82aab85e41f1f884d6526ceb1731ccb8291e574b1daa0b",
+    "qualified": "xv::process::ExecutableFile::uid",
+    "signature": "unsigned uid() const",
+    "spelling": "uid",
+    "fn": "unsigned xv::process::ExecutableFile::uid() const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-35babcaa3cbccf81",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/process/exec/elf_loader.cpp.md",
+    "source": "kernel/process/exec/elf_loader.cpp",
+    "usr": "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@gid#1",
+    "source_sha256": "adebe5877a1490c3dbb922c7c8a8ad94218adc34cbf64f0add0c8b6e7dc1bf61",
+    "qualified": "xv::process::ExecutableFile::gid",
+    "signature": "unsigned gid() const",
+    "spelling": "gid",
+    "fn": "unsigned xv::process::ExecutableFile::gid() const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-03cff53d9fac314e",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/process/exec/elf_loader.cpp.md",
+    "source": "kernel/process/exec/elf_loader.cpp",
+    "usr": "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@mode#1",
+    "source_sha256": "2f294f343bf1c6609c156c382bd693ab6062c531952f69b9ca6541c5da45c931",
+    "qualified": "xv::process::ExecutableFile::mode",
+    "signature": "unsigned mode() const",
+    "spelling": "mode",
+    "fn": "unsigned xv::process::ExecutableFile::mode() const",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-09832f54fc77b0ca",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_lseek#",
+    "source_sha256": "d20d1ebceb078c42ba0cc3ddd927834bb0fc7cffc816325d131e684b3ef5291a",
+    "qualified": "xv::syscall::sys_lseek",
+    "signature": "uint64 sys_lseek()",
+    "spelling": "sys_lseek",
+    "fn": "uint64 xv::syscall::sys_lseek()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-ac0849d188c61352",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_ftruncate#",
+    "source_sha256": "a3d0ee8ce4f239cf6091a7df403d14c0127adfd6ce9cdf4b96e59e776d77b6e6",
+    "qualified": "xv::syscall::sys_ftruncate",
+    "signature": "uint64 sys_ftruncate()",
+    "spelling": "sys_ftruncate",
+    "fn": "uint64 xv::syscall::sys_ftruncate()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-7cce73f1ff266383",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_fsync#",
+    "source_sha256": "f6ab1849c3712f1de5481b32cd87dbe25fcdb10e4105a02e8e58728906086c20",
+    "qualified": "xv::syscall::sys_fsync",
+    "signature": "uint64 sys_fsync()",
+    "spelling": "sys_fsync",
+    "fn": "uint64 xv::syscall::sys_fsync()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-8d50b39ab66db14f",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_readlink#",
+    "source_sha256": "8a5fb1d6ddcde7dbbf738a2db87e8099063927fc69b5177e8a2ef0d00835cf94",
+    "qualified": "xv::syscall::sys_readlink",
+    "signature": "uint64 sys_readlink()",
+    "spelling": "sys_readlink",
+    "fn": "uint64 xv::syscall::sys_readlink()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-a7bdc3d877fe1063",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_lstat#",
+    "source_sha256": "467778c622ada97952ea3da3ddfe7ddb23ab5af6ebc26adb599da86511850016",
+    "qualified": "xv::syscall::sys_lstat",
+    "signature": "uint64 sys_lstat()",
+    "spelling": "sys_lstat",
+    "fn": "uint64 xv::syscall::sys_lstat()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-9a92c0afd955d412",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/syscall/sysfile.cpp.md",
+    "source": "kernel/syscall/sysfile.cpp",
+    "usr": "c:@N@xv@N@syscall@F@sys_symlink#",
+    "source_sha256": "c0ad23f3321e3324eae8afe121e1911f7769e4f473ad090c874ba64d55652fa4",
+    "qualified": "xv::syscall::sys_symlink",
+    "signature": "uint64 sys_symlink()",
+    "spelling": "sys_symlink",
+    "fn": "uint64 xv::syscall::sys_symlink()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-5492462d0bf0c840",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@commit_stack#l#l#",
+    "source_sha256": "4a77b739971382dda8d0e0e79b7ff80b8e84a155455b91d8c27efc681f8f24be",
+    "qualified": "xv::memory::KernelPageTable::commit_stack",
+    "signature": "bool KernelPageTable::commit_stack(unsigned long address, unsigned long lowest)",
+    "spelling": "KernelPageTable::commit_stack",
+    "fn": "bool xv::memory::KernelPageTable::commit_stack(unsigned long address, unsigned long lowest)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-5b254a60dc9c4721",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
+    "source_sha256": "5da036bbadeb01d444bf85c58570a9c542457d3551e6daa50efd76a8f5fee645",
+    "qualified": "xv::memory::KernelPageTable::release_stack",
+    "signature": "void KernelPageTable::release_stack(unsigned long address)",
+    "spelling": "KernelPageTable::release_stack",
+    "fn": "void xv::memory::KernelPageTable::release_stack(unsigned long address)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-6829b16b5a4aa2a3",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@allocate_process_stack#",
+    "source_sha256": "bea5d565e8fa565652d12e1532ccd208048ff77ae69e0dc310b97f5196dfcbd0",
+    "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
+    "signature": "unsigned long KernelPageTable::allocate_process_stack()",
+    "spelling": "KernelPageTable::allocate_process_stack",
+    "fn": "unsigned long xv::memory::KernelPageTable::allocate_process_stack()",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-9be72da917a5498c",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@grow_process_stack#l#l#",
+    "source_sha256": "f1c78614f10bb3be09a1777b56762738a939bae1195e6fd9b13b370c6674051b",
+    "qualified": "xv::memory::KernelPageTable::grow_process_stack",
+    "signature": "bool KernelPageTable::grow_process_stack(unsigned long address, unsigned long lowest)",
+    "spelling": "KernelPageTable::grow_process_stack",
+    "fn": "bool xv::memory::KernelPageTable::grow_process_stack(unsigned long address, unsigned long lowest)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-481636a4fc87518c",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/memory/paging/kernel_page_table.cpp.md",
+    "source": "kernel/memory/paging/kernel_page_table.cpp",
+    "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
+    "source_sha256": "b5c771ed3ebcf24674de7f88c9784a2eff8d60aaeb43ee6a66b8b4c75badee1a",
+    "qualified": "xv::memory::KernelPageTable::free_process_stack",
+    "signature": "void KernelPageTable::free_process_stack(unsigned long address)",
+    "spelling": "KernelPageTable::free_process_stack",
+    "fn": "void xv::memory::KernelPageTable::free_process_stack(unsigned long address)",
+    "kind": "InstanceMethod"
+  },
+  {
+    "anchor": "fn-5c3f11ead232f9df",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
+    "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+    "usr": "c:@F@kernel_stack_prepare",
+    "source_sha256": "c37425b44e04040bf3bc96e80d47584592c06a27ee36b964cf0a4d5bd50db0a5",
+    "qualified": "kernel_stack_prepare",
+    "signature": "int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)",
+    "spelling": "kernel_stack_prepare",
+    "fn": "int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-33edc3fb91e368c4",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/boot/main.cpp.md",
+    "source": "kernel/boot/main.cpp",
+    "usr": "c:@F@enter_scheduler_stack",
+    "source_sha256": "5234dd44b243cb8075d3b88e4aa4ba50a10a9603b893026ef7df156f96f6fef7",
+    "qualified": "enter_scheduler_stack",
+    "signature": "void enter_scheduler_stack(unsigned long top)",
+    "spelling": "enter_scheduler_stack",
+    "fn": "void enter_scheduler_stack(unsigned long top)",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-6869a6cc40430e52",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/boot/main.cpp.md",
+    "source": "kernel/boot/main.cpp",
+    "usr": "c:@F@scheduler_on_stack",
+    "source_sha256": "a4d967f00136c73b28d21134513450417f4eba4245fafdbdee38ddf938ab577a",
+    "qualified": "scheduler_on_stack",
+    "signature": "void scheduler_on_stack()",
+    "spelling": "scheduler_on_stack",
+    "fn": "void scheduler_on_stack()",
+    "kind": "Function"
+  },
+  {
+    "anchor": "fn-ebe7c8cf89feb5d2",
+    "hover_expectation": "observe",
+    "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
+    "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@trap@F@scheduler_stack_top#",
+    "source_sha256": "b8f778c60bdeacc7fc3eddd496beb6ec91b50644b1c3ba4ed33f145d5c803570",
+    "qualified": "xv::trap::scheduler_stack_top",
+    "signature": "unsigned long scheduler_stack_top()",
+    "spelling": "scheduler_stack_top",
+    "fn": "unsigned long xv::trap::scheduler_stack_top()",
     "kind": "Function"
   }
 ]

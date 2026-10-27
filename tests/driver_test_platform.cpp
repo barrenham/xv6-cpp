@@ -531,8 +531,16 @@ void complete_transfer()
       reinterpret_cast<virtq_used *>(address_register(VIRTIO_MMIO_DEVICE_DESC_LOW));
   const auto head = avail->ring[(avail->idx - 1) % QueueSize];
   const auto middle = desc[head].next;
-  const auto tail = desc[middle].next;
   auto *request = reinterpret_cast<virtio_blk_req *>(desc[head].addr);
+  if (request->type == 4)
+  {
+    check(request->sector == 0 && desc[middle].len == 1 && (desc[middle].flags & VRING_DESC_F_WRITE) && !(desc[middle].flags & VRING_DESC_F_NEXT), "flush has only header and writable status");
+    *reinterpret_cast<unsigned char *>(desc[middle].addr) = 0;
+    used->ring[device_used % QueueSize].id = head; used->idx = ++device_used;
+    active_registers[VIRTIO_MMIO_INTERRUPT_STATUS / 4] = 1;
+    active_disk->handle_interrupt(); ++transfer_count; return;
+  }
+  const auto tail = desc[middle].next;
   check(request->sector == expected_sector,
         "sector is not coupled to filesystem block size");
   check(request->type == (expected_write ? VIRTIO_BLK_T_OUT : VIRTIO_BLK_T_IN),
@@ -568,6 +576,7 @@ void block_contract()
   registers[VIRTIO_MMIO_DEVICE_ID / 4] = 2;
   registers[VIRTIO_MMIO_VENDOR_ID / 4] = 0x554d4551;
   registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = QueueSize;
+  registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1U << VIRTIO_BLK_F_FLUSH;
   VirtioBlock disk(reinterpret_cast<unsigned long>(registers), 1);
   disk.initialize();
   check(registers[VIRTIO_MMIO_QUEUE_READY / 4] == 1, "VirtIO queue ready");
@@ -586,7 +595,8 @@ void block_contract()
                     expected_sector, data, sizeof(data));
     check(data[0] == 0x5a && data[1023] == 0x5a, "DMA completes before return");
   }
-  check(transfer_count == 24, "queue wraps and descriptors are recycled");
+  disk.flush();
+  check(transfer_count == 25, "queue wraps and descriptors are recycled");
   check(registers[VIRTIO_MMIO_INTERRUPT_ACK / 4] == 1, "VirtIO interrupt acknowledged");
   expect_panic([&] { disk.transfer(BlockOperation::Read, 0, data, 513); });
   auto *used =

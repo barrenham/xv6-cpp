@@ -39,6 +39,9 @@ public:
   virtual void unlock_release(Inode *node) = 0;
   virtual void update(Inode *node) = 0;
   virtual void truncate(Inode *node) = 0;
+  virtual int resize(Inode *, unsigned) { return -1; }
+  virtual void flush() {}
+  virtual Journal *transaction_log() { return nullptr; }
   virtual int read(Inode *node, int user, unsigned long destination, unsigned offset,
                    unsigned count) = 0;
   virtual int write(Inode *node, int user, unsigned long source, unsigned offset,

@@ -12,5 +12,10 @@
 
 #define O_ACCMODE 0x003
 #define O_NONBLOCK 0x800
+#define O_APPEND 0x1000
+#define O_NOFOLLOW 0x2000
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 #define F_GETFL 3
 #define F_SETFL 4

@@ -1,11 +1,13 @@
 module;
 #include "kernel/support/types.h"
+#include "kernel/support/param.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/trap/arch/riscv/entry.h"
 
 module xv.trap;
 import xv.net;
+import xv.memory;
 
 import xv.arch;
 
@@ -17,6 +19,8 @@ import xv.syscall;
 
 namespace xv::trap::detail
 {
+alignas(4096) unsigned char entry_stacks[NCPU][16384]{};
+unsigned long scheduler_stacks[NCPU]{};
 static_assert(TrapEvent::SupervisorPrevious == SSTATUS_SPP);
 static_assert(TrapEvent::InterruptEnable == SSTATUS_SIE);
 
@@ -28,6 +32,8 @@ TrapEvent snapshot()
 
 void install_kernel_vector()
 {
+  auto top = reinterpret_cast<unsigned long>(&entry_stacks[xv::process::cpu_id()][16384]);
+  asm volatile("csrw sscratch, %0" : : "r"(top));
   xv::arch::w_stvec(reinterpret_cast<Word>(kernelvec));
 }
 
@@ -121,7 +127,7 @@ void prepare_user_return()
   xv::arch::w_stvec(vector);
   auto *frame = process->registers();
   frame->kernel_satp = xv::arch::r_satp();
-  frame->kernel_sp = process->kernel_stack() + PGSIZE;
+  frame->kernel_sp = process->kernel_stack() + KSTACK_PAGES * PGSIZE;
   frame->kernel_trap = reinterpret_cast<Word>(usertrap);
   frame->kernel_hartid = xv::arch::r_tp();
   auto status = xv::arch::r_sstatus();
@@ -195,3 +201,39 @@ void wakeup(void *channel)
   xv::process::wakeup(channel);
 }
 } // namespace xv::trap::detail
+
+extern "C" int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)
+{
+  auto *process = xv::process::current();
+  auto base = process ? process->kernel_stack() : xv::trap::detail::scheduler_stacks[xv::process::cpu_id()];
+  if (!base) return 0;
+  if (stack < base || stack > base + KSTACK_BYTES)
+  {
+    if (stack >= KSTACK_BOTTOM && stack < KSTACK_TOP) xv::print::panic("kernel stack reserve exhausted");
+    return 0;
+  }
+  auto lowest = stack > base + 32768 ? stack - 32768 : base;
+  bool page_fault = cause == 13 || cause == 15;
+  bool growing = page_fault && fault >= base && fault < base + KSTACK_BYTES;
+  if (growing)
+  {
+    auto required = fault < stack ? fault : stack;
+    if (!xv::memory::kernel_page_table().grow_process_stack(base, required))
+      xv::print::panic("kernel stack growth failed");
+  }
+  // Extra interrupt headroom is opportunistic under memory pressure.
+  xv::memory::kernel_page_table().grow_process_stack(base, lowest);
+  return growing ? 1 : 0;
+}
+
+namespace xv::trap
+{
+unsigned long scheduler_stack_top()
+{
+  auto &base = detail::scheduler_stacks[xv::process::cpu_id()];
+  if (base) xv::print::panic("scheduler stack already initialized");
+  base = xv::memory::kernel_page_table().allocate_process_stack();
+  if (!base) xv::print::panic("scheduler stack allocation failed");
+  return base + KSTACK_BYTES;
+}
+}

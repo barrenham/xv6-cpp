@@ -28,8 +28,11 @@
 - [`xv::fs::OpenFileTable::poll`](open_file.cpp.md#fn-1565f5ef091ec77d)
 - [`xv::fs::OpenFileTable::read`](open_file.cpp.md#fn-ca0e6e5ab12e2355)
 - [`xv::fs::OpenFileTable::release`](open_file.cpp.md#fn-68d546d0ff9f6adb)
+- [`xv::fs::OpenFileTable::resize`](open_file.cpp.md#fn-2cc8e03aa2bb7cde)
 - [`xv::fs::OpenFileTable::retain`](open_file.cpp.md#fn-5dc21f043fc5419d)
+- [`xv::fs::OpenFileTable::seek`](open_file.cpp.md#fn-d97473d82762fb27)
 - [`xv::fs::OpenFileTable::stat`](open_file.cpp.md#fn-bc87515094e34bf0)
+- [`xv::fs::OpenFileTable::sync`](open_file.cpp.md#fn-c82ab0b98fb2ba90)
 - [`xv::fs::OpenFileTable::write`](open_file.cpp.md#fn-0115ff202f5e535d)
 - [`xv::fs::open_registered_device`](open_file.cpp.md#fn-9dc9a9219a36d4e9)
 
@@ -51,14 +54,8 @@
 
 ```doxygen
 @fn int xv::fs::OpenFileTable::fcntl(File *file, int command, unsigned flags)
-@brief 共享打开文件表：查询或修改打开文件的共享状态标志。
-@param file 打开文件对象，访问权限和共享偏移由该对象管理。
-@param command 本次操作使用的 command 值。
-@param flags 接口标志位组合。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`__atomic_load_n` → `__atomic_compare_exchange_n`。
-@details 需要特别跟踪的条件：`command == F_GETFL`；`command != F_SETFL || (flags & ~(O_ACCMODE | O_NONBLOCK))`；`__atomic_compare_exchange_n(&file->status_flags_, &old, value, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)`。这些条件决定检查、重试或提前返回路径。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 各分支实际返回：`__atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE)`；`-1`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 查询或原子修改共享状态标志。
+@details F_SETFL 允许 NONBLOCK 和 APPEND，保留访问模式；dup/fork 别名共享同一个状态字。
 ```
 
 <a id="fn-6b5a5967a8ffe320"></a>
@@ -110,9 +107,9 @@
 ## `xv::fs::OpenFileTable::bind_inode`
 
 ```doxygen
-@fn bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking)
-@brief 为 inode 打开构造设备、普通节点或动态快照后端。
-@details 设备会话沿用 owner.open_device；快照以局部 PageBuffer 按需增长，失败时 RAII 归还所有已分配页，成功后转移到 File 内置后端。发布节点身份，失败不消费调用者的 inode 引用。
+@fn bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking, bool append)
+@brief 建立每次打开的 inode 或设备后端。
+@details 沿用独立快照和设备会话所有权；初始化后以原子操作发布 APPEND 标志，inode/设备后端仍受内置存储大小检查约束。
 ```
 
 <a id="fn-71d5734b8a7caee5"></a>
@@ -151,8 +148,8 @@
 
 ```doxygen
 @fn int xv::fs::OpenFileTable::write(File *file, unsigned long address, int count)
-@brief 检查写权限、非负长度和后端存在，虚调用 IoObject::write。
-@details 检查写权限、非负长度和后端存在，虚调用 IoObject::write。字节流部分写、数据报边界及 inode 事务切分均由对应后端处理。
+@brief 检查可写性并向后端传递当前状态。
+@details 将共享 NONBLOCK/APPEND 状态加入 I/O Buffer，后端在实际写入锁内决定追加位置；拒绝负长度和无后端描述符。
 ```
 
 <a id="fn-bc87515094e34bf0"></a>
@@ -260,4 +257,34 @@
 @fn bool xv::fs::OpenFileTable::describe(File *file, FileInfo &result) const
 @brief 复制已发布 File 的不可变身份与当前共享标志。
 @details 调用者持有 File 引用，或持描述符表锁阻止本槽被取走。acquire 检查 ready_ 后复制 identity/kind/type/device/inode，原子读取 flags；不加节点锁、不调用后端、不分配和不睡眠。
+```
+
+<a id="fn-d97473d82762fb27"></a>
+
+## `xv::fs::OpenFileTable::seek`
+
+```doxygen
+@fn long xv::fs::OpenFileTable::seek(File *file, long offset, int origin)
+@brief 转发打开对象的偏移操作。
+@details 无对象或后端不支持时返回 -1；inode 后端负责同一次打开偏移的串行化。
+```
+
+<a id="fn-2cc8e03aa2bb7cde"></a>
+
+## `xv::fs::OpenFileTable::resize`
+
+```doxygen
+@fn int xv::fs::OpenFileTable::resize(File *file, unsigned size)
+@brief 仅允许可写打开对象请求截断。
+@details 打开访问权限检查先于后端调用；管道、设备和只读后端通过默认或专用拒绝路径返回 -1。
+```
+
+<a id="fn-c82ab0b98fb2ba90"></a>
+
+## `xv::fs::OpenFileTable::sync`
+
+```doxygen
+@fn int xv::fs::OpenFileTable::sync(File *file)
+@brief 转发文件同步请求。
+@details 缺少后端时返回 -1，实际持久化能力由对象契约决定。
 ```

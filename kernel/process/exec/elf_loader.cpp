@@ -50,6 +50,10 @@ public:
     return inode_ != nullptr;
   }
 
+  unsigned uid() const { return inode_->uid(); }
+  unsigned gid() const { return inode_->gid(); }
+  unsigned mode() const { return inode_->mode(); }
+
   bool read(unsigned long offset, void *destination, unsigned count)
   {
     if (offset > ~0U)
@@ -182,6 +186,7 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments, 
       return -1;
     }
   }
+  unsigned image_uid = file.uid(), image_gid = file.gid(), image_mode = file.mode();
   file.close();
 
   auto rounded = PGROUNDUP(candidate.memory.size());
@@ -244,6 +249,7 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments, 
   }
 
   process.commit_image(candidate.memory, header.entry, stack, stack, path, environment_address);
+  process.credentials().apply_exec(image_uid, image_gid, image_mode);
   // candidate now owns the old image, released only after the successful swap.
   return count;
 }

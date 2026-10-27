@@ -3,6 +3,8 @@ module;
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/fcntl.h"
+#include "kernel/fs/stat.h"
 module xv.fs;
 import :platform;
 import :operations;
@@ -35,6 +37,8 @@ int InodeBackend::write(xv::io::Buffer source, int count)
     {
       Transaction transaction(node_->owner().persistent());
       LockedInode guard(node_->owner(), *node_);
+      if (node_->mode() & 06000) node_->owner().attributes(node_, node_->uid(), node_->gid(), node_->mode() & ~06000U);
+      if (source.append) offset_ = node_->size_bytes();
       result = filesystem().write(node_, 1, source.address+done, offset_, part);
       if (result > 0) offset_ += result;
     }
@@ -43,6 +47,29 @@ int InodeBackend::write(xv::io::Buffer source, int count)
   }
   return done ? done : (count == 0 ? 0 : -1);
 }
+long InodeBackend::seek(long offset, int origin)
+{
+  LockedInode guard(node_->owner(), *node_);
+  if (node_->kind() != T_FILE || origin < SEEK_SET || origin > SEEK_END) return -1;
+  long base = origin == SEEK_SET ? 0 : origin == SEEK_CUR ? offset_ : origin == SEEK_END ? (snapshot_ ? contents_.size() : node_->size_bytes()) : -1;
+  if (base < 0 || offset < -base || offset > 0x7fffffffL - base) return -1;
+  offset_ = base + offset; return offset_;
+}
+int InodeBackend::resize(unsigned size)
+{
+  Transaction transaction(node_->owner().persistent());
+  LockedInode guard(node_->owner(), *node_);
+  if (snapshot_ || node_->owner().read_only()) return -1;
+  if (node_->mode() & 06000) node_->owner().attributes(node_, node_->uid(), node_->gid(), node_->mode() & ~06000U);
+  return node_->owner().resize(node_, size);
+}
+int InodeBackend::sync()
+{
+  if (node_->kind() != T_FILE && node_->kind() != T_DIR) return -1;
+  if (node_->owner().persistent()) { journal().sync(); if (Transaction::secondary) Transaction::secondary->sync(); node_->owner().flush(); }
+  return 0;
+}
+
 int InodeBackend::stat(xv::io::Metadata &value)
 {
   LockedInode guard(node_->owner(), *node_);

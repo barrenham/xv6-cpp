@@ -10,10 +10,9 @@
 
 ## 函数导航
 
-- [`xv::fs::cache`](../service.cpp.md#fn-8340fd0d2696b2e9)
-- [`xv::fs::initialize_cache`](../service.cpp.md#fn-6945466a2423e97b)
 - [`xv::fs::BlockCache::BlockCache`](block_cache.cppm.md#fn-66d908b35679e15d)
 - [`xv::fs::BlockCache::BlockCache`](block_cache.cppm.md#fn-bd5555df5109698d)
+- [`xv::fs::BlockCache::flush`](block_cache.cppm.md#fn-0b3f1fa7a7ccd3f9)
 - [`xv::fs::BlockCache::identify`](block_cache.cppm.md#fn-7a4110c95a60803d)
 - [`xv::fs::BlockCache::initialize`](block_cache.cppm.md#fn-b2448129ed500d1a)
 - [`xv::fs::BlockCache::name`](block_cache.cppm.md#fn-8f99a4805c0298a9)
@@ -40,6 +39,8 @@
 - [`xv::fs::Buffer::bytes`](block_cache.cppm.md#fn-e6e9e2b02b81f30a)
 - [`xv::fs::Buffer::bytes`](block_cache.cppm.md#fn-ea343a0b845d4509)
 - [`xv::fs::Buffer::device`](block_cache.cppm.md#fn-46770810f102b10b)
+- [`xv::fs::cache`](../service.cpp.md#fn-8340fd0d2696b2e9)
+- [`xv::fs::initialize_cache`](../service.cpp.md#fn-6945466a2423e97b)
 
 <a id="fn-589e543adf53f761"></a>
 
@@ -358,4 +359,14 @@
 @brief 结束文件描述、inode、路径、块缓存与日志事务的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-0b3f1fa7a7ccd3f9"></a>
+
+## `xv::fs::BlockCache::flush`
+
+```doxygen
+@fn virtual void xv::fs::BlockCache::flush()
+@brief 请求缓存所属设备完成持久化。
+@details 默认空实现用于无持久介质的契约后端；真实块缓存将请求转交设备。
 ```

@@ -33,9 +33,8 @@
 
 ```doxygen
 @fn void xv::fs::initialize_cache()
-@brief 文件描述、inode、路径、块缓存与日志事务：初始化缓存。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`system_cache.attach` → `xv::drivers::block_device` → `system_cache.initialize`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 装配系统缓存和可选数据盘缓存。
+@details 探测第二块盘后初始化其队列和独立缓存，再向 VFS 借出持久文件系统实例；此阶段不执行需要进程上下文的文件系统恢复。
 ```
 
 <a id="fn-f6456e38e2f03d00"></a>

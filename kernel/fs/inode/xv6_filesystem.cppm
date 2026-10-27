@@ -38,6 +38,10 @@ public:
   void unlock_release(Inode *node) override;
   void update(Inode *node) override;
   void truncate(Inode *node) override;
+  int resize(Inode *node, unsigned size) override;
+  void flush() override { cache_.flush(); }
+  bool busy() override;
+  Journal *transaction_log() override { return &journal_; }
   int read(Inode *node, int user, unsigned long destination, unsigned offset,
            unsigned count) override;
   int write(Inode *node, int user, unsigned long source, unsigned offset,
@@ -53,7 +57,7 @@ private:
   Inode *get(unsigned device, unsigned number);
   void free_inode(unsigned device, unsigned number);
   void reclaim(int device);
-  unsigned map_block(Inode *node, unsigned block);
+  unsigned map_block(Inode *node, unsigned block, bool create = true);
   static int compare_names(const char *first, const char *second);
   int link_entry(Inode *directory, const char *name, unsigned number);
   int directory_empty(Inode *directory);

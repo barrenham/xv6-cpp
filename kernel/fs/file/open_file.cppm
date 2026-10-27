@@ -52,7 +52,7 @@ public:
   File *allocate();
   File *retain(File *file);
   void release(File *file);
-  bool bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false);
+  bool bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false, bool append = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
@@ -61,6 +61,9 @@ public:
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
+  long seek(File *file, long offset, int origin);
+  int resize(File *file, unsigned size);
+  int sync(File *file);
   int ioctl(File *file, unsigned request, unsigned long argument);
   int fcntl(File *file, int command, unsigned flags);
   unsigned poll(File *file, xv::sync::PollTable *table = nullptr);

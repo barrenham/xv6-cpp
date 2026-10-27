@@ -20,3 +20,9 @@ _entry:
         call start
 spin:
         j spin
+
+.section .text
+.globl enter_scheduler_stack
+enter_scheduler_stack:
+        mv sp, a0
+        tail scheduler_on_stack

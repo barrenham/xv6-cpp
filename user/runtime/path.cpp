@@ -61,7 +61,7 @@ extern "C" char *getcwd(char *output, unsigned capacity)
       ancestor[length] = '/';
       strcpy(ancestor + length + 1, name);
       struct stat candidate;
-      if (stat(ancestor, &candidate) < 0 || !same_directory(candidate, current))
+      if (lstat(ancestor, &candidate) < 0 || !same_directory(candidate, current))
       {
         continue;
       }

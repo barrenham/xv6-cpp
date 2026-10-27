@@ -7,7 +7,7 @@ export namespace xv::io
 using Metadata = ::stat;
 enum class MetadataKind : short { Directory = T_DIR, Regular = T_FILE, Device = T_DEVICE, Socket = T_SOCKET };
 enum class CapabilityId { DeviceControl, Socket };
-struct Buffer { unsigned long address; bool nonblocking = false; };
+struct Buffer { unsigned long address; bool nonblocking = false; bool append = false; };
 class Capability
 {
 protected:
@@ -31,6 +31,9 @@ public:
   virtual int read(Buffer destination, int count) = 0;
   virtual int write(Buffer source, int count) = 0;
   virtual unsigned poll(xv::sync::PollTable *table) = 0;
+  virtual long seek(long, int) { return -1; }
+  virtual int resize(unsigned) { return -1; }
+  virtual int sync() { return -1; }
   virtual int stat(Metadata &) { return -1; }
   virtual Capability *capability(CapabilityId) { return nullptr; }
   virtual void close() = 0;

@@ -451,3 +451,33 @@ clockticks:
  li a7, SYS_clockticks
  ecall
  ret
+
+.global lseek
+lseek:
+ li a7, SYS_lseek
+ ecall
+ ret
+
+.global ftruncate
+ftruncate:
+ li a7, SYS_ftruncate
+ ecall
+ ret
+
+.global fsync
+fsync:
+ li a7, SYS_fsync
+ ecall
+ ret
+
+.global readlink
+readlink:
+ li a7, SYS_readlink
+ ecall
+ ret
+
+.global lstat
+lstat:
+ li a7, SYS_lstat
+ ecall
+ ret

@@ -32,7 +32,7 @@ GDB 加载 `build/dev/kernel.elf`，通过 `target remote :26000` 连接。QEMU 
 | 选项 | 默认值 | 作用 |
 | --- | --- | --- |
 | `XV_RAM_MB` | `128` | QEMU 内存容量，单位 MiB |
-| `XV_CPUS` | `3` | CPU 数量 |
+| `XV_CPUS` | `5` | CPU 数量 |
 | `XV_GDB_PORT` | `26000` | GDB 端口 |
 | `XV_QEMU` | 自动查找 | QEMU 可执行文件路径 |
 | `XV_NET_DHCP` | `ON` | 启动时自动取址 |
@@ -91,6 +91,42 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 
 ## 登录与测试镜像
 
-首次启动需要设置 root 密码，然后通过 login 进入 shell。修改源码重建的 fs.img 是新的初始镜像，不迁移运行时账户和文件；正在运行的 QEMU 继续持有原来的磁盘 inode，重启后才使用路径上的新镜像。
+首次创建且没有导入密码时，需要设置 root 密码，然后通过 login 进入 shell。构建产物 fs.img 是安装种子，日常启动使用独立的持久 rootfs。重建种子不会修改已有 rootfs；内核更新在重启后生效，用户程序更新需要显式安装或选用新的 rootfs。
 
 构建另外生成 fs-test.img，CTest 使用其独立临时副本，自动走首次密码设置和真实登录流程，不读取交互 QEMU 的账户状态。测试账号密码仅属于临时测试磁盘，不是系统默认密码。测试日志中的 session/workflow 按 CPU 数分别命名。
+
+## 五核与持久化启动
+
+默认 dev 预设和 QEMU 目标使用 XV_CPUS=5，集成测试覆盖 1 核和 5 核，RAM 矩阵串行执行。
+`qemu` 和 `qemu-gdb` 通过 `rootfs-image` 目标确保 `data/rootfs.img` 存在，
+把它作为第一个 VirtIO 块设备，内核直接以此卷作为 `/`。日常账户与文件不再位于 `/data`。
+
+首次创建 rootfs 时复制最新 `build/dev/fs.img`；如果旧 `data/data.img` 存在，
+将其内容导入私有种子副本，保留密码、UID/GID、权限、硬链接及符号链接，
+并把 passwd 中旧 `/data/root`、`/data/home/...` 主目录改为 `/root`、`/home/...`。
+源镜像须离线且当前用户可读写；工具取得整文件排他锁后只读取内容，不修改源镜像，拒绝正在被 QEMU 使用的源盘。
+原盘不变；发生路径冲突、空间不足或格式错误时不发布新 rootfs。自定义文件内容及符号链接
+中的旧绝对 `/data/...` 路径不会自动重写，需要自行调整。
+
+可配置 `-DXV_ROOTFS_IMAGE=/absolute/path/rootfs.img`，
+以及 `-DXV_ROOTFS_IMPORT_IMAGE=/absolute/path/legacy.img`；将后者设为空字符串可禁用旧盘导入。
+已有 rootfs 永远不会被创建目标覆盖，也不会再次导入旧盘。
+现有 rootfs 的 `/bin`、`/sbin` 等程序不会随普通 rebuild 更新；需要全新开发镜像时，
+选择一个尚不存在的 XV_ROOTFS_IMAGE 路径，并用空的 XV_ROOTFS_IMPORT_IMAGE 初始化干净环境。
+该操作不迁移现有 rootfs 中的新数据，原 rootfs 文件仍保留。
+
+CTest 始终使用临时私有镜像，不访问真实的 data/rootfs.img 或旧数据盘。
+持久化测试覆盖重启、重新生成种子、账户路径、可选辅助盘挂载及旧数据盘迁移。
+
+## 内核栈容量
+
+默认每个进程及每 hart 调度器各保留 2 MiB 虚拟内核栈，初始物理占用 32 KiB，使用时按页扩展。
+需要更大容量时可运行：
+
+```sh
+cmake --preset dev -DXV_KERNEL_STACK_MIB=4
+cmake --build --preset dev
+```
+
+支持 2、4、8、16、32、64 MiB；运行时增长到配置容量为止。
+该参数调整内核栈，用户程序的用户态栈仍遵循原有布局。

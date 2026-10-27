@@ -1,19 +1,36 @@
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
 #include "user/runtime/accounts.h"
+#include "user/runtime/password_hash.h"
 
 extern "C" int main(int argc, char **argv)
 {
-  if (geteuid() != 0 || argc > 2)
+  unsigned caller = getuid();
+  for (int fd = 3; fd < 16; ++fd)
   {
-    fprintf(2, "passwd: root required; usage: passwd [user]\n");
+    close(fd);
+  }
+  clearenv();
+  umask(0077);
+  account::User user{};
+  bool known = argc == 2 ? account::find(argv[1], user) : account::find(caller, user);
+  if (argc > 2 || geteuid() != 0 || !known || (caller != 0 && user.uid != caller))
+  {
+    fprintf(2, "passwd: permission denied; usage: passwd [user]\n");
     exit(1);
   }
-  account::User user{};
-  if (!account::find(argc == 2 ? argv[1] : "root", user))
+  if (caller)
   {
-    fprintf(2, "passwd: unknown user\n");
-    exit(1);
+    char current[64]{};
+    bool valid =
+        account::read_password("Current password: ", current, sizeof(current)) &&
+        account::verify(user.name, current);
+    password_hash::wipe(current, sizeof(current));
+    if (!valid)
+    {
+      fprintf(2, "passwd: authentication failed\n");
+      exit(1);
+    }
   }
   if (!account::change_password(user.name))
   {

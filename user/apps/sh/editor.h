@@ -9,7 +9,7 @@ class Editor final
 {
 public:
 
-  Editor(char *line, int capacity);
+  Editor(char *line, int capacity, bool interactive = true);
   ~Editor();
 
   bool active() const

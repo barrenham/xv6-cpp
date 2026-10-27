@@ -150,7 +150,7 @@ Inode *RamFileSystem::create_at(Inode *directory, const char *name, short type, 
 {
   tree_.acquire();
   auto *parent = state(directory);
-  if (directory->type != T_DIR || !directory->nlink || !detail::allowed(directory, 3) || (type != T_FILE && type != T_DIR) ||
+  if (directory->type != T_DIR || !directory->nlink || !detail::allowed(directory, 3) || (type != T_FILE && type != T_DIR && type != T_SYMLINK) ||
       (type == T_DIR && directory->nlink == NLINK_MAX))
   { tree_.release(); return nullptr; }
   auto *existing = lookup_entry(directory, name, nullptr);
@@ -201,7 +201,7 @@ void RamFileSystem::truncate(Inode *node)
 int RamFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)
 {
   auto *data = state(node);
-  if (node->type == T_FILE) return data->contents.read(offset, user, destination, count);
+  if (node->type == T_FILE || node->type == T_SYMLINK) return data->contents.read(offset, user, destination, count);
   if (node->type != T_DIR) return -1;
   if (offset >= node->size) return 0;
   if (count > node->size - offset) count = node->size - offset;
@@ -227,7 +227,7 @@ int RamFileSystem::read(Inode *node, int user, unsigned long destination, unsign
 }
 int RamFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count)
 {
-  if (node->type != T_FILE) return -1;
+  if (node->type != T_FILE && node->type != T_SYMLINK) return -1;
   int result = state(node)->contents.write(offset, user, source, count);
   node->size = state(node)->contents.size();
   return result;
@@ -287,6 +287,12 @@ int RamFileSystem::rename_at(Inode *from, const char *old_name, Inode *to, const
     moving->parent = state(to);
   }
   return 0;
+}
+
+int RamFileSystem::resize(Inode *node, unsigned size)
+{
+  if (node->kind() != T_FILE || !state(node)->contents.resize(size)) return -1;
+  node->size = size; return 0;
 }
 
 }

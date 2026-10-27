@@ -17,6 +17,7 @@
 - [`xv::fs::RamFileSystem::reclaim`](ramfs.cpp.md#fn-1a54a9d94f11be0a)
 - [`xv::fs::RamFileSystem::release`](ramfs.cpp.md#fn-217486517d13a8eb)
 - [`xv::fs::RamFileSystem::rename_at`](ramfs.cpp.md#fn-af0a949d4f892d41)
+- [`xv::fs::RamFileSystem::resize`](ramfs.cpp.md#fn-26a32874b953ad67)
 - [`xv::fs::RamFileSystem::retain`](ramfs.cpp.md#fn-0339515fc48a1692)
 - [`xv::fs::RamFileSystem::root`](ramfs.cpp.md#fn-5495fb0db3fbb09a)
 - [`xv::fs::RamFileSystem::shutdown`](ramfs.cpp.md#fn-854bbfaca9e5aef5)
@@ -165,8 +166,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::RamFileSystem::create_at(Inode *directory, const char *name, short type, short, short)
-@brief 在 RAM 目录创建并返回锁定节点。
-@details 共享树锁内检查父 W/X、链接状态和支持的类型；按凭据创建新节点，目录槽发布失败回收节点及父引用，成功保持树锁供打开继续使用。
+@brief 在树锁内创建 RAM 节点。
+@details 除普通文件和目录外允许 T_SYMLINK；权限、编号、父固定引用与失败回收仍沿用原有约定。
 ```
 
 <a id="fn-284ead7688a027d6"></a>
@@ -205,8 +206,8 @@
 
 ```doxygen
 @fn int xv::fs::RamFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)
-@brief 读取 RAM 文件内容或合成目录记录。
-@details 调用者持树锁，普通文件委托跨页缓冲，目录按稳定槽位置生成点目录、有效项和空洞。支持非对齐读取、短读、复制失败和 EOF，未链接目录的父指针由固定引用保持有效。
+@brief 读取 RAM 文件、链接内容或目录记录。
+@details 普通文件与符号链接共用 PageBuffer；目录仍按固定 dirent 布局逐段复制，失败不越过有效数据。
 ```
 
 <a id="fn-9512b40f84b5ad5d"></a>
@@ -215,8 +216,8 @@
 
 ```doxygen
 @fn int xv::fs::RamFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count)
-@brief 把数据写入 RAM 普通文件并更新大小。
-@details 调用者持树锁，非普通文件失败。页分配或用户复制部分成功时保留实际长度和返回值，后端无需日志和磁盘块。
+@brief 向 RAM 普通文件或符号链接写入内容。
+@details 不允许目录写入，PageBuffer 处理补零和部分失败；回写实际逻辑长度。
 ```
 
 <a id="fn-1c27602529c8e52e"></a>
@@ -270,4 +271,14 @@
 @brief 在树锁内移动或替换 RAM 目录项。
 @details 检查源/目标父目录授权、sticky、类型、目标目录是否为空及链接数边界。先完成目标槽安装，再清除源槽；替换 inode 减少链接并在最后引用释放时回收。跨父目录移动转换内部父节点引用，同时维护外部引用计数。调用前由 VFS 拒绝目录环及挂载移动。
 @return 0 表示成功，-1 表示检查或槽分配失败。
+```
+
+<a id="fn-26a32874b953ad67"></a>
+
+## `xv::fs::RamFileSystem::resize`
+
+```doxygen
+@fn int xv::fs::RamFileSystem::resize(Inode *node, unsigned size)
+@brief 调整 RAM 普通文件的页缓冲。
+@details 调用时树锁已持有；成功设置 inode 长度，失败返回 -1，不允许通过此接口调整目录或链接。
 ```

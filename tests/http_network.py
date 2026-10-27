@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('qemu', 'kernel', 'image'):
         parser.add_argument('--'+name, required=True)
-    parser.add_argument('--cpus', type=int, default=3)
+    parser.add_argument('--cpus', type=int, default=5)
     args = parser.parse_args()
     failures, requests = [], []
 

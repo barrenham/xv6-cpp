@@ -1,6 +1,6 @@
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
-add_library(user_accounts STATIC runtime/accounts.cpp runtime/authentication.cpp)
+add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
 target_link_libraries(user_dns PRIVATE xv_options)
@@ -14,15 +14,24 @@ function(xv_add_program source)
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
     set(destination "/usr/tests/${name}")
-  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "netctl")
+  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl")
     set(destination "/sbin/${name}")
   else()
     set(destination "/bin/${name}")
   endif()
-  set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t0755\t${destination}\t$<TARGET_FILE:user_${name}>\n" PARENT_SCOPE)
+  set(mode 0755)
+  if(name STREQUAL "passwd")
+    set(mode 04755)
+  endif()
+  set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t${mode}\t${destination}\t$<TARGET_FILE:user_${name}>\n" PARENT_SCOPE)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/userdel/userdel.cpp
+  apps/groupadd/groupadd.cpp
+  apps/groupdel/groupdel.cpp
+  apps/usermod/usermod.cpp
+  apps/readlink/readlink.cpp
   apps/pwd/pwd.cpp
   apps/cp/cp.cpp
   apps/mv/mv.cpp
@@ -41,6 +50,7 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/storagecheck.cpp
   tests/workflowtest.cpp
   tests/envtest.cpp
   tests/permissiontest.cpp
@@ -105,6 +115,6 @@ target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.
 
 target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/child_signals.cpp tests/signal_registers.S)
 
-foreach(program init id su useradd chown sh login passwd)
+foreach(program init id su useradd chown sh login passwd userdel groupadd groupdel usermod)
   target_link_libraries(user_${program} PRIVATE user_accounts)
 endforeach()

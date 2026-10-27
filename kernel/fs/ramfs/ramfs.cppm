@@ -25,6 +25,7 @@ public:
   void unlock_release(Inode *node) override;
   void update(Inode *) override {}
   void truncate(Inode *node) override;
+  int resize(Inode *node, unsigned size) override;
   int read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count) override;
   int write(Inode *node, int user, unsigned long source, unsigned offset, unsigned count) override;
   void stat(Inode *node, Stat *result) override;

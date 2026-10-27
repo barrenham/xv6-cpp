@@ -35,7 +35,7 @@ void VirtioBlock::initialize()
   unsigned long features = registers_.read32(VIRTIO_MMIO_DEVICE_FEATURES);
   features &= ~(1 << VIRTIO_BLK_F_RO);
   features &= ~(1 << VIRTIO_BLK_F_SCSI);
-  features &= ~(1 << VIRTIO_BLK_F_FLUSH);
+  can_flush_ = features & (1 << VIRTIO_BLK_F_FLUSH);
   features &= ~(1 << VIRTIO_BLK_F_CONFIG_WCE);
   features &= ~(1 << VIRTIO_BLK_F_MQ);
   features &= ~(1 << VIRTIO_F_ANY_LAYOUT);
@@ -187,7 +187,8 @@ int VirtioBlock::allocate_chain(int *idx)
 void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void *data,
                            unsigned count)
 {
-  if (!data || count == 0 || count % SectorSize != 0)
+  bool flushing = !data && count == 0;
+  if (!flushing && (!data || count == 0 || count % SectorSize != 0))
   {
     detail::fail("virtio: invalid transfer");
   }
@@ -218,7 +219,8 @@ void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void 
 
   struct virtio_blk_req *buf0 = &operations_[idx[0]];
 
-  if (write)
+  if (flushing) buf0->type = 4;
+  else if (write)
   {
     buf0->type = VIRTIO_BLK_T_OUT; // write the disk
   }
@@ -232,7 +234,7 @@ void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void 
   descriptors_[idx[0]].addr = (unsigned long)buf0;
   descriptors_[idx[0]].len = sizeof(struct virtio_blk_req);
   descriptors_[idx[0]].flags = VRING_DESC_F_NEXT;
-  descriptors_[idx[0]].next = idx[1];
+  descriptors_[idx[0]].next = flushing ? idx[2] : idx[1];
 
   descriptors_[idx[1]].addr = (unsigned long)data;
   descriptors_[idx[1]].len = count;
@@ -277,7 +279,8 @@ void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void 
     lock_.acquire();
   }
 
-  free_chain(idx[0]);
+  if (flushing) { free_descriptor(idx[0]); free_descriptor(idx[1]); free_descriptor(idx[2]); }
+  else free_chain(idx[0]);
 
   lock_.release();
 }
@@ -321,4 +324,9 @@ void VirtioBlock::handle_interrupt()
   }
 }
 
+
+bool VirtioBlock::present() const
+{ return registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 && registers_.read32(VIRTIO_MMIO_DEVICE_ID) == 2; }
+void VirtioBlock::flush()
+{ if (can_flush_) transfer(BlockOperation::Write, 0, nullptr, 0); }
 } // namespace xv::drivers

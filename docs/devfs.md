@@ -69,10 +69,10 @@ devfstest
 
 ```sh
 cmake --build --preset dev
-ctest --test-dir build/dev --output-on-failure -R '^(fs_contract|devfs_[13]cpu)$'
+ctest --test-dir build/dev --output-on-failure -R '^(fs_contract|devfs_[15]cpu)$'
 ```
 
-原生 `fs_contract` 使用实际 VFS/devfs 实现，验证合成目录的非对齐读取、minor 分派、复制失败、相对路径、挂载保护、并发打开，以及这些操作不产生磁盘写入。QEMU 单核/三核 `devfstest` 验证用户指针错误、设备内容、poll/ioctl、dup/fork、重复打开和并发子进程；脚本同时检查 shell 的目录遍历与设备重定向。
+原生 `fs_contract` 使用实际 VFS/devfs 实现，验证合成目录的非对齐读取、minor 分派、复制失败、相对路径、挂载保护、并发打开，以及这些操作不产生磁盘写入。QEMU 单核/五核 `devfstest` 验证用户指针错误、设备内容、poll/ioctl、dup/fork、重复打开和并发子进程；脚本同时检查 shell 的目录遍历与设备重定向。
 
 函数文档保存在 [VFS 实现](functions/kernel/fs/vfs/vfs.cpp.md)、[devfs 实现](functions/kernel/fs/devfs/devfs.cpp.md) 和 [设备注册表](functions/kernel/fs/file/open_file.cpp.md)，通过现有外部索引显示 Doxygen hover。
 

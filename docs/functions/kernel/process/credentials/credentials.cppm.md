@@ -3,6 +3,7 @@
 ## 函数导航
 
 - [`xv::process::Credentials::Credentials`](credentials.cppm.md#fn-f8c2bdf5a54d0b00)
+- [`xv::process::Credentials::apply_exec`](credentials.cppm.md#fn-a7a29914891e25c5)
 - [`xv::process::Credentials::inherit`](credentials.cppm.md#fn-e461a6eea2969afc)
 - [`xv::process::Credentials::may_signal`](credentials.cppm.md#fn-66a68733c0d3750d)
 - [`xv::process::Credentials::set_gid`](credentials.cppm.md#fn-6de91f06a7cca1b8)
@@ -89,4 +90,14 @@
 @fn static bool xv::process::Credentials::may_signal(const CredentialState &sender, const CredentialState &target)
 @brief 判断用户进程是否可发送信号。
 @details root 放行；否则发送者真实或有效 UID 必须匹配目标真实或保存 UID。纯值判断不加锁，调用方提供一致快照；内核终端通知不使用此用户授权路径。
+```
+
+<a id="fn-a7a29914891e25c5"></a>
+
+## `xv::process::Credentials::apply_exec`
+
+```doxygen
+@fn void xv::process::Credentials::apply_exec(unsigned uid, unsigned gid, unsigned mode)
+@brief 提交 exec 后的有效与保存身份。
+@details 凭据锁内按 04000/02000 更新有效 UID/GID，再把保存身份设为有效值；真实身份和附加组不变，仅在候选镜像成功提交后调用。
 ```

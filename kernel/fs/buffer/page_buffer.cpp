@@ -102,4 +102,18 @@ void PageBuffer::clear()
   }
   tail_ = nullptr; pages_ = size_ = 0;
 }
+bool PageBuffer::resize(unsigned size)
+{
+  if (size > 0x7fffffffU) return false;
+  if (size > size_)
+  { char zero = 0; return write(size - 1, false, reinterpret_cast<unsigned long>(&zero), 1) == 1; }
+  unsigned keep = (size + sizeof(Page::bytes) - 1) / sizeof(Page::bytes);
+  auto **link = &head_; Page *last = nullptr;
+  for (unsigned i = 0; i < keep; ++i) { last = *link; link = &last->next; }
+  while (*link) { auto *next = (*link)->next; (*link)->~Page(); detail::free_page(*link); *link = next; }
+  tail_ = last; pages_ = keep; size_ = size;
+  if (last && size % sizeof(Page::bytes)) detail::fill(last->bytes + size % sizeof(Page::bytes), 0, sizeof(Page::bytes) - size % sizeof(Page::bytes));
+  return true;
+}
+
 }

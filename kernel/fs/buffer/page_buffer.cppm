@@ -14,6 +14,7 @@ public:
   int read(unsigned offset, bool user, unsigned long destination, unsigned count) const;
   int write(unsigned offset, bool user, unsigned long source, unsigned count);
   void clear();
+  bool resize(unsigned size);
 private:
   struct Page
   {

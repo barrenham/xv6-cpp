@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--qemu', required=True)
     parser.add_argument('--kernel', required=True)
     parser.add_argument('--image', required=True)
-    parser.add_argument('--cpus', type=int, default=3)
+    parser.add_argument('--cpus', type=int, default=5)
     parser.add_argument('--multi', action='store_true')
     parser.add_argument('--management', action='store_true')
     parser.add_argument('--dhcp', action='store_true')

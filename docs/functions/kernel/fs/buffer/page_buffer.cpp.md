@@ -7,6 +7,7 @@
 - [`xv::fs::PageBuffer::page`](page_buffer.cpp.md#fn-7324b6e1a8cb6d8b)
 - [`xv::fs::PageBuffer::page`](page_buffer.cpp.md#fn-afb49e59fd42539a)
 - [`xv::fs::PageBuffer::read`](page_buffer.cpp.md#fn-737bf8707fc7f001)
+- [`xv::fs::PageBuffer::resize`](page_buffer.cpp.md#fn-f13fafd9d3b26469)
 - [`xv::fs::PageBuffer::take`](page_buffer.cpp.md#fn-a9cb29f61972a3dd)
 - [`xv::fs::PageBuffer::write`](page_buffer.cpp.md#fn-f0d6953988455923)
 - [`xv::fs::PageBuffer::~PageBuffer`](page_buffer.cpp.md#fn-522ff50df4a42b80)
@@ -89,4 +90,14 @@
 @fn void xv::fs::PageBuffer::clear()
 @brief 逐页回收所有内容并恢复空缓冲状态。
 @details 遍历页链，在释放当前页前保存 next，最终清空首尾、页数与长度。不会保留旧内容供后续读取，调用方保证没有并发使用该缓冲。
+```
+
+<a id="fn-f13fafd9d3b26469"></a>
+
+## `xv::fs::PageBuffer::resize`
+
+```doxygen
+@fn bool xv::fs::PageBuffer::resize(unsigned size)
+@brief 改变多页缓冲的逻辑长度。
+@details 增长通过补零写入建立页面；缩短释放多余页并清空尾页剩余字节。分配失败返回 false，不发布新的逻辑长度；已预留页在之后清理时归还。
 ```

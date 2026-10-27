@@ -85,9 +85,8 @@
 
 ```doxygen
 @fn inline xv::fs::Transaction::Transaction()
-@brief 构造日志事务作用域守卫，建立本重载要求的成员初值和借用关系。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`Transaction` → `journal`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 按固定顺序预留所需日志事务。
+@details 显式 Journal 构造只保留指定日志；persistent 构造在需要时先系统盘再数据盘，默认构造选择持久事务。第二日志仅在启动恢复后发布。
 ```
 
 <a id="fn-b41989f478512a14"></a>
@@ -129,11 +128,8 @@
 
 ```doxygen
 @fn inline void xv::fs::Transaction::finish()
-@brief 日志事务作用域守卫：结束。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`journal_->end`。
-@details 本函数可见的状态更新包括：`journal_ = nullptr;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`journal_`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 按数据盘到系统盘的顺序结束预留。
+@details 先归还可选第二日志再结束主日志，清空指针使重复 finish 和析构幂等；两个日志不是跨文件系统原子提交。
 ```
 <a id="fn-03718a79a3d72eff"></a>
 
@@ -141,6 +137,6 @@
 
 ```doxygen
 @fn inline explicit xv::fs::Transaction::Transaction(bool persistent)
-@brief 按持久性要求建立条件磁盘事务。
-@details persistent 为 true 时调用全局 Journal::begin，否则保持空守卫。析构或 finish 只结束实际取得的事务；内存文件系统关闭使用 false，不申请日志容量。
+@brief 按固定顺序预留所需日志事务。
+@details 显式 Journal 构造只保留指定日志；persistent 构造在需要时先系统盘再数据盘，默认构造选择持久事务。第二日志仅在启动恢复后发布。
 ```

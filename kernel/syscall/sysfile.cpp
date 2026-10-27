@@ -156,7 +156,7 @@ uint64 sys_open(void)
 
   if (omode & O_CREATE)
   {
-    ip = xv::fs::filesystem().create(path, T_FILE, 0, 0);
+    ip = xv::fs::filesystem().create(path, T_FILE, 0, 0, !(omode & O_NOFOLLOW));
     if (ip == 0)
     {
       return -1;
@@ -164,11 +164,12 @@ uint64 sys_open(void)
   }
   else
   {
-    if ((ip = xv::fs::filesystem().lookup(path)) == 0)
+    if ((ip = xv::fs::filesystem().lookup(path, false, !(omode & O_NOFOLLOW))) == 0)
     {
       return -1;
     }
     xv::fs::filesystem().lock(ip);
+    if (ip->kind() == T_SYMLINK) { xv::fs::filesystem().unlock_release(ip); return -1; }
     if (ip->kind() == T_DIR && (omode & ~O_NONBLOCK) != O_RDONLY)
     {
       xv::fs::filesystem().unlock_release(ip);
@@ -198,7 +199,7 @@ uint64 sys_open(void)
   }
 
   if (!xv::fs::files().bind_inode(*f, *ip, !(omode & O_WRONLY),
-                                (omode & O_WRONLY) || (omode & O_RDWR), omode & O_NONBLOCK))
+                                (omode & O_WRONLY) || (omode & O_RDWR), omode & O_NONBLOCK, omode & O_APPEND))
   {
     xv::process::current()->files().take(fd);
     xv::fs::files().release(f);
@@ -208,6 +209,7 @@ uint64 sys_open(void)
 
   if ((omode & O_TRUNC) && ip->kind() == T_FILE)
   {
+    if (ip->mode() & 06000) ip->owner().attributes(ip, ip->uid(), ip->gid(), ip->mode() & ~06000U);
     xv::fs::filesystem().truncate(ip);
   }
 
@@ -400,6 +402,7 @@ uint64 sys_ioctl(void)
 uint64 sys_sync(void)
 {
   xv::fs::journal().sync();
+  if (xv::fs::Transaction::secondary) xv::fs::Transaction::secondary->sync();
   return 0;
 }
 namespace
@@ -427,7 +430,17 @@ uint64 attributes(bool ownership)
       valid &= who.effective_uid == 0 || member; gid = second;
     }
   }
-  else { valid &= first >= 0 && !(first & ~01777); mode = first; }
+  else
+  {
+    valid &= first >= 0 && !(first & ~07777) && (!(first & 06000) || node->kind() == T_FILE); mode = first;
+    if (who.effective_uid != 0 && (mode & 02000))
+    {
+      bool member = who.effective_gid == gid;
+      for (unsigned i = 0; i < who.group_count; ++i) member |= who.groups[i] == gid;
+      if (!member) mode &= ~02000U;
+    }
+  }
+  if (ownership) mode &= ~06000U;
   if (valid) node->owner().attributes(node, uid, gid, mode);
   xv::fs::filesystem().unlock_release(node);
   return valid ? 0 : -1;
@@ -477,14 +490,18 @@ uint64 sys_mount()
   if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
   char path[MAXPATH], type[16];
   if (argument_string(0, type, sizeof(type)) < 0 || argument_string(1, path, sizeof(path)) < 0 ||
-      xv::runtime::compare_text(type, "ramfs", 16) != 0) return -1;
+      !type[0]) return -1;
+  if (!xv::runtime::compare_text(type, "xv6", 16)) return xv::fs::filesystem().mount_disk(path);
+  if (xv::runtime::compare_text(type, "ramfs", 16)) return -1;
   return xv::fs::filesystem().mount_ram(path);
 }
 uint64 sys_umount()
 {
   if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
   char path[MAXPATH]; if (argument_string(0, path, sizeof(path)) < 0) return -1;
-  return xv::fs::filesystem().unmount(path);
+  int result = xv::fs::filesystem().unmount(path);
+  if (result == 0) { xv::fs::journal().sync(); if (xv::fs::Transaction::secondary) xv::fs::Transaction::secondary->sync(); }
+  return result;
 }
 uint64 sys_mountinfo()
 {
@@ -494,5 +511,30 @@ uint64 sys_mountinfo()
   int result = xv::fs::filesystem().mounts(index, record.path, record.type);
   if (result && xv::process::current()->memory().copy_out(address, &record, sizeof(record)) < 0) return -1;
   return result;
+}
+
+uint64 sys_lseek()
+{ xv::fs::File *file; uint64 offset; int origin; argument_address(1, &offset); argument_integer(2, &origin); return argfd(0, nullptr, &file) < 0 ? -1 : xv::fs::files().seek(file, static_cast<long>(offset), origin); }
+uint64 sys_ftruncate()
+{ xv::fs::File *file; uint64 size; argument_address(1, &size); return size > 0x7fffffffUL || argfd(0, nullptr, &file) < 0 ? -1 : xv::fs::files().resize(file, size); }
+uint64 sys_fsync()
+{ xv::fs::File *file; return argfd(0, nullptr, &file) < 0 ? -1 : xv::fs::files().sync(file); }
+uint64 sys_symlink()
+{ char target[MAXPATH], path[MAXPATH]; if (argument_string(0, target, sizeof(target)) < 0 || argument_string(1, path, sizeof(path)) < 0) return -1; return xv::fs::filesystem().symlink(target, path); }
+uint64 sys_readlink()
+{
+  char path[MAXPATH]; uint64 address; int size; argument_address(1, &address); argument_integer(2, &size);
+  if (size < 0 || argument_string(0, path, sizeof(path)) < 0) return -1;
+  xv::fs::Transaction transaction; auto *node = xv::fs::filesystem().lookup(path, false, false); if (!node) return -1;
+  xv::fs::filesystem().lock(node); int result = -1;
+  if (node->kind() == T_SYMLINK) result = node->owner().read(node, 1, address, 0, size);
+  xv::fs::filesystem().unlock_release(node); return result;
+}
+uint64 sys_lstat()
+{
+  char path[MAXPATH]; uint64 address; argument_address(1, &address); if (argument_string(0, path, sizeof(path)) < 0) return -1;
+  xv::fs::Transaction transaction; auto *node = xv::fs::filesystem().lookup(path, false, false); if (!node) return -1;
+  xv::fs::Stat result{}; xv::fs::filesystem().lock(node); xv::fs::filesystem().stat(node, &result); xv::fs::filesystem().unlock_release(node);
+  return xv::process::current()->memory().copy_out(address, &result, sizeof(result));
 }
 } // namespace xv::syscall

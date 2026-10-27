@@ -26,6 +26,8 @@ public:
   }
 
   void initialize() override;
+  bool present() const;
+  void flush() override;
   void transfer(BlockOperation operation, unsigned long sector, void *data,
                 unsigned count) override;
   void handle_interrupt() override;
@@ -39,6 +41,7 @@ private:
 
   detail::MmioRegion registers_;
   unsigned irq_;
+  bool can_flush_ = false;
   virtq_desc *descriptors_ = nullptr;
   virtq_avail *available_ = nullptr;
   volatile virtq_used *used_ = nullptr;

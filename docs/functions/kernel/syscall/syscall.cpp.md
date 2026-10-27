@@ -19,9 +19,8 @@
 
 ```doxygen
 @fn static SyscallHandler xv::syscall::lookup_syscall(int number)
-@brief 把用户 ABI 调用号映射到私有处理函数。
-@details 在已有进程、文件、信号和网络入口之外加入 rename、mount、umount、mountinfo 与 clockticks；条件实验分支仍受原有宏控制。
-@return 匹配的处理函数指针；未知调用返回 nullptr。
+@brief 把共享 ABI 调用号映射到处理函数。
+@details 加入原保留号 symlink 与 lseek/ftruncate/fsync/readlink/lstat，其余条件实验和未知号行为保持不变。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>

@@ -5,6 +5,7 @@
 - [`xv::drivers::block_device`](board/qemu_virt.cpp.md#fn-72e31996ffc2b022)
 - [`xv::drivers::console`](board/qemu_virt.cpp.md#fn-cb18263197838102)
 - [`xv::drivers::create_pty`](tty/pty/pty.cpp.md#fn-8801034b0305377a)
+- [`xv::drivers::data_device`](board/qemu_virt.cpp.md#fn-1f40f120d59e62df)
 - [`xv::drivers::handle_external_interrupt`](board/qemu_virt.cpp.md#fn-8819b4e9b6bdacb6)
 - [`xv::drivers::initialize_console`](board/qemu_virt.cpp.md#fn-cacccb8b1ed2107b)
 - [`xv::drivers::initialize_hart`](board/qemu_virt.cpp.md#fn-bea9233c904d33be)

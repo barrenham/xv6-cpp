@@ -10,6 +10,7 @@
 
 ## 函数导航
 
+- [`kernel_stack_prepare`](kernel_platform.cpp.md#fn-5c3f11ead232f9df)
 - [`xv::trap::detail::advance_user_pc`](kernel_platform.cpp.md#fn-b6c74a0b72429492)
 - [`xv::trap::detail::arm_timer`](kernel_platform.cpp.md#fn-6d371a07cbcfe6cf)
 - [`xv::trap::detail::deliver_signals`](kernel_platform.cpp.md#fn-4f041a4936f5176b)
@@ -39,6 +40,7 @@
 - [`xv::trap::detail::user_page_table_token`](kernel_platform.cpp.md#fn-fb9cf283bc7dc87e)
 - [`xv::trap::detail::wakeup`](kernel_platform.cpp.md#fn-372407f34cc73123)
 - [`xv::trap::detail::yield_current`](kernel_platform.cpp.md#fn-b99841e868c4b5b2)
+- [`xv::trap::scheduler_stack_top`](kernel_platform.cpp.md#fn-ebe7c8cf89feb5d2)
 
 <a id="fn-99ff6f6b07035421"></a>
 
@@ -57,9 +59,8 @@
 
 ```doxygen
 @fn void xv::trap::detail::install_kernel_vector()
-@brief 陷阱快照、事件分派、设备服务及特权级返回：安装内核中断向量。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::w_stvec`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 安装内核异常入口与当前 hart 的应急栈。
+@details 先把 sscratch 设置为静态 16 KiB 应急栈顶，再设置 stvec；用户陷阱重新进入内核时恢复此约定，供尚未能在原栈保存现场的缺页使用。
 ```
 
 <a id="fn-7efdcba7acebcf8f"></a>
@@ -241,10 +242,8 @@
 
 ```doxygen
 @fn void xv::trap::detail::prepare_user_return()
-@brief 陷阱快照、事件分派、设备服务及特权级返回：设置用户态返回所需的向量和特权状态。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `xv::arch::intr_off` → `xv::arch::w_stvec` → `process->registers` → `xv::arch::r_satp` → `process->kernel_stack` → `xv::arch::r_tp` → `xv::arch::r_sstatus` → `xv::arch::w_sstatus` → `xv::arch::w_sepc`。
-@details 本函数可见的状态更新包括：`frame->kernel_satp = xv::arch::r_satp();`；`frame->kernel_sp = process->kernel_stack() + PGSIZE;`；`frame->kernel_trap = reinterpret_cast<Word>(usertrap);`；`frame->kernel_hartid = xv::arch::r_tp();`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 设置用户陷阱返回现场及完整虚拟栈顶。
+@details 关闭中断后切换 trampoline 入口，把 kernel_sp 设置为区域底加预留容量；保存 SATP、入口、hart 与用户 PC/状态。物理页按需增长，不将已提交边界当作栈顶。
 ```
 
 <a id="fn-fb9cf283bc7dc87e"></a>
@@ -376,4 +375,24 @@
 @details 需要特别跟踪的条件：`hart_id() == 0`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 @details 只在 hart 0 调用网络 timer_tick，处理 ARP 请求重试、IPv4 分片超时与回环队列、TCP 重传及关闭状态回收；不会在计时器中执行用户地址复制。
+```
+
+<a id="fn-5c3f11ead232f9df"></a>
+
+## `kernel_stack_prepare`
+
+```doxygen
+@fn int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)
+@brief 在每 hart 应急栈上补齐进程或调度器的内核栈。
+@details 入口保持中断关闭且不调度；按当前进程或当前 hart 选择区域。实际栈内读写缺页先只保证原 SP 和故障页所需的物理页，失败触发 panic；随后尝试额外 32 KiB 余量，该预提交失败允许继续。处理缺页返回 1 供汇编重试；普通异常返回 0，在原栈运行 kerneltrap。越界进入保护区会 panic。
+```
+
+<a id="fn-ebe7c8cf89feb5d2"></a>
+
+## `xv::trap::scheduler_stack_top`
+
+```doxygen
+@fn unsigned long xv::trap::scheduler_stack_top()
+@brief 为当前 hart 分配长期存在的可增长调度栈。
+@details 从统一虚拟栈区域服务分配，记录本 hart 栈底以支持无当前进程时的异常补页，返回预留容量顶端；重复初始化或分配失败触发 panic。仅供启动阶段、中断关闭时调用。
 ```

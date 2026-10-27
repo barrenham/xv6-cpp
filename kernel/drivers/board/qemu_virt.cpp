@@ -28,6 +28,7 @@ constinit NttyDiscipline discipline;
 constinit Tty terminal(uart, discipline);
 constinit Plic plic(PLIC);
 constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
+constinit VirtioBlock data_disk(VIRTIO0 + 0x1000, VIRTIO0_IRQ + 1);
 constinit E1000 ethernet[] = {{0x40000000UL, 0}, {0x40020000UL, 0},
                               {0x40040000UL, 0}, {0x40060000UL, 0}};
 constinit unsigned ethernet_count = 0;
@@ -48,8 +49,8 @@ private:
 };
 constinit PciNetworkInterrupt pci_lines[] = {PciNetworkInterrupt(32), PciNetworkInterrupt(33),
                                             PciNetworkInterrupt(34), PciNetworkInterrupt(35)};
-constinit InterruptDevice *sources[] = {&uart, &disk, &pci_lines[0], &pci_lines[1], &pci_lines[2], &pci_lines[3]};
-constinit InterruptRouter router(plic, sources, 6);
+constinit InterruptDevice *sources[] = {&uart, &disk, &data_disk, &pci_lines[0], &pci_lines[1], &pci_lines[2], &pci_lines[3]};
+constinit InterruptRouter router(plic, sources, 7);
 
 } // namespace
 
@@ -111,6 +112,9 @@ SerialPort &serial_port()
 {
   return uart;
 }
+
+BlockDevice *data_device()
+{ return data_disk.present() ? &data_disk : nullptr; }
 
 BlockDevice &block_device()
 {

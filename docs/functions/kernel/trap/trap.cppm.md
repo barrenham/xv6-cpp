@@ -14,3 +14,4 @@
 - [`xv::trap::initialize_hart`](service.cpp.md#fn-a54f903e3675d4e8)
 - [`xv::trap::prepare_return`](service.cpp.md#fn-0968469d414ee0fc)
 - [`xv::trap::return_to_user`](service.cpp.md#fn-3733f8d54bf76c4c)
+- [`xv::trap::scheduler_stack_top`](arch/riscv/kernel_platform.cpp.md#fn-ebe7c8cf89feb5d2)

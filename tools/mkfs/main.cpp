@@ -124,7 +124,7 @@ std::vector<ImageEntry> read_manifest(const char *path)
       if (digit < '0' || digit > '7') error("file mode must be octal");
       mode = mode * 8 + digit - '0';
     }
-    if (mode > 01777) error("unsupported file mode");
+    if (mode > 07777 || (fields[0] == "dir" && (mode & 06000))) error("unsupported file mode");
     validate_path(fields[2]);
     if (!names.emplace(fields[2], true).second) error("duplicate image path");
     if (fields[0] == "file" && fields[3].empty()) error("empty host source path");

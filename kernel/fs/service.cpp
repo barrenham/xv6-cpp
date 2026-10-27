@@ -12,6 +12,9 @@ namespace
 {
 constinit LruBlockCache system_cache;
 constinit Journal system_journal(system_cache);
+constinit LruBlockCache data_cache;
+constinit Journal data_journal(data_cache);
+constinit Xv6FileSystem data_filesystem(data_cache, data_journal);
 constinit Xv6FileSystem disk_filesystem(system_cache, system_journal);
 constinit DevFileSystem device_filesystem;
 constinit ProcFileSystem process_filesystem;
@@ -52,5 +55,10 @@ void initialize_cache()
 {
   system_cache.attach(xv::drivers::block_device());
   system_cache.initialize();
+  if (auto *device = xv::drivers::data_device())
+  {
+    device->initialize(); data_cache.attach(*device); data_cache.initialize();
+    system_filesystem.attach_storage(data_filesystem);
+  }
 }
 } // namespace xv::fs

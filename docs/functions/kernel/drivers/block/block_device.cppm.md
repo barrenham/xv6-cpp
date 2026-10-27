@@ -11,6 +11,7 @@
 ## 函数导航
 
 - [`xv::drivers::BlockDevice::BlockDevice`](block_device.cppm.md#fn-372b368d601421b4)
+- [`xv::drivers::BlockDevice::flush`](block_device.cppm.md#fn-5896623bca3f11d6)
 - [`xv::drivers::BlockDevice::transfer`](block_device.cppm.md#fn-2601db1d20c13767)
 - [`xv::drivers::BlockDevice::~BlockDevice`](block_device.cppm.md#fn-e35365167e433243)
 
@@ -49,4 +50,14 @@
 @brief 结束设备对象、MMIO、设备中断与终端数据流的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-5896623bca3f11d6"></a>
+
+## `xv::drivers::BlockDevice::flush`
+
+```doxygen
+@fn virtual void xv::drivers::BlockDevice::flush()
+@brief 提交设备的持久化屏障。
+@details 默认不执行操作；支持持久写缓存的驱动须覆写，调用者不能把默认实现视为硬件落盘保证。
 ```

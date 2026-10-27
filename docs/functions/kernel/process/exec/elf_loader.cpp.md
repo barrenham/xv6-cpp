@@ -14,9 +14,12 @@
 - [`xv::process::ExecutableFile::ExecutableFile`](elf_loader.cpp.md#fn-6e5b5d819ece94a1)
 - [`xv::process::ExecutableFile::ExecutableFile`](elf_loader.cpp.md#fn-6e69081813061c93)
 - [`xv::process::ExecutableFile::close`](elf_loader.cpp.md#fn-a12ac0a24317f534)
+- [`xv::process::ExecutableFile::gid`](elf_loader.cpp.md#fn-35babcaa3cbccf81)
+- [`xv::process::ExecutableFile::mode`](elf_loader.cpp.md#fn-03cff53d9fac314e)
 - [`xv::process::ExecutableFile::operator bool`](elf_loader.cpp.md#fn-6ede2db410059966)
 - [`xv::process::ExecutableFile::operator=`](elf_loader.cpp.md#fn-d853ede6e19ecd92)
 - [`xv::process::ExecutableFile::read`](elf_loader.cpp.md#fn-5b23d6497d765137)
+- [`xv::process::ExecutableFile::uid`](elf_loader.cpp.md#fn-930a35f280dcc8ee)
 - [`xv::process::ExecutableFile::~ExecutableFile`](elf_loader.cpp.md#fn-567434fd12eba0bf)
 - [`xv::process::PendingImage::PendingImage`](elf_loader.cpp.md#fn-a2994a1ee6aeaaf1)
 - [`xv::process::PendingImage::PendingImage`](elf_loader.cpp.md#fn-b2cf62537f82e72a)
@@ -195,8 +198,8 @@
 
 ```doxygen
 @fn int xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
-@brief 构造并提交包含参数与环境的新用户映像。
-@details 候选地址空间独立装载 ELF，把环境字符串、envp、参数字符串及 argv 复制到对齐用户栈。受 MAXARG/MAXENV 与单页栈容量限制，任一失败保留旧映像；提交时以 a2 传 envp，凭据保持不变。
+@brief 准备完整候选镜像后提交地址空间与执行身份。
+@details 关闭可执行文件之前捕获 UID/GID/mode；所有 ELF、参数和环境准备成功后先提交镜像再应用凭据，任一前置失败不改变原进程身份。
 ```
 
 <a id="fn-51cf014f3d7bbc3b"></a>
@@ -207,4 +210,34 @@
 @fn int xv::process::execute(const char *path, char *const *arguments, char *const *environment)
 @brief 执行带显式环境的映像装载服务。
 @details 委托当前进程的 ExecutableLoader；environment 为 nullptr 表示空环境，成功替换映像，失败返回 -1 且调用者原映像仍可继续。
+```
+
+<a id="fn-930a35f280dcc8ee"></a>
+
+## `xv::process::ExecutableFile::uid`
+
+```doxygen
+@fn unsigned xv::process::ExecutableFile::uid() const
+@brief 读取锁定可执行 inode 的属主 UID。
+@details 供装载器在关闭文件前捕获特权执行身份；借用锁定 inode，不增加引用。
+```
+
+<a id="fn-35babcaa3cbccf81"></a>
+
+## `xv::process::ExecutableFile::gid`
+
+```doxygen
+@fn unsigned xv::process::ExecutableFile::gid() const
+@brief 读取锁定可执行 inode 的属组 GID。
+@details 供装载器在关闭文件前捕获 setgid 身份，不从环境变量获得授权。
+```
+
+<a id="fn-03cff53d9fac314e"></a>
+
+## `xv::process::ExecutableFile::mode`
+
+```doxygen
+@fn unsigned xv::process::ExecutableFile::mode() const
+@brief 读取锁定可执行 inode 的权限位。
+@details 装载器捕获 setid 位，失败路径不应用到当前进程。
 ```

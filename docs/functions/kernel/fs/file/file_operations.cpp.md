@@ -25,7 +25,10 @@
 - [`xv::fs::InodeBackend::close`](file_operations.cpp.md#fn-ccfc01f791da65b4)
 - [`xv::fs::InodeBackend::poll`](file_operations.cpp.md#fn-5fada80fee636ddb)
 - [`xv::fs::InodeBackend::read`](file_operations.cpp.md#fn-483ee20032be6151)
+- [`xv::fs::InodeBackend::resize`](file_operations.cpp.md#fn-ae883e791f590ed4)
+- [`xv::fs::InodeBackend::seek`](file_operations.cpp.md#fn-87a319e476eaf4ce)
 - [`xv::fs::InodeBackend::stat`](file_operations.cpp.md#fn-f0d5394ca9774a31)
+- [`xv::fs::InodeBackend::sync`](file_operations.cpp.md#fn-1e17b13e14602c79)
 - [`xv::fs::InodeBackend::write`](file_operations.cpp.md#fn-1bb8e957e0af8807)
 - [`xv::fs::PipeBackend::close`](file_operations.cpp.md#fn-d129694fa64d854e)
 - [`xv::fs::PipeBackend::poll`](file_operations.cpp.md#fn-862c9c14fb97258a)
@@ -58,8 +61,8 @@
 
 ```doxygen
 @fn int xv::fs::InodeBackend::write(xv::io::Buffer source, int count)
-@brief 分段写节点并保留部分成功的字节数。
-@details 每段在所属节点锁内写入，只有持久后端预留日志事务。RAM 文件使用内存页，不进入磁盘日志；内存耗尽或复制失败时返回已完成量，完全未完成返回 -1，空写返回 0。
+@brief 串行更新共享偏移并执行分块写入。
+@details 每块写入在事务和 inode 锁内清除特殊执行位；O_APPEND 在同一锁内从最新 EOF 定位，避免独立打开的追加覆盖。只推进实际成功写入的字节数。
 ```
 
 <a id="fn-f0d5394ca9774a31"></a>
@@ -240,4 +243,34 @@
 @fn int xv::fs::EndpointBackend::ioctl(unsigned request, xv::io::Buffer argument)
 @brief 通过独立设备控制接口转发用户控制参数，保留 termios、前台进程组和终端请求处理。
 @details 通过独立设备控制接口转发用户控制参数，保留 termios、前台进程组和终端请求处理。
+```
+
+<a id="fn-87a319e476eaf4ce"></a>
+
+## `xv::fs::InodeBackend::seek`
+
+```doxygen
+@fn long xv::fs::InodeBackend::seek(long offset, int origin)
+@brief 在普通文件上调整共享偏移。
+@details inode 锁内按 SET/CUR/END 计算，拒绝未知 origin、负结果和超出当前整型范围的偏移；快照的 END 使用固定快照长度，失败不改变偏移。
+```
+
+<a id="fn-ae883e791f590ed4"></a>
+
+## `xv::fs::InodeBackend::resize`
+
+```doxygen
+@fn int xv::fs::InodeBackend::resize(unsigned size)
+@brief 在事务内调整可写普通文件的长度。
+@details 调用者已检查打开权限；锁住 inode，拒绝快照和只读后端，清除 setid 位并交给后端 resize，不改变本次打开的偏移。
+```
+
+<a id="fn-1e17b13e14602c79"></a>
+
+## `xv::fs::InodeBackend::sync`
+
+```doxygen
+@fn int xv::fs::InodeBackend::sync()
+@brief 等待相关日志批次并刷新所属后端。
+@details 只接受普通文件和目录；持久节点等待根盘和可选数据日志，再 flush 所属设备，RAM 节点成功返回而不写磁盘。
 ```

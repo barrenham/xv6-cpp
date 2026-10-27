@@ -79,10 +79,8 @@
 
 ```doxygen
 @fn void xv::fs::Journal::recover(void)
-@brief 文件系统重做日志：重放已提交日志并清空提交记录。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`read_header` → `install` → `write_header`。
-@details 本函数可见的状态更新包括：`header_.count = 0;`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 按提交头恢复已提交事务。
+@details 安装日志中的主块后先 flush，再清空提交头并 flush，避免恢复过程先丢失提交记录后才落盘数据。
 ```
 
 <a id="fn-68275ab1a63eaf6b"></a>
@@ -133,12 +131,8 @@
 
 ```doxygen
 @fn void xv::fs::Journal::commit()
-@brief 文件系统重做日志：把重做日志按提交协议持久化。
-@details 按 write_log → write_header → install → 清空内存日志头 → write_header 的次序提交。写入非空日志头是提交点；之后即使重启也可通过 recover 重放到原始块。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`write_log` → `write_header` → `install`。
-@details 本函数可见的状态更新包括：`header_.count = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`header_.count > 0`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 按持久化顺序提交一个日志批次。
+@details 日志数据、提交头、主块安装和清空日志之间各设 flush 屏障；只有提交头持久后才安装主块，防止写缓存重排破坏重放契约。
 ```
 
 <a id="fn-2bff0beebb0a1b13"></a>
@@ -162,10 +156,6 @@
 
 ```doxygen
 @fn void xv::fs::Journal::sync(void)
-@brief 文件系统重做日志：等待或提交文件系统当前修改。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `detail::prepare_sleep` → `lock_.release` → `detail::sleep`。
-@details 需要特别跟踪的条件：`committing_ || outstanding_ > 0`；`commits_ < n`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 等待当前提交边界并刷新设备。
+@details 不持自旋锁睡眠；等待已有事务完成对应提交后释放锁，再执行可能睡眠的设备 flush。
 ```

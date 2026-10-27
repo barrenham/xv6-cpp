@@ -53,7 +53,7 @@ uptime 来自系统 TickClock，当前 QEMU virt 每 tick 为 100 ms。
 
 `procfstest` 验证内存字段、短读、错误用户地址、只读规则、子进程退出后已有快照存续、共享偏移、相对路径、self、描述符种类和标志、fd 复用、并发关闭以及重复打开。额外创建 300 个子进程，验证目录快照超过 4 KiB 后仍完整。原生 fs_contract 还检查快照更新、复制失败和页面回收；两个 allocator_contract 检查分配、耗尽、碎片归还后的页数统计。
 
-单核/三核集成测试：`ctest --test-dir build/dev -R 'procfs_[13]cpu' --output-on-failure`。函数说明见 [procfs 实现](functions/kernel/fs/procfs/procfs.cpp.md)。
+单核/五核集成测试：`ctest --test-dir build/dev -R 'procfs_[15]cpu' --output-on-failure`。函数说明见 [procfs 实现](functions/kernel/fs/procfs/procfs.cpp.md)。
 
 ## 用户与权限
 

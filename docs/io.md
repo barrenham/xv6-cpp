@@ -70,7 +70,7 @@ backend->close()：可睡眠、可析构内置后端
 
 `fs_contract` 增加通用后端探针，验证虚调用、元数据、设备控制能力、非阻塞标志、非最后引用不关闭，以及阻塞 close 期间的槽位保留和表锁释放；原有共享偏移测试外，增加独立 open 偏移测试。
 
-集成验证包括完整 `usertests -q`、原生文件系统/进程/网络契约，以及单核/三核 PTY、poll、非阻塞和 socket 通信。函数说明仍在 [IoObject 文档](functions/kernel/io/object.cppm.md)、[后端实现](functions/kernel/fs/file/file_operations.cpp.md) 与 [File 管理](functions/kernel/fs/file/open_file.cpp.md)，不注入源码。
+集成验证包括完整 `usertests -q`、原生文件系统/进程/网络契约，以及单核/五核 PTY、poll、非阻塞和 socket 通信。函数说明仍在 [IoObject 文档](functions/kernel/io/object.cppm.md)、[后端实现](functions/kernel/fs/file/file_operations.cpp.md) 与 [File 管理](functions/kernel/fs/file/open_file.cpp.md)，不注入源码。
 
 设备命名空间、挂载边界与启动注册规则见 [VFS 与 devfs](devfs.md)。
 

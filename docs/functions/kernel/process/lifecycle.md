@@ -32,13 +32,8 @@
 
 ```doxygen
 @fn Process *xv::process::ProcessManager::allocate()
-@brief 构造一个尚未就绪的新进程，成功时把持锁描述符交给调用者。
-@return 持有进程锁的 Process 指针；存储、PID、页表或物理页分配失败时返回空指针。
-@pre 调用者不能把返回对象当作已可运行的用户进程；后续仍需填充映像及父子、组身份。
-@details 先向 ProcessStore 取得描述符和内核栈，再分配 PID、trapframe 页，以及 LAB_PGTBL 下的只读用户 PID 页。创建空用户页表后，清零 Context，把 ra 设置为 first_return，把 sp 设置到内核栈顶。
-@details 每个失败点通过 reap 撤销已经取得的资源。成功时不释放进程锁，由上层在发布状态后释放。
-@see ProcessManager::fork_process
-@see ProcessManager::reap
+@brief 构造候选进程并把内核上下文指向预留栈顶。
+@details 仍按顺序分配描述符、PID、trapframe、用户 PID 页和用户页表，失败逐项回滚；context.sp 设置为虚拟区域底加完整栈容量，context.ra 为首次返回入口。
 ```
 
 <a id="lifecycle-processmanager-reap"></a>

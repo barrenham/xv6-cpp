@@ -100,7 +100,7 @@ RTO 到期时，拥塞窗口降至一个 MSS，重传最早未确认数据，并
 
 ```sh
 cmake --build --preset dev
-ctest --preset dev -R '^(network_contract|socket_[13]cpu|http_[13]cpu|dns_[13]cpu)$' --output-on-failure
+ctest --preset dev -R '^(network_contract|socket_[15]cpu|http_[15]cpu|dns_[15]cpu)$' --output-on-failure
 ```
 
 原生报文测试使用可控时钟和真实 TCP 报文，覆盖：

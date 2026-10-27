@@ -60,10 +60,12 @@ public:
 
   inline explicit Transaction(bool persistent) : journal_(persistent ? &journal() : nullptr)
   {
-    if (journal_) journal_->begin();
+    if (journal_) { journal_->begin(); other_ = secondary; if (other_) other_->begin(); }
   }
 
-  inline Transaction() : Transaction(journal())
+  inline static Journal *secondary = nullptr;
+
+  inline Transaction() : Transaction(true)
   {
   }
 
@@ -79,6 +81,7 @@ public:
   {
     if (journal_)
     {
+      if (other_) { other_->end(); other_ = nullptr; }
       journal_->end();
       journal_ = nullptr;
     }
@@ -87,5 +90,6 @@ public:
 private:
 
   Journal *journal_;
+  Journal *other_ = nullptr;
 };
 } // namespace xv::fs

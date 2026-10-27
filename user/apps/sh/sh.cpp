@@ -22,6 +22,8 @@ extern "C"
 #define PIPE 3
 #define LIST 4
 #define BACK 5
+#define AND 6
+#define OR 7
 
 #define MAXARGS MAXARG
 
@@ -85,7 +87,7 @@ extern "C"
   // Execute cmd.  Never returns.
   void runcmd(struct cmd *cmd)
   {
-    int p[2];
+    int p[2], members[2];
     struct backcmd *bcmd;
     struct execcmd *ecmd;
     struct listcmd *lcmd;
@@ -106,7 +108,7 @@ extern "C"
       ecmd = (struct execcmd *)cmd;
       if (ecmd->argv[0] == 0)
       {
-        exit(1);
+        exit(shell::last_status);
       }
       if (!shell::prepare(ecmd->argv)) { fprintf(2, "sh: environment expansion failed\n"); exit(1); }
       { int status = shell::builtin(ecmd->argv); if (status >= 0) exit(status); }
@@ -116,7 +118,7 @@ extern "C"
       sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
       execvp(ecmd->argv[0], ecmd->argv);
       fprintf(2, "exec %s failed\n", ecmd->argv[0]);
-      break;
+      exit(127);
 
     case REDIR:
       rcmd = (struct redircmd *)cmd;
@@ -130,6 +132,8 @@ extern "C"
       runcmd(rcmd->cmd);
       break;
 
+    case AND:
+    case OR:
     case LIST:
       sigdisposition(SIGINT, SIGNAL_IGNORE);
       lcmd = (struct listcmd *)cmd;
@@ -140,8 +144,8 @@ extern "C"
           auto *left = reinterpret_cast<execcmd *>(lcmd->left);
           unsigned first = 0; while (left->argv[first] && shell::assignment(left->argv[first])) ++first;
           const char *name = left->argv[first];
-          if (!name || !strcmp(name, "export") || !strcmp(name, "unset") || !strcmp(name, "cd") || !strcmp(name, "umask"))
-          { handled = true; if (!shell::prepare(left->argv) || shell::builtin(left->argv) != 0) fprintf(2, "sh: builtin failed\n"); }
+          if (!name || !strcmp(name, "export") || !strcmp(name, "unset") || !strcmp(name, "cd") || !strcmp(name, "umask") || !strcmp(name, "exit"))
+          { handled = true; shell::last_status = !shell::prepare(left->argv) ? 1 : shell::builtin(left->argv); }
         }
         if (!handled)
         {
@@ -151,9 +155,11 @@ extern "C"
             sigdisposition(SIGINT, SIGNAL_DEFAULT); sigdisposition(SIGTSTP, SIGNAL_DEFAULT); sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
             runcmd(lcmd->left);
           }
-          int status = child_status(child); if (status >= 128) exit(status);
+          int status = child_status(child); shell::last_status = status;
+
         }
       }
+      if (shell::exit_requested || shell::last_status >= 128 || (cmd->type == AND && shell::last_status != 0) || (cmd->type == OR && shell::last_status == 0)) exit(shell::last_status);
       runcmd(lcmd->right);
       break;
 
@@ -164,7 +170,7 @@ extern "C"
       {
         panic("pipe");
       }
-      if (fork1() == 0)
+      if ((members[0] = fork1()) == 0)
       {
         close(1);
         dup(p[1]);
@@ -175,7 +181,7 @@ extern "C"
         sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
         runcmd(pcmd->left);
       }
-      if (fork1() == 0)
+      if ((members[1] = fork1()) == 0)
       {
         close(0);
         dup(p[0]);
@@ -189,8 +195,8 @@ extern "C"
       close(p[0]);
       close(p[1]);
       {
-        int first_status = child_status(-1);
-        int second_status = child_status(-1);
+        int first_status = child_status(members[0]);
+        int second_status = child_status(members[1]);
         if (first_status >= 128)
         {
           exit(first_status);
@@ -199,6 +205,7 @@ extern "C"
         {
           exit(second_status);
         }
+        exit(second_status);
       }
       break;
 
@@ -270,6 +277,7 @@ extern "C"
 
   // Private descriptor remains usable when a command redirects standard streams.
   static int terminal_fd = -1;
+  static int input_fd = 0;
   static int shell_group = -1;
 
   static void initialize_terminal()
@@ -408,8 +416,8 @@ extern "C"
 
   int getcmd(char *buf, int nbuf)
   {
-    shell::Editor editor(buf, nbuf);
-    shell::prompt();
+    shell::Editor editor(buf, nbuf, terminal_fd >= 0);
+    if (terminal_fd >= 0) shell::prompt();
     memset(buf, 0, nbuf);
     int used = 0;
     while (used + 1 < nbuf)
@@ -419,14 +427,14 @@ extern "C"
         if (editor.active()) editor.redraw(used);
         else { shell::prompt(); if (used) write(2, buf, used); }
       }
-      pollfd events[] = {{0, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
+      pollfd events[] = {{input_fd, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
       int ready = poll(events, 2, -1);
       if (ready == -EINTR) continue;
       if (ready < 0) return -1;
       if (events[1].revents) continue;
       if (!(events[0].revents & (POLLIN | POLLHUP | POLLERR))) continue;
       char byte;
-      int n = read(0, &byte, 1);
+      int n = read(input_fd, &byte, 1);
       if (n == -EINTR || n == -EAGAIN) continue;
       if (n <= 0) return used ? 0 : -1;
       if (editor.active())
@@ -501,6 +509,7 @@ extern "C"
     {
       tcsetattr(terminal_fd, TCSANOW, &shell_modes);
     }
+    shell::last_status = job->stopped ? 128 + SIGTSTP : pid < 0 ? 255 : WIFSIGNALED(status) ? 128 + WTERMSIG(status) : WEXITSTATUS(status);
     if (job->stopped)
     {
       show_job(job, "Stopped");
@@ -568,6 +577,7 @@ extern "C"
     {
       return false;
     }
+    shell::last_status = 1;
     if (terminal_fd < 0)
     {
       fprintf(2, "sh: no interactive terminal\n");
@@ -589,6 +599,7 @@ extern "C"
       {
         show_job(job, job->stopped ? "Stopped" : "Running");
       }
+      shell::last_status = 0;
       return true;
     }
     Job *job = select_job(end);
@@ -612,22 +623,24 @@ extern "C"
       else
       {
         job->stopped = false;
+        shell::last_status = 0;
         show_job(job, "Running");
       }
     }
     return true;
   }
 
-  static void launch_command(char *text)
+  static void launch_command(char *text, struct cmd *prepared = nullptr)
   {
     if (terminal_fd < 0)
     {
       int child = fork1();
       if (child == 0)
       {
-        runcmd(parsecmd(text));
+        if (input_fd != 0) close(input_fd);
+        runcmd(prepared ? prepared : parsecmd(text));
       }
-      while (waitpid(child, nullptr, 0) == -EINTR) service_children();
+      shell::last_status = child_status(child);
       return;
     }
     int length = strlen(text);
@@ -636,7 +649,7 @@ extern "C"
     {
       --length;
     }
-    bool background = length && text[length - 1] == '&';
+    bool background = prepared ? prepared->type == BACK : length && text[length - 1] == '&';
     if (background)
     {
       --length;
@@ -712,7 +725,7 @@ extern "C"
       }
       close(gate[0]);
       close(terminal_fd);
-      runcmd(parsecmd(text));
+      runcmd(prepared ? (prepared->type == BACK ? reinterpret_cast<backcmd *>(prepared)->cmd : prepared) : parsecmd(text));
     }
     close(ready[1]);
     close(gate[0]);
@@ -734,6 +747,7 @@ extern "C"
     if (background)
     {
       show_job(job, "Running");
+      shell::last_status = 0;
     }
     else
     {
@@ -741,7 +755,70 @@ extern "C"
     }
   }
 
-  int main(void)
+
+  static void free_command(struct cmd *tree)
+  {
+    if (!tree) return;
+    if (tree->type == REDIR) free_command(reinterpret_cast<redircmd *>(tree)->cmd);
+    else if (tree->type == BACK) free_command(reinterpret_cast<backcmd *>(tree)->cmd);
+    else if (tree->type == PIPE || tree->type == LIST || tree->type == AND || tree->type == OR)
+    { auto *pair = reinterpret_cast<listcmd *>(tree); free_command(pair->left); free_command(pair->right); }
+    free(tree);
+  }
+  static int evaluate(struct cmd *tree, char *display)
+  {
+    if (tree->type == LIST || tree->type == AND || tree->type == OR)
+    {
+      auto *pair = reinterpret_cast<listcmd *>(tree); int status = evaluate(pair->left, display);
+      if (shell::exit_requested || status >= 128 || (tree->type == AND && status != 0) || (tree->type == OR && status == 0)) return status;
+      return evaluate(pair->right, display);
+    }
+    if (tree->type == EXEC)
+    {
+      auto *command = reinterpret_cast<execcmd *>(tree); if (!command->argv[0]) return shell::last_status; unsigned first = 0;
+      while (command->argv[first] && shell::assignment(command->argv[first])) ++first;
+      char *name = command->argv[first] ? shell::expand(command->argv[first]) : nullptr;
+      bool job = name && (!strcmp(name, "jobs") || !strcmp(name, "fg") || !strcmp(name, "bg"));
+      if (job)
+      {
+        free(name);
+        if (!shell::prepare(command->argv)) return shell::last_status = 1;
+        auto *text = static_cast<char *>(malloc(512)); unsigned used = 0; bool valid = text != nullptr;
+        if (text) text[0] = 0;
+        for (unsigned i = 0; command->argv[i]; ++i)
+        {
+          unsigned size = strlen(command->argv[i]);
+          if (valid && used + size + 2 < 512)
+          { if (used) text[used++] = ' '; strcpy(text + used, command->argv[i]); used += size; }
+          else valid = false;
+          free(command->argv[i]);
+        }
+        if (valid) job_builtin(text); else shell::last_status = 1;
+        free(text); return shell::last_status;
+      }
+      bool builtin = !command->argv[first] || (name && (!strcmp(name, "cd") || !strcmp(name, "export") || !strcmp(name, "unset") || !strcmp(name, "umask") || !strcmp(name, "exit")));
+      free(name);
+      if (builtin)
+      {
+        shell::last_status = !shell::prepare(command->argv) ? 1 : shell::builtin(command->argv);
+        for (unsigned i = 0; command->argv[i]; ++i) free(command->argv[i]);
+        return shell::last_status;
+      }
+    }
+    launch_command(display, tree);
+    return shell::last_status;
+  }
+  static void strip_comment(char *line)
+  {
+    char quote = 0;
+    for (char *p = line; *p; ++p)
+    {
+      if (*p == '\\' && quote != '\'' && p[1]) { ++p; continue; }
+      if ((*p == '\'' || *p == '"') && (!quote || *p == quote)) quote = quote ? 0 : *p;
+      else if (!quote && *p == '#' && (p == line || p[-1] == ' ' || p[-1] == '\t')) { *p = 0; break; }
+    }
+  }
+  int main(int argc, char **argv)
   {
     static char buf[512];
     int fd;
@@ -753,26 +830,39 @@ extern "C"
         break;
       }
     }
-    initialize_terminal();
-    initialize_child_notifications();
-    while (getcmd(buf, sizeof(buf)) >= 0)
+    if (argc > 2) { fprintf(2, "usage: sh [script]\n"); exit(2); }
+    if (argc == 2)
     {
+      int script = open(argv[1], O_RDONLY);
+      if (script < 0) { fprintf(2, "sh: cannot open %s\n", argv[1]); exit(1); }
+      input_fd = script;
+    }
+    if (input_fd == 0) initialize_terminal();
+    initialize_child_notifications();
+    while (!shell::exit_requested && getcmd(buf, sizeof(buf)) >= 0)
+    {
+      strip_comment(buf);
       char *cmd = buf;
       while (*cmd == ' ' || *cmd == '\t')
       {
         cmd++;
       }
-      if (*cmd == '\n')
-      {
-        continue;
-      }
-      if (job_builtin(cmd))
+      if (!*cmd || *cmd == '\n')
       {
         continue;
       }
       refresh_jobs();
-      if (!parent_environment(cmd)) launch_command(cmd);
+      char *display = static_cast<char *>(malloc(strlen(cmd) + 1)); if (!display) { shell::last_status = 1; continue; }
+      strcpy(display, cmd);
+      // A syntax error must not terminate the interactive login shell.
+      int parser = fork1();
+      if (!parser) { if (input_fd != 0) close(input_fd); parsecmd(cmd); exit(0); }
+      if (child_status(parser) != 0)
+      { shell::last_status = 2; free(display); if (input_fd != 0) break; continue; }
+      auto *tree = parsecmd(cmd);
+      evaluate(tree, display); free_command(tree); free(display);
     }
+    if (input_fd != 0) close(input_fd);
     sigdisposition(SIGCHLD, SIGNAL_DEFAULT);
     for (Job *job = jobs_head; job; job = job->next)
     {
@@ -781,7 +871,7 @@ extern "C"
     while (wait(nullptr) >= 0)
     {
     }
-    exit(0);
+    exit(shell::last_status);
   }
 
   bool parent_environment(char *line)
@@ -910,10 +1000,14 @@ extern "C"
     case 0:
       break;
     case '|':
+      s++; if (*s == '|') { ret = 'O'; s++; }
+      break;
+    case '&':
+      s++; if (*s == '&') { ret = 'A'; s++; }
+      break;
     case '(':
     case ')':
     case ';':
-    case '&':
     case '<':
       s++;
       break;
@@ -966,6 +1060,7 @@ extern "C"
 
   struct cmd *parseline(char **, char *);
   struct cmd *parsepipe(char **, char *);
+  struct cmd *parseandor(char **, char *);
   struct cmd *parseexec(char **, char *);
   struct cmd *nulterminate(struct cmd *);
 
@@ -990,8 +1085,8 @@ extern "C"
   {
     struct cmd *cmd;
 
-    cmd = parsepipe(ps, es);
-    while (peek(ps, es, "&"))
+    cmd = parseandor(ps, es);
+    while (peek(ps, es, "&") && (*ps)[1] != '&')
     {
       gettoken(ps, es, 0, 0);
       cmd = backcmd(cmd);
@@ -1004,12 +1099,20 @@ extern "C"
     return cmd;
   }
 
+  struct cmd *parseandor(char **ps, char *es)
+  {
+    struct cmd *tree = parsepipe(ps, es);
+    while (peek(ps, es, "&|") && (*ps)[1] == **ps)
+    { int token = gettoken(ps, es, nullptr, nullptr); tree = listcmd(tree, parsepipe(ps, es)); tree->type = token == 'A' ? AND : OR; }
+    return tree;
+  }
+
   struct cmd *parsepipe(char **ps, char *es)
   {
     struct cmd *cmd;
 
     cmd = parseexec(ps, es);
-    if (peek(ps, es, "|"))
+    if (peek(ps, es, "|") && (*ps)[1] != '|')
     {
       gettoken(ps, es, 0, 0);
       cmd = pipecmd(cmd, parsepipe(ps, es));
@@ -1038,7 +1141,7 @@ extern "C"
         cmd = redircmd(cmd, q, eq, O_WRONLY | O_CREATE | O_TRUNC, 1);
         break;
       case '+': // >>
-        cmd = redircmd(cmd, q, eq, O_WRONLY | O_CREATE, 1);
+        cmd = redircmd(cmd, q, eq, O_WRONLY | O_CREATE | O_APPEND, 1);
         break;
       }
     }
@@ -1142,6 +1245,8 @@ extern "C"
       nulterminate(pcmd->right);
       break;
 
+    case AND:
+    case OR:
     case LIST:
       lcmd = (struct listcmd *)cmd;
       nulterminate(lcmd->left);

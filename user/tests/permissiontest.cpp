@@ -75,7 +75,7 @@ extern "C" int main()
   reap();
   check(chmod("/bin/echo", 0644) == 0, "remove execute bits");
   char *arguments[] = {const_cast<char *>("echo"), nullptr}; check(exec("/bin/echo", arguments) < 0 && chmod("/bin/echo", 0755) == 0, "execute permission required even for root");
-  check(chmod("/perm-file", 04755) < 0 && setuid(65535) < 0, "unsupported special bits and reserved ID rejected");
+  check(chmod("/perm-file", 010000) < 0 && setuid(65535) < 0, "unsupported special bits and reserved ID rejected");
   check(sync() == 0 && stat("/perm-file", &metadata) == 0 && metadata.uid == 1000 && metadata.gid == 100 && metadata.mode == 0640, "disk metadata retained");
   close(master); unlink("/tmp/sticky-victim"); unlink("/perm-file"); unlink("/perm-dir/data"); unlink("/perm-dir");
   umask(old_mask);

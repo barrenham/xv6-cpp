@@ -9,7 +9,11 @@ set(XV_RAM_MB 128 CACHE STRING "QEMU RAM size in MiB (kernel discovers it from D
 if(NOT XV_RAM_MB MATCHES "^[1-9][0-9]*$")
   message(FATAL_ERROR "XV_RAM_MB must be a positive integer")
 endif()
-set(XV_CPUS 3 CACHE STRING "Number of QEMU harts")
+set(XV_KERNEL_STACK_MIB 2 CACHE STRING "Reserved virtual kernel stack size per process in MiB")
+if(NOT XV_KERNEL_STACK_MIB MATCHES "^(2|4|8|16|32|64)$")
+  message(FATAL_ERROR "XV_KERNEL_STACK_MIB must be a power of two between 2 and 64")
+endif()
+set(XV_CPUS 5 CACHE STRING "Number of QEMU harts")
 set(XV_GDB_PORT 26000 CACHE STRING "QEMU GDB port")
 find_program(XV_LLD ld.lld HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 find_program(XV_HOST_CLANG clang++ HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
@@ -17,7 +21,7 @@ find_program(XV_QEMU qemu-system-riscv64 HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_library(xv_options INTERFACE)
 target_include_directories(xv_options INTERFACE "${PROJECT_SOURCE_DIR}")
-target_compile_definitions(xv_options INTERFACE LAB_PGTBL SOL_PGTBL LAB_NET)
+target_compile_definitions(xv_options INTERFACE LAB_PGTBL SOL_PGTBL LAB_NET XV_KERNEL_STACK_MIB=${XV_KERNEL_STACK_MIB})
 target_compile_options(xv_options INTERFACE
   -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
   -ffreestanding -fno-builtin -fno-stack-protector -fno-pic -fno-pie
@@ -33,7 +37,7 @@ add_subdirectory(user)
 add_subdirectory(tools/mkfs)
 configure_file(README.xv6 "${PROJECT_BINARY_DIR}/README" COPYONLY)
 set(XV_FS_DIRECTORIES "")
-foreach(directory /bin /sbin /usr /usr/tests /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /home)
+foreach(directory /bin /sbin /usr /usr/tests /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /home /data)
   string(APPEND XV_FS_DIRECTORIES "dir\t0755\t${directory}\n")
 endforeach()
 string(APPEND XV_FS_DIRECTORIES "dir\t01777\t/tmp\ndir\t0700\t/root\n")
@@ -50,11 +54,22 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
-set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${PROJECT_BINARY_DIR}/fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
+set(XV_ROOTFS_IMAGE "${PROJECT_SOURCE_DIR}/data/rootfs.img" CACHE FILEPATH "Persistent root filesystem; initialized once from the build image")
+set(XV_ROOTFS_IMPORT_IMAGE "${PROJECT_SOURCE_DIR}/data/data.img" CACHE FILEPATH "Optional legacy data volume imported only when creating rootfs")
+set(XV_ROOTFS_IMPORT_OPTIONS "")
+if(XV_ROOTFS_IMPORT_IMAGE)
+  list(APPEND XV_ROOTFS_IMPORT_OPTIONS --import-data "${XV_ROOTFS_IMPORT_IMAGE}")
+endif()
+add_custom_target(rootfs-image
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
+    --seed "${PROJECT_BINARY_DIR}/fs.img" --output "${XV_ROOTFS_IMAGE}"
+    ${XV_ROOTFS_IMPORT_OPTIONS}
+  DEPENDS image VERBATIM)
+set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${XV_ROOTFS_IMAGE},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
-add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel image USES_TERMINAL)
-add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel image USES_TERMINAL)
+add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
+add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel rootfs-image USES_TERMINAL)
 enable_testing()
 add_test(NAME password_hash_contract COMMAND "${PROJECT_BINARY_DIR}/password_hash_contract")
 set_tests_properties(password_hash_contract PROPERTIES TIMEOUT 15 LABELS users)
@@ -97,7 +112,7 @@ foreach(ram 64 257 2048 2049)
   set_tests_properties(ram_${ram}MiB PROPERTIES TIMEOUT 120 LABELS ram)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   foreach(feature named-pty procfs ramfs environment permissions workflow session)
     add_test(NAME ${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
@@ -175,7 +190,7 @@ foreach(cpus 1 3)
   set_tests_properties(process_scaling_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME network_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
@@ -185,42 +200,42 @@ endforeach()
 add_test(NAME network_contract COMMAND "${PROJECT_BINARY_DIR}/network_contract")
 set_tests_properties(network_contract PROPERTIES TIMEOUT 10 LABELS network)
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME socket_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/socket_network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(socket_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME multinet_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --multi)
   set_tests_properties(multinet_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME netctl_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --management)
   set_tests_properties(netctl_${cpus}cpu PROPERTIES TIMEOUT 65 LABELS network)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME bridge_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/bridge_network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
   set_tests_properties(bridge_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME dhcp_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --dhcp)
   set_tests_properties(dhcp_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME dns_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/dns_network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
@@ -230,7 +245,7 @@ endforeach()
 add_test(NAME dns_contract COMMAND "${PROJECT_BINARY_DIR}/dns_contract")
 set_tests_properties(dns_contract PROPERTIES TIMEOUT 10 LABELS network)
 
-foreach(cpus 1 3)
+foreach(cpus 1 5)
   add_test(NAME http_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/http_network.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
@@ -239,3 +254,20 @@ endforeach()
 
 add_test(NAME http_contract COMMAND "${PROJECT_BINARY_DIR}/http_contract")
 set_tests_properties(http_contract PROPERTIES TIMEOUT 10 LABELS network)
+
+foreach(cpus 1 5)
+  foreach(kind platform-progress persistence)
+    set(extra "")
+    if(kind STREQUAL "persistence")
+      set(extra --persistent)
+    endif()
+    add_test(NAME ${kind}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/platform_progress.py"
+      --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+      --mkfs "${PROJECT_BINARY_DIR}/mkfs" --cpus ${cpus} ${extra})
+    set_tests_properties(${kind}_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS fs)
+  endforeach()
+endforeach()
+
+add_test(NAME rootfs_image_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_image.py"
+  --image "${PROJECT_BINARY_DIR}/fs-test.img" --qemu "${XV_QEMU}")
+set_tests_properties(rootfs_image_contract PROPERTIES TIMEOUT 20 LABELS fs)

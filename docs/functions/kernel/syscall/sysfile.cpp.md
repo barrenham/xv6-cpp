@@ -26,8 +26,12 @@
 - [`xv::syscall::sys_execve`](sysfile.cpp.md#fn-2037b9e8e05eb105)
 - [`xv::syscall::sys_fcntl`](sysfile.cpp.md#fn-2940e0efab81491b)
 - [`xv::syscall::sys_fstat`](sysfile.cpp.md#fn-c2ca80b2260b826c)
+- [`xv::syscall::sys_fsync`](sysfile.cpp.md#fn-7cce73f1ff266383)
+- [`xv::syscall::sys_ftruncate`](sysfile.cpp.md#fn-ac0849d188c61352)
 - [`xv::syscall::sys_ioctl`](sysfile.cpp.md#fn-868f8327fa5e0719)
 - [`xv::syscall::sys_link`](sysfile.cpp.md#fn-f0e4c3a2b61b65f2)
+- [`xv::syscall::sys_lseek`](sysfile.cpp.md#fn-09832f54fc77b0ca)
+- [`xv::syscall::sys_lstat`](sysfile.cpp.md#fn-a7bdc3d877fe1063)
 - [`xv::syscall::sys_mkdir`](sysfile.cpp.md#fn-697c039ba51257c6)
 - [`xv::syscall::sys_mknod`](sysfile.cpp.md#fn-a335916d7a484f15)
 - [`xv::syscall::sys_mount`](sysfile.cpp.md#fn-23199bae69c6ad55)
@@ -36,8 +40,10 @@
 - [`xv::syscall::sys_openpty`](sysfile.cpp.md#fn-6f37e9433a6bd907)
 - [`xv::syscall::sys_pipe`](sysfile.cpp.md#fn-4fdcb85095f658e9)
 - [`xv::syscall::sys_read`](sysfile.cpp.md#fn-fe1cdff590d53ee1)
+- [`xv::syscall::sys_readlink`](sysfile.cpp.md#fn-8d50b39ab66db14f)
 - [`xv::syscall::sys_rename`](sysfile.cpp.md#fn-7f137f88a1038fdf)
 - [`xv::syscall::sys_stat`](sysfile.cpp.md#fn-eb860ac7c93040e6)
+- [`xv::syscall::sys_symlink`](sysfile.cpp.md#fn-9a92c0afd955d412)
 - [`xv::syscall::sys_sync`](sysfile.cpp.md#fn-f630890d41c7271a)
 - [`xv::syscall::sys_umount`](sysfile.cpp.md#fn-103761d03e7af163)
 - [`xv::syscall::sys_unlink`](sysfile.cpp.md#fn-4aa7dc56022e07b7)
@@ -149,8 +155,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_open(void)
-@brief 打开文件并验证最终节点访问权限。
-@details 路径组件要求 X；最终节点按 O_RDONLY/O_WRONLY/O_RDWR 检查 R/W，O_TRUNC 额外要求 W，拒绝无效访问模式。创建权限由后端在父锁内检查，绑定失败回滚 fd/File/inode；成功后 fd 保留授予的读写能力。
+@brief 按访问模式和跟随策略建立打开对象。
+@details O_CREATE 通过 VFS 处理悬空链接和 NOFOLLOW；普通查找拒绝最终未展开的链接。绑定 APPEND 标志，截断前清除特殊执行位，其余权限及失败引用归还保持原契约。
 ```
 
 <a id="fn-dc225934cc4ef27f"></a>
@@ -236,10 +242,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_sync(void)
-@brief 系统调用入口：同步；从用户参数转入内核服务并返回 ABI 结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::fs::journal` → `sync`。
-@return 各分支实际返回：`0`。应结合上面的条件检查区分正常值、空值和错误值。
-@note 系统调用处理函数使用内核 64 位返回通道；负错误值经无符号类型传回时保持位模式，由用户 ABI 按相应整型解释。
+@brief 等待系统盘与可选数据盘完成提交。
+@details 分别同步两个独立日志，屏障由日志和设备后端执行；不提供跨卷原子事务。
 ```
 
 <a id="fn-868f8327fa5e0719"></a>
@@ -367,8 +371,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::attributes(bool ownership)
-@brief 在事务和节点锁内校验并修改安全属性。
-@details chmod 限 root/属主且仅 01777；chown 的 -1 保持原值，非 root 属主不能转移 UID，只可改到所属主/附加组。只读后端与越界参数拒绝，成功调用所属后端 attributes 持久化。
+@brief 检查并更新文件权限或属主。
+@details 允许普通文件的特殊执行位，目录拒绝；非 root 的 setgid 需属于目标组。所有权变更清除 setid，仍要求 root 或文件属主且校验 ID 边界。
 ```
 
 <a id="fn-7f137f88a1038fdf"></a>
@@ -388,9 +392,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_mount()
-@brief 仅允许 root 创建 ramfs 动态挂载。
-@details 先检查有效 UID，再复制类型及路径；只接受精确 ramfs 类型，由 VFS 执行容量、目录与实例初始化检查。
-@return 0 表示成功，-1 表示授权、复制、类型或挂载失败。
+@brief 仅允许 root 挂载 RAM 或数据卷。
+@details 精确接受 ramfs/xv6 两种类型，复制路径后调用对应服务；xv6 仅指已连接的数据卷，不接受任意设备或分区输入。
 ```
 
 <a id="fn-103761d03e7af163"></a>
@@ -399,9 +402,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_umount()
-@brief 仅允许 root 卸载无使用者的动态文件系统。
-@details 检查有效 UID，复制 MAXPATH 路径，再转入 VFS 的保护与忙碌检查。
-@return 0 表示成功，-1 表示授权、复制或卸载失败。
+@brief 撤销挂载并等待相关日志完成。
+@details 有效 UID 必须为零，VFS 先做引用与保护检查；成功后在事务外同步两个日志，避免持有自身日志预留时等待提交。
 ```
 
 <a id="fn-52d39b8b47c88952"></a>
@@ -413,4 +415,64 @@
 @brief 向用户复制一条挂载枚举记录。
 @details 读取非负索引与用户地址，在内核栈准备固定大小 mount_info；VFS 返回记录后才 copy_out，枚举结束不触及用户缓冲。
 @return 1 表示有记录，0 表示结束，-1 表示索引或复制错误。
+```
+
+<a id="fn-09832f54fc77b0ca"></a>
+
+## `xv::syscall::sys_lseek`
+
+```doxygen
+@fn uint64 xv::syscall::sys_lseek()
+@brief 读取偏移参数并转发到打开对象。
+@details 按 64 位有符号位模式传递 offset，后端验证 origin 与范围；失败不改变共享偏移。
+```
+
+<a id="fn-ac0849d188c61352"></a>
+
+## `xv::syscall::sys_ftruncate`
+
+```doxygen
+@fn uint64 xv::syscall::sys_ftruncate()
+@brief 验证长度和可写描述符后调整文件。
+@details 拒绝负数及超出当前上限的长度；文件表与后端进一步校验打开权限和普通文件类型。
+```
+
+<a id="fn-7cce73f1ff266383"></a>
+
+## `xv::syscall::sys_fsync`
+
+```doxygen
+@fn uint64 xv::syscall::sys_fsync()
+@brief 对有效描述符请求落盘。
+@details 非法 fd 或对象不支持时返回 -1，持久 inode 后端等待日志并发送设备屏障。
+```
+
+<a id="fn-8d50b39ab66db14f"></a>
+
+## `xv::syscall::sys_readlink`
+
+```doxygen
+@fn uint64 xv::syscall::sys_readlink()
+@brief 复制链接节点保存的目标字节。
+@details 事务中不跟随最终链接，锁定并检查 T_SYMLINK；按用户容量复制，不追加 NUL，返回复制字节数。
+```
+
+<a id="fn-a7bdc3d877fe1063"></a>
+
+## `xv::syscall::sys_lstat`
+
+```doxygen
+@fn uint64 xv::syscall::sys_lstat()
+@brief 查询最终链接本身的元数据。
+@details 复制用户路径，查找时禁止最终跟随；锁定节点生成内核 stat，再检查 copy_out 结果。
+```
+
+<a id="fn-9a92c0afd955d412"></a>
+
+## `xv::syscall::sys_symlink`
+
+```doxygen
+@fn uint64 xv::syscall::sys_symlink()
+@brief 复制两个用户路径并创建链接。
+@details 目标与安装路径均受 MAXPATH 限制；VFS 在事务内建立节点并处理写入失败回滚。
 ```

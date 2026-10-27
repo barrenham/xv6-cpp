@@ -113,9 +113,9 @@ LINK 查询增加 `NET_LINK_BRIDGE`、`NET_LINK_SLAVE` 标记；source 字段在
 当前只能用于无环拓扑，不能用多条外部链路构成二层环。丢弃 STP 控制帧不提供环路检测能力。帧长受桥和成员 MTU 限制，桥本机的计数仍是纯 IP 接口统计，不代表所有二层过境帧。
 
 ```sh
-ctest --test-dir build/dev --output-on-failure -R '^(network_contract|bridge_[13]cpu)$'
+ctest --test-dir build/dev --output-on-failure -R '^(network_contract|bridge_[15]cpu)$'
 ```
 
-原生契约验证学习、MAC 移动、老化、广播、同端口过滤、容量、分配/出口失败页回收，以及并发移出和加入端口。QEMU 单核/三核各用三块共用 INTx 线路的真实 E1000，连接三个独立原始以太帧 UDP 后端；验证任意目的 MAC 的混杂接收、定向转发、泛洪、FDB 查询/清空、桥本机 ARP 与 UDP，以及同次启动删除后重建。
+原生契约验证学习、MAC 移动、老化、广播、同端口过滤、容量、分配/出口失败页回收，以及并发移出和加入端口。QEMU 单核/五核各用三块共用 INTx 线路的真实 E1000，连接三个独立原始以太帧 UDP 后端；验证任意目的 MAC 的混杂接收、定向转发、泛洪、FDB 查询/清空、桥本机 ARP 与 UDP，以及同次启动删除后重建。
 
 接口和路由管理基础见 [用户态网络管理](network-management.md)。函数说明见 [二层端口](functions/kernel/net/link/port.cppm.md)、[桥数据路径](functions/kernel/net/bridge/bridge.cpp.md) 和 [桥管理](functions/kernel/net/bridge/manager.cpp.md)。

@@ -351,8 +351,7 @@ truncate1(char *s)
 
 // write to an open FD whose file has just been truncated.
 // this causes a write at an offset beyond the end of the file.
-// such writes fail on xv6 (unlike POSIX) but at least
-// they don't crash.
+// The retained offset is now a sparse write: the gap must read back as zeros.
 void
 truncate2(char *s)
 {
@@ -364,10 +363,18 @@ truncate2(char *s)
   int fd2 = open("truncfile", O_TRUNC | O_WRONLY);
 
   int n = write(fd1, "x", 1);
-  if (n != -1) {
-    printf("%s: write returned %d, expected -1\n", s, n);
+  if (n != 1) {
+    printf("%s: sparse write returned %d, expected 1\n", s, n);
     exit(1);
   }
+  int reader = open("truncfile", O_RDONLY);
+  char gap[5];
+  if (reader < 0 || read(reader, gap, sizeof(gap)) != sizeof(gap) ||
+      gap[0] || gap[1] || gap[2] || gap[3] || gap[4] != 'x') {
+    printf("%s: truncated gap was not zero filled\n", s);
+    exit(1);
+  }
+  close(reader);
 
   unlink("truncfile");
   close(fd1);

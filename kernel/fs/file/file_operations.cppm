@@ -11,6 +11,9 @@ public:
   void close() override;
   int read(xv::io::Buffer destination, int count) override;
   int write(xv::io::Buffer source, int count) override;
+  long seek(long offset, int origin) override;
+  int resize(unsigned size) override;
+  int sync() override;
   int stat(xv::io::Metadata &value) override;
   unsigned poll(xv::sync::PollTable *table) override;
 private:

@@ -6,19 +6,19 @@
 | --- | ---: | ---: |
 | [arch](#arch) | 4 | 49 |
 | [boot](#boot) | 6 | 8 |
-| [drivers](#drivers) | 33 | 234 |
-| [fs](#fs) | 39 | 381 |
-| [io](#io) | 2 | 16 |
+| [drivers](#drivers) | 33 | 238 |
+| [fs](#fs) | 39 | 401 |
+| [io](#io) | 2 | 19 |
 | [memory](#memory) | 22 | 175 |
 | [net](#net) | 60 | 360 |
-| [process](#process) | 59 | 341 |
+| [process](#process) | 59 | 345 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
-| [syscall](#syscall) | 12 | 97 |
+| [syscall](#syscall) | 12 | 103 |
 | [trap](#trap) | 20 | 89 |
 | [tty](#tty) | 1 | 0 |
 
-范围：280 个文件；默认 1764 个唯一 C++ 函数，连同条件接口与汇编入口共 1829 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：280 个文件；默认 1808 个唯一 C++ 函数，连同条件接口与汇编入口共 1873 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 

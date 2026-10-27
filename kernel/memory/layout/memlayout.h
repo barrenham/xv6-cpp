@@ -49,9 +49,17 @@
 // in both user and kernel space.
 #define TRAMPOLINE (MAXVA - PGSIZE)
 
-// Guarded stack slots beneath the trampoline. A slot is the physical page
-// index of a physical stack frame, not a process-table index.
-#define KSTACK(p) (TRAMPOLINE - (p) * 2 * PGSIZE - 3 * PGSIZE)
+// Virtual stack regions grow on demand and have equally sized unmapped guards.
+#ifndef XV_KERNEL_STACK_MIB
+#define XV_KERNEL_STACK_MIB 2
+#endif
+#define KSTACK_BYTES (XV_KERNEL_STACK_MIB * 1024UL * 1024)
+#define KSTACK_INITIAL_PAGES 8
+#define KSTACK_PAGES (KSTACK_BYTES / PGSIZE)
+#define KSTACK_TOP (TRAMPOLINE & ~(KSTACK_BYTES - 1))
+#define KSTACK_BOTTOM (MAXVA / 2)
+#define KSTACK_SLOTS ((KSTACK_TOP - KSTACK_BOTTOM) / (2 * KSTACK_BYTES))
+#define KSTACK(p) (KSTACK_TOP - ((p) * 2 + 1) * KSTACK_BYTES)
 
 // User memory layout.
 // Address zero first:

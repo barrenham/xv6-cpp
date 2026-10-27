@@ -12,10 +12,12 @@
 
 - [`xv::drivers::VirtioBlock::allocate_chain`](virtio_block.cpp.md#fn-f8ec5a9a894c4d73)
 - [`xv::drivers::VirtioBlock::allocate_descriptor`](virtio_block.cpp.md#fn-ec9a5a1df2982759)
+- [`xv::drivers::VirtioBlock::flush`](virtio_block.cpp.md#fn-6a305340ef7d40e8)
 - [`xv::drivers::VirtioBlock::free_chain`](virtio_block.cpp.md#fn-e4fe48e63edf2388)
 - [`xv::drivers::VirtioBlock::free_descriptor`](virtio_block.cpp.md#fn-bfd4e838d44d17f4)
 - [`xv::drivers::VirtioBlock::handle_interrupt`](virtio_block.cpp.md#fn-0b67b739b5b86885)
 - [`xv::drivers::VirtioBlock::initialize`](virtio_block.cpp.md#fn-4c7be18d8f3eca1c)
+- [`xv::drivers::VirtioBlock::present`](virtio_block.cpp.md#fn-3b90475ad6a2ea72)
 - [`xv::drivers::VirtioBlock::transfer`](virtio_block.cpp.md#fn-266fcc4568332ef4)
 
 <a id="fn-4c7be18d8f3eca1c"></a>
@@ -24,11 +26,8 @@
 
 ```doxygen
 @fn void xv::drivers::VirtioBlock::initialize()
-@brief VirtIO 块设备：建立该对象开始工作所需的初始状态。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.init` → `registers_.read32` → `detail::fail` → `registers_.write32` → `detail::allocate_dma_page` → `detail::zero_page`。
-@details 本函数可见的状态更新包括：`descriptors_ = static_cast<struct virtq_desc *>(detail::allocate_dma_page());`；`available_ = static_cast<struct virtq_avail *>(detail::allocate_dma_page());`；`used_ = static_cast<struct virtq_used *>(detail::allocate_dma_page());`；`free_[i] = 1;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!(status & VIRTIO_CONFIG_S_FEATURES_OK)`；`registers_.read32(VIRTIO_MMIO_QUEUE_READY)`；`max == 0`；`max < QueueSize`；`!descriptors_ || !available_ || !used_`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 协商并初始化独立 VirtIO 队列。
+@details 记录设备是否提供 FLUSH，保留该特性参与协商；其余描述符、可用环与完成环建立流程保持原契约。
 ```
 
 <a id="fn-ec9a5a1df2982759"></a>
@@ -90,17 +89,8 @@
 
 ```doxygen
 @fn void xv::drivers::VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void *data, unsigned count)
-@brief VirtIO 块设备：提交块设备请求并等待请求完成。
-@param operation 本次操作使用的 operation 值。
-@param sector 本次操作使用的 sector 值。
-@param data 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param count 本次操作的数量上限。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::fail` → `lock_.acquire` → `allocate_chain` → `detail::prepare_sleep` → `lock_.release` → `detail::sleep_process` → `detail::io_barrier` → `registers_.write32` → `free_chain`。
-@details 本函数可见的状态更新包括：`buf0->type = VIRTIO_BLK_T_OUT;`；`buf0->type = VIRTIO_BLK_T_IN;`；`buf0->reserved = 0;`；`buf0->sector = sector;`；`available_->ring[available_->idx % QueueSize] = idx[0];`；`available_->idx += 1;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!data || count == 0 || count % SectorSize != 0`；`1`；`allocate_chain(idx) == 0`；`write`；`requests_[idx[0]].pending`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 提交数据传输或内部 FLUSH 请求并等待完成。
+@details 内部空数据零长度请求编码为 FLUSH，sector 为零，设备链仅含头和状态。三个预留描述符全部归还；正常读写继续检查扇区倍数并保持 DMA 数据到返回时有效。
 ```
 
 <a id="fn-0b67b739b5b86885"></a>
@@ -114,4 +104,24 @@
 @details 本函数可见的状态更新包括：`requests_[id].pending = false;`；`used_index_ += 1;`。局部临时变量与对象字段应按作用域区分。
 @details 需要特别跟踪的条件：`used_index_ != used_->idx`；`id < 0 || id >= QueueSize || !requests_[id].pending`；`requests_[id].status != 0`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-3b90475ad6a2ea72"></a>
+
+## `xv::drivers::VirtioBlock::present`
+
+```doxygen
+@fn bool xv::drivers::VirtioBlock::present() const
+@brief 探测此 MMIO 槽是否为块设备。
+@details 只检查 magic 和 device ID，不分配队列或发起 I/O；供可选第二块盘的装配使用。
+```
+
+<a id="fn-6a305340ef7d40e8"></a>
+
+## `xv::drivers::VirtioBlock::flush`
+
+```doxygen
+@fn void xv::drivers::VirtioBlock::flush()
+@brief 等待一个协商过的 FLUSH 请求完成。
+@details 设备提供 FLUSH 时经统一队列提交并等待中断确认；未提供时不发送不支持的请求。
 ```

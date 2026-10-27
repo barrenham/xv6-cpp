@@ -31,5 +31,6 @@ unsigned named_pty_ids(unsigned *numbers, unsigned capacity);
 CharacterDevice &console();
 SerialPort &serial_port();
 BlockDevice &block_device();
+BlockDevice *data_device();
 InterruptController &interrupt_controller();
 } // namespace xv::drivers

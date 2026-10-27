@@ -81,7 +81,7 @@ ABI 定义在 `kernel/net/control.h`，版本一结构固定为 128 字节。查
 ## 验证
 
 ```sh
-ctest --test-dir build/dev --output-on-failure -R '^(network_contract|netctl_[13]cpu)$'
+ctest --test-dir build/dev --output-on-failure -R '^(network_contract|netctl_[15]cpu)$'
 ```
 
 原生契约检查 ABI、自动路由归属、容量不足时的事务回滚、并发查询与地址变更、ARP 待发页释放，以及删除最后一个 IPv4 后的设备保留。单核和三核 QEMU 测试从真实 shell 执行 CLI，并在同次启动重复运行系统调用测试：真实 UDP 往返、邻居查询/清空、停用/恢复、删地址/恢复后复用原 socket，以及一个进程修改物理配置时另一个进程保持回环通信。

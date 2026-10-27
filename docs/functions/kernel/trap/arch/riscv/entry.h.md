@@ -17,7 +17,7 @@
 ```doxygen
 @fn void kernelvec()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：kernelvec。
-@details 在当前内核栈上预留 256 字节，保存陷阱入口所需通用寄存器，调用 kerneltrap，再恢复寄存器并 sret。恢复时不装回旧 tp，以保留调度迁移后的当前 hart 标识。
+@details 先用 sscratch 切换到每 hart 应急栈并保存异常现场，调用 kernel_stack_prepare 补齐进程栈；已处理栈缺页直接恢复并重试，其余异常回到原栈预留 256 字节后调用 kerneltrap。普通返回不装回旧 tp，保留调度迁移后的当前 hart 标识。
 @pre 已处于内核页表和有效内核栈。kerneltrap 要求来源为 supervisor，且进入时中断关闭。
 @note sepc/sstatus 的跨调度恢复由 C++ TrapController/平台快照路径处理，不应把本例程当作普通用户态完整现场保存器。
 @return 经 sret 返回原来的内核执行流。

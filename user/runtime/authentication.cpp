@@ -48,7 +48,9 @@ int line(int fd, char *buffer, unsigned capacity)
 
 bool record(const char *name, char *result)
 {
-  int fd = open("/etc/shadow", O_RDONLY);
+  char database[128];
+  path("shadow", database);
+  int fd = open(database, O_RDONLY);
   if (fd < 0)
   {
     return false;
@@ -73,7 +75,9 @@ bool record(const char *name, char *result)
 int password_state()
 {
   struct stat st;
-  if (stat("/etc/shadow", &st) < 0)
+  char database[128];
+  path("shadow", database);
+  if (stat(database, &st) < 0)
   {
     return 0;
   }
@@ -139,21 +143,31 @@ bool verify(const char *name, const char *password)
 bool set_password(const char *name, const char *password)
 {
   User user{};
+  char database[128], temporary[128], lock[128];
+  path("shadow", database);
+  path(".shadow.new", temporary);
+  path(".users.lock", lock);
   if (geteuid() != 0 || !find(name, user) || strlen(password) < 8 ||
-      strlen(password) > 63 || mkdir("/etc/.shadow.lock") < 0)
+      strlen(password) > 63 || mkdir(lock) < 0)
   {
+    return false;
+  }
+  if (!find(name, user) ||
+      (getuid() != 0 && user.uid != static_cast<unsigned>(getuid())))
+  {
+    unlink(lock);
     return false;
   }
   unsigned old_mask = umask(0077);
   struct stat previous{};
-  bool exists = stat("/etc/shadow", &previous) == 0;
-  int input = open("/etc/shadow", O_RDONLY),
-      output = open("/etc/.shadow.new", O_CREATE | O_WRONLY | O_TRUNC);
+  bool exists = stat(database, &previous) == 0;
+  int input = open(database, O_RDONLY),
+      output = open(temporary, O_CREATE | O_WRONLY | O_TRUNC);
   bool good = output >= 0 && (!exists || (input >= 0 && previous.type == T_FILE &&
                                           previous.uid == 0 && !(previous.mode & 077)));
   if (good)
   {
-    good = chown("/etc/.shadow.new", 0, 0) == 0 && chmod("/etc/.shadow.new", 0600) == 0;
+    good = chown(temporary, 0, 0) == 0 && chmod(temporary, 0600) == 0;
   }
   unsigned char salt[16], hash[32];
   // Salts provide uniqueness, not a secret key. The OS has no CSPRNG yet.
@@ -211,17 +225,21 @@ bool set_password(const char *name, const char *password)
   }
   if (output >= 0)
   {
+    if (good && fsync(output) < 0)
+    {
+      good = false;
+    }
     close(output);
   }
   if (good)
   {
-    good = rename("/etc/.shadow.new", "/etc/shadow") == 0;
+    good = rename(temporary, database) == 0;
   }
   if (!good)
   {
-    unlink("/etc/.shadow.new");
+    unlink(temporary);
   }
-  unlink("/etc/.shadow.lock");
+  unlink(lock);
   umask(old_mask);
   password_hash::wipe(hash, sizeof(hash));
   password_hash::wipe(hash_text, sizeof(hash_text));
@@ -308,8 +326,10 @@ bool change_password(const char *name)
   setenv("USER", user.name, 1);
   setenv("SHELL", user.shell, 1);
   umask(0022);
-  if (setgroups(0, nullptr) < 0 || setgid(user.gid) < 0 || setuid(user.uid) < 0 ||
-      chdir(user.home) < 0)
+  unsigned extra[16];
+  int count = groups(user, extra);
+  if (count < 0 || setgroups(count, extra) < 0 || setgid(user.gid) < 0 ||
+      setuid(user.uid) < 0 || chdir(user.home) < 0)
   {
     fprintf(2, "login: cannot establish user session\n");
     exit(1);

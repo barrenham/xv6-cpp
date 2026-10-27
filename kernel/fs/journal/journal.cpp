@@ -77,8 +77,10 @@ void Journal::recover(void)
 {
   read_header();
   install(1); // if committed, copy from log to disk
+  cache_.flush();
   header_.count = 0;
   write_header(); // clear the log
+  cache_.flush();
 }
 
 // called at the start of each FS system call.
@@ -170,11 +172,15 @@ void Journal::commit()
 {
   if (header_.count > 0)
   {
-    write_log();    // Write modified blocks from cache to log
+    write_log();
+    cache_.flush();    // Write modified blocks from cache to log
     write_header(); // Write header to disk -- the real commit
+    cache_.flush();
     install(0);     // Now install writes to home locations
+    cache_.flush();
     header_.count = 0;
     write_header(); // Erase the transaction from the log
+    cache_.flush();
   }
 }
 
@@ -233,6 +239,7 @@ void Journal::sync(void)
     }
   }
   lock_.release();
+  cache_.flush();
 }
 
 } // namespace xv::fs

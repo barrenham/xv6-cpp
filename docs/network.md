@@ -47,11 +47,11 @@ flowchart TD
 conda activate OS-LAB
 cmake --preset dev
 cmake --build --preset dev
-ctest --test-dir build/dev --output-on-failure -R '^(network_.*|socket_[13]cpu|multinet_[13]cpu)$'
+ctest --test-dir build/dev --output-on-failure -R '^(network_.*|socket_[15]cpu|multinet_[15]cpu)$'
 cmake --build build/dev --target qemu
 ```
 
-`qemu` 和 `qemu-gdb` 默认带 E1000，启动输出 `e1000: ready`，随后逐接口输出实际配置。自动测试选择临时宿主机端口、独立磁盘副本并结束 QEMU；单核/三核各在同次启动连续运行两轮。
+`qemu` 和 `qemu-gdb` 默认带 E1000，启动输出 `e1000: ready`，随后逐接口输出实际配置。自动测试选择临时宿主机端口、独立磁盘副本并结束 QEMU；单核/五核各在同次启动连续运行两轮。
 
 - `network_contract` 使用同一协议实现和可控时钟，验证短包、校验和、队列上限、socket 容量与释放、ARP、反序分片重组/重叠拒绝/超时、ICMP Echo、SYN/数据重传、重复数据去重、乱序恢复、非法 ACK/RST、超时和分配回滚；最终检查所有网络页面归还。
 - `network_1cpu/3cpu` 使用 socket/sendto/recvfrom 验证真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
@@ -159,4 +159,4 @@ UDP 的端口占用、接收队列和生命周期统一由 socket 管理。fork 
 
 配置访问由 `ConfigurationGuard` 统一保护。Guard 在检查配置锁 owner 前先关闭本地中断，避免检查期间被抢占并迁移 CPU；每个 Guard 独立配对恢复关中断计数，只有实际 acquire 的实例负责 release。支持嵌套调用、调用前已关中断和借用已有配置锁。临界区仍禁止睡眠、发包回调及反向获取 ARP/设备锁，锁外快照的对象存活和代次校验另行维护。见 [独立函数说明](functions/kernel/net/interface/configuration.cppm.md)。
 
-`network_contract` 包含针对配置 Guard 的确定性测试：另一线程持锁时，归属查询必须已经处于关中断作用域；还验证竞争互斥、嵌套、已有中断禁用作用域、借用手工持锁和提前返回的计数恢复。宿主机用线程局部计数模拟关中断，实际内核中断恢复另由单核/三核 QEMU 网络回归覆盖。
+`network_contract` 包含针对配置 Guard 的确定性测试：另一线程持锁时，归属查询必须已经处于关中断作用域；还验证竞争互斥、嵌套、已有中断禁用作用域、借用手工持锁和提前返回的计数恢复。宿主机用线程局部计数模拟关中断，实际内核中断恢复另由单核/五核 QEMU 网络回归覆盖。

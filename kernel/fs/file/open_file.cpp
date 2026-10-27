@@ -23,11 +23,11 @@ int OpenFileTable::fcntl(File *file, int command, unsigned flags)
 {
   if (command == F_GETFL)
     return __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
-  if (command != F_SETFL || (flags & ~(O_ACCMODE | O_NONBLOCK))) return -1;
+  if (command != F_SETFL || (flags & ~(O_ACCMODE | O_NONBLOCK | O_APPEND))) return -1;
   auto old = __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
   for (;;)
   {
-    unsigned value = (old & O_ACCMODE) | (flags & O_NONBLOCK);
+    unsigned value = (old & O_ACCMODE) | (flags & (O_NONBLOCK | O_APPEND));
     if (__atomic_compare_exchange_n(&file->status_flags_, &old, value, false,
                                     __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) return 0;
   }
@@ -98,7 +98,7 @@ void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readabl
 }
 
 bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
-                               bool nonblocking)
+                               bool nonblocking, bool append)
 {
   static_assert(sizeof(InodeBackend) <= File::BackendBytes && alignof(InodeBackend) <= 16);
   static_assert(sizeof(DeviceBackend) <= File::BackendBytes && alignof(DeviceBackend) <= 16);
@@ -117,6 +117,7 @@ bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writ
     backend = new (file.backend_storage_) InodeBackend(node, snapshot, contents);
   }
   configure(file, *backend, readable, writable, nonblocking, FileKind::Node, &node);
+  if (append) __atomic_fetch_or(&file.status_flags_, O_APPEND, __ATOMIC_RELEASE);
   return true;
 }
 
@@ -161,7 +162,7 @@ int OpenFileTable::read(File *file, unsigned long address, int count)
 int OpenFileTable::write(File *file, unsigned long address, int count)
 {
   if (!file->writable || count < 0 || !file->backend_) return -1;
-  return file->backend_->write({address, file->nonblocking()}, count);
+  return file->backend_->write({address, file->nonblocking(), bool(__atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE) & O_APPEND)}, count);
 }
 
 int OpenFileTable::stat(File *file, unsigned long address)
@@ -225,4 +226,11 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
         entries_[i].minor == static_cast<unsigned>(minor)) return entries_[i].device;
   return nullptr;
 }
+
+long OpenFileTable::seek(File *file, long offset, int origin)
+{ return file && file->backend_ ? file->backend_->seek(offset, origin) : -1; }
+int OpenFileTable::resize(File *file, unsigned size)
+{ return file && file->writable && file->backend_ ? file->backend_->resize(size) : -1; }
+int OpenFileTable::sync(File *file)
+{ return file && file->backend_ ? file->backend_->sync() : -1; }
 } // namespace xv::fs

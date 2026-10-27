@@ -16,6 +16,7 @@
 - [`xv::fs::FileSystem::attributes`](filesystem.cppm.md#fn-2001e08446fe2a2c)
 - [`xv::fs::FileSystem::busy`](filesystem.cppm.md#fn-dc8cd6b4c9d00f78)
 - [`xv::fs::FileSystem::create_at`](filesystem.cppm.md#fn-e1fd6bfced25fe7e)
+- [`xv::fs::FileSystem::flush`](filesystem.cppm.md#fn-78595d0dff20b079)
 - [`xv::fs::FileSystem::initialize`](filesystem.cppm.md#fn-4c4ed942fc0d3cde)
 - [`xv::fs::FileSystem::initialize_inodes`](filesystem.cppm.md#fn-07de6482d4dc8016)
 - [`xv::fs::FileSystem::initialize_mount`](filesystem.cppm.md#fn-8aa1e36910af03a6)
@@ -30,12 +31,14 @@
 - [`xv::fs::FileSystem::read_only`](filesystem.cppm.md#fn-8653de95e35e7992)
 - [`xv::fs::FileSystem::release`](filesystem.cppm.md#fn-d62ac7ac3d78ce23)
 - [`xv::fs::FileSystem::rename_at`](filesystem.cppm.md#fn-8c32a1a02aa243d3)
+- [`xv::fs::FileSystem::resize`](filesystem.cppm.md#fn-9bbcde7a2391bea0)
 - [`xv::fs::FileSystem::retain`](filesystem.cppm.md#fn-180c2d3920d9b05a)
 - [`xv::fs::FileSystem::root`](filesystem.cppm.md#fn-8f1be8d595dcc8b6)
 - [`xv::fs::FileSystem::shutdown`](filesystem.cppm.md#fn-0a67cb82735c832d)
 - [`xv::fs::FileSystem::snapshot`](filesystem.cppm.md#fn-2c57dd6d3a76d87f)
 - [`xv::fs::FileSystem::snapshot_reads`](filesystem.cppm.md#fn-1b2a3dd3b9e80c06)
 - [`xv::fs::FileSystem::stat`](filesystem.cppm.md#fn-c6de975c21634106)
+- [`xv::fs::FileSystem::transaction_log`](filesystem.cppm.md#fn-ddac539018d7be66)
 - [`xv::fs::FileSystem::truncate`](filesystem.cppm.md#fn-089efe799f78685b)
 - [`xv::fs::FileSystem::unlink_at`](filesystem.cppm.md#fn-12ad13608c3030b0)
 - [`xv::fs::FileSystem::unlock`](filesystem.cppm.md#fn-564c162686ac6d0c)
@@ -462,4 +465,34 @@
 @brief 在一个后端内原子移动或替换目录项。
 @details 默认返回 -1。VFS 调用前验证点目录、环和挂载关系，具体后端检查权限、类型并更新父关系。
 @return 0 表示成功，-1 表示拒绝或失败。
+```
+
+<a id="fn-9bbcde7a2391bea0"></a>
+
+## `xv::fs::FileSystem::resize`
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::resize(Inode *, unsigned)
+@brief 调整普通文件长度的后端契约。
+@details 默认返回 -1；调用时 inode 已锁定且已进入所需日志事务，成功不修改描述符偏移。
+```
+
+<a id="fn-78595d0dff20b079"></a>
+
+## `xv::fs::FileSystem::flush`
+
+```doxygen
+@fn virtual void xv::fs::FileSystem::flush()
+@brief 请求后端完成持久化屏障。
+@details 默认空实现；磁盘实现向自己的缓存和块设备转发，RAM 不写磁盘。
+```
+
+<a id="fn-ddac539018d7be66"></a>
+
+## `xv::fs::FileSystem::transaction_log`
+
+```doxygen
+@fn virtual Journal *xv::fs::FileSystem::transaction_log()
+@brief 取得持久后端的日志服务。
+@details 默认返回 nullptr；可选数据卷覆写以供 VFS 在恢复后发布第二日志，服务实例必须保持系统生命周期。
 ```

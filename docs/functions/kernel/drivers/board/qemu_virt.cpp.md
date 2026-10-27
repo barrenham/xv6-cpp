@@ -17,6 +17,7 @@
 - [`xv::drivers::PciNetworkInterrupt::name`](qemu_virt.cpp.md#fn-47bf194bc003f4c4)
 - [`xv::drivers::block_device`](qemu_virt.cpp.md#fn-72e31996ffc2b022)
 - [`xv::drivers::console`](qemu_virt.cpp.md#fn-cb18263197838102)
+- [`xv::drivers::data_device`](qemu_virt.cpp.md#fn-1f40f120d59e62df)
 - [`xv::drivers::handle_external_interrupt`](qemu_virt.cpp.md#fn-8819b4e9b6bdacb6)
 - [`xv::drivers::initialize_console`](qemu_virt.cpp.md#fn-cacccb8b1ed2107b)
 - [`xv::drivers::initialize_hart`](qemu_virt.cpp.md#fn-bea9233c904d33be)
@@ -193,4 +194,14 @@
 ```doxygen
 @fn EthernetDevice &xv::drivers::network_device(unsigned index)
 @brief 借用指定静态 E1000 对象；索引必须小于四，使用设备前还须核对发现数量。
+```
+
+<a id="fn-1f40f120d59e62df"></a>
+
+## `xv::drivers::data_device`
+
+```doxygen
+@fn BlockDevice *xv::drivers::data_device()
+@brief 取得已连接的第二个 VirtIO 块设备。
+@details 板级静态实例位于根盘之后的 MMIO 页和 IRQ；未发现设备时返回 nullptr。
 ```

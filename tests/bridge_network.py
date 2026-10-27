@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--qemu', required=True)
     parser.add_argument('--kernel', required=True)
     parser.add_argument('--image', required=True)
-    parser.add_argument('--cpus', type=int, default=3)
+    parser.add_argument('--cpus', type=int, default=5)
     args = parser.parse_args()
     a, b, c = [bytes.fromhex('0200000000'+suffix) for suffix in ('a1', 'b2', 'c3')]
     bridge_mac = None

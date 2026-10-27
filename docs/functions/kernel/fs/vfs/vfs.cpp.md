@@ -17,6 +17,7 @@
 - [`xv::fs::VirtualFileSystem::lookup_entry`](vfs.cpp.md#fn-5d4339ff52e6c374)
 - [`xv::fs::VirtualFileSystem::lookup_parent`](vfs.cpp.md#fn-8bfb0d7b5ac233f1)
 - [`xv::fs::VirtualFileSystem::mount`](vfs.cpp.md#fn-fd77401a8aa09874)
+- [`xv::fs::VirtualFileSystem::mount_disk`](vfs.cpp.md#fn-410eacc267e87225)
 - [`xv::fs::VirtualFileSystem::mount_ram`](vfs.cpp.md#fn-09eb092ae4d24474)
 - [`xv::fs::VirtualFileSystem::mounts`](vfs.cpp.md#fn-0747d0fa1f7514e8)
 - [`xv::fs::VirtualFileSystem::read`](vfs.cpp.md#fn-a35df3a283d2bfaf)
@@ -25,6 +26,7 @@
 - [`xv::fs::VirtualFileSystem::retain`](vfs.cpp.md#fn-8e0bbe0879ea9c9e)
 - [`xv::fs::VirtualFileSystem::same`](vfs.cpp.md#fn-7cbd893bc133ef55)
 - [`xv::fs::VirtualFileSystem::stat`](vfs.cpp.md#fn-8e48167e5fe78464)
+- [`xv::fs::VirtualFileSystem::symlink`](vfs.cpp.md#fn-67eba603f2e485ac)
 - [`xv::fs::VirtualFileSystem::truncate`](vfs.cpp.md#fn-c409ab8df43d2e55)
 - [`xv::fs::VirtualFileSystem::unlink`](vfs.cpp.md#fn-5b042e585b21f4bf)
 - [`xv::fs::VirtualFileSystem::unlink_at`](vfs.cpp.md#fn-b4095b4ec764cda2)
@@ -41,8 +43,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize_inodes()
-@brief 初始化命名空间锁和各后端的节点同步。
-@details 启动早期初始化 namespace_，并为可选动态后端池四个实例及磁盘/devfs/procfs/临时 RAM 初始化锁；不分配挂载根，睡眠锁的实际取得推迟到进程上下文。
+@brief 初始化固定、动态及可选磁盘后端同步。
+@details 额外初始化借用的数据卷 inode 缓存；根的恢复和分配继续留给首个进程上下文。
 ```
 
 <a id="fn-e6a15b643dd8c735"></a>
@@ -51,8 +53,8 @@
 
 ```doxygen
 @fn void xv::fs::VirtualFileSystem::initialize(int device)
-@brief 恢复磁盘并建立三个受保护的启动挂载。
-@details 首个进程中初始化磁盘，在日志事务内依次建立 /dev、/proc、/tmp；任一必需挂载失败触发启动错误。运行期允许额外四个动态 RAM 实例，不再冻结全部挂载表。
+@brief 恢复根卷并建立三个系统挂载。
+@details 第一个 VirtIO 块设备提供根文件系统，默认由持久 rootfs 镜像承载；初始化可选辅助卷并发布第二日志，但不自动挂载 /data。在事务内挂载 dev/proc/tmp，辅助盘只通过显式 mount_disk 挂载。
 ```
 
 <a id="fn-7cbd893bc133ef55"></a>
@@ -91,9 +93,9 @@
 ## `xv::fs::VirtualFileSystem::create`
 
 ```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor)
-@brief 解析跨挂载父路径并向其文件系统请求创建。
-@details 借用外层事务，父节点引用在委托后释放；成功节点保持已锁定并带引用。磁盘实现可分配 inode，devfs 仅复用已有设备，禁止添加名称。
+@fn Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)
+@brief 按节点类型创建或取得文件。
+@details 普通文件在同一命名空间锁内跟随链接或按 NOFOLLOW 拒绝，支持悬空链接目标的最终创建；其他类型沿父节点调用后端。成功返回已锁定引用。
 ```
 
 <a id="fn-365a4e7acb8561db"></a>
@@ -102,8 +104,8 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::link(char *old_path, char *new_path)
-@brief 在事务内解析两个路径并请求硬链接。
-@details 目标和父目录必须属于同一文件系统，委托 link_at 检查并执行。无论成功与否都释放临时引用，跨挂载链接失败而不修改任一文件系统。
+@brief 为最终节点本身建立同后端硬链接。
+@details 源路径不跟随最终符号链接；仍以事务固定源和目标父目录，禁止跨后端硬链接并释放所有临时引用。
 ```
 
 <a id="fn-5b042e585b21f4bf"></a>
@@ -275,18 +277,17 @@
 
 ```doxygen
 @fn bool xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
-@brief 装配一个系统生命周期的启动挂载。
-@details 仅供 initialize 串行启动阶段调用；查找或创建覆盖目录，拒绝非目录与已有挂载根，初始化借用后端并保存覆盖节点、后端根、父目录和路径。动态系统调用另走 mount_ram。
-@return 成功返回 true，容量、路径或节点检查失败返回 false。
+@brief 装配系统生命周期的启动后端。
+@details 容量上限扩为八条记录；只供启动阶段串行调用，保留覆盖节点、根、父节点和路径，运行期分别走 RAM/磁盘挂载入口。
 ```
 <a id="fn-81e896ba99fe170a"></a>
 
 ## `xv::fs::VirtualFileSystem::walk`
 
 ```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real)
-@brief 逐组件解析挂载路径并检查目录搜索权限。
-@details 每次锁定目录后验证 X，处理点目录和挂载边界。real 模式将真实身份贯穿全部组件供 access 使用；返回新的未锁定引用或失败，临时引用始终归还。
+@fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating)
+@brief 在稳定命名空间中解析路径与符号链接。
+@details 相对链接保留所在父目录，绝对链接从根开始，拼接剩余路径并限制 16 次展开和 MAXPATH。链接目标末尾的斜杠也要求最终结果为目录。可禁止跟随最终链接，也可为 O_CREATE 建立悬空链接的最终目标；普通组件保留 xv6 的 DIRSIZ 截断规则。
 ```
 
 <a id="fn-f4cf807217fcb7f0"></a>
@@ -294,10 +295,9 @@
 ## `xv::fs::VirtualFileSystem::lookup`
 
 ```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real)
-@brief 在稳定挂载关系下查找路径并返回独立 inode 引用。
-@details 取得 namespace_ 睡眠锁后调用 walk；返回引用固定所属后端，锁在返回前释放。必须在进程上下文中调用，初始进程建立 cwd 时直接使用 root。
-@return 未锁定节点引用；查找失败为 nullptr。
+@fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real, bool follow)
+@brief 按跟随策略取得稳定节点引用。
+@details namespace 睡眠锁内调用 walk，real 控制路径授权使用真实身份，follow 控制最终符号链接；返回后引用固定所属后端。
 ```
 
 <a id="fn-abf62fef3e7f21c5"></a>
@@ -327,9 +327,8 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::mount_ram(const char *path)
-@brief 发布最多四个独立动态 RAM 挂载中的一个。
-@details 先取得日志事务及命名空间锁，校验规范绝对路径、DIRSIZ、已有目录及非叠加关系。保留覆盖点和父引用后尝试初始化空闲后端；失败归还引用，成功设置新根 0755 并发布带路径/实例槽的记录。
-@return 0 表示成功，-1 表示路径、容量或内存检查失败。
+@brief 发布独立动态 RAM 实例。
+@details 总表上限八项，动态 RAM 池仍四槽；保留规范路径、覆盖目录、OOM 回滚和新根 0755 的约束。
 ```
 
 <a id="fn-5396bbf57ffd12ef"></a>
@@ -338,9 +337,8 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::unmount(const char *path)
-@brief 在无外部使用者时撤销动态挂载并回收其全部页面。
-@details 事务及命名空间锁内解析目标，拒绝固定挂载和 busy 实例。移除记录后释放覆盖点/父引用，调用后端 shutdown，最后归还动态实例槽。子挂载通过其持有的父后端引用使父实例 busy。
-@return 0 表示成功，-1 表示未挂载、受保护或忙碌。
+@brief 安全撤销 RAM 或持久卷挂载。
+@details 保护三个系统挂载，按后端 busy 检查引用。RAM 销毁全部页面，磁盘仅 flush 并释放根引用，不销毁持久内容；移除记录与入口受命名空间锁保护。
 ```
 
 <a id="fn-0747d0fa1f7514e8"></a>
@@ -349,9 +347,8 @@
 
 ```doxygen
 @fn int xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type)
-@brief 复制指定索引的挂载路径和类型。
-@details 命名空间锁内复制到内核缓冲 path[128]、type[32]。索引顺序可能随卸载交换记录而变化，多次调用不是整表快照。
-@return 1 表示一条记录，0 表示枚举结束。
+@brief 枚举根卷及后续挂载记录。
+@details 命名空间锁内让索引零返回 / 和根后端类型，其他索引减一后复制挂载路径和类型；返回 1 表示记录，0 表示结束。多次查询不是整表快照，卸载可能改变后续记录顺序。
 ```
 
 <a id="fn-3ce7ce542ff58054"></a>
@@ -363,4 +360,24 @@
 @brief 在稳定挂载拓扑下校验并转发原子重命名。
 @details 事务与命名空间锁内查找两端父目录，拒绝跨后端、点目录、目录环、挂载点及含挂载的祖先。临时取得源/目标引用供检查，调用所属后端 rename_at 后按所有分支释放引用。
 @return 0 表示后端重命名成功，-1 表示校验或后端失败。
+```
+
+<a id="fn-67eba603f2e485ac"></a>
+
+## `xv::fs::VirtualFileSystem::symlink`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::symlink(const char *target, const char *path)
+@brief 原子创建保存目标字节的链接节点。
+@details 限制非空目标小于 MAXPATH，事务及命名空间锁内建立新节点并写入目标；失败移除新目录项，不要求目标已经存在。
+```
+
+<a id="fn-410eacc267e87225"></a>
+
+## `xv::fs::VirtualFileSystem::mount_disk`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::mount_disk(const char *path)
+@brief 把已连接的数据卷挂到一个已有目录。
+@details 事务及命名空间锁内拒绝容量不足、重复挂载、无效目录和覆盖已有挂载根；保留数据卷根并登记特殊磁盘槽，不重新格式化介质。
 ```

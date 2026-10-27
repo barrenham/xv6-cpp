@@ -1,18 +1,9 @@
 #include "kernel/support/types.h"
-#include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
-
-extern "C" {
-
-int
-main(int argc, char *argv[])
+extern "C" int main(int argc, char **argv)
 {
-  if (argc != 3) {
-    fprintf(2, "Usage: ln old new\n");
-    exit(1);
-  }
-  if (link(argv[1], argv[2]) < 0)
-    fprintf(2, "link %s %s: failed\n", argv[1], argv[2]);
-  exit(0);
-}
+ bool symbolic = argc == 4 && !strcmp(argv[1], "-s");
+ if ((!symbolic && argc != 3) || (symbolic ? symlink(argv[2], argv[3]) : link(argv[1], argv[2])) < 0)
+ { fprintf(2, "ln: usage: ln [-s] target name (or link failed)\n"); exit(1); }
+ exit(0);
 }
