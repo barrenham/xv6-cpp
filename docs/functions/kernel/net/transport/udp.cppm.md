@@ -1,5 +1,7 @@
 # `kernel/net/transport/udp.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::DatagramSink::deliver`](udp.cppm.md#fn-e96d99e2a20cb8c0)
@@ -34,7 +36,7 @@
 ## `xv::net::UdpProtocol::UdpProtocol`
 
 ```doxygen
-@fn xv::net::UdpProtocol::UdpProtocol(Ipv4Layer &ip, IcmpProtocol &icmp)
+@fn constexpr xv::net::UdpProtocol::UdpProtocol(Ipv4Layer &ip, IcmpProtocol &icmp)
 @brief 构造 UdpProtocol 的状态与依赖。
 @details 只保存借用的层间依赖或初始化空状态；不执行网络 I/O。被引用的服务必须比本对象存活更久。
 ```

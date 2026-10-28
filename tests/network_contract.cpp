@@ -1,12 +1,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include "kernel/net/filter/control.h"
 import xv.net;
+extern "C" void run_firewall_contracts();
 extern "C" void run_network_interface_contracts();
 extern "C" void run_network_control_contracts();
 extern "C" void run_bridge_contracts();
 extern "C" void run_dhcp_contracts();
 extern "C" void run_tcp_contracts();
+extern "C" void run_packet_reassembly_contracts();
 extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *, unsigned);
 extern "C" void net_test_capture(void *, unsigned *);
@@ -49,7 +52,9 @@ int receive(xv::net::Socket *socket, char *data, unsigned capacity)
 }
 int main()
 {
+  run_packet_reassembly_contracts();
   xv::net::initialize();
+  run_firewall_contracts();
   auto *datagram = xv::net::create_socket(2, 17);
   check(datagram && datagram->bind({0, 2000}) == 0, "UDP socket bind");
   xv::net::Endpoint peer{0x0a000202, 9000};
@@ -141,6 +146,17 @@ int main()
   std::memcpy(last+34, good+42, 5);
   put16(first+16, 28); put16(first+18, 99); put16(first+20, 0x2000); ip_checksum(first);
   put16(last+16, 25); put16(last+18, 99); put16(last+20, 1); ip_checksum(last);
+  firewall_request filter{}; filter.version=FW_VERSION; filter.size=sizeof(filter);
+  std::strcpy(filter.chain,"INPUT"); filter.rule.protocol=17;
+  filter.rule.dport_low=filter.rule.dport_high=2000; filter.rule.action=FW_DROP;
+  check(!xv::net::firewall_control(FW_APPEND,filter),"fragment port rule");
+  unsigned char foreign[47]; std::memcpy(foreign,good,47);
+  std::memcpy(foreign+30,"\xc0\x00\x02\x01",4); ip_checksum(foreign); inject(foreign,47);
+  check(xv::net::firewall_control(FW_RULE,filter)==1 && !filter.packets,"INPUT excludes nonlocal unicast");
+  inject(last,39); inject(first,42);
+  check(datagram->receive_from({address(data),true},sizeof(data),nullptr)==-11,"reassembled fragment port DROP");
+  check(xv::net::firewall_control(FW_RULE,filter)==1 && filter.packets==1 && filter.bytes==33,"fragments counted once per datagram");
+  check(!xv::net::firewall_control(FW_FLUSH,filter) && net_test_pages()==1,"fragment DROP releases pages");
   inject(last, 39); check(net_test_pages() == 2, "fragment retained");
   inject(first, 42); check(receive(datagram, data, sizeof(data)) == 5 && !std::memcmp(data, "hello", 5), "reverse fragment reassembly");
   check(net_test_pages() == 1, "reassembled page released");

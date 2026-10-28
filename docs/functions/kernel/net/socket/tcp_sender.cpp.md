@@ -1,28 +1,19 @@
 # `kernel/net/socket/tcp_sender.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::TcpSocket::acknowledge`](tcp_sender.cpp.md#fn-908ef432e52e4bd8)
-- [`xv::net::TcpSocket::emit`](tcp_sender.cpp.md#fn-1e8c0fad1b1d52f4)
-- [`xv::net::TcpSocket::finish`](tcp_sender.cpp.md#fn-cdfa0effd85a294d)
 - [`xv::net::TcpSocket::mss`](tcp_sender.cpp.md#fn-21edc71336b6198c)
-- [`xv::net::TcpSocket::persist`](tcp_sender.cpp.md#fn-ddde9d68f5d02226)
-- [`xv::net::TcpSocket::pump`](tcp_sender.cpp.md#fn-0a573b0a54d401fc)
-- [`xv::net::TcpSocket::retransmit`](tcp_sender.cpp.md#fn-a3fb96da6efa099c)
 - [`xv::net::TcpSocket::segment`](tcp_sender.cpp.md#fn-3533387c7fba430c)
+- [`xv::net::TcpSocket::emit`](tcp_sender.cpp.md#fn-1e8c0fad1b1d52f4)
 - [`xv::net::TcpSocket::synchronize`](tcp_sender.cpp.md#fn-8f8d8c5361cbc218)
+- [`xv::net::TcpSocket::pump`](tcp_sender.cpp.md#fn-0a573b0a54d401fc)
+- [`xv::net::TcpSocket::finish`](tcp_sender.cpp.md#fn-cdfa0effd85a294d)
+- [`xv::net::TcpSocket::retransmit`](tcp_sender.cpp.md#fn-a3fb96da6efa099c)
 - [`xv::net::TcpSocket::update_window`](tcp_sender.cpp.md#fn-12a68173f8514fe3)
-
-<a id="fn-cdfa0effd85a294d"></a>
-
-## `xv::net::TcpSocket::finish`
-
-```doxygen
-@fn void xv::net::TcpSocket::finish()
-@brief 把 FIN 排在全部待发送字节之后。
-@details 必须已请求写关闭且数据已全部发出，同时还有发送额度；无需等待数据全部确认。FIN 消耗一个序号，分别进入 FIN_WAIT_1 或 LAST_ACK。
-@pre 调用者持有 SocketRegistry 注册锁。
-```
+- [`xv::net::TcpSocket::acknowledge`](tcp_sender.cpp.md#fn-908ef432e52e4bd8)
+- [`xv::net::TcpSocket::persist`](tcp_sender.cpp.md#fn-ddde9d68f5d02226)
 
 <a id="fn-21edc71336b6198c"></a>
 
@@ -41,9 +32,9 @@
 
 ```doxygen
 @fn int xv::net::TcpSocket::segment(unsigned sequence, unsigned flags, const void *data, unsigned length)
-@brief 从指定序号发送 TCP 段，并记录成功通告的接收窗口右边缘。
-@details 统一带入本地/远端地址、接收累计序号及当前窗口；ACK 段成功发送后更新 advertised_right_，供应用读取后的窗口更新合并使用。
-@pre 调用者持有 SocketRegistry 注册锁。
+@brief 通过本注册表注入的 TCP 对象发送指定序号的段，成功发送 ACK 后记录通告窗口右边缘。
+@details 使用本地/远端端点、当前接收累计序号及窗口，不访问全局 TCP 实例。
+@pre 调用者持本注册表锁，载荷为可同步借用的内核字节。
 ```
 
 <a id="fn-1e8c0fad1b1d52f4"></a>
@@ -76,6 +67,17 @@
 @fn void xv::net::TcpSocket::pump()
 @brief 按对端窗口和拥塞窗口推进多段发送。
 @details 额度为 min(rwnd,cwnd) 减去在途字节，按 MSS 和物理页连续空间切段。成功交给 IP 层才推进 SND.NXT，失败保留未发送队列；最后尝试顺序发送 FIN。
+@pre 调用者持有 SocketRegistry 注册锁。
+```
+
+<a id="fn-cdfa0effd85a294d"></a>
+
+## `xv::net::TcpSocket::finish`
+
+```doxygen
+@fn void xv::net::TcpSocket::finish()
+@brief 把 FIN 排在全部待发送字节之后。
+@details 必须已请求写关闭且数据已全部发出，同时还有发送额度；无需等待数据全部确认。FIN 消耗一个序号，分别进入 FIN_WAIT_1 或 LAST_ACK。
 @pre 调用者持有 SocketRegistry 注册锁。
 ```
 

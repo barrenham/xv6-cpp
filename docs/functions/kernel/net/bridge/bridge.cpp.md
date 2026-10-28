@@ -1,14 +1,16 @@
 # `kernel/net/bridge/bridge.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
-- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
-- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
 - [`xv::net::BridgeInterface::initialize`](bridge.cpp.md#fn-ce4d08412e7d6ce2)
 - [`xv::net::BridgeInterface::mac_address`](bridge.cpp.md#fn-e2285e8b355a3998)
+- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
 - [`xv::net::BridgeInterface::tick`](bridge.cpp.md#fn-ba92da7fc5981118)
+- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
 - [`xv::net::BridgeInterface::transmit`](bridge.cpp.md#fn-26b371580e62fdc8)
+- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
 
 <a id="fn-ce4d08412e7d6ce2"></a>
 

@@ -14,8 +14,18 @@
 #define INADDR_ANY 0U
 #define INADDR_LOOPBACK 0x7f000001U
 typedef unsigned socklen_t;
-struct in_addr { unsigned s_addr; };
-struct sockaddr { unsigned short sa_family; char sa_data[14]; };
+
+struct in_addr
+{
+  unsigned s_addr;
+};
+
+struct sockaddr
+{
+  unsigned short sa_family;
+  char sa_data[14];
+};
+
 struct sockaddr_in
 {
   unsigned short sin_family;
@@ -23,7 +33,23 @@ struct sockaddr_in
   in_addr sin_addr;
   unsigned char sin_zero[8];
 };
-static inline unsigned short htons(unsigned short n) { return __builtin_bswap16(n); }
-static inline unsigned short ntohs(unsigned short n) { return __builtin_bswap16(n); }
-static inline unsigned htonl(unsigned n) { return __builtin_bswap32(n); }
-static inline unsigned ntohl(unsigned n) { return __builtin_bswap32(n); }
+
+static inline unsigned short htons(unsigned short n)
+{
+  return __builtin_bswap16(n);
+}
+
+static inline unsigned short ntohs(unsigned short n)
+{
+  return __builtin_bswap16(n);
+}
+
+static inline unsigned htonl(unsigned n)
+{
+  return __builtin_bswap32(n);
+}
+
+static inline unsigned ntohl(unsigned n)
+{
+  return __builtin_bswap32(n);
+}

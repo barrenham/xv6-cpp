@@ -12,9 +12,29 @@ TCP 提供连接管理、可靠有序字节流、双向关闭、滑动窗口和 
 | `transport/stream_buffer.cppm` | 分页发送环和带逐字节重排位图的接收环 |
 | `transport/congestion.cppm` | 慢启动、拥塞避免、快速重传和 NewReno 快速恢复 |
 | `transport/retransmission_timer.cppm` | RTT 采样、Karn 规则、RTO 与指数退避 |
-| `transport/tcp_protocol.cpp` | 首部与校验和、四元组分派、监听匹配和 RST 响应 |
+| `transport/tcp.cppm` | 借用报文值 `TcpSegment`、接收契约 `TcpSegmentSink` 和 TCP 发送/接收协议 |
+| `transport/tcp_protocol.cpp` | 首部与校验和、TCP 编码、未匹配报文的 RST 响应 |
+| `socket/registry.*` | 连接与监听匹配、backlog、待接受子连接查找、接管及关闭 |
 
 路径均相对于 `kernel/net/`。函数说明见 [内核函数导航](functions/kernel/README.md#net)。
+
+## 协议与连接分派
+
+```mermaid
+flowchart LR
+  IP[Ipv4Layer] -->|完整 TCP 数据报| TCP[TcpProtocol：首部和校验和]
+  TCP -->|借用 TcpSegment| SINK[TcpSegmentSink]
+  SINK --> REG[SocketRegistry：连接与监听分派]
+  REG --> STATE[TcpSocket：连接状态机]
+  STATE -->|所属注册表注入的发送对象| SEND[TcpProtocol.transmit]
+  SEND --> IP
+```
+
+`TcpProtocol` 只依赖 IPv4 和接收契约，不依赖 socket 类或注册表存储。校验通过后同步借用 TCP 字节形成 `TcpSegment`；注册表在统一 socket 锁内先匹配现有四元组，再处理监听 SYN。匹配到监听但 backlog 满或分配失败时，返回“已处理”并静默丢弃，避免把资源不足变成拒绝连接。未匹配报文交回协议层按原规则回复 RST；收到 RST 不再回复。
+
+注册表统一拥有待接受子连接的查找：`has_ready_child()` 服务监听 poll，`accept_child()` 转移接管责任并解除监听关联，`close_children()` 重置并回收仍未接受的连接。它们由已持有注册表锁的 socket 操作调用，保持原有条件等待协议；已接受连接在监听关闭后继续独立存活。协议层与具体 socket 都不再按固定槽位扫描注册表。
+
+生产组装先构造 `TcpProtocol(ip)`，再把该发送对象传给 `SocketRegistry(ip, udp, tcp)`，最后把注册表注入 TCP 接收入口。连接的正常发送、重传、窗口探测和异常 RST 都通过所属注册表的发送对象完成，移除了 `tcp_protocol()` 全局访问。初始序号计数器也由各注册表单独持有，`create_tcp()` 负责主动及被动 TCP 对象分配。两个独立协议栈可以使用相同的接口 ID、地址和端口，保持握手、数据及关闭状态隔离；对象依赖与接收入口必须在发布收发服务前装配完成。
 
 ## 发送窗口
 
@@ -115,3 +135,5 @@ ctest --preset dev -R '^(network_contract|socket_[15]cpu|http_[15]cpu|dns_[15]cp
 QEMU 在单核和三核下，各重复两轮 256 KiB 主动与被动传输，再运行 512 KiB 同时收发。HTTP、DNS、DHCP、网桥和信号回归使用同一份内核。原生网络契约另外通过 ASan/UBSan 运行。
 
 协议依据：[TCP](https://www.rfc-editor.org/rfc/rfc9293.html)、[拥塞控制](https://datatracker.ietf.org/doc/html/rfc5681)、[NewReno](https://datatracker.ietf.org/doc/html/rfc6582)、[RTO](https://www.rfc-editor.org/rfc/rfc6298.html)。
+
+原生 `tests/tcp_registry.cpp` 使用两个独立回环协议栈验证相同四元组隔离、待接受连接 poll/accept、backlog 满后重试、监听关闭对未接受与已接受连接的不同处理，以及最终页面回收。

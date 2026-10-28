@@ -4,6 +4,7 @@
 #include <vector>
 import xv.net;
 extern "C" void run_tcp_buffer_contracts();
+extern "C" void run_tcp_registry_contracts();
 extern "C" void tcp_test_tick(xv::net::Socket *,unsigned long);
 extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *,unsigned);
@@ -235,6 +236,7 @@ void handshakes()
 extern "C" void run_tcp_contracts()
 {
   net_test_clock(clock_ms); run_tcp_buffer_contracts(); check(!net_test_pages(),"buffer contracts release all pages");
+  run_tcp_registry_contracts();
   for (int count=0;count<9;++count)
   { net_test_fail_after(count); check(!xv::net::create_socket(1,6) && !net_test_pages(),"all partial stream allocations roll back"); }
   net_test_fail_after(-1);

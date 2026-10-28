@@ -1,5 +1,7 @@
 # `kernel/net/transport/udp.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::UdpProtocol::attach`](udp.cpp.md#fn-b5cbaf0f6126b7bd)

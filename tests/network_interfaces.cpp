@@ -149,6 +149,44 @@ extern "C" void run_network_interface_contracts()
   }
   IpInIpInterface nested(9,"nested");
   check(!nested.initialize(ip,tunnel,0x0a080001,0x0a080002),"recursive tunnel underlay rejected");
+  {
+    InterfaceRegistry registry;
+    RoutingTable table(registry);
+    LoopbackInterface local_loop; local_loop.initialize();
+    Capture base(20,"base"),published(21,"published"),same_id(21,"other"),same_name(22,"published"),alien(20,"alien");
+    check(local_loop.add_address({0x7f000001,8}) && local_loop.set_up(true) && base.set_up(true),"runtime fixture setup");
+    check(registry.add(local_loop) && registry.add(base) && registry.seal(),"runtime fixture publication");
+    table.seal();
+    AddressConfiguration addresses(registry,table,local_loop);
+    check(addresses.add_static(base,{0xc0000201,24})==0 && base.generation()==1 && table.available()==30,
+          "shared address service commits address and routes");
+    bool changed=true;
+    check(addresses.add_static(alien,{0xc0000202,24})==-19 &&
+          addresses.remove_static(alien,{0xc0000201,24})==-19 &&
+          addresses.install_lease(alien,{0xc0000203,24},0,100,changed)==-101 && !changed &&
+          !addresses.remove_lease(alien) && base.owns(0xc0000201) && !alien.address_count(),
+          "address service validates registry identity before changing configuration");
+    check(addresses.remove_static(base,{0xc0000201,24})==0 && base.generation()==2 && table.available()==32,
+          "shared address service removes address and automatic routes");
+
+    check(registry.publish(published)==0 && registry.count()==3 && published.generation()==1 &&
+          !published.set_up(true) && !published.add_address({0xc0000202,24}),"runtime publication seals startup API");
+    check(registry.publish(same_id)==-17 && registry.publish(same_name)==-17 &&
+          registry.count()==3 && !same_id.generation() && !same_name.generation(),"failed publication preserves registry and interface state");
+    published.configure_link(true); published.configure_link(true);
+    check(published.up() && published.generation()==3,"runtime link requests retain generation semantics");
+    published.set_dhcp_active(true); published.set_dhcp_active(false);
+    check(!published.dhcp_active() && published.generation()==3,"DHCP marker does not invalidate packet generation");
+    published.topology_changed();
+    check(published.generation()==4,"topology change advances packet generation");
+    published.configure_link(false);
+    check(!registry.withdraw(same_id) && registry.find(21)==&published,"withdrawal uses object identity");
+    check(registry.withdraw(published) && registry.count()==2 && !registry.find(21) && published.generation()==6 &&
+          !published.set_up(true),"withdrawal compacts registry and preserves startup seal");
+    check(registry.publish(published)==0 && published.generation()==7 && registry.at(2)==&published,
+          "same stable interface object can be republished");
+    check(registry.withdraw(published),"restore runtime fixture registry");
+  }
   check(net_test_pages()==baseline,"interface paths release every packet page");
   std::puts("network interfaces: routes, addressless links, loopback and tunnel passed");
 }

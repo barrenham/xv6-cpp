@@ -30,6 +30,7 @@ flowchart TD
 | `kernel/net/core/` | Endpoint、地址值类型、网络序字节工具、唯一拥有权 Packet、服务组装 |
 | `kernel/net/link/` | Ethernet EtherType 分派、ARP 邻居缓存/请求/回复/待解析队列 |
 | `kernel/net/interface/` | 接口注册、可选地址、以太/回环/IP-in-IP 多态实现 |
+| `kernel/net/filter/` | IPv4 过滤 hook、独立规则核心、边界解析与管理服务 |
 | `kernel/net/ip/` | IPv4 首部验证、最长前缀选路、有限分片重组、ICMP |
 | `kernel/net/transport/` | UDP/TCP 校验与报文编码、重传计时器 |
 | `kernel/net/socket/` | 抽象 Socket、InetSocket 共性、具体 TCP/UDP socket 与注册表 |
@@ -37,9 +38,45 @@ flowchart TD
 | `kernel/syscall/syssocket.cpp` | socket ABI 校验、地址转换、File 安装和失败回滚 |
 | `kernel/drivers/net/e1000/` | 硬件 DMA 收发及完成页回收，不知道 TCP 或用户描述符 |
 
-`EthernetProtocol`、`IpProtocol`、`DatagramSink` 明确每层接收契约，通过虚接口按 EtherType/IP 协议号分派；具体协议由启动服务静态装配。`Socket` 通过 `IoObject` 接入 File，TCP 与 UDP 独立实现传输语义，文件系统不依赖 TCP 状态机。
+`EthernetProtocol`、`IpProtocol`、`DatagramSink`、`TcpSegmentSink` 明确每层接收契约，通过虚接口按 EtherType/IP 协议号分派；具体协议由启动服务静态装配。`Socket` 通过 `IoObject` 接入 File，TCP 与 UDP 独立实现传输语义，文件系统不依赖 TCP 状态机。
 
 `Packet` 独占一个物理页，禁止复制，允许移动。默认析构归还页面；成功交给 DMA、ARP 待解析队列或 socket 接收队列时显式 `release()`。错误分支自然析构，避免遗漏释放。具体 socket 由物理页 placement 构造；TCP 独立申请 RX 页，中途失败会归还两阶段已申请资源。
+
+`Packet::Context` 保存报文处理元数据，目前为隧道解封深度。移动、克隆、回环、ARP 待解析队列及 UDP 接收队列均保留上下文；`release()` 仅交出页面，长度和上下文保留为值，用于队列接管。释放后的对象不再拥有页面，`data()` 为空，不能继续读写字节。带上下文的页面接管构造器用于从队列恢复拥有权；const 报文只提供只读字节视图。
+
+`Ipv4Reassembly` 单独拥有四个重组槽、逐字节重叠位图、页面与十五秒超时，不依赖网卡、接口类、路由或防火墙。入口对象身份、源/目的地址、ID、协议和隧道上下文共同隔离重组状态；完成后保留上下文，并修复长度、分片标志和校验和。`Ipv4Layer` 负责目的地址检查、INPUT 过滤与协议分派，重组完成报文在重组锁外重新进入该路径，因此过滤与计数仍以完整数据报为单位。组件按内核服务长期存活；短期使用者应在停止接收后调用 `clear()` 释放未完成页面。
+
+普通 IPv4 发送与 DHCP 引导广播共用 `write_header()` 和 `output_allowed()`，保持 TTL、DF、ID、地址、校验和与 OUTPUT 时机一致；各自的选路和引导条件检查仍留在对应入口。
+
+## 模块维护约定
+
+- 新功能沿现有层次接入：协议处理留在协议层，管理请求在控制边界转换，对象创建与依赖注入集中在 `core/service.cpp`。
+- 接口只暴露调用者需要的能力。可以独立计算或解析的逻辑依赖值对象，避免把驱动、系统调用和完整服务实现带入依赖。
+- 同一含义沿用现有术语；新增内部参数使用完整名称表达端口、接口及长度。固定布局用户 ABI 保持兼容，在边界处转换。
+- 报文页面的借用、移动、释放和队列接管须清楚；持锁范围与锁外复制、回调、发送分开表达。
+- 函数先呈现主要流程，再将有独立职责的操作提取为具名函数；避免把多个状态修改和失败分支压在一行。
+- 改动后同步函数文档与语义绑定，依据影响范围运行原生契约和真实单核、五核网络测试。
+
+生产组装的 `initialize()` 依次初始化服务、注册回环与以太接口、挂接协议、应用启动配置并封存接口和路由，最后启动默认 DHCP。各阶段有独立的局部函数；自定义 `NetworkSetup` 继续负责自定义配置。`timer_tick()` 在协议处理前后分别服务接口，以便及时处理回环队列中新产生的报文。
+
+路由表独占路由记录及其数量、容量和启动封存状态。管理层使用值快照与具名修改操作，租约配置使用整组路由替换，网桥使用 `references()` 查询接口占用；这些调用方不再依赖路由数组布局。单条路由方法使用 `ConfigurationGuard`，涉及接口地址与路由的联合更新由外层 Guard 覆盖整个事务。
+
+`AddressConfiguration` 统一拥有手工地址与租约地址的配置事务：检查地址、槽位与归属，在同一 `ConfigurationGuard` 下协调接口地址和路由组提交。`NetworkManager` 只把管理请求转换为地址/路由操作；`LeaseConfiguration` 把 DHCP 租约转换为地址、网关和 metric，不再接触地址存储。接口的运行期链路状态、DHCP 标记和拓扑代次通过具名方法修改。`InterfaceRegistry` 负责启动注册及运行期 `publish()` / `withdraw()`，网桥管理器不再操作注册数组。
+
+TCP 协议层通过 `TcpSegmentSink` 交付已校验的借用报文，不依赖 socket 注册表或连接私有状态。注册表统一管理连接分派与待接受子连接，TCP socket 通过显式注入的发送对象发包，不再查找全局 TCP 单例。独立协议栈实例的相同地址与端口可由原生契约验证互不干扰，详见 [TCP 分层说明](network-tcp.md)。
+
+## 设计检查依据
+
+| 目标 | 实现依据 |
+| --- | --- |
+| 抽象易懂 | 生产组装按阶段呈现；接收沿协议契约分派；地址事务、规则计算与重组队列各有独立对象 |
+| 命名一致 | 内部元数据明确端口、接口和长度；`address_owner` 与 `lease_owner` 区分归属；`create_tcp()` 同时服务主动与被动连接 |
+| 代码风格 | 全部 net C++/共享头遵循仓库 `.clang-format`，分支和循环使用大括号，不压缩多步控制流 |
+| 可复用 | 纯规则引擎、独立解析器、地址事务、自动路由构造、IPv4 首部构造及重组组件可分别验证；TCP 支持独立实例注入 |
+| 低耦合 | 管理器不访问接口/路由/注册数组；TCP 编解码不依赖 socket 实现；平台相关操作集中在 platform |
+| 高内聚 | 路由表拥有路由存储，地址服务拥有联合事务，注册表拥有连接分派及子连接生命周期，重组组件拥有片段页面 |
+
+原生契约验证两个独立 TCP 栈使用相同四元组时互不干扰；`tests/packet_reassembly.cpp` 验证独立页面拥有权、上下文、入口隔离、容量和超时；单核/五核 QEMU 网络测试验证实际系统集成。有限容量、无 IPv4 转发、无 IPv6 和既有协议子集保持为明确的功能边界。
 
 ## 运行与测试
 
@@ -47,16 +84,16 @@ flowchart TD
 conda activate OS-LAB
 cmake --preset dev
 cmake --build --preset dev
-ctest --test-dir build/dev --output-on-failure -R '^(network_.*|socket_[15]cpu|multinet_[15]cpu)$'
+ctest --test-dir build/dev --output-on-failure -L network
 cmake --build build/dev --target qemu
 ```
 
 `qemu` 和 `qemu-gdb` 默认带 E1000，启动输出 `e1000: ready`，随后逐接口输出实际配置。自动测试选择临时宿主机端口、独立磁盘副本并结束 QEMU；单核/五核各在同次启动连续运行两轮。
 
 - `network_contract` 使用同一协议实现和可控时钟，验证短包、校验和、队列上限、socket 容量与释放、ARP、反序分片重组/重叠拒绝/超时、ICMP Echo、SYN/数据重传、重复数据去重、乱序恢复、非法 ACK/RST、超时和分配回滚；最终检查所有网络页面归还。
-- `network_1cpu/3cpu` 使用 socket/sendto/recvfrom 验证真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
-- `multinet_1cpu/3cpu` 验证双子网、相同端口绑定不同本地地址、共享 PCI INTx 与每设备 MAC。
-- `socket_1cpu/3cpu` 验证 UDP 描述符、fstat、poll、dup/fork、非阻塞、TCP 主动/被动连接、256 KiB 主动/被动流传输与 512 KiB 同时收发、零窗口后恢复、半关闭、EOF、连接拒绝及回环 TCP。
+- `network_1cpu/5cpu` 使用 socket/sendto/recvfrom 验证真实往返、MTU、空报、截断、fork、退出清理、信号中断和 SA_RESTART 测试。
+- `multinet_1cpu/5cpu` 验证双子网、相同端口绑定不同本地地址、共享 PCI INTx 与每设备 MAC。
+- `socket_1cpu/5cpu` 验证 UDP 描述符、fstat、poll、dup/fork、非阻塞、TCP 主动/被动连接、256 KiB 主动/被动流传输与 512 KiB 同时收发、零窗口后恢复、半关闭、EOF、连接拒绝及回环 TCP。
 
 `tests/socket_network.py` 自动启动宿主机 UDP/TCP 回显服务及客体 TCP 监听端口转发。手动运行 `sockettest` 需要传入宿主机 UDP 回显端口、TCP 回显端口和拒绝连接端口，并在程序输出 `listening` 后连接转发的客体 TCP2021；建议直接使用自动测试完成整套验证。
 
@@ -72,6 +109,8 @@ cmake --build build/dev --target qemu
 ```text
 -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56
 ```
+
+按地址、协议、端口和接口过滤 IPv4 报文，见 [iptables 防火墙](network-firewall.md)。
 
 运行中查看或修改接口、地址、路由及邻居缓存，见 [用户态网络管理](network-management.md)。
 
@@ -129,7 +168,7 @@ TCP 覆盖 SYN-SENT、SYN-RECEIVED、ESTABLISHED、FIN-WAIT-1/2、CLOSING、CLOS
 
 独立 `RetransmissionTimer` 保存 SRTT、RTTVAR 和 RTO，采用 alpha1/8、beta1/4、Karn 采样约束及指数退避，RTO 为1..60秒。硬件计时器每100ms在 hart0服务网络；最多六次重传后给出超时错误。项目 TIME_WAIT 保留30秒，FIN_WAIT2也有30秒清理边界。
 
-锁顺序：驱动先释放设备锁再回调协议；回环接口先取出并解锁再分派；SocketRegistry 是 socket/兼容端口的统一条件锁。用户地址复制在注册锁外完成；睡眠在锁内登记等待、解锁后执行。IRQ 和 timer 路径只操作内核页及对象状态。
+锁顺序：驱动先释放设备锁再回调协议；回环接口先取出并解锁再分派；SocketRegistry 使用统一条件锁保护 socket 状态及监听子连接。用户地址复制在注册锁外完成；睡眠在锁内登记等待、解锁后执行。IRQ 和 timer 路径只操作内核页及对象状态。
 
 ## 资源边界与后续范围
 

@@ -1,5 +1,7 @@
 # `kernel/net/interface/configuration.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::configuration_lock`](configuration.cpp.md#fn-557bd6206ad9f26a)

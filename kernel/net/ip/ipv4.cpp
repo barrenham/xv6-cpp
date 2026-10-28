@@ -3,134 +3,198 @@ module;
 module xv.net;
 import :ipv4;
 import :platform;
+
 namespace xv::net
 {
-void Ipv4Layer::initialize() { lock_.init("IPv4 queues"); }
+void Ipv4Layer::initialize()
+{
+  reassembly_.initialize();
+}
+
 void Ipv4Layer::attach(unsigned protocol, IpProtocol &handler)
-{ for (auto &h : handlers_) if (!h.handler) { h = {protocol, &handler}; return; } }
+{
+  for (auto &binding : handlers_)
+  {
+    if (binding.handler)
+    {
+      continue;
+    }
+    binding = {protocol, &handler};
+    return;
+  }
+}
+
 Packet Ipv4Layer::allocate(unsigned length)
 {
-  if (length > 4062) return {};
-  auto packet = Packet::allocate(20+length);
-  if (packet) wire::zero(packet.data(), 20+length);
+  if (length > Ipv4Reassembly::MaxPayload)
+  {
+    return {};
+  }
+  auto packet = Packet::allocate(20 + length);
+  if (packet)
+  {
+    wire::zero(packet.data(), 20 + length);
+  }
   return packet;
 }
-unsigned Ipv4Layer::source_for(unsigned destination, unsigned requested, const NetworkInterface *via) const
+
+unsigned Ipv4Layer::source_for(unsigned destination, unsigned requested,
+                               const NetworkInterface *via) const
 {
   RouteSelection selection;
   return routes_.lookup(destination, selection, requested, via) ? selection.source : 0;
 }
+
 unsigned Ipv4Layer::mtu_for(unsigned destination, unsigned requested) const
 {
   RouteSelection selection;
-  return routes_.lookup(destination, selection, requested) ? selection.interface->mtu() : 0;
-}
-int Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol, unsigned source,
-                    const NetworkInterface *via)
-{
-  RouteSelection selection;
-  if (!routes_.lookup(destination, selection, source, via)) return -ENETUNREACH;
-  if (!packet || packet.size() < 20 || packet.size() > selection.interface->mtu()) return -EMSGSIZE;
-  auto *ip = packet.data();
-  wire::zero(ip, 20); ip[0] = 0x45; ip[8] = 64; ip[9] = protocol;
-  wire::write16(ip+2, packet.size());
-  wire::write16(ip+4, __atomic_fetch_add(&identification_, 1U, __ATOMIC_RELAXED));
-  wire::write16(ip+6, 0x4000);
-  wire::write32(ip+12, selection.source); wire::write32(ip+16, destination);
-  wire::write16(ip+10, ~wire::sum(ip, 20));
-  return selection.interface->send(packet, selection.next_hop);
-}
-void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
-{
-  if (!interface.up() || interfaces_.find(interface.id()) != &interface || packet.size() < 20)
-  { interface.receive_drop(); return; }
-  auto *ip = packet.data();
-  unsigned header = (ip[0]&15)*4, total = wire::read16(ip+2);
-  unsigned source = wire::read32(ip+12), destination = wire::read32(ip+16);
-  if ((ip[0] >> 4) != 4 || header < 20 || total < header || total > packet.size() ||
-      !ip[8] || (wire::read16(ip+6)&0x8000) || wire::sum(ip, header) != 0xffff ||
-      !source || (source >> 28) >= 14) { interface.receive_drop(); return; }
-  IpDatagram bootstrap{source,destination,ip[9],header,total-header,&interface};
-  if (!(wire::read16(ip+6)&0x3fff) && ip[9]==17 && bootstrap_ &&
-      bootstrap_->receive_bootstrap(interface,packet,bootstrap)) return;
-  if (!interface.accepts_destination(destination,interfaces_)) { interface.receive_drop(); return; }
-  if (wire::read16(ip+6)&0x3fff) { fragment(interface, packet, header, total); return; }
-  IpDatagram datagram{source, destination, ip[9], header, total-header, &interface};
-  for (auto &h : handlers_) if (h.handler && h.protocol == datagram.protocol)
-  { h.handler->receive(packet, datagram); return; }
-}
-void Ipv4Layer::fragment(NetworkInterface &interface, Packet &packet, unsigned header, unsigned total)
-{
-  if (header != 20) return;
-  auto *ip = packet.data();
-  unsigned flags = wire::read16(ip+6), offset = (flags&0x1fff)*8, length = total-header;
-  if (!length || offset+length > 4062 || ((flags&0x2000) && (length&7))) return;
-  lock_.acquire();
-  Assembly *slot = nullptr;
-  for (auto &a : assemblies_)
-    if (a.page && a.interface == &interface && a.source == wire::read32(ip+12) && a.destination == wire::read32(ip+16) &&
-        a.id == wire::read16(ip+4) && a.protocol == ip[9]) { slot = &a; break; }
-  if (!slot)
-  {
-    for (auto &a : assemblies_) if (!a.page) { slot = &a; break; }
-    if (!slot) { lock_.release(); return; }
-    slot->page = detail::allocate_page();
-    if (!slot->page) { lock_.release(); return; }
-    slot->interface = &interface;
-    slot->source = wire::read32(ip+12); slot->destination = wire::read32(ip+16);
-    slot->id = wire::read16(ip+4); slot->protocol = ip[9];
-    slot->deadline = detail::milliseconds()+15000;
-    wire::copy(slot->page, packet.data(), 20);
-  }
-  auto &a = *slot;
-  bool invalid = (a.last && offset+length > a.total);
-  for (unsigned i = offset; i < offset+length; ++i)
-    if (a.present[i/8] & (1U<<(i%8))) invalid = true;
-  if (!(flags&0x2000))
-  {
-    if ((a.last && a.total != offset+length) || a.received > offset+length) invalid = true;
-    for (unsigned i = offset+length; i < 4062; ++i)
-      if (a.present[i/8] & (1U<<(i%8))) invalid = true;
-    a.total = offset+length; a.last = true;
-  }
-  if (invalid)
-  { Packet discarded(a.page, 0); a = {}; lock_.release(); return; }
-  wire::copy(static_cast<unsigned char *>(a.page)+20+offset, ip+header, length);
-  for (unsigned i = offset; i < offset+length; ++i) a.present[i/8] |= 1U<<(i%8);
-  a.received += length;
-  if (a.last && a.received == a.total)
-  {
-    Packet complete(a.page, 20+a.total); a = {}; lock_.release();
-    auto *h = complete.data(); wire::write16(h+2, complete.size());
-    wire::write16(h+6, 0); wire::write16(h+10, 0); wire::write16(h+10, ~wire::sum(h, 20));
-    receive(interface, complete); return;
-  }
-  lock_.release();
-}
-void Ipv4Layer::tick(unsigned long now)
-{
-  for (auto &a : assemblies_)
-  {
-    lock_.acquire();
-    if (a.page && a.deadline <= now) { Packet expired(a.page, 0); a = {}; }
-    lock_.release();
-  }
-}
+  return routes_.lookup(destination, selection, requested) ? selection.interface->mtu()
+                                                           : 0;
 }
 
-namespace xv::net
+void Ipv4Layer::write_header(Packet &packet, unsigned source, unsigned destination,
+                             unsigned protocol)
 {
-int Ipv4Layer::send_bootstrap(NetworkInterface &interface,Packet &packet,unsigned source)
+  auto *header = packet.data();
+  wire::zero(header, 20);
+  header[0] = 0x45;
+  header[8] = 64;
+  header[9] = protocol;
+  wire::write16(header + 2, packet.size());
+  wire::write16(header + 4, __atomic_fetch_add(&identification_, 1U, __ATOMIC_RELAXED));
+  wire::write16(header + 6, 0x4000);
+  wire::write32(header + 12, source);
+  wire::write32(header + 16, destination);
+  wire::write16(header + 10, ~wire::sum(header, 20));
+}
+
+bool Ipv4Layer::output_allowed(const Packet &packet, const NetworkInterface &interface)
 {
-  if (!packet || packet.size()<28 || packet.size()>interface.mtu()) return -EMSGSIZE;
-  if (interfaces_.find(interface.id())!=&interface || !interface.dhcp_active() || !interface.up() ||
-      interface.master() || (source && !interface.owns(source))) return -ENETUNREACH;
-  auto *p=packet.data();
-  if (wire::read16(p+20)!=68 || wire::read16(p+22)!=67) return -EINVAL;
-  wire::zero(p,20); p[0]=0x45; p[8]=64; p[9]=17;
-  wire::write16(p+2,packet.size()); wire::write16(p+4,__atomic_fetch_add(&identification_,1U,__ATOMIC_RELAXED));
-  wire::write16(p+6,0x4000); wire::write32(p+12,source); wire::write32(p+16,0xffffffff);
-  wire::write16(p+10,~wire::sum(p,20));
+  return !filter_ || filter_->accept(FilterHook::Output, packet.data(), packet.size(),
+                                     interface.id());
+}
+
+int Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol,
+                    unsigned source, const NetworkInterface *via)
+{
+  RouteSelection selection;
+  if (!routes_.lookup(destination, selection, source, via))
+  {
+    return -ENETUNREACH;
+  }
+  if (!packet || packet.size() < 20 || packet.size() > selection.interface->mtu())
+  {
+    return -EMSGSIZE;
+  }
+  write_header(packet, selection.source, destination, protocol);
+  if (!output_allowed(packet, *selection.interface))
+  {
+    return -EACCES;
+  }
+  return selection.interface->send(packet, selection.next_hop);
+}
+
+void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
+{
+  if (!interface.up() || interfaces_.find(interface.id()) != &interface || !packet ||
+      packet.size() < 20)
+  {
+    interface.receive_drop();
+    return;
+  }
+  auto *header = packet.data();
+  unsigned header_length = (header[0] & 15) * 4,
+           total_length = wire::read16(header + 2);
+  unsigned source = wire::read32(header + 12), destination = wire::read32(header + 16);
+  if ((header[0] >> 4) != 4 || header_length < 20 || total_length < header_length ||
+      total_length > packet.size() || !header[8] ||
+      (wire::read16(header + 6) & 0x8000) ||
+      wire::sum(header, header_length) != 0xffff || !source || (source >> 28) >= 14)
+  {
+    interface.receive_drop();
+    return;
+  }
+  if (wire::read16(header + 6) & 0x3fff)
+  {
+    if (!interface.accepts_destination(destination, interfaces_))
+    {
+      interface.receive_drop();
+      return;
+    }
+    auto complete = reassembly_.accept(&interface, packet, header_length, total_length,
+                                       detail::milliseconds());
+    if (complete)
+    {
+      receive(interface, complete);
+    }
+    return;
+  }
+  bool local_destination = interface.accepts_destination(destination, interfaces_);
+  bool bootstrap_candidate = bootstrap_ && interface.dhcp_active() && header[9] == 17 &&
+                             total_length - header_length >= 8 &&
+                             wire::read16(header + header_length) == 67 &&
+                             wire::read16(header + header_length + 2) == 68;
+  if (!local_destination && !bootstrap_candidate)
+  {
+    interface.receive_drop();
+    return;
+  }
+  if (filter_ &&
+      !filter_->accept(FilterHook::Input, header, total_length, interface.id()))
+  {
+    interface.receive_drop();
+    return;
+  }
+  IpDatagram datagram{
+      source,    destination, header[9], header_length, total_length - header_length,
+      &interface};
+  if (datagram.protocol == 17 && bootstrap_ &&
+      bootstrap_->receive_bootstrap(interface, packet, datagram))
+  {
+    return;
+  }
+  if (!local_destination)
+  {
+    interface.receive_drop();
+    return;
+  }
+  for (auto &binding : handlers_)
+  {
+    if (!binding.handler || binding.protocol != datagram.protocol)
+    {
+      continue;
+    }
+    binding.handler->receive(packet, datagram);
+    return;
+  }
+}
+
+void Ipv4Layer::tick(unsigned long now)
+{
+  reassembly_.tick(now);
+}
+
+int Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet,
+                              unsigned source)
+{
+  if (!packet || packet.size() < 28 || packet.size() > interface.mtu())
+  {
+    return -EMSGSIZE;
+  }
+  if (interfaces_.find(interface.id()) != &interface || !interface.dhcp_active() ||
+      !interface.up() || interface.master() || (source && !interface.owns(source)))
+  {
+    return -ENETUNREACH;
+  }
+  if (wire::read16(packet.data() + 20) != 68 || wire::read16(packet.data() + 22) != 67)
+  {
+    return -EINVAL;
+  }
+  write_header(packet, source, 0xffffffff, 17);
+  if (!output_allowed(packet, interface))
+  {
+    return -EACCES;
+  }
   return interface.send_bootstrap(packet);
 }
-}
+} // namespace xv::net

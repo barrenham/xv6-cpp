@@ -1,16 +1,27 @@
 # `kernel/net/socket/udp_socket.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::UdpSocket::close`](udp_socket.cpp.md#fn-eed8d538bf40d970)
 - [`xv::net::UdpSocket::connect`](udp_socket.cpp.md#fn-f72fc8c5d0e8ba8d)
-- [`xv::net::UdpSocket::deliver`](udp_socket.cpp.md#fn-1939981af256f2db)
-- [`xv::net::UdpSocket::destroy`](udp_socket.cpp.md#fn-b15ea2d9e6042036)
-- [`xv::net::UdpSocket::poll`](udp_socket.cpp.md#fn-b5e462b9bd861861)
 - [`xv::net::UdpSocket::read`](udp_socket.cpp.md#fn-be5662d5a59833f9)
-- [`xv::net::UdpSocket::receive_from`](udp_socket.cpp.md#fn-36db1e9161281aff)
-- [`xv::net::UdpSocket::send_to`](udp_socket.cpp.md#fn-a5d64b3c6ae3d978)
 - [`xv::net::UdpSocket::write`](udp_socket.cpp.md#fn-c8204ec2498ef987)
+- [`xv::net::UdpSocket::send_to`](udp_socket.cpp.md#fn-a5d64b3c6ae3d978)
+- [`xv::net::UdpSocket::deliver`](udp_socket.cpp.md#fn-1939981af256f2db)
+- [`xv::net::UdpSocket::receive_from`](udp_socket.cpp.md#fn-36db1e9161281aff)
+- [`xv::net::UdpSocket::poll`](udp_socket.cpp.md#fn-b5e462b9bd861861)
+- [`xv::net::UdpSocket::close`](udp_socket.cpp.md#fn-eed8d538bf40d970)
+- [`xv::net::UdpSocket::destroy`](udp_socket.cpp.md#fn-b15ea2d9e6042036)
+
+<a id="fn-f72fc8c5d0e8ba8d"></a>
+
+## `xv::net::UdpSocket::connect`
+
+```doxygen
+@fn int xv::net::UdpSocket::connect(Endpoint peer, bool)
+@brief 在注册锁内选择可路由的本地地址及端口，固定默认目标与本地源；后续接收按连接对端筛选。
+```
 
 <a id="fn-be5662d5a59833f9"></a>
 
@@ -32,14 +43,25 @@
 @details 把 File write 转为使用默认 peer 的 send_to，未 connect 返回 -ENOTCONN；一次 write 对应一个数据报。
 ```
 
+<a id="fn-a5d64b3c6ae3d978"></a>
+
+## `xv::net::UdpSocket::send_to`
+
+```doxygen
+@fn int xv::net::UdpSocket::send_to(xv::io::Buffer data, unsigned length, const Endpoint *destination)
+@brief 在注册锁外暂存用户负载，在锁内绑定并选择目标，再交 UDP 编码。
+@details 未连接 ANY 可逐报选不同出口；负载最多 4042 字节，仍受出口 MTU 限制。
+```
+
 <a id="fn-1939981af256f2db"></a>
 
 ## `xv::net::UdpSocket::deliver`
 
 ```doxygen
 @fn bool xv::net::UdpSocket::deliver(Packet &packet, Endpoint source, Endpoint destination, unsigned offset, unsigned length)
-@brief UdpSocket：持注册锁按端口、本地地址与可选默认 peer 筛选，最多入队十六报并通知；命中但满时丢弃新报，返回 true 防止误报端口不可达。
-@details 持注册锁按端口、本地地址与可选默认 peer 筛选，最多入队十六报并通知；命中但满时丢弃新报，返回 true 防止误报端口不可达。
+@brief 在已匹配本地与可选对端约束后，有容量则接管报文页面、来源、载荷边界及处理上下文。
+@details 匹配但队列满仍返回 true 并丢弃，避免生成错误的端口不可达；未匹配返回 false。
+@pre 调用方已持本注册表锁，报文及传输层边界已校验。
 ```
 
 <a id="fn-36db1e9161281aff"></a>
@@ -48,8 +70,8 @@
 
 ```doxygen
 @fn int xv::net::UdpSocket::receive_from(xv::io::Buffer data, unsigned length, Endpoint *peer)
-@brief UdpSocket：持锁检查有限队列，取走单个报文后解锁复制到用户地址。
-@details 持锁检查有限队列，取走单个报文后解锁复制到用户地址。容量不足截断并消费剩余数据；空报返回 0；无数据时支持 -EAGAIN 或可中断等待。Packet 保证任何复制失败也释放页。
+@brief 在注册锁内取出一条数据报，锁外以原上下文恢复页面拥有权并复制有界载荷给用户。
+@details 非阻塞空队列返回 -EAGAIN，阻塞按可中断条件等待处理；复制失败仍通过 Packet 析构释放已出队页面。
 ```
 
 <a id="fn-b5e462b9bd861861"></a>
@@ -80,22 +102,4 @@
 @fn void xv::net::UdpSocket::destroy()
 @brief UdpSocket：归还所有排队数据报页，显式析构后归还对象页；调用后 this 不再有效。
 @details 归还所有排队数据报页，显式析构后归还对象页；调用后 this 不再有效。
-```
-<a id="fn-f72fc8c5d0e8ba8d"></a>
-
-## `xv::net::UdpSocket::connect`
-
-```doxygen
-@fn int xv::net::UdpSocket::connect(Endpoint peer, bool)
-@brief 在注册锁内选择可路由的本地地址及端口，固定默认目标与本地源；后续接收按连接对端筛选。
-```
-
-<a id="fn-a5d64b3c6ae3d978"></a>
-
-## `xv::net::UdpSocket::send_to`
-
-```doxygen
-@fn int xv::net::UdpSocket::send_to(xv::io::Buffer data, unsigned length, const Endpoint *destination)
-@brief 在注册锁外暂存用户负载，在锁内绑定并选择目标，再交 UDP 编码。
-@details 未连接 ANY 可逐报选不同出口；负载最多 4042 字节，仍受出口 MTU 限制。
 ```

@@ -14,7 +14,7 @@ function(xv_add_program source)
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
     set(destination "/usr/tests/${name}")
-  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl")
+  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
     set(destination "/sbin/${name}")
   else()
     set(destination "/bin/${name}")
@@ -57,6 +57,7 @@ set(programs
   tests/permissiontest.cpp
   apps/curl/curl.cpp
   apps/nslookup/nslookup.cpp
+  apps/iptables/iptables.cpp
   apps/netctl/netctl.cpp
   apps/cat/cat.cpp
   apps/echo/echo.cpp
@@ -73,6 +74,7 @@ set(programs
   tests/devfstest.cpp
   tests/dhcptest.cpp
   tests/bridgetest.cpp
+  tests/firewalltest.cpp
   tests/netctltest.cpp
   tests/nettest.cpp
   tests/multinet.cpp

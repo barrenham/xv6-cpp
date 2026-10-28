@@ -1,21 +1,21 @@
 # `kernel/net/link/port.cppm`
 
-完整以太帧能力与 IPv4 接口分离，FrameReceiver 接收带入端口与代次的完整帧。对象长期存活，成员归属受配置锁保护；见 [网桥设计](../../../../network-bridge.md)。
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
 
 ## 函数导航
 
 - [`xv::net::FrameReceiver::bridge_id`](port.cppm.md#fn-fb43e6c9cb22bef1)
 - [`xv::net::FrameReceiver::ingress`](port.cppm.md#fn-28fb707209eed9d2)
 - [`xv::net::FrameReceiver::~FrameReceiver`](port.cppm.md#fn-4e1f94bec7f4b837)
-- [`xv::net::Layer2Port::Layer2Port`](port.cppm.md#fn-4c3bdc34e6492dc5)
 - [`xv::net::Layer2Port::Layer2Port`](port.cppm.md#fn-a31c5f8cb6d1c2d9)
-- [`xv::net::Layer2Port::dispatch_frame`](port.cppm.md#fn-44bb72ed36d8c701)
-- [`xv::net::Layer2Port::frame_mtu`](port.cppm.md#fn-e70dc727cfb90b3b)
-- [`xv::net::Layer2Port::master`](port.cppm.md#fn-e7c68ec98e3aded2)
 - [`xv::net::Layer2Port::operator=`](port.cppm.md#fn-8b8039b739cb6cd3)
+- [`xv::net::Layer2Port::frame_mtu`](port.cppm.md#fn-e70dc727cfb90b3b)
 - [`xv::net::Layer2Port::promiscuous`](port.cppm.md#fn-1ba7e3257a634714)
 - [`xv::net::Layer2Port::transmit_frame`](port.cppm.md#fn-767ef4bfb16e4fd7)
+- [`xv::net::Layer2Port::master`](port.cppm.md#fn-e7c68ec98e3aded2)
+- [`xv::net::Layer2Port::Layer2Port`](port.cppm.md#fn-4c3bdc34e6492dc5)
 - [`xv::net::Layer2Port::~Layer2Port`](port.cppm.md#fn-57083e6d7b38b205)
+- [`xv::net::Layer2Port::dispatch_frame`](port.cppm.md#fn-44bb72ed36d8c701)
 
 <a id="fn-fb43e6c9cb22bef1"></a>
 

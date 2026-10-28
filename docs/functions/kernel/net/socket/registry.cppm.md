@@ -1,58 +1,56 @@
 # `kernel/net/socket/registry.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::socket_registry`](../core/service.cpp.md#fn-a6dd2cdb97db1848)
+- [`xv::net::SocketRegistry::SocketRegistry`](registry.cppm.md#fn-aa2694f78b82aa17)
+- [`xv::net::SocketRegistry::initialize`](registry.cpp.md#fn-659351b0c1327217)
+- [`xv::net::SocketRegistry::create`](registry.cpp.md#fn-b6e4a131f2727ec9)
+- [`xv::net::SocketRegistry::destroy`](registry.cpp.md#fn-5728efd1d2787600)
+- [`xv::net::SocketRegistry::port_used`](registry.cpp.md#fn-843c6c84c36d20b9)
+- [`xv::net::SocketRegistry::ephemeral`](registry.cpp.md#fn-5f18bd69e55bbc95)
+- [`xv::net::SocketRegistry::initial_sequence`](registry.cpp.md#fn-d1d3a7a6b8106a56)
+- [`xv::net::SocketRegistry::deliver`](registry.cpp.md#fn-9bba05169d63bfe0)
+- [`xv::net::SocketRegistry::tick`](registry.cpp.md#fn-c06a8341d8d22f53)
+- [`xv::net::SocketRegistry::deliver_segment`](registry.cpp.md#fn-137b9bf56a27cf7b)
+- [`xv::net::SocketRegistry::accept_child`](registry.cpp.md#fn-87dc7407fb12bac2)
+- [`xv::net::SocketRegistry::has_ready_child`](registry.cpp.md#fn-ddfb832d8ebb61c6)
+- [`xv::net::SocketRegistry::close_children`](registry.cpp.md#fn-f87eb5a1600039d3)
+- [`xv::net::SocketRegistry::lock`](registry.cppm.md#fn-0fa9280129146c53)
+- [`xv::net::SocketRegistry::ip`](registry.cppm.md#fn-16744c8763b01524)
+- [`xv::net::SocketRegistry::udp`](registry.cppm.md#fn-5bf9bee61e4d9914)
+- [`xv::net::SocketRegistry::tcp`](registry.cppm.md#fn-f919e189c5a8a75f)
+- [`xv::net::SocketRegistry::add`](registry.cpp.md#fn-8ebcbaf798cf3b49)
+- [`xv::net::SocketRegistry::create_tcp`](registry.cpp.md#fn-2719e55329019906)
+- [`xv::net::SocketRegistry::ready_child`](registry.cpp.md#fn-9e2f303bbf2cbbd5)
+- [`xv::net::SocketRegistry::child_count`](registry.cpp.md#fn-75a9c43c96312ec3)
 - [`xv::net::InetSocket::InetSocket`](registry.cppm.md#fn-d46e3a4682fc0941)
-- [`xv::net::InetSocket::accept`](inet_socket.cpp.md#fn-d2da4b830d20ce65)
-- [`xv::net::InetSocket::auto_bind`](inet_socket.cpp.md#fn-0b320212f6b53f92)
 - [`xv::net::InetSocket::bind`](inet_socket.cpp.md#fn-6067d2454125f722)
+- [`xv::net::InetSocket::listen`](inet_socket.cpp.md#fn-effeaf7d08e9e569)
+- [`xv::net::InetSocket::accept`](inet_socket.cpp.md#fn-d2da4b830d20ce65)
+- [`xv::net::InetSocket::shutdown`](inet_socket.cpp.md#fn-9cf8b6db250e5ed8)
+- [`xv::net::InetSocket::local`](inet_socket.cpp.md#fn-32c5ee2101635ca7)
+- [`xv::net::InetSocket::peer`](inet_socket.cpp.md#fn-cec904cbda0c065a)
+- [`xv::net::InetSocket::error`](inet_socket.cpp.md#fn-8bc83ef76882de09)
+- [`xv::net::InetSocket::protocol`](registry.cppm.md#fn-12aa64f3b8def06f)
 - [`xv::net::InetSocket::bound`](registry.cppm.md#fn-9f53cd3638df33c8)
 - [`xv::net::InetSocket::destroy`](registry.cppm.md#fn-2420c65d9c46bc5f)
-- [`xv::net::InetSocket::error`](inet_socket.cpp.md#fn-8bc83ef76882de09)
-- [`xv::net::InetSocket::listen`](inet_socket.cpp.md#fn-effeaf7d08e9e569)
-- [`xv::net::InetSocket::local`](inet_socket.cpp.md#fn-32c5ee2101635ca7)
-- [`xv::net::InetSocket::notify`](inet_socket.cpp.md#fn-16bc4fae651114d5)
-- [`xv::net::InetSocket::owned`](registry.cppm.md#fn-26c167116bbe39c8)
-- [`xv::net::InetSocket::peer`](inet_socket.cpp.md#fn-cec904cbda0c065a)
-- [`xv::net::InetSocket::protocol`](registry.cppm.md#fn-12aa64f3b8def06f)
-- [`xv::net::InetSocket::shutdown`](inet_socket.cpp.md#fn-9cf8b6db250e5ed8)
 - [`xv::net::InetSocket::tick`](registry.cppm.md#fn-16b6f7514517e4b8)
+- [`xv::net::InetSocket::owned`](registry.cppm.md#fn-26c167116bbe39c8)
+- [`xv::net::InetSocket::auto_bind`](inet_socket.cpp.md#fn-0b320212f6b53f92)
+- [`xv::net::InetSocket::notify`](inet_socket.cpp.md#fn-16bc4fae651114d5)
 - [`xv::net::InetSocket::wait`](inet_socket.cpp.md#fn-89b4a062cf12e43d)
-- [`xv::net::SocketRegistry::SocketRegistry`](registry.cppm.md#fn-0926fac492970a06)
-- [`xv::net::SocketRegistry::add`](registry.cpp.md#fn-8ebcbaf798cf3b49)
-- [`xv::net::SocketRegistry::at`](registry.cppm.md#fn-4c94f5be09f01218)
-- [`xv::net::SocketRegistry::create`](registry.cpp.md#fn-b6e4a131f2727ec9)
-- [`xv::net::SocketRegistry::create_child`](registry.cpp.md#fn-312d78452a442d45)
-- [`xv::net::SocketRegistry::deliver`](registry.cpp.md#fn-9bba05169d63bfe0)
-- [`xv::net::SocketRegistry::destroy`](registry.cpp.md#fn-5728efd1d2787600)
-- [`xv::net::SocketRegistry::ephemeral`](registry.cpp.md#fn-5f18bd69e55bbc95)
-- [`xv::net::SocketRegistry::initialize`](registry.cpp.md#fn-659351b0c1327217)
-- [`xv::net::SocketRegistry::ip`](registry.cppm.md#fn-16744c8763b01524)
-- [`xv::net::SocketRegistry::lock`](registry.cppm.md#fn-0fa9280129146c53)
-- [`xv::net::SocketRegistry::port_used`](registry.cpp.md#fn-843c6c84c36d20b9)
-- [`xv::net::SocketRegistry::tick`](registry.cpp.md#fn-c06a8341d8d22f53)
-- [`xv::net::SocketRegistry::udp`](registry.cppm.md#fn-5bf9bee61e4d9914)
+- [`xv::net::socket_registry`](../core/service.cpp.md#fn-a6dd2cdb97db1848)
 
-<a id="fn-0926fac492970a06"></a>
+<a id="fn-aa2694f78b82aa17"></a>
 
 ## `xv::net::SocketRegistry::SocketRegistry`
 
 ```doxygen
-@fn xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp)
-@brief 构造 SocketRegistry 的状态与依赖。
-@details 只保存借用的层间依赖或初始化空状态；不执行网络 I/O。被引用的服务必须比本对象存活更久。
-```
-
-<a id="fn-4c94f5be09f01218"></a>
-
-## `xv::net::SocketRegistry::at`
-
-```doxygen
-@fn InetSocket *xv::net::SocketRegistry::at(unsigned index)
-@brief SocketRegistry：持注册锁借用指定索引对象；调用者确保 index 小于 64，空槽返回 nullptr。
-@pre 调用者持有统一注册锁。
-@details 持注册锁借用指定索引对象；调用者确保 index 小于 64，空槽返回 nullptr。
+@fn constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp)
+@brief 借用所属 IPv4、UDP 和 TCP 协议服务，构造独立的 socket 注册表。
+@pre 三个服务属于同一网络实例且比注册表存活更久；TCP/UDP 接收入口在服务发布前注入本注册表。
 ```
 
 <a id="fn-0fa9280129146c53"></a>
@@ -85,12 +83,21 @@
 @details 借用上层唯一 UdpProtocol 供数据报组包与发送使用。
 ```
 
+<a id="fn-f919e189c5a8a75f"></a>
+
+## `xv::net::SocketRegistry::tcp`
+
+```doxygen
+@fn TcpProtocol &xv::net::SocketRegistry::tcp()
+@brief 借用本注册表构造时注入的 TCP 发送对象，供连接正常发送、重传及复位使用。
+```
+
 <a id="fn-d46e3a4682fc0941"></a>
 
 ## `xv::net::InetSocket::InetSocket`
 
 ```doxygen
-@fn xv::net::InetSocket::InetSocket(SocketRegistry &registry, unsigned protocol)
+@fn constexpr xv::net::InetSocket::InetSocket(SocketRegistry &registry, unsigned protocol)
 @brief 构造 InetSocket 的状态与依赖。
 @details 只保存借用的层间依赖或初始化空状态；不执行网络 I/O。被引用的服务必须比本对象存活更久。
 ```
@@ -130,7 +137,7 @@
 ## `xv::net::InetSocket::tick`
 
 ```doxygen
-@fn void xv::net::InetSocket::tick(unsigned long)
+@fn virtual void xv::net::InetSocket::tick(unsigned long)
 @brief InetSocket：默认无计时工作；具体 TCP 实现覆盖此接口。
 @details 默认无计时工作；具体 TCP 实现覆盖此接口。
 ```

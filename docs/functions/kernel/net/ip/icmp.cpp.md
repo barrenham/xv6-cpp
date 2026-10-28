@@ -1,5 +1,7 @@
 # `kernel/net/ip/icmp.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::IcmpProtocol::receive`](icmp.cpp.md#fn-e81d21f708c3ced8)

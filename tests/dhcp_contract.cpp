@@ -51,6 +51,14 @@ public:
 };
 class Probe final : public xv::net::IpProtocol
 { public: unsigned count=0; void receive(xv::net::Packet &,const xv::net::IpDatagram &) override { ++count; } };
+class Gate final : public xv::net::PacketFilter
+{
+public:
+  bool input=false, output=false;
+  unsigned received=0, sent=0;
+  bool accept(xv::net::FilterHook hook,const unsigned char *,unsigned,unsigned) override
+  { if (hook==xv::net::FilterHook::Input) { ++received; return input; } ++sent; return output; }
+};
 struct Fixture
 {
   xv::net::InterfaceRegistry interfaces;
@@ -63,8 +71,9 @@ struct Fixture
   xv::net::NetworkManager manager{interfaces,routes,loop,nullptr,&dhcp};
   Media media,other_media; Probe probe;
   xv::net::EthernetInterface other{3,"other"};
-  Fixture(bool second=false)
+  Fixture(bool second=false, xv::net::PacketFilter *filter=nullptr)
   {
+    if (filter) ip.attach_filter(*filter);
     net_test_clock(0); ip.initialize(); loop.initialize(); port.initialize(media); media.receiver=&port.receiver();
     loop.add_address({0x7f000001,8}); loop.set_up(true); port.set_up(true); port.attach(ip); loop.attach(ip);
     interfaces.add(loop); interfaces.add(port);
@@ -101,6 +110,16 @@ extern "C" void run_dhcp_contracts()
 {
   using namespace xv::net;
   int baseline=net_test_pages();
+  {
+    Gate gate; Fixture f(false,&gate); f.start(); f.tick(0);
+    check(gate.sent==1 && !f.media.count,"DHCP discover respects OUTPUT hook");
+    gate.output=true; f.tick(2000); auto xid=f.xid();
+    auto offer=f.reply(2,0x0a000264,xid); f.inject(offer);
+    check(gate.received==1 && f.status().flags==DHCP_SELECTING,"DHCP bootstrap respects INPUT hook");
+    gate.input=true; auto allowed=f.reply(2,0x0a000264,xid); f.inject(allowed);
+    check(f.status().flags==DHCP_REQUESTING,"DHCP bootstrap allowed after filter change");
+  }
+  check(net_test_pages()==baseline,"filtered DHCP leaks no pages");
   {
     Fixture f;
     auto r=request(1); check(f.dhcp.execute(NETCTL_DHCP_START,r)==-95,"loopback unsupported");
@@ -214,6 +233,44 @@ extern "C" void run_dhcp_contracts()
     auto ack=f.reply(5,0x0a000264,xid); f.inject(ack);
     RouteSelection selection;
     check(f.routes.lookup(0x08080808,selection)&&selection.source==0x0a000264,"DHCP default route prefers leased source");
+  }
+  {
+    Fixture f;
+    DhcpLease lease{}; lease.address=0x0a000264; lease.prefix=24; lease.seconds=8;
+    bool changed=false;
+    check(f.configuration.install(f.port,lease,changed)==0 && changed,"install gatewayless lease directly");
+    unsigned initial_generation=f.port.generation();
+    check(f.configuration.install(f.port,lease,changed)==0 && !changed && f.port.generation()==initial_generation,
+          "identical lease preserves interface generation");
+    unsigned filler_count=f.routes.available();
+    for (unsigned i=0;i<filler_count;++i)
+      check(f.routes.add_static(0xc0000200+(i<<8),24,f.port)==0,"fill route capacity around owned lease");
+    check(!f.routes.available(),"lease and manual routes fill table");
+    RoutingTable::Route original;
+    check(f.routes.at(0,original),"route snapshot available");
+    auto snapshot=original; snapshot.network=0;
+    RoutingTable::Route current;
+    check(f.routes.at(0,current) && current.network==original.network,"route snapshot does not expose storage");
+
+    lease.gateway=0x0a000202;
+    check(f.configuration.install(f.port,lease,changed)==-105 && !changed &&
+          f.port.generation()==initial_generation && f.port.owns(lease.address),"lease growth preflight preserves address and generation");
+    check(f.routes.at(0,current) && current.network==original.network && !f.routes.available(),
+          "lease growth failure preserves route order and capacity");
+    RouteSelection selection;
+    check(!f.routes.lookup(0x08080808,selection),"failed lease growth installs no partial default route");
+
+    lease.gateway=0; lease.address=0x0a000265;
+    check(f.configuration.install(f.port,lease,changed)==0 && changed && !f.routes.available() &&
+          f.port.owns(lease.address) && !f.port.owns(0x0a000264),"lease replacement reuses owned capacity at full table");
+    check(f.routes.lookup(lease.address,selection) && selection.interface==&f.loop && selection.source==lease.address,
+          "replacement updates local route and source together");
+    check(!f.routes.add(0,0,f.port),"runtime mutations preserve startup seal");
+    check(f.configuration.remove(f.port) && f.routes.available()==2 && !f.port.address_count(),
+          "lease removal retains manual routes");
+    check(!f.configuration.remove(f.port),"repeated lease removal is unchanged");
+    for (unsigned i=0;i<filler_count;++i)
+      check(f.routes.remove_static(0xc0000200+(i<<8),24,f.port)==0,"manual routes survive owned replacement and removal");
   }
   check(net_test_pages()==baseline,"DHCP failure paths release every page");
   std::puts("DHCP: codec, ownership, renewal, rebinding, expiry and rollback passed");

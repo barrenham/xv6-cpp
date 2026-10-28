@@ -101,19 +101,22 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 `qemu` 和 `qemu-gdb` 通过 `rootfs-image` 目标确保 `data/rootfs.img` 存在，
 把它作为第一个 VirtIO 块设备，内核直接以此卷作为 `/`。日常账户与文件不再位于 `/data`。
 
-首次创建 rootfs 时复制最新 `build/dev/fs.img`；如果旧 `data/data.img` 存在，
-将其内容导入私有种子副本，保留密码、UID/GID、权限、硬链接及符号链接，
-并把 passwd 中旧 `/data/root`、`/data/home/...` 主目录改为 `/root`、`/home/...`。
-源镜像须离线且当前用户可读写；工具取得整文件排他锁后只读取内容，不修改源镜像，拒绝正在被 QEMU 使用的源盘。
-原盘不变；发生路径冲突、空间不足或格式错误时不发布新 rootfs。自定义文件内容及符号链接
-中的旧绝对 `/data/...` 路径不会自动重写，需要自行调整。
+首次创建 rootfs 时复制最新 `build/dev/fs.img`。新构建目录的 XV_ROOTFS_IMPORT_IMAGE 默认空，
+使用者首次启动设置自己的 root 密码。显式 `rootfs-create` 目标要求输出不存在，
+不导入旧账户；它不会因为旧 CMake 缓存保留了导入路径而改变这个行为。
 
-可配置 `-DXV_ROOTFS_IMAGE=/absolute/path/rootfs.img`，
-以及 `-DXV_ROOTFS_IMPORT_IMAGE=/absolute/path/legacy.img`；将后者设为空字符串可禁用旧盘导入。
-已有 rootfs 永远不会被创建目标覆盖，也不会再次导入旧盘。
-现有 rootfs 的 `/bin`、`/sbin` 等程序不会随普通 rebuild 更新；需要全新开发镜像时，
-选择一个尚不存在的 XV_ROOTFS_IMAGE 路径，并用空的 XV_ROOTFS_IMPORT_IMAGE 初始化干净环境。
-该操作不迁移现有 rootfs 中的新数据，原 rootfs 文件仍保留。
+需要迁移旧 data/data.img 时，显式配置 XV_ROOTFS_IMPORT_IMAGE，使用 rootfs-image 目标。
+工具把其内容导入私有种子副本，保留密码、UID/GID、权限、硬链接及符号链接，
+并把 passwd 中旧 `/data/root`、`/data/home/...` 主目录改为 `/root`、`/home/...`。
+源镜像须离线且当前用户可读写；工具取得整文件排他锁后只读取内容，不修改源盘。
+路径冲突、空间不足或格式错误时不发布新 rootfs，文件和链接中的其他旧绝对路径不自动重写。
+已有 rootfs 不会再次导入旧盘。旧构建目录可能缓存原来的导入路径，可设为空以禁用。
+
+可配置 `-DXV_ROOTFS_IMAGE=/absolute/path/rootfs.img` 选择自己的根盘。
+已有根盘不随普通 rebuild 被覆盖；退出 QEMU 后，运行 rootfs-update 可将本次构建的
+系统程序安装进已有根盘，保留账户和用户目录，并先生成完整备份。
+它只更新清单白名单中的程序和文档，不自动删除旧程序、不调整卷容量。
+完整命令和保护范围见 [rootfs 工具说明](rootfs-tools.md)。
 
 CTest 始终使用临时私有镜像，不访问真实的 data/rootfs.img 或旧数据盘。
 持久化测试覆盖重启、重新生成种子、账户路径、可选辅助盘挂载及旧数据盘迁移。

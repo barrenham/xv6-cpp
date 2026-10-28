@@ -1,13 +1,15 @@
 # `kernel/net/transport/congestion.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::TcpCongestion::acknowledged`](congestion.cppm.md#fn-e71caffb7e38751d)
-- [`xv::net::TcpCongestion::duplicate`](congestion.cppm.md#fn-eec120850e614e58)
 - [`xv::net::TcpCongestion::initialize`](congestion.cppm.md#fn-897de3663634a9cc)
-- [`xv::net::TcpCongestion::reset_duplicates`](congestion.cppm.md#fn-68bbeb650c221e9d)
-- [`xv::net::TcpCongestion::timeout`](congestion.cppm.md#fn-b7bc1e44d5976a33)
 - [`xv::net::TcpCongestion::window`](congestion.cppm.md#fn-5aafbf9377c4fe12)
+- [`xv::net::TcpCongestion::timeout`](congestion.cppm.md#fn-b7bc1e44d5976a33)
+- [`xv::net::TcpCongestion::duplicate`](congestion.cppm.md#fn-eec120850e614e58)
+- [`xv::net::TcpCongestion::acknowledged`](congestion.cppm.md#fn-e71caffb7e38751d)
+- [`xv::net::TcpCongestion::reset_duplicates`](congestion.cppm.md#fn-68bbeb650c221e9d)
 
 <a id="fn-897de3663634a9cc"></a>
 

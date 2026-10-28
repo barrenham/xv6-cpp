@@ -1,17 +1,28 @@
 # `kernel/net/platform/kernel_platform.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
+- [`xv::net::detail::fail`](kernel_platform.cpp.md#fn-5f2daef2aad08488)
 - [`xv::net::detail::allocate_page`](kernel_platform.cpp.md#fn-a39640ebe645b6ba)
+- [`xv::net::detail::free_page`](kernel_platform.cpp.md#fn-9ef32a99d26fe40e)
+- [`xv::net::detail::milliseconds`](kernel_platform.cpp.md#fn-faf2eec702e52b21)
+- [`xv::net::detail::interrupted`](kernel_platform.cpp.md#fn-99f626cb5d17f655)
 - [`xv::net::detail::copy_in`](kernel_platform.cpp.md#fn-d96c58b6fbc16587)
 - [`xv::net::detail::copy_out`](kernel_platform.cpp.md#fn-073e4679a830e329)
-- [`xv::net::detail::fail`](kernel_platform.cpp.md#fn-5f2daef2aad08488)
-- [`xv::net::detail::free_page`](kernel_platform.cpp.md#fn-9ef32a99d26fe40e)
-- [`xv::net::detail::interrupted`](kernel_platform.cpp.md#fn-99f626cb5d17f655)
-- [`xv::net::detail::milliseconds`](kernel_platform.cpp.md#fn-faf2eec702e52b21)
 - [`xv::net::detail::prepare_sleep`](kernel_platform.cpp.md#fn-eeff613785c4e3e3)
 - [`xv::net::detail::sleep`](kernel_platform.cpp.md#fn-b5609c0fae83d6c4)
 - [`xv::net::detail::wake`](kernel_platform.cpp.md#fn-44622dca17b535c2)
+
+<a id="fn-5f2daef2aad08488"></a>
+
+## `xv::net::detail::fail`
+
+```doxygen
+@fn void xv::net::detail::fail(const char *message)
+@brief 把不可恢复的启动配置错误转交内核 panic，不返回。
+```
 
 <a id="fn-a39640ebe645b6ba"></a>
 
@@ -32,6 +43,16 @@
 @brief 归还已经不被 DMA 或接收队列持有的网络页。
 @param page 独占的完整分配页。
 @details 与 allocate_page 配对；接收页可由 E1000 分配后转交同一分配器释放。
+```
+
+<a id="fn-faf2eec702e52b21"></a>
+
+## `xv::net::detail::milliseconds`
+
+```doxygen
+@fn unsigned long xv::net::detail::milliseconds()
+@brief 从 RISC-V 10MHz 时间计数换算单调毫秒时刻。
+@details 从 RISC-V 10MHz 时间计数换算单调毫秒时刻，供 ARP、分片和 TCP 计时使用。
 ```
 
 <a id="fn-99f626cb5d17f655"></a>
@@ -103,22 +124,4 @@
 @brief 通知等待同一端口槽的所有进程重新检查队列。
 @param channel 入队或最终释放的端口槽。
 @details 仅表示条件可能变化，不能假定醒来后一定有数据。
-```
-
-<a id="fn-faf2eec702e52b21"></a>
-
-## `xv::net::detail::milliseconds`
-
-```doxygen
-@fn unsigned long xv::net::detail::milliseconds()
-@brief 从 RISC-V 10MHz 时间计数换算单调毫秒时刻。
-@details 从 RISC-V 10MHz 时间计数换算单调毫秒时刻，供 ARP、分片和 TCP 计时使用。
-```
-<a id="fn-5f2daef2aad08488"></a>
-
-## `xv::net::detail::fail`
-
-```doxygen
-@fn void xv::net::detail::fail(const char *message)
-@brief 把不可恢复的启动配置错误转交内核 panic，不返回。
 ```

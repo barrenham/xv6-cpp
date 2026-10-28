@@ -1,4 +1,5 @@
 module xv.net:platform;
+
 namespace xv::net::detail
 {
 void *allocate_page();
@@ -11,4 +12,4 @@ int copy_out(unsigned long destination, const void *source, unsigned count);
 void prepare_sleep(void *channel);
 void sleep();
 void wake(void *channel);
-}
+} // namespace xv::net::detail

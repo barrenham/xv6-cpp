@@ -1,10 +1,12 @@
 # `kernel/net/interface/tunnel.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::IpInIpInterface::initialize`](tunnel.cpp.md#fn-414d9b2164bde204)
-- [`xv::net::IpInIpInterface::receive_outer`](tunnel.cpp.md#fn-9e6c6c02ccc93ae4)
 - [`xv::net::IpInIpInterface::transmit`](tunnel.cpp.md#fn-6e1ec61ddfefeb21)
+- [`xv::net::IpInIpInterface::receive_outer`](tunnel.cpp.md#fn-9e6c6c02ccc93ae4)
 - [`xv::net::IpInIpProtocol::add`](tunnel.cpp.md#fn-c1358ee430c56716)
 - [`xv::net::IpInIpProtocol::receive`](tunnel.cpp.md#fn-0bbf7c9d366e4c64)
 

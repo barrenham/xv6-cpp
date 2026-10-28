@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--cpus', type=int, default=5)
     parser.add_argument('--multi', action='store_true')
     parser.add_argument('--management', action='store_true')
+    parser.add_argument('--firewall', action='store_true')
     parser.add_argument('--dhcp', action='store_true')
     args = parser.parse_args()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as peer:
@@ -55,7 +56,7 @@ def main():
                 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT, bufsize=0)
                 transcript = bytearray()
-                log = Path(args.image).parent/f'{"dhcp" if args.dhcp else "netctl" if args.management else "multinet" if args.multi else "network"}-{args.cpus}cpu.log'
+                log = Path(args.image).parent/f'{"firewall" if args.firewall else "dhcp" if args.dhcp else "netctl" if args.management else "multinet" if args.multi else "network"}-{args.cpus}cpu.log'
                 selector = selectors.DefaultSelector()
                 selector.register(process.stdout, selectors.EVENT_READ)
                 cursor = 0
@@ -72,7 +73,7 @@ def main():
                         for key, _ in selector.select(0.1):
                             data = os.read(key.fd, 65536)
                             transcript.extend(data)
-                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript or b'netctltest: FAIL:' in transcript or b'dhcptest: FAIL:' in transcript:
+                            if b'panic:' in transcript or b'nettest: FAIL:' in transcript or b'multinet: FAIL:' in transcript or b'netctltest: FAIL:' in transcript or b'dhcptest: FAIL:' in transcript or b'firewalltest: FAIL:' in transcript:
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
@@ -115,17 +116,44 @@ def main():
                             process.stdin.write((text+'\n').encode()); process.stdin.flush()
                             if token: expect(token)
                             expect('$ ')
+                    if args.firewall:
+                        commands = [
+                            ('iptables -t filter -N WEB', None),
+                            ('iptables -A WEB -p udp --dport 8000:9000 -j ACCEPT', None),
+                            ('iptables -A WEB -j RETURN', None),
+                            ('iptables -A INPUT -s 10.0.2.0/24 -i eth0 -j WEB', None),
+                            ('iptables -A WEB -j WEB', 'operation failed (-22)'),
+                            ('iptables -X WEB', 'operation failed (-16)'),
+                            ('iptables -L INPUT -n -v --line-numbers', 'WEB 0 eth0 * 10.0.2.0/24'),
+                            ('iptables -I OUTPUT 1 -p icmp -o eth0 -j DROP', None),
+                            ('iptables -L OUTPUT', 'DROP 1 * eth0'),
+                            ('iptables -D OUTPUT 1', None),
+                            ('iptables -P OUTPUT DROP', None),
+                            ('iptables -L OUTPUT', 'Chain OUTPUT (DROP'),
+                            ('iptables -P OUTPUT ACCEPT', None),
+                            ('iptables -F', None), ('iptables -Z', None),
+                            ('iptables -X WEB', None),
+                            ('iptables -t nat -L', 'only the filter table is supported'),
+                            ('iptables -A INPUT -p udp --dport 65536 -j DROP', 'usage:'),
+                            ('iptables -A INPUT -s 10.0.2.1/33 -j DROP', 'usage:'),
+                            ('iptables -A INPUT -p icmp --dport 80 -j DROP', 'usage:'),
+                            ('iptables -A FORWARD -j DROP', 'operation failed (-2)'),
+                        ]
+                        for text, token in commands:
+                            process.stdin.write((text+'\n').encode()); process.stdin.flush()
+                            if token: expect(token)
+                            expect('$ ')
                     # Repeat in the same boot: exit must release all resources.
                     for _ in range(2):
-                        program = 'dhcptest' if args.dhcp else 'netctltest' if args.management else 'multinet' if args.multi else 'nettest'
+                        program = 'firewalltest' if args.firewall else 'dhcptest' if args.dhcp else 'netctltest' if args.management else 'multinet' if args.multi else 'nettest'
                         process.stdin.write(f'{program} {peer.getsockname()[1]}\n'.encode())
                         process.stdin.flush()
-                        expect('dhcptest: ALL PASSED' if args.dhcp else 'netctltest: ALL PASSED' if args.management else 'multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
+                        expect('firewalltest: ALL PASSED' if args.firewall else 'dhcptest: ALL PASSED' if args.dhcp else 'netctltest: ALL PASSED' if args.management else 'multinet: two NICs and shared INTx passed' if args.multi else 'nettest: ALL PASSED')
                         expect('$ ')
-                    assert len(received) >= (8 if args.management or args.dhcp else 160 if args.multi else 170), len(received)
-                    if not args.management and not args.dhcp:
+                    assert len(received) >= (6 if args.firewall else 8 if args.management or args.dhcp else 160 if args.multi else 170), len(received)
+                    if not args.firewall and not args.management and not args.dhcp:
                         assert any(len(p) == 1472 for p in received)
-                    if not args.multi and not args.management and not args.dhcp:
+                    if not args.firewall and not args.multi and not args.management and not args.dhcp:
                         assert b'' in received
                     print(f'network: {args.cpus} CPUs, {len(received)} datagrams, all passed')
                 finally:

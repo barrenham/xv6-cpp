@@ -24,6 +24,16 @@ class Image:
             # record lock, which conflicts with QEMU's active OFD locks.
             fcntl.lockf(source, fcntl.LOCK_EX | fcntl.LOCK_NB)
             self.data = bytearray(source.read())
+        self._decode()
+
+    @classmethod
+    def from_bytes(cls, content):
+        image = cls.__new__(cls)
+        image.data = bytearray(content)
+        image._decode()
+        return image
+
+    def _decode(self):
         if len(self.data) < 2 * BLOCK:
             raise ValueError('image is too short')
         (magic, self.blocks, _, self.inodes, self.log_blocks,
@@ -113,6 +123,77 @@ class Image:
             offset += count
         struct.pack_into('<I', self.data, self.inode(number) + 8, size)
 
+    def write_at(self, number, offset, content):
+        size = struct.unpack_from('<I', self.data, self.inode(number) + 8)[0]
+        if offset < 0 or offset + len(content) > size:
+            raise ValueError('write outside existing inode size')
+        while content:
+            block = self.block(number, offset // BLOCK)
+            if not block:
+                raise ValueError('unexpected hole in directory')
+            count = min(len(content), BLOCK - offset % BLOCK)
+            start = block * BLOCK + offset % BLOCK
+            self.data[start:start + count] = content[:count]
+            content = content[count:]
+            offset += count
+
+    def owned_blocks(self, number):
+        offset = self.inode(number)
+        addresses = struct.unpack_from('<13I', self.data, offset + 12)
+        result = [block for block in addresses[:DIRECT] if block]
+        if addresses[DIRECT]:
+            indirect = addresses[DIRECT]
+            if not self.bitmap + self.blocks // (BLOCK * 8) + 1 <= indirect < self.blocks:
+                raise ValueError('invalid indirect block')
+            result.append(indirect)
+            result.extend(block for block in struct.unpack_from('<256I', self.data, indirect * BLOCK) if block)
+        return result
+
+    def validate_allocations(self):
+        owned = set()
+        first = self.bitmap + self.blocks // (BLOCK * 8) + 1
+        if self.kind(1) != DIRECTORY:
+            raise ValueError('invalid root directory')
+        for number in range(1, self.inodes):
+            kind = self.kind(number)
+            if not kind:
+                continue
+            if kind not in (DIRECTORY, FILE, DEVICE, SYMLINK):
+                raise ValueError('unsupported inode type')
+            size = struct.unpack_from('<I', self.data, self.inode(number) + 8)[0]
+            if size > (DIRECT + BLOCK // 4) * BLOCK or (kind == DIRECTORY and size % 16):
+                raise ValueError('invalid inode size')
+            for block in self.owned_blocks(number):
+                if not first <= block < self.blocks or block in owned:
+                    raise ValueError('invalid or multiply owned disk block')
+                if not self.data[self.bitmap * BLOCK + block // 8] & (1 << (block % 8)):
+                    raise ValueError('live inode references a free disk block')
+                owned.add(block)
+
+    def unlink_file(self, parent, name):
+        content = self.read(parent)
+        for offset in range(0, len(content), 16):
+            number, entry_name = struct.unpack_from('<H14s', content, offset)
+            if not number or entry_name.rstrip(b'\0') != name:
+                continue
+            if self.kind(number) not in (FILE, SYMLINK):
+                raise ValueError('system program target is not a regular file or symlink')
+            inode = self.inode(number)
+            links = struct.unpack_from('<H', self.data, inode + 6)[0]
+            if not links:
+                raise ValueError('directory entry references an unlinked inode')
+            blocks = self.owned_blocks(number) if links == 1 else []
+            self.write_at(parent, offset, bytes(16))
+            if links > 1:
+                struct.pack_into('<H', self.data, inode + 6, links - 1)
+            else:
+                for block in blocks:
+                    self.data[self.bitmap * BLOCK + block // 8] &= ~(1 << (block % 8))
+                    self.data[block * BLOCK:(block + 1) * BLOCK] = bytes(BLOCK)
+                self.data[inode:inode + INODE] = bytes(INODE)
+            return
+        raise ValueError('directory entry not found')
+
     def entries(self, number):
         if self.kind(number) != DIRECTORY:
             raise ValueError('expected a directory')
@@ -133,7 +214,14 @@ class Image:
     def link(self, parent, name, number):
         if not 0 < len(name) <= 14 or name in self.entries(parent):
             raise ValueError('invalid or conflicting import name')
-        self.append(parent, struct.pack('<H14s', number, name))
+        record = struct.pack('<H14s', number, name)
+        directory = self.read(parent)
+        for slot in range(0, len(directory), 16):
+            if not struct.unpack_from('<H', directory, slot)[0]:
+                self.write_at(parent, slot, record)
+                break
+        else:
+            self.append(parent, record)
         offset = self.inode(number) + 6
         links = struct.unpack_from('<H', self.data, offset)[0]
         if links >= 32767:
@@ -206,13 +294,28 @@ class Image:
         visit(1, 1, b'')
 
 
+def clean_seed(image):
+    root = image.entries(1)
+    for directory in (b'root', b'home', b'data'):
+        if directory in root and set(image.entries(root[directory])) - {b'.', b'..'}:
+            raise ValueError('installation seed contains private home/data files')
+    if b'etc' in root:
+        accounts = {b'passwd', b'shadow', b'group', b'idnext', b'.users.lock'}
+        if accounts.intersection(image.entries(root[b'etc'])):
+            raise ValueError('installation seed contains existing account state')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seed', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--import-data', type=Path)
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument('--import-data', type=Path)
+    source.add_argument('--fresh', action='store_true', help='require a new, clean rootfs; fail if the output exists')
     args = parser.parse_args()
     if args.output.exists():
+        if args.fresh:
+            raise ValueError('fresh rootfs output already exists; choose another path')
         print('rootfs retained:', args.output)
         return
     image = Image(args.seed)
@@ -220,6 +323,8 @@ def main():
     binary = image.entries(1).get(b'sbin')
     if binary is None or b'init' not in image.entries(binary):
         raise ValueError('seed does not contain /sbin/init')
+    clean_seed(image)
+    image.validate_allocations()
     if args.import_data and args.import_data.exists():
         image.import_volume(Image(args.import_data))
         print('imported existing data volume:', args.import_data)
@@ -234,7 +339,7 @@ def main():
         try:
             os.link(candidate, args.output)
         except FileExistsError:
-            if not args.output.exists():
+            if args.fresh or not args.output.exists():
                 raise
         directory = os.open(args.output.parent, os.O_RDONLY | os.O_DIRECTORY)
         try:

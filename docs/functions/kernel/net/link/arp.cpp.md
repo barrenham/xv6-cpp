@@ -1,14 +1,16 @@
 # `kernel/net/link/arp.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::ArpCache::clear`](arp.cpp.md#fn-f92a3d89216fa13d)
 - [`xv::net::ArpCache::initialize`](arp.cpp.md#fn-9716d9e48bbba0d6)
-- [`xv::net::ArpCache::neighbor`](arp.cpp.md#fn-ee8e9de0c540ad2b)
-- [`xv::net::ArpCache::receive`](arp.cpp.md#fn-704e5894f62445e0)
 - [`xv::net::ArpCache::request`](arp.cpp.md#fn-d772ee0820984b06)
 - [`xv::net::ArpCache::send`](arp.cpp.md#fn-ef8526d27ee87536)
+- [`xv::net::ArpCache::receive`](arp.cpp.md#fn-704e5894f62445e0)
 - [`xv::net::ArpCache::tick`](arp.cpp.md#fn-ab7954406875ed6d)
+- [`xv::net::ArpCache::neighbor`](arp.cpp.md#fn-ee8e9de0c540ad2b)
+- [`xv::net::ArpCache::clear`](arp.cpp.md#fn-f92a3d89216fa13d)
 
 <a id="fn-9716d9e48bbba0d6"></a>
 
@@ -35,8 +37,8 @@
 
 ```doxygen
 @fn int xv::net::ArpCache::send(Packet &packet, unsigned next_hop)
-@brief 先在配置锁下核对接口与 IP 源并保存代次，再查询邻居或接管纯 IP 页面入待解析队列。
-@details 保存选源时的代次，避免清空后迟到入队的旧包冒充新配置。
+@brief 先验证接口和源地址快照，邻居命中则直接发送，否则有界保留页面、长度、上下文与配置代次等待解析。
+@details ARP 请求在邻居锁外发送，队列失败不接管报文；恢复待发报文时保留处理上下文。
 ```
 
 <a id="fn-704e5894f62445e0"></a>
@@ -45,7 +47,8 @@
 
 ```doxygen
 @fn void xv::net::ArpCache::receive(Packet &packet)
-@brief 验证接口状态、ARP 格式与本接口目的，更新邻居后逐包核对配置代次及状态，再移交待发页；旧代次报文直接释放，回复和发送在邻居锁外。
+@brief 验证并学习面向本机的 ARP 请求/回复，按配置代次恢复待解析报文，再在锁外发送。
+@details 队列恢复时携带原 Packet 上下文；过期配置的页面丢弃。有效请求继续生成本机 ARP 回复，不在持邻居锁时回调驱动。
 ```
 
 <a id="fn-ab7954406875ed6d"></a>

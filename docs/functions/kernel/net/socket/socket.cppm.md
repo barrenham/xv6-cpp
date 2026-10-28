@@ -1,22 +1,44 @@
 # `kernel/net/socket/socket.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::create_socket`](registry.cpp.md#fn-75b80a83f7b1ba17)
-- [`xv::net::Socket::Socket`](socket.cppm.md#fn-d80018a2029ae04d)
-- [`xv::net::Socket::accept`](socket.cppm.md#fn-c4cda7ae200f4be8)
-- [`xv::net::Socket::bind`](socket.cppm.md#fn-d1a904f28f9e59a5)
 - [`xv::net::Socket::capability`](socket.cppm.md#fn-e7ffb7211c283e3e)
+- [`xv::net::Socket::stat`](socket.cppm.md#fn-f3b6acd3d9378a95)
+- [`xv::net::Socket::bind`](socket.cppm.md#fn-d1a904f28f9e59a5)
 - [`xv::net::Socket::connect`](socket.cppm.md#fn-38fb7c9245bff3a5)
-- [`xv::net::Socket::error`](socket.cppm.md#fn-8344cc63a2be1d42)
 - [`xv::net::Socket::listen`](socket.cppm.md#fn-be62ec4113c62554)
+- [`xv::net::Socket::accept`](socket.cppm.md#fn-c4cda7ae200f4be8)
+- [`xv::net::Socket::send_to`](socket.cppm.md#fn-9ba32e2969f70f90)
+- [`xv::net::Socket::receive_from`](socket.cppm.md#fn-4fa8c343625ba09f)
+- [`xv::net::Socket::shutdown`](socket.cppm.md#fn-d7f9eecc8327fa97)
 - [`xv::net::Socket::local`](socket.cppm.md#fn-75b6aefb0ac151b9)
 - [`xv::net::Socket::peer`](socket.cppm.md#fn-a17c97503695a001)
-- [`xv::net::Socket::receive_from`](socket.cppm.md#fn-4fa8c343625ba09f)
-- [`xv::net::Socket::send_to`](socket.cppm.md#fn-9ba32e2969f70f90)
-- [`xv::net::Socket::shutdown`](socket.cppm.md#fn-d7f9eecc8327fa97)
-- [`xv::net::Socket::stat`](socket.cppm.md#fn-f3b6acd3d9378a95)
+- [`xv::net::Socket::error`](socket.cppm.md#fn-8344cc63a2be1d42)
+- [`xv::net::Socket::Socket`](socket.cppm.md#fn-d80018a2029ae04d)
 - [`xv::net::Socket::~Socket`](socket.cppm.md#fn-fe19627c0299fb5d)
+- [`xv::net::create_socket`](registry.cpp.md#fn-75b80a83f7b1ba17)
+
+<a id="fn-e7ffb7211c283e3e"></a>
+
+## `xv::net::Socket::capability`
+
+```doxygen
+@fn xv::io::Capability *xv::net::Socket::capability(xv::io::CapabilityId id) final
+@brief 只对 Socket::Id 暴露网络能力子对象，供网络系统调用在统一 IoObject 后端中安全取得 Socket；不再使用 StreamKind 分类。
+@details 只对 Socket::Id 暴露网络能力子对象，供网络系统调用在统一 IoObject 后端中安全取得 Socket；不再使用 StreamKind 分类。
+```
+
+<a id="fn-f3b6acd3d9378a95"></a>
+
+## `xv::net::Socket::stat`
+
+```doxygen
+@fn int xv::net::Socket::stat(xv::io::Metadata &value)
+@brief Socket 自己填写 T_SOCKET、nlink=1 的内核 Metadata，File 不再包含 socket 特判。
+@details Socket 自己填写 T_SOCKET、nlink=1 的内核 Metadata，File 不再包含 socket 特判。
+```
 
 <a id="fn-d1a904f28f9e59a5"></a>
 
@@ -146,24 +168,4 @@
 @fn xv::net::Socket::~Socket()
 @brief 结束 Socket 的基类或资源生命周期。
 @details protected 非虚析构只销毁基类部分；不能通过接口 delete。对象拥有权按工厂/注册表/File 契约转交。
-```
-
-<a id="fn-e7ffb7211c283e3e"></a>
-
-## `xv::net::Socket::capability`
-
-```doxygen
-@fn xv::io::Capability *xv::net::Socket::capability(xv::io::CapabilityId id)
-@brief 只对 Socket::Id 暴露网络能力子对象，供网络系统调用在统一 IoObject 后端中安全取得 Socket；不再使用 StreamKind 分类。
-@details 只对 Socket::Id 暴露网络能力子对象，供网络系统调用在统一 IoObject 后端中安全取得 Socket；不再使用 StreamKind 分类。
-```
-
-<a id="fn-f3b6acd3d9378a95"></a>
-
-## `xv::net::Socket::stat`
-
-```doxygen
-@fn int xv::net::Socket::stat(xv::io::Metadata &value)
-@brief Socket 自己填写 T_SOCKET、nlink=1 的内核 Metadata，File 不再包含 socket 特判。
-@details Socket 自己填写 T_SOCKET、nlink=1 的内核 Metadata，File 不再包含 socket 特判。
 ```

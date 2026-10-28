@@ -1,5 +1,7 @@
 # `kernel/net/dhcp/lease.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::LeaseConfiguration::install`](lease.cpp.md#fn-585913184002ca08)
@@ -11,12 +13,10 @@
 
 ```doxygen
 @fn int xv::net::LeaseConfiguration::install(NetworkInterface &interface, const DhcpLease &lease, bool &changed)
-@brief 在配置锁内原子安装或替换本接口租约所属地址与路由。
-@details 预先核对地址冲突、接口状态及容量，失败不留下部分配置；相同配置续租不重排路由或增加代次。默认路由以租约地址为首选源，metric 为 100+接口 ID。
-@param interface 已发布且启用、未作为桥成员的接口。
-@param lease 已完成协议字段验证的租约。
-@param[out] changed 是否改变实际地址或路由，供锁外 ARP 清理使用。
-@return 成功零，冲突、容量或状态错误为负 errno。
+@brief 校验租约地址、前缀和非零租期，将配置字段转换给 AddressConfiguration。
+@details 租约默认路由 metric 为 100+接口 ID；地址冲突、容量预检及联合提交由共用地址事务服务完成。
+@param[out] changed 配置内容是否实际变化；无效租约、失败及相同配置均为 false。
+@return 成功零，租约无效 -EINVAL，其他失败为地址事务返回的负 errno。
 ```
 
 <a id="fn-02f977e5647590a0"></a>
@@ -25,8 +25,7 @@
 
 ```doxygen
 @fn bool xv::net::LeaseConfiguration::remove(NetworkInterface &interface)
-@brief 只撤销指定接口租约所有的地址和路由。
-@details 保留手工别名及手工路由，包括引用已失效租约源地址的静态路由；此类路由由查询时的有效源检查暂时禁用。配置变化会更新代次。
-@return 是否确实移除了配置。
-@note 调用者解锁后再清理邻居，不在此取得 ARP 锁。
+@brief 委托共用地址事务服务撤销指定接口租约配置。
+@return 是否确实移除了地址或路由。
+@note 邻居清理由调用方在配置锁外执行。
 ```

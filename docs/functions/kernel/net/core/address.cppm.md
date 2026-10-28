@@ -1,11 +1,11 @@
 # `kernel/net/core/address.cppm`
 
-模块/协议布局说明与运行代码分离。
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
 
 ## 函数导航
 
-- [`xv::net::Ipv4Address::contains`](address.cppm.md#fn-a3948cdaef51ae79)
 - [`xv::net::Ipv4Address::mask`](address.cppm.md#fn-30462e0981ae3632)
+- [`xv::net::Ipv4Address::contains`](address.cppm.md#fn-a3948cdaef51ae79)
 
 <a id="fn-30462e0981ae3632"></a>
 

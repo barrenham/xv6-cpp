@@ -3,8 +3,9 @@
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
 - [虚拟区域、缺页与 COW](virtual-memory.md)：区域归属、权限分类、持锁补页和 fork 共享。
+- [rootfs 创建与程序更新](rootfs-tools.md)：独立新建、原子升级、备份与账户保留。
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：282 个文件，1896 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：288 个文件，1918 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。
@@ -25,6 +26,8 @@
 - [RAM 文件系统](ramfs.md)：/tmp、按页存储、目录与文件生命周期。
 
 - [网络接口、多网卡选路与 IP-in-IP 隧道](network-interfaces.md)。
+
+- [IPv4 防火墙与 iptables](network-firewall.md)：分层设计、规则管理、收发过滤与扩展边界。
 
 - [用户态网络配置与 netctl 管理 ABI](network-management.md)。
 

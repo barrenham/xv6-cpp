@@ -1,12 +1,14 @@
 # `kernel/net/interface/configuration.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::configuration_lock`](configuration.cpp.md#fn-557bd6206ad9f26a)
 - [`xv::net::ConfigurationGuard::ConfigurationGuard`](configuration.cppm.md#fn-ceb30f08fd73447e)
+- [`xv::net::ConfigurationGuard::~ConfigurationGuard`](configuration.cppm.md#fn-be2b3f12d7b2d373)
 - [`xv::net::ConfigurationGuard::ConfigurationGuard`](configuration.cppm.md#fn-137bf23101d30d90)
 - [`xv::net::ConfigurationGuard::operator=`](configuration.cppm.md#fn-35da480158e4f367)
-- [`xv::net::ConfigurationGuard::~ConfigurationGuard`](configuration.cppm.md#fn-be2b3f12d7b2d373)
 
 <a id="fn-ceb30f08fd73447e"></a>
 

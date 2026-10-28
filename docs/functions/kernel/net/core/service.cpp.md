@@ -1,34 +1,92 @@
 # `kernel/net/core/service.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
+- [`xv::net::configure_qemu_defaults`](service.cpp.md#fn-7b70fb13df020590)
+- [`xv::net::initialize_loopback`](service.cpp.md#fn-f11df498114b312b)
+- [`xv::net::initialize_ethernet_interfaces`](service.cpp.md#fn-2fd9097bce7b5e94)
+- [`xv::net::attach_protocols`](service.cpp.md#fn-59448ed4d2996526)
+- [`xv::net::start_default_dhcp`](service.cpp.md#fn-5429b3c8b100b5b5)
+- [`xv::net::firewall_control`](service.cpp.md#fn-5f3ce21ae0aed65e)
 - [`xv::net::control`](service.cpp.md#fn-6f0e1f01771f2e2f)
-- [`xv::net::initialize`](service.cpp.md#fn-cdd3b17385336e40)
 - [`xv::net::interfaces`](service.cpp.md#fn-850f3daf0de0f624)
 - [`xv::net::routing_table`](service.cpp.md#fn-d6092edb2c0b1b23)
 - [`xv::net::socket_registry`](service.cpp.md#fn-a6dd2cdb97db1848)
-- [`xv::net::tcp_protocol`](service.cpp.md#fn-955e03b182fca925)
+- [`xv::net::initialize`](service.cpp.md#fn-cdd3b17385336e40)
 - [`xv::net::timer_tick`](service.cpp.md#fn-cbf196a5e94594a2)
-- [`xv::net::qemu_defaults`](service.cpp.md#fn-2dfba446a5a4cb8b)
 
-<a id="fn-a6dd2cdb97db1848"></a>
+<a id="fn-7b70fb13df020590"></a>
 
-## `xv::net::socket_registry`
+## `xv::net::configure_qemu_defaults`
 
 ```doxygen
-@fn SocketRegistry &xv::net::socket_registry()
-@brief 借用启动时静态构造的唯一 SocketRegistry。。
-@details 借用启动时静态构造的唯一 SocketRegistry。
+@fn bool xv::net::configure_qemu_defaults()
+@brief 按构建策略配置默认 QEMU 网络。
+@details DHCP 构建不预装地址；关闭 XV_NET_BOOT_DHCP 时，为各以太接口配置静态地址、回环主机路由、直连路由及默认网关。任一步失败返回 false。
 ```
 
-<a id="fn-955e03b182fca925"></a>
+<a id="fn-f11df498114b312b"></a>
 
-## `xv::net::tcp_protocol`
+## `xv::net::initialize_loopback`
 
 ```doxygen
-@fn TcpProtocol &xv::net::tcp_protocol()
-@brief 借用已挂接 IPv4 protocol6 的唯一 TcpProtocol。。
-@details 借用已挂接 IPv4 protocol6 的唯一 TcpProtocol。
+@fn void xv::net::initialize_loopback()
+@brief 配置回环地址和接收入口，并注册回环接口及 127/8 路由；注册失败终止启动。
+```
+
+<a id="fn-2fd9097bce7b5e94"></a>
+
+## `xv::net::initialize_ethernet_interfaces`
+
+```doxygen
+@fn void xv::net::initialize_ethernet_interfaces()
+@brief 按驱动发现次序初始化以太接口并接入 IPv4，注册失败终止启动。
+@details 保持驱动、接收回调、协议入口与注册表的原有装配次序。
+```
+
+<a id="fn-59448ed4d2996526"></a>
+
+## `xv::net::attach_protocols`
+
+```doxygen
+@fn void xv::net::attach_protocols()
+@brief 挂接 IPv4 协议号处理器，并把同一 socket 注册表分别注入 UDP 数据报与 TCP 段接收入口。
+@details TCP 编解码对象只借用 IPv4；注册表构造时已显式借用同一个 TCP 发送对象。装配在发布收发服务前完成。
+```
+
+<a id="fn-5429b3c8b100b5b5"></a>
+
+## `xv::net::start_default_dhcp`
+
+```doxygen
+@fn void xv::net::start_default_dhcp()
+@brief DHCP 构建中为各以太接口启动默认客户端；失败终止启动。
+@details 仅在默认配置完成且接口、路由已封存后调用；非 DHCP 构建为空操作。
+```
+
+<a id="fn-5f3ce21ae0aed65e"></a>
+
+## `xv::net::firewall_control`
+
+```doxygen
+@fn int xv::net::firewall_control(unsigned operation, firewall_request &request)
+@brief 将防火墙管理请求交给启动期组装的唯一 Firewall 服务。
+```
+
+<a id="fn-6f0e1f01771f2e2f"></a>
+
+## `xv::net::control`
+
+```doxygen
+@fn int xv::net::control(unsigned operation, netctl_request &request)
+@brief 把已经复制到内核的管理请求交给静态 NetworkManager。
+@details 查询返回一或枚举结束零，修改成功零，失败负 errno；供系统调用与原生契约共用。
+@param operation NETCTL_* 操作号。
+@param[in,out] request 已复制至内核的 128 字节请求或查询结果。
+@return 查询 1/0、修改成功 0，失败负 errno。
+@see docs/network-management.md
 ```
 
 <a id="fn-850f3daf0de0f624"></a>
@@ -49,27 +107,14 @@
 @brief 借用只读静态路由服务，用于按目标查询实际出口和源地址。
 ```
 
-<a id="fn-6f0e1f01771f2e2f"></a>
+<a id="fn-a6dd2cdb97db1848"></a>
 
-## `xv::net::control`
-
-```doxygen
-@fn int xv::net::control(unsigned operation, netctl_request &request)
-@brief 把已经复制到内核的管理请求交给静态 NetworkManager。
-@details 查询返回一或枚举结束零，修改成功零，失败负 errno；供系统调用与原生契约共用。
-@param operation NETCTL_* 操作号。
-@param[in,out] request 已复制至内核的 128 字节请求或查询结果。
-@return 查询 1/0、修改成功 0，失败负 errno。
-@see docs/network-management.md
-```
-<a id="fn-2dfba446a5a4cb8b"></a>
-
-## `xv::net::qemu_defaults`
+## `xv::net::socket_registry`
 
 ```doxygen
-@fn bool xv::net::qemu_defaults()
-@brief 按构建策略提供 QEMU 启动配置。
-@details 默认 DHCP 模式不预装静态地址；关闭 XV_NET_DHCP 时保留 10.0.2..5.15/24、对应网关和自动路由。客户端在服务初始化末尾另行启动。
+@fn SocketRegistry &xv::net::socket_registry()
+@brief 借用启动时静态构造的唯一 SocketRegistry。
+@details 借用启动时静态构造的唯一 SocketRegistry。
 ```
 
 <a id="fn-cdd3b17385336e40"></a>
@@ -77,9 +122,9 @@
 ## `xv::net::initialize`
 
 ```doxygen
-@fn void xv::net::initialize(NetworkSetup *setup = nullptr)
-@brief 组装网络协议、回环、物理接口、桥和 DHCP 服务，并应用启动策略。
-@details 注册 DHCP 专用 IPv4 接收入口后封存启动 API；默认构建在无地址物理接口上启动客户端，显式 NetworkSetup 会替代自动策略。UDP 仅绑定 SocketRegistry，不装配旧端口接收端。配置错误终止启动。
+@fn void xv::net::initialize(NetworkSetup *setup)
+@brief 按服务初始化、接口注册、协议挂接、启动配置和封存阶段组装生产网络。
+@details 在 IPv4 发布前初始化并注入唯一 Firewall；显式 NetworkSetup 替代默认 QEMU 配置。接口与路由封存成功后，仅默认启动策略启动 DHCP。配置错误终止启动。
 ```
 
 <a id="fn-cbf196a5e94594a2"></a>

@@ -1,37 +1,28 @@
 # `kernel/net/socket/tcp_socket.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::TcpSocket::TcpSocket`](tcp_socket.cpp.md#fn-feacfcf142e49326)
-- [`xv::net::TcpSocket::accept`](tcp_socket.cpp.md#fn-eb2f93e4dada729f)
-- [`xv::net::TcpSocket::close`](tcp_socket.cpp.md#fn-c7164ce40d0f4ab4)
-- [`xv::net::TcpSocket::connect`](tcp_socket.cpp.md#fn-9e07fc39cb3c17a2)
-- [`xv::net::TcpSocket::destroy`](tcp_socket.cpp.md#fn-9f612ac9dc8ef596)
-- [`xv::net::TcpSocket::enter_time_wait`](tcp_socket.cpp.md#fn-d8a9c5a73ce2babb)
-- [`xv::net::TcpSocket::fail`](tcp_socket.cpp.md#fn-42ede9b5fed95194)
 - [`xv::net::TcpSocket::initialize`](tcp_socket.cpp.md#fn-c62835414fcd2c60)
-- [`xv::net::TcpSocket::listen`](tcp_socket.cpp.md#fn-7e3a04ae59672f21)
-- [`xv::net::TcpSocket::listening`](tcp_socket.cpp.md#fn-ecfbb01f47787bd0)
+- [`xv::net::TcpSocket::fail`](tcp_socket.cpp.md#fn-42ede9b5fed95194)
+- [`xv::net::TcpSocket::enter_time_wait`](tcp_socket.cpp.md#fn-d8a9c5a73ce2babb)
 - [`xv::net::TcpSocket::matches`](tcp_socket.cpp.md#fn-8d2f58bae366b18d)
+- [`xv::net::TcpSocket::listening`](tcp_socket.cpp.md#fn-ecfbb01f47787bd0)
+- [`xv::net::TcpSocket::connect`](tcp_socket.cpp.md#fn-9e07fc39cb3c17a2)
+- [`xv::net::TcpSocket::listen`](tcp_socket.cpp.md#fn-7e3a04ae59672f21)
 - [`xv::net::TcpSocket::passive`](tcp_socket.cpp.md#fn-c8523a7152fb629f)
-- [`xv::net::TcpSocket::poll`](tcp_socket.cpp.md#fn-31670288cdab90bc)
+- [`xv::net::TcpSocket::accept`](tcp_socket.cpp.md#fn-eb2f93e4dada729f)
 - [`xv::net::TcpSocket::read`](tcp_socket.cpp.md#fn-8c178dd34591a5e9)
-- [`xv::net::TcpSocket::receive_from`](tcp_socket.cpp.md#fn-12f33b275e0e4dec)
-- [`xv::net::TcpSocket::send_to`](tcp_socket.cpp.md#fn-231bbbb4f11fc234)
-- [`xv::net::TcpSocket::shutdown`](tcp_socket.cpp.md#fn-1eb72bf0aca4a8a8)
-- [`xv::net::TcpSocket::tick`](tcp_socket.cpp.md#fn-b862f8511a782329)
 - [`xv::net::TcpSocket::write`](tcp_socket.cpp.md#fn-633245e696cf6ebf)
-- [`xv::net::initial_sequence`](tcp_socket.cpp.md#fn-d8dab64ecfa6d2b6)
-
-<a id="fn-d8dab64ecfa6d2b6"></a>
-
-## `xv::net::initial_sequence`
-
-```doxygen
-@fn unsigned xv::net::initial_sequence()
-@brief 为新连接生成初始序号。
-@details 原子计数步进与单调毫秒时间组合，保持当前教学内核的序号来源，不依赖用户态状态。
-```
+- [`xv::net::TcpSocket::send_to`](tcp_socket.cpp.md#fn-231bbbb4f11fc234)
+- [`xv::net::TcpSocket::receive_from`](tcp_socket.cpp.md#fn-12f33b275e0e4dec)
+- [`xv::net::TcpSocket::poll`](tcp_socket.cpp.md#fn-31670288cdab90bc)
+- [`xv::net::TcpSocket::shutdown`](tcp_socket.cpp.md#fn-1eb72bf0aca4a8a8)
+- [`xv::net::TcpSocket::close`](tcp_socket.cpp.md#fn-c7164ce40d0f4ab4)
+- [`xv::net::TcpSocket::destroy`](tcp_socket.cpp.md#fn-9f612ac9dc8ef596)
+- [`xv::net::TcpSocket::tick`](tcp_socket.cpp.md#fn-b862f8511a782329)
 
 <a id="fn-feacfcf142e49326"></a>
 
@@ -134,8 +125,8 @@
 
 ```doxygen
 @fn Socket *xv::net::TcpSocket::accept(bool nonblocking, int &error)
-@brief 取出握手完成的子连接并转交应用拥有权。
-@details 接收 ESTABLISHED 或已收到 FIN 的 CLOSE_WAIT 子连接；无就绪项时按非阻塞或可中断等待规则返回。成功后清除 listener_，保留同一连接与收发队列。
+@brief 在统一注册锁内请求注册表接管一个可接受子连接，没有就绪项则按非阻塞或可中断等待规则处理。
+@details 注册表负责查找与解除监听关联；socket 保持原有的等待登记、解锁睡眠和唤醒检查协议。成功返回同一连接对象及收发队列。
 ```
 
 <a id="fn-8c178dd34591a5e9"></a>
@@ -184,8 +175,8 @@
 
 ```doxygen
 @fn unsigned xv::net::TcpSocket::poll(xv::sync::PollTable *table)
-@brief 汇总连接、监听、收发队列和关闭状态的就绪事件。
-@details 发送队列有空间即报告 POLLOUT，不要求网络上已无在途数据；连续数据、EOF 或读关闭报告 POLLIN，监听对象检查已完成握手子连接。
+@brief 汇总连接、收发缓冲与关闭状态的就绪事件，监听状态委托注册表检查待接受子连接。
+@details 在统一注册锁内登记 poll 观察并读取状态，监听 POLLIN 与 accept 共用同一子连接就绪条件。
 ```
 
 <a id="fn-1eb72bf0aca4a8a8"></a>
@@ -204,8 +195,8 @@
 
 ```doxygen
 @fn void xv::net::TcpSocket::close()
-@brief 移除应用拥有权并把未完成关闭交给注册表。
-@details 监听关闭会中止其未接入子连接；握手中的连接发送复位。已建立连接停止应用读写，继续发送排队数据和 FIN，CLOSED 对象立即释放。
+@brief 移除应用接管责任，监听关闭时委托注册表复位并回收未接受子连接。
+@details 已接受连接继续独立存活；握手中连接发送复位，已建立连接继续发送排队数据和 FIN，CLOSED 对象立即由注册表回收。整个状态转换仍在统一注册锁内。
 ```
 
 <a id="fn-9f612ac9dc8ef596"></a>

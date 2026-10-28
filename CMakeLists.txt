@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(xv_labs_cpp_2026 VERSION 0.0.1 LANGUAGES CXX ASM)
+project(xv_labs_cpp_2026 VERSION 0.0.2 LANGUAGES CXX ASM)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -55,7 +55,7 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
 set(XV_ROOTFS_IMAGE "${PROJECT_SOURCE_DIR}/data/rootfs.img" CACHE FILEPATH "Persistent root filesystem; initialized once from the build image")
-set(XV_ROOTFS_IMPORT_IMAGE "${PROJECT_SOURCE_DIR}/data/data.img" CACHE FILEPATH "Optional legacy data volume imported only when creating rootfs")
+set(XV_ROOTFS_IMPORT_IMAGE "" CACHE FILEPATH "Explicit optional legacy data volume; empty creates a clean rootfs")
 set(XV_ROOTFS_IMPORT_OPTIONS "")
 if(XV_ROOTFS_IMPORT_IMAGE)
   list(APPEND XV_ROOTFS_IMPORT_OPTIONS --import-data "${XV_ROOTFS_IMPORT_IMAGE}")
@@ -64,6 +64,15 @@ add_custom_target(rootfs-image
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
     --seed "${PROJECT_BINARY_DIR}/fs.img" --output "${XV_ROOTFS_IMAGE}"
     ${XV_ROOTFS_IMPORT_OPTIONS}
+  DEPENDS image VERBATIM)
+add_custom_target(rootfs-create
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
+    --seed "${PROJECT_BINARY_DIR}/fs.img" --output "${XV_ROOTFS_IMAGE}" --fresh
+  DEPENDS image VERBATIM)
+add_custom_target(rootfs-update
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/update_rootfs.py"
+    --seed "${PROJECT_BINARY_DIR}/fs.img" --image "${XV_ROOTFS_IMAGE}"
+    --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
   DEPENDS image VERBATIM)
 set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${XV_ROOTFS_IMAGE},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
@@ -284,3 +293,20 @@ set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/trap/arch/riscv/kernel
 add_test(NAME vm_stack_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/vm_kernel.py"
   --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
 set_tests_properties(vm_stack_contract PROPERTIES TIMEOUT 90 LABELS memory)
+
+add_test(NAME rootfs_update_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update.py"
+  --image "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --qemu "${XV_QEMU}")
+set_tests_properties(rootfs_update_contract PROPERTIES TIMEOUT 45 LABELS fs)
+foreach(cpus 1 5)
+  add_test(NAME rootfs_update_${cpus}cpu COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update_guest.py"
+    --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --cpus ${cpus})
+  set_tests_properties(rootfs_update_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS fs)
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME firewall_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/network.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --firewall)
+  set_tests_properties(firewall_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
+endforeach()

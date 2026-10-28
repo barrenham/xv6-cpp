@@ -1,23 +1,15 @@
 # `kernel/net/link/ethernet.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::EthernetLayer::attach`](ethernet.cpp.md#fn-d01f4eb93cf246f8)
 - [`xv::net::EthernetLayer::initialize`](ethernet.cpp.md#fn-c7b38042d08f668f)
-- [`xv::net::EthernetLayer::receive_frame`](ethernet.cpp.md#fn-bf5e575793115a66)
-- [`xv::net::EthernetLayer::send`](ethernet.cpp.md#fn-468ec89c64e20c7c)
 - [`xv::net::EthernetLayer::send_ip`](ethernet.cpp.md#fn-2f3a15c921db001f)
+- [`xv::net::EthernetLayer::attach`](ethernet.cpp.md#fn-d01f4eb93cf246f8)
+- [`xv::net::EthernetLayer::send`](ethernet.cpp.md#fn-468ec89c64e20c7c)
 - [`xv::net::EthernetLayer::transmit_frame`](ethernet.cpp.md#fn-d7050414ee46b952)
-
-<a id="fn-d01f4eb93cf246f8"></a>
-
-## `xv::net::EthernetLayer::attach`
-
-```doxygen
-@fn void xv::net::EthernetLayer::attach(unsigned type, EthernetProtocol &protocol)
-@brief EthernetLayer：启动时在最多四项协议表中登记 EtherType 与借用的 EthernetProtocol 实例；不支持运行期卸载。
-@details 启动时在最多四项协议表中登记 EtherType 与借用的 EthernetProtocol 实例；不支持运行期卸载。
-```
+- [`xv::net::EthernetLayer::receive_frame`](ethernet.cpp.md#fn-bf5e575793115a66)
 
 <a id="fn-c7b38042d08f668f"></a>
 
@@ -35,6 +27,16 @@
 ```doxygen
 @fn int xv::net::EthernetLayer::send_ip(Packet &packet, const unsigned char *destination)
 @brief 为纯 IPv4 包前插十四字节以太首部并发送；失败撤销首部，未移交的页面保持归调用者所有。
+```
+
+<a id="fn-d01f4eb93cf246f8"></a>
+
+## `xv::net::EthernetLayer::attach`
+
+```doxygen
+@fn void xv::net::EthernetLayer::attach(unsigned type, EthernetProtocol &protocol)
+@brief EthernetLayer：启动时在最多四项协议表中登记 EtherType 与借用的 EthernetProtocol 实例；不支持运行期卸载。
+@details 启动时在最多四项协议表中登记 EtherType 与借用的 EthernetProtocol 实例；不支持运行期卸载。
 ```
 
 <a id="fn-468ec89c64e20c7c"></a>

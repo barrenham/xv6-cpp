@@ -1,12 +1,14 @@
 # `kernel/net/bridge/manager.cpp`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
-- [`xv::net::BridgeManager::execute`](manager.cpp.md#fn-0497bea6af90ed3f)
-- [`xv::net::BridgeManager::find`](manager.cpp.md#fn-d2dcd2b27caa0414)
 - [`xv::net::BridgeManager::initialize`](manager.cpp.md#fn-063d16e712668e1c)
-- [`xv::net::BridgeManager::membership`](manager.cpp.md#fn-9249cf80bd2b818c)
+- [`xv::net::BridgeManager::find`](manager.cpp.md#fn-d2dcd2b27caa0414)
 - [`xv::net::BridgeManager::unused`](manager.cpp.md#fn-c333fba347c24bcd)
+- [`xv::net::BridgeManager::membership`](manager.cpp.md#fn-9249cf80bd2b818c)
+- [`xv::net::BridgeManager::execute`](manager.cpp.md#fn-0497bea6af90ed3f)
 
 <a id="fn-063d16e712668e1c"></a>
 
@@ -23,13 +25,9 @@
 
 ```doxygen
 @fn int xv::net::BridgeManager::execute(unsigned operation, netctl_request &request)
-@brief 校验管理 ABI 后串行处理创建、注销、成员变更和 FDB 查询/清空。
-@details 配置锁内只检查与发布，驱动混杂切换和 ARP 清理在锁外完成；查询记录先清零。
-@param operation NETCTL_BRIDGE_* 操作号。
-@param[in,out] request 已复制到内核的版本一结构；source 字段在成员/FDB 操作中为端口 ID。
-@return 查询一条为 1，结束/修改成功为 0，失败为负 errno。
-@pre 不持配置锁、驱动锁或其他桥管理锁。
-@see docs/network-bridge.md
+@brief 校验桥管理请求，协调创建删除、成员关系、FDB 查询及清空。
+@details 创建删除通过 InterfaceRegistry 发布或撤销稳定桥对象，不访问注册数组；active 与注册操作在同一配置锁内完成，成员驱动回调在锁外执行。
+@return 查询成功一、枚举结束或修改成功零，失败负 errno。
 ```
 
 <a id="fn-d2dcd2b27caa0414"></a>
@@ -41,27 +39,23 @@
 @brief 在固定槽中按 ID 查找已发布的桥；未创建或已注销返回 nullptr，调用者须持配置锁。
 ```
 
-<a id="fn-9249cf80bd2b818c"></a>
-
-## `xv::net::BridgeManager::membership`
-
-```doxygen
-@fn int xv::net::BridgeManager::membership(BridgeInterface &bridge, NetworkInterface &interface, bool add)
-@brief 在管理锁保护下接入或移出二层端口。
-@details 加入先校验空 IP/路由与单一归属，解锁启用混杂后重新核对并发布代次；退出先撤销归属和 FDB，再锁外恢复普通接收。
-@param bridge 已创建的桥槽。
-@param interface 未带 IPv4/路由的二层端口所属接口。
-@param add true 加入，false 移出。
-@return 成功零；忙、不支持、容量不足或未找到返回负 errno。
-@pre 已持桥管理锁，调用本函数时不持配置锁。
-```
 <a id="fn-c333fba347c24bcd"></a>
 
 ## `xv::net::BridgeManager::unused`
 
 ```doxygen
 @fn bool xv::net::BridgeManager::unused(NetworkInterface &interface) const
-@brief 检查接口没有地址、路由归属或运行中的 DHCP 客户端。
-@details DHCP 尚未取得地址也会占用接口，必须先 stop 才能加入成员或删除桥。
-@pre 已持配置锁。
+@brief 判断接口是否没有地址、活动 DHCP 或路由引用，可用于加入或删除网桥。
+@details 路由占用通过 RoutingTable::references 查询，不访问路由数组。
+@pre 调用方已持配置锁。
+```
+
+<a id="fn-9249cf80bd2b818c"></a>
+
+## `xv::net::BridgeManager::membership`
+
+```doxygen
+@fn int xv::net::BridgeManager::membership(BridgeInterface &bridge, NetworkInterface &interface, bool add)
+@brief 在配置锁内协调网桥成员关系与接口拓扑代次，锁外切换驱动混杂模式和清理邻居。
+@details 加入前后两次验证桥、端口和槽位状态；混杂模式失败或快照失效时保持未加入，并恢复混杂模式。退出清除成员与对应 FDB 记录，代次通过 topology_changed 推进。
 ```

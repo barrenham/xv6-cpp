@@ -37,6 +37,7 @@
 #define NET_LINK_MAC 4U
 #define NET_LINK_TUNNEL 8U
 #define NET_ROUTE_AUTOMATIC 16U
+
 struct netctl_request
 {
   unsigned version, size;

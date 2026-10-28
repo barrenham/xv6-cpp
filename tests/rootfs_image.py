@@ -21,8 +21,10 @@ args = parser.parse_args()
 script = ROOT / 'tools/create_rootfs.py'
 
 
-def create(seed, output, legacy=None, success=True):
+def create(seed, output, legacy=None, success=True, fresh=False):
     command = [sys.executable, str(script), '--seed', str(seed), '--output', str(output)]
+    if fresh:
+        command += ['--fresh']
     if legacy is not None:
         command += ['--import-data', str(legacy)]
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -37,6 +39,20 @@ with tempfile.TemporaryDirectory(prefix='rootfs-contract-') as temporary:
     create(root / 'missing-seed.img', output)
     assert output.read_bytes() == initial
     assert output.stat().st_mode & 0o777 == 0o600
+
+    create(args.image, output, fresh=True, success=False)
+    assert output.read_bytes() == initial
+    personal = root / 'personal.img'
+    private = Image(args.image)
+    etc = private.entries(1)[b'etc']
+    shadow = private.create(etc, b'shadow', FILE, (0, 0, 0o600))
+    private.append(shadow, b'PRIVATE_ACCOUNT_DATA\n')
+    personal.write_bytes(private.data)
+    clean = root / 'clean.img'
+    create(personal, clean, fresh=True, success=False)
+    assert not clean.exists()
+    create(args.image, clean, fresh=True)
+    assert b'shadow' not in Image(clean).entries(Image(clean).entries(1)[b'etc'])
 
     malformed = root / 'bad.img'
     malformed.write_bytes(b'not a filesystem')

@@ -1,5 +1,7 @@
 # `kernel/net/dhcp/lease.cppm`
 
+分层职责、所有权与维护约定见 [网络说明](../../../../network.md)。
+
 ## 函数导航
 
 - [`xv::net::LeaseConfiguration::LeaseConfiguration`](lease.cppm.md#fn-9dce38b4e813e716)
@@ -11,7 +13,7 @@
 ## `xv::net::LeaseConfiguration::LeaseConfiguration`
 
 ```doxygen
-@fn xv::net::LeaseConfiguration::LeaseConfiguration(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback)
-@brief 借用接口注册表、路由表和本机回环出口，构造租约事务服务。
-@details 不创建对象、不执行网络 I/O；配置归属以稳定且唯一的接口 ID 标记。
+@fn constexpr xv::net::LeaseConfiguration::LeaseConfiguration(InterfaceRegistry &interfaces, RoutingTable &routes, NetworkInterface &loopback)
+@brief 借用网络配置依赖并组合通用地址事务服务，作为 DHCP 租约适配器。
+@details 不持有地址数组或路由存储，不分配、不发送报文。
 ```

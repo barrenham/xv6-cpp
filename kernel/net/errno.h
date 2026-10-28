@@ -32,3 +32,7 @@
 #ifndef EFAULT
 #define EFAULT 14
 #endif
+
+#ifndef EACCES
+#define EACCES 13
+#endif

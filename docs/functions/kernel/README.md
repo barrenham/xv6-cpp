@@ -10,7 +10,7 @@
 | [fs](#fs) | 39 | 401 |
 | [io](#io) | 2 | 19 |
 | [memory](#memory) | 24 | 199 |
-| [net](#net) | 60 | 360 |
+| [net](#net) | 71 | 436 |
 | [process](#process) | 59 | 346 |
 | [support](#support) | 10 | 32 |
 | [sync](#sync) | 12 | 47 |
@@ -18,7 +18,7 @@
 | [trap](#trap) | 20 | 93 |
 | [tty](#tty) | 1 | 0 |
 
-范围：282 个文件；默认 1831 个唯一 C++ 函数，连同条件接口与汇编入口共 1896 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：293 个文件；默认 1907 个唯一 C++ 函数，连同条件接口与汇编入口共 1972 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -172,6 +172,8 @@
 - [`kernel/net/link/ethernet.cppm`](net/link/ethernet.cppm.md)
 - [`kernel/net/interface/loopback.cpp`](net/interface/loopback.cpp.md)
 - [`kernel/net/interface/ethernet_interface.cpp`](net/interface/ethernet_interface.cpp.md)
+- [`kernel/net/interface/address_configuration.cpp`](net/interface/address_configuration.cpp.md)
+- [`kernel/net/interface/address_configuration.cppm`](net/interface/address_configuration.cppm.md)
 - [`kernel/net/interface/configuration.cpp`](net/interface/configuration.cpp.md)
 - [`kernel/net/interface/interface.cppm`](net/interface/interface.cppm.md)
 - [`kernel/net/interface/configuration.cppm`](net/interface/configuration.cppm.md)
@@ -224,6 +226,14 @@
 - [`kernel/net/socket/tcp_receiver.cpp`](net/socket/tcp_receiver.cpp.md)
 
 <a id="process"></a>
+
+- [`kernel/net/filter/control.h`](net/filter/control.h.md)
+- [`kernel/net/filter/decoder.h`](net/filter/decoder.h.md)
+- [`kernel/net/filter/engine.h`](net/filter/engine.h.md)
+- [`kernel/net/filter/filter.cpp`](net/filter/filter.cpp.md)
+- [`kernel/net/filter/filter.cppm`](net/filter/filter.cppm.md)
+- [`kernel/net/filter/hook.cppm`](net/filter/hook.cppm.md)
+- [`kernel/net/filter/metadata.h`](net/filter/metadata.h.md)
 
 ## process
 
