@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Exercise unchanged 1000-child fork tests and time their actual test phase."""
+"""Gate the original 1000-child fork/reap workload at five seconds per run."""
 import argparse
 import json
 import os
+import math
+import re
 from pathlib import Path
 import selectors
 import shutil
 import subprocess
 import tempfile
 import time
+import sys
 
 from console_login import login_root
 
@@ -20,14 +23,18 @@ def main():
     parser.add_argument('--image', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--cpus', type=int, default=1)
-    parser.add_argument('--repeat', type=int, default=1)
+    parser.add_argument('--repeat', type=int, default=3)
+    parser.add_argument('--max-test-seconds', type=float, default=5.0)
     args = parser.parse_args()
     if args.repeat < 1 or args.cpus < 1:
         parser.error('cpus and repeat must be positive')
+    if not math.isfinite(args.max_test_seconds) or args.max_test_seconds <= 0:
+        parser.error('max-test-seconds must be finite and positive')
     args.output.parent.mkdir(parents=True, exist_ok=True)
     transcript = bytearray()
     timings = []
     cursor = 0
+    failures = []
     with tempfile.TemporaryDirectory(prefix='fork-progress-', dir=args.output.parent) as tmp:
         image = Path(tmp) / 'fs.img'
         shutil.copyfile(args.image, image)
@@ -77,19 +84,46 @@ def main():
                     guest.stdin.flush()
                     expect(start_marker, timeout=120)
                     test_begin = time.monotonic()
-                    expect(finish_marker, timeout=120)
+                    phase_start = cursor
+                    expect(finish_marker, timeout=30)
                     test_end = time.monotonic()
                     if command.startswith('usertests'):
                         expect('ALL TESTS PASSED', timeout=120)
                     expect('$ ', timeout=20)
                     end = time.monotonic()
+                    phase = bytes(transcript[phase_start:cursor])
+                    measured = re.findall(rb'fork perf: children=(\d+) ticks=(\d+)\r?\n', phase)
+                    if len(measured) != 1:
+                        raise RuntimeError(f'{command}: missing or ambiguous guest timing record')
+                    children, ticks = map(int, measured[0])
+                    # QEMU virt's 10 MHz rdtime clock. Guest timing covers fork,
+                    # every successful wait, and the final no-child assertion;
+                    # it excludes result printing, shell exec and usertests'
+                    # independent pre/post-test free-memory accounting.
+                    guest_seconds = ticks / 10_000_000
+                    host_seconds = test_end - test_begin
+                    within_budget = (ticks > 0 and guest_seconds <= args.max_test_seconds and
+                                     host_seconds <= args.max_test_seconds)
+                    # Standalone forktest must also return to the shell within
+                    # the budget. usertests has separate, expensive free-memory
+                    # sweeps around its selected test; report those independently.
+                    if command == 'forktest':
+                        within_budget &= end - begin <= args.max_test_seconds
+                    workload_complete = children == 1000
                     result = dict(command=command, cpus=args.cpus, iteration=iteration,
                                   setup_seconds=round(test_begin - begin, 3),
                                   test_seconds=round(test_end - test_begin, 3),
                                   cleanup_seconds=round(end - test_end, 3),
-                                  total_seconds=round(end - begin, 3))
+                                  total_seconds=round(end - begin, 3),
+                                  guest_ticks=ticks, guest_seconds=guest_seconds,
+                                  timebase_hz=10_000_000, children=children,
+                                  max_test_seconds=args.max_test_seconds,
+                                  within_budget=within_budget,
+                                  workload_complete=workload_complete)
                     timings.append(result)
                     print(json.dumps(result), flush=True)
+                    if not within_budget or not workload_complete:
+                        failures.append(result)
         finally:
             guest.terminate()
             try:
@@ -100,7 +134,13 @@ def main():
             selector.close()
             args.output.with_suffix('.log').write_bytes(transcript)
             args.output.write_text(json.dumps(timings, indent=2) + '\n')
+    if failures:
+        print(f'fork performance gate FAILED: {len(failures)} sample(s) exceeded '
+              f'{args.max_test_seconds:g}s or did not complete 1000 children; '
+              f'see {args.output}', file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

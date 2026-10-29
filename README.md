@@ -33,6 +33,14 @@ cmake --build build/dev --target qemu
 ctest --preset dev
 ```
 
+Fork 性能门禁（单核/五核各 3 轮，1000 子进程，5 秒上限）：
+
+```sh
+cmake --build build/dev --target fork-performance
+```
+
+计量范围和结果位置见 [fork 性能测试](docs/fork-performance.md)。
+
 默认启动 5 核，使用 `data/rootfs.img` 作为挂载到 `/` 的持久根文件系统。首次创建以干净的构建镜像为种子，不默认导入旧账户；使用者在首次启动时设置自己的 root 密码，没有默认密码。登录进入 `/root`，账户位于 `/etc`，普通用户主目录位于 `/home`。后续构建不会覆盖 rootfs；内核更新直接生效，更新已安装的用户程序时，退出 QEMU 后运行 `cmake --build build/dev --target rootfs-update`，会先备份并保留账户和用户目录。系统通过 DHCP 获取地址，客体 shell 中可以运行：
 
 ```sh

@@ -1979,6 +1979,7 @@ forktest(char *s)
 {
   enum { N = 1000 };
   int n, pid;
+  const uint64 start = clockticks();
 
   for (n = 0; n < N; n++) {
     pid = fork();
@@ -1993,6 +1994,7 @@ forktest(char *s)
     exit(1);
   }
 
+  const int children = n;
   for (; n > 0; n--) {
     if (wait(0) < 0) {
       printf("%s: wait stopped early\n", s);
@@ -2004,6 +2006,8 @@ forktest(char *s)
     printf("%s: wait got too many\n", s);
     exit(1);
   }
+  const uint64 elapsed = clockticks() - start;
+  printf("fork perf: children=%d ticks=%lu\n", children, elapsed);
 }
 
 void

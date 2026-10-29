@@ -20,6 +20,7 @@ extern "C"
     int n, pid;
 
     print("fork test\n");
+    const uint64 start = clockticks();
 
     for (n = 0; n < N; n++)
     {
@@ -33,6 +34,9 @@ extern "C"
         exit(0);
       }
     }
+
+    const int children = n;
+    if (!children) { print("no fork at all!\n"); exit(1); }
 
     for (; n > 0; n--)
     {
@@ -49,6 +53,8 @@ extern "C"
       exit(1);
     }
 
+    const uint64 elapsed = clockticks() - start;
+    printf("fork perf: children=%d ticks=%lu\n", children, elapsed);
     print("fork test OK\n");
   }
 

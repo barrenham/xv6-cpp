@@ -84,9 +84,16 @@ foreach(cpus IN ITEMS 1 5)
   add_test(NAME fork_progress_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/fork_progress.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
-    --cpus ${cpus} --output "${PROJECT_BINARY_DIR}/fork-progress-${cpus}cpu.json")
-  set_tests_properties(fork_progress_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS process)
+    --cpus ${cpus} --repeat 3 --max-test-seconds 5
+    --output "${PROJECT_BINARY_DIR}/fork-progress-${cpus}cpu.json")
+  set_tests_properties(fork_progress_${cpus}cpu PROPERTIES
+    TIMEOUT 240 LABELS "process;performance" RUN_SERIAL TRUE)
 endforeach()
+# Build the measured artifacts before starting either exclusive QEMU run.
+add_custom_target(fork-performance
+  COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${PROJECT_BINARY_DIR}"
+    --output-on-failure -R "^fork_progress_"
+  DEPENDS kernel test-image USES_TERMINAL)
 add_test(NAME password_hash_contract COMMAND "${PROJECT_BINARY_DIR}/password_hash_contract")
 set_tests_properties(password_hash_contract PROPERTIES TIMEOUT 15 LABELS users)
 add_test(NAME image_layout COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/image_layout.py"
