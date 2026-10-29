@@ -13,6 +13,6 @@ TrapAction TimerInterruptHandler::handle(const TrapEvent &)
 {
   clock_.interrupt();
   detail::service_timer_devices();
-  return TrapAction::Yield;
+  return detail::scheduler_timer_tick() ? TrapAction::Yield : TrapAction::Resume;
 }
 } // namespace xv::trap

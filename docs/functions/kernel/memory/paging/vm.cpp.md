@@ -100,13 +100,8 @@
 - [`xv::memory::UnmapUserFlow::scan`](vm.cpp.md#fn-e172af7b103ed5a1)
 - [`xv::memory::UnmapUserFlow::split`](vm.cpp.md#fn-c3f9c9dd526b2731)
 - [`xv::memory::UnmapUserFlow::whole`](vm.cpp.md#fn-03fc141ed6d8ecda)
-- [`xv::memory::accessible_bytes`](vm.cpp.md#fn-02d74129c3a981dd)
-- [`xv::memory::accessible_region`](vm.cpp.md#fn-23dd8981edb0551d)
 - [`xv::memory::allocate_user_pages`](vm.cpp.md#fn-607dd438d1bfea8d)
 - [`xv::memory::clone_user_pages`](vm.cpp.md#fn-c06f7a1b31c06b45)
-- [`xv::memory::copy_from_user`](vm.cpp.md#fn-702f4fdb8fe6d6ed)
-- [`xv::memory::copy_to_user`](vm.cpp.md#fn-c818984f3c716ba3)
-- [`xv::memory::copy_user_string`](vm.cpp.md#fn-7bd0107be1202abf)
 - [`xv::memory::create_user_table`](vm.cpp.md#fn-3fcf1b0c323aaf56)
 - [`xv::memory::deallocate_user_pages`](vm.cpp.md#fn-c457a06f835dd6c8)
 - [`xv::memory::demote_user_pages`](vm.cpp.md#fn-e612c2153ae52e2e)
@@ -118,15 +113,20 @@
 - [`xv::memory::permission_for`](vm.cpp.md#fn-3754e1ccd5ea4e83)
 - [`xv::memory::print_page_table`](vm.cpp.md#fn-43a58229b9ef1c31)
 - [`xv::memory::protect_user_guard`](vm.cpp.md#fn-91a20f4d785cbe8a)
-- [`xv::memory::resolve_user_fault`](vm.cpp.md#fn-3fa77ef7a3677ae6)
 - [`xv::memory::superdemote`](vm.cpp.md#fn-f1c6d677286a7825)
 - [`xv::memory::supermap`](vm.cpp.md#fn-ec4f068105064250)
 - [`xv::memory::translate_user_page`](vm.cpp.md#fn-3be6479c7074a2cd)
 - [`xv::memory::unmap_user_pages`](vm.cpp.md#fn-99f83a0dbe555628)
-- [`xv::memory::user_access`](vm.cpp.md#fn-b8d6297fb97d39c6)
 - [`xv::memory::vmprint_level`](vm.cpp.md#fn-314c07c58169b8b0)
 - [`xv::memory::walk_entry`](vm.cpp.md#fn-f2c541337b31c9a9)
 - [`xv::memory::walkto`](vm.cpp.md#fn-29d3f02d541fb79c)
+- [`xv::memory::copy_to_user`](vm.cpp.md#fn-7eec4370a3d73464)
+- [`xv::memory::copy_from_user`](vm.cpp.md#fn-a138f76fb900bf77)
+- [`xv::memory::copy_user_string`](vm.cpp.md#fn-1fe74d24bcc0849e)
+- [`xv::memory::resolve_user_fault`](vm.cpp.md#fn-b403efa4391d3eee)
+- [`xv::memory::accessible_region`](vm.cpp.md#fn-024d604538256e76)
+- [`xv::memory::user_access`](vm.cpp.md#fn-1c297ac3ae93896b)
+- [`xv::memory::accessible_bytes`](vm.cpp.md#fn-3e44b24c185b75a5)
 
 <a id="fn-e6f134e225e772ad"></a>
 
@@ -281,36 +281,6 @@
 @return 各分支实际返回：`0`；`pa`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
-<a id="fn-c818984f3c716ba3"></a>
-
-## `xv::memory::copy_to_user`
-
-```doxygen
-@fn int xv::memory::copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 destination, const char *source, uint64 bytes)
-@brief 按区域权限向用户地址复制并打破 COW。
-@details 逐页同时验证区域、逻辑字节边界和 PTE；只读 COW 映射先复制或独占提升，再写物理页。真正只读、保护区、越界或 OOM 返回 -1，可能已复制前缀，不提供整段事务性。
-```
-
-<a id="fn-702f4fdb8fe6d6ed"></a>
-
-## `xv::memory::copy_from_user`
-
-```doxygen
-@fn int xv::memory::copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 bytes)
-@brief 按区域与页表读权限复制用户数据。
-@details 逐页限制到有效区域、当前逻辑长度和页尾；合法匿名懒页可补零后读取，未登记、不可读或分配失败返回 -1。实际映射的访问权限不能被区域声明放宽。
-```
-
-<a id="fn-7bd0107be1202abf"></a>
-
-## `xv::memory::copy_user_string`
-
-```doxygen
-@fn int xv::memory::copy_user_string(pagetable_t table, uint64 size, const VirtualRegions &regions, char *destination, uint64 source, uint64 maximum)
-@brief 在有效用户区域内读取一个终止字符串。
-@details 每页校验读权限并按需补齐匿名懒页，扫描不能越过区域、逻辑字节边界或最大容量；发现 NUL 成功，否则越界、OOM 或容量耗尽返回 -1。
-```
-
 <a id="fn-d315e799cdeadf7a"></a>
 
 ## `xv::memory::is_user_mapped`
@@ -319,17 +289,6 @@
 @fn int xv::memory::is_user_mapped(pagetable_t table, uint64 address)
 @brief 检查一个合法虚拟地址的有效 PTE 是否存在。
 @details 超过 MAXVA 直接返回零，避免 walk_entry 的内核 panic；该函数只检查存在性，不替代区域、用户位和读写执行权限验证。
-```
-
-<a id="fn-3fa77ef7a3677ae6"></a>
-
-## `xv::memory::resolve_user_fault`
-
-```doxygen
-@fn FaultOutcome xv::memory::resolve_user_fault(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)
-@brief 分类用户异常并只恢复合法匿名缺页或 COW 写入。
-@details 先检查区域及逻辑字节上界，再验证用户位、叶子格式和访问权限。现存普通映射返回 AlreadyMapped 或 Permission，匿名懒页补零，COW 共享页复制而独占页原地提升。OOM 保留原 COW PTE 和引用，返回结构化结果。
-@details 流程由 FaultUserFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-43a58229b9ef1c31"></a>
@@ -373,6 +332,7 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::print::panic` → `PX` → `PTE2PA` → `xv::memory::allocator` → `allocate` → `xv::runtime::fill` → `PA2PTE`。
 @details 需要特别跟踪的条件：`va >= MAXVA`；`*pte & PTE_V`；`*pte & (PTE_R | PTE_W | PTE_X)`；`leaflevel`；`!alloc || (pagetable = (pde_t *)xv::memory::allocator().allocate()) == 0`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`pte`；`0`；`&pagetable[PX(target, va)]`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 内核共享上级目录支持按需建立；遍历用 acquire 读取目录 PTE，清零新子表后以 release 发布。调用方仍保证编辑排他和目录生命周期。
 ```
 
 <a id="fn-314c07c58169b8b0"></a>
@@ -441,36 +401,6 @@
 @fn unsigned xv::memory::permission_for(FaultAccess access)
 @brief 把缺页访问类型转换为页表权限位。
 @details 读、写、执行分别对应 R、W、X，供区域与 PTE 的一致性检查使用。
-```
-
-<a id="fn-23dd8981edb0551d"></a>
-
-## `xv::memory::accessible_region`
-
-```doxygen
-@fn const VirtualRegion *xv::memory::accessible_region(const VirtualRegions &regions, uint64 size, uint64 address, FaultAccess access)
-@brief 取得允许当前用户访问的已登记区域。
-@details 同时要求所需权限和 U 位；普通区域还受逻辑 size 限制，特殊用户页按其显式范围处理。无匹配或不允许访问返回空，不修改页表。
-```
-
-<a id="fn-b8d6297fb97d39c6"></a>
-
-## `xv::memory::user_access`
-
-```doxygen
-@fn uint64 xv::memory::user_access(pagetable_t table, uint64 size, const VirtualRegions &regions, uint64 address, FaultAccess access)
-@brief 取得内核用户复制所需的物理页。
-@details 区域和现存 PTE 都允许访问时直接翻译，包含大页内的 4 KiB 偏移；否则只接受 resolve_user_fault 的 Resolved 结果，确保 copyout 不绕过 COW 或只读权限。
-```
-
-<a id="fn-02d74129c3a981dd"></a>
-
-## `xv::memory::accessible_bytes`
-
-```doxygen
-@fn uint64 xv::memory::accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 address)
-@brief 计算当前页中仍处于有效区域和逻辑范围内的字节数。
-@details 调用前必须已通过访问验证；取区域终点、普通地址空间 size 和页尾的最小值，特殊区域不受普通 heap size 限制。
 ```
 
 <a id="fn-36e3007fe505e041"></a>
@@ -1371,4 +1301,75 @@
 @fn static bool xv::memory::UnmapUserFlow::whole(Context &c) noexcept
 @brief 检查目标范围是否覆盖对齐的完整大页。
 @details 允许稀疏缺页；保留完整大页释放、部分大页拆分回收及单页引用释放的不同协议，循环迭代，不额外刷新 TLB。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-7eec4370a3d73464"></a>
+
+## `xv::memory::copy_to_user`
+
+```doxygen
+@fn int xv::memory::copy_to_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions, uint64 destination, const char *source, uint64 bytes)
+@brief 按区域权限向用户地址复制并打破 COW。
+@details 逐页同时验证区域、逻辑字节边界和 PTE；只读 COW 映射先复制或独占提升，再写物理页。真正只读、保护区、越界或 OOM 返回 -1，可能已复制前缀，不提供整段事务性。
+```
+
+<a id="fn-a138f76fb900bf77"></a>
+
+## `xv::memory::copy_from_user`
+
+```doxygen
+@fn int xv::memory::copy_from_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions, char *destination, uint64 source, uint64 bytes)
+@brief 按区域与页表读权限复制用户数据。
+@details 逐页限制到有效区域、当前逻辑长度和页尾；合法匿名懒页可补零后读取，未登记、不可读或分配失败返回 -1。实际映射的访问权限不能被区域声明放宽。
+```
+
+<a id="fn-1fe74d24bcc0849e"></a>
+
+## `xv::memory::copy_user_string`
+
+```doxygen
+@fn int xv::memory::copy_user_string(pagetable_t table, uint64 size, const VirtualAddressPool &regions, char *destination, uint64 source, uint64 maximum)
+@brief 在有效用户区域内读取一个终止字符串。
+@details 每页校验读权限并按需补齐匿名懒页，扫描不能越过区域、逻辑字节边界或最大容量；发现 NUL 成功，否则越界、OOM 或容量耗尽返回 -1。
+```
+
+<a id="fn-b403efa4391d3eee"></a>
+
+## `xv::memory::resolve_user_fault`
+
+```doxygen
+@fn FaultOutcome xv::memory::resolve_user_fault(pagetable_t table, uint64 size, const VirtualAddressPool &regions, uint64 address, FaultAccess access)
+@brief 分类用户异常并只恢复合法匿名缺页或 COW 写入。
+@details 先检查区域及逻辑字节上界，再验证用户位、叶子格式和访问权限。现存普通映射返回 AlreadyMapped 或 Permission，匿名懒页补零，COW 共享页复制而独占页原地提升。OOM 保留原 COW PTE 和引用，返回结构化结果。
+@details 流程由 FaultUserFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+```
+
+<a id="fn-024d604538256e76"></a>
+
+## `xv::memory::accessible_region`
+
+```doxygen
+@fn const VirtualRegion *xv::memory::accessible_region(const VirtualAddressPool &regions, uint64 size, uint64 address, FaultAccess access)
+@brief 取得允许当前用户访问的已登记区域。
+@details 同时要求所需权限和 U 位；普通区域还受逻辑 size 限制，特殊用户页按其显式范围处理。无匹配或不允许访问返回空，不修改页表。
+```
+
+<a id="fn-1c297ac3ae93896b"></a>
+
+## `xv::memory::user_access`
+
+```doxygen
+@fn uint64 xv::memory::user_access(pagetable_t table, uint64 size, const VirtualAddressPool &regions, uint64 address, FaultAccess access)
+@brief 取得内核用户复制所需的物理页。
+@details 区域和现存 PTE 都允许访问时直接翻译，包含大页内的 4 KiB 偏移；否则只接受 resolve_user_fault 的 Resolved 结果，确保 copyout 不绕过 COW 或只读权限。
+```
+
+<a id="fn-3e44b24c185b75a5"></a>
+
+## `xv::memory::accessible_bytes`
+
+```doxygen
+@fn uint64 xv::memory::accessible_bytes(const VirtualAddressPool &regions, uint64 size, uint64 address)
+@brief 计算当前页中仍处于有效区域和逻辑范围内的字节数。
+@details 调用前必须已通过访问验证；取区域终点、普通地址空间 size 和页尾的最小值，特殊区域不受普通 heap size 限制。
 ```

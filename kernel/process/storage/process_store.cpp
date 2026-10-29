@@ -34,6 +34,7 @@ void ProcessStore::unlock(Process &process)
 void ProcessStore::retire(Process &process)
 {
   if (registered(process) || process.membership_.registered() ||
+      process.queued_ || process.scheduling_.queued || process.scheduling_.running ||
       !process.lock.holding() || process.state == ProcessState::Running ||
       process.state == ProcessState::Runnable ||
       process.state == ProcessState::Sleeping || process.state == ProcessState::Stopped)

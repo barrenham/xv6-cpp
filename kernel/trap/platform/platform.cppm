@@ -12,6 +12,7 @@ void deliver_signals();
 void request_kill();
 [[noreturn]] void exit_current(int status);
 void yield_current();
+bool scheduler_timer_tick();
 void save_user_pc(Word pc);
 void advance_user_pc(Word bytes);
 void enable_interrupts();

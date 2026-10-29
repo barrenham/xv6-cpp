@@ -1,0 +1,135 @@
+{
+  "status": "verified",
+  "date": "2026-10-29",
+  "scope": "Rename the shared execution engine to SchedulerRuntime, move its module/implementation into runtime, expose three concrete policy module entries, and document actual SMP behavior",
+  "previous_checkpoint": "docs/scheduling-acceptance.json",
+  "runtime": {
+    "class": "xv::process::SchedulerRuntime",
+    "partition": "xv.process:scheduler_runtime",
+    "interface": "kernel/process/scheduler/runtime/scheduler_runtime.cppm",
+    "implementation": "kernel/process/scheduler/runtime/scheduler_runtime.cpp"
+  },
+  "policies": {
+    "fair": {
+      "class": "FairPolicy",
+      "interface": "kernel/process/scheduler/policies/fair.cppm",
+      "backend": "PolicyReadyQueue / xv::scheduling::Kind::Fair"
+    },
+    "round-robin": {
+      "class": "RoundRobinPolicy",
+      "interface": "kernel/process/scheduler/policies/round_robin.cppm",
+      "backend": "FifoReadyQueue"
+    },
+    "mlfq": {
+      "class": "MlfqPolicy",
+      "interface": "kernel/process/scheduler/policies/mlfq.cppm",
+      "backend": "PolicyReadyQueue / xv::scheduling::Kind::Feedback"
+    }
+  },
+  "policy_algorithms": {
+    "shared_model": "kernel/process/scheduler/policies/scheduling_policy.h",
+    "sha256": "a6bda9983af76948c7c92f65e5cfdfc7706942823f83342ddf2f4ee7b1fdefaa",
+    "unchanged_from_previous_checkpoint": true
+  },
+  "smp": {
+    "runtime_service": "One shared statically constructed runtime; each hart owns its run-loop context, CpuState and scheduler stack",
+    "ready_structure": "Shared selected-policy tree/FIFO levels serialized by its queue lock",
+    "handoff": "Remove one queue item while locked, release queue lock, then acquire process lock before Running/current and swtch; outgoing owner releases the process lock after switching back",
+    "fair_accounting": "Monotonic floor includes all running entities with elapsed-time projection and pending yield entitlement",
+    "affinity": "Unbound work may migrate between harts; bound work is skipped by ineligible harts",
+    "feedback": "One global MLFQ boost epoch and shared FIFO levels; running entities are refreshed under the queue lock",
+    "preemption": "Each hart makes local timer preemption decisions; hart 0 also maintains global uptime/device service",
+    "idle": "Periodic local timer rechecks work; no cross-hart wake IPI, per-hart ready queues or work stealing",
+    "scalability": "Queue-lock contention and affinity scans remain; 1/5-hart checks are functional evidence, not a high-core scalability claim"
+  },
+  "validation": {
+    "dev_targeted": {
+      "status": "passed",
+      "tests": 7,
+      "log": "build/docs/scheduler-runtime/dev-tests.log",
+      "scope": "Fair single/five-hart workloads plus process storage/groups/signals, trap and scheduling-model contracts"
+    },
+    "round_robin": {
+      "status": "passed",
+      "cpus": [
+        1,
+        5
+      ],
+      "log": "build/docs/scheduler-runtime/round-robin-tests.log"
+    },
+    "mlfq": {
+      "status": "passed",
+      "cpus": [
+        1,
+        5
+      ],
+      "log": "build/docs/scheduler-runtime/mlfq-tests.log"
+    },
+    "module_diagnostics": {
+      "status": "passed",
+      "log": "build/docs/scheduler-runtime/clangd.log"
+    },
+    "public_api_consumer": {
+      "status": "passed",
+      "scope": "Independent RISC-V module consumer compiles initialize(SchedulerKind::Fair)",
+      "log": "build/docs/scheduler-runtime/public-api-probe.log"
+    },
+    "renamed_symbols": {
+      "status": "passed",
+      "scope": "Final ELF contains SchedulerRuntime and all three policy types; old engine symbols absent",
+      "log": "build/docs/scheduler-runtime/symbols.txt"
+    },
+    "flow_source_bindings": {
+      "source_files": 372,
+      "reviewed_non_network_non_boot": 249,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 220,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 219,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "function_documentation": {
+      "kernel_files": 372,
+      "default_unique_symbols": 4612,
+      "all_cpp_symbols": 4683,
+      "documentation_entries": 4686,
+      "indexable_entries": 4612,
+      "documentation_only": 74,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "targeted_lsp": {
+      "symbols": 17,
+      "identity_and_definition_passed": 17,
+      "hover_outcomes": {
+        "external-doxygen": 12,
+        "native-priority-or-index-limit": 5
+      }
+    },
+    "independent_fork_timing_or_fork_progress": false,
+    "full_96_test_regression": "Historical pre-rename result retained in previous checkpoint; this organization-only change used the targeted checks listed above"
+  },
+  "local_logs": "build/docs/scheduler-runtime/ (not committed)",
+  "source_sha256": {
+    "kernel/process/scheduler/runtime/scheduler_runtime.cppm": "8898d9073cba2a46c7a26384a01f2dd9ef388f85a2f8c8cbc822f33b34dffb30",
+    "kernel/process/scheduler/runtime/scheduler_runtime.cpp": "3620dad0e6bc3f074de8855cc605686b59435f378ab512ab3e3f9a318825a858",
+    "kernel/process/scheduler/policies/fair.cppm": "b6fd5d57e3c64789b46367cd7c5a20315ec31b8f11c172c5927c9cc31a5521d1",
+    "kernel/process/scheduler/policies/round_robin.cppm": "149481fc855fb4cf7ffafe12f9a453fcd4bf008279b240d71b714cfa0cce65ef",
+    "kernel/process/scheduler/policies/mlfq.cppm": "32b7aa1d02761959dbe6cb72c5cc16554a69dd61d35b9754645fedf9f96fbd42",
+    "kernel/process/lifecycle/service.cpp": "793b6a6a48934cc10eec9f34fc1a5e79094d93588ffd1101abc643bdd336b3d1"
+  },
+  "kernel_elf_sha256": {
+    "dev": "0a28f9bb32415950709a043d3d4857c06edaf59adc2a1b44e4488292a89814af",
+    "round-robin": "788cc7aae282ae791acf7735ab849b6bb0d9110c9b47578e1e220aaa4783bfa9",
+    "mlfq": "854a34c60e2fca6cfe45314a6f9bf074b9c6eba667b3f4fac216056db6b98f30"
+  }
+}

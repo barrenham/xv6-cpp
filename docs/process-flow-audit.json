@@ -96,8 +96,8 @@
     },
     {
       "source": "kernel/process/groups/process_groups.cpp",
-      "sha256": "27482c13bcc80e09bcbc9a432e1193a8e7f9b4bf5df57a8c2233220651fa8872",
-      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "sha256": "7652a8b966a7c724c88dcbfb4947c250a4d0b1019861d213ec98e894ba211cf5",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy. Follow-up: group hash insertion precedes list publication; last-group detach removes the exact hash identity before freeing its page. The original group lock, member/family lifetime and session-reference protocols are unchanged.",
       "graph_entries": [
         {
           "qualified": "xv::process::ProcessGroups::detach",
@@ -139,8 +139,8 @@
     },
     {
       "source": "kernel/process/groups/process_groups.cppm",
-      "sha256": "79275968c5a845cf9281ee64241825fe4b2270248fdbe4a23b333ea139245a6d",
-      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "sha256": "240a36be80e11efc1b0d8e8f7b6ed5e0a2283e920184bf54bc8ac1675e69ba4a",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy. Follow-up: ProcessGroup has separate hash links and a private group-ID index; group/member list traversal remains available and has its original lock.",
       "graph_entries": []
     },
     {
@@ -293,8 +293,8 @@
     },
     {
       "source": "kernel/process/lifecycle/service.cpp",
-      "sha256": "d91efd5fc7bec58ca3b43287c1def42e0b27e5e7dbb777009eaebc8a10e4dced",
-      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "sha256": "793b6a6a48934cc10eec9f34fc1a5e79094d93588ffd1101abc643bdd336b3d1",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol. Follow-up: fair/RR/MLFQ ready queues and shared run engine are statically constructed; initialize(kind) validates before CAS, binds once, initializes original services, then release-publishes the selected kind. Subsequent or invalid attempts do not replace active state. The no-argument compatibility wrapper uses the build default.",
       "graph_entries": []
     },
     {
@@ -351,25 +351,25 @@
     },
     {
       "source": "kernel/process/memory/address_space.cppm",
-      "sha256": "1ded837c07820ea2f2fc3c14c3cd8a5b91e896379cd93d8986d2046cb9bf27b4",
+      "sha256": "9e1af424b8e992476e7e165a8f97d4ea365b225ce378c6cc7388f3d20cc2bcc0",
       "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/memory/flows.cppm",
-      "sha256": "94f50ebd9a8437b7c06459951b5b0f59f21b2cd05fa3335f82206a8db7ad09cf",
+      "sha256": "621472f9828967773e1ebf8bae588a1310c9f2469c1340e1fda50b40d3ec0834",
       "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/process.cppm",
-      "sha256": "d385fb1ad567af28bb7c1800b8f3df365322d14f3ff255ae17288930057c756e",
-      "review": "Process state, public accessors and friend/private Flow declarations preserve the object layout. Complex implementations are owned by private Flow types in their original implementation units.",
+      "sha256": "523db86ed2b42ee9c01f7f3393c68b9503c4d8ba11034092a3089e97a8fb986c",
+      "review": "Process state, public accessors and friend/private Flow declarations preserve the object layout. Complex implementations are owned by private Flow types in their original implementation units. Follow-up: a policy Entity is embedded in each stable descriptor; it neither allocates nor owns Process memory. ProcessStore verifies it is unqueued and not running before retirement.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/process_module.cppm",
-      "sha256": "bcfa082b7fdc3574774640ca22746ff388f486c4571db7c9395f8a57e6f4a425",
+      "sha256": "f3ed8e81667cd0815d50186b10f39cc69ef774c4b602f08d021420f535b0e34b",
       "review": "Module composition and exports only; no execution protocol.",
       "graph_entries": []
     },
@@ -408,15 +408,15 @@
       "graph_entries": []
     },
     {
-      "source": "kernel/process/scheduler/policies/round_robin.cpp",
-      "sha256": "0009502df9332d7eb81d079b2217a6223192a7c58d41fb6e492f6721e1cfdf68",
-      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "source": "kernel/process/scheduler/runtime/scheduler_runtime.cpp",
+      "sha256": "3620dad0e6bc3f074de8855cc605686b59435f378ab512ab3e3f9a318825a858",
+      "review": "SchedulerRuntime::RunFlow owns the shared per-hart select/dispatch/notify/idle loop. It delegates selection/accounting/tick decisions to the fixed selected strategy, preserving process locks and TLB/swtch mechanics. The common execution engine now has its canonical SchedulerRuntime class, module and runtime-directory path.",
       "graph_entries": [
         {
-          "qualified": "xv::process::RoundRobinScheduler::run",
-          "usr": "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
-          "source": "kernel/process/scheduler/policies/round_robin.cpp",
-          "source_sha256": "b8bd64a90fc44ad3fba122e7b35e286447f9714a156fa982965f94556debb019",
+          "qualified": "xv::process::SchedulerRuntime::run",
+          "usr": "c:@N@xv@N@process@S@SchedulerRuntime@F@run#",
+          "source": "kernel/process/scheduler/runtime/scheduler_runtime.cpp",
+          "source_sha256": "6f484ca728ae4c4bbfbb7a20aaa0b5737c1c9be97928e1d231a2cd75c8f14570",
           "graphs": [
             "RunFlow::Graph"
           ]
@@ -424,9 +424,9 @@
       ]
     },
     {
-      "source": "kernel/process/scheduler/policies/round_robin.cppm",
-      "sha256": "1f7e8acc90ce7d46334ef0fda9e0b9dce533581551797e88dfca472e5d80bbbb",
-      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "source": "kernel/process/scheduler/runtime/scheduler_runtime.cppm",
+      "sha256": "8898d9073cba2a46c7a26384a01f2dd9ef388f85a2f8c8cbc822f33b34dffb30",
+      "review": "Internal SchedulerRuntime interface and borrowed strategy pointer. Boot-only select and name are compact adapters; running, suspend, yield and tick delegate to the original runtime/queue mechanisms.",
       "graph_entries": []
     },
     {
@@ -437,32 +437,32 @@
     },
     {
       "source": "kernel/process/scheduler/queues/fifo_ready_queue.cppm",
-      "sha256": "f8c60e27fe8905291afd77c884488aa72cc65a0ba5099bcaa84e85f5a8ab2cea",
-      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "sha256": "cd46f998905bfe74cb811641dc85b8daaeb9cf2ee0731f132ecf114e5ef867af",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly. Policy entry classes may derive from this adapter; the queue storage and original algorithms are unchanged.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/scheduler/queues/ready_queue.cpp",
-      "sha256": "e77a3dd5dbc464207b18db02d1a53fbfbeac7e2fd25fd36f4dafdb550148f8a5",
+      "sha256": "17efdc5044f27b255c2ff861fdfd6104ca03440f3c31faf2f3f045f94f889623",
       "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/scheduler/queues/ready_queue.cppm",
-      "sha256": "210448f3ea836b69097a3a7b1437232b435aad4355f135b69319625ae262d7d0",
+      "sha256": "8802ab738550de33410d26a0b48136a99ddf7fd4393b074af94c6adb8c32f3fb",
       "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
-      "sha256": "a703b8a770c1b69fb15dd91702481b9635ec216528df7380bdc8ebb4f55363fd",
-      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "sha256": "3c3f9f1dabbd48396fbca44536d41d438b7e8c4152371ac500f60513bec75164",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly. Follow-up: DispatchFlow starts selected-policy accounting under the held process lock before setting Running/current. Context and TLB fence ordering is unchanged.",
       "graph_entries": [
         {
           "qualified": "xv::process::SchedulerContext::dispatch",
-          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#&$@N@xv@N@process@S@ReadyQueue#S",
           "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
-          "source_sha256": "74c074a8be41fbeee88e0c8d3ae6ad1d40d6625a6df6343e8c11706ac668cb05",
+          "source_sha256": "f520eff2d9464c918c1c294f77eaf7c370d6c1084a9aaf2d023ee88cea63f842",
           "graphs": [
             "DispatchFlow::Graph"
           ]
@@ -489,13 +489,13 @@
     },
     {
       "source": "kernel/process/scheduler/runtime/scheduler_context.cppm",
-      "sha256": "01902b8e280ef687988e55f994065957173f4afca3c7308935a22cb3c1e8449f",
+      "sha256": "813622f8209ba070c35386e662e803132fd103dceba60ba46ba0cf79e1eacf04",
       "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/scheduler/scheduler.cppm",
-      "sha256": "acfe237ab5f1ed3a7e3a6d5580acfabaaf412bb998d3d244beaaa1740cdfa7e7",
+      "sha256": "73a0eaba613cfe897b27a1fb6ed0975ff88123466c2d91067b227a641b46d36a",
       "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
       "graph_entries": []
     },
@@ -621,7 +621,7 @@
     },
     {
       "source": "kernel/process/storage/kernel_platform.cpp",
-      "sha256": "3b6333ca7a6637e7c78dea7239486fb3e4d8afafdc4c96613dbcd0a26ea7b449",
+      "sha256": "1866a5fb09c299f8fda3237b9c77469d31a7ba8d97ccb5cbcde516a2ab2a6308",
       "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
       "graph_entries": []
     },
@@ -658,14 +658,14 @@
     },
     {
       "source": "kernel/process/storage/platform.cppm",
-      "sha256": "161480c8b10a3a8a5ebc3aafd8cca17f24de28f61da262b01af65d2a612865b5",
+      "sha256": "ca544eee22a8dc2155be1bbf58e3799250e0536414426b8a19319b8e532b06b2",
       "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/storage/process_store.cpp",
-      "sha256": "c0b8dd91e3c8b9e93b29bcad162bfebadbf622fcc457934cabd2e405c6ef503a",
-      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "sha256": "561c4e95dd21c4e9265fd6708f50a63bf922f826d91e915d6a1451b218244542",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives. Follow-up: retirement additionally rejects queued/running policy entities before freeing the descriptor.",
       "graph_entries": []
     },
     {
@@ -796,6 +796,42 @@
           ]
         }
       ]
+    },
+    {
+      "source": "kernel/process/scheduler/policies/scheduling_policy.h",
+      "sha256": "a6bda9983af76948c7c92f65e5cfdfc7706942823f83342ddf2f4ee7b1fdefaa",
+      "review": "Architecture-independent scheduling container algorithms: weighted actual-runtime accounting with fractional carry, fair red-black ordering and monotonic floor including active harts and pending yield; eligibility-filtered selection; three-level MLFQ cumulative budgets and epoch boosting. These scalar/container algorithms are direct primitives; the existing Run/Dispatch/Suspend/Yield graphs retain execution and lock handoff. No allocator calls or process-lock acquisition in selection.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/policy_ready_queue.cppm",
+      "sha256": "4c3343ce5e96b0b6355a656705ef2ffc715e1673a86315a32eabb6fba7e77eab",
+      "review": "Internal ReadyQueue implementation/API for pure policy model; immutable mode, local queue lock and embedded metadata. Constructor/name probes are primitives; no scheduler lifecycle resources allocated. Policy entry classes may derive from this adapter; the queue storage and original algorithms are unchanged.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/policy_ready_queue.cpp",
+      "sha256": "23adf87bc622e2a82f24251eedceb974da0fe1ad4b4cd478c55fd48cf011733f",
+      "review": "Single-lock bridge from stable Process descriptors to actual scheduling algorithms and platform time. Enqueue/start/stop assert process-lock ownership; take never acquires it, and tick only takes queue exclusion. Returned descriptors retain Runnable lifetime protection; no unlocked tree edits or per-dispatch allocation.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/policies/fair.cppm",
+      "sha256": "b6fd5d57e3c64789b46367cd7c5a20315ec31b8f11c172c5927c9cc31a5521d1",
+      "review": "Concrete FairPolicy binds the shared PolicyReadyQueue adapter to Kind::Fair at construction. No queue algorithm, runtime loop or lock protocol is duplicated.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/policies/round_robin.cppm",
+      "sha256": "149481fc855fb4cf7ffafe12f9a453fcd4bf008279b240d71b714cfa0cce65ef",
+      "review": "Concrete RoundRobinPolicy inherits original FIFO ordering and timer preemption; its name identifies the actual policy. Common execution mechanics now reside in runtime/scheduler_runtime.*.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/policies/mlfq.cppm",
+      "sha256": "32b7aa1d02761959dbe6cb72c5cc16554a69dd61d35b9754645fedf9f96fbd42",
+      "review": "Concrete MlfqPolicy binds the shared adapter to Kind::Feedback. Existing cumulative budgets, FIFO levels, epoch boosting and queue exclusion are reused unchanged.",
+      "graph_entries": []
     }
   ],
   "graph_count": 47,

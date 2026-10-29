@@ -11,6 +11,8 @@ export import :poll;
 export namespace xv::process
 {
 void initialize();
+// Boot-only policy selection; false leaves an invalid/repeated attempt unchanged.
+bool initialize(SchedulerKind kind);
 void create_initial_process();
 int fork_process();
 [[noreturn]] void exit_process(int status);

@@ -1,5 +1,5 @@
 export module xv.memory:user_paging;
-import xv.vm_regions;
+import xv.vm_pool;
 
 export namespace xv::memory
 {
@@ -23,14 +23,14 @@ void unmap_user_pages(PageTable table, unsigned long address, unsigned long page
 void protect_user_guard(PageTable table, unsigned long address);
 PageEntry *walk_entry(PageTable table, unsigned long address, int allocate);
 unsigned long translate_user_page(PageTable table, unsigned long address);
-int copy_to_user(PageTable table, unsigned long address_space_size, const VirtualRegions &regions,
+int copy_to_user(PageTable table, unsigned long address_space_size, const VirtualAddressPool &regions,
                  unsigned long destination, const char *source, unsigned long bytes);
-int copy_from_user(PageTable table, unsigned long address_space_size, const VirtualRegions &regions, char *destination,
+int copy_from_user(PageTable table, unsigned long address_space_size, const VirtualAddressPool &regions, char *destination,
                    unsigned long source, unsigned long bytes);
-int copy_user_string(PageTable table, unsigned long address_space_size, const VirtualRegions &regions,
+int copy_user_string(PageTable table, unsigned long address_space_size, const VirtualAddressPool &regions,
                      char *destination, unsigned long source, unsigned long limit);
 int is_user_mapped(PageTable table, unsigned long address);
-FaultOutcome resolve_user_fault(PageTable table, unsigned long address_space_size, const VirtualRegions &regions,
+FaultOutcome resolve_user_fault(PageTable table, unsigned long address_space_size, const VirtualAddressPool &regions,
                                 unsigned long address, FaultAccess access);
 
 #if defined(LAB_PGTBL) || defined(SOL_MMAP)

@@ -17,7 +17,7 @@ set(XV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 add_executable(allocator_contract
   "${XV_ROOT}/tests/allocator_contract.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
-  "${XV_ROOT}/kernel/memory/layout/virtual_regions.cpp"
+  "${XV_ROOT}/kernel/memory/layout/virtual_address_pool.cpp"
   "${XV_ROOT}/kernel/memory/paging/sv39_page_table.cpp"
   "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
   "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
@@ -192,6 +192,7 @@ add_executable(process_storage_contract
   "${XV_ROOT}/kernel/process/wait/poll_wait.cpp"
   "${XV_ROOT}/kernel/process/scheduler/queues/ready_queue.cpp"
   "${XV_ROOT}/kernel/process/scheduler/queues/fifo_ready_queue.cpp"
+  "${XV_ROOT}/kernel/process/scheduler/queues/policy_ready_queue.cpp"
   "${XV_ROOT}/kernel/process/arch/cpu_affinity.cpp"
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
@@ -274,12 +275,13 @@ set_target_properties(password_hash_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY
 
 add_executable(vm_contract
   "${XV_ROOT}/tests/vm_contract.cpp"
+  "${XV_ROOT}/tests/virtual_address_pool_contract.cpp"
   "${XV_ROOT}/tests/address_space_contract.cpp"
   "${XV_ROOT}/kernel/process/memory/address_space.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
-  "${XV_ROOT}/kernel/memory/layout/virtual_regions.cpp"
-  "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
+  "${XV_ROOT}/kernel/memory/layout/virtual_address_pool.cpp"
+    "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
   "${XV_ROOT}/kernel/memory/allocator/buddy/buddy_page_allocator.cpp"
   "${XV_ROOT}/kernel/memory/allocator/freelist/freelist_page_allocator.cpp"
   "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
@@ -336,3 +338,17 @@ target_compile_options(stats_contract PRIVATE -O2 -Wall -Wextra -Werror
   -Wno-unused-parameter -Wno-sign-compare -fno-rtti -fno-exceptions)
 target_link_libraries(stats_contract PRIVATE Threads::Threads)
 set_target_properties(stats_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(rb_tree_contract "${XV_ROOT}/tests/rb_tree_contract.cpp")
+target_include_directories(rb_tree_contract PRIVATE "${XV_ROOT}")
+target_compile_features(rb_tree_contract PRIVATE cxx_std_20)
+target_compile_options(rb_tree_contract PRIVATE -O2 -Wall -Wextra -Werror)
+set_target_properties(rb_tree_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+foreach(contract support_containers scheduling_policy)
+  add_executable(${contract}_contract "${XV_ROOT}/tests/${contract}_contract.cpp")
+  target_include_directories(${contract}_contract PRIVATE "${XV_ROOT}")
+  target_compile_features(${contract}_contract PRIVATE cxx_std_20)
+  target_compile_options(${contract}_contract PRIVATE -O2 -Wall -Wextra -Werror)
+  set_target_properties(${contract}_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+endforeach()

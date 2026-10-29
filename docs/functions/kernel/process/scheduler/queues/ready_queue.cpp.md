@@ -11,6 +11,7 @@
 ## 函数导航
 
 - [`xv::process::ReadyQueue::eligible`](ready_queue.cpp.md#fn-68b75aa7cc18acd6)
+- [`xv::process::ReadyQueue::entity`](ready_queue.cpp.md#fn-3b6b4acd77c65ca9)
 - [`xv::process::ReadyQueue::next`](ready_queue.cpp.md#fn-67e0dc0257fbe5a8)
 - [`xv::process::ReadyQueue::process_locked`](ready_queue.cpp.md#fn-70010f7d4b60b9e1)
 - [`xv::process::ReadyQueue::queued`](ready_queue.cpp.md#fn-493eb25f1b781417)
@@ -61,4 +62,14 @@
 @brief 进程对象生命周期、组身份、调度、等待与信号：读取或计算 `process.queued_`，返回当前查询结果。
 @param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
 @return 各分支实际返回：`process.queued_`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+
+<a id="fn-3b6b4acd77c65ca9"></a>
+
+## `xv::process::ReadyQueue::entity`
+
+```doxygen
+@fn xv::scheduling::Entity &xv::process::ReadyQueue::entity(Process &process)
+@brief 取得嵌入 Process 的调度实体并关联其稳定所有者。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```

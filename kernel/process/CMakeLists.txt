@@ -24,13 +24,26 @@ target_sources(kernel PRIVATE
   storage/kernel_platform.cpp
   wait/wait_channels.cpp
   scheduler/queues/ready_queue.cpp
+  scheduler/queues/policy_ready_queue.cpp
   scheduler/queues/fifo_ready_queue.cpp
   arch/cpu_affinity.cpp
   lifecycle/service.cpp
   resources/process_resources.cpp
   resources/kernel_platform.cpp
   memory/address_space.cpp
-  scheduler/policies/round_robin.cpp
+  scheduler/runtime/scheduler_runtime.cpp
   exec/elf_loader.cpp
   arch/swtch.S
 )
+
+set(XV_SCHEDULER "fair" CACHE STRING "Boot scheduler: fair, round-robin or mlfq")
+set_property(CACHE XV_SCHEDULER PROPERTY STRINGS fair round-robin mlfq)
+if(XV_SCHEDULER STREQUAL "fair")
+  target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=0)
+elseif(XV_SCHEDULER STREQUAL "round-robin")
+  target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=1)
+elseif(XV_SCHEDULER STREQUAL "mlfq")
+  target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=2)
+else()
+  message(FATAL_ERROR "XV_SCHEDULER must be fair, round-robin or mlfq")
+endif()

@@ -2,10 +2,13 @@ module xv.process;
 
 import :storage_platform;
 import xv.memory;
+import xv.arch;
 import xv.print;
 
 namespace xv::process::detail
 {
+unsigned long scheduling_time() { return xv::arch::r_time(); }
+
 void *allocate_process_page()
 {
   return xv::memory::allocator().allocate();

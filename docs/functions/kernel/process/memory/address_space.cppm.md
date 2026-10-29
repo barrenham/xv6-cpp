@@ -95,7 +95,7 @@
 ## `xv::process::AddressSpace::regions`
 
 ```doxygen
-@fn const xv::memory::VirtualRegions &xv::process::AddressSpace::regions() const
+@fn const xv::memory::VirtualAddressPool &xv::process::AddressSpace::regions() const
 @brief 借用当前进程的虚拟区域登记。
 @details 供内部页表实验和用户复制路径做一致性验证；调用者必须处于所属进程的独占地址空间操作上下文，不能保存到并发 reset 或 exec 之后。
 ```

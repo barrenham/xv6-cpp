@@ -3,7 +3,7 @@ module;
 
 module xv.process;
 
-import :round_robin;
+import :scheduler_runtime;
 import :scheduler_context;
 
 namespace xv::process
@@ -11,11 +11,11 @@ namespace xv::process
 
 namespace flow = xv::flow;
 
-struct RoundRobinScheduler::RunFlow
+struct SchedulerRuntime::RunFlow
 {
   struct Context
   {
-    RoundRobinScheduler &owner;
+    SchedulerRuntime &owner;
     CpuState &cpu;
     Process *process = nullptr;
   };
@@ -23,7 +23,7 @@ struct RoundRobinScheduler::RunFlow
   static void select(Context &c) noexcept
   {
     SchedulerContext::begin_round();
-    c.process = c.owner.ready_.take(c.cpu);
+    c.process = c.owner.ready_->take(c.cpu);
   }
 
   static bool selected(Context &c) noexcept
@@ -33,7 +33,7 @@ struct RoundRobinScheduler::RunFlow
 
   static void dispatch(Context &c) noexcept
   {
-    SchedulerContext::dispatch(*c.process, c.cpu);
+    SchedulerContext::dispatch(*c.process, c.cpu, *c.owner.ready_);
   }
 
   static void notify(Context &) noexcept
@@ -60,7 +60,7 @@ struct RoundRobinScheduler::RunFlow
                   flow::node<Idle, flow::action<&idle>, flow::go<Select>>>>;
 };
 
-void RoundRobinScheduler::run()
+void SchedulerRuntime::run()
 {
   auto &cpu = SchedulerContext::prepare_cpu();
   RunFlow::Context context{*this, cpu};
@@ -68,18 +68,25 @@ void RoundRobinScheduler::run()
   __builtin_unreachable();
 }
 
-void RoundRobinScheduler::suspend()
+void SchedulerRuntime::suspend()
 {
+  ready_->stop(*current());
   SchedulerContext::suspend();
 }
 
-void RoundRobinScheduler::yield()
+void SchedulerRuntime::yield()
 {
   SchedulerContext::yield(*this);
 }
 
-void RoundRobinScheduler::make_runnable(Process &process)
+void SchedulerRuntime::make_runnable(Process &process)
 {
-  SchedulerContext::make_runnable(process, ready_);
+  SchedulerContext::make_runnable(process, *ready_);
 }
+bool SchedulerRuntime::timer_tick()
+{
+  auto *process = current();
+  return process && ready_->tick(*process);
+}
+
 } // namespace xv::process

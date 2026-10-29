@@ -22,7 +22,9 @@ compile = next(item for item in commands if item['file'].endswith('/trap/arch/ri
 link = subprocess.check_output(['ninja', '-C', str(build), '-t', 'commands', 'kernel.elf'], text=True).splitlines()[-1]
 link = shlex.split(link.split(' && ')[1])
 expectations = {1: b'kernel stack locked growth: OK', 2: b'kernel stack: protection fault',
-                3: b'kernel stack: emergency frames exhausted', 4: b'kernel stack: guard overflow'}
+                3: b'kernel stack: emergency frames exhausted', 4: b'kernel stack: guard overflow',
+                5: b'kernel virtual pool: 1000 stacks, fragmentation and reuse OK',
+                6: b'kernel virtual pool: OOM rollback and recovery OK'}
 with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
     root = Path(temporary)
     image = root / 'fs.img'
@@ -39,8 +41,11 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
         command = [str(obj) if item == original else item for item in link]
         command[command.index('-o') + 1] = str(kernel)
         subprocess.run(command, cwd=compile['directory'], check=True)
+        # 1000 stacks also fit when each reservation uses the supported 64 MiB
+        # capacity (32 leaf-table pages plus 8 initial data pages per stack).
+        ram = '256M' if mode == 5 else '128M'
         guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel),
-            '-m', '128M', '-smp', '1', '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',
+            '-m', ram, '-smp', '1', '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',
             '-drive', f'file={image},if=none,format=raw,id=x0',
             '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0'],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
@@ -53,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
                 assert guest.poll() is None and time.monotonic() < deadline, transcript.decode(errors='replace')
                 for key, _ in selector.select(.1):
                     transcript.extend(os.read(key.fd, 65536))
-                if mode == 1:
+                if mode in (1, 5, 6):
                     assert b'panic:' not in transcript, transcript.decode(errors='replace')
             print(f'VM kernel probe {mode}: passed', flush=True)
         finally:
@@ -63,4 +68,4 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
             except subprocess.TimeoutExpired: guest.kill(); guest.wait()
             selector.close()
             (build / f'vm-stack-{mode}.log').write_bytes(transcript)
-print('Critical-section growth, protection, reserve OOM and guard contracts passed')
+print('Stack faults, 1000-stack pool reuse and allocation OOM rollback contracts passed')

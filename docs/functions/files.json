@@ -113,6 +113,7 @@
       "c:@N@xv@N@process@F@get_process_group#",
       "c:@N@xv@N@process@F@get_session#I#",
       "c:@N@xv@N@process@F@initialize#",
+      "c:@N@xv@N@process@F@initialize#$@N@xv@N@scheduling@E@Kind#",
       "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
@@ -1132,9 +1133,9 @@
     "function_usrs": [
       "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
-      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
-      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#*1C#l#",
-      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#*1C#l#",
+      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#*C#l#l#",
       "c:@N@xv@N@memory@F@create_user_table#",
       "c:@N@xv@N@memory@F@deallocate_user_pages#*l#l#l#",
       "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
@@ -1144,7 +1145,7 @@
       "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
       "c:@N@xv@N@memory@F@print_page_table#*l#",
       "c:@N@xv@N@memory@F@protect_user_guard#*l#l#",
-      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@memory@F@translate_user_page#*l#l#",
       "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@walk_entry#*l#l#I#",
@@ -1153,10 +1154,10 @@
       "c:vm.cpp@N@xv@N@memory@F@supermap#*l#l#l#I#",
       "c:vm.cpp@N@xv@N@memory@F@vmprint_level#*l#I#l#",
       "c:vm.cpp@N@xv@N@memory@F@walkto#*l#l#I#I#*I#",
-      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_bytes#&1$@N@xv@N@memory@S@VirtualRegions#l#l#",
-      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_region#&1$@N@xv@N@memory@S@VirtualRegions#l#l#$@N@xv@N@memory@E@FaultAccess#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_bytes#&1$@N@xv@N@memory@S@VirtualAddressPool#l#l#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@accessible_region#&1$@N@xv@N@memory@S@VirtualAddressPool#l#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:vm.cpp@N@xv@N@memory@aN@F@permission_for#$@N@xv@N@memory@E@FaultAccess#",
-      "c:vm.cpp@N@xv@N@memory@aN@F@user_access#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+      "c:vm.cpp@N@xv@N@memory@aN@F@user_access#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:vm.cpp@N@xv@N@memory@aN@S@AllocateUserFlow@F@advance#&$@N@xv@N@memory@aN@S@AllocateUserFlow@S@Context#S",
       "c:vm.cpp@N@xv@N@memory@aN@S@AllocateUserFlow@F@allocated#&$@N@xv@N@memory@aN@S@AllocateUserFlow@S@Context#S",
       "c:vm.cpp@N@xv@N@memory@aN@S@AllocateUserFlow@F@choose#&$@N@xv@N@memory@aN@S@AllocateUserFlow@S@Context#S",
@@ -1262,11 +1263,14 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@grow_process_stack#l#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@in_stack_window#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@operator=#&1$@N@xv@N@memory@S@KernelPageTable#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@owns_stack#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@region#l#&$@N@xv@N@memory@S@VirtualRegion#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@stack_directory#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#"
     ]
   },
@@ -1350,21 +1354,24 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@grow_process_stack#l#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@in_stack_window#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@owns_stack#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@region#l#&$@N@xv@N@memory@S@VirtualRegion#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@stack_directory#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@available#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@commit#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@erase_guard#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@find#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@guard#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@ok#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@prepare#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@publish#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@region#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@rollback#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
+      "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@unreserve#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@F@allocate#&$@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@F@allocated#&$@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@F@entry#&$@N@xv@N@memory@S@KernelPageTable@S@CommitFlow@S@Context#S",
@@ -1394,14 +1401,13 @@
       "c:@N@xv@N@memory@S@KernelPageTable@S@FaultFlow@F@walk#&$@N@xv@N@memory@S@KernelPageTable@S@FaultFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@F@erase#&$@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@F@release#&$@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@F@unpublish#&$@N@xv@N@memory@S@KernelPageTable@S@FreeFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@F@directories#&$@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@F@mappings#&$@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@F@pool#&$@N@xv@N@memory@S@KernelPageTable@S@InitializeFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@F@detach#&$@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@F@detached#&$@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@F@free#&$@N@xv@N@memory@S@KernelPageTable@S@ReleaseFlow@S@Context#S",
-      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
-      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@map_initial_range#&$@N@xv@N@memory@S@VirtualRegions#*l#l#l#l#I#",
+      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualAddressPool#",
+      "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@map_initial_range#&$@N@xv@N@memory@S@VirtualAddressPool#*l#l#l#l#I#",
       "c:kernel_page_table.cpp@N@xv@N@memory@aN@S@KernelBuildFlow@F@check#&$@N@xv@N@memory@aN@S@KernelBuildFlow@S@Context#S",
       "c:kernel_page_table.cpp@N@xv@N@memory@aN@S@KernelBuildFlow@F@devices_text#&$@N@xv@N@memory@aN@S@KernelBuildFlow@S@Context#S",
       "c:kernel_page_table.cpp@N@xv@N@memory@aN@S@KernelBuildFlow@F@direct#&$@N@xv@N@memory@aN@S@KernelBuildFlow@S@Context#S",
@@ -1418,9 +1424,9 @@
     "function_usrs": [
       "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
-      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
-      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#*1C#l#",
-      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_from_user#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#*C#l#l#",
+      "c:@N@xv@N@memory@F@copy_to_user#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#*1C#l#",
+      "c:@N@xv@N@memory@F@copy_user_string#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#*C#l#l#",
       "c:@N@xv@N@memory@F@create_user_table#",
       "c:@N@xv@N@memory@F@deallocate_user_pages#*l#l#l#",
       "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
@@ -1430,7 +1436,7 @@
       "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
       "c:@N@xv@N@memory@F@print_page_table#*l#",
       "c:@N@xv@N@memory@F@protect_user_guard#*l#l#",
-      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+      "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#$@N@xv@N@memory@E@FaultAccess#",
       "c:@N@xv@N@memory@F@translate_user_page#*l#l#",
       "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
       "c:@N@xv@N@memory@F@walk_entry#*l#l#I#"
@@ -2257,6 +2263,7 @@
       "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#$@N@xv@N@trap@E@MemoryAccess#",
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
+      "c:@N@xv@N@trap@N@detail@F@scheduler_timer_tick#",
       "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
       "c:@N@xv@N@trap@N@detail@F@sleep#",
       "c:@N@xv@N@trap@N@detail@F@snapshot#",
@@ -2416,6 +2423,7 @@
       "c:@N@xv@N@trap@N@detail@F@resolve_page_fault#l#$@N@xv@N@trap@E@MemoryAccess#",
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
+      "c:@N@xv@N@trap@N@detail@F@scheduler_timer_tick#",
       "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
       "c:@N@xv@N@trap@N@detail@F@sleep#",
       "c:@N@xv@N@trap@N@detail@F@snapshot#",
@@ -3273,6 +3281,7 @@
     "source": "kernel/process/scheduler/scheduler.cppm",
     "document": "docs/functions/kernel/process/scheduler/scheduler.cppm.md",
     "function_usrs": [
+      "c:@N@xv@N@process@F@configured_scheduler_kind#",
       "c:@N@xv@N@process@F@scheduler#",
       "c:@N@xv@N@process@S@Scheduler@F@Scheduler#",
       "c:@N@xv@N@process@S@Scheduler@F@Scheduler#&1$@N@xv@N@process@S@Scheduler#",
@@ -3281,6 +3290,7 @@
       "c:@N@xv@N@process@S@Scheduler@F@operator=#&1$@N@xv@N@process@S@Scheduler#",
       "c:@N@xv@N@process@S@Scheduler@F@run#",
       "c:@N@xv@N@process@S@Scheduler@F@suspend#",
+      "c:@N@xv@N@process@S@Scheduler@F@timer_tick#",
       "c:@N@xv@N@process@S@Scheduler@F@yield#",
       "c:@N@xv@N@process@S@Scheduler@F@~Scheduler#"
     ]
@@ -3575,6 +3585,7 @@
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@scheduling_time#",
       "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
     ]
   },
@@ -3641,6 +3652,7 @@
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@scheduling_time#",
       "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
     ]
   },
@@ -3820,7 +3832,10 @@
       "c:@N@xv@N@process@S@ProcessGroups@F@set_foreground#&1$@N@xv@N@process@S@ProcessMembership#*v#I#",
       "c:@N@xv@N@process@S@ProcessGroups@F@set_group#&$@N@xv@N@process@S@ProcessMembership#I#I#",
       "c:@N@xv@N@process@S@ProcessGroups@F@visit_foreground#*v#&$@N@xv@N@process@S@GroupVisitor#",
-      "c:@N@xv@N@process@S@ProcessGroups@F@visit_group#&1$@N@xv@N@process@S@ProcessMembership#I#&$@N@xv@N@process@S@GroupVisitor#"
+      "c:@N@xv@N@process@S@ProcessGroups@F@visit_group#&1$@N@xv@N@process@S@ProcessMembership#I#&$@N@xv@N@process@S@GroupVisitor#",
+      "c:@N@xv@N@process@S@ProcessGroups@S@GroupKey@F@equal#I#I#S",
+      "c:@N@xv@N@process@S@ProcessGroups@S@GroupKey@F@hash#I#S",
+      "c:@N@xv@N@process@S@ProcessGroups@S@GroupKey@F@key#&1$@N@xv@N@process@S@ProcessGroup#S"
     ]
   },
   {
@@ -3993,6 +4008,7 @@
     "document": "docs/functions/kernel/process/lifecycle/service.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@process@F@claim_terminal#*v#",
+      "c:@N@xv@N@process@F@configured_scheduler_kind#",
       "c:@N@xv@N@process@F@copy_in#*v#b#l#l#",
       "c:@N@xv@N@process@F@copy_out#b#l#*1v#l#",
       "c:@N@xv@N@process@F@create_initial_process#",
@@ -4005,6 +4021,7 @@
       "c:@N@xv@N@process@F@get_process_group#",
       "c:@N@xv@N@process@F@get_session#I#",
       "c:@N@xv@N@process@F@initialize#",
+      "c:@N@xv@N@process@F@initialize#$@N@xv@N@scheduling@E@Kind#",
       "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
@@ -4260,30 +4277,33 @@
     ]
   },
   {
-    "source": "kernel/process/scheduler/policies/round_robin.cppm",
-    "document": "docs/functions/kernel/process/scheduler/policies/round_robin.cppm.md",
+    "source": "kernel/process/scheduler/runtime/scheduler_runtime.cppm",
+    "document": "docs/functions/kernel/process/scheduler/runtime/scheduler_runtime.cppm.md",
     "function_usrs": [
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@RoundRobinScheduler#&$@N@xv@N@process@S@ReadyQueue#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@make_runnable#&$@N@xv@N@process@S@Process#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@name#1",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@suspend#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@yield#"
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@SchedulerRuntime#&$@N@xv@N@process@S@ReadyQueue#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@make_runnable#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@name#1",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@run#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@select#&$@N@xv@N@process@S@ReadyQueue#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@suspend#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@timer_tick#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@yield#"
     ]
   },
   {
-    "source": "kernel/process/scheduler/policies/round_robin.cpp",
-    "document": "docs/functions/kernel/process/scheduler/policies/round_robin.cpp.md",
+    "source": "kernel/process/scheduler/runtime/scheduler_runtime.cpp",
+    "document": "docs/functions/kernel/process/scheduler/runtime/scheduler_runtime.cpp.md",
     "function_usrs": [
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@make_runnable#&$@N@xv@N@process@S@Process#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@suspend#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@F@yield#",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@F@dispatch#&$@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@S@Context#S",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@F@idle#&$@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@S@Context#S",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@F@notify#&$@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@S@Context#S",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@F@select#&$@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@S@Context#S",
-      "c:@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@F@selected#&$@N@xv@N@process@S@RoundRobinScheduler@S@RunFlow@S@Context#S"
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@make_runnable#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@run#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@suspend#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@timer_tick#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@F@yield#",
+      "c:@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@F@dispatch#&$@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@S@Context#S",
+      "c:@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@F@idle#&$@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@S@Context#S",
+      "c:@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@F@notify#&$@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@S@Context#S",
+      "c:@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@F@select#&$@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@S@Context#S",
+      "c:@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@F@selected#&$@N@xv@N@process@S@SchedulerRuntime@S@RunFlow@S@Context#S"
     ]
   },
   {
@@ -4291,7 +4311,7 @@
     "document": "docs/functions/kernel/process/scheduler/runtime/scheduler_context.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@process@S@SchedulerContext@F@begin_round#S",
-      "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+      "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#&$@N@xv@N@process@S@ReadyQueue#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@idle#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@make_runnable#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@ReadyQueue#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@prepare_cpu#S",
@@ -4304,7 +4324,7 @@
     "document": "docs/functions/kernel/process/scheduler/runtime/scheduler_context.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@process@S@SchedulerContext@F@begin_round#S",
-      "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+      "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#&$@N@xv@N@process@S@ReadyQueue#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@idle#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@make_runnable#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@ReadyQueue#S",
       "c:@N@xv@N@process@S@SchedulerContext@F@prepare_cpu#S",
@@ -4325,6 +4345,7 @@
     "document": "docs/functions/kernel/process/scheduler/queues/ready_queue.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@process@S@ReadyQueue@F@eligible#&1$@N@xv@N@process@S@Process#&1$@N@xv@N@process@S@CpuState#S",
+      "c:@N@xv@N@process@S@ReadyQueue@F@entity#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@next#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@process_locked#&1$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@queued#&$@N@xv@N@process@S@Process#S"
@@ -4347,6 +4368,7 @@
       "c:@N@xv@N@process@S@FifoReadyQueue@F@enqueue#&$@N@xv@N@process@S@Process#",
       "c:@N@xv@N@process@S@FifoReadyQueue@F@initialize#",
       "c:@N@xv@N@process@S@FifoReadyQueue@F@name#1",
+      "c:@N@xv@N@process@S@FifoReadyQueue@F@scheduler_name#1",
       "c:@N@xv@N@process@S@FifoReadyQueue@F@take#&$@N@xv@N@process@S@CpuState#"
     ]
   },
@@ -4357,12 +4379,17 @@
       "c:@N@xv@N@process@S@ReadyQueue@F@ReadyQueue#",
       "c:@N@xv@N@process@S@ReadyQueue@F@eligible#&1$@N@xv@N@process@S@Process#&1$@N@xv@N@process@S@CpuState#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@enqueue#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@ReadyQueue@F@entity#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@initialize#",
       "c:@N@xv@N@process@S@ReadyQueue@F@name#1",
       "c:@N@xv@N@process@S@ReadyQueue@F@next#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@process_locked#&1$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ReadyQueue@F@queued#&$@N@xv@N@process@S@Process#S",
+      "c:@N@xv@N@process@S@ReadyQueue@F@scheduler_name#1",
+      "c:@N@xv@N@process@S@ReadyQueue@F@start#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@ReadyQueue@F@stop#&$@N@xv@N@process@S@Process#",
       "c:@N@xv@N@process@S@ReadyQueue@F@take#&$@N@xv@N@process@S@CpuState#",
+      "c:@N@xv@N@process@S@ReadyQueue@F@tick#&$@N@xv@N@process@S@Process#",
       "c:@N@xv@N@process@S@ReadyQueue@F@~ReadyQueue#"
     ]
   },
@@ -5591,53 +5618,6 @@
     "source": "kernel/fs/mount.h",
     "document": "docs/functions/kernel/fs/mount.h.md",
     "function_usrs": []
-  },
-  {
-    "source": "kernel/memory/layout/virtual_regions.cppm",
-    "document": "docs/functions/kernel/memory/layout/virtual_regions.cppm.md",
-    "function_usrs": [
-      "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@VirtualRegions#&1$@N@xv@N@memory@S@VirtualRegions#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@find#l#1",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@operator=#&1$@N@xv@N@memory@S@VirtualRegions#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@reset#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@swap#&$@N@xv@N@memory@S@VirtualRegions#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@vacant#"
-    ]
-  },
-  {
-    "source": "kernel/memory/layout/virtual_regions.cpp",
-    "document": "docs/functions/kernel/memory/layout/virtual_regions.cpp.md",
-    "function_usrs": [
-      "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@find#l#1",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@reset#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@swap#&$@N@xv@N@memory@S@VirtualRegions#",
-      "c:@N@xv@N@memory@S@VirtualRegions@F@vacant#",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@F@commit#&$@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@F@populate#&$@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@F@rollback#&$@N@xv@N@memory@S@VirtualRegions@S@CopyFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@allocate#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@find_split#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@reclaim#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@split#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@split_needed#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@success#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@trim#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@F@valid#&$@N@xv@N@memory@S@VirtualRegions@S@EraseFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@adjacent#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@allocate#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@extend#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@insert#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@scan#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@success#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S",
-      "c:@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@F@valid#&$@N@xv@N@memory@S@VirtualRegions@S@ReserveFlow@S@Context#S"
-    ]
   },
   {
     "source": "kernel/net/filter/control.h",
@@ -7104,9 +7084,8 @@
       "c:@N@xv@N@process@S@AddressSpace@S@GrowFlow@F@plan#&$@N@xv@N@process@S@AddressSpace@S@GrowFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@GrowFlow@F@reserve#&$@N@xv@N@process@S@AddressSpace@S@GrowFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@GrowFlow@F@undo_reservation#&$@N@xv@N@process@S@AddressSpace@S@GrowFlow@S@Context#S",
-      "c:@N@xv@N@process@S@AddressSpace@S@GuardFlow@F@erase#&$@N@xv@N@process@S@AddressSpace@S@GuardFlow@S@Context#S",
+      "c:@N@xv@N@process@S@AddressSpace@S@GuardFlow@F@describe#&$@N@xv@N@process@S@AddressSpace@S@GuardFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@GuardFlow@F@protect#&$@N@xv@N@process@S@AddressSpace@S@GuardFlow@S@Context#S",
-      "c:@N@xv@N@process@S@AddressSpace@S@GuardFlow@F@reserve#&$@N@xv@N@process@S@AddressSpace@S@GuardFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@ResizeFlow@F@allocate#&$@N@xv@N@process@S@AddressSpace@S@ResizeFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@ResizeFlow@F@commit#&$@N@xv@N@process@S@AddressSpace@S@ResizeFlow@S@Context#S",
       "c:@N@xv@N@process@S@AddressSpace@S@ResizeFlow@F@deallocate#&$@N@xv@N@process@S@AddressSpace@S@ResizeFlow@S@Context#S",
@@ -7739,5 +7718,225 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@F@record_release#&$@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@F@valid#&$@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@S@Context#S"
     ]
+  },
+  {
+    "source": "kernel/support/rb_tree.h",
+    "document": "docs/functions/kernel/support/rb_tree.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@RbTree#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@RbTree#&1>@N@xv@N@support@ST>2#T#T@RbTree2t0.0t0.1#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@erase#&t0.0#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@erase_fix#*t0.0#S0_#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@find#&1t0.0#1",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@first#1",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@insert#&t0.0#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@insert_fix#*t0.0#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@last#1",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@lower_bound#&1t0.0#1",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@minimum#*t0.0#S",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@next#*t0.0#S",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@operator=#&1>@N@xv@N@support@ST>2#T#T@RbTree2t0.0t0.1#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@previous#*t0.0#S",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@red#*t0.0#S",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@replace#*t0.0#S0_#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@root#1",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@rotate_left#*t0.0#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@rotate_right#*t0.0#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@swap#&>@N@xv@N@support@ST>2#T#T@RbTree2t0.0t0.1#",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@update#*t0.0#S",
+      "c:@N@xv@N@support@ST>2#T#T@RbTree@F@update_up#*t0.0#S"
+    ]
+  },
+  {
+    "source": "kernel/memory/layout/virtual_address_pool.cpp",
+    "document": "docs/functions/kernel/memory/layout/virtual_address_pool.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocate#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocate_in#l#l#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocation#l#&l#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@attributes#i#$@N@xv@N@memory@E@RegionKind#b#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@containing#&1$@N@xv@N@support@S@RbTree>#$@N@xv@N@memory@S@VirtualAddressPool@S@Node#$@N@xv@N@memory@S@VirtualAddressPool@S@Less#l#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@copy_to#&$@N@xv@N@memory@S@VirtualAddressPool#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@erase#l#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@find#l#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@fit#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#l#l#l#l#&l#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@initialize#l#l#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@largest_free#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@protect#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@put_node#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@release#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@reset#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@return_free#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@swap#&$@N@xv@N@memory@S@VirtualAddressPool#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@take_node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@valid#l#l#1"
+    ]
+  },
+  {
+    "source": "kernel/memory/layout/virtual_address_pool.cppm",
+    "document": "docs/functions/kernel/memory/layout/virtual_address_pool.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@VirtualAddressPool#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@VirtualAddressPool#&1$@N@xv@N@memory@S@VirtualAddressPool#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocate#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocate_in#l#l#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@allocation#l#&l#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@attributes#i#$@N@xv@N@memory@E@RegionKind#b#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@containing#&1$@N@xv@N@support@S@RbTree>#$@N@xv@N@memory@S@VirtualAddressPool@S@Node#$@N@xv@N@memory@S@VirtualAddressPool@S@Less#l#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@copy_to#&$@N@xv@N@memory@S@VirtualAddressPool#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@erase#l#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@find#l#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@fit#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#l#l#l#l#&l#S",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@initialize#l#l#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@largest_free#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@operator=#&1$@N@xv@N@memory@S@VirtualAddressPool#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@protect#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@put_node#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@release#l#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@reset#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@return_free#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@swap#&$@N@xv@N@memory@S@VirtualAddressPool#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@take_node#",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@valid#l#l#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@S@Less@F@operator()#&1$@N@xv@N@memory@S@VirtualAddressPool@S@Node#S0_#1",
+      "c:@N@xv@N@memory@S@VirtualAddressPool@S@Node@F@update#"
+    ]
+  },
+  {
+    "source": "kernel/support/bitmap.h",
+    "document": "docs/functions/kernel/support/bitmap.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@support@S@BitmapView@F@BitmapView#*l#l#",
+      "c:@N@xv@N@support@S@BitmapView@F@clear#l#",
+      "c:@N@xv@N@support@S@BitmapView@F@first_clear#l#1",
+      "c:@N@xv@N@support@S@BitmapView@F@set#l#",
+      "c:@N@xv@N@support@S@BitmapView@F@size#1",
+      "c:@N@xv@N@support@S@BitmapView@F@test#l#1"
+    ]
+  },
+  {
+    "source": "kernel/support/ring_buffer.h",
+    "document": "docs/functions/kernel/support/ring_buffer.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@capacity#1",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@clear#",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@empty#1",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@front#1",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@full#1",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@pop#&t0.0#",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@push#&1t0.0#",
+      "c:@N@xv@N@support@ST>2#T#Ni@RingBuffer@F@size#1"
+    ]
+  },
+  {
+    "source": "kernel/support/intrusive_list.h",
+    "document": "docs/functions/kernel/support/intrusive_list.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@IntrusiveList#",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@IntrusiveList#&1>@N@xv@N@support@ST>1#T@IntrusiveList1t0.0#",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@empty#1",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@erase#&t0.0#",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@first#1",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@last#1",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@operator=#&1>@N@xv@N@support@ST>1#T@IntrusiveList1t0.0#",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@pop_front#",
+      "c:@N@xv@N@support@ST>1#T@IntrusiveList@F@push_back#&t0.0#"
+    ]
+  },
+  {
+    "source": "kernel/support/hash_table.h",
+    "document": "docs/functions/kernel/support/hash_table.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@support@F@hash_bytes#*1v#l#",
+      "c:@N@xv@N@support@F@hash_integer#l#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@IntrusiveHashTable#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@IntrusiveHashTable#&1>@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable4t0.0t0.1t0.2#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@erase#&t0.0#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@find#&1t0.1#1",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@index#&1t0.1#S",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@insert#&t0.0#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@operator=#&1>@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable4t0.0t0.1t0.2#",
+      "c:@N@xv@N@support@ST>4#T#T#T#Ni@IntrusiveHashTable@F@size#1"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/policies/scheduling_policy.h",
+    "document": "docs/functions/kernel/process/scheduler/policies/scheduling_policy.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@scheduling@S@RunQueue@F@RunQueue#$@N@xv@N@scheduling@E@Kind#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@RunQueue#&1$@N@xv@N@scheduling@S@RunQueue#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@add#l#l#S",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@boost#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@enqueue#&$@N@xv@N@scheduling@S@Entity#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@kind#1",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@minimum_runtime#1",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@operator=#&1$@N@xv@N@scheduling@S@RunQueue#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@quantum#i#1",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@refresh#&$@N@xv@N@scheduling@S@Entity#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@scaled#l#i#l#S",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@size#1",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@start#&$@N@xv@N@scheduling@S@Entity#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@stop#&$@N@xv@N@scheduling@S@Entity#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@tick#&$@N@xv@N@scheduling@S@Entity#l#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@update_floor#l#*1$@N@xv@N@scheduling@S@Entity#",
+      "c:@N@xv@N@scheduling@S@RunQueue@F@valid#1",
+      "c:@N@xv@N@scheduling@S@RunQueue@FT@>1#Ttake#l#t0.0#*$@N@xv@N@scheduling@S@Entity#",
+      "c:@N@xv@N@scheduling@S@RunQueue@S@Earlier@F@operator()#&1$@N@xv@N@scheduling@S@Entity#S0_#1"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/queues/policy_ready_queue.cpp",
+    "document": "docs/functions/kernel/process/scheduler/queues/policy_ready_queue.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@enqueue#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@initialize#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@start#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@stop#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@take#&$@N@xv@N@process@S@CpuState#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@tick#&$@N@xv@N@process@S@Process#"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/queues/policy_ready_queue.cppm",
+    "document": "docs/functions/kernel/process/scheduler/queues/policy_ready_queue.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@PolicyReadyQueue#$@N@xv@N@scheduling@E@Kind#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@enqueue#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@initialize#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@name#1",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@start#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@stop#&$@N@xv@N@process@S@Process#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@take#&$@N@xv@N@process@S@CpuState#",
+      "c:@N@xv@N@process@S@PolicyReadyQueue@F@tick#&$@N@xv@N@process@S@Process#"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/policies/fair.cppm",
+    "document": "docs/functions/kernel/process/scheduler/policies/fair.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@process@S@FairPolicy@F@FairPolicy#"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/policies/round_robin.cppm",
+    "document": "docs/functions/kernel/process/scheduler/policies/round_robin.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@process@S@RoundRobinPolicy@F@RoundRobinPolicy#",
+      "c:@N@xv@N@process@S@RoundRobinPolicy@F@name#1"
+    ]
+  },
+  {
+    "source": "kernel/process/scheduler/policies/mlfq.cppm",
+    "document": "docs/functions/kernel/process/scheduler/policies/mlfq.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@process@S@MlfqPolicy@F@MlfqPolicy#"
+    ]
+  },
+  {
+    "source": "kernel/memory/layout/virtual_memory_types.cppm",
+    "document": "docs/functions/kernel/memory/layout/virtual_memory_types.cppm.md",
+    "function_usrs": []
   }
 ]

@@ -2,6 +2,7 @@ module xv.process:storage_platform;
 
 namespace xv::process::detail
 {
+unsigned long scheduling_time();
 void *allocate_process_page();
 void free_process_page(void *page);
 unsigned long allocate_kernel_stack();

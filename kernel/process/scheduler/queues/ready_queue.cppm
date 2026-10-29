@@ -1,3 +1,5 @@
+module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 module xv.process:ready_queue;
 
 import :process;
@@ -15,6 +17,11 @@ public:
   // holding its own queue lock. Runnable ownership protects dequeued pointers.
   virtual void enqueue(Process &process) = 0;
   virtual Process *take(CpuState &cpu) = 0;
+  virtual const char *scheduler_name() const { return name(); }
+  // Start/stop run with the process lock; tick runs in its local interrupt.
+  virtual void start(Process &) {}
+  virtual void stop(Process &) {}
+  virtual bool tick(Process &) { return true; }
 
 protected:
 
@@ -24,5 +31,6 @@ protected:
   static bool eligible(const Process &process, const CpuState &cpu);
   static Process *&next(Process &process);
   static bool &queued(Process &process);
+  static xv::scheduling::Entity &entity(Process &process);
 };
 } // namespace xv::process

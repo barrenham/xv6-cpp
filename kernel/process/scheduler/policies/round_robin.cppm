@@ -1,32 +1,14 @@
 module xv.process:round_robin;
 
-import :scheduler;
-import :ready_queue;
+import :fifo_queue;
 
 namespace xv::process
 {
-class RoundRobinScheduler final : public Scheduler
+// FIFO selection and the inherited one-timer-tick preemption contract.
+class RoundRobinPolicy final : public FifoReadyQueue
 {
 public:
-
-  constexpr explicit RoundRobinScheduler(ReadyQueue &ready) : ready_(ready)
-  {
-  }
-
-  const char *name() const override
-  {
-    return "round-robin";
-  }
-
-  [[noreturn]] void run() override;
-  void suspend() override;
-  void yield() override;
-  void make_runnable(Process &process) override;
-
-private:
-
-  struct RunFlow;
-
-  ReadyQueue &ready_;
+  constexpr RoundRobinPolicy() = default;
+  const char *name() const override { return "round-robin"; }
 };
 } // namespace xv::process

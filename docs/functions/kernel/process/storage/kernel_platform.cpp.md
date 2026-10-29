@@ -14,6 +14,7 @@
 - [`xv::process::detail::allocate_process_page`](kernel_platform.cpp.md#fn-e1bcdb7d80c1c4c6)
 - [`xv::process::detail::free_kernel_stack`](kernel_platform.cpp.md#fn-0ccd821dd7af8126)
 - [`xv::process::detail::free_process_page`](kernel_platform.cpp.md#fn-470a48c1e3751448)
+- [`xv::process::detail::scheduling_time`](kernel_platform.cpp.md#fn-4fba22f386559889)
 - [`xv::process::detail::storage_fail`](kernel_platform.cpp.md#fn-81d9f378847f3b25)
 
 <a id="fn-e1bcdb7d80c1c4c6"></a>
@@ -69,4 +70,14 @@
 @param message 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::print::panic`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-4fba22f386559889"></a>
+
+## `xv::process::detail::scheduling_time`
+
+```doxygen
+@fn unsigned long xv::process::detail::scheduling_time()
+@brief 读取平台 r_time 作为调度实际运行时间基准。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```

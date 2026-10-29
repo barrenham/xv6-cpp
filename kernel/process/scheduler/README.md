@@ -1,37 +1,40 @@
 # 调度目录
 
-此目录只包含调度接口、选择策略、就绪队列和执行机制。等待事件、每核对象和
-首次进入用户态分别归入 process/wait、process/arch 和 process/lifecycle。
+公开 Scheduler 接口、共用执行机制、策略入口与底层队列分开组织：
 
 ```text
 scheduler/
-├── scheduler.cppm                  公开 Scheduler 接口
+├── scheduler.cppm                      公开 Scheduler 与 SchedulerKind
 ├── policies/
-│   ├── round_robin.cppm             内部 RoundRobinScheduler 声明
-│   └── round_robin.cpp              从注入的 ReadyQueue 选择任务
+│   ├── fair.cppm                       FairPolicy，固定为公平策略
+│   ├── round_robin.cppm                RoundRobinPolicy，固定为原 FIFO 轮转
+│   ├── mlfq.cppm                       MlfqPolicy，固定为多级反馈策略
+│   └── scheduling_policy.h             共享纯算法模型与运行时间记账
 ├── queues/
-│   ├── ready_queue.cppm / .cpp      就绪队列抽象与受保护的链接操作
-│   └── fifo_ready_queue.cppm / .cpp FIFO 实现、重复入队保护、CPU 绑定筛选
+│   ├── ready_queue.cppm / .cpp         队列契约、进程链接与亲和性筛选
+│   ├── fifo_ready_queue.cppm / .cpp    FIFO 实现
+│   └── policy_ready_queue.cppm / .cpp  纯策略模型与 Process/锁/时钟的适配
 └── runtime/
-    └── scheduler_context.cppm / .cpp
-                                    空闲、中断窗口、状态转换、锁与 swtch 交接
+    ├── scheduler_runtime.cppm / .cpp   SchedulerRuntime，共用运行循环和策略委托
+    └── scheduler_context.cppm / .cpp   状态、中断、进程锁、swtch 与 TLB 交接
 ```
 
-`RoundRobinScheduler` 不包含 CPU 数组，不管理 sleep，不初始化文件系统，
-不计算硬件寄存器或直接访问 Process 私有状态。它选择任务，再交给
-`SchedulerContext` 执行；挂起、yield 和就绪发布也复用这套机制。
-新增调度策略可以使用其他 ReadyQueue 实现并复用相同的上下文切换协议。
+SchedulerRuntime 接收 ReadyQueue，运行选取、派发、通知与空闲循环；
+FairPolicy 和 MlfqPolicy 分别固定 PolicyReadyQueue 的模式，
+RoundRobinPolicy 使用原 FifoReadyQueue。三个策略入口各有独立模块，
+共同的算法与记账代码仍由 scheduling_policy.h 复用。
+SchedulerContext 负责真正的进程状态转换及汇编切换。
 
-相关实现：
+服务层在 ../lifecycle/service.cpp 静态构造三种策略和一个运行机制，
+启动时通过 initialize(SchedulerKind) 选择，默认 fair；不做运行时热切换。
+外部仍通过 import xv.process 和 scheduler() 访问服务。
 
-| 路径 | 职责 |
-| --- | --- |
-| `../arch/cpu.cppm` / `cpu.cpp` | CPU 数组与 current_cpu/current/cpu_id 查询 |
-| `../arch/cpu_affinity.cpp` | Process::pin_cpu 的范围检查及原子绑定 |
-| `../wait/wait_channels.cppm` / `.cpp` | 按通道索引等待者，登记、取消和唤醒 |
-| `../wait/sleep.cpp` | 当前进程的 prepare_sleep/sleep 协议 |
-| `../lifecycle/first_return.cpp` | 首次调度后的文件系统初始化、加载 /init 和返回用户态 |
-| `../lifecycle/service.cpp` | 装配存储、就绪队列、调度器和等待索引 |
+所有 hart 共用所选策略的就绪结构；每个 hart 的运行循环上下文、CpuState 和调度栈独立。
+队列锁串行领取任务，队列锁释放后再获取进程锁；进程锁跨 swtch 交接，避免重复运行和锁环。
+CPU 亲和性在出队时筛选。公平基准同时观察其他 hart 上正在运行的实体；
+MLFQ 的提升在同一队列锁内覆盖排队和运行实体。
+当前没有逐核运行队列、工作窃取或跨核唤醒 IPI；空闲 hart 由本核时钟中断重新检查工作。
 
-模块分区名保持稳定，物理目录反映职责；公开使用方仍通过
-`import xv.process;` 和 `scheduler()` 访问服务。
+每核对象与查询见 ../arch/cpu.cppm/.cpp，等待协议见 ../wait/，
+首次进入用户态见 ../lifecycle/first_return.cpp。
+算法、时间额度、锁协议和测试范围见 [调度设计](../../../docs/scheduling.md)。

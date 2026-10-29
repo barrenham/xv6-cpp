@@ -327,3 +327,19 @@ set_tests_properties(flow_contract flow_compile_checks PROPERTIES TIMEOUT 60 LAB
 
 add_test(NAME stats_contract COMMAND "${PROJECT_BINARY_DIR}/stats_contract")
 set_tests_properties(stats_contract PROPERTIES TIMEOUT 30 LABELS support)
+
+add_test(NAME rb_tree_contract COMMAND "${PROJECT_BINARY_DIR}/rb_tree_contract")
+set_tests_properties(rb_tree_contract PROPERTIES TIMEOUT 60 LABELS "support;memory")
+
+add_test(NAME support_containers_contract COMMAND "${PROJECT_BINARY_DIR}/support_containers_contract")
+add_test(NAME scheduling_policy_contract COMMAND "${PROJECT_BINARY_DIR}/scheduling_policy_contract")
+set_tests_properties(support_containers_contract scheduling_policy_contract PROPERTIES TIMEOUT 60 LABELS "support;process")
+
+foreach(cpus 1 5)
+  add_test(NAME scheduler_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --scheduler --scheduler-policy "${XV_SCHEDULER}" --cpus ${cpus})
+  set_tests_properties(scheduler_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
+endforeach()

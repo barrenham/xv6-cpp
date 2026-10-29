@@ -14,6 +14,7 @@
 - [`xv::process::FifoReadyQueue::enqueue`](fifo_ready_queue.cpp.md#fn-67d6693a20eb9668)
 - [`xv::process::FifoReadyQueue::initialize`](fifo_ready_queue.cpp.md#fn-b9d7ddcb94f3159c)
 - [`xv::process::FifoReadyQueue::name`](fifo_ready_queue.cppm.md#fn-9de422aa5a554e68)
+- [`xv::process::FifoReadyQueue::scheduler_name`](fifo_ready_queue.cppm.md#fn-51583a7593bcb527)
 - [`xv::process::FifoReadyQueue::take`](fifo_ready_queue.cpp.md#fn-d75382703f1177bc)
 
 <a id="fn-06a2613ab71eea5f"></a>
@@ -35,4 +36,14 @@
 @fn const char *xv::process::FifoReadyQueue::name() const override
 @brief FIFO 就绪队列：读取或计算 `"`，返回当前查询结果。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+```
+
+<a id="fn-51583a7593bcb527"></a>
+
+## `xv::process::FifoReadyQueue::scheduler_name`
+
+```doxygen
+@fn const char *xv::process::FifoReadyQueue::scheduler_name() const override
+@brief 返回队列对应的调度策略名称；FIFO 对应原轮转策略。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```

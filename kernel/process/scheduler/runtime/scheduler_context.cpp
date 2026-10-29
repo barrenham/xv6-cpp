@@ -18,6 +18,7 @@ struct SchedulerContext::DispatchFlow
   {
     Process &process;
     CpuState &cpu;
+    ReadyQueue &ready;
   };
 
   static void enter(Context &c) noexcept
@@ -27,6 +28,7 @@ struct SchedulerContext::DispatchFlow
     {
       xv::print::panic("scheduler: queued process is not runnable");
     }
+    c.ready.start(c.process);
     c.process.state = ProcessState::Running;
     c.cpu.current = &c.process;
   }
@@ -153,9 +155,9 @@ void SchedulerContext::idle()
 #endif
 }
 
-void SchedulerContext::dispatch(Process &process, CpuState &cpu)
+void SchedulerContext::dispatch(Process &process, CpuState &cpu, ReadyQueue &ready)
 {
-  DispatchFlow::Context context{process, cpu};
+  DispatchFlow::Context context{process, cpu, ready};
   (void)DispatchFlow::Graph::run<0>(context);
 }
 

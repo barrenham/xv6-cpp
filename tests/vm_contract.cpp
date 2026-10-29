@@ -17,7 +17,8 @@ static void check(bool value, const char *message)
 static void regions_test()
 {
   auto initial = allocator().free_pages();
-  VirtualRegions regions;
+  VirtualAddressPool regions;
+  check(regions.initialize(0, 1UL << 38, 1), "initialize address pool");
   for (unsigned i = 0; i < 200; ++i)
     check(regions.reserve(i * 8192, i * 8192 + 4096, PTE_R | PTE_U, RegionKind::Image), "grow region metadata");
   check(!regions.reserve(1, 20000, PTE_W, RegionKind::Heap), "reject overlaps");
@@ -26,7 +27,7 @@ static void regions_test()
   check(regions.find(199 * 8192) && !regions.find(199 * 8192 + 4096), "half-open region bounds");
   check(regions.erase(100, 200), "split a middle range");
   check(regions.find(99) && !regions.find(100) && regions.find(200), "split preserves both sides");
-  VirtualRegions copy;
+  VirtualAddressPool copy;
   check(regions.copy_to(copy), "clone region set");
   check(copy.find(99) && !copy.find(100), "cloned topology");
   check(copy.erase(0, 1UL << 38), "erase complete clone");
@@ -36,14 +37,23 @@ static void regions_test()
 static void metadata_oom_test()
 {
   auto initial = allocator().free_pages();
-  VirtualRegions full, destination;
+  VirtualAddressPool full, destination;
+  check(full.initialize(0, 1UL << 38, 1) && destination.initialize(0, 1UL << 38, 1), "initialize OOM pools");
   for (unsigned i = 0; i < 64; ++i)
     check(full.reserve(i * 8192, i * 8192 + 4096, PTE_R | PTE_U, RegionKind::Image), "fill metadata page");
   check(destination.reserve(1000000, 1004096, PTE_R, RegionKind::Special), "old destination metadata");
   check(!full.reserve(2000000, 2004096, PTE_W, RegionKind::Heap), "reject write without read permission");
   std::vector<void *> held;
   while (auto *page = allocator().allocate()) held.push_back(page);
-  check(!full.reserve(2000000, 2004096, PTE_R, RegionKind::Image), "metadata OOM reserve");
+  unsigned long extra = 2000000;
+  while (full.reserve(extra, extra + 4096, PTE_R, RegionKind::Image)) extra += 8192;
+  check(!full.reserve(extra, extra + 4096, PTE_R, RegionKind::Image), "metadata OOM reserve");
+  const auto original = *full.find(150);
+  check(!full.protect(100, 200, 0, RegionKind::Guard) &&
+        full.find(150)->begin == original.begin && full.find(150)->end == original.end &&
+        full.find(150)->permissions == original.permissions &&
+        full.find(150)->kind == original.kind,
+        "attribute split OOM preserves bounds and permissions");
   check(!full.erase(100, 200) && full.find(150), "split OOM preserves original region");
   check(!full.copy_to(destination) && destination.find(1000000), "copy OOM preserves destination");
   for (auto *page : held) allocator().deallocate(page);
@@ -88,7 +98,8 @@ static void references_test()
 static void vm_test()
 {
   auto initial = allocator().free_pages();
-  VirtualRegions regions;
+  VirtualAddressPool regions;
+  check(regions.initialize(0, 1UL << 38, 1), "initialize address pool");
   check(regions.reserve(0, PGSIZE, PTE_R | PTE_U, RegionKind::Image), "readonly image region");
   check(regions.reserve(PGSIZE, 2 * PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap, true), "heap region");
   check(regions.reserve(2 * PGSIZE, 3 * PGSIZE, 0, RegionKind::Guard), "guard region");
@@ -141,7 +152,8 @@ static void vm_test()
 static void sole_owner_oom_test()
 {
   auto initial = allocator().free_pages();
-  VirtualRegions regions;
+  VirtualAddressPool regions;
+  check(regions.initialize(0, 1UL << 38, 1), "initialize address pool");
   check(regions.reserve(0, PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap, true),
         "sole owner region");
   auto table = create_user_table(), child = create_user_table();
@@ -201,6 +213,7 @@ static void superpage_ownership_test()
   check(allocator().free_pages() == initial, "empty-table reuse fixture fully reclaimed");
 }
 extern void address_space_contracts();
+extern void virtual_address_pool_contracts();
 int main(int argc, char **argv)
 {
   check(argc == 2, "allocator argument");
@@ -212,6 +225,7 @@ int main(int argc, char **argv)
   check(initialize(kind, reinterpret_cast<void *>(KERNBASE + 2 * 1024 * 1024),
                    reinterpret_cast<void *>(KERNBASE + bytes)), "initialize physical allocator");
   regions_test(); metadata_oom_test(); references_test(); fork_oom_test(); vm_test(); sole_owner_oom_test(); superpage_ownership_test();
+  virtual_address_pool_contracts();
   address_space_contracts();
   std::puts("VM region, protection, OOM and COW contracts passed");
 }

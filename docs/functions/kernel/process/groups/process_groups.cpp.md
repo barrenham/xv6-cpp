@@ -75,10 +75,8 @@
 
 ```doxygen
 @fn ProcessGroup *xv::process::ProcessGroups::find_group(int id)
-@brief 会话和进程组登记：查找进程组。
-@param id 本次操作使用的 身份编号 值。
-@details 需要特别跟踪的条件：`group->id == id`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`group`；`nullptr`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 通过组 ID 哈希索引查找稳定进程组。
+@details 调用方持有组锁；返回对应节点或空指针，不取得进程锁。该索引只替换组 ID 查找，成员和组的完整遍历仍使用原链表。
 ```
 
 <a id="fn-17454b9eb064996b"></a>
@@ -99,13 +97,8 @@
 
 ```doxygen
 @fn ProcessGroup *xv::process::ProcessGroups::allocate_group(int id, Session &session)
-@brief 会话和进程组登记：分配进程组。
-@param id 本次操作使用的 身份编号 值。
-@param session 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::allocate_group_page` → `new`。
-@details 本函数可见的状态更新包括：`group->next = groups_;`；`groups_ = group;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!page`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`nullptr`；`group`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 分配组页并在哈希索引和组链表登记。
+@details 调用方持有组锁且已确认组 ID 可创建。分配失败返回空指针，不增加会话组引用；构造成功后先登记哈希项，再链接组链表并增加会话组数。重复哈希键是协议错误。
 ```
 
 <a id="fn-99e88e769ce178e2"></a>
@@ -337,8 +330,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessGroups::DetachFlow::unlink(Context &c) noexcept
-@brief 从组链移除空组，按需清除前台组号并保存会话引用。
-@details 调用者持组锁且已摘除成员、确认组已空；只有复杂空组回收进入图。归还组页前保存会话，最后一个组释放会话；释放后不再读取对应对象。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 从组 ID 索引与组链表同时摘除待释放进程组。
+@details 组锁固定成员和会话生命周期。先核对并移除准确哈希节点，再取消链表链接和对应前台组状态，随后图内释放组页及最后一个会话引用。
 ```
 
 <a id="fn-2151587501ad1974"></a>

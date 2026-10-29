@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/hash_table.h"
 module xv.process:groups;
 import :identity;
 import xv.sync;
@@ -12,7 +14,7 @@ struct Session
   int foreground = 0;
 };
 
-struct ProcessGroup
+struct ProcessGroup : xv::support::HashLinks<ProcessGroup>
 {
   int id;
   Session *session;
@@ -74,5 +76,12 @@ private:
   void detach(ProcessMembership &member);
   xv::sync::SpinLock lock_;
   ProcessGroup *groups_ = nullptr;
+  struct GroupKey
+  {
+    static int key(const ProcessGroup &group) { return group.id; }
+    static unsigned long hash(int id) { return xv::support::hash_integer(static_cast<unsigned>(id)); }
+    static bool equal(int a, int b) { return a == b; }
+  };
+  xv::support::IntrusiveHashTable<ProcessGroup, int, GroupKey> group_index_;
 };
 } // namespace xv::process

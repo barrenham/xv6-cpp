@@ -161,8 +161,6 @@
 - [`kernel/memory/boot/kalloc.cpp`](memory/boot/kalloc.cpp.md)
 - [`kernel/memory/layout/memlayout.h`](memory/layout/memlayout.h.md)
 - [`kernel/memory/layout/physical_memory_layout.cppm`](memory/layout/physical_memory_layout.cppm.md)
-- [`kernel/memory/layout/virtual_regions.cpp`](memory/layout/virtual_regions.cpp.md)
-- [`kernel/memory/layout/virtual_regions.cppm`](memory/layout/virtual_regions.cppm.md)
 - [`kernel/memory/memory.cppm`](memory/memory.cppm.md)
 - [`kernel/memory/paging/kernel_page_table.cpp`](memory/paging/kernel_page_table.cpp.md)
 - [`kernel/memory/paging/kernel_page_table.cppm`](memory/paging/kernel_page_table.cppm.md)
@@ -329,8 +327,8 @@
 - [`kernel/process/resources/process_resources.cpp`](process/resources/process_resources.cpp.md)
 - [`kernel/process/resources/process_resources.cppm`](process/resources/process_resources.cppm.md)
 - [`kernel/process/resources/resource_platform.cppm`](process/resources/resource_platform.cppm.md)
-- [`kernel/process/scheduler/policies/round_robin.cpp`](process/scheduler/policies/round_robin.cpp.md)
-- [`kernel/process/scheduler/policies/round_robin.cppm`](process/scheduler/policies/round_robin.cppm.md)
+- [`kernel/process/scheduler/runtime/scheduler_runtime.cpp`](process/scheduler/runtime/scheduler_runtime.cpp.md)
+- [`kernel/process/scheduler/runtime/scheduler_runtime.cppm`](process/scheduler/runtime/scheduler_runtime.cppm.md)
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cpp`](process/scheduler/queues/fifo_ready_queue.cpp.md)
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cppm`](process/scheduler/queues/fifo_ready_queue.cppm.md)
 - [`kernel/process/scheduler/queues/ready_queue.cpp`](process/scheduler/queues/ready_queue.cpp.md)
@@ -443,3 +441,29 @@
 ## tty
 
 - [`kernel/tty/termios.h`](tty/termios.h.md)
+
+## 动态内核虚拟地址池
+
+- [红黑树](support/rb_tree.h.md)
+- [地址池接口](memory/layout/virtual_address_pool.cppm.md)
+- [地址池实现](memory/layout/virtual_address_pool.cpp.md)
+
+## 可复用容器与可选调度
+
+- [基础容器设计](../../kernel-containers.md)
+- [调度策略设计](../../scheduling.md)
+- [哈希索引](support/hash_table.h.md)
+- [侵入式链表](support/intrusive_list.h.md)
+- [环形缓冲](support/ring_buffer.h.md)
+- [位图](support/bitmap.h.md)
+- [调度模型](process/scheduler/policies/scheduling_policy.h.md)
+- [实际队列](process/scheduler/queues/policy_ready_queue.cpp.md)
+
+## 调度运行机制与策略入口
+
+- [SchedulerRuntime](process/scheduler/runtime/scheduler_runtime.cppm.md)
+- [FairPolicy](process/scheduler/policies/fair.cppm.md)
+- [RoundRobinPolicy](process/scheduler/policies/round_robin.cppm.md)
+- [MlfqPolicy](process/scheduler/policies/mlfq.cppm.md)
+
+- [`kernel/memory/layout/virtual_memory_types.cppm`](memory/layout/virtual_memory_types.cppm.md)

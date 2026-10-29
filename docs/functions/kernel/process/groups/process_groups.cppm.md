@@ -13,6 +13,9 @@
 - [`xv::process::GroupVisitor::GroupVisitor`](process_groups.cppm.md#fn-470d6373cc49b3b8)
 - [`xv::process::GroupVisitor::visit`](process_groups.cppm.md#fn-cba1cf155578f2f4)
 - [`xv::process::GroupVisitor::~GroupVisitor`](process_groups.cppm.md#fn-2cf3e834a0d6858c)
+- [`xv::process::ProcessGroups::GroupKey::equal`](process_groups.cppm.md#fn-dfddda6e8f24b5f9)
+- [`xv::process::ProcessGroups::GroupKey::hash`](process_groups.cppm.md#fn-c9894adb2ba0f862)
+- [`xv::process::ProcessGroups::GroupKey::key`](process_groups.cppm.md#fn-4dcc877d1e918cb2)
 - [`xv::process::ProcessGroups::ProcessGroups`](process_groups.cppm.md#fn-1458c6b76a1ce516)
 - [`xv::process::ProcessGroups::allocate_group`](process_groups.cpp.md#fn-1dbdc5852a1b5676)
 - [`xv::process::ProcessGroups::attach`](process_groups.cpp.md#fn-99e88e769ce178e2)
@@ -82,3 +85,35 @@
 @details 使用编译器生成的默认成员行为。普通标量是否被初始化取决于成员默认初始化器和调用方的值初始化方式，不能把 default 一概当作清零。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
+
+<a id="fn-4dcc877d1e918cb2"></a>
+
+## `xv::process::ProcessGroups::GroupKey::key`
+
+```doxygen
+@fn static int xv::process::ProcessGroups::GroupKey::key(const ProcessGroup &group)
+@brief 取得进程组的稳定组 ID。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
+```
+
+<a id="fn-c9894adb2ba0f862"></a>
+
+## `xv::process::ProcessGroups::GroupKey::hash`
+
+```doxygen
+@fn static unsigned long xv::process::ProcessGroups::GroupKey::hash(int id)
+@brief 混合组 ID 以选择哈希桶。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
+```
+
+<a id="fn-dfddda6e8f24b5f9"></a>
+
+## `xv::process::ProcessGroups::GroupKey::equal`
+
+```doxygen
+@fn static bool xv::process::ProcessGroups::GroupKey::equal(int a, int b)
+@brief 比较组 ID 是否相同。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
+```
+
+组 ID 哈希索引的所有权与复杂度见 [基础容器](../../../../kernel-containers.md)。

@@ -1,3 +1,5 @@
+module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 export module xv.process:process;
 
 export import :registers;
@@ -179,6 +181,7 @@ private:
   Process *wait_next_ = nullptr;
   Process *ready_next_ = nullptr;
   bool queued_ = false;
+  xv::scheduling::Entity scheduling_;
 };
 
 // Per-hart architectural state. Interrupt nesting is accessed by the sync

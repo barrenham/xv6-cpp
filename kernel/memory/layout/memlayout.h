@@ -57,9 +57,7 @@
 #define KSTACK_INITIAL_PAGES 8
 #define KSTACK_PAGES (KSTACK_BYTES / PGSIZE)
 #define KSTACK_TOP (TRAMPOLINE & ~(KSTACK_BYTES - 1))
-#define KSTACK_BOTTOM (MAXVA / 2)
-#define KSTACK_SLOTS ((KSTACK_TOP - KSTACK_BOTTOM) / (2 * KSTACK_BYTES))
-#define KSTACK(p) (KSTACK_TOP - ((p) * 2 + 1) * KSTACK_BYTES)
+// Stack/guard intervals are allocated dynamically above discovered physical RAM.
 
 // User memory layout.
 // Address zero first:

@@ -22,8 +22,8 @@
         },
         {
           "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-          "sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938",
-          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。",
+          "sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59",
+          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock.",
           "graph_entries": [
             {
               "qualified": "xv::trap::detail::refill_stack_reserve",
@@ -217,14 +217,14 @@
         },
         {
           "source": "kernel/trap/handlers/timer_interrupt.cpp",
-          "sha256": "f854870ddfb08ec2923848aec85e7b9b20b68cd02afed39ad16d396d310a340b",
-          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。",
+          "sha256": "9342dd4ce34b5a38019cb6931a3377257e24ba44788d180a3ed914f3e1c46b19",
+          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。 Follow-up: timer accounting/rearm and device service still occur first; scheduler_timer_tick chooses Yield versus Resume without changing uptime units or timer cadence.",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/trap/platform/platform.cppm",
-          "sha256": "1d8941b785e42d62e40c753cf374d5dbd69561a0bccb5da7b17c3052f68a34ce",
+          "sha256": "a77dac162ae6cebbf18b19aabd9444e6fd73d4d53f65fcd31f1c225a8eee800a",
           "review": "架构平台边界函数声明。",
           "graph_entries": [],
           "pending": []
@@ -528,6 +528,36 @@
           "review": "固定宽度整型/页表项别名。",
           "graph_entries": [],
           "pending": []
+        },
+        {
+          "source": "kernel/support/rb_tree.h",
+          "sha256": "239b2b2647a6cd412dd790da887668ce83b25dddfc0b084b32d2062dfba6efcc",
+          "review": "Allocation-free intrusive red-black tree primitives: iterative rotations, insertion/deletion repair, ordered probes and subtree aggregate maintenance. Nodes and exclusion remain caller-owned. Pointer/color operations stay direct to preserve local balancing invariants; rb_tree_contract verifies ordering, black heights, links and aggregates after each mutation, including sanitizer execution.",
+          "graph_entries": []
+        },
+        {
+          "source": "kernel/support/hash_table.h",
+          "sha256": "c7fdf3add54b7967de27fba06edd76414faf071602ebd580ba8bce425a5333c8",
+          "review": "Allocation-free intrusive hash indexing with caller-owned immutable keys and external exclusion. Duplicate insertion is non-mutating; removal precedes node reclamation. Fixed bucket count bounds storage, not entry count; collision-chain algorithms and byte/integer hashing remain container primitives. Host tests force 2048 entries into one bucket.",
+          "graph_entries": []
+        },
+        {
+          "source": "kernel/support/intrusive_list.h",
+          "sha256": "c30088d8a61582af51bd3efea2e32b36afc3e0dbfda4a34bcfce5a2e3ac76d12",
+          "review": "Caller-owned stable doubly linked nodes, duplicate-link guard and O(1) append/erase/pop primitives. No allocation or locking; scheduler policy owns transitions between queued and running lists.",
+          "graph_entries": []
+        },
+        {
+          "source": "kernel/support/ring_buffer.h",
+          "sha256": "5a1129c2b5a33dae8472ffa0462c336cac4a955f8b3c89d57ccdc3e862e0be85",
+          "review": "Bounded externally serialized FIFO, non-overwriting push and empty-pop handling, arbitrary positive capacity, independently tested against deque across 100000 operations. Compact index/data primitives remain direct.",
+          "graph_entries": []
+        },
+        {
+          "source": "kernel/support/bitmap.h",
+          "sha256": "1a55c33462ea58fc4d1d79ba2a596ecc6225967654ea9e174011ff0d1ee6526d",
+          "review": "Non-owning externally serialized 64-bit bitmap primitives. Bounds precede memory access; zero candidates never reach ctz; tail padding is never returned as an allocatable bit.",
+          "graph_entries": []
         }
       ]
     }

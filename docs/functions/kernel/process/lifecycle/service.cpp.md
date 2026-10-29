@@ -6,11 +6,12 @@
 
 模块身份：`xv.process`。
 
-直接模块依赖：`xv.runtime`, `:manager`, `:paged_store`, `:fifo_queue`, `:round_robin`, `:wait_channels`。依赖仅表示可见接口，不代表所有服务都在初始化时调用。
+直接模块依赖：`xv.runtime`、`xv.print`、`:manager`、`:paged_store`、`:fair_policy`、`:round_robin`、`:mlfq_policy`、`:scheduler_runtime`、`:wait_channels`。依赖仅表示可见接口，不代表所有服务都在初始化时调用。
 
 ## 函数导航
 
 - [`xv::process::claim_terminal`](service.cpp.md#fn-4884f3bab775fd24)
+- [`xv::process::configured_scheduler_kind`](service.cpp.md#fn-240ae2cde13fe9dd)
 - [`xv::process::copy_in`](service.cpp.md#fn-d6c3ce5695ec8c2b)
 - [`xv::process::copy_out`](service.cpp.md#fn-393041135005f370)
 - [`xv::process::create_initial_process`](service.cpp.md#fn-b7634e2bbca815d9)
@@ -22,6 +23,7 @@
 - [`xv::process::fork_process`](../service.md#service-fork-process)
 - [`xv::process::get_process_group`](service.cpp.md#fn-c482d8945fdaf0ab)
 - [`xv::process::get_session`](service.cpp.md#fn-39121e4d5139c870)
+- [`xv::process::initialize`](service.cpp.md#fn-fb111739818ea246)
 - [`xv::process::initialize`](../service.md#service-initialize)
 - [`xv::process::inspect_files`](service.cpp.md#fn-afb7bb771f923c6c)
 - [`xv::process::kill`](service.cpp.md#fn-42491b6e530470a7)
@@ -339,3 +341,25 @@
 @brief 向文件系统提供目标进程的描述符观测服务。
 @details 委托 ProcessManager，容量不足或 PID 无效/消失返回 -1；成功返回有效项数量，数组按 fd 下标保存，无效项 identity 为零。
 ```
+
+<a id="fn-240ae2cde13fe9dd"></a>
+
+## `xv::process::configured_scheduler_kind`
+
+```doxygen
+@fn SchedulerKind xv::process::configured_scheduler_kind()
+@brief 初始化后返回实际选择，初始化前返回构建默认策略。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
+```
+
+<a id="fn-fb111739818ea246"></a>
+
+## `xv::process::initialize`
+
+```doxygen
+@fn bool xv::process::initialize(SchedulerKind kind)
+@brief 使用构建默认值初始化进程服务，或在启动时显式选择调度策略。
+@details 无参数入口调用带 SchedulerKind 的启动选择接口；该接口先验证枚举，再以 CAS 拒绝重复初始化，绑定并初始化就绪队列与原有进程服务，最后 release 发布实际选择。带参数入口失败返回 false；无参数入口遇到失败 panic。调度开始后不支持热切换。
+```
+
+启动选择与全局对象初始化见 [可选调度策略](../../../../scheduling.md)。

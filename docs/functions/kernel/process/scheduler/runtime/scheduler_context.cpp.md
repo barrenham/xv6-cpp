@@ -66,13 +66,9 @@
 ## `xv::process::SchedulerContext::dispatch`
 
 ```doxygen
-@fn void xv::process::SchedulerContext::dispatch(Process &process, CpuState &cpu)
-@brief 调度与汇编切换边界：按输入事件或系统调用编号选择处理路径。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@param cpu 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 取得目标进程锁并验证 Runnable，设置 Running 与 cpu.current，刷新地址翻译后 swtch 到进程内核栈；返回时再次刷新、清空当前进程并释放锁。之后不能继续依赖已退出对象。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 流程由 DispatchFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@fn void xv::process::SchedulerContext::dispatch(Process &process, CpuState &cpu, ReadyQueue &ready)
+@brief 在进程锁内开始策略记账并完成一次上下文交接。
+@details ready 是所选就绪队列。图内获取进程锁并验证 Runnable，调用 ready.start 后设置 Running/current；保持 swtch 两侧的 TLB fence，返回后清空 current 并释放进程锁。之后不能继续依赖可能已退出的进程对象。
 ```
 
 <a id="fn-28e041bc6bad922e"></a>
@@ -120,8 +116,8 @@
 
 ```doxygen
 @fn static void xv::process::SchedulerContext::DispatchFlow::enter(Context &c) noexcept
-@brief 获取进程锁、验证 Runnable 并发布 Running 与 CPU 当前进程。
-@details 进程锁从进入到离开调度切换始终持有；回收栈叶所需的两次 TLB fence 与 swtch 保持相邻。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 取得进程锁、验证 Runnable 并开始所选策略的执行记账。
+@details 在进程锁内调用队列 start；其短队列锁释放后再标记 Running 和 cpu.current，随后交给原 swtch 节点。
 ```
 
 <a id="fn-a291a904223611a7"></a>

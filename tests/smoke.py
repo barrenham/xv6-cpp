@@ -26,6 +26,8 @@ parser.add_argument('--workflow', action='store_true')
 parser.add_argument('--environment', action='store_true')
 parser.add_argument('--permissions', action='store_true')
 parser.add_argument('--process-scaling', action='store_true')
+parser.add_argument('--scheduler', action='store_true')
+parser.add_argument('--scheduler-policy', choices=['fair', 'round-robin', 'mlfq'], default='fair')
 parser.add_argument('--tty', action='store_true')
 parser.add_argument('--process-groups', action='store_true')
 parser.add_argument('--signals', action='store_true')
@@ -54,7 +56,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -615,6 +617,11 @@ try:
         checks = checks[:2] + [('usertests sbrkbasic', 'ALL TESTS PASSED')]
     if args.boot_only:
         checks = checks[:2] + [('pgtblext', 'pgtblext: all tests succeeded')]
+    if args.scheduler:
+        if ('scheduler: ' + args.scheduler_policy).encode() not in transcript:
+            raise RuntimeError('kernel did not select requested scheduler policy')
+        checks = [(f'schedulercheck {max(3, 2 * args.cpus)}',
+                   'schedulercheck: all workers made bounded progress')]
     if args.process_scaling:
         checks = [('procext', 'procext: 96 concurrent children, wake/kill/reuse OK')]
     if args.process_groups:

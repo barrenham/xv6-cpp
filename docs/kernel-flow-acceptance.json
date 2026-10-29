@@ -141,5 +141,8 @@
     "三处 LAB_PGTBL 外的 VM 结构变体仅以 COW 标志编译该翻译单元；不宣称完整 COW 系统链接/运行已验证。",
     "未测本次整体迁移吞吐或最坏栈占用，未重新计时 fork；镜像体积增量包含整体重构，不能当作纯模板分派成本。",
     "现有生产设备/文件系统虚接口保留；独立流程工具自身不要求虚函数或标准库。"
-  ]
+  ],
+  "checkpoint_commit": "c88c9be29477b2fe563eb8639d60a78dfd8b1020",
+  "follow_up_acceptance": "docs/virtual-address-pool-acceptance.json",
+  "latest_follow_up_acceptance": "docs/scheduler-runtime-acceptance.json"
 }

@@ -3,8 +3,9 @@ module;
 #include "kernel/memory/layout/memlayout.h"
 export module xv.memory:kernel_paging;
 import xv.sync;
-import xv.vm_regions;
+import xv.vm_types;
 import :sv39;
+import xv.vm_pool;
 
 export namespace xv::memory
 {
@@ -29,6 +30,7 @@ public:
                                  unsigned long fault, FaultAccess access,
                                  void *(*frame)());
   bool region(unsigned long address, VirtualRegion &result);
+  bool in_stack_window(unsigned long address) const;
 
 private:
 
@@ -40,12 +42,13 @@ private:
   struct FaultFlow;
 
   void *root_ = nullptr;
-  unsigned long stack_slots_ = KSTACK_SLOTS;
-  unsigned long stack_bitmap_[(KSTACK_SLOTS + 63) / 64]{};
+  unsigned long pool_begin_ = 0;
   xv::sync::SpinLock stacks_;
-  VirtualRegions regions_;
+  VirtualAddressPool regions_;
   bool commit_stack(unsigned long address, unsigned long lowest);
   void release_stack(unsigned long address);
+  bool owns_stack(unsigned long address) const;
+  unsigned long *stack_directory(unsigned long address) const;
 };
 
 KernelPageTable &kernel_page_table();

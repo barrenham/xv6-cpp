@@ -59,7 +59,8 @@ struct AddressSpace::CreateFlow
   static bool describe(Context &c) noexcept
   {
     c.owner.table_ = c.table;
-    return c.owner.regions_.reserve(TRAMPOLINE, TRAMPOLINE + PGSIZE, PTE_R | PTE_X,
+    return c.owner.regions_.initialize() &&
+           c.owner.regions_.reserve(TRAMPOLINE, TRAMPOLINE + PGSIZE, PTE_R | PTE_X,
                                     xv::memory::RegionKind::Special) &&
            c.owner.regions_.reserve(TRAPFRAME, TRAPFRAME + PGSIZE, PTE_R | PTE_W,
                                     xv::memory::RegionKind::Special)
@@ -377,14 +378,9 @@ struct AddressSpace::GuardFlow
     bool result = false;
   };
 
-  static bool erase(Context &c) noexcept
+  static bool describe(Context &c) noexcept
   {
-    return c.owner.regions_.erase(c.address, c.address + PGSIZE);
-  }
-
-  static bool reserve(Context &c) noexcept
-  {
-    return c.owner.regions_.reserve(c.address, c.address + PGSIZE, 0,
+    return c.owner.regions_.protect(c.address, c.address + PGSIZE, 0,
                                     xv::memory::RegionKind::Guard);
   }
 
@@ -393,18 +389,14 @@ struct AddressSpace::GuardFlow
     xv::memory::protect_user_guard(c.owner.table_, c.address);
     c.result = true;
   }
-  struct Erase;
-  struct Reserve;
+  struct Describe;
   struct Protect;
-  using Graph =
-      flow::graph<Erase,
-                  flow::types<flow::node<Erase, flow::noop,
-                                         flow::branch<flow::condition<&erase>,
-                                                      flow::go<Reserve>, flow::stop>>,
-                              flow::node<Reserve, flow::noop,
-                                         flow::branch<flow::condition<&reserve>,
-                                                      flow::go<Protect>, flow::stop>>,
-                              flow::node<Protect, flow::action<&protect>, flow::stop>>>;
+  using Graph = flow::graph<
+      Describe,
+      flow::types<flow::node<Describe, flow::noop,
+                             flow::branch<flow::condition<&describe>,
+                                          flow::go<Protect>, flow::stop>>,
+                  flow::node<Protect, flow::action<&protect>, flow::stop>>>;
 };
 
 } // namespace xv::process

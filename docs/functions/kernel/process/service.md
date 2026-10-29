@@ -8,10 +8,8 @@
 
 ```doxygen
 @fn void xv::process::initialize()
-@brief 按依赖顺序建立进程服务使用的组、存储、就绪队列和等待表。
-@return 无返回值。
-@pre 启动阶段调用，调度器尚未并发使用这些全局对象。
-@details 依次 groups.initialize、store.initialize、ready.initialize、waits.initialize，最后 process_manager.initialize。对象本身以 constinit 静态构造，初始化函数负责运行期锁状态。
+@brief 使用构建默认值初始化进程服务，或在启动时显式选择调度策略。
+@details 无参数入口调用带 SchedulerKind 的启动选择接口；该接口先验证枚举，再以 CAS 拒绝重复初始化，绑定并初始化就绪队列与原有进程服务，最后 release 发布实际选择。带参数入口失败返回 false；无参数入口遇到失败 panic。调度开始后不支持热切换。
 ```
 
 <a id="service-fork-process"></a>

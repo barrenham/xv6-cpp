@@ -22,7 +22,7 @@ exit/stop 在家庭锁和子进程锁下发布状态，然后向父进程原子�
 家庭锁保护 parent 指针，使父进程不会在登记过程中被回收或改变父子关系。
 登记时不获取父进程锁，也不重入进程登记表，避免子锁→父锁及子锁→存储锁的逆序。
 
-登记后设置 signal_notifications_。RoundRobinScheduler 在 dispatch 返回并
+登记后设置 signal_notifications_。SchedulerRuntime 在 dispatch 返回并
 释放刚调度进程的锁后，调用 service_signal_notifications 唤醒父进程。这样
 停止/退出路径只带着自己的进程锁跨调度，即使没有其他就绪进程，也能唤醒
 正在等待终端或 poll 的父进程。后续服务只查询标志，无事件时不扫描进程。

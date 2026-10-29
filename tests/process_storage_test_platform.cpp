@@ -17,6 +17,8 @@ constinit xv::process::CpuState test_cpus[NCPU]{};
 
 namespace xv::process::detail
 {
+unsigned long scheduling_time() { return 0; }
+
 void *allocate_process_page()
 {
   int remaining = budget.load();

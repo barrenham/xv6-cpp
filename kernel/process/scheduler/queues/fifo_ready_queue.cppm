@@ -5,7 +5,7 @@ import xv.sync;
 
 namespace xv::process
 {
-class FifoReadyQueue final : public ReadyQueue
+class FifoReadyQueue : public ReadyQueue
 {
 public:
 
@@ -15,6 +15,8 @@ public:
   {
     return "fifo";
   }
+
+  const char *scheduler_name() const override { return "round-robin"; }
 
   void initialize() override;
   void enqueue(Process &process) override;

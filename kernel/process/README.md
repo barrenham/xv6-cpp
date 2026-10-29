@@ -19,7 +19,8 @@
 | `exec/` | `ExecutableLoader` 抽象、ELF64 协议和 `ElfLoader` 实现 |
 
 进程存储、就绪队列、调度策略和 ELF 实现均属于内部模块分区。当前由服务层
-注入 `PagedProcessStore`、`FifoReadyQueue`、`RoundRobinScheduler` 和 ELF64 加载器。
+注入 `PagedProcessStore`、可选的 `PolicyReadyQueue`/`FifoReadyQueue`、共享运行循环
+`SchedulerRuntime`和 ELF64 加载器。
 存储和就绪队列都可以换成其他派生实现；调度器不持有存储对象，不访问容器、
 容量或进程枚举接口。未增加运行时热切换或进程内多线程。
 
@@ -30,14 +31,15 @@ classDiagram
   Process *-- AddressSpace
   ProcessStore <|-- PagedProcessStore
   ReadyQueue <|-- FifoReadyQueue
-  Scheduler <|-- RoundRobinScheduler
+  ReadyQueue <|-- PolicyReadyQueue
+  Scheduler <|-- SchedulerRuntime
   ProcessManager --> ProcessStore
   ProcessManager --> Scheduler
   ProcessManager --> WaitChannels
   ProcessManager --> ProcessGroups
   ProcessGroup --> Session
   WaitChannels --> Scheduler
-  RoundRobinScheduler --> ReadyQueue
+  SchedulerRuntime --> ReadyQueue
   ExecutableLoader <|-- ElfLoader
 ```
 
@@ -191,7 +193,7 @@ RTTI、宿主机标准库或启动构造函数。只有 swtch 和汇编/链接�
 
 ## 验证
 
-`process_storage_contract` 编译实际登记链、FIFO、CPU 绑定、等待索引和锁，
+`process_storage_contract` 编译实际登记链、FIFO/策略就绪队列、CPU 绑定、等待索引和锁，
 覆盖 192 个稳定地址、分配失败回滚、重复入队、通道替换/提前通知，以及
 扩容、遍历、取任务、取消等待和回收的多线程交错。
 `procext` 在 1 核、3 核 QEMU 中让 96 个子进程同时存活，检查管道唤醒、
@@ -234,8 +236,11 @@ WaitChannels 按通道匹配通知并管理有限超时，无限等待不接收�
 
 ## 地址空间与写时复制
 
-AddressSpace 持有独立 VirtualRegions，登记镜像、栈、保护区、堆和特殊映射。
+AddressSpace 持有独立 VirtualAddressPool，登记镜像、栈、保护区、堆和特殊映射。
 exec 在候选镜像中维护登记并随页表一起提交，fork 显式复制元数据、共享用户物理页，
 原可写映射由 COW 位保护。用户写入和内核 copyout 都会打破共享，最后一个引用才释放物理页。
 2 MiB 用户大页在 fork 时拆成 4 KiB 后共享。协议、OOM 行为和测试见
 [虚拟区域、缺页与 COW](../../docs/virtual-memory.md)。
+
+调度默认使用按实际运行时间记账的公平策略，并保留轮转与 MLFQ 选择。
+配置、初始化与时钟协议见 [调度设计](../../docs/scheduling.md)。

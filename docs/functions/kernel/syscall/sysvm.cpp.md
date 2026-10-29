@@ -37,7 +37,7 @@
 ```doxygen
 @fn uint64 xv::syscall::sys_ksupernpte()
 @brief 统计内核大小页并按当前地址空间权限写回结果。
-@details 通过持区域锁的 KernelPageTable::statistics 保护页表节点生命周期，计数仍为并发叶映射的观测值；将输出交给带 VirtualRegions 的 copy_to_user；只读、保护或越界用户缓冲失败返回 -1，COW 输出会先私有化。
+@details 通过持区域锁的 KernelPageTable::statistics 保护页表节点生命周期，计数仍为并发叶映射的观测值；将输出交给带 VirtualAddressPool 的 copy_to_user；只读、保护或越界用户缓冲失败返回 -1，COW 输出会先私有化。
 @details 流程由 KernelStatisticsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 

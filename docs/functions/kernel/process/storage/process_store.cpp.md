@@ -76,12 +76,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessStore::retire(Process &process)
-@brief 进程对象生命周期、组身份、调度、等待与信号：把稳定登记对象标记为不再可查找。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`registered` → `process.membership_.registered` → `process.lock.holding` → `detail::storage_fail` → `process.lock.release`。
-@details 本函数可见的状态更新包括：`process.state = ProcessState::Unused;`。局部临时变量与对象字段应按作用域区分。
-@note 源码中出现的锁操作：`process.lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 验证进程不再被等待、组或调度结构持有，再退休其描述符。
+@details 调用方持进程锁，且状态不能是 Running、Runnable、Sleeping 或 Stopped。等待登记、组登记、旧 queued 标志及策略实体的 queued/running 必须都已清除。成功后设置 Unused 并释放锁；物理页和栈由外层回收流程处理。
 ```
 
 <a id="fn-24f4b1215767875b"></a>

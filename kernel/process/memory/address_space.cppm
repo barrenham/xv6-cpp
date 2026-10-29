@@ -1,5 +1,5 @@
 export module xv.process:address_space;
-import xv.vm_regions;
+import xv.vm_pool;
 
 export namespace xv::process
 {
@@ -41,7 +41,7 @@ public:
   xv::memory::FaultOutcome handle_fault(unsigned long address,
                                         xv::memory::FaultAccess access);
 
-  const xv::memory::VirtualRegions &regions() const
+  const xv::memory::VirtualAddressPool &regions() const
   {
     return regions_;
   }
@@ -63,6 +63,6 @@ private:
   unsigned long size_ = 0;
   unsigned long observed_size_ = 0;
   unsigned long heap_base_ = 0;
-  xv::memory::VirtualRegions regions_;
+  xv::memory::VirtualAddressPool regions_;
 };
 } // namespace xv::process

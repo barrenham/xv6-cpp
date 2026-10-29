@@ -45,6 +45,7 @@ struct State
 {
   TrapEvent event{TrapCause(8), 0x1000, 0, 0x9000};
   bool has_process = true;
+  bool preempt = true;
   bool interrupts = false;
   bool resolve_success = true;
   bool exec_in_syscall = false;
@@ -282,6 +283,18 @@ void interrupt_contract()
   check(state.prepared_pc == 0x1000,
         "timer preemption preserves the interrupted user PC");
 
+  reset(TrapCause::InterruptBit | 5);
+  state.preempt = false;
+  ::usertrap();
+  check(state.yields == 0 && state.preparations == 1 && state.deadline == current_time + TimerInterval,
+        "scheduler may resume without losing timer rearm or user return");
+
+  reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
+  state.preempt = false;
+  ::kerneltrap();
+  check(state.yields == 0 && state.restores == 1,
+        "kernel timer resumes when its scheduling quantum is not exhausted");
+
   reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
   const auto original = state.event;
   ::kerneltrap();
@@ -434,6 +447,8 @@ void request_kill()
   }
   std::_Exit(42);
 }
+
+bool scheduler_timer_tick() { return xv::trap::test::state.preempt; }
 
 void yield_current()
 {

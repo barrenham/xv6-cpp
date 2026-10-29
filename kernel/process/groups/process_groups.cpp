@@ -43,6 +43,8 @@ struct ProcessGroups::DetachFlow
 
   static void unlink(Context &c) noexcept
   {
+    if (!c.owner.group_index_.erase(*c.group))
+      detail::group_fail("groups: missing hash entry");
     *c.entry = c.group->next;
     if (c.group->session->foreground == c.group->id)
     {
@@ -352,14 +354,7 @@ void ProcessGroups::initialize()
 
 ProcessGroup *ProcessGroups::find_group(int id)
 {
-  for (auto *group = groups_; group; group = group->next)
-  {
-    if (group->id == id)
-    {
-      return group;
-    }
-  }
-  return nullptr;
+  return group_index_.find(id);
 }
 
 ProcessMembership *ProcessGroups::find_member(int pid)
@@ -385,7 +380,9 @@ ProcessGroup *ProcessGroups::allocate_group(int id, Session &session)
   {
     return nullptr;
   }
-  auto *group = new (page) ProcessGroup{id, &session};
+  auto *group = new (page) ProcessGroup{{}, id, &session};
+  if (!group_index_.insert(*group))
+    detail::group_fail("groups: duplicate group ID");
   group->next = groups_;
   groups_ = group;
   ++session.groups;

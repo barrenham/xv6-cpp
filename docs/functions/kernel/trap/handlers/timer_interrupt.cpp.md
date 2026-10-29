@@ -31,7 +31,6 @@
 
 ```doxygen
 @fn TrapAction xv::trap::TimerInterruptHandler::handle(const TrapEvent &)
-@brief 定时中断处理器：读取或计算 `TrapAction::Yield`，返回当前查询结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`clock_.interrupt` → `detail::service_timer_devices`。
-@return 各分支实际返回：`TrapAction::Yield`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 先服务时钟和设备，再由所选调度策略决定抢占。
+@details 按原顺序执行 clock.interrupt 与 service_timer_devices；scheduler_timer_tick 为 true 返回 Yield，否则返回 Resume。继续运行不会跳过硬件定时器重设、用户返回或内核 CSR 恢复，uptime/pause 单位不变。
 ```

@@ -51,7 +51,7 @@
 ```doxygen
 @fn void xv::process::AddressSpace::swap(AddressSpace &other)
 @brief 原子提交协议下交换镜像及其区域归属。
-@details 交换页表、size、heap 起点和 VirtualRegions 页链，再发布双方观测长度；调用方独占进程镜像，操作自身不分配内存。
+@details 交换页表、size、heap 起点和 VirtualAddressPool 页链，再发布双方观测长度；调用方独占进程镜像，操作自身不分配内存。
 ```
 
 <a id="fn-f441ea3cfe631614"></a>

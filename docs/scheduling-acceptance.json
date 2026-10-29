@@ -1,0 +1,219 @@
+{
+  "status": "verified",
+  "date": "2026-10-29",
+  "objective": "完成红黑树改造内核虚拟地址池，同时用户process虚拟地址池看情况加上。 在这个都结束之后，请你给整个内核写好一些基础数据结构或者算法，比如哈希表。或者内核经常用的算法，提高实用性。 然后，我希望实现一个更好的时钟调度算法，你需要像page_allocator一样，有很多的选择性，现有的，应该按照公平调度算法来。",
+  "baseline_commit": "c88c9be29477b2fe563eb8639d60a78dfd8b1020",
+  "requirements": [
+    {
+      "id": "kernel_virtual_address_pool",
+      "status": "verified",
+      "evidence": [
+        "kernel/support/rb_tree.h",
+        "kernel/memory/layout/virtual_address_pool.cppm",
+        "kernel/memory/layout/virtual_address_pool.cpp",
+        "kernel/memory/paging/kernel_page_table.cpp",
+        "tests/virtual_address_pool_contract.cpp",
+        "tests/vm_kernel.py"
+      ],
+      "result": "Dynamic free/live interval trees replace fixed stack slots/bitmap; split/coalesce and OOM rollback preserve ownership. Empty slabs and empty page-table directories are reclaimed. Current regression includes both allocator VM contracts, 40000 virtual allocations and a 1000-kernel-stack exact-reclamation probe."
+    },
+    {
+      "id": "process_virtual_pool_assessment",
+      "status": "fulfilled_by_assessment",
+      "evidence": [
+        "kernel/process/memory/address_space.cppm",
+        "kernel/process/memory/address_space.cpp",
+        "kernel/process/memory/flows.cppm",
+        "docs/scheduling.md"
+      ],
+      "result": "Current user ABI has continuous sbrk plus image/stack/special regions and no mmap-style free-interval consumer. An additional parallel free pool is deferred to avoid redundant state across fork/exec/OOM/reset; existing user region and PTE semantics remain authoritative."
+    },
+    {
+      "id": "kernel_reusable_containers",
+      "status": "verified",
+      "evidence": [
+        "kernel/support/hash_table.h",
+        "kernel/support/intrusive_list.h",
+        "kernel/support/ring_buffer.h",
+        "kernel/support/bitmap.h",
+        "docs/kernel-containers.md",
+        "tests/support_containers_contract.cpp"
+      ],
+      "result": "Freestanding reusable containers have explicit storage, synchronization and lifetime contracts. Group-ID lookup uses the hash index; fair/MLFQ policy storage uses red-black trees/lists. Ring and bitmap utilities are available for future bounded-buffer/resource consumers."
+    },
+    {
+      "id": "default_cpu_fairness",
+      "status": "verified",
+      "evidence": [
+        "kernel/process/scheduler/policies/scheduling_policy.h",
+        "kernel/process/scheduler/queues/policy_ready_queue.cpp",
+        "kernel/process/scheduler/runtime/scheduler_context.cpp",
+        "CMakePresets.json",
+        "tests/scheduling_policy_contract.cpp"
+      ],
+      "result": "Fair is the actual default. Vruntime charges elapsed execution, retains weighted fractional time, includes active harts and pending yields in its monotonic floor, and bounds sleeper placement. Host tests distinguish CPU fairness from old dispatch fairness using unequal bursts and weights."
+    },
+    {
+      "id": "selectable_schedulers",
+      "status": "verified",
+      "evidence": [
+        "kernel/process/scheduler/scheduler.cppm",
+        "kernel/process/process_module.cppm",
+        "kernel/process/lifecycle/service.cpp",
+        "kernel/process/CMakeLists.txt",
+        "CMakePresets.json"
+      ],
+      "result": "Fair, original round-robin and three-level MLFQ are selectable with build presets/cache or boot initialize(SchedulerKind). Each final configuration built and ran 1/5-hart QEMU workloads. Invalid/repeated boot selection is rejected before active binding changes; no live hot switch is provided. Negative initialization guards were inspected statically, not claimed as separately fault-injected runtime tests."
+    },
+    {
+      "id": "clock_and_context_protocol",
+      "status": "verified",
+      "evidence": [
+        "kernel/trap/handlers/timer_interrupt.cpp",
+        "kernel/trap/platform/platform.cppm",
+        "kernel/trap/arch/riscv/kernel_platform.cpp",
+        "kernel/process/scheduler/policies/round_robin.cpp",
+        "tests/trap_test_platform.cpp",
+        "user/tests/schedulercheck.cpp"
+      ],
+      "result": "Clock rearm/device service precede scheduler tick selection. Resume/Yield both preserve return protocol; process/queue lock ordering and swtch/TLB fences remain. Uptime/pause units and hardware interval are unchanged. MLFQ accumulates budgets across voluntary yields and periodically boosts queued/running tasks."
+    }
+  ],
+  "validation": {
+    "dev_full": {
+      "status": "passed",
+      "tests": 96,
+      "elapsed_seconds": 529.8,
+      "command": "ctest --test-dir build/dev --output-on-failure -j2 -E '^fork_progress_'",
+      "log": "build/docs/scheduling/dev-tests.log"
+    },
+    "round_robin_kernel": {
+      "status": "passed",
+      "preset": "round-robin",
+      "cpus": [
+        1,
+        5
+      ],
+      "log": "build/docs/scheduling/round-robin-tests-final.log"
+    },
+    "mlfq_kernel": {
+      "status": "passed",
+      "preset": "mlfq",
+      "cpus": [
+        1,
+        5
+      ],
+      "log": "build/docs/scheduling/mlfq-tests-final.log"
+    },
+    "freelist_fair_combination": {
+      "status": "passed",
+      "cpus": [
+        1,
+        5
+      ],
+      "log": "build/docs/scheduling/freelist-tests.log",
+      "stack_probe_log": "build/docs/scheduling/freelist-stack-tests.log"
+    },
+    "asan_ubsan": {
+      "status": "passed",
+      "contracts": [
+        "support_containers_contract",
+        "scheduling_policy_contract"
+      ],
+      "logs": [
+        "build/docs/scheduling/container-sanitizers.log",
+        "build/docs/scheduling/policy-sanitizers.log"
+      ]
+    },
+    "riscv_freestanding": {
+      "status": "passed",
+      "flags": "--target=riscv64-unknown-elf -ffreestanding -fno-exceptions -fno-rtti -nostdinc++",
+      "source": "build/docs/scheduling/freestanding.cpp",
+      "log": "build/docs/scheduling/freestanding.log",
+      "kernel_undefined_symbols": 0
+    },
+    "source_and_graph_bindings": {
+      "source_files": 369,
+      "reviewed_non_network_non_boot": 246,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 220,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 219,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "function_documentation": {
+      "kernel_files": 369,
+      "default_unique_symbols": 4608,
+      "all_cpp_symbols": 4679,
+      "documentation_entries": 4682,
+      "indexable_entries": 4608,
+      "documentation_only": 74,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "changed_symbol_lsp": {
+      "symbols": 145,
+      "identity_and_definition_passed": 145,
+      "hover_outcomes": {
+        "external-doxygen": 137,
+        "native-priority-or-index-limit": 8
+      }
+    },
+    "independent_fork_timing_or_fork_progress": false
+  },
+  "dev_kernel_size_bytes": {
+    "text": 379848,
+    "data": 256616,
+    "bss": 176616
+  },
+  "limits": [
+    "The 1000-stack diagnostic is not a 1000-process runtime claim; process counts remain constrained by memory and process services.",
+    "Kernel virtual address capacity is finite; individual stack reservation and guard sizes remain configured rather than automatically extending across guards.",
+    "CPU affinity may require scanning past ineligible ready entities; a single shared queue is used rather than per-CPU balancing.",
+    "Weights are an internal policy-model capability, not a new user nice/setweight ABI.",
+    "QEMU progress checks use a coarse non-starvation bound. No aggregate throughput or worst-case stack/performance claim is made.",
+    "Existing LAB_LOCK ABI/service gaps and shared-address-space threading/TLB-shootdown limitations remain unchanged."
+  ],
+  "local_logs": "build/docs/scheduling/ (not committed)",
+  "kernel_elf_sha256": "a9aa2c9139b26b38497e393d246d92fa790ec26201989240bc79042f1fa6e325",
+  "configured_presets": {
+    "dev": {
+      "scheduler": "fair",
+      "kernel_elf_sha256": "a9aa2c9139b26b38497e393d246d92fa790ec26201989240bc79042f1fa6e325"
+    },
+    "round-robin": {
+      "scheduler": "round-robin",
+      "kernel_elf_sha256": "a36c262345c39352a2f16ed7a6b32f3dc38cfb89aa450431f031ff28cf3bf78f"
+    },
+    "mlfq": {
+      "scheduler": "mlfq",
+      "kernel_elf_sha256": "559de3c5a727c1542b48012dba94b68d24284dc8e316ca2e602a0d4b4ce34b7d"
+    },
+    "freelist": {
+      "scheduler": "fair",
+      "kernel_elf_sha256": "72bd09b10c7f23bf0f489cd887443d34396ff06d6dce8395685426b88f750a27"
+    }
+  },
+  "source_sha256": {
+    "kernel/support/rb_tree.h": "954d6e8fed6c76fcbee3a26086508971fb51d815b62ed9fca83b3f604e1956d5",
+    "kernel/support/hash_table.h": "c7fdf3add54b7967de27fba06edd76414faf071602ebd580ba8bce425a5333c8",
+    "kernel/support/intrusive_list.h": "c30088d8a61582af51bd3efea2e32b36afc3e0dbfda4a34bcfce5a2e3ac76d12",
+    "kernel/support/ring_buffer.h": "5a1129c2b5a33dae8472ffa0462c336cac4a955f8b3c89d57ccdc3e862e0be85",
+    "kernel/support/bitmap.h": "1a55c33462ea58fc4d1d79ba2a596ecc6225967654ea9e174011ff0d1ee6526d",
+    "kernel/process/scheduler/policies/scheduling_policy.h": "a6bda9983af76948c7c92f65e5cfdfc7706942823f83342ddf2f4ee7b1fdefaa",
+    "kernel/process/scheduler/queues/policy_ready_queue.cpp": "23adf87bc622e2a82f24251eedceb974da0fe1ad4b4cd478c55fd48cf011733f",
+    "kernel/process/lifecycle/service.cpp": "331d3cbea4d521ef6132bdd459ddad352ab208cd2306852b55fd93be0b45ba67",
+    "kernel/trap/handlers/timer_interrupt.cpp": "9342dd4ce34b5a38019cb6931a3377257e24ba44788d180a3ed914f3e1c46b19"
+  },
+  "organization_follow_up_acceptance": "docs/scheduler-runtime-acceptance.json",
+  "checkpoint_note": "This record preserves the pre-rename verified source/binary hashes; the organization follow-up records current class/module names and targeted validation."
+}

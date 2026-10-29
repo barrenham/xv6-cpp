@@ -1,0 +1,119 @@
+{
+  "status": "verified",
+  "date": "2026-10-29",
+  "baseline_commit": "c88c9be29477b2fe563eb8639d60a78dfd8b1020",
+  "scope": "Reusable support red-black tree; dynamic kernel virtual address pool; kernel stack reservation, publication, reclamation and failure rollback",
+  "implementation": {
+    "tree": "kernel/support/rb_tree.h",
+    "pool_interface": "kernel/memory/layout/virtual_address_pool.cppm",
+    "pool_implementation": "kernel/memory/layout/virtual_address_pool.cpp",
+    "integration": "kernel/memory/paging/kernel_page_table.cpp",
+    "fixed_slot_bitmap_removed": true,
+    "first_fit_and_interval_changes": "O(log N) using subtree maximum free length and address-ordered trees",
+    "empty_metadata_pages": "Immediately reclaimed using per-page usage and doubly linked page lists",
+    "empty_upper_page_tables": "Detached, fenced and reclaimed after last child; running owners pin their live paths",
+    "fault_path": "No interval-tree traversal, metadata allocation or management lock"
+  },
+  "validation": {
+    "dev_regression": {
+      "command": "ctest --test-dir build/dev --output-on-failure -j2 -E '^fork_progress_'",
+      "status": "passed",
+      "log": "build/docs/virtual-address-pool/dev-tests.log",
+      "tests": 92,
+      "elapsed_seconds": 535.78
+    },
+    "freelist_targeted": {
+      "status": "passed",
+      "tests": 7,
+      "log": "build/docs/virtual-address-pool/freelist-tests.log",
+      "final_stack_harness": {
+        "status": "passed",
+        "log": "build/docs/virtual-address-pool/freelist-final-stack-tests.log",
+        "probe_5_ram_mib": 256
+      }
+    },
+    "rb_tree_sanitizers": {
+      "status": "passed",
+      "checks": "ASan/UBSan: ordered insert/delete, 30000 random operations, ordering, parent links, red/black constraints, black heights and subtree aggregates",
+      "command": "clang++ -std=c++20 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -I. tests/rb_tree_contract.cpp -o /tmp/xv-rb-tree-contract && /tmp/xv-rb-tree-contract"
+    },
+    "vm_and_pool_ubsan": {
+      "status": "passed",
+      "allocators": [
+        "buddy",
+        "freelist"
+      ],
+      "log": "build/docs/virtual-address-pool/ubsan-final.log"
+    },
+    "pool_contract": "20000 randomized operations against a model; 40000 allocations; fragmentation, coalescing, exhaustion, exact ownership, metadata OOM atomicity, OOM-safe release, empty slab reclamation and reset",
+    "qemu_stack_probes": "Locked growth, mapped read-only protection, emergency exhaustion, guard overflow, 1000 stack allocations/fragmentation/reuse with exact physical-page restoration, and 0..12-page allocation budgets with rollback/recovery",
+    "qemu_stack_probe_scope": "1000 kernel stacks, not 1000 processes; running diagnostic stack is precommitted before resource accounting; the 1000-stack probe uses 256 MiB RAM to allow the supported 64 MiB reservation configuration, other probes use 128 MiB",
+    "flow_source_check": {
+      "source_files": 362,
+      "reviewed_non_network_non_boot": 239,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 220,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 219,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "documentation_coverage": {
+      "kernel_files": 362,
+      "default_unique_symbols": 4532,
+      "all_cpp_symbols": 4603,
+      "documentation_entries": 4606,
+      "indexable_entries": 4532,
+      "documentation_only": 74,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "changed_symbol_lsp": {
+      "symbols": 55,
+      "identity_and_definition_passed": 55,
+      "hover_outcomes": {
+        "external-doxygen": 54,
+        "native-priority-or-index-limit": 1
+      }
+    },
+    "fork_timing_or_fork_progress_run": false
+  },
+  "dev_kernel_size_bytes": {
+    "text": 371120,
+    "data": 255208,
+    "bss": 176616
+  },
+  "regression_caught_and_fixed": "An initial regression retained 20 physical pages after usertests. Empty metadata slabs and upper directories are now reclaimed; coalescing preserves existing free descriptors instead of stranding them in temporary slabs. Final 1000-stack probe restores the exact initial free-page count.",
+  "limitations": [
+    "The address pool has a finite virtual window and needs physical memory for live metadata; partially occupied metadata pages can have internal fragmentation.",
+    "Stack capacity and equal guard size still follow XV_KERNEL_STACK_MIB; growth commits pages only within that reservation.",
+    "Process counts remain constrained by process-table capacity and physical memory; this does not establish a 1000-process runtime claim.",
+    "Existing process ownership and TLB-fencing protocol is retained; shared-address-space threads and remote TLB shootdown are not added.",
+    "Existing platform RAM bound and LAB_LOCK build limitations remain unchanged.",
+    "No aggregate throughput or worst-case stack measurement; image-size changes are not a zero-overhead claim."
+  ],
+  "local_logs": "build/docs/virtual-address-pool/ (not committed)",
+  "kernel_elf_sha256": "e23055086c9c9d9a8eacdea5ce766f40be69c30ff17bdb5247feb2f91d5fae75",
+  "source_sha256": {
+    "kernel/support/rb_tree.h": "954d6e8fed6c76fcbee3a26086508971fb51d815b62ed9fca83b3f604e1956d5",
+    "kernel/memory/layout/virtual_address_pool.cppm": "08bcf9ea5e76651df4ab20becde46a94ade611cd9cdcd78e3711cb640d8c8cdc",
+    "kernel/memory/layout/virtual_address_pool.cpp": "206c4eea689ae035d8f93e92f8d1362094b21c8147b4cb485e76883cff268692",
+    "kernel/memory/paging/kernel_page_table.cpp": "ea7f02b11b16d117832d550c2674832df11e8091a90aeaf7c96e23fa00303674",
+    "kernel/memory/paging/kernel_page_table.cppm": "e1986f645060e28147663a7e0ed4796daeadea01d6b85b7452b73d69b193c842",
+    "kernel/memory/paging/vm.cpp": "9d6cb63e3ace8fa679b40246ac2bc3bbf469ca780d2bfc542669cb81b37e99b5",
+    "kernel/trap/arch/riscv/kernel_platform.cpp": "25ab5500575f2fe15f9d5a4447eca0588565346066cec2d67e95299fde594425",
+    "tests/rb_tree_contract.cpp": "f528f1d01534faeba4d124a56abc0ac826450bc764852f8509a219795833fb64",
+    "tests/virtual_address_pool_contract.cpp": "55b8a1fadf8b311baa91b060f6061dc056cdd993b31ba2e0fa782d59839c27b2",
+    "tests/vm_kernel.py": "72fc18c8b9deb1d801cc88b78f32fa192b7d9c939c5cfb52ad9455db09131a56"
+  },
+  "checkpoint": "Virtual-address-pool implementation before selectable scheduling/container follow-up",
+  "follow_up_acceptance": "docs/scheduling-acceptance.json"
+}

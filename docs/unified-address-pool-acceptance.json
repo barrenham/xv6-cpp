@@ -1,0 +1,88 @@
+{
+  "status": "passed",
+  "date": "2026-10-29",
+  "scope": "Unify interval allocation and attributed region records into VirtualAddressPool; remove VirtualRegions and the separate kernel stack pool.",
+  "behavior": [
+    "One free/live tree pair per kernel or process address space.",
+    "Fixed address zero reservations; bounded aligned automatic allocation; region containment and attributes from occupied nodes.",
+    "Atomic reserve/protect/partial erase preflight; exact release needs no allocation; candidate copy and swap.",
+    "Kernel stack guard and stack are attributed parts of one pool; stable published directory fault path remains unchanged."
+  ],
+  "validation": {
+    "build": "cmake --build --preset dev -j6",
+    "tests": {
+      "command": "ctest --test-dir build/dev --output-on-failure -j2 -E '^fork_progress_'",
+      "passed": 96,
+      "failed": 0,
+      "seconds": 533.95
+    },
+    "contracts": [
+      "20000 random allocation/release operations against reference bitmap",
+      "40000 allocations, fragmentation, coalescing and metadata reclamation",
+      "12000 mixed attributed reserve/protect/erase/aligned allocation steps against a reference model",
+      "metadata OOM rollback, address-space lifecycle, demand paging and COW on both allocators"
+    ],
+    "flow_coverage": {
+      "source_files": 371,
+      "reviewed_non_network_non_boot": 248,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 217,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 216,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "additional_vm_tests": {
+      "command": "ctest --test-dir build/dev --output-on-failure -R '^vm_(buddy|freelist)_contract$'",
+      "passed": 2,
+      "failed": 0,
+      "purpose": "Explicit protect attribute-split OOM preserves original bounds and permissions on both allocators.",
+      "seconds": 1.25
+    },
+    "documentation_coverage": {
+      "kernel_files": 371,
+      "default_unique_symbols": 4594,
+      "all_cpp_symbols": 4665,
+      "documentation_entries": 4668,
+      "indexable_entries": 4593,
+      "documentation_only": 75,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "native_documentation": {
+      "scope": "274 entries in changed memory/address-space/tree files plus 5 cross-module checks",
+      "status": "passed",
+      "external_doxygen": 161,
+      "native_documentation_priority_or_index_limit": 112,
+      "documentation_only": 1,
+      "cross_module_doxygen": 5
+    }
+  },
+  "limitations": [
+    "No standalone fork timing or fork_progress tests run.",
+    "Attributed pool owns virtual interval metadata; page tables and data frames remain external.",
+    "Aligned bounded searches can inspect multiple candidate intervals; no universal O(log N) claim for arbitrary alignment/fragmentation.",
+    "No throughput or worst-case stack measurement."
+  ],
+  "source_sha256": {
+    "kernel/memory/layout/virtual_address_pool.cppm": "b3a0412f34a7df09863de683b328e92bd021fab69a6780416519627332096725",
+    "kernel/memory/layout/virtual_address_pool.cpp": "028f01138e9a98f2716873708967a586e2768ce6a92d5f22a929bc29919130e9",
+    "kernel/memory/layout/virtual_memory_types.cppm": "d69674d74baf78b0821fdca63a5cb619275003b99816ad18f4845227d99a678c",
+    "kernel/memory/paging/kernel_page_table.cppm": "e582d78367964300c89014e3535330e9f0605227bae035564e4e8b9fd4a4540f",
+    "kernel/memory/paging/kernel_page_table.cpp": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1",
+    "kernel/memory/paging/vm.cpp": "232e0672b699836450a80dd521b899349457038db61fe130b485260fe324c2ad",
+    "kernel/process/memory/address_space.cppm": "9e1af424b8e992476e7e165a8f97d4ea365b225ce378c6cc7388f3d20cc2bcc0",
+    "kernel/process/memory/flows.cppm": "621472f9828967773e1ebf8bae588a1310c9f2469c1340e1fda50b40d3ec0834",
+    "kernel/support/rb_tree.h": "239b2b2647a6cd412dd790da887668ce83b25dddfc0b084b32d2062dfba6efcc",
+    "tests/virtual_address_pool_contract.cpp": "281ee9c2f3d3f6e1b97acc7aa81d6d3165e72e95ddea0be3a251902833d43a09",
+    "tests/vm_contract.cpp": "854b7a5075592f45258a380b1840d5ab3533e67ad0d4e853831aece4346038ef"
+  }
+}

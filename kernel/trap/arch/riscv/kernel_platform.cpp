@@ -99,7 +99,100 @@ __attribute__((noinline)) unsigned long stack_probe(unsigned depth)
 void run_vm_kernel_probe()
 {
   auto base = xv::process::current()->kernel_stack();
-#if XV_VM_SELF_TEST == 2
+#if XV_VM_SELF_TEST == 6
+  (void)base;
+  auto &table = xv::memory::kernel_page_table();
+  auto fixture = table.allocate_process_stack();
+  if (!fixture) xv::print::panic("kernel virtual pool: OOM fixture failed");
+  table.free_process_stack(fixture);
+  auto initial = xv::memory::allocator().free_pages();
+  void *held = nullptr;
+  while (auto *page = xv::memory::allocator().allocate())
+  {
+    *static_cast<void **>(page) = held;
+    held = page;
+  }
+  for (unsigned budget = 0; budget <= 12; ++budget)
+  {
+    if (budget && held)
+    {
+      auto *page = held;
+      held = *static_cast<void **>(page);
+      xv::memory::allocator().deallocate(page);
+    }
+    auto available = xv::memory::allocator().free_pages();
+    auto address = table.allocate_process_stack();
+    if ((budget < KSTACK_INITIAL_PAGES + KSTACK_BYTES / (512 * PGSIZE)) == bool(address))
+      xv::print::panic("kernel virtual pool: unexpected allocation budget");
+    if (address)
+    {
+      if (address != fixture) xv::print::panic("kernel virtual pool: rollback lost range");
+      table.free_process_stack(address);
+    }
+    else
+    {
+      xv::memory::VirtualRegion region;
+      if (table.region(fixture, region) || table.region(fixture - 1, region))
+        xv::print::panic("kernel virtual pool: rollback retained regions");
+    }
+    if (xv::memory::allocator().free_pages() != available)
+      xv::print::panic("kernel virtual pool: OOM rollback leaked frames");
+  }
+  while (held)
+  {
+    auto *page = held;
+    held = *static_cast<void **>(page);
+    xv::memory::allocator().deallocate(page);
+  }
+  if (xv::memory::allocator().free_pages() != initial)
+    xv::print::panic("kernel virtual pool: OOM fixture leaked frames");
+  if (table.allocate_process_stack() != fixture)
+    xv::print::panic("kernel virtual pool: OOM recovery lost range");
+  table.free_process_stack(fixture);
+  xv::print::printk("kernel virtual pool: OOM rollback and recovery OK\n");
+#elif XV_VM_SELF_TEST == 5
+  static unsigned long addresses[1000];
+  auto &table = xv::memory::kernel_page_table();
+  // Stabilize the running probe's own stack/margin before measuring resources
+  // belonging to the 1000 independent test stacks.
+  if (!table.grow_process_stack(base, base + KSTACK_BYTES - 32 * PGSIZE))
+    xv::print::panic("kernel virtual pool: probe stack preparation failed");
+  auto initial = xv::memory::allocator().free_pages();
+  for (auto &address : addresses)
+  {
+    address = table.allocate_process_stack();
+    if (!address) xv::print::panic("kernel virtual pool: 1000 stack allocation failed");
+    xv::memory::VirtualRegion region;
+    if (!table.region(address, region) || region.kind != xv::memory::RegionKind::KernelStack ||
+        !table.region(address - 1, region) || region.kind != xv::memory::RegionKind::Guard)
+      xv::print::panic("kernel virtual pool: region mismatch");
+  }
+  for (unsigned i = 0; i < 1000; i += 2) table.free_process_stack(addresses[i]);
+  if (table.handle_stack_fault(addresses[0], addresses[0] + KSTACK_BYTES,
+                               addresses[0], xv::memory::FaultAccess::Write,
+                               take_stack_frame) != xv::memory::FaultResult::OutsideRegion)
+    xv::print::panic("kernel virtual pool: freed stack remained published");
+  for (unsigned i = 0; i < 1000; i += 2)
+    if (table.allocate_process_stack() != addresses[i])
+      xv::print::panic("kernel virtual pool: fragmented range not reused");
+  for (auto address : addresses) table.free_process_stack(address);
+  auto warm = xv::memory::allocator().free_pages();
+  if (warm != initial)
+  {
+    xv::print::printk("kernel virtual pool: free pages %lu -> %lu\n", initial, warm);
+    xv::print::panic("kernel virtual pool: empty metadata or directory retained");
+  }
+  // A second complete cycle must reuse ranges and reclaim all extra metadata.
+  for (auto &address : addresses)
+  {
+    address = table.allocate_process_stack();
+    if (!address) xv::print::panic("kernel virtual pool: repeat allocation failed");
+  }
+  for (auto address : addresses) table.free_process_stack(address);
+  if (xv::memory::allocator().free_pages() != warm)
+    xv::print::panic("kernel virtual pool: stack resource leak");
+  xv::print::printk("kernel virtual pool: 1000 stacks, fragmentation and reuse OK\n");
+#elif XV_VM_SELF_TEST == 2
   auto *entry =
       xv::memory::walk_entry(static_cast<xv::memory::PageTable>(const_cast<void *>(
                                  xv::memory::kernel_page_table().root())),
@@ -160,6 +253,7 @@ void request_kill() { xv::process::current()->request_kill(); }
 [[noreturn]] void exit_current(int status) { xv::process::exit_process(status); }
 
 void yield_current() { xv::process::scheduler().yield(); }
+bool scheduler_timer_tick() { return xv::process::scheduler().timer_tick(); }
 
 void save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }
 
@@ -320,7 +414,7 @@ struct KernelStackPrepareFlow
   }
   static void outside(Context &c) noexcept
   {
-    if (c.stack >= KSTACK_BOTTOM && c.stack < KSTACK_TOP)
+    if (xv::memory::kernel_page_table().in_stack_window(c.stack))
     {
       xv::print::panic("kernel stack reserve exhausted");
     }

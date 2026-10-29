@@ -57,6 +57,7 @@
 - [`xv::trap::detail::resolve_page_fault`](kernel_platform.cpp.md#fn-e5148c82fe11c46e)
 - [`xv::trap::detail::restore_kernel`](kernel_platform.cpp.md#fn-e72bdb404644cf01)
 - [`xv::trap::detail::save_user_pc`](kernel_platform.cpp.md#fn-72d8410c76641146)
+- [`xv::trap::detail::scheduler_timer_tick`](kernel_platform.cpp.md#fn-685675b5ef873350)
 - [`xv::trap::detail::service_timer_devices`](kernel_platform.cpp.md#fn-8bf053cbd79e3fd0)
 - [`xv::trap::detail::sleep`](kernel_platform.cpp.md#fn-8655e02476dd6fd7)
 - [`xv::trap::detail::snapshot`](kernel_platform.cpp.md#fn-99ff6f6b07035421)
@@ -501,6 +502,7 @@
 @fn static void xv::trap::detail::KernelStackPrepareFlow::outside(Context &c) noexcept
 @brief 保留保留区耗尽诊断并允许非栈范围直接返回。
 @details 保留原 no-base 快速返回、栈区间与故障分类、持锁紧急页路径和 mapped-margin 快速路径；解析成功直接返回一，不额外补储备。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 栈窗口依据 KernelPageTable 的运行时地址池边界判断，不再依赖固定槽布局。
 ```
 
 <a id="fn-284d150e5f850e95"></a>
@@ -671,4 +673,14 @@
 @fn static void xv::trap::detail::UserReturnFlow::vector(Context &c) noexcept
 @brief 切换到用户陷阱向量后取得进程寄存器帧。
 @details 自检仍在原入口，随后保持关中断、切换向量、准备内核帧和提交用户状态/PC 的原顺序；不更改汇编入口。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-685675b5ef873350"></a>
+
+## `xv::trap::detail::scheduler_timer_tick`
+
+```doxygen
+@fn bool xv::trap::detail::scheduler_timer_tick()
+@brief 在硬件定时器和设备服务之后调用当前调度器的抢占判定。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```

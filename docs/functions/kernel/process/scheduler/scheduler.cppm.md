@@ -17,8 +17,10 @@
 - [`xv::process::Scheduler::operator=`](scheduler.cppm.md#fn-4cdde651a6f26e2c)
 - [`xv::process::Scheduler::run`](scheduler.cppm.md#fn-38b4360e80422d03)
 - [`xv::process::Scheduler::suspend`](scheduler.cppm.md#fn-34e8f43299600c34)
+- [`xv::process::Scheduler::timer_tick`](scheduler.cppm.md#fn-397712d97f94f3de)
 - [`xv::process::Scheduler::yield`](scheduler.cppm.md#fn-511de5124105eee7)
 - [`xv::process::Scheduler::~Scheduler`](scheduler.cppm.md#fn-0ee984bb6da8f0ae)
+- [`xv::process::configured_scheduler_kind`](../lifecycle/service.cpp.md#fn-240ae2cde13fe9dd)
 - [`xv::process::scheduler`](../lifecycle/service.cpp.md#fn-7abeaa33d65489ea)
 
 <a id="fn-7849fdcb99edf01f"></a>
@@ -119,4 +121,14 @@
 @brief 结束进程对象生命周期、组身份、调度、等待与信号的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-397712d97f94f3de"></a>
+
+## `xv::process::Scheduler::timer_tick`
+
+```doxygen
+@fn virtual bool xv::process::Scheduler::timer_tick()
+@brief 在本核时钟入口询问选定队列是否需要抢占；无当前进程时不调度。
+@details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```

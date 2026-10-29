@@ -1,9 +1,12 @@
+module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 export module xv.process:scheduler;
 
 import :process;
 
 export namespace xv::process
 {
+using SchedulerKind = xv::scheduling::Kind;
 class Scheduler
 {
 public:
@@ -17,6 +20,9 @@ public:
   virtual void yield() = 0;
   // Requires the process lock held; publish exactly one runnable queue entry.
   virtual void make_runnable(Process &process) = 0;
+  // Local timer interrupt, interrupts off; false suppresses an unnecessary
+  // context switch. Existing scheduler implementations retain tick preemption.
+  virtual bool timer_tick() { return true; }
 
 protected:
 
@@ -25,4 +31,5 @@ protected:
 };
 
 Scheduler &scheduler();
+SchedulerKind configured_scheduler_kind();
 } // namespace xv::process

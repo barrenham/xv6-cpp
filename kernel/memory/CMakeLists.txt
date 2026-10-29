@@ -2,7 +2,7 @@ include("${PROJECT_SOURCE_DIR}/cmake/memory-modules.cmake")
 xv_add_memory_modules(kernel)
 
 target_sources(kernel PRIVATE
-  layout/virtual_regions.cpp
+  layout/virtual_address_pool.cpp
   paging/sv39_page_table.cpp
   boot/boot_memory.cpp
   allocator/allocator_service.cpp

@@ -11,7 +11,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "XV_PAGE_ALLOCATOR": "buddy",
-        "XV_CPUS": "5"
+        "XV_CPUS": "5",
+        "XV_SCHEDULER": "fair"
       }
     },
     {
@@ -21,6 +22,24 @@
       "binaryDir": "${sourceDir}/build/freelist",
       "cacheVariables": {
         "XV_PAGE_ALLOCATOR": "freelist"
+      }
+    },
+    {
+      "name": "round-robin",
+      "inherits": "dev",
+      "displayName": "RISC-V / round-robin scheduler",
+      "binaryDir": "${sourceDir}/build/round-robin",
+      "cacheVariables": {
+        "XV_SCHEDULER": "round-robin"
+      }
+    },
+    {
+      "name": "mlfq",
+      "inherits": "dev",
+      "displayName": "RISC-V / mlfq scheduler",
+      "binaryDir": "${sourceDir}/build/mlfq",
+      "cacheVariables": {
+        "XV_SCHEDULER": "mlfq"
       }
     }
   ],
@@ -32,6 +51,14 @@
     {
       "name": "freelist",
       "configurePreset": "freelist"
+    },
+    {
+      "name": "round-robin",
+      "configurePreset": "round-robin"
+    },
+    {
+      "name": "mlfq",
+      "configurePreset": "mlfq"
     }
   ],
   "testPresets": [
@@ -45,6 +72,20 @@
     {
       "name": "freelist",
       "configurePreset": "freelist",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "round-robin",
+      "configurePreset": "round-robin",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "mlfq",
+      "configurePreset": "mlfq",
       "output": {
         "outputOnFailure": true
       }

@@ -1,3 +1,5 @@
+module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 module xv.process;
 import :ready_queue;
 
@@ -23,4 +25,10 @@ bool &ReadyQueue::queued(Process &process)
 {
   return process.queued_;
 }
+xv::scheduling::Entity &ReadyQueue::entity(Process &process)
+{
+  process.scheduling_.owner = &process;
+  return process.scheduling_;
+}
+
 } // namespace xv::process

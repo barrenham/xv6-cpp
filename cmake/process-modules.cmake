@@ -16,7 +16,7 @@ function(xv_add_process_group_internals target)
 endfunction()
 
 function(xv_add_process_interfaces target)
-  xv_add_virtual_regions_module(${target})
+  xv_add_virtual_pool_modules(${target})
   xv_add_process_identity(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
   target_sources(${target} PRIVATE
@@ -52,6 +52,7 @@ function(xv_add_process_core_modules target)
       "${module_root}/storage/platform.cppm"
       "${module_root}/scheduler/queues/ready_queue.cppm"
       "${module_root}/scheduler/queues/fifo_ready_queue.cppm"
+      "${module_root}/scheduler/queues/policy_ready_queue.cppm"
   )
 endfunction()
 
@@ -64,7 +65,10 @@ function(xv_add_process_internals target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/lifecycle/process_manager.cppm"
+      "${module_root}/scheduler/policies/fair.cppm"
       "${module_root}/scheduler/policies/round_robin.cppm"
+      "${module_root}/scheduler/policies/mlfq.cppm"
+      "${module_root}/scheduler/runtime/scheduler_runtime.cppm"
       "${module_root}/scheduler/runtime/scheduler_context.cppm"
       "${module_root}/exec/elf_format.cppm"
       "${module_root}/exec/elf_loader.cppm"

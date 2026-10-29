@@ -1,4 +1,5 @@
 module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -13,6 +14,7 @@ import :store;
 import :cpu;
 import :paged_store;
 import :fifo_queue;
+import :policy_queue;
 import :wait_channels;
 import :poll;
 
@@ -68,6 +70,30 @@ public:
 
   unsigned count = 0;
 };
+
+void policy_queues()
+{
+  for (auto kind : {xv::scheduling::Kind::Fair, xv::scheduling::Kind::Feedback})
+  {
+    PagedProcessStore store;
+    PolicyReadyQueue ready(kind);
+    store.initialize(); ready.initialize();
+    auto *pinned = store.allocate();
+    Access::unlock(*pinned);
+    check(pinned->pin_cpu(0) == 0, "policy affinity fixture");
+    Access::lock(*pinned); ready.enqueue(*pinned); Access::unlock(*pinned);
+    auto *unbound = store.allocate();
+    ready.enqueue(*unbound); Access::unlock(*unbound);
+    check(ready.take(*cpu_at(1)) == unbound, "policy queue skips pinned work without taking process lock");
+    Access::lock(*unbound); ready.start(*unbound);
+    check(!ready.tick(*unbound), "fresh dispatch has unexpired budget");
+    ready.stop(*unbound); store.release(unbound);
+    check(ready.take(*cpu_at(0)) == pinned, "policy queue leaves pinned entity available");
+    Access::lock(*pinned); ready.start(*pinned); ready.stop(*pinned); store.release(pinned);
+    check(!ready.take(*cpu_at(0)) && store.count() == 0 && xv_storage_live_pages() == 0,
+          "policy queue preserves descriptor ownership and complete reclamation");
+  }
+}
 
 void basic()
 {
@@ -472,6 +498,7 @@ void concurrent()
 
 extern "C" int run_process_storage_contracts()
 {
+  xv::process::test::policy_queues();
   xv::process::test::basic();
   xv::process::test::affinity();
   xv::process::test::duplicate();

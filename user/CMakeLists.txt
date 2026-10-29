@@ -50,6 +50,7 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/schedulercheck.cpp
   tests/storagecheck.cpp
   tests/vmcheck.cpp
   tests/workflowtest.cpp

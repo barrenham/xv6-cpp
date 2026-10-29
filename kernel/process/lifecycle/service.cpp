@@ -1,14 +1,18 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 
 module xv.process;
 
 import xv.runtime;
+import xv.print;
 import :manager;
 import :paged_store;
-import :fifo_queue;
+import :fair_policy;
 import :round_robin;
+import :mlfq_policy;
+import :scheduler_runtime;
 import :wait_channels;
 
 namespace xv::process
@@ -16,8 +20,12 @@ namespace xv::process
 namespace
 {
 constinit PagedProcessStore store;
-constinit FifoReadyQueue ready;
-constinit RoundRobinScheduler active_scheduler(ready);
+constinit RoundRobinPolicy round_robin_ready;
+constinit FairPolicy fair_ready;
+constinit MlfqPolicy feedback_ready;
+constinit SchedulerRuntime active_scheduler(fair_ready);
+int scheduler_initialized = 0;
+SchedulerKind selected_kind = static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
 constinit WaitChannels waits(active_scheduler);
 constinit ProcessGroups groups;
 } // namespace
@@ -34,13 +42,42 @@ Scheduler &scheduler()
   return active_scheduler;
 }
 
-void initialize()
+SchedulerKind configured_scheduler_kind()
 {
+  return __atomic_load_n(&scheduler_initialized, __ATOMIC_ACQUIRE) == 2
+             ? selected_kind : static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
+}
+
+bool initialize(SchedulerKind kind)
+{
+  ReadyQueue *ready = nullptr;
+  switch (kind)
+  {
+  case SchedulerKind::Fair: ready = &fair_ready; break;
+  case SchedulerKind::RoundRobin: ready = &round_robin_ready; break;
+  case SchedulerKind::Feedback: ready = &feedback_ready; break;
+  default: return false;
+  }
+  int expected = 0;
+  if (!__atomic_compare_exchange_n(&scheduler_initialized, &expected, 1, false,
+                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    return false;
+  active_scheduler.select(*ready);
   groups.initialize();
   store.initialize();
-  ready.initialize();
+  ready->initialize();
+  xv::print::printk("scheduler: %s\n", active_scheduler.name());
   waits.initialize();
   process_manager.initialize();
+  selected_kind = kind;
+  __atomic_store_n(&scheduler_initialized, 2, __ATOMIC_RELEASE);
+  return true;
+}
+
+void initialize()
+{
+  if (!initialize(static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER)))
+    xv::print::panic("scheduler: invalid or repeated initialization");
 }
 
 void create_initial_process()

@@ -15,7 +15,7 @@ public:
   static void begin_round();
   static void idle();
   static void make_runnable(Process &process, ReadyQueue &ready);
-  static void dispatch(Process &process, CpuState &cpu);
+  static void dispatch(Process &process, CpuState &cpu, ReadyQueue &ready);
   static void suspend();
   static void yield(Scheduler &scheduler);
 

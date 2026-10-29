@@ -21,9 +21,12 @@ namespace xv::memory
 namespace
 {
 constinit KernelPageTable shared_kernel_page_table;
+// RSW bit 9 on the first non-leaf stack directory publishes a complete stack.
+// Fault callers pin their running stack, including its upper directory pages.
+constexpr unsigned long StackPublished = 1UL << 9;
 
 // Make a direct-map page table for the kernel.
-void map_initial_range(VirtualRegions &regions, pagetable_t table, unsigned long va,
+void map_initial_range(VirtualAddressPool &regions, pagetable_t table, unsigned long va,
                        unsigned long pa, unsigned long bytes, int permissions)
 {
   auto kind = va == TRAMPOLINE ? RegionKind::Special
@@ -42,7 +45,7 @@ struct KernelBuildFlow
 {
   struct Context
   {
-    VirtualRegions &regions;
+    VirtualAddressPool &regions;
     OwnedSv39PageTable &owned;
     pagetable_t table;
     pagetable_t result = nullptr;
@@ -183,7 +186,7 @@ struct KernelBuildFlow
                 flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
 
-pagetable_t make_kernel_page_table(VirtualRegions &regions)
+pagetable_t make_kernel_page_table(VirtualAddressPool &regions)
 {
   LargestPagePolicy policy;
   OwnedSv39PageTable owned(allocator(), policy);
@@ -206,33 +209,23 @@ struct KernelPageTable::InitializeFlow
 
   static void mappings(Context &c) noexcept
   {
+    if (!c.owner.regions_.initialize())
+      xv::print::panic("kernel address space: initialization failed");
     c.owner.root_ = make_kernel_page_table(c.owner.regions_);
   }
 
-  static void directories(Context &c) noexcept
+  static void pool(Context &c) noexcept
   {
     c.owner.stacks_.init("kernel stack regions");
-    auto *table = static_cast<PageTable>(c.owner.root_);
-    for (unsigned i = PX(2, KSTACK_BOTTOM); i <= PX(2, KSTACK_TOP - 1); ++i)
-    {
-      if (!(table[i] & PTE_V))
-      {
-        auto *page = allocator().allocate();
-        if (!page)
-        {
-          xv::print::panic("kernel stack directory: out of memory");
-        }
-        xv::runtime::fill(page, 0, PageSize);
-        table[i] = PA2PTE(page) | PTE_V;
-      }
-    }
+    c.owner.pool_begin_ = allocator().layout().ram().end().align_up(KSTACK_BYTES).raw();
+
   }
   struct Mappings;
-  struct Directories;
+  struct Pool;
   using Graph = flow::graph<
       Mappings,
-      flow::types<flow::node<Mappings, flow::action<&mappings>, flow::go<Directories>>,
-                  flow::node<Directories, flow::action<&directories>, flow::stop>>>;
+      flow::types<flow::node<Mappings, flow::action<&mappings>, flow::go<Pool>>,
+                  flow::node<Pool, flow::action<&pool>, flow::stop>>>;
 };
 
 struct KernelPageTable::CommitFlow
@@ -324,42 +317,59 @@ struct KernelPageTable::ReleaseFlow
     KernelPageTable &owner;
     unsigned long cursor, end;
     PageTable leaf = nullptr;
+    PageTable middle = nullptr;
   };
 
   static void detach(Context &c) noexcept
   {
     c.leaf = nullptr;
+    c.middle = nullptr;
     auto *root = static_cast<PageTable>(c.owner.root_);
     for (; c.cursor < c.end; c.cursor += 512 * PageSize)
     {
-      auto *middle = reinterpret_cast<PageTable>(PTE2PA(root[PX(2, c.cursor)]));
+      auto upper = __atomic_load_n(&root[PX(2, c.cursor)], __ATOMIC_ACQUIRE);
+      if (!(upper & PTE_V)) continue;
+      auto *middle = reinterpret_cast<PageTable>(PTE2PA(upper));
       auto &directory = middle[PX(1, c.cursor)];
-      if (!(directory & PTE_V))
+      if (directory & PTE_V)
       {
-        continue;
+        c.leaf = reinterpret_cast<PageTable>(PTE2PA(directory));
+        __atomic_store_n(&directory, 0UL, __ATOMIC_RELEASE);
       }
-      c.leaf = reinterpret_cast<PageTable>(PTE2PA(directory));
-      directory = 0;
-      xv::arch::sfence_vma();
-      return;
+      bool empty = true;
+      for (unsigned i = 0; i < 512; ++i)
+        if (middle[i] & PTE_V) { empty = false; break; }
+      // A running stack keeps a nonempty child here; its owner pins both
+      // levels. Empty directories have no remaining fault-path readers.
+      if (empty)
+      {
+        __atomic_store_n(&root[PX(2, c.cursor)], 0UL, __ATOMIC_RELEASE);
+        c.middle = middle;
+      }
+      if (c.leaf || c.middle)
+      {
+        xv::arch::sfence_vma();
+        return;
+      }
     }
   }
 
   static bool detached(Context &c) noexcept
   {
-    return c.leaf != nullptr;
+    return c.leaf || c.middle;
   }
 
   static void free(Context &c) noexcept
   {
-    for (unsigned i = 0; i < 512; ++i)
+    for (unsigned i = 0; c.leaf && i < 512; ++i)
     {
       if (c.leaf[i] & PTE_V)
       {
         allocator().deallocate(reinterpret_cast<void *>(PTE2PA(c.leaf[i])));
       }
     }
-    allocator().deallocate(c.leaf);
+    if (c.leaf) allocator().deallocate(c.leaf);
+    if (c.middle) allocator().deallocate(c.middle);
     c.cursor += 512 * PageSize;
   }
   struct Detach;
@@ -377,29 +387,26 @@ struct KernelPageTable::AllocateFlow
   struct Context
   {
     KernelPageTable &owner;
-    unsigned long slot = 0, address = 0, result = 0;
+    unsigned long reservation = 0, address = 0, result = 0;
     bool ok = false;
   };
 
   static void find(Context &c) noexcept
   {
-    while (c.slot < c.owner.stack_slots_ &&
-           (c.owner.stack_bitmap_[c.slot / 64] & (1UL << (c.slot % 64))))
-    {
-      ++c.slot;
-    }
+    c.reservation = c.owner.regions_.allocate_in(2 * KSTACK_BYTES, c.owner.pool_begin_,
+                                                   KSTACK_TOP, KSTACK_BYTES);
+    if (c.reservation) c.address = c.reservation + KSTACK_BYTES;
   }
 
   static bool available(Context &c) noexcept
   {
-    return c.slot != c.owner.stack_slots_;
+    return c.reservation != 0;
   }
 
-  static void guard(Context &c) noexcept
+  static void unreserve(Context &c) noexcept
   {
-    c.address = KSTACK(c.slot);
-    c.ok = c.owner.regions_.reserve(c.address - KSTACK_BYTES, c.address, 0,
-                                    RegionKind::Guard);
+    if (!c.owner.regions_.erase(c.reservation, c.reservation + 2 * KSTACK_BYTES))
+      xv::print::panic("kernel virtual address pool: lost reservation");
   }
 
   static bool ok(Context &c) noexcept
@@ -409,13 +416,13 @@ struct KernelPageTable::AllocateFlow
 
   static void region(Context &c) noexcept
   {
-    c.ok = c.owner.regions_.reserve(c.address, c.address + KSTACK_BYTES, PTE_R | PTE_W,
+    c.ok = c.owner.regions_.protect(c.address, c.address + KSTACK_BYTES, PTE_R | PTE_W,
                                     RegionKind::KernelStack, true);
   }
 
   static void erase_guard(Context &c) noexcept
   {
-    c.owner.regions_.erase(c.address - KSTACK_BYTES, c.address);
+    unreserve(c);
   }
 
   static void prepare(Context &c) noexcept
@@ -441,17 +448,15 @@ struct KernelPageTable::AllocateFlow
   static void rollback(Context &c) noexcept
   {
     c.owner.release_stack(c.address);
-    c.owner.regions_.erase(c.address - KSTACK_BYTES, c.address + KSTACK_BYTES);
+    unreserve(c);
   }
 
   static void publish(Context &c) noexcept
   {
-    __atomic_fetch_or(&c.owner.stack_bitmap_[c.slot / 64], 1UL << (c.slot % 64),
-                      __ATOMIC_RELEASE);
+    __atomic_fetch_or(c.owner.stack_directory(c.address), StackPublished, __ATOMIC_RELEASE);
     c.result = c.address;
   }
   struct Find;
-  struct Guard;
   struct Region;
   struct EraseGuard;
   struct Prepare;
@@ -463,9 +468,7 @@ struct KernelPageTable::AllocateFlow
       flow::types<
           flow::node<
               Find, flow::action<&find>,
-              flow::branch<flow::condition<&available>, flow::go<Guard>, flow::stop>>,
-          flow::node<Guard, flow::action<&guard>,
-                     flow::branch<flow::condition<&ok>, flow::go<Region>, flow::stop>>,
+              flow::branch<flow::condition<&available>, flow::go<Region>, flow::stop>>,
           flow::node<Region, flow::action<&region>,
                      flow::branch<flow::condition<&ok>, flow::go<Prepare>,
                                   flow::go<EraseGuard>>>,
@@ -485,7 +488,7 @@ struct KernelPageTable::FreeFlow
   struct Context
   {
     KernelPageTable &owner;
-    unsigned long address, slot;
+    unsigned long address;
   };
 
   static void release(Context &c) noexcept
@@ -498,19 +501,12 @@ struct KernelPageTable::FreeFlow
     c.owner.regions_.erase(c.address - KSTACK_BYTES, c.address + KSTACK_BYTES);
   }
 
-  static void unpublish(Context &c) noexcept
-  {
-    __atomic_fetch_and(&c.owner.stack_bitmap_[c.slot / 64], ~(1UL << (c.slot % 64)),
-                       __ATOMIC_RELEASE);
-  }
   struct Release;
   struct Erase;
-  struct Unpublish;
   using Graph = flow::graph<
       Release,
       flow::types<flow::node<Release, flow::action<&release>, flow::go<Erase>>,
-                  flow::node<Erase, flow::action<&erase>, flow::go<Unpublish>>,
-                  flow::node<Unpublish, flow::action<&unpublish>, flow::stop>>>;
+                  flow::node<Erase, flow::action<&erase>, flow::stop>>>;
 };
 
 struct KernelPageTable::FaultFlow
@@ -529,17 +525,15 @@ struct KernelPageTable::FaultFlow
 
   static bool valid(Context &c) noexcept
   {
-    return c.base <= KSTACK(0UL) && !((KSTACK(0UL) - c.base) % (2 * KSTACK_BYTES)) &&
-           c.fault >= c.base && c.fault < c.base + KSTACK_BYTES && c.stack >= c.base &&
+    return c.owner.in_stack_window(c.base) && c.base % KSTACK_BYTES == 0 &&
+           c.base <= KSTACK_TOP - KSTACK_BYTES && c.fault >= c.base &&
+           c.fault < c.base + KSTACK_BYTES && c.stack >= c.base &&
            c.stack <= c.base + KSTACK_BYTES;
   }
 
   static bool owned(Context &c) noexcept
   {
-    auto slot = (KSTACK(0UL) - c.base) / (2 * KSTACK_BYTES);
-    return slot < c.owner.stack_slots_ &&
-           (__atomic_load_n(&c.owner.stack_bitmap_[slot / 64], __ATOMIC_ACQUIRE) &
-            (1UL << (slot % 64)));
+    return c.owner.owns_stack(c.base);
   }
 
   static bool data(Context &c) noexcept
@@ -735,33 +729,34 @@ unsigned long KernelPageTable::allocate_process_stack()
 
 bool KernelPageTable::grow_process_stack(unsigned long address, unsigned long lowest)
 {
-  if (address > KSTACK(0UL) || (KSTACK(0UL) - address) % (2 * KSTACK_BYTES) ||
-      lowest < address || lowest >= address + KSTACK_BYTES)
-  {
+  if (!in_stack_window(address) || address % KSTACK_BYTES ||
+      address > KSTACK_TOP - KSTACK_BYTES || lowest < address ||
+      lowest >= address + KSTACK_BYTES)
     return false;
-  }
   xv::sync::ScopedLock guard(stacks_);
-  auto slot = (KSTACK(0UL) - address) / (2 * KSTACK_BYTES);
-  if (slot >= stack_slots_ || !(stack_bitmap_[slot / 64] & (1UL << (slot % 64))))
-  {
+  const auto *stack = regions_.find(address);
+  const auto *guard_region = regions_.find(address - KSTACK_BYTES);
+  if (address < pool_begin_ + KSTACK_BYTES || !stack || !guard_region ||
+      stack->begin != address || stack->end != address + KSTACK_BYTES ||
+      stack->kind != RegionKind::KernelStack ||
+      guard_region->begin != address - KSTACK_BYTES || guard_region->end != address ||
+      guard_region->kind != RegionKind::Guard || !owns_stack(address))
     return false;
-  }
   return commit_stack(address, lowest);
 }
 
 void KernelPageTable::free_process_stack(unsigned long address)
 {
   xv::sync::ScopedLock guard(stacks_);
-  if (address > KSTACK(0UL) || (KSTACK(0UL) - address) % (2 * KSTACK_BYTES))
-  {
-    xv::print::panic("kernel stack: invalid region");
-  }
-  auto slot = (KSTACK(0UL) - address) / (2 * KSTACK_BYTES);
-  if (slot >= stack_slots_ || !(stack_bitmap_[slot / 64] & (1UL << (slot % 64))))
-  {
+  const auto *stack = regions_.find(address);
+  const auto *guard_region = regions_.find(address - KSTACK_BYTES);
+  if (address < pool_begin_ + KSTACK_BYTES || address > KSTACK_TOP - KSTACK_BYTES ||
+      !stack || !guard_region || stack->begin != address ||
+      stack->end != address + KSTACK_BYTES || stack->kind != RegionKind::KernelStack ||
+      guard_region->begin != address - KSTACK_BYTES || guard_region->end != address ||
+      guard_region->kind != RegionKind::Guard || !owns_stack(address))
     xv::print::panic("kernel stack: unowned region");
-  }
-  FreeFlow::Context context{*this, address, slot};
+  FreeFlow::Context context{*this, address};
   (void)FreeFlow::Graph::run<0>(context);
 }
 
@@ -772,6 +767,29 @@ FaultResult KernelPageTable::handle_stack_fault(unsigned long base, unsigned lon
   FaultFlow::Context context{*this, base, stack, fault, access, frame};
   (void)FaultFlow::Graph::run<0>(context);
   return context.result;
+}
+
+bool KernelPageTable::in_stack_window(unsigned long address) const
+{
+  return pool_begin_ && address >= pool_begin_ && address < KSTACK_TOP;
+}
+
+unsigned long *KernelPageTable::stack_directory(unsigned long address) const
+{
+  if (!root_ || !in_stack_window(address)) return nullptr;
+  auto *table = static_cast<PageTable>(root_);
+  auto upper = __atomic_load_n(&table[PX(2, address)], __ATOMIC_ACQUIRE);
+  if (!(upper & PTE_V) || PTE_LEAF(upper)) return nullptr;
+  auto *middle = reinterpret_cast<PageTable>(PTE2PA(upper));
+  return &middle[PX(1, address)];
+}
+
+bool KernelPageTable::owns_stack(unsigned long address) const
+{
+  auto *directory = stack_directory(address);
+  if (!directory) return false;
+  auto entry = __atomic_load_n(directory, __ATOMIC_ACQUIRE);
+  return (entry & (PTE_V | StackPublished)) == (PTE_V | StackPublished) && !PTE_LEAF(entry);
 }
 
 bool KernelPageTable::region(unsigned long address, VirtualRegion &result)

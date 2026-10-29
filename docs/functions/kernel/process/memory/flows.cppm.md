@@ -22,9 +22,7 @@
 - [`xv::process::AddressSpace::GrowFlow::plan`](flows.cppm.md#fn-5866121f83d68623)
 - [`xv::process::AddressSpace::GrowFlow::reserve`](flows.cppm.md#fn-4ae965b7e39ee7cc)
 - [`xv::process::AddressSpace::GrowFlow::undo_reservation`](flows.cppm.md#fn-c3aa67a79e90f584)
-- [`xv::process::AddressSpace::GuardFlow::erase`](flows.cppm.md#fn-d6dd539327eb9aa2)
 - [`xv::process::AddressSpace::GuardFlow::protect`](flows.cppm.md#fn-88fbad6bb590d0c5)
-- [`xv::process::AddressSpace::GuardFlow::reserve`](flows.cppm.md#fn-d0c81af37e59ae67)
 - [`xv::process::AddressSpace::ResizeFlow::allocate`](flows.cppm.md#fn-6f8343cc5490a7cd)
 - [`xv::process::AddressSpace::ResizeFlow::commit`](flows.cppm.md#fn-0668f715a959353a)
 - [`xv::process::AddressSpace::ResizeFlow::deallocate`](flows.cppm.md#fn-62e1550346848e62)
@@ -93,7 +91,7 @@
 ```doxygen
 @fn static bool xv::process::AddressSpace::CreateFlow::describe(Context &c) noexcept
 @brief 将页表交给 owner 并登记所有特殊虚拟区域。
-@details 页表拥有新分配的页表页；trampoline、trapframe 和用户信息页仅被借用，回滚解除映射但不释放借用页面。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-0999f291f1f67da4"></a>
@@ -216,16 +214,6 @@
 @details 候选的 Image 或 UserStack 区域先预留后映射，映射失败撤销新增预留；成功同时推进堆基址。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
 ```
 
-<a id="fn-d6dd539327eb9aa2"></a>
-
-## `xv::process::AddressSpace::GuardFlow::erase`
-
-```doxygen
-@fn static bool xv::process::AddressSpace::GuardFlow::erase(Context &c) noexcept
-@brief 删除目标页的原区域描述。
-@details 保留先删除旧区域再预留保护区的原顺序，预留失败时不补充额外回滚。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
-```
-
 <a id="fn-88fbad6bb590d0c5"></a>
 
 ## `xv::process::AddressSpace::GuardFlow::protect`
@@ -233,16 +221,6 @@
 ```doxygen
 @fn static void xv::process::AddressSpace::GuardFlow::protect(Context &c) noexcept
 @brief 撤销该页的用户访问权限并记录成功。
-@details 保留先删除旧区域再预留保护区的原顺序，预留失败时不补充额外回滚。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
-```
-
-<a id="fn-d0c81af37e59ae67"></a>
-
-## `xv::process::AddressSpace::GuardFlow::reserve`
-
-```doxygen
-@fn static bool xv::process::AddressSpace::GuardFlow::reserve(Context &c) noexcept
-@brief 预留零权限保护区描述。
 @details 保留先删除旧区域再预留保护区的原顺序，预留失败时不补充额外回滚。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
 ```
 
@@ -344,4 +322,14 @@
 @fn static void xv::process::AddressSpace::ResizeFlow::undo_reservation(Context &c) noexcept
 @brief 撤销分配失败对应的新增区域预留。
 @details 区域修改和物理映射顺序与原实现一致；提交前失败保留业务错误，按原约定撤销新增预留。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
+```
+
+<a id="fn-5fec7d89314b86e0"></a>
+
+## `xv::process::AddressSpace::GuardFlow::describe`
+
+```doxygen
+@fn static bool xv::process::AddressSpace::GuardFlow::describe(Context &c) noexcept
+@brief 原子修改保护页区域属性，失败时保留原记录，随后才撤销页表用户访问权限。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```

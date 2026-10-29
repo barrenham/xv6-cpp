@@ -22,12 +22,12 @@
 - [`xv::memory::KernelPageTable::AllocateFlow::commit`](kernel_page_table.cpp.md#fn-88ca206c5e90a254)
 - [`xv::memory::KernelPageTable::AllocateFlow::erase_guard`](kernel_page_table.cpp.md#fn-0046a5affa33bce4)
 - [`xv::memory::KernelPageTable::AllocateFlow::find`](kernel_page_table.cpp.md#fn-55b586b038909582)
-- [`xv::memory::KernelPageTable::AllocateFlow::guard`](kernel_page_table.cpp.md#fn-348c2b2f098b8b70)
 - [`xv::memory::KernelPageTable::AllocateFlow::ok`](kernel_page_table.cpp.md#fn-5d8156815904af2b)
 - [`xv::memory::KernelPageTable::AllocateFlow::prepare`](kernel_page_table.cpp.md#fn-7bfb28dc99e1bbce)
 - [`xv::memory::KernelPageTable::AllocateFlow::publish`](kernel_page_table.cpp.md#fn-0ea5937c11a261e1)
 - [`xv::memory::KernelPageTable::AllocateFlow::region`](kernel_page_table.cpp.md#fn-03b093a19f994089)
 - [`xv::memory::KernelPageTable::AllocateFlow::rollback`](kernel_page_table.cpp.md#fn-04c01fcb61c820f0)
+- [`xv::memory::KernelPageTable::AllocateFlow::unreserve`](kernel_page_table.cpp.md#fn-e42858da4924218a)
 - [`xv::memory::KernelPageTable::CommitFlow::allocate`](kernel_page_table.cpp.md#fn-2206fece6fa60e00)
 - [`xv::memory::KernelPageTable::CommitFlow::allocated`](kernel_page_table.cpp.md#fn-fb2587f34e4250ee)
 - [`xv::memory::KernelPageTable::CommitFlow::entry`](kernel_page_table.cpp.md#fn-fe930c51205577d6)
@@ -57,9 +57,8 @@
 - [`xv::memory::KernelPageTable::FaultFlow::walk`](kernel_page_table.cpp.md#fn-3fb74ae6ced342cb)
 - [`xv::memory::KernelPageTable::FreeFlow::erase`](kernel_page_table.cpp.md#fn-36947fecf4b42f8e)
 - [`xv::memory::KernelPageTable::FreeFlow::release`](kernel_page_table.cpp.md#fn-a31a077954fcfa63)
-- [`xv::memory::KernelPageTable::FreeFlow::unpublish`](kernel_page_table.cpp.md#fn-3372014d429f8d3e)
-- [`xv::memory::KernelPageTable::InitializeFlow::directories`](kernel_page_table.cpp.md#fn-824611c86cc95507)
 - [`xv::memory::KernelPageTable::InitializeFlow::mappings`](kernel_page_table.cpp.md#fn-969ad613e9d459c5)
+- [`xv::memory::KernelPageTable::InitializeFlow::pool`](kernel_page_table.cpp.md#fn-2502225076811c6c)
 - [`xv::memory::KernelPageTable::ReleaseFlow::detach`](kernel_page_table.cpp.md#fn-a289736b6f264882)
 - [`xv::memory::KernelPageTable::ReleaseFlow::detached`](kernel_page_table.cpp.md#fn-0456693b1b7aeace)
 - [`xv::memory::KernelPageTable::ReleaseFlow::free`](kernel_page_table.cpp.md#fn-4de0b37e401167cb)
@@ -69,14 +68,17 @@
 - [`xv::memory::KernelPageTable::free_process_stack`](kernel_page_table.cpp.md#fn-481636a4fc87518c)
 - [`xv::memory::KernelPageTable::grow_process_stack`](kernel_page_table.cpp.md#fn-9be72da917a5498c)
 - [`xv::memory::KernelPageTable::handle_stack_fault`](kernel_page_table.cpp.md#fn-88c699cd58c7fc23)
+- [`xv::memory::KernelPageTable::in_stack_window`](kernel_page_table.cpp.md#fn-1de07bd91a367361)
 - [`xv::memory::KernelPageTable::initialize`](kernel_page_table.cpp.md#fn-b348ddac60edd845)
+- [`xv::memory::KernelPageTable::owns_stack`](kernel_page_table.cpp.md#fn-b085911204d0ab2c)
 - [`xv::memory::KernelPageTable::region`](kernel_page_table.cpp.md#fn-fe0e0ad8b52fd3f2)
 - [`xv::memory::KernelPageTable::release_stack`](kernel_page_table.cpp.md#fn-5b254a60dc9c4721)
 - [`xv::memory::KernelPageTable::root`](kernel_page_table.cpp.md#fn-792824e0d2159c11)
+- [`xv::memory::KernelPageTable::stack_directory`](kernel_page_table.cpp.md#fn-2c7540e00b975f1d)
 - [`xv::memory::KernelPageTable::statistics`](kernel_page_table.cpp.md#fn-9d8162325a420bf9)
 - [`xv::memory::kernel_page_table`](kernel_page_table.cpp.md#fn-1f3d315da469e7cf)
-- [`xv::memory::make_kernel_page_table`](kernel_page_table.cpp.md#fn-0da538a390ac61bc)
-- [`xv::memory::map_initial_range`](kernel_page_table.cpp.md#fn-ed33004ce7e7efb6)
+- [`xv::memory::map_initial_range`](kernel_page_table.cpp.md#fn-90a0ed90fecb0108)
+- [`xv::memory::make_kernel_page_table`](kernel_page_table.cpp.md#fn-73b6149db6de6b8a)
 
 <a id="fn-b348ddac60edd845"></a>
 
@@ -84,7 +86,7 @@
 
 ```doxygen
 @fn void xv::memory::KernelPageTable::initialize()
-@brief 建立共享内核页表和栈窗口稳定目录。
+@brief 建立共享内核页表并初始化动态栈地址池。
 @details 构建时登记静态映射，初始化区域锁，并预建高地址栈窗口的共享上级目录；这些目录终生存在，栈的独占叶表在每次创建时准备。
 @details 流程由 InitializeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
@@ -120,17 +122,6 @@
 @brief 物理页所有权、地址范围、页表和用户内存复制：读取或计算 `shared_kernel_page_table`，返回当前查询结果。
 @return 各分支实际返回：`shared_kernel_page_table`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
-<a id="fn-0da538a390ac61bc"></a>
-
-## `xv::memory::make_kernel_page_table`
-
-```doxygen
-@fn pagetable_t xv::memory::make_kernel_page_table(VirtualRegions &regions)
-@brief 构建带区域登记的内核直接映射根表。
-@details 所有设备、内核文本/数据、可用 RAM 与 trampoline 映射先进入共享 VirtualRegions，再由最大页策略建立 PTE；原有文本权限、RAM 边界与映射统计自检保留。
-@details 流程由 KernelBuildFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
-```
-
 <a id="fn-5492462d0bf0c840"></a>
 
 ## `xv::memory::KernelPageTable::commit_stack`
@@ -149,7 +140,7 @@
 ```doxygen
 @fn void xv::memory::KernelPageTable::release_stack(unsigned long address)
 @brief 撤销独占栈的叶表与全部已提交物理页。
-@details 调用时持区域锁且目标进程不再执行；先清空上级指向并刷新本核 TLB，再归还叶帧和叶表。共享上级目录不回收；调度切换的 fencing 防止跨核复用旧翻译。
+@details 调用时持区域锁且目标进程不再执行；先清空上级指向并刷新本核 TLB，再归还叶帧和叶表。上级目录没有任何有效子项后也摘除并回收；运行栈固定仍被使用的各级目录，调度切换执行原有 fencing。
 @details 流程由 ReleaseFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
@@ -160,7 +151,7 @@
 ```doxygen
 @fn unsigned long xv::memory::KernelPageTable::allocate_process_stack()
 @brief 保留完整栈与保护区并准备无锁补页所需叶表。
-@details 区域锁内选空槽，登记等容量保护区及默认 2 MiB 栈，预建每个 2 MiB 段的叶表，再提交顶部 32 KiB。任一步失败回收 PTE、叶表和区域，成功后才以 release 语义发布位图。
+@details 区域锁内向地址池申请栈及等大保护区，登记区域，预建每个 2 MiB 段的叶表，再提交顶部 32 KiB。失败回收栈页、叶表、区域和区间；成功后以 release 设置首个目录的 RSW bit 9 发布标记。
 @details 流程由 AllocateFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
@@ -171,7 +162,7 @@
 ```doxygen
 @fn bool xv::memory::KernelPageTable::grow_process_stack(unsigned long address, unsigned long lowest)
 @brief 在有效且已保留的栈内补齐物理页。
-@details 检查区域对齐、槽归属及最低地址不越界；区域锁内调用 commit_stack，成功返回 true。容量由 XV_KERNEL_STACK_MIB 构建参数决定，超出预留范围不扩张。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-481636a4fc87518c"></a>
@@ -181,18 +172,7 @@
 ```doxygen
 @fn void xv::memory::KernelPageTable::free_process_stack(unsigned long address)
 @brief 回收已停止执行的栈及其完整地址归属。
-@details 区域锁内验证槽归属，取消映射并释放全部已提交页和独占叶表，删除栈与保护区登记，最后清除发布位。调用方须先等待目标上下文和进程锁交接完成。
-@details 流程由 FreeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
-```
-
-<a id="fn-ed33004ce7e7efb6"></a>
-
-## `xv::memory::map_initial_range`
-
-```doxygen
-@fn void xv::memory::map_initial_range(VirtualRegions &regions, pagetable_t table, unsigned long va, unsigned long pa, unsigned long bytes, int permissions)
-@brief 在登记虚拟归属后建立一个启动映射。
-@details 按地址识别设备、直接映射或 trampoline 特殊区域；reserve 拒绝重叠或 OOM 时启动失败，否则交给实际 Sv39 映射器选择页大小和写入权限。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-88c699cd58c7fc23"></a>
@@ -202,7 +182,7 @@
 ```doxygen
 @fn FaultResult xv::memory::KernelPageTable::handle_stack_fault(unsigned long base, unsigned long stack, unsigned long fault, FaultAccess access, void *(*frame)())
 @brief 在不取得区域或分配器锁的路径上处理栈缺页。
-@details 验证当前所有者的范围、槽位和访问类型；已映射页返回权限错误或 AlreadyMapped，禁止假装补页成功。仅使用预建叶表和传入帧提供者补齐缺失页，成功及部分失败均刷新本核 TLB。处理期间当前栈不能被销毁。
+@details 验证当前所有者的范围、首个目录发布标记和访问类型；已映射页返回权限错误或 AlreadyMapped，禁止假装补页成功。仅使用预建叶表和传入帧提供者补齐缺失页，成功及部分失败均刷新本核 TLB。处理期间当前栈不能被销毁。
 @details 流程由 FaultFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
@@ -232,8 +212,8 @@
 
 ```doxygen
 @fn static bool xv::memory::KernelPageTable::AllocateFlow::available(Context &c) noexcept
-@brief 检查是否仍有可用槽。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 检查是否已经取得地址池区间。
+@details 入口词法 ScopedLock 持栈区域锁；先申请地址区间，再登记 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布目录标记；失败时撤销区域、映射及地址区间占用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-88ca206c5e90a254"></a>
@@ -243,7 +223,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::commit(Context &c) noexcept
 @brief 提交原要求的初始栈页。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 入口词法 ScopedLock 持栈区域锁；先申请地址区间，再登记 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布目录标记；失败时撤销区域、映射及地址区间占用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-0046a5affa33bce4"></a>
@@ -253,7 +233,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::erase_guard(Context &c) noexcept
 @brief 栈区域预留失败时只撤销 guard 区域。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-55b586b038909582"></a>
@@ -262,18 +242,8 @@
 
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::find(Context &c) noexcept
-@brief 直接扫描位图寻找首个可用栈槽。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
-```
-
-<a id="fn-348c2b2f098b8b70"></a>
-
-## `xv::memory::KernelPageTable::AllocateFlow::guard`
-
-```doxygen
-@fn static void xv::memory::KernelPageTable::AllocateFlow::guard(Context &c) noexcept
-@brief 计算槽地址并预留相邻 guard 区域。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 从红黑树地址池申请栈与保护区所需的连续虚拟区间。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-5d8156815904af2b"></a>
@@ -283,7 +253,7 @@
 ```doxygen
 @fn static bool xv::memory::KernelPageTable::AllocateFlow::ok(Context &c) noexcept
 @brief 检查最近一次区域或页表阶段是否成功。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 入口词法 ScopedLock 持栈区域锁；先申请地址区间，再登记 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布目录标记；失败时撤销区域、映射及地址区间占用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-7bfb28dc99e1bbce"></a>
@@ -293,7 +263,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::prepare(Context &c) noexcept
 @brief 按叶表跨度预建该栈的全部叶表。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 入口词法 ScopedLock 持栈区域锁；先申请地址区间，再登记 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布目录标记；失败时撤销区域、映射及地址区间占用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-0ea5937c11a261e1"></a>
@@ -302,8 +272,8 @@
 
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::publish(Context &c) noexcept
-@brief 以 release 发布槽所有权并记录成功地址。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 以 release 设置首个栈目录发布标记并记录成功地址。
+@details 入口词法 ScopedLock 持栈区域锁；先申请地址区间，再登记 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布目录标记；失败时撤销区域、映射及地址区间占用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-03b093a19f994089"></a>
@@ -313,7 +283,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::region(Context &c) noexcept
 @brief 预留可按需增长的内核栈区域。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-04c01fcb61c820f0"></a>
@@ -323,7 +293,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::AllocateFlow::rollback(Context &c) noexcept
 @brief 释放候选栈页表与帧并撤销两段区域。
-@details 入口词法 ScopedLock 持栈区域锁；依次保留 guard 与栈区域、准备叶表、提交初始页，成功才以 release 发布槽位；各失败边保持原回滚范围。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-2206fece6fa60e00"></a>
@@ -522,7 +492,7 @@
 
 ```doxygen
 @fn static bool xv::memory::KernelPageTable::FaultFlow::owned(Context &c) noexcept
-@brief 以 acquire 检查目标栈槽仍被占用。
+@brief 以 acquire 检查首个栈目录仍有有效的发布标记。
 @details 保持无锁故障路径和调用者提供的应急帧回调；仅查询预建页表，按原读写与已映射规则返回，新增映射以 release 发布，循环迭代且保留每条 fence 边。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
@@ -603,7 +573,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::FreeFlow::erase(Context &c) noexcept
 @brief 删除 guard 与栈的虚拟区域登记。
-@details 入口词法锁保护槽位并完成原形状及所有权诊断；先回收映射再删除区域，最后清除位图，防止提前重用槽。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 入口词法锁保护地址池与区域表并验证准确区间归属；先摘除目录和回收映射，再删除区域，最后归还地址区间，防止提前重用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-a31a077954fcfa63"></a>
@@ -613,27 +583,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::FreeFlow::release(Context &c) noexcept
 @brief 释放已停止栈的叶表与数据帧。
-@details 入口词法锁保护槽位并完成原形状及所有权诊断；先回收映射再删除区域，最后清除位图，防止提前重用槽。 下一节点由图策略声明，业务结果与控制信号分离。
-```
-
-<a id="fn-3372014d429f8d3e"></a>
-
-## `xv::memory::KernelPageTable::FreeFlow::unpublish`
-
-```doxygen
-@fn static void xv::memory::KernelPageTable::FreeFlow::unpublish(Context &c) noexcept
-@brief 以 release 清除槽位所有权。
-@details 入口词法锁保护槽位并完成原形状及所有权诊断；先回收映射再删除区域，最后清除位图，防止提前重用槽。 下一节点由图策略声明，业务结果与控制信号分离。
-```
-
-<a id="fn-824611c86cc95507"></a>
-
-## `xv::memory::KernelPageTable::InitializeFlow::directories`
-
-```doxygen
-@fn static void xv::memory::KernelPageTable::InitializeFlow::directories(Context &c) noexcept
-@brief 初始化栈区域锁并预建稳定上层页表目录。
-@details 入口拒绝重复初始化；先构建并发布根，再初始化栈区域锁并预建稳定上层栈目录，内存不足仍按原协议 panic。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 入口词法锁保护地址池与区域表并验证准确区间归属；先摘除目录和回收映射，再删除区域，最后归还地址区间，防止提前重用。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-969ad613e9d459c5"></a>
@@ -643,7 +593,7 @@
 ```doxygen
 @fn static void xv::memory::KernelPageTable::InitializeFlow::mappings(Context &c) noexcept
 @brief 构建内核初始映射并设置根指针。
-@details 入口拒绝重复初始化；先构建并发布根，再初始化栈区域锁并预建稳定上层栈目录，内存不足仍按原协议 panic。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
 <a id="fn-a289736b6f264882"></a>
@@ -652,8 +602,8 @@
 
 ```doxygen
 @fn static void xv::memory::KernelPageTable::ReleaseFlow::detach(Context &c) noexcept
-@brief 扫描至有效叶目录并先清目录项、刷新 TLB。
-@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链并 fence，之后归还该叶的帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 扫描并摘除叶目录及已空的上级目录，再刷新 TLB。
+@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链，同时摘除已无有效子项的上级目录，fence 后归还帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-0456693b1b7aeace"></a>
@@ -663,7 +613,7 @@
 ```doxygen
 @fn static bool xv::memory::KernelPageTable::ReleaseFlow::detached(Context &c) noexcept
 @brief 检查本轮是否取得已摘除叶表。
-@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链并 fence，之后归还该叶的帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链，同时摘除已无有效子项的上级目录，fence 后归还帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-4de0b37e401167cb"></a>
@@ -672,8 +622,8 @@
 
 ```doxygen
 @fn static void xv::memory::KernelPageTable::ReleaseFlow::free(Context &c) noexcept
-@brief 直接回收该叶所有有效帧及叶表页并推进区间游标。
-@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链并 fence，之后归还该叶的帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 回收已摘除叶表的数据帧、叶表页和空上级目录，并推进区间游标。
+@details 调用者持栈区域锁且栈已停止执行；逐叶目录摘链，同时摘除已无有效子项的上级目录，fence 后归还帧和页表页，不读取已归还页。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-20b859e92795e7ea"></a>
@@ -754,4 +704,74 @@
 @fn static bool xv::memory::KernelBuildFlow::root(Context &c) noexcept
 @brief 检查持有者已取得根页表。
 @details LargestPagePolicy 与 OwnedSv39PageTable 保持在原构建函数的词法作用域；按原设备、文本、RAM、trampoline 顺序映射与自检，成功最后 release 整棵树。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+<a id="fn-2502225076811c6c"></a>
+
+## `xv::memory::KernelPageTable::InitializeFlow::pool`
+
+```doxygen
+@fn static void xv::memory::KernelPageTable::InitializeFlow::pool(Context &c) noexcept
+@brief 初始化栈区域锁，并在发现的 RAM 末端对齐后建立动态虚拟地址池；失败终止启动。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
+```
+
+<a id="fn-e42858da4924218a"></a>
+
+## `xv::memory::KernelPageTable::AllocateFlow::unreserve`
+
+```doxygen
+@fn static void xv::memory::KernelPageTable::AllocateFlow::unreserve(Context &c) noexcept
+@brief 将尚未成功发布的栈和保护区区间归还地址池，归还失败表示所有权协议损坏。
+@details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
+```
+
+<a id="fn-1de07bd91a367361"></a>
+
+## `xv::memory::KernelPageTable::in_stack_window`
+
+```doxygen
+@fn bool xv::memory::KernelPageTable::in_stack_window(unsigned long address) const
+@brief 检查地址是否位于 RAM 末端对齐之后到 KSTACK_TOP 之前的运行时窗口；不查询树或取得锁。
+@details 遵守 KernelPageTable 的运行栈生命周期、区域锁与发布协议；详见内核虚拟地址池设计说明。
+```
+
+<a id="fn-2c7540e00b975f1d"></a>
+
+## `xv::memory::KernelPageTable::stack_directory`
+
+```doxygen
+@fn unsigned long *xv::memory::KernelPageTable::stack_directory(unsigned long address) const
+@brief 以 acquire 读取稳定根目录，返回目标地址的中间目录 PTE 指针；缺失或大页目录返回空指针。
+@details 遵守 KernelPageTable 的运行栈生命周期、区域锁与发布协议；详见内核虚拟地址池设计说明。
+```
+
+<a id="fn-b085911204d0ab2c"></a>
+
+## `xv::memory::KernelPageTable::owns_stack`
+
+```doxygen
+@fn bool xv::memory::KernelPageTable::owns_stack(unsigned long address) const
+@brief 以 acquire 检查首个栈目录的有效位及 RSW bit 9 发布标记；调用方固定栈生命周期，不遍历可变树。
+@details 遵守 KernelPageTable 的运行栈生命周期、区域锁与发布协议；详见内核虚拟地址池设计说明。
+```
+
+<a id="fn-90a0ed90fecb0108"></a>
+
+## `xv::memory::map_initial_range`
+
+```doxygen
+@fn void xv::memory::map_initial_range(VirtualAddressPool &regions, pagetable_t table, unsigned long va, unsigned long pa, unsigned long bytes, int permissions)
+@brief 在登记虚拟归属后建立一个启动映射。
+@details 按地址识别设备、直接映射或 trampoline 特殊区域；reserve 拒绝重叠或 OOM 时启动失败，否则交给实际 Sv39 映射器选择页大小和写入权限。
+```
+
+<a id="fn-73b6149db6de6b8a"></a>
+
+## `xv::memory::make_kernel_page_table`
+
+```doxygen
+@fn pagetable_t xv::memory::make_kernel_page_table(VirtualAddressPool &regions)
+@brief 构建带区域登记的内核直接映射根表。
+@details 所有设备、内核文本/数据、可用 RAM 与 trampoline 映射先进入共享 VirtualAddressPool，再由最大页策略建立 PTE；原有文本权限、RAM 边界与映射统计自检保留。
+@details 流程由 KernelBuildFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```

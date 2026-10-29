@@ -183,7 +183,7 @@
           ]
         }
       ],
-      "definition_sha256": "94f50ebd9a8437b7c06459951b5b0f59f21b2cd05fa3335f82206a8db7ad09cf"
+      "definition_sha256": "621472f9828967773e1ebf8bae588a1310c9f2469c1340e1fda50b40d3ec0834"
     },
     {
       "module": "process",
@@ -207,51 +207,6 @@
         }
       ],
       "definition_sha256": "73fc109a2f172675bd57d5e438cf9ac23e2406a24bdee6d960b04b2b02aee2f4"
-    },
-    {
-      "module": "memory",
-      "owner": "VirtualRegions",
-      "methods": [
-        "reserve",
-        "erase",
-        "copy_to"
-      ],
-      "definition": "kernel/memory/layout/virtual_regions.cpp",
-      "graphs": [
-        "ReserveFlow::Graph",
-        "EraseFlow::Graph",
-        "CopyFlow::Graph"
-      ],
-      "bindings": [
-        {
-          "qualified": "xv::memory::VirtualRegions::reserve",
-          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
-          "source": "kernel/memory/layout/virtual_regions.cpp",
-          "source_sha256": "7ad45b1734bd487de2b0fc971b2155f6a541eadac9df6d0cbb5285e97130a255",
-          "graphs": [
-            "ReserveFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::memory::VirtualRegions::erase",
-          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
-          "source": "kernel/memory/layout/virtual_regions.cpp",
-          "source_sha256": "5bc4123605037ad9ac0ebd63edf27734925bcf9834ca8328e128d03c8a7fe946",
-          "graphs": [
-            "EraseFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::memory::VirtualRegions::copy_to",
-          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
-          "source": "kernel/memory/layout/virtual_regions.cpp",
-          "source_sha256": "b2a993f9f698a545fa8a682145d2961b448aff6b01201c003e14470d383a0149",
-          "graphs": [
-            "CopyFlow::Graph"
-          ]
-        }
-      ],
-      "definition_sha256": "8782b2bb26817de72652af15e02361b166de035fce69c72e9a36057cd47e862e"
     },
     {
       "module": "fs",
@@ -1475,7 +1430,7 @@
           ]
         }
       ],
-      "definition_sha256": "27482c13bcc80e09bcbc9a432e1193a8e7f9b4bf5df57a8c2233220651fa8872"
+      "definition_sha256": "7652a8b966a7c724c88dcbfb4947c250a4d0b1019861d213ec98e894ba211cf5"
     },
     {
       "module": "process",
@@ -1638,26 +1593,26 @@
     },
     {
       "module": "process",
-      "owner": "RoundRobinScheduler",
+      "owner": "SchedulerRuntime",
       "methods": [
         "run"
       ],
-      "definition": "kernel/process/scheduler/policies/round_robin.cpp",
+      "definition": "kernel/process/scheduler/runtime/scheduler_runtime.cpp",
       "graphs": [
         "RunFlow::Graph"
       ],
       "bindings": [
         {
-          "qualified": "xv::process::RoundRobinScheduler::run",
-          "usr": "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
-          "source": "kernel/process/scheduler/policies/round_robin.cpp",
-          "source_sha256": "b8bd64a90fc44ad3fba122e7b35e286447f9714a156fa982965f94556debb019",
+          "qualified": "xv::process::SchedulerRuntime::run",
+          "usr": "c:@N@xv@N@process@S@SchedulerRuntime@F@run#",
+          "source": "kernel/process/scheduler/runtime/scheduler_runtime.cpp",
+          "source_sha256": "6f484ca728ae4c4bbfbb7a20aaa0b5737c1c9be97928e1d231a2cd75c8f14570",
           "graphs": [
             "RunFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "0009502df9332d7eb81d079b2217a6223192a7c58d41fb6e492f6721e1cfdf68"
+      "definition_sha256": "3620dad0e6bc3f074de8855cc605686b59435f378ab512ab3e3f9a318825a858"
     },
     {
       "module": "process",
@@ -1676,9 +1631,9 @@
       "bindings": [
         {
           "qualified": "xv::process::SchedulerContext::dispatch",
-          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#&$@N@xv@N@process@S@ReadyQueue#S",
           "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
-          "source_sha256": "74c074a8be41fbeee88e0c8d3ae6ad1d40d6625a6df6343e8c11706ac668cb05",
+          "source_sha256": "f520eff2d9464c918c1c294f77eaf7c370d6c1084a9aaf2d023ee88cea63f842",
           "graphs": [
             "DispatchFlow::Graph"
           ]
@@ -1702,7 +1657,7 @@
           ]
         }
       ],
-      "definition_sha256": "a703b8a770c1b69fb15dd91702481b9635ec216528df7380bdc8ebb4f55363fd"
+      "definition_sha256": "3c3f9f1dabbd48396fbca44536d41d438b7e8c4152371ac500f60513bec75164"
     },
     {
       "module": "process",
@@ -1933,15 +1888,15 @@
       "bindings": [
         {
           "qualified": "xv::memory::make_kernel_page_table",
-          "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
+          "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualAddressPool#",
           "source": "kernel/memory/paging/kernel_page_table.cpp",
-          "source_sha256": "ec0364015dd8d4332711f16a34928958f4e193b40d8f6eb1fa02bdf7ce99ae4d",
+          "source_sha256": "c31ac58332134247ba415445ffde2766f3dadd92261b2a2c0c780c1cd0ecffaa",
           "graphs": [
             "KernelBuildFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "0d9aa1a8786b56df06c92e2f8f28d676e1077392adcc2a0a88ae0796442cc9b3"
+      "definition_sha256": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1"
     },
     {
       "module": "memory",
@@ -2004,7 +1959,7 @@
           "qualified": "xv::memory::KernelPageTable::free_process_stack",
           "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
           "source": "kernel/memory/paging/kernel_page_table.cpp",
-          "source_sha256": "8a68638bdde6dfb813e2603bf9892421dc9d391571e06804cf0875f3db67b451",
+          "source_sha256": "2e3ad694c6f96b2396a793a565a6439de5eed57b7c30192b470fa43cec770464",
           "graphs": [
             "FreeFlow::Graph"
           ]
@@ -2019,7 +1974,7 @@
           ]
         }
       ],
-      "definition_sha256": "0d9aa1a8786b56df06c92e2f8f28d676e1077392adcc2a0a88ae0796442cc9b3"
+      "definition_sha256": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1"
     },
     {
       "module": "memory",
@@ -2145,15 +2100,15 @@
         },
         {
           "qualified": "xv::memory::resolve_user_fault",
-          "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+          "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualAddressPool#l#$@N@xv@N@memory@E@FaultAccess#",
           "source": "kernel/memory/paging/vm.cpp",
-          "source_sha256": "5d960987253b2904d5d41c6561c4534799ab7c60939dfe7a634a20beea9b4b00",
+          "source_sha256": "069cce928f086621ef10e29936fb6a8ba61406e64fab4db1de1112111c4c6b08",
           "graphs": [
             "FaultUserFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "5f2da81e57d1cfc5de73d48f535d6cf753426a8b17ec4d725916903ed89db972",
+      "definition_sha256": "232e0672b699836450a80dd521b899349457038db61fe130b485260fe324c2ad",
       "conditional_variants": [
         {
           "graph": "UnmapUserFlow::Graph",
@@ -3512,7 +3467,7 @@
           ]
         }
       ],
-      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
     },
     {
       "module": "trap",
@@ -3536,7 +3491,7 @@
           ]
         }
       ],
-      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
     },
     {
       "module": "trap",
@@ -3559,7 +3514,7 @@
           ]
         }
       ],
-      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
     },
     {
       "module": "support",
@@ -3810,7 +3765,7 @@
         "ReadyQueue predicates and accessors",
         "FifoReadyQueue enqueue/take",
         "SchedulerContext prepare_cpu/begin_round/idle/make_runnable",
-        "RoundRobinScheduler suspend/yield/make_runnable delegates",
+        "SchedulerRuntime suspend/yield/make_runnable delegates",
         "WaitChannels index/initialize/unlink/subscribe/unsubscribe/arm_timer/remove_timer",
         "PollWait allocate_page/table/notify/triggered/set_deadline",
         "prepare_sleep/prepare_interruptible_sleep/sleep"

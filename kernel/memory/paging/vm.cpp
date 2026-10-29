@@ -39,9 +39,10 @@ static pte_t *walkto(pagetable_t pagetable, uint64 va, int alloc, int target,
   for (int level = 2; level > target; level--)
   {
     pte_t *pte = &pagetable[PX(level, va)];
-    if (*pte & PTE_V)
+    auto entry = __atomic_load_n(pte, __ATOMIC_ACQUIRE);
+    if (entry & PTE_V)
     {
-      if (*pte & (PTE_R | PTE_W | PTE_X))
+      if (entry & (PTE_R | PTE_W | PTE_X))
       {
         if (leaflevel)
         {
@@ -49,7 +50,7 @@ static pte_t *walkto(pagetable_t pagetable, uint64 va, int alloc, int target,
         }
         return pte;
       }
-      pagetable = (pagetable_t)PTE2PA(*pte);
+      pagetable = (pagetable_t)PTE2PA(entry);
     }
     else
     {
@@ -58,7 +59,9 @@ static pte_t *walkto(pagetable_t pagetable, uint64 va, int alloc, int target,
         return 0;
       }
       xv::runtime::fill(pagetable, 0, PGSIZE);
-      *pte = PA2PTE(pagetable) | PTE_V;
+      // Kernel upper directories can now be installed lazily. Publish only
+      // after clearing the child; fault walkers acquire the same PTE.
+      __atomic_store_n(pte, PA2PTE(pagetable) | PTE_V, __ATOMIC_RELEASE);
     }
   }
   if (leaflevel)
@@ -1130,7 +1133,7 @@ unsigned permission_for(FaultAccess access)
                                           : PTE_R;
 }
 
-const VirtualRegion *accessible_region(const VirtualRegions &regions, uint64 size,
+const VirtualRegion *accessible_region(const VirtualAddressPool &regions, uint64 size,
                                        uint64 address, FaultAccess access)
 {
   auto *region = regions.find(address);
@@ -1154,7 +1157,7 @@ struct FaultUserFlow
   {
     pagetable_t table;
     uint64 size;
-    const VirtualRegions &regions;
+    const VirtualAddressPool &regions;
     uint64 address;
     FaultAccess access;
     const VirtualRegion *region = nullptr;
@@ -1387,7 +1390,7 @@ struct FaultUserFlow
 } // namespace
 
 FaultOutcome resolve_user_fault(pagetable_t table, uint64 size,
-                                const VirtualRegions &regions, uint64 address,
+                                const VirtualAddressPool &regions, uint64 address,
                                 FaultAccess access)
 {
   if (address >= MAXVA)
@@ -1401,7 +1404,7 @@ FaultOutcome resolve_user_fault(pagetable_t table, uint64 size,
 
 namespace
 {
-uint64 user_access(pagetable_t table, uint64 size, const VirtualRegions &regions,
+uint64 user_access(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
                    uint64 address, FaultAccess access)
 {
   if (!accessible_region(regions, size, address, access))
@@ -1419,7 +1422,7 @@ uint64 user_access(pagetable_t table, uint64 size, const VirtualRegions &regions
   return result.result == FaultResult::Resolved ? result.physical : 0;
 }
 
-uint64 accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 address)
+uint64 accessible_bytes(const VirtualAddressPool &regions, uint64 size, uint64 address)
 {
   auto *region = regions.find(address);
   auto end = region->end;
@@ -1436,7 +1439,7 @@ uint64 accessible_bytes(const VirtualRegions &regions, uint64 size, uint64 addre
 }
 } // namespace
 
-int copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions,
+int copy_to_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
                  uint64 destination, const char *source, uint64 bytes)
 {
   if (bytes > MAXVA || destination >= MAXVA || bytes > MAXVA - destination)
@@ -1464,7 +1467,7 @@ int copy_to_user(pagetable_t table, uint64 size, const VirtualRegions &regions,
   return 0;
 }
 
-int copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions,
+int copy_from_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
                    char *destination, uint64 source, uint64 bytes)
 {
   if (bytes > MAXVA || source >= MAXVA || bytes > MAXVA - source)
@@ -1492,7 +1495,7 @@ int copy_from_user(pagetable_t table, uint64 size, const VirtualRegions &regions
   return 0;
 }
 
-int copy_user_string(pagetable_t table, uint64 size, const VirtualRegions &regions,
+int copy_user_string(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
                      char *destination, uint64 source, uint64 maximum)
 {
   while (maximum)
