@@ -31,6 +31,7 @@
 @fn bool xv::process::AddressSpace::create(void *trap_frame, void *user_info)
 @brief 创建用户页表并登记特殊映射。
 @details 沿用 trampoline、trapframe 和只读用户 PID 页映射，再登记各自的访问权限；元数据失败通过 reset 回收全部候选资源，不发布半成品地址空间。
+@details 编排由 CreateFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-71495b3b41ddb9ad"></a>
@@ -61,6 +62,7 @@
 @fn bool xv::process::AddressSpace::copy_to(AddressSpace &child) const
 @brief 复制区域登记并以 COW 共享用户帧。
 @details 先显式复制区域元数据，再建立共享用户页；成功后发布子 size 和 heap 起点。失败由候选进程回收其页表和元数据，父表残留 COW 允许以后独占提升。
+@details 编排由 CopyFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-75a8c7ea8deccbc3"></a>
@@ -71,6 +73,7 @@
 @fn int xv::process::AddressSpace::resize(int bytes, bool eager)
 @brief 在已登记堆范围内调整逻辑 break。
 @details 正增长先登记页级 RWU 匿名区域，再按 eager 决定是否分配数据帧；失败撤销新增范围。负增长拒绝下溢和越过初始镜像/栈起点，删除区域后释放映射。只有成功才发布新 size。
+@details 编排由 ResizeFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-6a2eebb0fa906335"></a>
@@ -81,6 +84,7 @@
 @fn bool xv::process::AddressSpace::grow_to(unsigned long end, int permissions, bool stack)
 @brief 为候选镜像或用户栈登记并建立新映射。
 @details 拒绝倒退和超过 UTOP，登记页对齐范围及真实权限，分配失败撤销登记。成功更新 size 和初始 heap 起点；stack 参数区分用户栈与镜像区域。
+@details 编排由 GrowFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-55c0283e7aac7f96"></a>
@@ -88,9 +92,10 @@
 ## `xv::process::AddressSpace::protect_guard`
 
 ```doxygen
-@fn void xv::process::AddressSpace::protect_guard(unsigned long address)
+@fn bool xv::process::AddressSpace::protect_guard(unsigned long address)
 @brief 同时撤销保护页的区域权限与用户访问位。
 @details 先删除原登记并插入无权限 Guard，元数据失败返回 false，候选装载器据此放弃镜像；成功后清除 PTE_U，不把保护页变成可按需补页的空洞。
+@details 编排由 GuardFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-323d412cddaf0e22"></a>

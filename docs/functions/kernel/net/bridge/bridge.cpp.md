@@ -4,13 +4,13 @@
 
 ## 函数导航
 
+- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
+- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
+- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
 - [`xv::net::BridgeInterface::initialize`](bridge.cpp.md#fn-ce4d08412e7d6ce2)
 - [`xv::net::BridgeInterface::mac_address`](bridge.cpp.md#fn-e2285e8b355a3998)
-- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
 - [`xv::net::BridgeInterface::tick`](bridge.cpp.md#fn-ba92da7fc5981118)
-- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
 - [`xv::net::BridgeInterface::transmit`](bridge.cpp.md#fn-26b371580e62fdc8)
-- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
 
 <a id="fn-ce4d08412e7d6ce2"></a>
 
@@ -80,7 +80,7 @@
 ```doxygen
 @fn bool xv::net::BridgeInterface::forward(Layer2Port *ingress, unsigned epoch, Packet &frame)
 @brief 验证帧长、单播非零源、桥状态与接入代次，学习源 MAC 并形成泛洪或定向目标快照。
-@details 解锁后逐出口克隆且复核归属/代次，保留 MAC 和内容原样发送；必要时把输入页移交桥本机协议栈。
+@details 解锁后逐出口克隆且复核归属/代次，保留 MAC 和内容原样发送；必要时把输入页移交桥本机协议栈。 实现通过 ForwardFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @param ingress 入端口，本机发送为 nullptr。
 @param epoch 接收器快照对应的接入代次，本机发送传零。
 @param[in,out] frame 完整以太帧的独占页面；本机交付可消费输入页。

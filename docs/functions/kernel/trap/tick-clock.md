@@ -55,4 +55,5 @@
 @see xv::process::prepare_interruptible_sleep
 @see xv::process::sleep
 @see TickClock::interrupt
+@details 编排由 PauseFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```

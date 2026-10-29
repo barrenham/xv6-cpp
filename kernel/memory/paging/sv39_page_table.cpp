@@ -1,3 +1,6 @@
+module;
+#include "kernel/support/flow.h"
+
 module xv.memory;
 
 import :sv39;
@@ -50,89 +53,273 @@ OwnedSv39PageTable::OwnedSv39PageTable(PhysicalPageAllocator &memory,
   }
 }
 
+namespace flow = xv::flow;
+
+struct Sv39PageTable::LeafFlow
+{
+  struct Context
+  {
+    Sv39PageTable &owner;
+    VirtualAddress va;
+    PhysicalAddress pa;
+    unsigned target;
+    MemorySize permissions;
+    MemorySize *table, *entry = nullptr;
+    unsigned level = 2;
+    MappingResult result = MappingResult::Ok;
+  };
+
+  static bool descending(Context &c) noexcept
+  {
+    return c.level > c.target;
+  }
+
+  static void lookup(Context &c) noexcept
+  {
+    c.entry = &c.table[index_at(c.va, c.level)];
+  }
+
+  static bool valid(Context &c) noexcept
+  {
+    return *c.entry & Valid;
+  }
+
+  static bool leaf(Context &c) noexcept
+  {
+    return *c.entry & Leaf;
+  }
+
+  static void collision(Context &c) noexcept
+  {
+    c.result = MappingResult::Collision;
+  }
+
+  static void descend(Context &c) noexcept
+  {
+    c.table = child_table(*c.entry);
+  }
+
+  static void allocate(Context &c) noexcept
+  {
+    OwnedPage candidate(c.owner.memory_);
+    if (!candidate)
+    {
+      c.result = MappingResult::OutOfMemory;
+      return;
+    }
+    detail::fill(candidate.get(), 0, PageSize);
+    auto address = PhysicalAddress::from_pointer(candidate.get());
+    if (!address.is_aligned())
+    {
+      c.result = MappingResult::InvalidRange;
+      return;
+    }
+    *c.entry = encode(address) | Valid;
+    c.table = static_cast<MemorySize *>(candidate.release());
+  }
+
+  static bool ok(Context &c) noexcept
+  {
+    return c.result == MappingResult::Ok;
+  }
+
+  static void next(Context &c) noexcept
+  {
+    --c.level;
+  }
+
+  static void publish(Context &c) noexcept
+  {
+    auto &entry = c.table[index_at(c.va, c.target)];
+    if (entry & Valid)
+    {
+      c.result = MappingResult::Collision;
+      return;
+    }
+    entry = encode(c.pa) | c.permissions | Valid;
+    c.result = MappingResult::Ok;
+  }
+  struct Level;
+  struct Lookup;
+  struct ExistingLeaf;
+  struct Collision;
+  struct Descend;
+  struct Allocate;
+  struct Next;
+  struct Publish;
+  using Graph = flow::graph<
+      Level,
+      flow::types<
+          flow::node<Level, flow::noop,
+                     flow::branch<flow::condition<&descending>, flow::go<Lookup>,
+                                  flow::go<Publish>>>,
+          flow::node<Lookup, flow::action<&lookup>,
+                     flow::branch<flow::condition<&valid>, flow::go<ExistingLeaf>,
+                                  flow::go<Allocate>>>,
+          flow::node<ExistingLeaf, flow::noop,
+                     flow::branch<flow::condition<&leaf>, flow::go<Collision>,
+                                  flow::go<Descend>>>,
+          flow::node<Collision, flow::action<&collision>, flow::stop>,
+          flow::node<Descend, flow::action<&descend>, flow::go<Next>>,
+          flow::node<Allocate, flow::action<&allocate>,
+                     flow::branch<flow::condition<&ok>, flow::go<Next>, flow::stop>>,
+          flow::node<Next, flow::action<&next>, flow::go<Level>>,
+          flow::node<Publish, flow::action<&publish>, flow::stop>>>;
+};
+
+struct Sv39PageTable::RangeFlow
+{
+  struct Context
+  {
+    Sv39PageTable &owner;
+    VirtualAddress va;
+    PhysicalAddress pa;
+    MemorySize bytes, permissions;
+    Sv39LeafLevel level = Sv39LeafLevel::Page4KiB;
+    MemorySize step = 0;
+    MappingResult result = MappingResult::InvalidRange;
+  };
+
+  static bool root(Context &c) noexcept
+  {
+    return c.owner.root_ != nullptr;
+  }
+
+  static void out_of_memory(Context &c) noexcept
+  {
+    c.result = MappingResult::OutOfMemory;
+  }
+
+  static bool range(Context &c) noexcept
+  {
+    return c.bytes && !(c.va % PageSize) && c.pa.is_aligned() &&
+           !(c.bytes % PageSize) && c.va < VirtualLimit &&
+           c.bytes <= VirtualLimit - c.va && c.pa.raw() < (1UL << 56) &&
+           c.bytes <= (1UL << 56) - c.pa.raw();
+  }
+
+  static bool permissions(Context &c) noexcept
+  {
+    constexpr MemorySize Allowed =
+        Read | Write | Execute | User | Global | Accessed | Dirty;
+    return !(c.permissions & ~Allowed) && (c.permissions & (Read | Execute)) &&
+           (!(c.permissions & Write) || (c.permissions & Read));
+  }
+
+  static void invalid_permissions(Context &c) noexcept
+  {
+    c.result = MappingResult::InvalidPermissions;
+  }
+
+  static void invalid_range(Context &c) noexcept
+  {
+    c.result = MappingResult::InvalidRange;
+  }
+
+  static bool remaining(Context &c) noexcept
+  {
+    return c.bytes != 0;
+  }
+
+  static void choose(Context &c) noexcept
+  {
+    c.level = c.owner.policy_.choose(c.va, c.pa, c.bytes);
+  }
+
+  static bool level(Context &c) noexcept
+  {
+    return static_cast<unsigned>(c.level) <= 2;
+  }
+
+  static void step(Context &c) noexcept
+  {
+    c.step = leaf_size(c.level);
+  }
+
+  static bool aligned(Context &c) noexcept
+  {
+    return c.step <= c.bytes && !(c.va % c.step) && c.pa.is_aligned(c.step);
+  }
+
+  static void map(Context &c) noexcept
+  {
+    c.result =
+        c.owner.map_leaf(c.va, c.pa, static_cast<unsigned>(c.level), c.permissions);
+  }
+
+  static bool ok(Context &c) noexcept
+  {
+    return c.result == MappingResult::Ok;
+  }
+
+  static void advance(Context &c) noexcept
+  {
+    c.va += c.step;
+    c.pa = c.pa.advanced(c.step);
+    c.bytes -= c.step;
+  }
+
+  static void success(Context &c) noexcept
+  {
+    c.result = MappingResult::Ok;
+  }
+  struct Root;
+  struct OutOfMemory;
+  struct Range;
+  struct Permissions;
+  struct InvalidPermissions;
+  struct InvalidRange;
+  struct Remaining;
+  struct Choose;
+  struct Step;
+  struct Map;
+  struct Advance;
+  struct Success;
+  using Graph = flow::graph<
+      Root,
+      flow::types<
+          flow::node<Root, flow::noop,
+                     flow::branch<flow::condition<&root>, flow::go<Range>,
+                                  flow::go<OutOfMemory>>>,
+          flow::node<OutOfMemory, flow::action<&out_of_memory>, flow::stop>,
+          flow::node<Range, flow::noop,
+                     flow::branch<flow::condition<&range>, flow::go<Permissions>,
+                                  flow::go<InvalidRange>>>,
+          flow::node<Permissions, flow::noop,
+                     flow::branch<flow::condition<&permissions>, flow::go<Remaining>,
+                                  flow::go<InvalidPermissions>>>,
+          flow::node<InvalidPermissions, flow::action<&invalid_permissions>,
+                     flow::stop>,
+          flow::node<InvalidRange, flow::action<&invalid_range>, flow::stop>,
+          flow::node<Remaining, flow::noop,
+                     flow::branch<flow::condition<&remaining>, flow::go<Choose>,
+                                  flow::go<Success>>>,
+          flow::node<Choose, flow::action<&choose>,
+                     flow::branch<flow::condition<&level>, flow::go<Step>,
+                                  flow::go<InvalidRange>>>,
+          flow::node<Step, flow::action<&step>,
+                     flow::branch<flow::condition<&aligned>, flow::go<Map>,
+                                  flow::go<InvalidRange>>>,
+          flow::node<Map, flow::action<&map>,
+                     flow::branch<flow::condition<&ok>, flow::go<Advance>, flow::stop>>,
+          flow::node<Advance, flow::action<&advance>, flow::go<Remaining>>,
+          flow::node<Success, flow::action<&success>, flow::stop>>>;
+};
+
 MappingResult Sv39PageTable::map_leaf(VirtualAddress va, PhysicalAddress pa,
                                       unsigned target, MemorySize permissions)
 {
-  auto *table = root_;
-  for (unsigned level = 2; level > target; --level)
-  {
-    auto &entry = table[index_at(va, level)];
-    if (entry & Valid)
-    {
-      if (entry & Leaf)
-      {
-        return MappingResult::Collision;
-      }
-      table = child_table(entry);
-    }
-    else
-    {
-      OwnedPage candidate(memory_);
-      if (!candidate)
-      {
-        return MappingResult::OutOfMemory;
-      }
-      detail::fill(candidate.get(), 0, PageSize);
-      auto address = PhysicalAddress::from_pointer(candidate.get());
-      if (!address.is_aligned())
-      {
-        return MappingResult::InvalidRange;
-      }
-      entry = encode(address) | Valid;
-      table = static_cast<MemorySize *>(candidate.release());
-    }
-  }
-  auto &entry = table[index_at(va, target)];
-  if (entry & Valid)
-  {
-    return MappingResult::Collision;
-  }
-  entry = encode(pa) | permissions | Valid;
-  return MappingResult::Ok;
+  LeafFlow::Context context{*this, va, pa, target, permissions, root_};
+  (void)LeafFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 MappingResult Sv39PageTable::map_range(VirtualAddress va, PhysicalAddress pa,
                                        MemorySize bytes, MemorySize permissions)
 {
-  if (!root_)
-  {
-    return MappingResult::OutOfMemory;
-  }
-  if (!bytes || va % PageSize || !pa.is_aligned() || bytes % PageSize ||
-      va >= VirtualLimit || bytes > VirtualLimit - va || pa.raw() >= (1UL << 56) ||
-      bytes > (1UL << 56) - pa.raw())
-  {
-    return MappingResult::InvalidRange;
-  }
-  constexpr MemorySize Allowed =
-      Read | Write | Execute | User | Global | Accessed | Dirty;
-  if ((permissions & ~Allowed) || !(permissions & (Read | Execute)) ||
-      ((permissions & Write) && !(permissions & Read)))
-  {
-    return MappingResult::InvalidPermissions;
-  }
-  while (bytes)
-  {
-    auto level = policy_.choose(va, pa, bytes);
-    if (static_cast<unsigned>(level) > 2)
-    {
-      return MappingResult::InvalidRange;
-    }
-    auto step = leaf_size(level);
-    if (step > bytes || va % step || !pa.is_aligned(step))
-    {
-      return MappingResult::InvalidRange;
-    }
-    auto result = map_leaf(va, pa, static_cast<unsigned>(level), permissions);
-    if (result != MappingResult::Ok)
-    {
-      return result;
-    }
-    va += step;
-    pa = pa.advanced(step);
-    bytes -= step;
-  }
-  return MappingResult::Ok;
+  RangeFlow::Context context{*this, va, pa, bytes, permissions};
+  (void)RangeFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 bool Sv39PageTable::translate(VirtualAddress va, PageTranslation &result) const

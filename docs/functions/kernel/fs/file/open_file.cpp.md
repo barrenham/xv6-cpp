@@ -98,8 +98,10 @@
 
 ```doxygen
 @fn void xv::fs::OpenFileTable::release(File *file)
-@brief 表锁内减少引用，非最后引用立即返回。
+@brief 归还共享文件引用，最后引用锁外关闭后端并回收槽位。
 @details 表锁内减少引用，非最后引用立即返回。最后引用把槽设为 ref=-1，解锁后虚调用后端 close，等待其可能睡眠的资源清理完成，再重新加锁清空指针并设 ref=0。内置适配器在 close 期间仍位于保留槽中；不会与新打开的对象重叠。未绑定 File 也可安全回滚。
+@details 流程由 ReleaseFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@details 共享引用在文件表锁内直接递减并解锁，不进行图分派；最后引用与无效引用检查进入 ReleaseFlow，保留 tombstone、锁外 close 和完成后回收槽位的协议。
 ```
 
 <a id="fn-dd0a9f0a843218e4"></a>
@@ -110,6 +112,8 @@
 @fn bool xv::fs::OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking, bool append)
 @brief 建立每次打开的 inode 或设备后端。
 @details 沿用独立快照和设备会话所有权；初始化后以原子操作发布 APPEND 标志，inode/设备后端仍受内置存储大小检查约束。
+@details 流程由 BindInodeFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 后端成功构造并配置返回 true；设备打开或快照取得失败返回 false。
 ```
 
 <a id="fn-71d5734b8a7caee5"></a>
@@ -219,6 +223,7 @@
 @fn void xv::fs::DeviceRegistry::attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device)
 @brief 在启动阶段登记一个静态字符设备及其名称和设备号。
 @details 旧形式登记未命名的 minor=0 设备；命名形式复制最多 13 字节名称，拒绝斜杠、点目录、重复名称、重复 major/minor、容量超限及封存后的修改。设备实例必须保持系统级生命周期，注册阶段不允许并发使用。
+@details 流程由 AttachFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
 ```
 
 <a id="fn-ad2454960d73ee76"></a>

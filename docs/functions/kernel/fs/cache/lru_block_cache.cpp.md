@@ -40,11 +40,9 @@
 @brief LRU 块缓存：取得。
 @param dev 块设备编号。
 @param blockno 本次操作使用的 blockno 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `lock_.release` → `b->lock.acquire` → `detail::fail`。
-@details 本函数可见的状态更新包括：`b->dev = dev;`；`b->blockno = blockno;`；`b->valid = 0;`；`b->refcnt = 1;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`b->dev == dev && b->blockno == blockno`；`b->refcnt == 0`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`lock_.acquire` → `lock_.release` → `b->lock.acquire`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：`b`。应结合上面的条件检查区分正常值、空值和错误值。
+@return 返回已保留引用且持有缓冲睡眠锁的 Buffer；无可用缓冲时诊断为致命错误。
+@details 流程由 GetFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
 ```
 
 <a id="fn-6f7b9e574580bc22"></a>
@@ -83,11 +81,9 @@
 @fn void xv::fs::LruBlockCache::release(Buffer &buffer)
 @brief LRU 块缓存：释放当前引用或归还对象占用的资源。
 @param buffer 接收或提交的数据缓冲。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`b->lock.holding` → `detail::fail` → `b->lock.release` → `lock_.acquire` → `lock_.release`。
-@details 本函数可见的状态更新包括：`b->next->prev = b->prev;`；`b->prev->next = b->next;`；`b->next = head_.next;`；`b->prev = &head_;`；`head_.next->prev = b;`；`head_.next = b;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!b->lock.holding()`；`b->refcnt == 0`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`b->lock.release` → `lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 ReleaseFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
 ```
 
 <a id="fn-752c3a0a65094c6c"></a>

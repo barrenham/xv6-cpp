@@ -28,6 +28,8 @@ public:
 
 private:
 
+  struct AcquireFlow;
+
   mutable SpinLock state_lock_;
   bool locked_ = false;
   int pid_ = 0;

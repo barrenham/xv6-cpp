@@ -9,6 +9,9 @@ function(xv_add_trap_modules target)
       "${module_root}/dispatch/trap_dispatcher.cppm"
       "${module_root}/clock/tick_clock.cppm"
       "${module_root}/controller/trap_controller.cppm"
+      "${module_root}/controller/flow.cppm"
+      "${module_root}/dispatch/flow.cppm"
+      "${module_root}/clock/flow.cppm"
       "${module_root}/handlers/handlers.cppm"
       "${module_root}/platform/platform.cppm"
   )

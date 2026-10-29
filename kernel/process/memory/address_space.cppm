@@ -25,7 +25,11 @@ public:
     return size_;
   }
 
-  unsigned long observed_size() const { return __atomic_load_n(&observed_size_, __ATOMIC_ACQUIRE); }
+  unsigned long observed_size() const
+  {
+    return __atomic_load_n(&observed_size_, __ATOMIC_ACQUIRE);
+  }
+
   bool create(void *trap_frame, void *user_info);
   void reset();
   void swap(AddressSpace &other);
@@ -34,14 +38,26 @@ public:
   bool grow_to(unsigned long end, int permissions, bool stack = false);
   bool protect_guard(unsigned long address);
   unsigned long translate(unsigned long address) const;
-  xv::memory::FaultOutcome handle_fault(unsigned long address, xv::memory::FaultAccess access);
-  const xv::memory::VirtualRegions &regions() const { return regions_; }
+  xv::memory::FaultOutcome handle_fault(unsigned long address,
+                                        xv::memory::FaultAccess access);
+
+  const xv::memory::VirtualRegions &regions() const
+  {
+    return regions_;
+  }
+
   int copy_in(void *destination, unsigned long source, unsigned long bytes) const;
   int copy_out(unsigned long destination, const void *source,
                unsigned long bytes) const;
   int copy_string(char *destination, unsigned long source, unsigned long limit) const;
 
 private:
+
+  struct CreateFlow;
+  struct ResizeFlow;
+  struct GrowFlow;
+  struct CopyFlow;
+  struct GuardFlow;
 
   PageTable table_ = nullptr;
   unsigned long size_ = 0;

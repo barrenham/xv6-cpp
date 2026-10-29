@@ -1,6 +1,7 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :loopback_flows;
 import :loopback;
 
 namespace xv::net
@@ -25,41 +26,14 @@ bool LoopbackInterface::owns(unsigned value) const
 
 int LoopbackInterface::transmit(Packet &packet, unsigned)
 {
-  if (!up())
-  {
-    return -ENETUNREACH;
-  }
-  if (packet.size() > mtu())
-  {
-    return -EMSGSIZE;
-  }
-  xv::sync::ScopedLock guard(lock_);
-  if (count_ == 16)
-  {
-    return -ENOBUFS;
-  }
-  packets_[(head_ + count_) % 16] = {packet.release(), packet.size(), packet.context()};
-  ++count_;
-  return 0;
+  TransmitFlow::Context ctx{*this, packet};
+  (void)TransmitFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 void LoopbackInterface::tick(unsigned long)
 {
-  for (unsigned budget = 0; budget < 64; ++budget)
-  {
-    lock_.acquire();
-    if (!count_)
-    {
-      lock_.release();
-      return;
-    }
-    auto pending = packets_[head_];
-    packets_[head_] = {};
-    head_ = (head_ + 1) % 16;
-    --count_;
-    lock_.release();
-    Packet packet(pending.page, pending.length, pending.context);
-    deliver(packet);
-  }
+  DrainFlow::Context ctx{*this};
+  (void)DrainFlow::Graph::run<0>(ctx);
 }
 } // namespace xv::net

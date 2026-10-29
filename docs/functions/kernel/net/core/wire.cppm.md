@@ -4,15 +4,15 @@
 
 ## 函数导航
 
+- [`xv::net::wire::before`](wire.cppm.md#fn-04826648abdb46e6)
+- [`xv::net::wire::copy`](wire.cppm.md#fn-f404a3b1ccf22d84)
+- [`xv::net::wire::equal`](wire.cppm.md#fn-fe315e7951ac8144)
 - [`xv::net::wire::read16`](wire.cppm.md#fn-03097c10e32cc1a1)
 - [`xv::net::wire::read32`](wire.cppm.md#fn-5b8eedf076970009)
+- [`xv::net::wire::sum`](wire.cppm.md#fn-a3807f23f4c0d7fd)
 - [`xv::net::wire::write16`](wire.cppm.md#fn-1bc88c4d8628e598)
 - [`xv::net::wire::write32`](wire.cppm.md#fn-13e75d50c52e6be9)
-- [`xv::net::wire::copy`](wire.cppm.md#fn-f404a3b1ccf22d84)
 - [`xv::net::wire::zero`](wire.cppm.md#fn-45e0ae947319ccd7)
-- [`xv::net::wire::equal`](wire.cppm.md#fn-fe315e7951ac8144)
-- [`xv::net::wire::sum`](wire.cppm.md#fn-a3807f23f4c0d7fd)
-- [`xv::net::wire::before`](wire.cppm.md#fn-04826648abdb46e6)
 
 <a id="fn-03097c10e32cc1a1"></a>
 

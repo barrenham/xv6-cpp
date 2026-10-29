@@ -5,11 +5,11 @@
 ## 函数导航
 
 - [`xv::net::LoopbackInterface::LoopbackInterface`](loopback.cppm.md#fn-5f2bd08ab86d4933)
+- [`xv::net::LoopbackInterface::accepts_destination`](loopback.cppm.md#fn-1a600c69d995581e)
 - [`xv::net::LoopbackInterface::initialize`](loopback.cpp.md#fn-21e76ce52e463582)
 - [`xv::net::LoopbackInterface::owns`](loopback.cpp.md#fn-19bc88c16594dcb2)
-- [`xv::net::LoopbackInterface::accepts_destination`](loopback.cppm.md#fn-1a600c69d995581e)
-- [`xv::net::LoopbackInterface::transmit`](loopback.cpp.md#fn-bb6135ec4e85a90a)
 - [`xv::net::LoopbackInterface::tick`](loopback.cpp.md#fn-49f2bb3530d94f42)
+- [`xv::net::LoopbackInterface::transmit`](loopback.cpp.md#fn-bb6135ec4e85a90a)
 
 <a id="fn-5f2bd08ab86d4933"></a>
 

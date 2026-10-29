@@ -27,7 +27,6 @@
 - [`xv::fs::MemoryDevice::put_sync`](devfs.cpp.md#fn-2b92efdd15790e32)
 - [`xv::fs::MemoryDevice::read`](devfs.cpp.md#fn-78dcb885ab7432e2)
 - [`xv::fs::MemoryDevice::write`](devfs.cpp.md#fn-eecfc6d4b67d727b)
-- [`xv::fs::decimal_name`](devfs.cpp.md#fn-639d0f0e824db40c)
 
 <a id="fn-565299482e62a153"></a>
 
@@ -137,6 +136,7 @@
 @fn void xv::fs::DevFileSystem::release(Inode *node)
 @brief 释放设备节点引用并在必要时归还 PTY 固定引用。
 @details 引用锁内减少 ref，动态从端节点降至零时在锁外归还对应 PTY 固定引用。静态节点不销毁；动态槽允许后续重新绑定同编号，但旧对象最后引用消失前该编号不会被新 PTY 取得。
+@details 流程由 ReleaseFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-6590a1415f934484"></a>
@@ -187,6 +187,7 @@
 @fn int xv::fs::DevFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)
 @brief 按字节偏移合成 /dev 或 /dev/pts 目录记录。
 @details 保持 16 字节 dirent ABI，支持非对齐读取、短读和复制失败。pts 以编号对应固定槽，未发布编号输出空目录项，避免枚举期间新增/删除造成后续条目偏移移动；普通根列出注册设备和 pts。
+@details 流程由 ReadFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-5b759172a8b7cbd0"></a>
@@ -197,6 +198,7 @@
 @fn Inode *xv::fs::DevFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offset)
 @brief 查找静态设备或活动命名 PTY。
 @details 动态 pts 的拥有者来自创建者凭据，模式 0600。先查询 PTY 拥有者再取引用锁，避免锁序反转；新缓存槽在引用发布前写好属性，已有引用保持编号固定。
+@details 流程由 LookupFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-fb5edfa93d9d9127"></a>
@@ -207,6 +209,7 @@
 @fn Inode *xv::fs::DevFileSystem::create_at(Inode *directory, const char *name, short type, short, short)
 @brief 让 O_CREATE 复用已存在的字符设备。
 @details 只接受 T_FILE 的打开意图，自行锁定借用父目录并查找名称；目标为 T_DEVICE 时返回已锁定引用。新名称、目录和其他创建类型返回 nullptr，目录内容始终不变。
+@details 流程由 CreateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-c5abadcff72de9ca"></a>
@@ -267,16 +270,6 @@
 @fn int xv::fs::DevFileSystem::unlink_at(Inode *, const char *)
 @brief 拒绝删除 devfs 目录项。
 @details 始终返回 -1；设备条目不会因 unlink 从注册表移除。
-```
-
-<a id="fn-639d0f0e824db40c"></a>
-
-## `xv::fs::decimal_name`
-
-```doxygen
-@fn void xv::fs::decimal_name(unsigned value, char *name)
-@brief 把 PTY 编号格式化为十进制目录名称。
-@details 使用有界局部反向数字缓冲，输出以零终止；调用者提供 DIRSIZ 字节，当前编号范围 0..63。
 ```
 
 <a id="fn-77a253e4e89cb39a"></a>

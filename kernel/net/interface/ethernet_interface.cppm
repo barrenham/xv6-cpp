@@ -60,6 +60,8 @@ public:
 
 private:
 
+  struct TransmitFlow;
+
   void receive(Packet &packet) override;
   EthernetLayer link_;
   ArpCache arp_;

@@ -1,6 +1,7 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :registry_flows;
 import :registry;
 
 namespace xv::net
@@ -8,42 +9,16 @@ namespace xv::net
 int InetSocket::bind(Endpoint local)
 {
   xv::sync::ScopedLock guard(registry_.lock());
-  if (local_.port || (local.address && !registry_.ip().local(local.address)))
-  {
-    return -1;
-  }
-  if (!local.port)
-  {
-    local.port = registry_.ephemeral(protocol_);
-  }
-  if (!local.port || registry_.port_used(protocol_, local.port, this, local.address))
-  {
-    return -EADDRINUSE;
-  }
-  local_ = local;
-  return 0;
+  BindFlow::Context ctx{*this, local};
+  (void)BindFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 int InetSocket::auto_bind(unsigned destination)
 {
-  unsigned source = registry_.ip().source_for(destination, local_.address);
-  if (!source)
-  {
-    return -ENETUNREACH;
-  }
-  if (!local_.port)
-  {
-    local_.port = registry_.ephemeral(protocol_);
-  }
-  if (!local_.port)
-  {
-    return -EADDRINUSE;
-  }
-  if (protocol_ == 6)
-  {
-    local_.address = source;
-  }
-  return 0;
+  BindFlow::Context ctx{*this, {}, destination};
+  (void)BindFlow::AutoGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 int InetSocket::listen(int)

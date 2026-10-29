@@ -28,6 +28,11 @@ public:
 
 private:
 
+  struct CancelFlow;
+  struct PrepareFlow;
+  struct WakeFlow;
+  struct ExpireFlow;
+
   friend class PollWait;
   xv::sync::SpinLock timer_lock_;
   PollWait *timers_ = nullptr;

@@ -25,6 +25,14 @@ public:
 
 private:
 
+  struct WaitProtocol;
+  struct BeginFlow;
+  struct EndFlow;
+  struct CommitFlow;
+  struct RecoverFlow;
+  struct RecordFlow;
+  struct SyncFlow;
+
   struct Header
   {
     int count = 0;
@@ -58,9 +66,18 @@ public:
     journal_->begin();
   }
 
-  inline explicit Transaction(bool persistent) : journal_(persistent ? &journal() : nullptr)
+  inline explicit Transaction(bool persistent)
+      : journal_(persistent ? &journal() : nullptr)
   {
-    if (journal_) { journal_->begin(); other_ = secondary; if (other_) other_->begin(); }
+    if (journal_)
+    {
+      journal_->begin();
+      other_ = secondary;
+      if (other_)
+      {
+        other_->begin();
+      }
+    }
   }
 
   inline static Journal *secondary = nullptr;
@@ -81,7 +98,11 @@ public:
   {
     if (journal_)
     {
-      if (other_) { other_->end(); other_ = nullptr; }
+      if (other_)
+      {
+        other_->end();
+        other_ = nullptr;
+      }
       journal_->end();
       journal_ = nullptr;
     }

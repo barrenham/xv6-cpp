@@ -10,6 +10,21 @@
 
 ## 函数导航
 
+- [`xv::syscall::GetGroupsFlow::capacity`](sysproc.cpp.md#fn-a3327362c7faeccb)
+- [`xv::syscall::GetGroupsFlow::copy`](sysproc.cpp.md#fn-cbe3b521989823e9)
+- [`xv::syscall::GetGroupsFlow::query`](sysproc.cpp.md#fn-2eeefab5a39ca6e6)
+- [`xv::syscall::GetGroupsFlow::success`](sysproc.cpp.md#fn-c5bd897c28eae130)
+- [`xv::syscall::PgAccessFlow::bounds`](sysproc.cpp.md#fn-2c551d7ba8d68336)
+- [`xv::syscall::PgAccessFlow::clear`](sysproc.cpp.md#fn-0d8e3e8993ae2b97)
+- [`xv::syscall::PgAccessFlow::copy_result`](sysproc.cpp.md#fn-7d398d1be53676ad)
+- [`xv::syscall::PgAccessFlow::demote`](sysproc.cpp.md#fn-3666f2d7f1ee58af)
+- [`xv::syscall::PgAccessFlow::output`](sysproc.cpp.md#fn-38d835c9c91fbbd4)
+- [`xv::syscall::PgAccessFlow::prepare`](sysproc.cpp.md#fn-dc9a2bc8b631d3c9)
+- [`xv::syscall::PgAccessFlow::sample`](sysproc.cpp.md#fn-0d919278228a518d)
+- [`xv::syscall::PgAccessFlow::sources`](sysproc.cpp.md#fn-6b82e6da6fa10296)
+- [`xv::syscall::SetGroupsFlow::apply`](sysproc.cpp.md#fn-ff45fa0513d870a2)
+- [`xv::syscall::SetGroupsFlow::capacity`](sysproc.cpp.md#fn-dfef84e3c2fe7a82)
+- [`xv::syscall::SetGroupsFlow::copy`](sysproc.cpp.md#fn-a635e73518ce6011)
 - [`xv::syscall::sys_clockticks`](sysproc.cpp.md#fn-42d4b9f1d1ddbf8f)
 - [`xv::syscall::sys_cpupin`](handlers.cppm.md#fn-e260733f13c74103)
 - [`xv::syscall::sys_exit`](sysproc.cpp.md#fn-407b853e794ab99c)
@@ -307,6 +322,7 @@
 @fn uint64 xv::syscall::sys_pgaccess(void)
 @brief 验证访问位采样范围并通过 COW 安全地写回位图。
 @details 输出必须已映射且为用户可写或 COW，不能是纯只读或懒空洞；采样前按需拆大页，copyout 使用区域权限并处理 COW。失败不清除输入访问位，成功后清位并刷新翻译。
+@details 流程由 PgAccessFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 <a id="fn-898db4e88339d123"></a>
 
@@ -326,6 +342,7 @@
 @fn uint64 xv::syscall::sys_setgroups()
 @brief 从用户内存复制并替换附加组。
 @details 校验数量 0..16，先安全 copy_in 到内核固定数组，再由凭据对象执行 root 检查与整体替换。坏指针或无权限返回 -1。
+@details 流程由 SetGroupsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-b06caf5a4800bafa"></a>
@@ -336,6 +353,7 @@
 @fn uint64 xv::syscall::sys_getgroups()
 @brief 读取附加组数量或列表。
 @details count=0 返回当前组数；容量不足、负数或用户复制失败返回 -1。一次凭据快照保证数量与数组来自同一状态。
+@details 流程由 GetGroupsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-308f76c7fc068944"></a>
@@ -427,4 +445,154 @@
 @brief 读取 RISC-V 单调硬件时间计数。
 @details 在内核上下文执行 rdtime，并原样返回 64 位计数；不是墙上时间，也不是随机数。用户态通过 clockticks 包装调用。
 @return 硬件 time 计数值，单位取决于平台时基。
+```
+
+<a id="fn-2c551d7ba8d68336"></a>
+
+## `xv::syscall::PgAccessFlow::bounds`
+
+```doxygen
+@fn static bool xv::syscall::PgAccessFlow::bounds(Context &c) noexcept
+@brief 检查页数和地址上界并对齐采样起点。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-0d8e3e8993ae2b97"></a>
+
+## `xv::syscall::PgAccessFlow::clear`
+
+```doxygen
+@fn static void xv::syscall::PgAccessFlow::clear(Context &c) noexcept
+@brief 复制成功后清除采样页访问位并刷新地址转换。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-7d398d1be53676ad"></a>
+
+## `xv::syscall::PgAccessFlow::copy_result`
+
+```doxygen
+@fn static bool xv::syscall::PgAccessFlow::copy_result(Context &c) noexcept
+@brief 复制完整位图给用户并报告结果。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3666f2d7f1ee58af"></a>
+
+## `xv::syscall::PgAccessFlow::demote`
+
+```doxygen
+@fn static bool xv::syscall::PgAccessFlow::demote(Context &c) noexcept
+@brief 将采样范围内超页按原策略降级为单页映射。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-38d835c9c91fbbd4"></a>
+
+## `xv::syscall::PgAccessFlow::output`
+
+```doxygen
+@fn static bool xv::syscall::PgAccessFlow::output(Context &c) noexcept
+@brief 完整检查输出范围内用户可写或 COW 映射。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-dc9a2bc8b631d3c9"></a>
+
+## `xv::syscall::PgAccessFlow::prepare`
+
+```doxygen
+@fn static void xv::syscall::PgAccessFlow::prepare(Context &c) noexcept
+@brief 计算位图字节数并清零实际使用部分。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-0d919278228a518d"></a>
+
+## `xv::syscall::PgAccessFlow::sample`
+
+```doxygen
+@fn static void xv::syscall::PgAccessFlow::sample(Context &c) noexcept
+@brief 采集各页硬件访问位到本次位图。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6b82e6da6fa10296"></a>
+
+## `xv::syscall::PgAccessFlow::sources`
+
+```doxygen
+@fn static bool xv::syscall::PgAccessFlow::sources(Context &c) noexcept
+@brief 完整检查采样范围内所有用户叶映射。
+@details 保持范围验证、输出映射验证、超页降级、采样、复制和最后清位的顺序；失败不清访问位，固定页扫描为直接循环。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a3327362c7faeccb"></a>
+
+## `xv::syscall::GetGroupsFlow::capacity`
+
+```doxygen
+@fn static bool xv::syscall::GetGroupsFlow::capacity(Context &c) noexcept
+@brief 检查非查询输出容量是否覆盖快照中的全部组。
+@details 凭据快照在入口参数读取后取得；零数量直接查询，容量不足不触及输出，空组集合不复制用户内存。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-cbe3b521989823e9"></a>
+
+## `xv::syscall::GetGroupsFlow::copy`
+
+```doxygen
+@fn static bool xv::syscall::GetGroupsFlow::copy(Context &c) noexcept
+@brief 仅非空组集合复制到用户地址并报告结果。
+@details 凭据快照在入口参数读取后取得；零数量直接查询，容量不足不触及输出，空组集合不复制用户内存。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-2eeefab5a39ca6e6"></a>
+
+## `xv::syscall::GetGroupsFlow::query`
+
+```doxygen
+@fn static bool xv::syscall::GetGroupsFlow::query(Context &c) noexcept { return c.count == 0; }
+@brief 检查是否只查询补充组数量。
+@details 凭据快照在入口参数读取后取得；零数量直接查询，容量不足不触及输出，空组集合不复制用户内存。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c5bd897c28eae130"></a>
+
+## `xv::syscall::GetGroupsFlow::success`
+
+```doxygen
+@fn static void xv::syscall::GetGroupsFlow::success(Context &c) noexcept { c.result = c.state.group_count; }
+@brief 记录凭据快照中的补充组数量。
+@details 凭据快照在入口参数读取后取得；零数量直接查询，容量不足不触及输出，空组集合不复制用户内存。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-ff45fa0513d870a2"></a>
+
+## `xv::syscall::SetGroupsFlow::apply`
+
+```doxygen
+@fn static void xv::syscall::SetGroupsFlow::apply(Context &c) noexcept
+@brief 调用原凭据组提交策略并保存业务返回值。
+@details 固定数组留在原调用帧且不清零；先验证数量和复制输入，后交由原凭据业务检查权限并提交，零数量跳过指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-dfef84e3c2fe7a82"></a>
+
+## `xv::syscall::SetGroupsFlow::capacity`
+
+```doxygen
+@fn static bool xv::syscall::SetGroupsFlow::capacity(Context &c) noexcept { return c.count >= 0 && c.count <= 16; }
+@brief 检查补充组数量是否处于零到十六。
+@details 固定数组留在原调用帧且不清零；先验证数量和复制输入，后交由原凭据业务检查权限并提交，零数量跳过指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a635e73518ce6011"></a>
+
+## `xv::syscall::SetGroupsFlow::copy`
+
+```doxygen
+@fn static bool xv::syscall::SetGroupsFlow::copy(Context &c) noexcept
+@brief 仅非零数量从用户复制组数组。
+@details 固定数组留在原调用帧且不清零；先验证数量和复制输入，后交由原凭据业务检查权限并提交，零数量跳过指针。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

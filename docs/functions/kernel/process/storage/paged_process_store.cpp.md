@@ -10,6 +10,18 @@
 
 ## 函数导航
 
+- [`xv::process::PagedProcessStore::AllocateFlow::construct`](paged_process_store.cpp.md#fn-159ab3119d8156b5)
+- [`xv::process::PagedProcessStore::AllocateFlow::has_page`](paged_process_store.cpp.md#fn-8cc0bf2c16fb13e4)
+- [`xv::process::PagedProcessStore::AllocateFlow::has_stack`](paged_process_store.cpp.md#fn-1199815cd7310cfc)
+- [`xv::process::PagedProcessStore::AllocateFlow::page`](paged_process_store.cpp.md#fn-fc3ab79e1826eac5)
+- [`xv::process::PagedProcessStore::AllocateFlow::publish`](paged_process_store.cpp.md#fn-8e66bc154e7394e8)
+- [`xv::process::PagedProcessStore::AllocateFlow::rollback`](paged_process_store.cpp.md#fn-3728d96b78ab4760)
+- [`xv::process::PagedProcessStore::AllocateFlow::stack`](paged_process_store.cpp.md#fn-8250f0d0f78d17f9)
+- [`xv::process::PagedProcessStore::ReleaseFlow::destroy`](paged_process_store.cpp.md#fn-7d9cabc95ddcd89f)
+- [`xv::process::PagedProcessStore::ReleaseFlow::free_page`](paged_process_store.cpp.md#fn-284a139f0282cccf)
+- [`xv::process::PagedProcessStore::ReleaseFlow::free_stack`](paged_process_store.cpp.md#fn-d471fc848b0f4fa7)
+- [`xv::process::PagedProcessStore::ReleaseFlow::remove`](paged_process_store.cpp.md#fn-8367ea42f24740c2)
+- [`xv::process::PagedProcessStore::ReleaseFlow::retire`](paged_process_store.cpp.md#fn-3c4deec9c966df92)
 - [`xv::process::PagedProcessStore::allocate`](paged_process_store.cpp.md#fn-8add4ef4af29f162)
 - [`xv::process::PagedProcessStore::count`](paged_process_store.cpp.md#fn-06351df5779372e3)
 - [`xv::process::PagedProcessStore::find`](paged_process_store.cpp.md#fn-bffa9ef733537f45)
@@ -61,10 +73,8 @@
 ```doxygen
 @fn Process *xv::process::PagedProcessStore::allocate()
 @brief 稳定的分页进程登记：分配并取得对象或存储资源。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::allocate_process_page` → `detail::allocate_kernel_stack` → `detail::free_process_page` → `new` → `construct` → `set_stack` → `guard`。
-@details 本函数可见的状态更新包括：`node->next = head_;`；`head_ = node;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!page`；`!stack`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`nullptr`；`process`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 AllocateFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-b890f202b0802620"></a>
@@ -75,9 +85,8 @@
 @fn void xv::process::PagedProcessStore::release(Process *process)
 @brief 稳定的分页进程登记：释放当前引用或归还对象占用的资源。
 @param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`node_at` → `process->kernel_stack` → `retire` → `guard` → `detail::storage_fail` → `lock` → `unlock` → `destroy` → `Node` → `detail::free_kernel_stack` → `detail::free_process_page`。
-@details 需要特别跟踪的条件：`*link && *link != node`；`!*link`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 ReleaseFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-bffa9ef733537f45"></a>
@@ -114,4 +123,124 @@
 @brief 稳定的分页进程登记：读取或计算 `count_`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard`。
 @return 各分支实际返回：`count_`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+
+<a id="fn-159ab3119d8156b5"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::construct`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::construct(Context &c) noexcept
+@brief 原位构造节点与持锁进程并设置栈地址。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-8cc0bf2c16fb13e4"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::has_page`
+
+```doxygen
+@fn static bool xv::process::PagedProcessStore::AllocateFlow::has_page(Context &c) noexcept
+@brief 检查候选页分配是否成功。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-1199815cd7310cfc"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::has_stack`
+
+```doxygen
+@fn static bool xv::process::PagedProcessStore::AllocateFlow::has_stack(Context &c) noexcept
+@brief 检查内核栈分配是否成功。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-fc3ab79e1826eac5"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::page`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::page(Context &c) noexcept
+@brief 取得描述符候选页。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-8e66bc154e7394e8"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::publish`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::publish(Context &c) noexcept
+@brief 在注册表锁下接入全局节点链并增加计数。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3728d96b78ab4760"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::rollback`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::rollback(Context &c) noexcept
+@brief 栈分配失败时归还尚未发布的候选页。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-8250f0d0f78d17f9"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::stack`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::stack(Context &c) noexcept
+@brief 取得内核栈地址。
+@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-7d9cabc95ddcd89f"></a>
+
+## `xv::process::PagedProcessStore::ReleaseFlow::destroy`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::ReleaseFlow::destroy(Context &c) noexcept
+@brief 释放排空锁、销毁进程和节点对象。
+@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-284a139f0282cccf"></a>
+
+## `xv::process::PagedProcessStore::ReleaseFlow::free_page`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::ReleaseFlow::free_page(Context &c) noexcept
+@brief 归还节点页且不再访问页内对象。
+@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-d471fc848b0f4fa7"></a>
+
+## `xv::process::PagedProcessStore::ReleaseFlow::free_stack`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::ReleaseFlow::free_stack(Context &c) noexcept
+@brief 按预先保存地址归还内核栈。
+@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-8367ea42f24740c2"></a>
+
+## `xv::process::PagedProcessStore::ReleaseFlow::remove`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::ReleaseFlow::remove(Context &c) noexcept
+@brief 在注册表锁内摘除节点并重新取得进程锁以排空已有读者。
+@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3c4deec9c966df92"></a>
+
+## `xv::process::PagedProcessStore::ReleaseFlow::retire`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::ReleaseFlow::retire(Context &c) noexcept
+@brief 验证进程已脱离运行资源并标记退役、释放进程锁。
+@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

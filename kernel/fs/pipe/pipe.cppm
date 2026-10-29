@@ -17,6 +17,9 @@ public:
 
 private:
 
+  struct WriteFlow;
+  struct ReadFlow;
+
   static constexpr unsigned Capacity = 512;
   xv::sync::SpinLock lock_;
   char data_[Capacity]{};

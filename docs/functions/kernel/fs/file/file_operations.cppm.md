@@ -46,7 +46,7 @@
 ## `xv::fs::DeviceBackend::capability`
 
 ```doxygen
-@fn xv::io::Capability *xv::fs::DeviceBackend::capability(xv::io::CapabilityId id)
+@fn xv::io::Capability *xv::fs::DeviceBackend::capability(xv::io::CapabilityId id) override
 @brief 仅对 DeviceControl::Id 返回实际能力基类指针；其他能力返回 nullptr，不把设备误认作 socket。
 @details 仅对 DeviceControl::Id 返回实际能力基类指针；其他能力返回 nullptr，不把设备误认作 socket。
 ```
@@ -66,7 +66,7 @@
 ## `xv::fs::EndpointBackend::EndpointBackend`
 
 ```doxygen
-@fn xv::fs::EndpointBackend::EndpointBackend(xv::drivers::CharacterDevice &endpoint)
+@fn explicit xv::fs::EndpointBackend::EndpointBackend(xv::drivers::CharacterDevice &endpoint)
 @brief 构造 EndpointBackend。
 @details 接收字符端点关闭责任，不额外分配物理页。
 ```
@@ -76,7 +76,7 @@
 ## `xv::fs::EndpointBackend::capability`
 
 ```doxygen
-@fn xv::io::Capability *xv::fs::EndpointBackend::capability(xv::io::CapabilityId id)
+@fn xv::io::Capability *xv::fs::EndpointBackend::capability(xv::io::CapabilityId id) override
 @brief 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
 @details 只暴露 DeviceControl 能力，其他查询返回 nullptr；公共 read/write 不需要能力判断。
 ```

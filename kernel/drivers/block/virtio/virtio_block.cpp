@@ -1,3 +1,6 @@
+module;
+#include "kernel/support/flow.h"
+
 module xv.drivers;
 
 import :protocol;
@@ -6,111 +9,410 @@ import :platform;
 
 namespace xv::drivers
 {
+
+namespace flow = xv::flow;
+
+struct VirtioBlock::InitializeFlow
+{
+  struct Context
+  {
+    VirtioBlock &owner;
+    unsigned status = 0;
+  };
+
+  static void validate(Context &c) noexcept
+  {
+    c.owner.lock_.init("virtio_disk");
+
+    if (c.owner.registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
+        c.owner.registers_.read32(VIRTIO_MMIO_VERSION) != 2 ||
+        c.owner.registers_.read32(VIRTIO_MMIO_DEVICE_ID) != 2 ||
+        c.owner.registers_.read32(VIRTIO_MMIO_VENDOR_ID) != 0x554d4551)
+    {
+      detail::fail("could not find virtio disk");
+    }
+  }
+
+  static void handshake(Context &c) noexcept
+  {
+    // reset device
+    c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
+
+    // set ACKNOWLEDGE c.status bit
+    c.status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
+    c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
+
+    // set DRIVER c.status bit
+    c.status |= VIRTIO_CONFIG_S_DRIVER;
+    c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
+  }
+
+  static void features(Context &c) noexcept
+  {
+    // negotiate features
+    unsigned long features = c.owner.registers_.read32(VIRTIO_MMIO_DEVICE_FEATURES);
+    features &= ~(1 << VIRTIO_BLK_F_RO);
+    features &= ~(1 << VIRTIO_BLK_F_SCSI);
+    c.owner.can_flush_ = features & (1 << VIRTIO_BLK_F_FLUSH);
+    features &= ~(1 << VIRTIO_BLK_F_CONFIG_WCE);
+    features &= ~(1 << VIRTIO_BLK_F_MQ);
+    features &= ~(1 << VIRTIO_F_ANY_LAYOUT);
+    features &= ~(1 << VIRTIO_RING_F_EVENT_IDX);
+    features &= ~(1 << VIRTIO_RING_F_INDIRECT_DESC);
+    c.owner.registers_.write32(VIRTIO_MMIO_DRIVER_FEATURES, features);
+
+    // tell device that feature negotiation is complete.
+    c.status |= VIRTIO_CONFIG_S_FEATURES_OK;
+    c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
+
+    // re-read c.status to ensure FEATURES_OK is set.
+    c.status = c.owner.registers_.read32(VIRTIO_MMIO_STATUS);
+    if (!(c.status & VIRTIO_CONFIG_S_FEATURES_OK))
+    {
+      detail::fail("virtio disk FEATURES_OK unset");
+    }
+  }
+
+  static void queue(Context &c) noexcept
+  {
+    // initialize queue 0.
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_SEL, 0);
+
+    // ensure queue 0 is not in use.
+    if (c.owner.registers_.read32(VIRTIO_MMIO_QUEUE_READY))
+    {
+      detail::fail("virtio disk should not be ready");
+    }
+
+    // check maximum queue size.
+    unsigned max = c.owner.registers_.read32(VIRTIO_MMIO_QUEUE_NUM_MAX);
+    if (max == 0)
+    {
+      detail::fail("virtio disk has no queue 0");
+    }
+    if (max < QueueSize)
+    {
+      detail::fail("virtio disk max queue too short");
+    }
+  }
+
+  static void allocate(Context &c) noexcept
+  {
+    // allocate and zero queue memory.
+    c.owner.descriptors_ =
+        static_cast<struct virtq_desc *>(detail::allocate_dma_page());
+    c.owner.available_ = static_cast<struct virtq_avail *>(detail::allocate_dma_page());
+    c.owner.used_ = static_cast<struct virtq_used *>(detail::allocate_dma_page());
+    if (!c.owner.descriptors_ || !c.owner.available_ || !c.owner.used_)
+    {
+      detail::fail("virtio disk kalloc");
+    }
+    detail::zero_page(c.owner.descriptors_);
+    detail::zero_page(c.owner.available_);
+    detail::zero_page(const_cast<virtq_used *>(c.owner.used_));
+  }
+
+  static void publish(Context &c) noexcept
+  {
+    // set queue size.
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_NUM, QueueSize);
+
+    // write physical addresses.
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_DESC_LOW,
+                               (unsigned long)c.owner.descriptors_);
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_DESC_HIGH,
+                               (unsigned long)c.owner.descriptors_ >> 32);
+    c.owner.registers_.write32(VIRTIO_MMIO_DRIVER_DESC_LOW,
+                               (unsigned long)c.owner.available_);
+    c.owner.registers_.write32(VIRTIO_MMIO_DRIVER_DESC_HIGH,
+                               (unsigned long)c.owner.available_ >> 32);
+    c.owner.registers_.write32(VIRTIO_MMIO_DEVICE_DESC_LOW,
+                               (unsigned long)c.owner.used_);
+    c.owner.registers_.write32(VIRTIO_MMIO_DEVICE_DESC_HIGH,
+                               (unsigned long)c.owner.used_ >> 32);
+
+    // queue is ready.
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_READY, 0x1);
+  }
+
+  static void ready(Context &c) noexcept
+  {
+    // all QueueSize descriptors start out unused.
+    for (int i = 0; i < QueueSize; i++)
+    {
+      c.owner.free_[i] = 1;
+    }
+
+    // tell device we're completely ready.
+    c.status |= VIRTIO_CONFIG_S_DRIVER_OK;
+    c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
+  }
+  struct Validate;
+  struct Handshake;
+  struct Features;
+  struct Queue;
+  struct Allocate;
+  struct Publish;
+  struct Ready;
+  using Graph = flow::graph<
+      Validate,
+      flow::types<flow::node<Validate, flow::action<&validate>, flow::go<Handshake>>,
+                  flow::node<Handshake, flow::action<&handshake>, flow::go<Features>>,
+                  flow::node<Features, flow::action<&features>, flow::go<Queue>>,
+                  flow::node<Queue, flow::action<&queue>, flow::go<Allocate>>,
+                  flow::node<Allocate, flow::action<&allocate>, flow::go<Publish>>,
+                  flow::node<Publish, flow::action<&publish>, flow::go<Ready>>,
+                  flow::node<Ready, flow::action<&ready>, flow::stop>>>;
+};
+
+struct VirtioBlock::ChainFlow
+{
+  struct Context
+  {
+    VirtioBlock &owner;
+    int *indices;
+    int index = 0, result = -1;
+  };
+
+  static void allocate(Context &c) noexcept
+  {
+    c.indices[c.index] = c.owner.allocate_descriptor();
+  }
+
+  static bool allocated(Context &c) noexcept
+  {
+    return c.indices[c.index] >= 0;
+  }
+
+  static void advance(Context &c) noexcept
+  {
+    ++c.index;
+  }
+
+  static bool remaining(Context &c) noexcept
+  {
+    return c.index < 3;
+  }
+
+  static void rollback(Context &c) noexcept
+  {
+    for (int j = 0; j < c.index; ++j)
+    {
+      c.owner.free_descriptor(c.indices[j]);
+    }
+  }
+
+  static void success(Context &c) noexcept
+  {
+    c.result = 0;
+  }
+  struct Allocate;
+  struct Advance;
+  struct Rollback;
+  struct Success;
+  using Graph = flow::graph<
+      Allocate,
+      flow::types<flow::node<Allocate, flow::action<&allocate>,
+                             flow::branch<flow::condition<&allocated>,
+                                          flow::go<Advance>, flow::go<Rollback>>>,
+                  flow::node<Advance, flow::action<&advance>,
+                             flow::branch<flow::condition<&remaining>,
+                                          flow::go<Allocate>, flow::go<Success>>>,
+                  flow::node<Rollback, flow::action<&rollback>, flow::stop>,
+                  flow::node<Success, flow::action<&success>, flow::stop>>>;
+};
+
+struct VirtioBlock::TransferFlow
+{
+  struct Context
+  {
+    VirtioBlock &owner;
+    unsigned long sector;
+    void *data;
+    unsigned count;
+    bool flushing, write;
+    int (&indices)[3];
+    bool ok = false;
+  };
+
+  static void allocate(Context &c) noexcept
+  {
+    c.ok = c.owner.allocate_chain(c.indices) == 0;
+  }
+
+  static bool ok(Context &c) noexcept
+  {
+    return c.ok;
+  }
+
+  static void wait_descriptors(Context &c) noexcept
+  {
+    detail::prepare_sleep(&c.owner.free_[0]);
+    c.owner.lock_.release();
+    detail::sleep_process();
+    c.owner.lock_.acquire();
+  }
+
+  static void prepare(Context &c) noexcept
+  {
+    auto *header = &c.owner.operations_[c.indices[0]];
+    if (c.flushing)
+    {
+      header->type = 4;
+    }
+    else if (c.write)
+    {
+      header->type = VIRTIO_BLK_T_OUT;
+    }
+    else
+    {
+      header->type = VIRTIO_BLK_T_IN;
+    }
+    header->reserved = 0;
+    header->sector = c.sector;
+    auto *descriptors = c.owner.descriptors_;
+    descriptors[c.indices[0]].addr = reinterpret_cast<unsigned long>(header);
+    descriptors[c.indices[0]].len = sizeof(virtio_blk_req);
+    descriptors[c.indices[0]].flags = VRING_DESC_F_NEXT;
+    descriptors[c.indices[0]].next = c.flushing ? c.indices[2] : c.indices[1];
+    descriptors[c.indices[1]].addr = reinterpret_cast<unsigned long>(c.data);
+    descriptors[c.indices[1]].len = c.count;
+    if (c.write)
+    {
+      descriptors[c.indices[1]].flags = 0;
+    }
+    else
+    {
+      descriptors[c.indices[1]].flags = VRING_DESC_F_WRITE;
+    }
+    descriptors[c.indices[1]].flags |= VRING_DESC_F_NEXT;
+    descriptors[c.indices[1]].next = c.indices[2];
+    c.owner.requests_[c.indices[0]].status = 0xff;
+    descriptors[c.indices[2]].addr =
+        reinterpret_cast<unsigned long>(&c.owner.requests_[c.indices[0]].status);
+    descriptors[c.indices[2]].len = 1;
+    descriptors[c.indices[2]].flags = VRING_DESC_F_WRITE;
+    descriptors[c.indices[2]].next = 0;
+    c.owner.requests_[c.indices[0]].pending = true;
+  }
+
+  static void submit(Context &c) noexcept
+  {
+    c.owner.available_->ring[c.owner.available_->idx % QueueSize] = c.indices[0];
+    detail::io_barrier();
+    c.owner.available_->idx += 1;
+    detail::io_barrier();
+    c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_NOTIFY, 0);
+  }
+
+  static bool pending(Context &c) noexcept
+  {
+    return c.owner.requests_[c.indices[0]].pending;
+  }
+
+  static void wait_completion(Context &c) noexcept
+  {
+    detail::prepare_sleep(&c.owner.requests_[c.indices[0]]);
+    c.owner.lock_.release();
+    detail::sleep_process();
+    c.owner.lock_.acquire();
+  }
+
+  static void reclaim(Context &c) noexcept
+  {
+    if (c.flushing)
+    {
+      c.owner.free_descriptor(c.indices[0]);
+      c.owner.free_descriptor(c.indices[1]);
+      c.owner.free_descriptor(c.indices[2]);
+    }
+    else
+    {
+      c.owner.free_chain(c.indices[0]);
+    }
+  }
+  struct Allocate;
+  struct WaitDescriptors;
+  struct Prepare;
+  struct Submit;
+  struct WaitCompletion;
+  struct Reclaim;
+  using Graph = flow::graph<
+      Allocate,
+      flow::types<flow::node<Allocate, flow::action<&allocate>,
+                             flow::branch<flow::condition<&ok>, flow::go<Prepare>,
+                                          flow::go<WaitDescriptors>>>,
+                  flow::node<WaitDescriptors, flow::action<&wait_descriptors>,
+                             flow::go<Allocate>>,
+                  flow::node<Prepare, flow::action<&prepare>, flow::go<Submit>>,
+                  flow::node<Submit, flow::action<&submit>,
+                             flow::branch<flow::condition<&pending>,
+                                          flow::go<WaitCompletion>, flow::go<Reclaim>>>,
+                  flow::node<WaitCompletion, flow::action<&wait_completion>,
+                             flow::branch<flow::condition<&pending>,
+                                          flow::go<WaitCompletion>, flow::go<Reclaim>>>,
+                  flow::node<Reclaim, flow::action<&reclaim>, flow::stop>>>;
+};
+
+struct VirtioBlock::InterruptFlow
+{
+  struct Context
+  {
+    VirtioBlock &owner;
+    int id = 0;
+  };
+
+  static void acknowledge(Context &c) noexcept
+  {
+    c.owner.registers_.write32(VIRTIO_MMIO_INTERRUPT_ACK,
+                               c.owner.registers_.read32(VIRTIO_MMIO_INTERRUPT_STATUS) &
+                                   0x3);
+    detail::io_barrier();
+  }
+
+  static bool pending(Context &c) noexcept
+  {
+    return c.owner.used_index_ != c.owner.used_->idx;
+  }
+
+  static void read(Context &c) noexcept
+  {
+    detail::io_barrier();
+    c.id = c.owner.used_->ring[c.owner.used_index_ % QueueSize].id;
+    if (c.id < 0 || c.id >= QueueSize || !c.owner.requests_[c.id].pending)
+    {
+      detail::fail("virtio: invalid completion");
+    }
+    if (c.owner.requests_[c.id].status != 0)
+    {
+      detail::fail("virtio_disk_intr status");
+    }
+  }
+
+  static void complete(Context &c) noexcept
+  {
+    c.owner.requests_[c.id].pending = false;
+    detail::wake_processes(&c.owner.requests_[c.id]);
+    c.owner.used_index_ += 1;
+  }
+  struct Acknowledge;
+  struct Read;
+  struct Complete;
+  using Graph =
+      flow::graph<Acknowledge,
+                  flow::types<flow::node<Acknowledge, flow::action<&acknowledge>,
+                                         flow::branch<flow::condition<&pending>,
+                                                      flow::go<Read>, flow::stop>>,
+                              flow::node<Read, flow::action<&read>, flow::go<Complete>>,
+                              flow::node<Complete, flow::action<&complete>,
+                                         flow::branch<flow::condition<&pending>,
+                                                      flow::go<Read>, flow::stop>>>>;
+};
+
 void VirtioBlock::initialize()
 {
-  unsigned status = 0;
-
-  lock_.init("virtio_disk");
-
-  if (registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
-      registers_.read32(VIRTIO_MMIO_VERSION) != 2 ||
-      registers_.read32(VIRTIO_MMIO_DEVICE_ID) != 2 ||
-      registers_.read32(VIRTIO_MMIO_VENDOR_ID) != 0x554d4551)
-  {
-    detail::fail("could not find virtio disk");
-  }
-
-  // reset device
-  registers_.write32(VIRTIO_MMIO_STATUS, status);
-
-  // set ACKNOWLEDGE status bit
-  status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
-  registers_.write32(VIRTIO_MMIO_STATUS, status);
-
-  // set DRIVER status bit
-  status |= VIRTIO_CONFIG_S_DRIVER;
-  registers_.write32(VIRTIO_MMIO_STATUS, status);
-
-  // negotiate features
-  unsigned long features = registers_.read32(VIRTIO_MMIO_DEVICE_FEATURES);
-  features &= ~(1 << VIRTIO_BLK_F_RO);
-  features &= ~(1 << VIRTIO_BLK_F_SCSI);
-  can_flush_ = features & (1 << VIRTIO_BLK_F_FLUSH);
-  features &= ~(1 << VIRTIO_BLK_F_CONFIG_WCE);
-  features &= ~(1 << VIRTIO_BLK_F_MQ);
-  features &= ~(1 << VIRTIO_F_ANY_LAYOUT);
-  features &= ~(1 << VIRTIO_RING_F_EVENT_IDX);
-  features &= ~(1 << VIRTIO_RING_F_INDIRECT_DESC);
-  registers_.write32(VIRTIO_MMIO_DRIVER_FEATURES, features);
-
-  // tell device that feature negotiation is complete.
-  status |= VIRTIO_CONFIG_S_FEATURES_OK;
-  registers_.write32(VIRTIO_MMIO_STATUS, status);
-
-  // re-read status to ensure FEATURES_OK is set.
-  status = registers_.read32(VIRTIO_MMIO_STATUS);
-  if (!(status & VIRTIO_CONFIG_S_FEATURES_OK))
-  {
-    detail::fail("virtio disk FEATURES_OK unset");
-  }
-
-  // initialize queue 0.
-  registers_.write32(VIRTIO_MMIO_QUEUE_SEL, 0);
-
-  // ensure queue 0 is not in use.
-  if (registers_.read32(VIRTIO_MMIO_QUEUE_READY))
-  {
-    detail::fail("virtio disk should not be ready");
-  }
-
-  // check maximum queue size.
-  unsigned max = registers_.read32(VIRTIO_MMIO_QUEUE_NUM_MAX);
-  if (max == 0)
-  {
-    detail::fail("virtio disk has no queue 0");
-  }
-  if (max < QueueSize)
-  {
-    detail::fail("virtio disk max queue too short");
-  }
-
-  // allocate and zero queue memory.
-  descriptors_ = static_cast<struct virtq_desc *>(detail::allocate_dma_page());
-  available_ = static_cast<struct virtq_avail *>(detail::allocate_dma_page());
-  used_ = static_cast<struct virtq_used *>(detail::allocate_dma_page());
-  if (!descriptors_ || !available_ || !used_)
-  {
-    detail::fail("virtio disk kalloc");
-  }
-  detail::zero_page(descriptors_);
-  detail::zero_page(available_);
-  detail::zero_page(const_cast<virtq_used *>(used_));
-
-  // set queue size.
-  registers_.write32(VIRTIO_MMIO_QUEUE_NUM, QueueSize);
-
-  // write physical addresses.
-  registers_.write32(VIRTIO_MMIO_QUEUE_DESC_LOW, (unsigned long)descriptors_);
-  registers_.write32(VIRTIO_MMIO_QUEUE_DESC_HIGH, (unsigned long)descriptors_ >> 32);
-  registers_.write32(VIRTIO_MMIO_DRIVER_DESC_LOW, (unsigned long)available_);
-  registers_.write32(VIRTIO_MMIO_DRIVER_DESC_HIGH, (unsigned long)available_ >> 32);
-  registers_.write32(VIRTIO_MMIO_DEVICE_DESC_LOW, (unsigned long)used_);
-  registers_.write32(VIRTIO_MMIO_DEVICE_DESC_HIGH, (unsigned long)used_ >> 32);
-
-  // queue is ready.
-  registers_.write32(VIRTIO_MMIO_QUEUE_READY, 0x1);
-
-  // all QueueSize descriptors start out unused.
-  for (int i = 0; i < QueueSize; i++)
-  {
-    free_[i] = 1;
-  }
-
-  // tell device we're completely ready.
-  status |= VIRTIO_CONFIG_S_DRIVER_OK;
-  registers_.write32(VIRTIO_MMIO_STATUS, status);
-
-  // The board router connects the device IRQ after global initialization.
+  InitializeFlow::Context context{*this};
+  (void)InitializeFlow::Graph::run<0>(context);
 }
 
 // find a free descriptor, mark it non-free, return its index.
@@ -169,19 +471,9 @@ void VirtioBlock::free_chain(int i)
 // disk transfers always use three descriptors.
 int VirtioBlock::allocate_chain(int *idx)
 {
-  for (int i = 0; i < 3; i++)
-  {
-    idx[i] = allocate_descriptor();
-    if (idx[i] < 0)
-    {
-      for (int j = 0; j < i; j++)
-      {
-        free_descriptor(idx[j]);
-      }
-      return -1;
-    }
-  }
-  return 0;
+  ChainFlow::Context context{*this, idx};
+  (void)ChainFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void *data,
@@ -193,140 +485,31 @@ void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void 
     detail::fail("virtio: invalid transfer");
   }
   const bool write = operation == BlockOperation::Write;
-
   lock_.acquire();
-
-  // the spec's Section 5.2 says that block operations use
-  // three descriptors: one for type/reserved/sector, one for the
-  // data, one for a 1-byte status result.
-
-  // allocate the three descriptors.
-  int idx[3];
-  while (1)
-  {
-    if (allocate_chain(idx) == 0)
-    {
-      break;
-    }
-    detail::prepare_sleep(&free_[0]);
-    lock_.release();
-    detail::sleep_process();
-    lock_.acquire();
-  }
-
-  // format the three descriptors.
-  // qemu's virtio-blk.c reads them.
-
-  struct virtio_blk_req *buf0 = &operations_[idx[0]];
-
-  if (flushing) buf0->type = 4;
-  else if (write)
-  {
-    buf0->type = VIRTIO_BLK_T_OUT; // write the disk
-  }
-  else
-  {
-    buf0->type = VIRTIO_BLK_T_IN; // read the disk
-  }
-  buf0->reserved = 0;
-  buf0->sector = sector;
-
-  descriptors_[idx[0]].addr = (unsigned long)buf0;
-  descriptors_[idx[0]].len = sizeof(struct virtio_blk_req);
-  descriptors_[idx[0]].flags = VRING_DESC_F_NEXT;
-  descriptors_[idx[0]].next = flushing ? idx[2] : idx[1];
-
-  descriptors_[idx[1]].addr = (unsigned long)data;
-  descriptors_[idx[1]].len = count;
-  if (write)
-  {
-    descriptors_[idx[1]].flags = 0; // device reads data
-  }
-  else
-  {
-    descriptors_[idx[1]].flags = VRING_DESC_F_WRITE; // device writes data
-  }
-  descriptors_[idx[1]].flags |= VRING_DESC_F_NEXT;
-  descriptors_[idx[1]].next = idx[2];
-
-  requests_[idx[0]].status = 0xff; // device writes 0 on success
-  descriptors_[idx[2]].addr = (unsigned long)&requests_[idx[0]].status;
-  descriptors_[idx[2]].len = 1;
-  descriptors_[idx[2]].flags = VRING_DESC_F_WRITE; // device writes the status
-  descriptors_[idx[2]].next = 0;
-
-  // Track completion independently of the caller and its filesystem layout.
-  requests_[idx[0]].pending = true;
-
-  // tell the device the first index in our chain of descriptors.
-  available_->ring[available_->idx % QueueSize] = idx[0];
-
-  detail::io_barrier();
-
-  // tell the device another avail ring entry is available.
-  available_->idx += 1; // not % QueueSize ...
-
-  detail::io_barrier();
-
-  registers_.write32(VIRTIO_MMIO_QUEUE_NOTIFY, 0); // value is queue number
-
-  // The interrupt handler clears pending after DMA completion.
-  while (requests_[idx[0]].pending)
-  {
-    detail::prepare_sleep(&requests_[idx[0]]);
-    lock_.release();
-    detail::sleep_process();
-    lock_.acquire();
-  }
-
-  if (flushing) { free_descriptor(idx[0]); free_descriptor(idx[1]); free_descriptor(idx[2]); }
-  else free_chain(idx[0]);
-
+  int indices[3];
+  TransferFlow::Context context{*this, sector, data, count, flushing, write, indices};
+  (void)TransferFlow::Graph::run<0>(context);
   lock_.release();
 }
 
 void VirtioBlock::handle_interrupt()
 {
   xv::sync::ScopedLock guard(lock_);
-
-  // the device won't raise another interrupt until we tell it
-  // we've seen this interrupt, which the following line does.
-  // this may race with the device writing new entries to
-  // the "used" ring, in which case we may process the new
-  // completion entries in this interrupt, and have nothing to do
-  // in the next interrupt, which is harmless.
-  registers_.write32(VIRTIO_MMIO_INTERRUPT_ACK,
-                     registers_.read32(VIRTIO_MMIO_INTERRUPT_STATUS) & 0x3);
-
-  detail::io_barrier();
-
-  // the device increments used_->idx when it
-  // adds an entry to the used ring.
-
-  while (used_index_ != used_->idx)
-  {
-    detail::io_barrier();
-    int id = used_->ring[used_index_ % QueueSize].id;
-
-    if (id < 0 || id >= QueueSize || !requests_[id].pending)
-    {
-      detail::fail("virtio: invalid completion");
-    }
-    if (requests_[id].status != 0)
-    {
-      detail::fail("virtio_disk_intr status");
-    }
-
-    requests_[id].pending = false;
-    detail::wake_processes(&requests_[id]);
-
-    used_index_ += 1;
-  }
+  InterruptFlow::Context context{*this};
+  (void)InterruptFlow::Graph::run<0>(context);
 }
 
-
 bool VirtioBlock::present() const
-{ return registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 && registers_.read32(VIRTIO_MMIO_DEVICE_ID) == 2; }
+{
+  return registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 &&
+         registers_.read32(VIRTIO_MMIO_DEVICE_ID) == 2;
+}
+
 void VirtioBlock::flush()
-{ if (can_flush_) transfer(BlockOperation::Write, 0, nullptr, 0); }
+{
+  if (can_flush_)
+  {
+    transfer(BlockOperation::Write, 0, nullptr, 0);
+  }
+}
 } // namespace xv::drivers

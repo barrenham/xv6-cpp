@@ -35,9 +35,8 @@
 @fn Word xv::trap::TrapController::handle_user()
 @brief 陷阱控制器：处理来自用户态的陷阱并准备用户页表返回值。
 @details 保存用户 PC，分派系统调用/中断/缺页，再在安全边界处理信号。未知用户异常走旧退出路径；需要让出 CPU 时先调度，随后统一 prepare_return 并返回用户页表 token。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::snapshot` → `event.from_supervisor` → `detail::fatal` → `detail::install_kernel_vector` → `detail::has_process` → `detail::save_user_pc` → `dispatcher_.dispatch` → `detail::report_user_fault` → `detail::request_kill` → `detail::exit_current` → `detail::deliver_signals` → `detail::killed`。
-@details 需要特别跟踪的条件：`event.from_supervisor()`；`!detail::has_process()`；`action == TrapAction::Unhandled`；`action == TrapAction::Terminate || detail::killed()`；`action == TrapAction::Yield`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`detail::user_page_table_token()`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 编排由 EntryFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-1e01ca83cbbc98f6"></a>
@@ -48,9 +47,8 @@
 @fn void xv::trap::TrapController::handle_kernel()
 @brief 陷阱控制器：处理内核陷阱并恢复原内核 trap 快照。
 @details 验证 trap 来自内核且进入时中断关闭，只接受 Resume/Yield。允许定时事件导致调度后，再恢复最初 trap 的 sepc/sstatus，防止嵌套陷阱或迁移覆盖返回现场。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::snapshot` → `event.from_supervisor` → `detail::fatal` → `event.interrupts_enabled` → `dispatcher_.dispatch` → `detail::has_process` → `detail::yield_current` → `detail::restore_kernel`。
-@details 需要特别跟踪的条件：`!event.from_supervisor()`；`event.interrupts_enabled()`；`action != TrapAction::Resume && action != TrapAction::Yield`；`action == TrapAction::Yield && detail::has_process()`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 编排由 EntryFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-0713205e94c82bbd"></a>

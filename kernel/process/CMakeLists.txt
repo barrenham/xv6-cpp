@@ -1,6 +1,7 @@
 include("${PROJECT_SOURCE_DIR}/cmake/process-modules.cmake")
 xv_add_process_interfaces(kernel)
 xv_add_process_internals(kernel)
+xv_add_address_space_flow(kernel)
 
 target_sources(kernel PRIVATE
   arch/cpu.cpp

@@ -341,6 +341,33 @@ void poll_subscriptions()
   }
   check(xv_storage_live_pages() == baseline, "poll destruction frees all pages");
   waits.wake(&a); waits.wake(&b); waits.expire_timers(~0UL);
+  {
+    int channels[400];
+    PollWait many(*first, waits);
+    for (auto &channel : channels) many.watch(&channel);
+    check(!many.failed() && xv_storage_live_pages() > baseline + 1,
+          "hundreds of subscriptions span multiple owned pages");
+    const auto allocated = xv_storage_live_pages();
+    for (auto &channel : channels) many.watch(&channel);
+    check(xv_storage_live_pages() == allocated,
+          "duplicates on older pages do not allocate or subscribe twice");
+    waits.wake(&channels[399]);
+    check(many.triggered(), "subscription on a later page receives notification");
+  }
+  check(xv_storage_live_pages() == baseline,
+        "multi-page destruction unsubscribes and frees every page");
+  {
+    PollWait early(*first, waits), middle(*first, waits), late(*first, waits);
+    early.set_deadline(100); middle.set_deadline(200); late.set_deadline(300);
+    waits.expire_timers(199);
+    check(early.triggered() && !middle.triggered() && !late.triggered(),
+          "expiry skips later deadlines to unlink a due tail");
+    waits.expire_timers(200);
+    check(middle.triggered() && !late.triggered(),
+          "expiry unlinks a due interior entry while preserving the head");
+    waits.expire_timers(300);
+    check(late.triggered(), "last deadline remains linked until due");
+  }
   xv_storage_fail_after(0);
   {
     PollWait failed(*first, waits);

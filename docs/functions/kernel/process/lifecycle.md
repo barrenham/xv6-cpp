@@ -34,6 +34,7 @@
 @fn Process *xv::process::ProcessManager::allocate()
 @brief 构造候选进程并把内核上下文指向预留栈顶。
 @details 仍按顺序分配描述符、PID、trapframe、用户 PID 页和用户页表，失败逐项回滚；context.sp 设置为虚拟区域底加完整栈容量，context.ra 为首次返回入口。
+@details 流程由 AllocateFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="lifecycle-processmanager-reap"></a>
@@ -46,9 +47,10 @@
 @param p 需要回收的描述符，不能仍在 CPU 上执行或留在就绪队列中。
 @return 无返回值；传入对象在调用结束后不可再使用。
 @pre 调用者持有 p->lock。已发布子进程由 wait 路径在家庭锁下回收；未发布的分配失败对象由 allocate 回滚。
-@details 先移除进程组成员，再归还 trapframe、用户地址空间和可选用户 PID 页，清空身份、信号、事件和父指针。最后把进程锁及对象所有权转交 store_.release。
+@details 先移除进程组成员，再归还 trapframe、用户地址空间和可选用户 PID 页，清空身份、信号和事件。已发布子进程在家庭锁下通过 detach_child 从父进程双向子链表常数时间移除，再清空父指针；未发布的分配失败对象没有父关系，脱链为空操作。最后把进程锁及对象所有权转交 store_.release。
 @note 运行中进程的文件和工作目录由 exit_process 关闭；reap 不重复执行用户退出清理。store_.release 负责稳定登记、对象析构、内核栈和节点页释放。
 @see ProcessManager::exit_process
+@details 流程由 ReapFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="lifecycle-processmanager-create-initial-process"></a>
@@ -59,6 +61,7 @@
 @fn void xv::process::ProcessManager::create_initial_process(void)
 @brief 建立 init 进程并取得无需进程上下文的初始根引用。
 @details 初始 cwd 直接调用 filesystem().root()，不再经需要进程所有者的 VFS 命名空间睡眠锁。其余地址空间、进程组和调度发布流程保持原有约定。
+@details 流程由 InitialFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="lifecycle-processmanager-fork-process"></a>
@@ -71,7 +74,7 @@
 @return 父进程获得子 PID；失败返回 -1。子进程的 a0 被置零，稍后经首次返回路径进入用户态。
 @pre 必须在有效当前进程的系统调用上下文执行。
 @details allocate 创建持锁的新描述符。复制用户地址空间、处理函数与屏蔽字，但不复制待处理信号；活动信号帧地址链随已复制用户栈一起继承。复制 TrapFrame 并把 a0 置零，继承文件引用和工作目录引用，复制名字。
-@details 释放新进程锁后取得家庭锁，继承组成员身份并设置 parent。再取得新进程锁，发布 Runnable，最后释放锁返回 PID。父子关系先于可运行状态发布。
+@details 释放新进程锁后取得家庭锁，继承组成员身份，通过 attach_child 设置 parent 并追加到父进程子链表。再取得新进程锁，发布 Runnable，最后释放锁返回 PID。父子关系先于可运行状态发布。
 @note 文件描述符引用同一 File，所以文件偏移和 O_NONBLOCK 共享；用户地址空间通过 AddressSpace::copy_to 按其既有策略复制。
 @details UDP/TCP socket 与其他描述符一起通过 DescriptorTable/File 引用继承共享，不再维护额外的 PID 绑定表或网络 fork 回调。
 ```
@@ -86,8 +89,9 @@
 @param p 即将退出的旧父进程。
 @return 无返回值。
 @pre 调用者持有 wait_lock_，以稳定所有 parent 指针及回收关系。
-@details 通过稳定存储遍历逐个取得子进程锁，更新组层面的父关系，再设置 child.parent=initial_。已为 Zombie 的孩子向新父进程登记 SIGCHLD；有收养时唤醒 child_events 等待者。
-@note 回调只原子登记父信号，不在子锁下再取得父进程锁。真正唤醒信号等待者延迟到无相关锁的服务边界。
+@details 家庭锁保护的子链表包含尚未回收的 Zombie；空链表直接返回。只遍历该进程的直接子进程，逐个取得子进程锁并更新组层面的父关系，通过 detach_child/attach_child 将链表成员按创建顺序转移到 init，不扫描稳定存储中的无关进程。已为 Zombie 的孩子向新父进程登记 SIGCHLD；有收养时唤醒 child_events 等待者。
+@note 重托管只原子登记父信号，不在子锁下再取得父进程锁。真正唤醒信号等待者延迟到无相关锁的服务边界。
+@details 流程由 ReparentFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="lifecycle-processmanager-exit-process"></a>
@@ -107,6 +111,7 @@
 @see ProcessManager::reap
 @see ProcessManager::reparent
 @details socket 经 descriptors_.close_all 与其他描述符统一关闭；最后一个 File 引用释放时调用具体 socket 后端回收排队页。正常 exit 和信号终止共用此路径。
+@details 流程由 ExitFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="lifecycle-processmanager-wakeup"></a>

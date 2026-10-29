@@ -2,9 +2,6 @@
 
 ## 函数导航
 
-- [`xv::drivers::initialize_network`](../board/qemu_virt.cpp.md#fn-a202b21c5c06ed23)
-- [`xv::drivers::network_device`](../board/qemu_virt.cpp.md#fn-0dd9355aa5e189f6)
-- [`xv::drivers::network_device_count`](../board/qemu_virt.cpp.md#fn-0f6db43d3d7dce07)
 - [`xv::drivers::EthernetDevice::carrier`](ethernet.cppm.md#fn-0a75b7ad9c57762f)
 - [`xv::drivers::EthernetDevice::mac_address`](ethernet.cppm.md#fn-835a79075d06aef8)
 - [`xv::drivers::EthernetDevice::online`](ethernet.cppm.md#fn-759d5d8b3299891d)
@@ -13,6 +10,9 @@
 - [`xv::drivers::EthernetDevice::~EthernetDevice`](ethernet.cppm.md#fn-79a6be906dbdfcdd)
 - [`xv::drivers::EthernetReceiver::receive_frame`](ethernet.cppm.md#fn-af5421b98e5d86b2)
 - [`xv::drivers::EthernetReceiver::~EthernetReceiver`](ethernet.cppm.md#fn-0d52ec251209d344)
+- [`xv::drivers::initialize_network`](../board/qemu_virt.cpp.md#fn-a202b21c5c06ed23)
+- [`xv::drivers::network_device`](../board/qemu_virt.cpp.md#fn-0dd9355aa5e189f6)
+- [`xv::drivers::network_device_count`](../board/qemu_virt.cpp.md#fn-0f6db43d3d7dce07)
 
 <a id="fn-af5421b98e5d86b2"></a>
 

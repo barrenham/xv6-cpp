@@ -61,6 +61,12 @@ public:
 
 private:
 
+  struct ValidationFlow;
+  struct MutationFlow;
+  struct LeaseFlow;
+
+  struct LookupFlow;
+
   static constexpr unsigned Capacity = 32;
 
   struct RouteSet

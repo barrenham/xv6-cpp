@@ -12,6 +12,31 @@
 
 - [`xv::memory::LargestPagePolicy::choose`](sv39_page_table.cpp.md#fn-2171228f92751c34)
 - [`xv::memory::OwnedSv39PageTable::OwnedSv39PageTable`](sv39_page_table.cpp.md#fn-2e410d014f53be24)
+- [`xv::memory::Sv39PageTable::LeafFlow::allocate`](sv39_page_table.cpp.md#fn-6efdb92b67cd1b63)
+- [`xv::memory::Sv39PageTable::LeafFlow::collision`](sv39_page_table.cpp.md#fn-410b32ad82d8f959)
+- [`xv::memory::Sv39PageTable::LeafFlow::descend`](sv39_page_table.cpp.md#fn-004e1e313029978d)
+- [`xv::memory::Sv39PageTable::LeafFlow::descending`](sv39_page_table.cpp.md#fn-98d8b11a3f9638ab)
+- [`xv::memory::Sv39PageTable::LeafFlow::leaf`](sv39_page_table.cpp.md#fn-dbddd5ba803a369e)
+- [`xv::memory::Sv39PageTable::LeafFlow::lookup`](sv39_page_table.cpp.md#fn-e5bf41efd0a99721)
+- [`xv::memory::Sv39PageTable::LeafFlow::next`](sv39_page_table.cpp.md#fn-30208f7620a2f6e7)
+- [`xv::memory::Sv39PageTable::LeafFlow::ok`](sv39_page_table.cpp.md#fn-b10fc811a2b57339)
+- [`xv::memory::Sv39PageTable::LeafFlow::publish`](sv39_page_table.cpp.md#fn-6e20ada01e294839)
+- [`xv::memory::Sv39PageTable::LeafFlow::valid`](sv39_page_table.cpp.md#fn-6f16260f48acf534)
+- [`xv::memory::Sv39PageTable::RangeFlow::advance`](sv39_page_table.cpp.md#fn-1bf3def884511140)
+- [`xv::memory::Sv39PageTable::RangeFlow::aligned`](sv39_page_table.cpp.md#fn-95646d4191c1cc9d)
+- [`xv::memory::Sv39PageTable::RangeFlow::choose`](sv39_page_table.cpp.md#fn-b1d02fa565861f51)
+- [`xv::memory::Sv39PageTable::RangeFlow::invalid_permissions`](sv39_page_table.cpp.md#fn-6135cca80fae6468)
+- [`xv::memory::Sv39PageTable::RangeFlow::invalid_range`](sv39_page_table.cpp.md#fn-945f669a2932bf2e)
+- [`xv::memory::Sv39PageTable::RangeFlow::level`](sv39_page_table.cpp.md#fn-d9d9148e9c90c0dd)
+- [`xv::memory::Sv39PageTable::RangeFlow::map`](sv39_page_table.cpp.md#fn-a7559a0d9435359b)
+- [`xv::memory::Sv39PageTable::RangeFlow::ok`](sv39_page_table.cpp.md#fn-61ba912f2ae49ccc)
+- [`xv::memory::Sv39PageTable::RangeFlow::out_of_memory`](sv39_page_table.cpp.md#fn-367a3da4ff2064cb)
+- [`xv::memory::Sv39PageTable::RangeFlow::permissions`](sv39_page_table.cpp.md#fn-a83028355af4abf7)
+- [`xv::memory::Sv39PageTable::RangeFlow::range`](sv39_page_table.cpp.md#fn-4786cb85cccad6d4)
+- [`xv::memory::Sv39PageTable::RangeFlow::remaining`](sv39_page_table.cpp.md#fn-3ce27057fe65cf4e)
+- [`xv::memory::Sv39PageTable::RangeFlow::root`](sv39_page_table.cpp.md#fn-594e563d18e14616)
+- [`xv::memory::Sv39PageTable::RangeFlow::step`](sv39_page_table.cpp.md#fn-ad867b861c4c3a1e)
+- [`xv::memory::Sv39PageTable::RangeFlow::success`](sv39_page_table.cpp.md#fn-824f5edf064fc850)
 - [`xv::memory::Sv39PageTable::clear`](sv39_page_table.cpp.md#fn-2f1f8c9aab0dc295)
 - [`xv::memory::Sv39PageTable::clear_table`](sv39_page_table.cpp.md#fn-b168aaa56651a459)
 - [`xv::memory::Sv39PageTable::count_table`](sv39_page_table.cpp.md#fn-4eab1f09025d1b08)
@@ -99,10 +124,8 @@
 @param pa 对应的物理地址。
 @param target 本次操作使用的 target 值。
 @param permissions 本次操作使用的 permissions 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`index_at` → `child_table` → `candidate` → `detail::fill` → `candidate.get` → `PhysicalAddress::from_pointer` → `address.is_aligned` → `encode` → `candidate.release`。
-@details 需要特别跟踪的条件：`entry & Valid`；`entry & Leaf`；`!candidate`；`!address.is_aligned()`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`candidate.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 各分支实际返回：`MappingResult::Collision`；`MappingResult::OutOfMemory`；`MappingResult::InvalidRange`；`MappingResult::Ok`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 LeafFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-1b298dc585488ae2"></a>
@@ -116,9 +139,8 @@
 @param pa 对应的物理地址。
 @param bytes 本次操作使用的 字节区域 值。
 @param permissions 本次操作使用的 permissions 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`pa.is_aligned` → `pa.raw` → `policy_.choose` → `leaf_size` → `map_leaf` → `pa.advanced`。
-@details 需要特别跟踪的条件：`!root_`；`(permissions & ~Allowed) || !(permissions & (Read | Execute)) || ((permissions & Write) && !(permissions & Read))`；`bytes`；`static_cast<unsigned>(level) > 2`；`step > bytes || va % step || !pa.is_aligned(step)`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`MappingResult::OutOfMemory`；`MappingResult::InvalidRange`；`MappingResult::InvalidPermissions`；`result`；`MappingResult::Ok`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 RangeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-b693975e5af85c1d"></a>
@@ -182,4 +204,254 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`clear_table`。
 @details 需要特别跟踪的条件：`root_`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-6efdb92b67cd1b63"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::allocate`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::allocate(Context &c) noexcept
+@brief 取得并清零候选子表、验证对齐后发布并转移所有权。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-410b32ad82d8f959"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::collision`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::collision(Context &c) noexcept
+@brief 记录现有叶造成的映射冲突。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-004e1e313029978d"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::descend`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::descend(Context &c) noexcept
+@brief 通过已有目录项进入子页表。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-98d8b11a3f9638ab"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::descending`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::LeafFlow::descending(Context &c) noexcept
+@brief 检查是否仍需下降到更低页表层。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-dbddd5ba803a369e"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::leaf`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::LeafFlow::leaf(Context &c) noexcept
+@brief 检查已有项是否为不可覆盖的叶。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-e5bf41efd0a99721"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::lookup`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::lookup(Context &c) noexcept
+@brief 选择当前层的页表项。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-30208f7620a2f6e7"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::next`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::next(Context &c) noexcept
+@brief 下降一层以继续迭代。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b10fc811a2b57339"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::ok`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::LeafFlow::ok(Context &c) noexcept
+@brief 检查子表分配与验证结果是否成功。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6e20ada01e294839"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::publish`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::LeafFlow::publish(Context &c) noexcept
+@brief 在目标层拒绝碰撞或发布新的叶映射。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6f16260f48acf534"></a>
+
+## `xv::memory::Sv39PageTable::LeafFlow::valid`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::LeafFlow::valid(Context &c) noexcept
+@brief 检查当前项是否已存在。
+@details 保留最多两层中间表遍历；缺表时局部 OwnedPage 负责未发布候选，验证后才 release，后续失败保留已发布前缀且不替换已有叶。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-1bf3def884511140"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::advance`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::advance(Context &c) noexcept
+@brief 推进虚实地址并扣除本轮映射字节。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-95646d4191c1cc9d"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::aligned`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::aligned(Context &c) noexcept
+@brief 验证叶跨度适合剩余长度且虚实地址均对齐。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b1d02fa565861f51"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::choose`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::choose(Context &c) noexcept
+@brief 调用原映射策略选择下一叶大小。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6135cca80fae6468"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::invalid_permissions`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::invalid_permissions(Context &c) noexcept
+@brief 记录无效权限结果。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-945f669a2932bf2e"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::invalid_range`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::invalid_range(Context &c) noexcept
+@brief 记录无效范围或策略输出结果。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-d9d9148e9c90c0dd"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::level`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::level(Context &c) noexcept
+@brief 检查策略返回的叶级别受支持。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a7559a0d9435359b"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::map`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::map(Context &c) noexcept
+@brief 通过叶映射协议映射本轮范围并保存结果。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-61ba912f2ae49ccc"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::ok`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::ok(Context &c) noexcept
+@brief 检查最近叶映射是否成功。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-367a3da4ff2064cb"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::out_of_memory`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::out_of_memory(Context &c) noexcept
+@brief 记录缺少根表的内存不足结果。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a83028355af4abf7"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::permissions`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::permissions(Context &c) noexcept
+@brief 验证受支持权限与 Sv39 写必须可读规则。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-4786cb85cccad6d4"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::range`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::range(Context &c) noexcept
+@brief 验证非空长度、页对齐与虚实地址上界及溢出。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3ce27057fe65cf4e"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::remaining`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::remaining(Context &c) noexcept
+@brief 检查范围是否仍有未映射字节。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-594e563d18e14616"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::root`
+
+```doxygen
+@fn static bool xv::memory::Sv39PageTable::RangeFlow::root(Context &c) noexcept
+@brief 检查视图是否具有根表。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-ad867b861c4c3a1e"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::step`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::step(Context &c) noexcept
+@brief 取得本轮叶跨度。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-824f5edf064fc850"></a>
+
+## `xv::memory::Sv39PageTable::RangeFlow::success`
+
+```doxygen
+@fn static void xv::memory::Sv39PageTable::RangeFlow::success(Context &c) noexcept
+@brief 记录整个范围映射完成。
+@details 原页大小策略仍为业务扩展点；按原次序验证范围与权限，逐叶选择和映射，失败返回准确原因并允许保留成功前缀，由外层持有者负责最终树回收。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

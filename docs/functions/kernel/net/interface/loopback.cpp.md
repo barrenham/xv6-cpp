@@ -6,8 +6,8 @@
 
 - [`xv::net::LoopbackInterface::initialize`](loopback.cpp.md#fn-21e76ce52e463582)
 - [`xv::net::LoopbackInterface::owns`](loopback.cpp.md#fn-19bc88c16594dcb2)
-- [`xv::net::LoopbackInterface::transmit`](loopback.cpp.md#fn-bb6135ec4e85a90a)
 - [`xv::net::LoopbackInterface::tick`](loopback.cpp.md#fn-49f2bb3530d94f42)
+- [`xv::net::LoopbackInterface::transmit`](loopback.cpp.md#fn-bb6135ec4e85a90a)
 
 <a id="fn-21e76ce52e463582"></a>
 
@@ -34,7 +34,7 @@
 ```doxygen
 @fn int xv::net::LoopbackInterface::transmit(Packet &packet, unsigned)
 @brief 在有界回环队列接管纯 IP 报文页面、长度及处理上下文。
-@details 检查启用、MTU 与十六项队列容量，失败保留调用方拥有权；入队不直接回调协议。
+@details 检查启用、MTU 与十六项队列容量，失败保留调用方拥有权；入队不直接回调协议。 实现通过 TransmitFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-49f2bb3530d94f42"></a>
@@ -44,5 +44,5 @@
 ```doxygen
 @fn void xv::net::LoopbackInterface::tick(unsigned long)
 @brief 在队列锁内摘除页面与元数据，锁外恢复完整 Packet 上下文并回调本机入口。
-@details 每次最多处理六十四项，避免同步重入和丢失隧道预算。
+@details 每次最多处理六十四项，避免同步重入和丢失隧道预算。 实现通过 DrainFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

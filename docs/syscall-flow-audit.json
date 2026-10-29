@@ -1,0 +1,384 @@
+{
+  "status": "identified_complex_paths_connected",
+  "scope": "kernel/syscall source audit in dev; conditional LAB_LOCK ABI entries preserved without claiming a complete LAB_LOCK build",
+  "files": [
+    {
+      "source": "kernel/syscall/arguments.cpp",
+      "sha256": "f89404915fd5974ec895fd95a83ae3474c40419c2c62fb8f847ce1883691d075",
+      "review": "单次地址/字符串复制与长度扫描、固定 a0-a5 ABI 取参、标量参数转换；无资源所有权交接或需要重复编排的公共路径，保留业务原语。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/arguments.cppm",
+      "sha256": "450890038e8edd24e4f030c5ed4d754b3f431f0a8c4e840e1ca9cc59595c27ab",
+      "review": "私有取参/复制接口声明，无运行协议。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/handlers.cppm",
+      "sha256": "832d538d7351847d35df797b52cce010c2296085d0fb50be2d87857773b92534",
+      "review": "私有系统调用函数及实验条件声明，无执行编排。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/syscall.cpp",
+      "sha256": "9ca98f922f18fa342efa96012135ed16ff6a4cae141f4515272d2a75bd479959",
+      "review": "固定 ABI switch 查找保留直接执行；DispatchFlow 连接已知/未知处理、一次 begin/handler/finish、完整失败时重启与结果发布，部分传输不重放。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::dispatch",
+          "usr": "c:@N@xv@N@syscall@F@dispatch#",
+          "source": "kernel/syscall/syscall.cpp",
+          "source_sha256": "56b4d5f976d03e77d6c59bb794c7c98d64d03fd970176f4eed317840259da117",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/syscall.cppm",
+      "sha256": "03a70ab6d22f3a74155460fd73f306ad3b869fb8ffa29618cf336dd41b87a757",
+      "review": "导出 dispatch 声明，执行实现在 syscall.cpp。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/syscall.h",
+      "sha256": "26075366a7321d2705eda72e4516f5817a9782952003aa4c0d52222445712540",
+      "review": "固定用户 ABI 号常量，无运行注册。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/sysfile.cpp",
+      "sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c",
+      "review": "十四张图负责打开、创建节点、chdir、参数向量、exec、pipe/PTY、属性、access、共享 stat/lstat、mount/unmount/info/readlink；Transaction 与 ArgumentVector 析构保留。其余参数门槛/单次委托、固定目录分量扫描和日志能力查询保留业务原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::sys_open",
+          "usr": "c:@N@xv@N@syscall@F@sys_open#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "51b32cc217c24683a1c7b9c556d8115edae3cedecc90311ad6037cc5688c756a",
+          "graphs": [
+            "OpenFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_mkdir",
+          "usr": "c:@N@xv@N@syscall@F@sys_mkdir#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "5fbdcfbcd526a542557ea274af54e2ab2a30628385206fa0f7070ea92766830d",
+          "graphs": [
+            "CreateNodeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_mknod",
+          "usr": "c:@N@xv@N@syscall@F@sys_mknod#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "0947e5c29c793636012558cf488f0c56e010ac247f5c8fceafeb91ad98db9ff6",
+          "graphs": [
+            "CreateNodeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_chdir",
+          "usr": "c:@N@xv@N@syscall@F@sys_chdir#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "413c610046fc3dd81383c7a9a3748c92838a0799bb71f1bd3577107eba54f4a8",
+          "graphs": [
+            "DirectoryFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_pipe",
+          "usr": "c:@N@xv@N@syscall@F@sys_pipe#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "691b3cf98e9b119b112369849ea8f65d065400a4611c1331fa85e59de11e545a",
+          "graphs": [
+            "PipeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_openpty",
+          "usr": "c:@N@xv@N@syscall@F@sys_openpty#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "5e7b561860f7e860d59b48a532de829f0d7f0fae02bd516c250e0d50869f0068",
+          "graphs": [
+            "PtyOpenFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::attributes",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@F@attributes#b#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "d3b0ebcf65dd842acf009619c2426fbbab1738b2bac0712e923beecf73b08bc3",
+          "graphs": [
+            "AttributesFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_access",
+          "usr": "c:@N@xv@N@syscall@F@sys_access#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "3a032d489279629d34b73f67ea4c97e4b8c0ce2ecc6a98083c26f8aed8f9fa10",
+          "graphs": [
+            "AccessFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_stat",
+          "usr": "c:@N@xv@N@syscall@F@sys_stat#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "ac22f4bc858351ed972782cee800f2734c75fd47388fee6706527011a6261fcf",
+          "graphs": [
+            "StatFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_lstat",
+          "usr": "c:@N@xv@N@syscall@F@sys_lstat#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "e6781118096c1a6a201ad015d2692475e731ef018a9419f421c077ad88a086cf",
+          "graphs": [
+            "StatFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_mount",
+          "usr": "c:@N@xv@N@syscall@F@sys_mount#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "e1d130d5ff2c408ef983490cf6f4d97a7b2c2bc4e6698c82e3d49607d2742c8d",
+          "graphs": [
+            "MountFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_umount",
+          "usr": "c:@N@xv@N@syscall@F@sys_umount#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "7c0ceacd6916416e7b2e7d9ebcb932452fd402aa9bfc3b42d0f6376185a7836c",
+          "graphs": [
+            "UnmountFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_mountinfo",
+          "usr": "c:@N@xv@N@syscall@F@sys_mountinfo#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "cf8e0a8b4fbc171d48aa59196b5abd7df66051a1be37dc0523d36f4847c3b73d",
+          "graphs": [
+            "MountInfoFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_readlink",
+          "usr": "c:@N@xv@N@syscall@F@sys_readlink#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "dcfcc0aaacd83e958ba75a8c9051aafc608bd81bb9ea79fb868170252d219aaf",
+          "graphs": [
+            "ReadlinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::ArgumentVector::copy",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@S@ArgumentVector@F@copy#l#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "a9452e9747efdaf005df35c8056f07408323a609c3568f3b61e5abd82bd03211",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::execute_image",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@F@execute_image#b#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "b357b191270a0cbdb7b0c210a8e5d9228cc4d4a277e3e5f676b7751ad425a58c",
+          "graphs": [
+            "ExecuteImageFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/sysnetctl.cpp",
+      "sha256": "2bfd7c56b6822138db7c112bba7d6a379fb4492b9512b45ea3692098972e9943",
+      "review": "FirewallControlFlow 与 NetworkControlFlow 保留不同权限/复制顺序；固定操作范围入口选择保持直接门槛。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::sys_netctl",
+          "usr": "c:@N@xv@N@syscall@F@sys_netctl#",
+          "source": "kernel/syscall/sysnetctl.cpp",
+          "source_sha256": "830fdd198b8c785aba86f742720c1100f659a3491b5cb5922508001c1a25f817",
+          "graphs": [
+            "FirewallControlFlow::Graph",
+            "NetworkControlFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/syspoll.cpp",
+      "sha256": "bced9ef4e3814c008cbc2553f45b1b50504df533102fa178008f5e06b98d58f0",
+      "review": "PollFlow 控制扫描/完成/复制/等待；HeldFiles/PollWait 的原词法析构保留，固定描述符循环为业务原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::sys_poll",
+          "usr": "c:@N@xv@N@syscall@F@sys_poll#",
+          "source": "kernel/syscall/syspoll.cpp",
+          "source_sha256": "61dc84ebf4b87c7ab72bc867a4e9389f41a1f5be771ab967d08961787ce6c516",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/sysproc.cpp",
+      "sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627",
+      "review": "PgAccessFlow 与 GetGroupsFlow/SetGroupsFlow 接入页表及补充组复制/提交边界；其余信号、组/会话、进程生命周期、凭据单次委托及 sbrk 尺寸快照/一次 resize、固定 CSR 读取保留业务原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::sys_pgaccess",
+          "usr": "c:@N@xv@N@syscall@F@sys_pgaccess#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "80084c872ddd585a35cb1d172a594652a04c53b77ce9a8f46d64c0e940b77c37",
+          "graphs": [
+            "PgAccessFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_getgroups",
+          "usr": "c:@N@xv@N@syscall@F@sys_getgroups#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "5c11f56cd23e00e8cf076456d22bc94d903062c56bb92b10a6465bd278bb3d99",
+          "graphs": [
+            "GetGroupsFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_setgroups",
+          "usr": "c:@N@xv@N@syscall@F@sys_setgroups#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "9f96734319a8e21f40843359ac77ba9087edfde3b7a7d0ff11d27063d75d04c7",
+          "graphs": [
+            "SetGroupsFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/syssocket.cpp",
+      "sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "review": "安装、地址输出、bind/connect/accept/send/receive/SO_ERROR 的候选交接与短路输出由八张图负责；socket_argument/input_address 和 create/listen/shutdown/name 薄适配保持原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::install",
+          "usr": "c:syssocket.cpp@N@xv@N@syscall@aN@F@install#*$@N@xv@N@net@S@Socket#b#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "96c97c20eff4be714e861e0ea2b9cdc6ce97dfc8a22b5fe185014227b5c00f96",
+          "graphs": [
+            "SocketInstallFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::output_address",
+          "usr": "c:syssocket.cpp@N@xv@N@syscall@aN@F@output_address#l#l#$@N@xv@N@net@S@Endpoint#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "7976d8a417886511b2ac2d9c3bdf66d55683ce00b331c286b1716416f0f1c096",
+          "graphs": [
+            "SocketAddressFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_sockbind",
+          "usr": "c:@N@xv@N@syscall@F@sys_sockbind#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "348628e36ad160c52e51d1fc36fbddb64f11b0fe4ac2fd13e817ae7c931ca96f",
+          "graphs": [
+            "SocketBindFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_connect",
+          "usr": "c:@N@xv@N@syscall@F@sys_connect#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "101eb26c19b0f918861290d7ca5a0b65d01cb46052046cdf98fa690569083897",
+          "graphs": [
+            "SocketConnectFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_accept",
+          "usr": "c:@N@xv@N@syscall@F@sys_accept#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "74b0ad2bf2105bc4782487b0be95938eae7c53d0bcc412c282a5ad4216744759",
+          "graphs": [
+            "SocketAcceptFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_sendto",
+          "usr": "c:@N@xv@N@syscall@F@sys_sendto#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "42933443a5bb142ef5794a4a824d998ba98a17b1001ff93ed8778d504741ee0c",
+          "graphs": [
+            "SocketSendFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_recvfrom",
+          "usr": "c:@N@xv@N@syscall@F@sys_recvfrom#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "790860a6b30f7b857f14346441199474c13e5a0da586983196c34af6178f04c7",
+          "graphs": [
+            "SocketReceiveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_getsockopt",
+          "usr": "c:@N@xv@N@syscall@F@sys_getsockopt#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "9ce57c7c5651c042e7cd08e556d10f1d1983a6ee62c82ada03c1bc3a1bc2434e",
+          "graphs": [
+            "SocketOptionFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/syscall/sysvm.cpp",
+      "sha256": "7b4373a8f1dbf50a023e9f9be23ea1db1fe6b3eebe7babbf9de72a3fb21e9b2b",
+      "review": "KernelStatisticsFlow 保留两次有序复制；pgpte/sys_pgpte 单次页表查询与结果投影保留直接操作。",
+      "graph_entries": [
+        {
+          "qualified": "xv::syscall::sys_ksupernpte",
+          "usr": "c:@N@xv@N@syscall@F@sys_ksupernpte#",
+          "source": "kernel/syscall/sysvm.cpp",
+          "source_sha256": "5ee56ec0bb14b28ca0d135d33870202d993b2dc4959ba8012158d274de507767",
+          "graphs": [
+            "KernelStatisticsFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    }
+  ],
+  "graph_count": 30,
+  "bound_entries": 31,
+  "limitations": [
+    "当前 dev 接口和实际 QEMU 系统调用已验证，不扩展为全部实验配置或宿主 ASan 覆盖。",
+    "LAB_LOCK 的 sys_rwlktest 仅有原声明/ABI 映射，当前树无实现；统计文件还缺 STATS 定义，见本批条件编译检查。",
+    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+  ]
+}

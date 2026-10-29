@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::process::wait_channels`](../lifecycle/service.cpp.md#fn-00fe184141e83bc3)
 - [`xv::process::WaitChannels::WaitChannels`](wait_channels.cppm.md#fn-9ca4c3d1c7326296)
 - [`xv::process::WaitChannels::arm_timer`](poll_wait.cpp.md#fn-3352c9d1a67a7dac)
 - [`xv::process::WaitChannels::cancel`](../wait-channels.md#wait-waitchannels-cancel)
@@ -23,6 +22,7 @@
 - [`xv::process::WaitChannels::unlink`](../wait-channels.md#wait-waitchannels-unlink)
 - [`xv::process::WaitChannels::unsubscribe`](poll_wait.cpp.md#fn-417e58d7ce31f1b6)
 - [`xv::process::WaitChannels::wake`](../wait-channels.md#wait-waitchannels-wake)
+- [`xv::process::wait_channels`](../lifecycle/service.cpp.md#fn-00fe184141e83bc3)
 
 <a id="fn-9ca4c3d1c7326296"></a>
 

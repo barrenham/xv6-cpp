@@ -109,6 +109,9 @@ public:
 
 private:
 
+  struct LeafFlow;
+  struct RangeFlow;
+
   MappingResult map_leaf(VirtualAddress va, PhysicalAddress pa, unsigned level,
                          MemorySize permissions);
   void clear_table(MemorySize *table, unsigned level);

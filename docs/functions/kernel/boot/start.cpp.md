@@ -10,8 +10,8 @@
 
 ## 函数导航
 
-- [`xv::boot::enter`](start.cpp.md#fn-caadfb68f7c23853)
 - [`xv::boot::detail::device_tree`](start.cpp.md#fn-6e4debad43d43f5f)
+- [`xv::boot::enter`](start.cpp.md#fn-caadfb68f7c23853)
 - [`xv::boot::initialize_timer`](start.cpp.md#fn-b0eb3ac8b28cbcdd)
 
 <a id="fn-caadfb68f7c23853"></a>

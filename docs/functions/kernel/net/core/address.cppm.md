@@ -4,8 +4,8 @@
 
 ## 函数导航
 
-- [`xv::net::Ipv4Address::mask`](address.cppm.md#fn-30462e0981ae3632)
 - [`xv::net::Ipv4Address::contains`](address.cppm.md#fn-a3948cdaef51ae79)
+- [`xv::net::Ipv4Address::mask`](address.cppm.md#fn-30462e0981ae3632)
 
 <a id="fn-30462e0981ae3632"></a>
 

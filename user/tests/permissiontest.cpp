@@ -14,6 +14,25 @@ void drop(unsigned uid, unsigned gid)
 extern "C" int main()
 {
   check(getuid() == 0 && geteuid() == 0, "root test launcher");
+  unsigned saved_groups[16], sampled[16];
+  int saved_count = getgroups(16, saved_groups);
+  auto *invalid = reinterpret_cast<unsigned *>(~0UL);
+  check(saved_count >= 0 && getgroups(0, invalid) == saved_count, "group count query skips pointer");
+  unsigned fixture_groups[] = {1234, 2345};
+  check(setgroups(2, fixture_groups) == 0, "group boundary fixture");
+  sampled[0] = 9999;
+  check(getgroups(1, sampled) == -1 && sampled[0] == 9999, "short group output untouched");
+  check(getgroups(2, invalid) == -1 && setgroups(2, invalid) == -1 &&
+        setgroups(17, invalid) == -1 && setgroups(-1, invalid) == -1, "group copy and count bounds");
+  check(getgroups(16, sampled) == 2 && sampled[0] == 1234 && sampled[1] == 2345,
+        "failed group input preserves credentials");
+  check(setgroups(0, invalid) == 0 && getgroups(16, invalid) == 0,
+        "empty groups skip user copies");
+  check(setgroups(saved_count, saved_groups) == 0, "restore original groups");
+  register unsigned long unknown_number asm("a7") = 0x7fffffff;
+  register unsigned long unknown_result asm("a0") = 123;
+  asm volatile("ecall" : "+r"(unknown_result) : "r"(unknown_number) : "memory");
+  check(unknown_result == ~0UL, "unknown syscall result");
   unsigned old_mask = umask(0027);
   file("/perm-file"); struct stat metadata{};
   check(stat("/perm-file", &metadata) == 0 && metadata.uid == 0 && metadata.mode == 0640, "default mask and ownership");

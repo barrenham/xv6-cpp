@@ -7,16 +7,23 @@ TCP 提供连接管理、可靠有序字节流、双向关闭、滑动窗口和 
 | 文件 | 职责 |
 | --- | --- |
 | `socket/tcp_socket.*` | 连接状态、应用读写、监听、接入和生命周期 |
-| `socket/tcp_sender.cpp` | 发送推进、累计 ACK、窗口更新、重传和 persist |
+| `socket/tcp_sender.cpp` | 发送、ACK、窗口、重传和 persist 的类成员入口 |
+| `socket/tcp/*.cppm` | TcpSocket 私有流程：收发、可靠性、应用 I/O、生命周期与选项解析 |
 | `socket/tcp_receiver.cpp` | TCP 选项、握手输入、序号校验、接收和 FIN 处理 |
 | `transport/stream_buffer.cppm` | 分页发送环和带逐字节重排位图的接收环 |
 | `transport/congestion.cppm` | 慢启动、拥塞避免、快速重传和 NewReno 快速恢复 |
 | `transport/retransmission_timer.cppm` | RTT 采样、Karn 规则、RTO 与指数退避 |
 | `transport/tcp.cppm` | 借用报文值 `TcpSegment`、接收契约 `TcpSegmentSink` 和 TCP 发送/接收协议 |
-| `transport/tcp_protocol.cpp` | 首部与校验和、TCP 编码、未匹配报文的 RST 响应 |
+| `transport/tcp_protocol.cpp` | 业务入口、上下文组装与返回值 |
+| `transport/tcp_protocol/receive.cppm` | 接收上下文、校验条件、接收器分派及未匹配报文 RST 动作 |
+| `transport/tcp_protocol/transmit.cppm` | 发送上下文、路由和分配条件、TCP 编码与发送动作 |
 | `socket/registry.*` | 连接与监听匹配、backlog、待接受子连接查找、接管及关闭 |
 
 路径均相对于 `kernel/net/`。函数说明见 [内核函数导航](functions/kernel/README.md#net)。
+
+整个网络模块的类与私有流程对应关系见 [网络声明式流程](network-flows.md)。
+TcpProtocol 的节点关系、错误出口、上下文所有权和性能成本见
+[声明式协议流程](network-tcp-protocol-flow.md)。
 
 ## 协议与连接分派
 

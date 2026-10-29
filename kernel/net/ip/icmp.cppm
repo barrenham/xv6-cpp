@@ -16,6 +16,8 @@ public:
 
 private:
 
+  struct ReplyFlow;
+
   Ipv4Layer &ip_;
 };
 } // namespace xv::net

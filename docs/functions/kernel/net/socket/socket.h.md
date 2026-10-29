@@ -4,10 +4,10 @@
 
 ## 函数导航
 
-- [`htons`](socket.h.md#fn-cfaad5c6b15bde27)
-- [`ntohs`](socket.h.md#fn-2790eaf44b07efb4)
 - [`htonl`](socket.h.md#fn-25a27e4090d07897)
+- [`htons`](socket.h.md#fn-cfaad5c6b15bde27)
 - [`ntohl`](socket.h.md#fn-1b03ec8a1ba752db)
+- [`ntohs`](socket.h.md#fn-2790eaf44b07efb4)
 
 <a id="fn-cfaad5c6b15bde27"></a>
 

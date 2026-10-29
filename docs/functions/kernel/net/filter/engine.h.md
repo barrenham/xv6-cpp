@@ -4,23 +4,23 @@
 
 ## 函数导航
 
-- [`xv::net::filter::equal`](engine.h.md#fn-dc6e0b233fe32320)
-- [`xv::net::filter::name_valid`](engine.h.md#fn-aab30a4b55c961b5)
-- [`xv::net::filter::mask`](engine.h.md#fn-f2bd1a7a86faf653)
 - [`xv::net::filter::Counter::hit`](engine.h.md#fn-54c18d985ed82c9d)
 - [`xv::net::filter::Engine::Engine`](engine.h.md#fn-1f8d4f4b636dbc78)
-- [`xv::net::filter::Engine::execute`](engine.h.md#fn-286f6e66a00e3c34)
 - [`xv::net::filter::Engine::accept`](engine.h.md#fn-d5fed1d71441705c)
-- [`xv::net::filter::Engine::find`](engine.h.md#fn-221e8216aeaa9254)
-- [`xv::net::filter::Engine::inspect_chain`](engine.h.md#fn-6a4ba3b3e89bd6ce)
-- [`xv::net::filter::Engine::create_chain`](engine.h.md#fn-1e3d52531133b5d8)
-- [`xv::net::filter::Engine::remove_chain`](engine.h.md#fn-1852ae2b61d2ea6d)
-- [`xv::net::filter::Engine::insert_rule`](engine.h.md#fn-aedff2fc1780d51d)
-- [`xv::net::filter::Engine::remove_rule`](engine.h.md#fn-60da7da9fc9a98e8)
 - [`xv::net::filter::Engine::apply_policy`](engine.h.md#fn-946f84fdca33e969)
-- [`xv::net::filter::Engine::reaches`](engine.h.md#fn-bcf2e11e916d7b84)
-- [`xv::net::filter::Engine::valid`](engine.h.md#fn-ba4966ad176aeb45)
+- [`xv::net::filter::Engine::create_chain`](engine.h.md#fn-1e3d52531133b5d8)
+- [`xv::net::filter::Engine::execute`](engine.h.md#fn-286f6e66a00e3c34)
+- [`xv::net::filter::Engine::find`](engine.h.md#fn-221e8216aeaa9254)
+- [`xv::net::filter::Engine::insert_rule`](engine.h.md#fn-aedff2fc1780d51d)
+- [`xv::net::filter::Engine::inspect_chain`](engine.h.md#fn-6a4ba3b3e89bd6ce)
 - [`xv::net::filter::Engine::matches`](engine.h.md#fn-b9aab5ccd540a2b4)
+- [`xv::net::filter::Engine::reaches`](engine.h.md#fn-bcf2e11e916d7b84)
+- [`xv::net::filter::Engine::remove_chain`](engine.h.md#fn-1852ae2b61d2ea6d)
+- [`xv::net::filter::Engine::remove_rule`](engine.h.md#fn-60da7da9fc9a98e8)
+- [`xv::net::filter::Engine::valid`](engine.h.md#fn-ba4966ad176aeb45)
+- [`xv::net::filter::equal`](engine.h.md#fn-dc6e0b233fe32320)
+- [`xv::net::filter::mask`](engine.h.md#fn-f2bd1a7a86faf653)
+- [`xv::net::filter::name_valid`](engine.h.md#fn-aab30a4b55c961b5)
 
 <a id="fn-dc6e0b233fe32320"></a>
 
@@ -72,10 +72,11 @@
 ## `xv::net::filter::Engine::execute`
 
 ```doxygen
-@fn int xv::net::filter::Engine::execute(unsigned operation, firewall_request &request)
+@fn inline int xv::net::filter::Engine::execute(unsigned operation, firewall_request &request)
 @brief 校验管理 ABI，分派链查询、创建删除、策略修改及规则查询修改。
 @return 查询成功 1、枚举结束或修改成功 0，失败返回负错误码。
 @pre 调用方负责串行化。
+@details 实现通过 CommandFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-d5fed1d71441705c"></a>
@@ -83,9 +84,9 @@
 ## `xv::net::filter::Engine::accept`
 
 ```doxygen
-@fn bool xv::net::filter::Engine::accept(BuiltinChain entry_chain, const Metadata &packet)
+@fn inline bool xv::net::filter::Engine::accept(BuiltinChain entry_chain, const Metadata &packet)
 @brief 从有类型的内建链入口顺序匹配规则，以显式返回栈执行自定义链跳转。
-@details 显式 RETURN 与链尾共用返回路径；根链返回时统一应用策略并计数。每次判决最多执行 1024 步，目标无效、入口无效或超限均拒绝。
+@details 显式 RETURN 与链尾共用返回路径；根链返回时统一应用策略并计数。每次判决最多执行 1024 步，目标无效、入口无效或超限均拒绝。 实现通过 EvaluationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 调用方串行化规则读写和计数；本函数不分配、不睡眠。
 ```
 

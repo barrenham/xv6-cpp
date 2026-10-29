@@ -4,31 +4,31 @@
 
 ## 函数导航
 
+- [`xv::net::TcpPageBuffer::at`](stream_buffer.cppm.md#fn-f323d0ffa243da1c)
 - [`xv::net::TcpPageBuffer::initialize`](stream_buffer.cppm.md#fn-d215ab99b2d641dd)
 - [`xv::net::TcpPageBuffer::release`](stream_buffer.cppm.md#fn-705d59505a71c048)
-- [`xv::net::TcpPageBuffer::at`](stream_buffer.cppm.md#fn-f323d0ffa243da1c)
 - [`xv::net::TcpPageBuffer::span`](stream_buffer.cppm.md#fn-9abd8c5423fea2e6)
+- [`xv::net::TcpReceiveBuffer::acceptable`](stream_buffer.cppm.md#fn-e38777d6fe48320b)
+- [`xv::net::TcpReceiveBuffer::discard`](stream_buffer.cppm.md#fn-92e78acdac2921fd)
+- [`xv::net::TcpReceiveBuffer::finished`](stream_buffer.cppm.md#fn-3b103917d41f437c)
+- [`xv::net::TcpReceiveBuffer::initialize`](stream_buffer.cppm.md#fn-05735a9b95cfeab8)
+- [`xv::net::TcpReceiveBuffer::insert`](stream_buffer.cppm.md#fn-e8c9cca903bc4860)
+- [`xv::net::TcpReceiveBuffer::next`](stream_buffer.cppm.md#fn-7fef44d82c0b1fa6)
+- [`xv::net::TcpReceiveBuffer::read`](stream_buffer.cppm.md#fn-2029608d75575f91)
+- [`xv::net::TcpReceiveBuffer::readable`](stream_buffer.cppm.md#fn-547e389594618ad3)
+- [`xv::net::TcpReceiveBuffer::release`](stream_buffer.cppm.md#fn-631ea25d09a4d215)
+- [`xv::net::TcpReceiveBuffer::reset`](stream_buffer.cppm.md#fn-1d0e4c57c90c0e29)
+- [`xv::net::TcpReceiveBuffer::window`](stream_buffer.cppm.md#fn-591b215cc33a6eca)
+- [`xv::net::TcpSendBuffer::append`](stream_buffer.cppm.md#fn-0741bcdb3f1478e7)
+- [`xv::net::TcpSendBuffer::begin`](stream_buffer.cppm.md#fn-521159d90d2bd47c)
+- [`xv::net::TcpSendBuffer::discard`](stream_buffer.cppm.md#fn-55882a0de1a600a0)
+- [`xv::net::TcpSendBuffer::end`](stream_buffer.cppm.md#fn-bc0a680fad6c6726)
 - [`xv::net::TcpSendBuffer::initialize`](stream_buffer.cppm.md#fn-1e04edfa2096790e)
 - [`xv::net::TcpSendBuffer::release`](stream_buffer.cppm.md#fn-c0f0073316a9971c)
 - [`xv::net::TcpSendBuffer::reset`](stream_buffer.cppm.md#fn-0440b9a794375707)
-- [`xv::net::TcpSendBuffer::begin`](stream_buffer.cppm.md#fn-521159d90d2bd47c)
-- [`xv::net::TcpSendBuffer::end`](stream_buffer.cppm.md#fn-bc0a680fad6c6726)
 - [`xv::net::TcpSendBuffer::size`](stream_buffer.cppm.md#fn-fb79fc32f05074b0)
 - [`xv::net::TcpSendBuffer::space`](stream_buffer.cppm.md#fn-5e903465bc307dbc)
-- [`xv::net::TcpSendBuffer::append`](stream_buffer.cppm.md#fn-0741bcdb3f1478e7)
-- [`xv::net::TcpSendBuffer::discard`](stream_buffer.cppm.md#fn-55882a0de1a600a0)
 - [`xv::net::TcpSendBuffer::span`](stream_buffer.cppm.md#fn-0c9a6a7d69fc973d)
-- [`xv::net::TcpReceiveBuffer::initialize`](stream_buffer.cppm.md#fn-05735a9b95cfeab8)
-- [`xv::net::TcpReceiveBuffer::release`](stream_buffer.cppm.md#fn-631ea25d09a4d215)
-- [`xv::net::TcpReceiveBuffer::reset`](stream_buffer.cppm.md#fn-1d0e4c57c90c0e29)
-- [`xv::net::TcpReceiveBuffer::next`](stream_buffer.cppm.md#fn-7fef44d82c0b1fa6)
-- [`xv::net::TcpReceiveBuffer::readable`](stream_buffer.cppm.md#fn-547e389594618ad3)
-- [`xv::net::TcpReceiveBuffer::window`](stream_buffer.cppm.md#fn-591b215cc33a6eca)
-- [`xv::net::TcpReceiveBuffer::finished`](stream_buffer.cppm.md#fn-3b103917d41f437c)
-- [`xv::net::TcpReceiveBuffer::acceptable`](stream_buffer.cppm.md#fn-e38777d6fe48320b)
-- [`xv::net::TcpReceiveBuffer::insert`](stream_buffer.cppm.md#fn-e8c9cca903bc4860)
-- [`xv::net::TcpReceiveBuffer::read`](stream_buffer.cppm.md#fn-2029608d75575f91)
-- [`xv::net::TcpReceiveBuffer::discard`](stream_buffer.cppm.md#fn-92e78acdac2921fd)
 
 <a id="fn-d215ab99b2d641dd"></a>
 
@@ -37,7 +37,7 @@
 ```doxygen
 @fn bool xv::net::TcpPageBuffer::initialize()
 @brief 逐页申请组成 16 KiB 环的四个物理页。
-@details 已有页保留，遇到分配失败返回 false；调用方必须在失败路径调用 release，工厂据此统一回滚。
+@details 已有页保留，遇到分配失败返回 false；调用方必须在失败路径调用 release，工厂据此统一回滚。 实现通过 InitializeFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
 
@@ -158,7 +158,7 @@
 ```doxygen
 @fn unsigned xv::net::TcpSendBuffer::append(const unsigned char *data, unsigned length)
 @brief 把字节追加到发送环末尾并返回接纳长度。
-@details 最多使用现有空闲空间，按序号逐字节映射，跨页与回绕保持连续流顺序。
+@details 最多使用现有空闲空间，按序号逐字节映射，跨页与回绕保持连续流顺序。 实现通过 AppendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
 
@@ -279,7 +279,7 @@
 ```doxygen
 @fn unsigned xv::net::TcpReceiveBuffer::insert(unsigned sequence, const unsigned char *data, unsigned length, bool fin)
 @brief 保存窗口内字节并推进所有已连续数据和 FIN。
-@details 忽略旧前缀与窗口外后缀，重叠字节保留首次到达内容；缺口填满后依次清除存在位并增加可读量。返回前沿推进量，包含已消费 FIN 序号。
+@details 忽略旧前缀与窗口外后缀，重叠字节保留首次到达内容；缺口填满后依次清除存在位并增加可读量。返回前沿推进量，包含已消费 FIN 序号。 实现通过 InsertFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
 

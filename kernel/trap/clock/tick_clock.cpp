@@ -1,4 +1,5 @@
 module xv.trap;
+import :clock_flow;
 import :platform;
 
 namespace xv::trap
@@ -27,26 +28,10 @@ unsigned TickClock::uptime() const
 
 int TickClock::pause(int count)
 {
-  if (count < 0)
-  {
-    count = 0;
-  }
-  const auto interval = static_cast<unsigned>(count);
+  const auto interval = static_cast<unsigned>(count < 0 ? 0 : count);
   lock_.acquire();
-  const unsigned start = ticks_;
-  while (ticks_ - start < interval)
-  {
-    if (detail::interrupted())
-    {
-      lock_.release();
-      return -1;
-    }
-    detail::prepare_interruptible_sleep(&ticks_);
-    lock_.release();
-    detail::sleep();
-    lock_.acquire();
-  }
-  lock_.release();
-  return 0;
+  PauseFlow::Context ctx{*this, interval, ticks_};
+  (void)PauseFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 } // namespace xv::trap

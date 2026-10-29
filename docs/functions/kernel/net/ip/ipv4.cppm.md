@@ -4,25 +4,25 @@
 
 ## 函数导航
 
-- [`xv::net::Ipv4Bootstrap::receive_bootstrap`](ipv4.cppm.md#fn-3bebdee13a445ad8)
-- [`xv::net::Ipv4Bootstrap::~Ipv4Bootstrap`](ipv4.cppm.md#fn-dc28cbdeba540453)
 - [`xv::net::IpProtocol::receive`](ipv4.cppm.md#fn-56b2966d4e378d05)
 - [`xv::net::IpProtocol::~IpProtocol`](ipv4.cppm.md#fn-a85a20734f631a87)
+- [`xv::net::Ipv4Bootstrap::receive_bootstrap`](ipv4.cppm.md#fn-3bebdee13a445ad8)
+- [`xv::net::Ipv4Bootstrap::~Ipv4Bootstrap`](ipv4.cppm.md#fn-dc28cbdeba540453)
 - [`xv::net::Ipv4Layer::Ipv4Layer`](ipv4.cppm.md#fn-1842ecb0929516e0)
-- [`xv::net::Ipv4Layer::initialize`](ipv4.cpp.md#fn-7415b9e5fc7d3a4f)
-- [`xv::net::Ipv4Layer::attach_filter`](ipv4.cppm.md#fn-9c7739c914926daa)
+- [`xv::net::Ipv4Layer::allocate`](ipv4.cpp.md#fn-9f3ac76c2a449fd0)
 - [`xv::net::Ipv4Layer::attach`](ipv4.cpp.md#fn-117533788806052c)
 - [`xv::net::Ipv4Layer::attach_bootstrap`](ipv4.cppm.md#fn-6a0a31ea650c206e)
-- [`xv::net::Ipv4Layer::send_bootstrap`](ipv4.cpp.md#fn-d38f175c28a36890)
-- [`xv::net::Ipv4Layer::allocate`](ipv4.cpp.md#fn-9f3ac76c2a449fd0)
-- [`xv::net::Ipv4Layer::send`](ipv4.cpp.md#fn-ec39a5d6caadee7f)
-- [`xv::net::Ipv4Layer::source_for`](ipv4.cpp.md#fn-e20391cb067e3d28)
-- [`xv::net::Ipv4Layer::mtu_for`](ipv4.cpp.md#fn-3a0cbb19a9a3cb97)
+- [`xv::net::Ipv4Layer::attach_filter`](ipv4.cppm.md#fn-9c7739c914926daa)
+- [`xv::net::Ipv4Layer::initialize`](ipv4.cpp.md#fn-7415b9e5fc7d3a4f)
 - [`xv::net::Ipv4Layer::local`](ipv4.cppm.md#fn-5728bbcf34020003)
+- [`xv::net::Ipv4Layer::mtu_for`](ipv4.cpp.md#fn-3a0cbb19a9a3cb97)
+- [`xv::net::Ipv4Layer::output_allowed`](ipv4.cpp.md#fn-df3cc0c85232f9e7)
 - [`xv::net::Ipv4Layer::receive`](ipv4.cpp.md#fn-0a3554f93eae9eb7)
+- [`xv::net::Ipv4Layer::send`](ipv4.cpp.md#fn-ec39a5d6caadee7f)
+- [`xv::net::Ipv4Layer::send_bootstrap`](ipv4.cpp.md#fn-d38f175c28a36890)
+- [`xv::net::Ipv4Layer::source_for`](ipv4.cpp.md#fn-e20391cb067e3d28)
 - [`xv::net::Ipv4Layer::tick`](ipv4.cpp.md#fn-a0dc11b7e7393d13)
 - [`xv::net::Ipv4Layer::write_header`](ipv4.cpp.md#fn-38cbc784b1b54011)
-- [`xv::net::Ipv4Layer::output_allowed`](ipv4.cpp.md#fn-df3cc0c85232f9e7)
 
 <a id="fn-3bebdee13a445ad8"></a>
 

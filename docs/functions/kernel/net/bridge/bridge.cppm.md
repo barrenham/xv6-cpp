@@ -5,22 +5,22 @@
 ## 函数导航
 
 - [`xv::net::BridgeInterface::BridgeInterface`](bridge.cppm.md#fn-d7fb2410e3f68a0f)
+- [`xv::net::BridgeInterface::bridge_id`](bridge.cppm.md#fn-f761b66eda4d25ec)
+- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
+- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
+- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
 - [`xv::net::BridgeInterface::initialize`](bridge.cpp.md#fn-ce4d08412e7d6ce2)
 - [`xv::net::BridgeInterface::is_bridge`](bridge.cppm.md#fn-e0025dc638c74095)
-- [`xv::net::BridgeInterface::carrier`](bridge.cpp.md#fn-c626d20e219e7087)
-- [`xv::net::BridgeInterface::tick`](bridge.cpp.md#fn-ba92da7fc5981118)
-- [`xv::net::BridgeInterface::bridge_id`](bridge.cppm.md#fn-f761b66eda4d25ec)
-- [`xv::net::BridgeInterface::online`](bridge.cppm.md#fn-b73b01c488013607)
 - [`xv::net::BridgeInterface::mac_address`](bridge.cpp.md#fn-e2285e8b355a3998)
+- [`xv::net::BridgeInterface::online`](bridge.cppm.md#fn-b73b01c488013607)
+- [`xv::net::BridgeInterface::tick`](bridge.cpp.md#fn-ba92da7fc5981118)
 - [`xv::net::BridgeInterface::transmit`](bridge.cpp.md#fn-26b371580e62fdc8)
-- [`xv::net::BridgeInterface::ingress`](bridge.cpp.md#fn-84c2d9daab914b31)
-- [`xv::net::BridgeInterface::forward`](bridge.cpp.md#fn-87db7052d871e63a)
 - [`xv::net::BridgeManager::BridgeManager`](bridge.cppm.md#fn-514e98d3cfd6a78e)
-- [`xv::net::BridgeManager::initialize`](manager.cpp.md#fn-063d16e712668e1c)
 - [`xv::net::BridgeManager::execute`](manager.cpp.md#fn-0497bea6af90ed3f)
 - [`xv::net::BridgeManager::find`](manager.cpp.md#fn-d2dcd2b27caa0414)
-- [`xv::net::BridgeManager::unused`](manager.cpp.md#fn-c333fba347c24bcd)
+- [`xv::net::BridgeManager::initialize`](manager.cpp.md#fn-063d16e712668e1c)
 - [`xv::net::BridgeManager::membership`](manager.cpp.md#fn-9249cf80bd2b818c)
+- [`xv::net::BridgeManager::unused`](manager.cpp.md#fn-c333fba347c24bcd)
 
 <a id="fn-d7fb2410e3f68a0f"></a>
 

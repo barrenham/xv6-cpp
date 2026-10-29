@@ -1,38 +1,17 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :routing_transaction_flows;
+import :routing_lookup_flow;
 import :routing;
 
 namespace xv::net
 {
 bool RoutingTable::valid(const Route &route) const
 {
-  auto &interface = *route.interface;
-  if (interface.master() || route.prefix > 32 ||
-      interfaces_.find(interface.id()) != &interface ||
-      (route.gateway && !interface.source_for(route.gateway)) ||
-      (route.source && (!interfaces_.owns(route.source) ||
-                        (interface.mac() && !interface.owns(route.source)))))
-  {
-    return false;
-  }
-  if (route.gateway)
-  {
-    bool connected = false;
-    for (unsigned i = 0; i < interface.address_count(); ++i)
-    {
-      if (interface.address(i).contains(route.gateway))
-      {
-        connected = true;
-      }
-    }
-    if (!connected || interface.owns(route.gateway) ||
-        interface.broadcast(route.gateway))
-    {
-      return false;
-    }
-  }
-  return true;
+  ValidationFlow::Context ctx{*this, route};
+  (void)ValidationFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool RoutingTable::add(unsigned network, unsigned prefix, NetworkInterface &interface,
@@ -109,30 +88,9 @@ int RoutingTable::add_static(unsigned network, unsigned prefix,
                              unsigned metric, unsigned source)
 {
   ConfigurationGuard guard;
-  if (prefix > 32)
-  {
-    return -EINVAL;
-  }
-  Route route{network & Ipv4Address{0, prefix}.mask(),
-              prefix,
-              gateway,
-              metric,
-              source,
-              &interface};
-  if (find(route) >= 0)
-  {
-    return -EEXIST;
-  }
-  if (count_ == Capacity)
-  {
-    return -ENOBUFS;
-  }
-  if (!valid(route))
-  {
-    return -EINVAL;
-  }
-  routes_[count_++] = route;
-  return 0;
+  MutationFlow::Context ctx{*this, network, prefix, interface, gateway, metric, source};
+  (void)MutationFlow::AddGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 int RoutingTable::remove_static(unsigned network, unsigned prefix,
@@ -140,27 +98,9 @@ int RoutingTable::remove_static(unsigned network, unsigned prefix,
                                 unsigned metric, unsigned source)
 {
   ConfigurationGuard guard;
-  if (prefix > 32)
-  {
-    return -EINVAL;
-  }
-  Route route{network & Ipv4Address{0, prefix}.mask(),
-              prefix,
-              gateway,
-              metric,
-              source,
-              &interface};
-  int index = find(route);
-  if (index < 0)
-  {
-    return -ENOENT;
-  }
-  if (routes_[index].address_owner || routes_[index].lease_owner)
-  {
-    return -EBUSY;
-  }
-  erase(index);
-  return 0;
+  MutationFlow::Context ctx{*this, network, prefix, interface, gateway, metric, source};
+  (void)MutationFlow::RemoveGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 RoutingTable::RouteSet RoutingTable::address_routes(NetworkInterface &interface,
@@ -232,33 +172,9 @@ bool RoutingTable::lease_routes_match(NetworkInterface &interface,
                                       unsigned gateway, unsigned metric) const
 {
   ConfigurationGuard guard;
-  if (address.prefix > 32)
-  {
-    return false;
-  }
-  auto desired =
-      address_routes(interface, loopback, address, interface.id(), gateway, metric);
-  if (lease_route_count(interface.id()) != desired.count)
-  {
-    return false;
-  }
-  for (unsigned n = 0; n < desired.count; ++n)
-  {
-    bool found = false;
-    for (unsigned i = 0; i < count_; ++i)
-    {
-      if (routes_[i].lease_owner == interface.id() &&
-          same_path(routes_[i], desired.entries[n]))
-      {
-        found = true;
-      }
-    }
-    if (!found)
-    {
-      return false;
-    }
-  }
-  return true;
+  LeaseFlow::MatchContext ctx{*this, interface, loopback, address, gateway, metric};
+  (void)LeaseFlow::MatchGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool RoutingTable::replace_lease_routes(NetworkInterface &interface,
@@ -266,22 +182,9 @@ bool RoutingTable::replace_lease_routes(NetworkInterface &interface,
                                         unsigned gateway, unsigned metric)
 {
   ConfigurationGuard guard;
-  if (address.prefix > 32)
-  {
-    return false;
-  }
-  auto desired =
-      address_routes(interface, loopback, address, interface.id(), gateway, metric);
-  if (count_ - lease_route_count(interface.id()) + desired.count > Capacity)
-  {
-    return false;
-  }
-  remove_lease_routes(interface);
-  for (unsigned i = 0; i < desired.count; ++i)
-  {
-    routes_[count_++] = desired.entries[i];
-  }
-  return true;
+  LeaseFlow::Context ctx{*this, interface, loopback, address, gateway, metric};
+  (void)LeaseFlow::ReplaceGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool RoutingTable::remove_lease_routes(const NetworkInterface &interface)
@@ -307,72 +210,8 @@ bool RoutingTable::lookup(unsigned destination, RouteSelection &result, unsigned
                           const NetworkInterface *via) const
 {
   ConfigurationGuard guard;
-  result = {};
-  if (!destination || ((destination >> 28) >= 14 && destination != 0xffffffff))
-  {
-    return false;
-  }
-  const Route *best = nullptr;
-  for (unsigned i = 0; i < count_; ++i)
-  {
-    const auto &route = routes_[i];
-    auto &interface = *route.interface;
-    if (route.source && !interfaces_.owns(route.source))
-    {
-      continue;
-    }
-    if (route.gateway)
-    {
-      bool connected = false;
-      for (unsigned address = 0; address < interface.address_count(); ++address)
-      {
-        if (interface.address(address).contains(route.gateway))
-        {
-          connected = true;
-        }
-      }
-      if (!connected || interface.owns(route.gateway) ||
-          interface.broadcast(route.gateway))
-      {
-        continue;
-      }
-    }
-    unsigned mask = Ipv4Address{0, route.prefix}.mask();
-    if (interface.master() || !interface.up() || !interface.carrier() ||
-        (via && via != &interface) || (destination & mask) != route.network ||
-        (source && !interface.owns(source) && source != route.source))
-    {
-      continue;
-    }
-    unsigned selected_source =
-        source ? source
-               : (route.source ? route.source : interface.source_for(destination));
-    if (!selected_source)
-    {
-      continue;
-    }
-    if (!best || route.prefix > best->prefix ||
-        (route.prefix == best->prefix && route.metric < best->metric))
-    {
-      best = &route;
-    }
-  }
-  if (!best)
-  {
-    return false;
-  }
-  auto &interface = *best->interface;
-  unsigned selected_source =
-      source ? source
-             : (best->source ? best->source : interface.source_for(destination));
-  if (!selected_source)
-  {
-    return false;
-  }
-  unsigned next_hop = interface.broadcast(destination)
-                          ? 0xffffffffU
-                          : (best->gateway ? best->gateway : destination);
-  result = {&interface, next_hop, selected_source};
-  return true;
+  LookupFlow::Context ctx{*this, destination, result, source, via};
+  (void)LookupFlow::Graph::run<0>(ctx);
+  return ctx.found;
 }
 } // namespace xv::net

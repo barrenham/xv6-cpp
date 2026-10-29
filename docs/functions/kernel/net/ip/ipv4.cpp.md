@@ -4,17 +4,17 @@
 
 ## 函数导航
 
-- [`xv::net::Ipv4Layer::initialize`](ipv4.cpp.md#fn-7415b9e5fc7d3a4f)
-- [`xv::net::Ipv4Layer::attach`](ipv4.cpp.md#fn-117533788806052c)
 - [`xv::net::Ipv4Layer::allocate`](ipv4.cpp.md#fn-9f3ac76c2a449fd0)
-- [`xv::net::Ipv4Layer::source_for`](ipv4.cpp.md#fn-e20391cb067e3d28)
+- [`xv::net::Ipv4Layer::attach`](ipv4.cpp.md#fn-117533788806052c)
+- [`xv::net::Ipv4Layer::initialize`](ipv4.cpp.md#fn-7415b9e5fc7d3a4f)
 - [`xv::net::Ipv4Layer::mtu_for`](ipv4.cpp.md#fn-3a0cbb19a9a3cb97)
-- [`xv::net::Ipv4Layer::write_header`](ipv4.cpp.md#fn-38cbc784b1b54011)
 - [`xv::net::Ipv4Layer::output_allowed`](ipv4.cpp.md#fn-df3cc0c85232f9e7)
-- [`xv::net::Ipv4Layer::send`](ipv4.cpp.md#fn-ec39a5d6caadee7f)
 - [`xv::net::Ipv4Layer::receive`](ipv4.cpp.md#fn-0a3554f93eae9eb7)
-- [`xv::net::Ipv4Layer::tick`](ipv4.cpp.md#fn-a0dc11b7e7393d13)
+- [`xv::net::Ipv4Layer::send`](ipv4.cpp.md#fn-ec39a5d6caadee7f)
 - [`xv::net::Ipv4Layer::send_bootstrap`](ipv4.cpp.md#fn-d38f175c28a36890)
+- [`xv::net::Ipv4Layer::source_for`](ipv4.cpp.md#fn-e20391cb067e3d28)
+- [`xv::net::Ipv4Layer::tick`](ipv4.cpp.md#fn-a0dc11b7e7393d13)
+- [`xv::net::Ipv4Layer::write_header`](ipv4.cpp.md#fn-38cbc784b1b54011)
 
 <a id="fn-7415b9e5fc7d3a4f"></a>
 
@@ -91,6 +91,7 @@
 @brief 选出出口与源地址，核对报文和 MTU，共用首部编码及 OUTPUT 检查后交给接口。
 @return 选路失败 -ENETUNREACH，报文或 MTU 错误 -EMSGSIZE，过滤拒绝 -EACCES，其他结果由接口返回。
 @note 失败由原 Packet 继续持有页面，成功沿接口契约接管。
+@details 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-0a3554f93eae9eb7"></a>
@@ -100,7 +101,7 @@
 ```doxygen
 @fn void xv::net::Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
 @brief 校验入口与 IPv4 首部，委托重组完整报文，再依次执行本机/引导目的判断、INPUT 过滤和协议分派。
-@details 重组后保留处理上下文并在重组锁外重新进入本路径；规则和计数针对完整数据报。普通非本机单播不进入 INPUT，活动 DHCP 引导候选可继续由专用接收器验证。空、已释放或非法报文按丢弃路径处理。
+@details 重组后保留处理上下文并在重组锁外重新进入本路径；规则和计数针对完整数据报。普通非本机单播不进入 INPUT，活动 DHCP 引导候选可继续由专用接收器验证。空、已释放或非法报文按丢弃路径处理。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-a0dc11b7e7393d13"></a>
@@ -119,5 +120,5 @@
 ```doxygen
 @fn int xv::net::Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source)
 @brief 校验活动 DHCP 接口及 UDP 68→67 条件，使用共用首部编码与 OUTPUT 检查发送引导广播。
-@details 允许尚无地址时以源零发包；非零源仍须属于该接口。不绕过防火墙或接口的启用、桥成员及 MTU 检查。
+@details 允许尚无地址时以源零发包；非零源仍须属于该接口。不绕过防火墙或接口的启用、桥成员及 MTU 检查。 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

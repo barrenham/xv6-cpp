@@ -8,6 +8,7 @@
 
 ## 函数导航
 
+- [`xv::runtime::array_size`](runtime.cppm.md#fn-075eab47bead8c60)
 - [`xv::runtime::compare_bytes`](string.cpp.md#fn-d746938e9fff88f5)
 - [`xv::runtime::compare_text`](string.cpp.md#fn-fb4f1f87bb6c9655)
 - [`xv::runtime::copy_fixed`](string.cpp.md#fn-676164e45c23a5a8)
@@ -15,7 +16,6 @@
 - [`xv::runtime::fill`](string.cpp.md#fn-ef93f4a780c32fda)
 - [`xv::runtime::length`](string.cpp.md#fn-a83d5710b35c41e9)
 - [`xv::runtime::move`](string.cpp.md#fn-da7e6b0b68e76d10)
-- [`xv::runtime::array_size`](runtime.cppm.md#fn-075eab47bead8c60)
 
 <a id="fn-075eab47bead8c60"></a>
 

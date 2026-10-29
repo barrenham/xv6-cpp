@@ -56,6 +56,27 @@ public:
 
 private:
 
+  struct ListenFlow;
+  struct PassiveFlow;
+  struct PollFlow;
+  struct ShutdownFlow;
+  struct CloseFlow;
+  struct WindowFlow;
+
+  struct AcknowledgeFlow;
+  struct RetransmitFlow;
+  struct PersistFlow;
+  struct FinishFlow;
+
+  struct ConnectFlow;
+  struct AcceptFlow;
+  struct ReadFlow;
+  struct WriteFlow;
+
+  struct IncomingFlow;
+  struct PumpFlow;
+  struct TickFlow;
+
   int segment(unsigned sequence, unsigned flags, const void *data = nullptr,
               unsigned length = 0);
   void emit(unsigned flags);

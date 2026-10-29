@@ -4,12 +4,12 @@
 
 ## 函数导航
 
-- [`xv::net::EthernetLayer::initialize`](ethernet.cpp.md#fn-c7b38042d08f668f)
-- [`xv::net::EthernetLayer::send_ip`](ethernet.cpp.md#fn-2f3a15c921db001f)
 - [`xv::net::EthernetLayer::attach`](ethernet.cpp.md#fn-d01f4eb93cf246f8)
-- [`xv::net::EthernetLayer::send`](ethernet.cpp.md#fn-468ec89c64e20c7c)
-- [`xv::net::EthernetLayer::transmit_frame`](ethernet.cpp.md#fn-d7050414ee46b952)
+- [`xv::net::EthernetLayer::initialize`](ethernet.cpp.md#fn-c7b38042d08f668f)
 - [`xv::net::EthernetLayer::receive_frame`](ethernet.cpp.md#fn-bf5e575793115a66)
+- [`xv::net::EthernetLayer::send`](ethernet.cpp.md#fn-468ec89c64e20c7c)
+- [`xv::net::EthernetLayer::send_ip`](ethernet.cpp.md#fn-2f3a15c921db001f)
+- [`xv::net::EthernetLayer::transmit_frame`](ethernet.cpp.md#fn-d7050414ee46b952)
 
 <a id="fn-c7b38042d08f668f"></a>
 
@@ -27,6 +27,7 @@
 ```doxygen
 @fn int xv::net::EthernetLayer::send_ip(Packet &packet, const unsigned char *destination)
 @brief 为纯 IPv4 包前插十四字节以太首部并发送；失败撤销首部，未移交的页面保持归调用者所有。
+@details 实现通过 EncapsulationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-d01f4eb93cf246f8"></a>
@@ -57,6 +58,7 @@
 @brief 检查完整帧长度、设备就绪和载波后，原样交给设备；成功 release 页面，失败保留调用者所有权，不修改任何帧字节。
 @param[in,out] packet 完整以太帧，调用成功后页面被设备接管。
 @return 零或 -EMSGSIZE/-ENETUNREACH/-EAGAIN，失败保留页面。
+@details 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-bf5e575793115a66"></a>
@@ -66,5 +68,5 @@
 ```doxygen
 @fn void xv::net::EthernetLayer::receive_frame(void *page, unsigned length)
 @brief 接管 RX 页面并验证基本帧长。
-@details 桥成员先按接入代次分派完整帧，否则按本机 MAC/广播过滤后进行 EtherType 分派，未消费页由 RAII 释放。
+@details 桥成员先按接入代次分派完整帧，否则按本机 MAC/广播过滤后进行 EtherType 分派，未消费页由 RAII 释放。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

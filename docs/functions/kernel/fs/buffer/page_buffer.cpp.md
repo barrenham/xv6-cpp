@@ -40,6 +40,8 @@
 @fn PageBuffer::Page *xv::fs::PageBuffer::page(unsigned index, bool create)
 @brief 按页下标定位数据块，并按重载契约决定是否分配。
 @details 只读重载仅查询已有链；可写重载在 create 为真时逐页申请并零初始化，分配失败返回 nullptr。尾页有直接定位路径，其余从链首遍历；对象本身不加锁，所属节点或快照拥有者负责串行化。
+@details 流程由 PageFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 目标页指针；禁止创建时索引越界或分配失败返回 nullptr。已扩充的页面仍由缓冲拥有。
 ```
 
 <a id="fn-7324b6e1a8cb6d8b"></a>
@@ -70,6 +72,8 @@
 @fn int xv::fs::PageBuffer::write(unsigned offset, bool user, unsigned long source, unsigned count)
 @brief 按字节偏移复制用户或内核数据，并按需增加页面。
 @details 检查偏移与长度溢出，越过 EOF 的间隙显式清零。逐页分配和复制，成功部分才推进逻辑长度；失败返回已写字节数或 -1，零长度不访问源地址。已申请但尚无逻辑数据的页仍由本缓冲拥有并在 clear 回收。
+@details 流程由 WriteFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 成功返回完整计数；后续页分配或复制失败返回已完成字节数，首段或填隙失败返回 -1；空写入返回 0。
 ```
 
 <a id="fn-737bf8707fc7f001"></a>
@@ -80,6 +84,8 @@
 @fn int xv::fs::PageBuffer::read(unsigned offset, bool user, unsigned long destination, unsigned count) const
 @brief 从页链复制指定字节范围。
 @details 把读取裁剪到逻辑 EOF，逐页 copy_out 并区分用户和内核地址空间。复制失败返回先前已完成的字节数或 -1；本函数不维护文件偏移，由上层根据返回值推进。
+@details 流程由 ReadFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 返回完整或部分复制的字节数；EOF 或空读取为 0，首段复制失败为 -1。
 ```
 
 <a id="fn-882e25e0a5ff62b9"></a>
@@ -100,4 +106,6 @@
 @fn bool xv::fs::PageBuffer::resize(unsigned size)
 @brief 改变多页缓冲的逻辑长度。
 @details 增长通过补零写入建立页面；缩短释放多余页并清空尾页剩余字节。分配失败返回 false，不发布新的逻辑长度；已预留页在之后清理时归还。
+@details 流程由 ResizeFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 长度非法或增长失败返回 false，成功返回 true。
 ```

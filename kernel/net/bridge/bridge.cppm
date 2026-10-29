@@ -32,6 +32,8 @@ public:
 
 private:
 
+  struct ForwardFlow;
+
   friend class BridgeManager;
 
   unsigned bridge_id() const override
@@ -83,6 +85,9 @@ public:
   int execute(unsigned operation, netctl_request &request);
 
 private:
+
+  struct MembershipFlow;
+  struct ExecuteFlow;
 
   BridgeInterface *find(unsigned id);
   bool unused(NetworkInterface &interface) const;

@@ -6,9 +6,9 @@
 
 - [`xv::net::AddressConfiguration::AddressConfiguration`](address_configuration.cppm.md#fn-669a7a64845e5939)
 - [`xv::net::AddressConfiguration::add_static`](address_configuration.cpp.md#fn-61f8d692dbb019bd)
-- [`xv::net::AddressConfiguration::remove_static`](address_configuration.cpp.md#fn-a4bbc7a46ce7f664)
 - [`xv::net::AddressConfiguration::install_lease`](address_configuration.cpp.md#fn-ec6332fe77a9c444)
 - [`xv::net::AddressConfiguration::remove_lease`](address_configuration.cpp.md#fn-c8c67bede08a808c)
+- [`xv::net::AddressConfiguration::remove_static`](address_configuration.cpp.md#fn-a4bbc7a46ce7f664)
 
 <a id="fn-669a7a64845e5939"></a>
 

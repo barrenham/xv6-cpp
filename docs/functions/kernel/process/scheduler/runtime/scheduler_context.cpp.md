@@ -10,6 +10,14 @@
 
 ## 函数导航
 
+- [`xv::process::SchedulerContext::DispatchFlow::enter`](scheduler_context.cpp.md#fn-2db240bad0144b08)
+- [`xv::process::SchedulerContext::DispatchFlow::leave`](scheduler_context.cpp.md#fn-a291a904223611a7)
+- [`xv::process::SchedulerContext::DispatchFlow::switch_context`](scheduler_context.cpp.md#fn-11074be1e7e203bb)
+- [`xv::process::SchedulerContext::SuspendFlow::prepare`](scheduler_context.cpp.md#fn-a8fa96fc2c454a8e)
+- [`xv::process::SchedulerContext::SuspendFlow::switch_context`](scheduler_context.cpp.md#fn-c5921855ce1d78b8)
+- [`xv::process::SchedulerContext::YieldFlow::lock`](scheduler_context.cpp.md#fn-cab3e8017e65685d)
+- [`xv::process::SchedulerContext::YieldFlow::publish`](scheduler_context.cpp.md#fn-56fc3c72e02d6051)
+- [`xv::process::SchedulerContext::YieldFlow::suspend`](scheduler_context.cpp.md#fn-6a13358bcc56686f)
 - [`xv::process::SchedulerContext::begin_round`](scheduler_context.cpp.md#fn-3168ca64e91ead29)
 - [`xv::process::SchedulerContext::dispatch`](scheduler_context.cpp.md#fn-717e81da3f2d8fa2)
 - [`xv::process::SchedulerContext::idle`](scheduler_context.cpp.md#fn-70ec78efb2fe5d09)
@@ -63,11 +71,8 @@
 @param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
 @param cpu 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
 @details 取得目标进程锁并验证 Runnable，设置 Running 与 cpu.current，刷新地址翻译后 swtch 到进程内核栈；返回时再次刷新、清空当前进程并释放锁。之后不能继续依赖已退出对象。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`process.lock.acquire` → `xv::print::panic` → `xv::arch::sfence_vma` → `swtch` → `current_cpu` → `process.lock.release`。
-@details 本函数可见的状态更新包括：`process.state = ProcessState::Running;`；`cpu.current = &process;`；`cpu.current = nullptr;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`process.state != ProcessState::Runnable`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`process.lock.acquire` → `process.lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 DispatchFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-28e041bc6bad922e"></a>
@@ -93,9 +98,8 @@
 @fn void xv::process::SchedulerContext::suspend()
 @brief 调度与汇编切换边界：在规定的锁状态下切回调度器。
 @details 切换前验证只持当前进程锁、中断关闭且状态已不为 Running；保存中断恢复意图，经 swtch 转回当前 CPU 的调度 Context，恢复执行后还原该意图。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`current` → `p->lock.holding` → `xv::print::panic` → `current_cpu` → `xv::arch::intr_get` → `swtch`。
-@details 需要特别跟踪的条件：`!p->lock.holding()`；`current_cpu()->noff != 1`；`p->state == ProcessState::Running`；`xv::arch::intr_get()`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 SuspendFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-5bdf0a1333169edf"></a>
@@ -106,7 +110,86 @@
 @fn void xv::process::SchedulerContext::yield(Scheduler &scheduler)
 @brief 调度与汇编切换边界：把当前进程重新排队并主动让出 CPU。
 @param scheduler 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`current` → `p->lock.acquire` → `scheduler.make_runnable` → `scheduler.suspend` → `p->lock.release`。
-@note 源码中出现的锁操作：`p->lock.acquire` → `p->lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 YieldFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+```
+
+<a id="fn-2db240bad0144b08"></a>
+
+## `xv::process::SchedulerContext::DispatchFlow::enter`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::DispatchFlow::enter(Context &c) noexcept
+@brief 获取进程锁、验证 Runnable 并发布 Running 与 CPU 当前进程。
+@details 进程锁从进入到离开调度切换始终持有；回收栈叶所需的两次 TLB fence 与 swtch 保持相邻。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a291a904223611a7"></a>
+
+## `xv::process::SchedulerContext::DispatchFlow::leave`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::DispatchFlow::leave(Context &c) noexcept
+@brief 关闭调度帧的中断恢复标志、清除 CPU 当前进程并释放进程锁。
+@details 进程锁从进入到离开调度切换始终持有；回收栈叶所需的两次 TLB fence 与 swtch 保持相邻。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-11074be1e7e203bb"></a>
+
+## `xv::process::SchedulerContext::DispatchFlow::switch_context`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::DispatchFlow::switch_context(Context &c) noexcept
+@brief 在两次 TLB fence 之间切换到进程上下文并等待返回。
+@details 进程锁从进入到离开调度切换始终持有；回收栈叶所需的两次 TLB fence 与 swtch 保持相邻。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-a8fa96fc2c454a8e"></a>
+
+## `xv::process::SchedulerContext::SuspendFlow::prepare`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::SuspendFlow::prepare(Context &c) noexcept
+@brief 验证调度前置条件并保存当前 CPU 的中断恢复标志。
+@details 调用者已持进程锁；逐项核对锁、中断和进程状态，保存 intena，恢复后重新读取当前 CPU，支持跨核恢复。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c5921855ce1d78b8"></a>
+
+## `xv::process::SchedulerContext::SuspendFlow::switch_context`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::SuspendFlow::switch_context(Context &c) noexcept
+@brief 切回当前 CPU 调度上下文并在恢复核上还原中断恢复标志。
+@details 调用者已持进程锁；逐项核对锁、中断和进程状态，保存 intena，恢复后重新读取当前 CPU，支持跨核恢复。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-cab3e8017e65685d"></a>
+
+## `xv::process::SchedulerContext::YieldFlow::lock`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::YieldFlow::lock(Context &c) noexcept
+@brief 获取当前进程锁。
+@details 持进程锁发布 Runnable 并挂入队列，持锁挂起，恢复后才解锁；执行器不依赖尾调用优化。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-56fc3c72e02d6051"></a>
+
+## `xv::process::SchedulerContext::YieldFlow::publish`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::YieldFlow::publish(Context &c) noexcept
+@brief 通过原调度器发布当前进程可运行。
+@details 持进程锁发布 Runnable 并挂入队列，持锁挂起，恢复后才解锁；执行器不依赖尾调用优化。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6a13358bcc56686f"></a>
+
+## `xv::process::SchedulerContext::YieldFlow::suspend`
+
+```doxygen
+@fn static void xv::process::SchedulerContext::YieldFlow::suspend(Context &c) noexcept
+@brief 持锁挂起并在恢复后释放进程锁。
+@details 持进程锁发布 Runnable 并挂入队列，持锁挂起，恢复后才解锁；执行器不依赖尾调用优化。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

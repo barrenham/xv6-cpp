@@ -38,6 +38,12 @@ public:
 
 private:
 
+  struct InjectFlow;
+  struct PollFlow;
+  struct ReadFlow;
+  struct WriteFlow;
+  struct IoctlFlow;
+
   TerminalOutput &output_;
   LineDiscipline &discipline_;
   xv::sync::SpinLock lock_;

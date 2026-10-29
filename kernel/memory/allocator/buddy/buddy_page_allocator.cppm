@@ -34,6 +34,10 @@ public:
 
 private:
 
+  struct AllocateFlow;
+  struct DeallocateFlow;
+  struct InitializeFlow;
+
   BuddyPageAllocator() = default;
   ~BuddyPageAllocator() = default;
 

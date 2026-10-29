@@ -59,6 +59,11 @@ public:
 
 private:
 
+  struct EncapsulationFlow;
+
+  struct ReceiveFlow;
+  struct SendFlow;
+
   struct Binding
   {
     unsigned type = 0;

@@ -14,6 +14,7 @@
 ```doxygen
 @fn void xv::net::IcmpProtocol::receive(Packet &packet, const IpDatagram &d)
 @brief 处理已验证本机目的的 Echo 请求，在纯 IP 页面构造回复，并以请求命中的本地地址作为回复源。
+@details 实现通过 ReplyFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-a19fb566f8d31417"></a>
@@ -23,4 +24,5 @@
 ```doxygen
 @fn void xv::net::IcmpProtocol::unreachable(Packet &packet, const IpDatagram &d)
 @brief 对发往任一本机地址的无监听 UDP 报生成端口不可达，引用原始纯 IP 首部及最多八字节负载。
+@details 实现通过 ReplyFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

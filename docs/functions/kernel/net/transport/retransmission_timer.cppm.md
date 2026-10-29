@@ -4,13 +4,13 @@
 
 ## 函数导航
 
-- [`xv::net::RetransmissionTimer::reset`](retransmission_timer.cppm.md#fn-b720f042a7b82a6b)
-- [`xv::net::RetransmissionTimer::start`](retransmission_timer.cppm.md#fn-c48947286fe2884c)
-- [`xv::net::RetransmissionTimer::expired`](retransmission_timer.cppm.md#fn-af87871c79fa8448)
-- [`xv::net::RetransmissionTimer::sent`](retransmission_timer.cppm.md#fn-10c88d723ee14fd7)
-- [`xv::net::RetransmissionTimer::retransmit`](retransmission_timer.cppm.md#fn-6f9f5aaceee1b531)
-- [`xv::net::RetransmissionTimer::uncertain`](retransmission_timer.cppm.md#fn-1753654941d4ceef)
 - [`xv::net::RetransmissionTimer::acknowledge`](retransmission_timer.cppm.md#fn-5f8f1333e86971f9)
+- [`xv::net::RetransmissionTimer::expired`](retransmission_timer.cppm.md#fn-af87871c79fa8448)
+- [`xv::net::RetransmissionTimer::reset`](retransmission_timer.cppm.md#fn-b720f042a7b82a6b)
+- [`xv::net::RetransmissionTimer::retransmit`](retransmission_timer.cppm.md#fn-6f9f5aaceee1b531)
+- [`xv::net::RetransmissionTimer::sent`](retransmission_timer.cppm.md#fn-10c88d723ee14fd7)
+- [`xv::net::RetransmissionTimer::start`](retransmission_timer.cppm.md#fn-c48947286fe2884c)
+- [`xv::net::RetransmissionTimer::uncertain`](retransmission_timer.cppm.md#fn-1753654941d4ceef)
 
 <a id="fn-b720f042a7b82a6b"></a>
 
@@ -84,6 +84,6 @@
 ```doxygen
 @fn void xv::net::RetransmissionTimer::acknowledge(unsigned acknowledgement, unsigned long now, bool outstanding)
 @brief 在累计 ACK 覆盖采样边界时更新 RTT 与 RTO。
-@details 平滑 RTT 和变化量按既有权重计算，RTO 限制在一至六十秒。Karn 歧义期不采样；所有在途数据完成后允许下一次全新测量。
+@details 平滑 RTT 和变化量按既有权重计算，RTO 限制在一至六十秒。Karn 歧义期不采样；所有在途数据完成后允许下一次全新测量。 实现通过 AcknowledgeFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```

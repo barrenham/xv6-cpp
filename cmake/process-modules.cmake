@@ -70,3 +70,10 @@ function(xv_add_process_internals target)
       "${module_root}/exec/elf_loader.cppm"
   )
 endfunction()
+
+# Only owners using the real VM implementation need this internal partition.
+function(xv_add_address_space_flow target)
+  set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/process")
+  target_sources(${target} PRIVATE FILE_SET address_space_flow TYPE CXX_MODULES
+    BASE_DIRS "${module_root}" FILES "${module_root}/memory/flows.cppm")
+endfunction()

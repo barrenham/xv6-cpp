@@ -99,6 +99,8 @@ public:
 
 private:
 
+  struct DiscoverFlow;
+
   const unsigned char *blob_;
   MemorySize capacity_;
 };

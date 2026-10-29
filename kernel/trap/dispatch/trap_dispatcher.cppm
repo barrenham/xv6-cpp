@@ -35,6 +35,8 @@ public:
 
 private:
 
+  struct DispatchFlow;
+
   TrapHandler *const *handlers_;
   unsigned count_;
 };

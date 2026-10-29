@@ -4,12 +4,12 @@
 
 ## 函数导航
 
-- [`xv::net::Ipv4Reassembly::initialize`](reassembly.cpp.md#fn-2c790a6a9a38aa96)
-- [`xv::net::Ipv4Reassembly::find_or_create`](reassembly.cpp.md#fn-8e1325965825a993)
-- [`xv::net::Ipv4Reassembly::insert`](reassembly.cpp.md#fn-bad135e7b04f07ab)
 - [`xv::net::Ipv4Reassembly::accept`](reassembly.cpp.md#fn-5c231e529ccb0714)
-- [`xv::net::Ipv4Reassembly::tick`](reassembly.cpp.md#fn-aa40441828278e4f)
 - [`xv::net::Ipv4Reassembly::clear`](reassembly.cpp.md#fn-4b1b99130edc04c3)
+- [`xv::net::Ipv4Reassembly::find_or_create`](reassembly.cpp.md#fn-8e1325965825a993)
+- [`xv::net::Ipv4Reassembly::initialize`](reassembly.cpp.md#fn-2c790a6a9a38aa96)
+- [`xv::net::Ipv4Reassembly::insert`](reassembly.cpp.md#fn-bad135e7b04f07ab)
+- [`xv::net::Ipv4Reassembly::tick`](reassembly.cpp.md#fn-aa40441828278e4f)
 
 <a id="fn-2c790a6a9a38aa96"></a>
 
@@ -50,7 +50,7 @@
 ```doxygen
 @fn Packet xv::net::Ipv4Reassembly::accept(const void *ingress, const Packet &fragment, unsigned header_length, unsigned total_length, unsigned long now)
 @brief 借用已验证片段并更新有界重组槽，完成时返回独占页面的完整数据报。
-@details 只支持二十字节基础首部、最多四槽和 4062 字节载荷；非末片长度需八字节对齐。入口与上下文不同的片段不合并；重叠或长度冲突丢弃整槽。完成或丢弃先在锁内摘除槽，再在锁外修复首部或释放页面。
+@details 只支持二十字节基础首部、最多四槽和 4062 字节载荷；非末片长度需八字节对齐。入口与上下文不同的片段不合并；重叠或长度冲突丢弃整槽。完成或丢弃先在锁内摘除槽，再在锁外修复首部或释放页面。 实现通过 AcceptFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @param ingress 稳定的入口对象身份，仅按地址比较，组件不解引用或依赖接口类。
 @param now 本次操作的单调毫秒时刻，新槽十五秒后到期。
 @return 完成返回有效 Packet，其余状态返回空；原片段的拥有权始终保留在调用方。

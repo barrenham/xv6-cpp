@@ -24,6 +24,12 @@ public:
 
 private:
 
+  struct CommandFlow;
+
+  struct TickFlow;
+  struct TransmitFlow;
+  struct ReceiveFlow;
+
   struct Client
   {
     NetworkInterface *interface = nullptr;

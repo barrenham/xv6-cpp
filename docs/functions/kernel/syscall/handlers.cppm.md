@@ -109,7 +109,7 @@
 ## `xv::syscall::sys_cpupin`
 
 ```doxygen
-@fn unsigned long xv::syscall::sys_cpupin(void)
+@fn uint64 xv::syscall::sys_cpupin(void)
 @brief 系统调用入口：cpupin；从用户参数转入内核服务并返回 ABI 结果。
 @return 返回类型为 `unsigned long ()`；本条目没有可独立分析的普通函数体，具体返回约定见对应实现及调用方。
 @note 配置范围：LAB_LOCK/LAB_NET。此条目只覆盖独立文档，不向默认 dev 的原生索引发布未经该配置完整构建验证的符号。

@@ -7,6 +7,7 @@ module;
 #include "kernel/fs/io_status.h"
 
 module xv.fs;
+import :pipe_flow;
 import :platform;
 import :pipe;
 
@@ -17,10 +18,16 @@ static_assert(sizeof(Pipe) <= 4096);
 unsigned Pipe::poll(bool writable, xv::sync::PollTable *table)
 {
   xv::sync::ScopedLock guard(lock_);
-  if (table) table->watch(writable ? static_cast<void *>(&written_) : &read_);
+  if (table)
+  {
+    table->watch(writable ? static_cast<void *>(&written_) : &read_);
+  }
   if (writable)
   {
-    if (!reader_open_) return POLLERR;
+    if (!reader_open_)
+    {
+      return POLLERR;
+    }
     return written_ - read_ < Capacity ? POLLOUT : 0;
   }
   unsigned events = written_ != read_ || !writer_open_ ? POLLIN : 0;
@@ -59,102 +66,26 @@ void Pipe::close(bool writable)
 
 int Pipe::write(uint64 addr, int n, bool nonblocking)
 {
-  if (n <= 0) return n == 0 ? 0 : -1;
-  int i = 0;
-
+  if (n <= 0)
+  {
+    return n == 0 ? 0 : -1;
+  }
   lock_.acquire();
-  // Writes no larger than the ring are all-or-nothing with respect to space.
-  while (static_cast<unsigned>(n) <= Capacity && Capacity - (written_ - read_) < static_cast<unsigned>(n))
-  {
-    if (!reader_open_ || detail::killed()) { lock_.release(); return -1; }
-    if (nonblocking) { lock_.release(); return -EAGAIN; }
-    detail::prepare_interruptible_sleep(&written_);
-    lock_.release();
-    detail::sleep();
-    lock_.acquire();
-  }
-  while (i < n)
-  {
-    if (detail::killed())
-    {
-      lock_.release();
-      return i ? i : -1;
-    }
-    if (reader_open_ == 0)
-    {
-      lock_.release();
-      return i ? i : -1;
-    }
-    if (written_ == read_ + Capacity)
-    { //DOC: pipewrite-full
-      detail::wakeup(&read_);
-      if (nonblocking) { lock_.release(); return i ? i : -EAGAIN; }
-      detail::prepare_interruptible_sleep(&written_);
-      lock_.release();
-      detail::sleep();
-      lock_.acquire();
-    }
-    else
-    {
-      char ch;
-      if (detail::copy_in(&ch, true, addr + i, 1) == -1)
-      {
-        if (i == 0)
-        {
-          i = -1;
-        }
-        break;
-      }
-      data_[written_++ % Capacity] = ch;
-      i++;
-    }
-  }
-  detail::wakeup(&read_);
-  lock_.release();
-
-  return i;
+  WriteFlow::Context context{*this, addr, n, nonblocking};
+  (void)WriteFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 int Pipe::read(uint64 addr, int n, bool nonblocking)
 {
-  if (n <= 0) return n == 0 ? 0 : -1;
-  int i;
-  char ch;
-
+  if (n <= 0)
+  {
+    return n == 0 ? 0 : -1;
+  }
   lock_.acquire();
-  while (read_ == written_ && writer_open_)
-  { //DOC: pipe-empty
-    if (detail::killed())
-    {
-      lock_.release();
-      return -1;
-    }
-    if (nonblocking) { lock_.release(); return -EAGAIN; }
-    detail::prepare_interruptible_sleep(&read_); //DOC: piperead-sleep
-    lock_.release();
-    detail::sleep();
-    lock_.acquire();
-  }
-  for (i = 0; i < n; i++)
-  { //DOC: piperead-copy
-    if (read_ == written_)
-    {
-      break;
-    }
-    ch = data_[read_ % Capacity];
-    if (detail::copy_out(true, addr + i, &ch, 1) == -1)
-    {
-      if (i == 0)
-      {
-        i = -1;
-      }
-      break;
-    }
-    read_++;
-  }
-  detail::wakeup(&written_); //DOC: piperead-wakeup
-  lock_.release();
-  return i;
+  ReadFlow::Context context{*this, addr, n, nonblocking};
+  (void)ReadFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 } // namespace xv::fs

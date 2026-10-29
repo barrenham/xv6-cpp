@@ -12,10 +12,10 @@
 
 - [`xv::syscall::argument_address`](arguments.cpp.md#fn-c4a98f4f697b16cb)
 - [`xv::syscall::argument_integer`](arguments.cpp.md#fn-6e984073bc69b0e8)
+- [`xv::syscall::argument_raw`](arguments.cpp.md#fn-652d4f59369a5ecd)
 - [`xv::syscall::argument_string`](arguments.cpp.md#fn-3b44f8e5224d3f08)
 - [`xv::syscall::fetch_address`](arguments.cpp.md#fn-212d775f8e97566b)
 - [`xv::syscall::fetch_string`](arguments.cpp.md#fn-0b7f374ee7496d9c)
-- [`xv::syscall::argument_raw`](arguments.cpp.md#fn-652d4f59369a5ecd)
 
 <a id="fn-212d775f8e97566b"></a>
 

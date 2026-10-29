@@ -2,6 +2,7 @@ module;
 #include "kernel/fs/io_status.h"
 
 module xv.drivers;
+import :uart_flow;
 
 import :uart;
 import :platform;
@@ -69,36 +70,25 @@ void Uart16550::pump()
     registers_.write8(THR, tx_data_[tx_read_++ % TxCapacity]);
     progressed = true;
   }
-  if (progressed) detail::wake_processes(&tx_channel_);
+  if (progressed)
+  {
+    detail::wake_processes(&tx_channel_);
+  }
 }
 
 int Uart16550::transmit(const char *data, int count, bool nonblocking)
 {
-  if (count <= 0) return count == 0 ? 0 : -1;
-  if (static_cast<unsigned>(count) > TxCapacity || detail::process_killed()) return -1;
-  if (nonblocking)
+  if (count <= 0)
   {
-    if (!tx_lock_.try_acquire()) return -EAGAIN;
+    return count == 0 ? 0 : -1;
   }
-  else if (!tx_lock_.acquire_interruptible()) return -1;
-  xv::sync::ScopedLock writer(tx_lock_, xv::sync::adopt_lock);
-  tx_state_.acquire();
-  pump();
-  while (TxCapacity - (tx_written_ - tx_read_) < static_cast<unsigned>(count))
+  if (static_cast<unsigned>(count) > TxCapacity || detail::process_killed())
   {
-    if (detail::process_killed()) { tx_state_.release(); return -1; }
-    if (nonblocking) { tx_state_.release(); return -EAGAIN; }
-    detail::prepare_interruptible_sleep(&tx_channel_);
-    tx_state_.release();
-    detail::sleep_process();
-    tx_state_.acquire();
-    pump();
+    return -1;
   }
-  if (detail::process_killed()) { tx_state_.release(); return -1; }
-  for (int i = 0; i < count; ++i) tx_data_[tx_written_++ % TxCapacity] = data[i];
-  pump();
-  tx_state_.release();
-  return count;
+  TransmitFlow::Context context{*this, data, count, nonblocking};
+  (void)TransmitFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 void Uart16550::write(const char *data, int count)
@@ -107,33 +97,54 @@ void Uart16550::write(const char *data, int count)
   while (done < count)
   {
     int part = count - done;
-    if (part > 64) part = 64;
-    if (transmit(data + done, part) != part) return;
+    if (part > 64)
+    {
+      part = 64;
+    }
+    if (transmit(data + done, part) != part)
+    {
+      return;
+    }
     done += part;
   }
 }
 
 void Uart16550::put_sync(int character)
 {
-  if (detail::panicked()) for (;;) {}
+  if (detail::panicked())
+  {
+    for (;;)
+    {
+    }
+  }
   if (detail::panicking())
   {
     // A panic may have interrupted a holder of tx_state_: bypass all TX locks.
-    while (!(registers_.read8(LSR) & LSR_TX_IDLE)) {}
+    while (!(registers_.read8(LSR) & LSR_TX_IDLE))
+    {
+    }
     registers_.write8(THR, character);
     return;
   }
   xv::sync::ScopedLock guard(tx_state_);
   // Preserve ordering with queued user output before synchronous echo/logging.
-  while (tx_read_ != tx_written_) pump();
-  while (!(registers_.read8(LSR) & LSR_TX_IDLE)) {}
+  while (tx_read_ != tx_written_)
+  {
+    pump();
+  }
+  while (!(registers_.read8(LSR) & LSR_TX_IDLE))
+  {
+  }
   registers_.write8(THR, character);
 }
 
 bool Uart16550::writable(xv::sync::PollTable *table)
 {
   xv::sync::ScopedLock guard(tx_state_);
-  if (table) table->watch(&tx_channel_);
+  if (table)
+  {
+    table->watch(&tx_channel_);
+  }
   bool room = tx_written_ - tx_read_ <= TxCapacity - 2;
   bool unlocked = tx_lock_.available(table);
   return room && unlocked;
@@ -141,20 +152,14 @@ bool Uart16550::writable(xv::sync::PollTable *table)
 
 void Uart16550::drain()
 {
-  if (!tx_lock_.acquire_interruptible()) return;
+  if (!tx_lock_.acquire_interruptible())
+  {
+    return;
+  }
   xv::sync::ScopedLock writer(tx_lock_, xv::sync::adopt_lock);
   tx_state_.acquire();
-  while (tx_read_ != tx_written_ && !detail::process_killed())
-  {
-    pump();
-    if (tx_read_ == tx_written_) break;
-    detail::prepare_interruptible_sleep(&tx_channel_);
-    tx_state_.release();
-    detail::sleep_process();
-    tx_state_.acquire();
-  }
-  tx_state_.release();
-  while (!(registers_.read8(LSR) & (1U << 6)) && !detail::process_killed()) {}
+  DrainFlow::Context context{*this};
+  (void)DrainFlow::Graph::run<0>(context);
 }
 
 // try to read one input character from the UART.

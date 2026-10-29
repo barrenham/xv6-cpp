@@ -10,6 +10,11 @@
 
 ## 函数导航
 
+- [`xv::process::Process::CommitFlow::image`](process.cpp.md#fn-54586d7458864c15)
+- [`xv::process::Process::CommitFlow::linearize`](process.cpp.md#fn-44a4dcdfcc8dc701)
+- [`xv::process::Process::CommitFlow::name`](process.cpp.md#fn-2435016428280ef8)
+- [`xv::process::Process::CommitFlow::registers`](process.cpp.md#fn-332cf04c7cd9c846)
+- [`xv::process::Process::CommitFlow::signals`](process.cpp.md#fn-c800fe6114b3568a)
 - [`xv::process::Process::commit_image`](process.cpp.md#fn-97213cc0f22d399e)
 - [`xv::process::Process::create_image`](process.cpp.md#fn-9d91050686d2abd0)
 - [`xv::process::Process::set_name`](process.cpp.md#fn-7970dbfee688fb06)
@@ -44,4 +49,55 @@
 @fn void xv::process::Process::commit_image(AddressSpace &image, unsigned long entry, unsigned long stack, unsigned long arguments, const char *path, unsigned long environment)
 @brief 提交候选地址空间与用户入口寄存器。
 @details 交换新旧地址空间，保存入口、栈、argv 到 a1 与 envp 到 a2，再销毁旧映像；argc 由系统调用返回路径写 a0。调用者已完成全部可失败操作。
+@details 流程由 CommitFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+```
+
+<a id="fn-54586d7458864c15"></a>
+
+## `xv::process::Process::CommitFlow::image`
+
+```doxygen
+@fn static void xv::process::Process::CommitFlow::image(Context &c) noexcept
+@brief 交换候选映像与当前地址空间。
+@details 加载已全部成功；先线性化 exec 与父进程 setpgid，再交换映像，重置信号执行态，发布用户入口和参数，最后设置进程名。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-44a4dcdfcc8dc701"></a>
+
+## `xv::process::Process::CommitFlow::linearize`
+
+```doxygen
+@fn static void xv::process::Process::CommitFlow::linearize(Context &c) noexcept
+@brief 通过进程管理器登记 exec 与 setpgid 的线性化边界。
+@details 加载已全部成功；先线性化 exec 与父进程 setpgid，再交换映像，重置信号执行态，发布用户入口和参数，最后设置进程名。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-2435016428280ef8"></a>
+
+## `xv::process::Process::CommitFlow::name`
+
+```doxygen
+@fn static void xv::process::Process::CommitFlow::name(Context &c) noexcept
+@brief 直接提取路径最后分量并按原加锁方法设置进程名。
+@details 加载已全部成功；先线性化 exec 与父进程 setpgid，再交换映像，重置信号执行态，发布用户入口和参数，最后设置进程名。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-332cf04c7cd9c846"></a>
+
+## `xv::process::Process::CommitFlow::registers`
+
+```doxygen
+@fn static void xv::process::Process::CommitFlow::registers(Context &c) noexcept
+@brief 发布新入口、用户栈、参数和环境指针寄存器。
+@details 加载已全部成功；先线性化 exec 与父进程 setpgid，再交换映像，重置信号执行态，发布用户入口和参数，最后设置进程名。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c800fe6114b3568a"></a>
+
+## `xv::process::Process::CommitFlow::signals`
+
+```doxygen
+@fn static void xv::process::Process::CommitFlow::signals(Context &c) noexcept
+@brief 应用 exec 信号规则并清除旧信号帧与挂起掩码状态。
+@details 加载已全部成功；先线性化 exec 与父进程 setpgid，再交换映像，重置信号执行态，发布用户入口和参数，最后设置进程名。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

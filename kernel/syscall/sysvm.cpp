@@ -1,7 +1,8 @@
 module;
+#include "kernel/support/flow.h"
 
-#include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
+#include "kernel/support/types.h"
 
 module xv.syscall;
 
@@ -34,29 +35,61 @@ uint64 sys_pgpte(void)
   return 0;
 }
 
+namespace
+{
+namespace flow = xv::flow;
+struct KernelStatisticsFlow
+{
+  struct Context
+  {
+    xv::process::Process *process;
+    uint64 super_address, regular_address;
+    uint64 super, regular;
+    uint64 result = static_cast<uint64>(-1);
+  };
+  static bool copy_super(Context &c) noexcept
+  {
+    auto &memory = c.process->memory();
+    return xv::memory::copy_to_user(
+               memory.page_table(), memory.size(), memory.regions(), c.super_address,
+               reinterpret_cast<char *>(&c.super), sizeof(uint64)) >= 0;
+  }
+  static bool copy_regular(Context &c) noexcept
+  {
+    auto &memory = c.process->memory();
+    return xv::memory::copy_to_user(
+               memory.page_table(), memory.size(), memory.regions(), c.regular_address,
+               reinterpret_cast<char *>(&c.regular), sizeof(uint64)) >= 0;
+  }
+  static void success(Context &c) noexcept { c.result = 0; }
+  struct Super;
+  struct Regular;
+  struct Success;
+  using Graph =
+      flow::graph<Super,
+                  flow::types<flow::node<Super, flow::noop,
+                                         flow::branch<flow::condition<&copy_super>,
+                                                      flow::go<Regular>, flow::stop>>,
+                              flow::node<Regular, flow::noop,
+                                         flow::branch<flow::condition<&copy_regular>,
+                                                      flow::go<Success>, flow::stop>>,
+                              flow::node<Success, flow::action<&success>, flow::stop>>>;
+};
+
+} // namespace
+
 uint64 sys_ksupernpte()
 {
-  xv::process::Process *p;
-  uint64 as, an;
   auto counts = xv::memory::kernel_page_table().statistics();
-  uint64 s = counts.leaves_1g + counts.leaves_2m, n = counts.leaves_4k;
-
-  p = xv::process::current();
-  argument_address(0, &as);
-  argument_address(1, &an);
-
-  if (xv::memory::copy_to_user(p->memory().page_table(), p->memory().size(), p->memory().regions(), as,
-                               (char *)&s, sizeof(uint64)) < 0)
-  {
-    return -1;
-  }
-  if (xv::memory::copy_to_user(p->memory().page_table(), p->memory().size(), p->memory().regions(), an,
-                               (char *)&n, sizeof(uint64)) < 0)
-  {
-    return -1;
-  }
-
-  return 0;
+  uint64 super = counts.leaves_1g + counts.leaves_2m, regular = counts.leaves_4k;
+  auto *process = xv::process::current();
+  uint64 super_address, regular_address;
+  argument_address(0, &super_address);
+  argument_address(1, &regular_address);
+  KernelStatisticsFlow::Context context{process, super_address, regular_address, super,
+                                        regular};
+  (void)KernelStatisticsFlow::Graph::run<0>(context);
+  return context.result;
 }
 #endif
 } // namespace xv::syscall

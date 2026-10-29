@@ -8,12 +8,6 @@
 
 ## 函数导航
 
-- [`xv::memory::operator<`](physical_address.cppm.md#fn-a5a61a515a6923c9)
-- [`xv::memory::operator<=`](physical_address.cppm.md#fn-75ff597b76e1d317)
-- [`xv::memory::operator==`](physical_address.cppm.md#fn-2d9efc55e17c595a)
-- [`xv::memory::operator>`](physical_address.cppm.md#fn-7a63245f682c3269)
-- [`xv::memory::operator>=`](physical_address.cppm.md#fn-d2c291c5a56b4ada)
-- [`xv::memory::detail::fail`](../boot/kalloc.cpp.md#fn-b1d0993dea3ca642)
 - [`xv::memory::PhysicalAddress::PhysicalAddress`](physical_address.cppm.md#fn-c7f2f36c782bd86d)
 - [`xv::memory::PhysicalAddress::PhysicalAddress`](physical_address.cppm.md#fn-5e8046f311ca6ec6)
 - [`xv::memory::PhysicalAddress::advanced`](physical_address.cppm.md#fn-6b709c8151e3b178)
@@ -24,8 +18,14 @@
 - [`xv::memory::PhysicalAddress::is_null`](physical_address.cppm.md#fn-8b823163a1404ec3)
 - [`xv::memory::PhysicalAddress::offset_from`](physical_address.cppm.md#fn-35eac07f2caaac23)
 - [`xv::memory::PhysicalAddress::page_number`](physical_address.cppm.md#fn-36c923fca9818fab)
-- [`xv::memory::PhysicalAddress::raw`](physical_address.cppm.md#fn-10b6a760d8c57bac)
 - [`xv::memory::PhysicalAddress::pointer`](physical_address.cppm.md#fn-0fefe5f12cb79cfc)
+- [`xv::memory::PhysicalAddress::raw`](physical_address.cppm.md#fn-10b6a760d8c57bac)
+- [`xv::memory::detail::fail`](../boot/kalloc.cpp.md#fn-b1d0993dea3ca642)
+- [`xv::memory::operator<`](physical_address.cppm.md#fn-a5a61a515a6923c9)
+- [`xv::memory::operator<=`](physical_address.cppm.md#fn-75ff597b76e1d317)
+- [`xv::memory::operator==`](physical_address.cppm.md#fn-2d9efc55e17c595a)
+- [`xv::memory::operator>`](physical_address.cppm.md#fn-7a63245f682c3269)
+- [`xv::memory::operator>=`](physical_address.cppm.md#fn-d2c291c5a56b4ada)
 
 <a id="fn-c7f2f36c782bd86d"></a>
 

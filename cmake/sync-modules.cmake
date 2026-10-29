@@ -1,4 +1,5 @@
 function(xv_add_sync_modules target)
+  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/sync")
   target_sources(${target} PRIVATE
     FILE_SET sync_modules TYPE CXX_MODULES
@@ -10,6 +11,7 @@ function(xv_add_sync_modules target)
       "${module_root}/lock.cppm"
       "${module_root}/spin/spinlock.cppm"
       "${module_root}/sleep/sleeplock.cppm"
+      "${module_root}/sleep/flow.cppm"
       "${module_root}/scoped_lock.cppm"
       "${module_root}/platform/platform.cppm"
   )

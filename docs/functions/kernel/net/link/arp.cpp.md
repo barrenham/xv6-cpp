@@ -4,13 +4,13 @@
 
 ## 函数导航
 
+- [`xv::net::ArpCache::clear`](arp.cpp.md#fn-f92a3d89216fa13d)
 - [`xv::net::ArpCache::initialize`](arp.cpp.md#fn-9716d9e48bbba0d6)
+- [`xv::net::ArpCache::neighbor`](arp.cpp.md#fn-ee8e9de0c540ad2b)
+- [`xv::net::ArpCache::receive`](arp.cpp.md#fn-704e5894f62445e0)
 - [`xv::net::ArpCache::request`](arp.cpp.md#fn-d772ee0820984b06)
 - [`xv::net::ArpCache::send`](arp.cpp.md#fn-ef8526d27ee87536)
-- [`xv::net::ArpCache::receive`](arp.cpp.md#fn-704e5894f62445e0)
 - [`xv::net::ArpCache::tick`](arp.cpp.md#fn-ab7954406875ed6d)
-- [`xv::net::ArpCache::neighbor`](arp.cpp.md#fn-ee8e9de0c540ad2b)
-- [`xv::net::ArpCache::clear`](arp.cpp.md#fn-f92a3d89216fa13d)
 
 <a id="fn-9716d9e48bbba0d6"></a>
 
@@ -29,6 +29,7 @@
 ```doxygen
 @fn void xv::net::ArpCache::request(unsigned address)
 @brief 短暂锁定配置以取得一致且启用的本接口源地址，再在锁外编码并广播 ARP；无源或分配失败不发送。
+@details 实现通过 RequestFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-ef8526d27ee87536"></a>
@@ -38,7 +39,7 @@
 ```doxygen
 @fn int xv::net::ArpCache::send(Packet &packet, unsigned next_hop)
 @brief 先验证接口和源地址快照，邻居命中则直接发送，否则有界保留页面、长度、上下文与配置代次等待解析。
-@details ARP 请求在邻居锁外发送，队列失败不接管报文；恢复待发报文时保留处理上下文。
+@details ARP 请求在邻居锁外发送，队列失败不接管报文；恢复待发报文时保留处理上下文。 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-704e5894f62445e0"></a>
@@ -48,7 +49,7 @@
 ```doxygen
 @fn void xv::net::ArpCache::receive(Packet &packet)
 @brief 验证并学习面向本机的 ARP 请求/回复，按配置代次恢复待解析报文，再在锁外发送。
-@details 队列恢复时携带原 Packet 上下文；过期配置的页面丢弃。有效请求继续生成本机 ARP 回复，不在持邻居锁时回调驱动。
+@details 队列恢复时携带原 Packet 上下文；过期配置的页面丢弃。有效请求继续生成本机 ARP 回复，不在持邻居锁时回调驱动。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-ab7954406875ed6d"></a>
@@ -58,6 +59,7 @@
 ```doxygen
 @fn void xv::net::ArpCache::tick(unsigned long now)
 @brief 在邻居锁内先释放代次失效或接口停用的待解析页，再按毫秒截止时间重试或超时释放；请求编码在解锁后执行。
+@details 实现通过 TickFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-ee8e9de0c540ad2b"></a>

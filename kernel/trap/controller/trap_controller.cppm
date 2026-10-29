@@ -22,6 +22,8 @@ public:
 
 private:
 
+  struct EntryFlow;
+
   TrapDispatcher &dispatcher_;
 };
 

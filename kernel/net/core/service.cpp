@@ -1,5 +1,6 @@
 module;
 #include "kernel/net/control.h"
+#include "kernel/support/flow.h"
 #include "kernel/net/filter/control.h"
 module xv.net;
 import :filter;
@@ -105,6 +106,152 @@ void start_default_dhcp()
   }
 #endif
 }
+namespace flow = xv::flow;
+
+struct InitializationFlow
+{
+  struct Context
+  {
+    NetworkSetup *setup;
+    bool configured = false;
+  };
+
+  static void services(Context &) noexcept
+  {
+    firewall.initialize();
+    ip.attach_filter(firewall);
+    sockets.initialize();
+    ip.initialize();
+    loopback.initialize();
+    dhcp.initialize();
+  }
+
+  static void local_interface(Context &) noexcept
+  {
+    initialize_loopback();
+  }
+
+  static void ethernet_interfaces(Context &) noexcept
+  {
+    initialize_ethernet_interfaces();
+  }
+
+  static void bridge_interfaces(Context &) noexcept
+  {
+    bridges.initialize();
+  }
+
+  static void protocols(Context &) noexcept
+  {
+    attach_protocols();
+  }
+
+  static void configure(Context &c) noexcept
+  {
+    c.configured = c.setup ? c.setup->configure(interface_registry, routes, ip, tunnels)
+                           : configure_qemu_defaults();
+  }
+
+  static bool configured(Context &c) noexcept
+  {
+    return c.configured;
+  }
+
+  static bool seal_interfaces(Context &) noexcept
+  {
+    return interface_registry.seal();
+  }
+
+  static void seal_routes(Context &) noexcept
+  {
+    routes.seal();
+  }
+
+  static bool default_setup(Context &c) noexcept
+  {
+    return !c.setup;
+  }
+
+  static void start_dhcp(Context &) noexcept
+  {
+    start_default_dhcp();
+  }
+
+  static void invalid(Context &) noexcept
+  {
+    detail::fail("invalid network setup");
+  }
+  struct Services;
+  struct Loopback;
+  struct Ethernet;
+  struct Bridges;
+  struct Protocols;
+  struct Configure;
+  struct SealInterfaces;
+  struct SealRoutes;
+  struct Dhcp;
+  struct Invalid;
+  using Graph = flow::graph<
+      Services,
+      flow::types<
+          flow::node<Services, flow::action<&services>, flow::go<Loopback>>,
+          flow::node<Loopback, flow::action<&local_interface>, flow::go<Ethernet>>,
+          flow::node<Ethernet, flow::action<&ethernet_interfaces>, flow::go<Bridges>>,
+          flow::node<Bridges, flow::action<&bridge_interfaces>, flow::go<Protocols>>,
+          flow::node<Protocols, flow::action<&protocols>, flow::go<Configure>>,
+          flow::node<Configure, flow::action<&configure>,
+                     flow::branch<flow::condition<&configured>,
+                                  flow::go<SealInterfaces>, flow::go<Invalid>>>,
+          flow::node<SealInterfaces, flow::noop,
+                     flow::branch<flow::condition<&seal_interfaces>,
+                                  flow::go<SealRoutes>, flow::go<Invalid>>>,
+          flow::node<SealRoutes, flow::action<&seal_routes>,
+                     flow::branch<flow::condition<&default_setup>, flow::go<Dhcp>,
+                                  flow::stop>>,
+          flow::node<Dhcp, flow::action<&start_dhcp>, flow::stop>,
+          flow::node<Invalid, flow::action<&invalid>, flow::stop>>>;
+};
+
+struct TimerFlow
+{
+  struct Context
+  {
+    unsigned long now;
+  };
+
+  static void interfaces(Context &c) noexcept
+  {
+    interface_registry.tick(c.now);
+  }
+
+  static void fragments(Context &c) noexcept
+  {
+    ip.tick(c.now);
+  }
+
+  static void leases(Context &c) noexcept
+  {
+    dhcp.tick(c.now);
+  }
+
+  static void connections(Context &c) noexcept
+  {
+    sockets.tick(c.now);
+  }
+  struct FirstInterfaces;
+  struct Fragments;
+  struct Leases;
+  struct Connections;
+  struct LastInterfaces;
+  using Graph = flow::graph<
+      FirstInterfaces,
+      flow::types<
+          flow::node<FirstInterfaces, flow::action<&interfaces>, flow::go<Fragments>>,
+          flow::node<Fragments, flow::action<&fragments>, flow::go<Leases>>,
+          flow::node<Leases, flow::action<&leases>, flow::go<Connections>>,
+          flow::node<Connections, flow::action<&connections>, flow::go<LastInterfaces>>,
+          flow::node<LastInterfaces, flow::action<&interfaces>, flow::stop>>>;
+};
 } // namespace
 
 int firewall_control(unsigned operation, firewall_request &request)
@@ -134,37 +281,13 @@ SocketRegistry &socket_registry()
 
 void initialize(NetworkSetup *setup)
 {
-  firewall.initialize();
-  ip.attach_filter(firewall);
-  sockets.initialize();
-  ip.initialize();
-  loopback.initialize();
-  dhcp.initialize();
-  initialize_loopback();
-  initialize_ethernet_interfaces();
-  bridges.initialize();
-  attach_protocols();
-
-  bool configured = setup ? setup->configure(interface_registry, routes, ip, tunnels)
-                          : configure_qemu_defaults();
-  if (!configured || !interface_registry.seal())
-  {
-    detail::fail("invalid network setup");
-  }
-  routes.seal();
-  if (!setup)
-  {
-    start_default_dhcp();
-  }
+  InitializationFlow::Context ctx{setup};
+  (void)InitializationFlow::Graph::run<0>(ctx);
 }
 
 void timer_tick()
 {
-  auto now = detail::milliseconds();
-  interface_registry.tick(now);
-  ip.tick(now);
-  dhcp.tick(now);
-  sockets.tick(now);
-  interface_registry.tick(now);
+  TimerFlow::Context ctx{detail::milliseconds()};
+  (void)TimerFlow::Graph::run<0>(ctx);
 }
 } // namespace xv::net

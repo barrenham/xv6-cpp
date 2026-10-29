@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::trap::clock`](../service.cpp.md#fn-7c77589a1cbc708a)
 - [`xv::trap::TickClock::TickClock`](tick_clock.cppm.md#fn-1534a7aa73b688e2)
 - [`xv::trap::TickClock::TickClock`](tick_clock.cppm.md#fn-5207fdf0bf983785)
 - [`xv::trap::TickClock::initialize`](../tick-clock.md#clock-tickclock-initialize)
@@ -18,6 +17,7 @@
 - [`xv::trap::TickClock::operator=`](tick_clock.cppm.md#fn-f2bbe0fa1e621477)
 - [`xv::trap::TickClock::pause`](../tick-clock.md#clock-tickclock-pause)
 - [`xv::trap::TickClock::uptime`](../tick-clock.md#clock-tickclock-uptime)
+- [`xv::trap::clock`](../service.cpp.md#fn-7c77589a1cbc708a)
 
 <a id="fn-5207fdf0bf983785"></a>
 

@@ -26,6 +26,9 @@ public:
 
 private:
 
+  struct InitializeFlow;
+  struct DispatchFlow;
+
   InterruptController &controller_;
   InterruptDevice *const *devices_;
   unsigned count_;

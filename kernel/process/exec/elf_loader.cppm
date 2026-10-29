@@ -15,6 +15,11 @@ public:
     return "ELF64";
   }
 
-  int load(Process &process, const char *path, char *const *arguments, char *const *environment) override;
+  int load(Process &process, const char *path, char *const *arguments,
+           char *const *environment) override;
+
+private:
+
+  struct LoadFlow;
 };
 } // namespace xv::process

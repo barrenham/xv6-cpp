@@ -31,6 +31,8 @@ public:
 
 private:
 
+  struct DuplicateFlow;
+
   mutable xv::sync::SpinLock lock_;
   xv::fs::File *entries_[Capacity]{};
 };

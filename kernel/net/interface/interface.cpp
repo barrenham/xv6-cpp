@@ -1,6 +1,8 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :interface_update_flows;
+import :interface_registry_flows;
 import :interface;
 
 namespace xv::net
@@ -102,122 +104,47 @@ void NetworkInterface::topology_changed()
 
 void NetworkInterface::deliver(Packet &packet)
 {
-  if (!up() || !receiver_)
-  {
-    receive_drop();
-    return;
-  }
-  __atomic_fetch_add(&statistics_.rx_packets, 1ULL, __ATOMIC_RELAXED);
-  __atomic_fetch_add(&statistics_.rx_bytes,
-                     static_cast<unsigned long long>(packet.size()), __ATOMIC_RELAXED);
-  receiver_->receive(*this, packet);
+  DeliverFlow::Context ctx{*this, packet};
+  (void)DeliverFlow::Graph::run<0>(ctx);
 }
 
 int InterfaceRegistry::registration_error(const NetworkInterface &interface) const
 {
-  if (!interface.id() || !interface.name() || interface.mtu() < 68 ||
-      interface.mtu() > 4082)
-  {
-    return -EINVAL;
-  }
-  if (find(interface.id()))
-  {
-    return -EEXIST;
-  }
-  for (unsigned i = 0; i < count_; ++i)
-  {
-    auto *existing_name = interfaces_[i]->name();
-    auto *new_name = interface.name();
-    while (*existing_name && *existing_name == *new_name)
-    {
-      ++existing_name;
-      ++new_name;
-    }
-    if (*existing_name == *new_name)
-    {
-      return -EEXIST;
-    }
-    for (unsigned address = 0; address < interface.address_count(); ++address)
-    {
-      if (interfaces_[i]->owns(interface.address(address).address))
-      {
-        return -EEXIST;
-      }
-    }
-  }
-  return count_ == Capacity ? -ENOBUFS : 0;
+  RegistrationFlow::Context ctx{*this, interface};
+  (void)RegistrationFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool InterfaceRegistry::add(NetworkInterface &interface)
 {
   ConfigurationGuard guard;
-  if (sealed_ || registration_error(interface))
-  {
-    return false;
-  }
-  interfaces_[count_++] = &interface;
-  return true;
+  UpdateFlow::Context ctx{*this, interface};
+  (void)UpdateFlow::AddGraph::run<0>(ctx);
+  return ctx.success;
 }
 
 int InterfaceRegistry::publish(NetworkInterface &interface)
 {
   ConfigurationGuard guard;
-  int result = registration_error(interface);
-  if (result < 0)
-  {
-    return result;
-  }
-  interface.sealed_ = true;
-  ++interface.generation_;
-  interfaces_[count_++] = &interface;
-  return 0;
+  UpdateFlow::Context ctx{*this, interface};
+  (void)UpdateFlow::PublishGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool InterfaceRegistry::withdraw(NetworkInterface &interface)
 {
   ConfigurationGuard guard;
-  for (unsigned i = 0; i < count_; ++i)
-  {
-    if (interfaces_[i] != &interface)
-    {
-      continue;
-    }
-    for (unsigned next = i + 1; next < count_; ++next)
-    {
-      interfaces_[next - 1] = interfaces_[next];
-    }
-    interfaces_[--count_] = nullptr;
-    ++interface.generation_;
-    return true;
-  }
-  return false;
+  UpdateFlow::Context ctx{*this, interface};
+  (void)UpdateFlow::WithdrawGraph::run<0>(ctx);
+  return ctx.success;
 }
 
 bool InterfaceRegistry::seal()
 {
   ConfigurationGuard guard;
-  for (unsigned i = 0; i < count_; ++i)
-  {
-    for (unsigned k = 0; k < count_; ++k)
-    {
-      if (i != k)
-      {
-        for (unsigned n = 0; n < interfaces_[i]->address_count(); ++n)
-        {
-          if (interfaces_[k]->owns(interfaces_[i]->address(n).address))
-          {
-            return false;
-          }
-        }
-      }
-    }
-  }
-  sealed_ = true;
-  for (unsigned i = 0; i < count_; ++i)
-  {
-    interfaces_[i]->sealed_ = true;
-  }
-  return true;
+  SealFlow::Context ctx{*this};
+  (void)SealFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 NetworkInterface *InterfaceRegistry::find(unsigned id) const

@@ -15,6 +15,7 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/fs/io_status.h"
 
 #include "native_wait.h"
 
@@ -56,6 +57,7 @@ public:
   std::vector<unsigned char> before_commit;
   std::vector<unsigned char> after_commit;
   std::vector<unsigned> writes;
+  std::vector<unsigned> durable_order;
   bool capture = false;
   unsigned log_start = 0;
   unsigned reads = 0;
@@ -79,6 +81,15 @@ public:
   {
   }
 
+  void flush() override
+  {
+    std::lock_guard guard(mutex);
+    if (capture)
+    {
+      durable_order.push_back(~0U);
+    }
+  }
+
   void transfer(xv::drivers::BlockOperation operation, unsigned long sector, void *data,
                 unsigned count) override
   {
@@ -96,6 +107,7 @@ public:
       std::memcpy(image.data() + offset, data, count);
       const unsigned block = offset / BlockSize;
       writes.push_back(block);
+      if (capture) durable_order.push_back(block);
       if (capture && block == log_start + 1)
       {
         before_commit = image;
@@ -133,6 +145,7 @@ DeviceRegistry registry;
 Inode *cwd = nullptr;
 thread_local bool killed = false;
 thread_local bool fail_copy = false;
+thread_local int copy_out_budget = -1;
 thread_local detail::Identity caller_identity;
 std::atomic<int> allocated_pages{0};
 
@@ -230,6 +243,10 @@ void journal_contract()
         "log data, commit header, home installation, clear header ordering");
   check(journal_disk.image[Home * BlockSize] == 0xa7,
         "transaction destructor commits data");
+  check(journal_disk.durable_order == std::vector<unsigned>{
+            layout.logstart + 1, ~0U, layout.logstart, ~0U,
+            Home, ~0U, layout.logstart, ~0U},
+        "each durable transaction phase is separated by a flush");
   check(!journal_disk.before_commit.empty() && !journal_disk.after_commit.empty(),
         "power-loss snapshots captured");
   for (bool committed : {false, true})
@@ -248,6 +265,62 @@ void journal_contract()
                 sizeof(count));
     check(count == 0, "recovery clears commit header");
   }
+}
+
+void page_buffer_contract()
+{
+  const int baseline = allocated_pages;
+  {
+    PageBuffer buffer;
+    std::vector<unsigned char> input(10000), output(10000);
+    for (unsigned i = 0; i < input.size(); ++i)
+    {
+      input[i] = i * 31;
+    }
+    auto source = reinterpret_cast<unsigned long>(input.data());
+    auto destination = reinterpret_cast<unsigned long>(output.data());
+    check(buffer.append(nullptr, 0) && buffer.read(0, false, destination, 1) == 0,
+          "empty page buffer does not allocate");
+    page_budget = 1;
+    int partial = buffer.write(0, false, source, input.size());
+    page_budget = -1;
+    check(partial > 0 && partial < static_cast<int>(input.size()) &&
+              buffer.size() == static_cast<unsigned>(partial),
+          "buffer publishes partial progress on allocation failure");
+    check(buffer.append(input.data() + partial, input.size() - partial) &&
+              buffer.read(0, false, destination, output.size()) == output.size() &&
+              input == output,
+          "resume partial append across pages");
+    page_budget = 0;
+    check(buffer.write(15000, false, source, 1) == -1 && buffer.size() == 10000,
+          "failed gap fill preserves logical size");
+    check(buffer.write(15000, false, source, 0) == 0 && buffer.size() == 10000,
+          "zero-byte write beyond end does not extend");
+    page_budget = -1;
+    fail_copy = true;
+    check(buffer.write(0, true, source, 4) == -1 &&
+              buffer.read(0, true, destination, 4) == -1,
+          "page buffer reports first-copy failure");
+    fail_copy = false;
+    check(buffer.resize(128) && buffer.resize(6000), "shrink and regrow buffer");
+    output.resize(6000);
+    check(buffer.read(0, false, reinterpret_cast<unsigned long>(output.data()),
+                      output.size()) == output.size(),
+          "read regrown buffer");
+    for (unsigned i = 0; i < output.size(); ++i)
+    {
+      check(output[i] == (i < 128 ? input[i] : 0), "regrowth clears truncated data");
+    }
+    check(!buffer.resize(~0U) && buffer.write(0x7fffffffU, false, source, 2) == -1,
+          "buffer rejects size overflow");
+    PageBuffer moved;
+    check(moved.append("old", 3), "prepare move destination");
+    moved.take(buffer);
+    moved.take(moved);
+    check(buffer.size() == 0 && moved.size() == 6000, "move transfers ownership");
+    check(moved.resize(0) && moved.size() == 0, "resize to empty frees storage");
+  }
+  check(allocated_pages == baseline, "buffer returns every allocated page");
 }
 
 File *open_node(const char *path, bool create = false, short type = T_FILE,
@@ -399,6 +472,58 @@ void device_contract()
 
 void pipe_contract()
 {
+  {
+    File *reader, *writer;
+    page_budget = 0;
+    check(!create_pipe(&reader, &writer) && !reader && !writer,
+          "failed pipe page allocation publishes no endpoints");
+    page_budget = -1;
+    File *held[NFILE];
+    for (auto &file : held)
+    {
+      file = file_table.allocate();
+      check(file != nullptr, "failed pipe returned both file slots");
+    }
+    file_table.release(held[NFILE - 1]);
+    check(!create_pipe(&reader, &writer) && !reader && !writer,
+          "one available slot cannot publish half a pipe");
+    auto *reclaimed = file_table.allocate();
+    check(reclaimed != nullptr, "half-pipe rollback returns its file slot");
+    file_table.release(reclaimed);
+    for (int i = 0; i < NFILE - 1; ++i)
+    {
+      file_table.release(held[i]);
+    }
+    check(allocated_pages == baseline_pages, "failed pipe factories retain no page");
+  }
+  {
+    Pipe pipe;
+    pipe.initialize();
+    char source[700], destination[512];
+    std::memset(source, 'P', sizeof(source));
+    const auto input = reinterpret_cast<unsigned long>(source);
+    const auto output = reinterpret_cast<unsigned long>(destination);
+    check(pipe.read(output, 1, true) == -EAGAIN, "nonblocking empty pipe");
+    check(pipe.write(input, 512, true) == 512, "fill pipe atomically");
+    check(pipe.write(input, 1, true) == -EAGAIN, "nonblocking full pipe");
+    check(pipe.read(output, 20, true) == 20, "release some pipe space");
+    check(pipe.write(input, 32, true) == -EAGAIN, "small write waits for whole space");
+    check(pipe.write(input, 700, true) == 20, "large write returns partial progress");
+    fail_copy = true;
+    check(pipe.read(output, 1, true) == -1, "failed copyout consumes no pipe data");
+    fail_copy = false;
+    check(pipe.read(output, 512, true) == 512, "drain after copyout failure");
+    for (char value : destination)
+    {
+      check(value == 'P', "pipe retains bytes");
+    }
+    fail_copy = true;
+    check(pipe.write(input, 1, true) == -1, "failed copyin reports error");
+    fail_copy = false;
+    check(pipe.read(output, 1, true) == -EAGAIN, "failed copyin publishes no byte");
+    check(pipe.write(input, 0) == 0 && pipe.read(output, -1) == -1,
+          "pipe validates counts before waiting");
+  }
   File *reader, *writer;
   check(create_pipe(&reader, &writer), "create pipe");
   std::vector<char> data(2400), result;
@@ -429,7 +554,8 @@ void pipe_contract()
   producer.join();
   check(data == result, "pipe wraparound and EOF after writer closes");
   file_table.release(reader);
-  check(allocated_pages == baseline_pages, "pipe page released after both endpoints close");
+  check(allocated_pages == baseline_pages,
+        "pipe page released after both endpoints close");
 
   check(create_pipe(&reader, &writer), "create killed-reader pipe");
   killed = true;
@@ -786,6 +912,314 @@ void dynamic_mount_contract()
   check(vfs.unlink(const_cast<char *>("/tmp/mount-native")) == 0, "mountpoint cleanup");
 }
 
+void vfs_path_contract()
+{
+  auto make = [](const char *path, short kind)
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>(path), kind, 0, 0);
+    check(node != nullptr, "VFS path fixture");
+    vfs.unlock_release(node);
+  };
+  auto remove = [](const char *path)
+  { check(vfs.unlink(const_cast<char *>(path)) == 0, "VFS path fixture cleanup"); };
+  auto finds = [](const char *path)
+  {
+    auto *node = vfs.lookup(path);
+    bool found = node != nullptr;
+    if (node)
+    {
+      vfs.release(node);
+    }
+    return found;
+  };
+  const int baseline = allocated_pages;
+  make("/tmp/vfs-flow", T_DIR);
+  make("/tmp/vfs-flow/dir", T_DIR);
+  make("/tmp/vfs-flow/dir/data", T_FILE);
+  check(vfs.symlink("dir/data", "/tmp/vfs-flow/relative") == 0, "relative symlink");
+  check(vfs.symlink("/tmp/vfs-flow/relative", "/tmp/vfs-flow/absolute") == 0,
+        "absolute symlink");
+  check(vfs.symlink("dir/", "/tmp/vfs-flow/dirlink") == 0, "directory symlink");
+  check(finds("/tmp/vfs-flow/absolute") && finds("/tmp/vfs-flow/dirlink/../dir/data"),
+        "symlink rewrite preserves relative parent and remaining path");
+  check(!finds("/tmp/vfs-flow/relative/"),
+        "trailing slash rejects regular symlink target");
+  auto *symbolic = vfs.lookup("/tmp/vfs-flow/relative", false, false);
+  check(symbolic != nullptr, "nofollow retains symlink");
+  vfs.lock(symbolic);
+  check(symbolic->kind() == T_SYMLINK, "nofollow exposes link identity");
+  vfs.unlock_release(symbolic);
+  check(vfs.symlink("loop", "/tmp/vfs-flow/loop") == 0 && !finds("/tmp/vfs-flow/loop"),
+        "symlink cycle terminates");
+  for (int i = 16; i >= 0; --i)
+  {
+    char path[64], target[32];
+    std::snprintf(path, sizeof(path), "/tmp/vfs-flow/a%d", i);
+    if (i == 16)
+    {
+      std::strcpy(target, "dir/data");
+    }
+    else
+    {
+      std::snprintf(target, sizeof(target), "a%d", i + 1);
+    }
+    check(vfs.symlink(target, path) == 0, "symlink depth fixture");
+  }
+  check(finds("/tmp/vfs-flow/a1") && !finds("/tmp/vfs-flow/a0"),
+        "sixteen symlinks allowed, seventeenth rejected");
+  int pages = allocated_pages;
+  page_budget = 1;
+  check(vfs.symlink("dir/data", "/tmp/vfs-flow/failed") < 0,
+        "symlink write allocation failure");
+  page_budget = -1;
+  check(!finds("/tmp/vfs-flow/failed") && allocated_pages == pages,
+        "failed symlink rolls back directory entry and all candidate pages");
+  check(vfs.rename("/tmp/vfs-flow/dir", "/tmp/vfs-flow/dir/inside") < 0,
+        "rename rejects descendant directory");
+  check(vfs.rename("/missing-vfs-flow", "/tmp/vfs-flow/new") < 0 &&
+            vfs.rename("/tmp/vfs-flow/dir/data", "/tmp/vfs-flow/missing/new") < 0,
+        "rename releases independently resolved parents on failure");
+  check(vfs.rename("/tmp/vfs-flow/dir/data", "/tmp/vfs-flow/moved") == 0 &&
+            !finds("/tmp/vfs-flow/dir/data") && finds("/tmp/vfs-flow/moved"),
+        "rename publishes new path");
+  check(vfs.mount_ram("/tmp//vfs-flow/dir") < 0 &&
+            vfs.mount_ram("/tmp/vfs-flow/./dir") < 0 &&
+            vfs.mount_ram("/tmp/vfs-flow/dir/") < 0,
+        "RAM mount rejects noncanonical names");
+  check(vfs.mount_ram("/tmp/vfs-flow/dir") == 0, "nested mount outer fixture");
+  make("/tmp/vfs-flow/dir/child", T_DIR);
+  check(vfs.mount_ram("/tmp/vfs-flow/dir/child") == 0, "nested mount inner fixture");
+  check(vfs.unmount("/tmp/vfs-flow/dir") < 0,
+        "child mount references prevent parent unmount");
+  check(vfs.rename("/tmp/vfs-flow", "/tmp/moved-vfs-flow") < 0,
+        "rename rejects ancestor of mountpoint");
+  check(vfs.unmount("/tmp/vfs-flow/dir/child") == 0 &&
+            vfs.unmount("/tmp/vfs-flow/dir") == 0,
+        "nested mounts teardown in child then parent order");
+  check(vfs.unmount("/tmp") < 0 && vfs.unmount("/tmp/vfs-flow/moved") < 0,
+        "unmount rejects fixed mount and ordinary file");
+  for (int i = 0; i <= 16; ++i)
+  {
+    char path[64];
+    std::snprintf(path, sizeof(path), "/tmp/vfs-flow/a%d", i);
+    remove(path);
+  }
+  for (const char *path : {"/tmp/vfs-flow/relative", "/tmp/vfs-flow/absolute",
+                           "/tmp/vfs-flow/dirlink", "/tmp/vfs-flow/loop",
+                           "/tmp/vfs-flow/moved", "/tmp/vfs-flow/dir", "/tmp/vfs-flow"})
+  {
+    remove(path);
+  }
+  check(allocated_pages == baseline,
+        "VFS path and mount fixtures release all owned pages");
+}
+
+void ramfs_rollback_contract()
+{
+  const int baseline = allocated_pages;
+  auto make = [](const char *path, short type)
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>(path), type, 0, 0);
+    check(node != nullptr, "RAM rollback fixture");
+    vfs.unlock_release(node);
+  };
+  auto remove = [](const char *path)
+  { check(vfs.unlink(const_cast<char *>(path)) == 0, "RAM rollback cleanup"); };
+  make("/tmp/ram-flow", T_DIR);
+  int pages = allocated_pages;
+  {
+    Transaction transaction;
+    page_budget = 1;
+    auto *node = vfs.create(const_cast<char *>("/tmp/ram-flow/failed"), T_DIR, 0, 0);
+    page_budget = -1;
+    check(!node && allocated_pages == pages,
+          "directory slot allocation failure releases candidate and parent pin");
+  }
+  auto *parent = vfs.lookup("/tmp/ram-flow");
+  vfs.lock(parent);
+  Stat parent_stat{};
+  vfs.stat(parent, &parent_stat);
+  check(parent_stat.nlink == 1,
+        "failed directory create leaves parent links unchanged");
+  vfs.unlock_release(parent);
+  make("/tmp/ram-flow/left", T_DIR);
+  make("/tmp/ram-flow/right", T_DIR);
+  make("/tmp/ram-flow/left/child", T_DIR);
+  check(vfs.rename("/tmp/ram-flow/left/child", "/tmp/ram-flow/right/child") == 0,
+        "directory rename transfers parent pin");
+  auto *actual = vfs.lookup("/tmp/ram-flow/right/child/..");
+  auto *expected = vfs.lookup("/tmp/ram-flow/right");
+  check(actual && expected && &actual->owner() == &expected->owner() &&
+            actual->number() == expected->number(),
+        "moved directory dotdot points to new parent");
+  vfs.release(actual);
+  vfs.release(expected);
+  make("/tmp/ram-flow/source", T_FILE);
+  make("/tmp/ram-flow/replaced", T_FILE);
+  auto *replaced = vfs.lookup("/tmp/ram-flow/replaced");
+  check(vfs.rename("/tmp/ram-flow/source", "/tmp/ram-flow/replaced") == 0,
+        "rename replaces existing file");
+  vfs.lock(replaced);
+  Stat replaced_stat{};
+  vfs.stat(replaced, &replaced_stat);
+  check(replaced_stat.nlink == 0,
+        "replaced file remains valid through retained reference");
+  vfs.unlock_release(replaced);
+  auto *directory = vfs.lookup("/tmp/ram-flow");
+  vfs.lock(directory);
+  char bytes[32];
+  fail_copy = true;
+  check(vfs.read(directory, 1, reinterpret_cast<unsigned long>(bytes), 0,
+                 sizeof(bytes)) == -1,
+        "RAM directory first copy failure");
+  fail_copy = false;
+  check(vfs.read(directory, 0, reinterpret_cast<unsigned long>(bytes),
+                 sizeof(dirent) - 1, 3) == 3,
+        "RAM directory read spans partial records");
+  vfs.unlock_release(directory);
+  for (const char *path :
+       {"/tmp/ram-flow/right/child", "/tmp/ram-flow/left", "/tmp/ram-flow/right",
+        "/tmp/ram-flow/replaced", "/tmp/ram-flow"})
+  {
+    remove(path);
+  }
+  check(allocated_pages == baseline,
+        "RAM failed create and rename fixtures reclaim pages");
+}
+
+void disk_sparse_contract()
+{
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>("/disk-sparse"), T_FILE, 0, 0);
+    check(node != nullptr, "sparse disk fixture");
+    std::vector<unsigned char> bytes(4 * BSIZE, 0x71);
+    check(vfs.write(node, 0, reinterpret_cast<unsigned long>(bytes.data()), 0,
+                    2 * BSIZE) == 2 * BSIZE,
+          "sparse disk allocated prefix");
+    check(node->owner().resize(node, 6 * BSIZE) == 0, "disk sparse extension");
+    copy_out_budget = 1;
+    check(vfs.read(node, 0, reinterpret_cast<unsigned long>(bytes.data()), 0,
+                   2 * BSIZE) == -1,
+          "allocated disk read preserves existing error after earlier progress");
+    copy_out_budget = 2;
+    check(vfs.read(node, 0, reinterpret_cast<unsigned long>(bytes.data()), 0,
+                   4 * BSIZE) == 2 * BSIZE,
+          "sparse disk read preserves earlier progress on zero-copy failure");
+    copy_out_budget = -1;
+    check(vfs.read(node, 0, reinterpret_cast<unsigned long>(bytes.data()), 3 * BSIZE,
+                   BSIZE) == BSIZE,
+          "read hole without block allocation");
+    for (unsigned i = 0; i < BSIZE; ++i)
+    {
+      check(bytes[i] == 0, "sparse disk zero bytes");
+    }
+    unsigned char value = 0x61;
+    check(vfs.write(node, 0, reinterpret_cast<unsigned long>(&value),
+                    NDIRECT * BSIZE + 16, 1) == 1 &&
+              vfs.write(node, 0, reinterpret_cast<unsigned long>(&value),
+                        (NDIRECT + 1) * BSIZE, 1) == 1,
+          "sparse disk indirect data allocation");
+    check(node->owner().resize(node, NDIRECT * BSIZE + 8) == 0 &&
+              node->owner().resize(node, (NDIRECT + 2) * BSIZE) == 0,
+          "shrink indirect tail then extend sparse");
+    value = 0xff;
+    check(vfs.read(node, 0, reinterpret_cast<unsigned long>(&value),
+                   NDIRECT * BSIZE + 16, 1) == 1 &&
+              !value,
+          "indirect retained block truncated suffix is zero after regrowth");
+    check(node->owner().resize(node, MAXFILE * BSIZE + 1) < 0 &&
+              vfs.read(node, 0, reinterpret_cast<unsigned long>(&value), ~0U, 2) == 0 &&
+              vfs.write(node, 0, reinterpret_cast<unsigned long>(&value), ~0U, 2) < 0,
+          "disk resize and I/O range limits");
+    check(node->owner().resize(node, 0) == 0,
+          "disk resize frees direct and last indirect blocks");
+    vfs.unlock_release(node);
+  }
+  check(vfs.unlink(const_cast<char *>("/disk-sparse")) == 0,
+        "sparse disk fixture cleanup");
+}
+
+void disk_path_contract()
+{
+  auto make = [](const char *path, short type)
+  {
+    Transaction transaction;
+    auto *node = vfs.create(const_cast<char *>(path), type, 0, 0);
+    check(node != nullptr, "disk path fixture");
+    vfs.unlock_release(node);
+  };
+  auto remove = [](const char *path)
+  { check(vfs.unlink(const_cast<char *>(path)) == 0, "disk path fixture cleanup"); };
+  make("/disk-flow", T_DIR);
+  make("/disk-flow/left", T_DIR);
+  make("/disk-flow/right", T_DIR);
+  make("/disk-flow/left/child", T_DIR);
+  {
+    Transaction transaction;
+    auto *parent = vfs.lookup("/disk-flow");
+    check(parent->owner().rename_at(parent, ".", parent, "left") < 0,
+          "backend rename parent alias releases parent locks before references");
+    vfs.release(parent);
+  }
+  check(vfs.rename("/disk-flow/left/child", "/disk-flow/right/child") == 0,
+        "disk directory rename crosses parents");
+  {
+    Transaction transaction;
+    auto *actual = vfs.lookup("/disk-flow/right/child/..");
+    auto *expected = vfs.lookup("/disk-flow/right");
+    check(actual && expected && actual->number() == expected->number(),
+          "disk directory rename updates dotdot");
+    vfs.release(actual);
+    vfs.release(expected);
+  }
+  make("/disk-flow/source", T_FILE);
+  make("/disk-flow/replaced", T_FILE);
+  check(vfs.link(const_cast<char *>("/disk-flow/source"),
+                 const_cast<char *>("/disk-flow/alias")) == 0,
+        "disk identical rename alias fixture");
+  check(vfs.rename("/disk-flow/source", "/disk-flow/alias") == 0,
+        "rename of hard links to same inode succeeds without removing either name");
+  auto *replaced = vfs.lookup("/disk-flow/replaced");
+  check(vfs.rename("/disk-flow/source", "/disk-flow/replaced") == 0,
+        "disk rename replaces retained target");
+  {
+    Transaction transaction;
+    Stat metadata{};
+    vfs.lock(replaced);
+    vfs.stat(replaced, &metadata);
+    check(metadata.nlink == 0,
+          "disk replaced inode lives until retained reference release");
+    vfs.unlock_release(replaced);
+  }
+  caller_identity.uid = 1000;
+  check(vfs.link(const_cast<char *>("/disk-flow/alias"),
+                 const_cast<char *>("/disk-flow/right/denied")) < 0,
+        "disk hard link rolls back reserved link on destination permission failure");
+  caller_identity = {};
+  {
+    Transaction transaction;
+    auto *node = vfs.lookup("/disk-flow/alias");
+    Stat metadata{};
+    vfs.lock(node);
+    vfs.stat(node, &metadata);
+    check(metadata.nlink == 2, "failed hard link leaves original link count intact");
+    vfs.unlock_release(node);
+    check(!vfs.lookup("/disk-flow/right/denied"), "failed hard link publishes no name");
+  }
+  check(vfs.unlink(const_cast<char *>("/disk-flow/right")) < 0 &&
+            vfs.unlink(const_cast<char *>("/disk-flow/right/.")) < 0,
+        "disk unlink rejects nonempty directory and dot");
+  for (const char *path :
+       {"/disk-flow/alias", "/disk-flow/replaced", "/disk-flow/right/child",
+        "/disk-flow/left", "/disk-flow/right", "/disk-flow"})
+  {
+    remove(path);
+  }
+}
+
 void security_contract()
 {
   {
@@ -921,6 +1355,14 @@ int copy_in(void *destination, bool, unsigned long source, unsigned count)
 
 int copy_out(bool, unsigned long destination, const void *source, unsigned count)
 {
+  if (test::copy_out_budget == 0)
+  {
+    return -1;
+  }
+  if (test::copy_out_budget > 0)
+  {
+    --test::copy_out_budget;
+  }
   if (test::fail_copy)
   {
     return -1;
@@ -985,6 +1427,7 @@ extern "C" int run_fs_contracts(const char *image)
   block_cache.initialize();
   cache_contract();
   journal_contract();
+  page_buffer_contract();
   registry.attach("console", 5, 0, character);
   registry.attach("aux", 5, 1, character);
   vfs.initialize_inodes();
@@ -993,6 +1436,8 @@ extern "C" int run_fs_contracts(const char *image)
   baseline_pages = allocated_pages;
   cwd = vfs.lookup("/");
   file_contract();
+  disk_sparse_contract();
+  disk_path_contract();
   device_contract();
   pipe_contract();
   backend_contract();
@@ -1002,6 +1447,8 @@ extern "C" int run_fs_contracts(const char *image)
   expanded_contract();
   ramfs_contract();
   dynamic_mount_contract();
+  vfs_path_contract();
+  ramfs_rollback_contract();
   security_contract();
   {
     xv::fs::Transaction transaction;

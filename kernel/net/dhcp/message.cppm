@@ -34,6 +34,12 @@ public:
 
 private:
 
+  struct OptionsFlow;
+
+  struct DecodeFlow;
+  struct EncodeFlow;
+  struct LeaseFlow;
+
   static bool options(const unsigned char *data, unsigned length, DhcpReply &reply,
                       unsigned &overload, bool main);
 };

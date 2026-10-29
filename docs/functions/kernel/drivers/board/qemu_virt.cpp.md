@@ -10,6 +10,12 @@
 
 ## 函数导航
 
+- [`xv::drivers::ConsoleFlow::devices`](qemu_virt.cpp.md#fn-f0e4ac986e868925)
+- [`xv::drivers::ConsoleFlow::serial`](qemu_virt.cpp.md#fn-b54510fdb4f2206b)
+- [`xv::drivers::ConsoleFlow::terminal`](qemu_virt.cpp.md#fn-0e7177c0981f3b7a)
+- [`xv::drivers::InterruptsFlow::discover`](qemu_virt.cpp.md#fn-d29facf8ea670c0e)
+- [`xv::drivers::InterruptsFlow::locate`](qemu_virt.cpp.md#fn-bbee61fe23e23e4a)
+- [`xv::drivers::InterruptsFlow::route`](qemu_virt.cpp.md#fn-807dc2b114e2fef1)
 - [`xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`](qemu_virt.cpp.md#fn-9d462dc2b56e9df5)
 - [`xv::drivers::PciNetworkInterrupt::handle_interrupt`](qemu_virt.cpp.md#fn-3ef9ccf1cd9c3d06)
 - [`xv::drivers::PciNetworkInterrupt::initialize`](qemu_virt.cpp.md#fn-5af1d4c6af322afc)
@@ -37,6 +43,7 @@
 @fn void xv::drivers::initialize_console()
 @brief 初始化板级终端并登记 console 与 ptmx。
 @details 在启动阶段初始化 TTY、PTY 注册锁及 UART，登记静态控制台 1/0 和 PTY 多路复用工厂 4/0；devfs 发布目录前封存注册表。实际 PTY 会话只在打开 ptmx 时分配。
+@details 流程由 ConsoleFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-ea116721d09e5c14"></a>
@@ -46,6 +53,7 @@
 ```doxygen
 @fn void xv::drivers::initialize_interrupts()
 @brief 启动期扫描最多四个 E1000，设置插槽及共享 IRQ，然后初始化统一中断路由。
+@details 流程由 InterruptsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-bea9233c904d33be"></a>
@@ -129,7 +137,7 @@
 ## `xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`
 
 ```doxygen
-@fn xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt(unsigned irq)
+@fn constexpr explicit xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt(unsigned irq)
 @brief 构造对象并保存稳定身份或借用的层间依赖，初始化空状态；不执行网络 I/O，依赖与名称须比对象存活更久。
 ```
 
@@ -138,7 +146,7 @@
 ## `xv::drivers::PciNetworkInterrupt::name`
 
 ```doxygen
-@fn const char *xv::drivers::PciNetworkInterrupt::name() const
+@fn const char *xv::drivers::PciNetworkInterrupt::name() const override
 @brief 返回共享 PCI 以太 INTx 中断源的诊断名称。
 ```
 
@@ -147,7 +155,7 @@
 ## `xv::drivers::PciNetworkInterrupt::irq`
 
 ```doxygen
-@fn unsigned xv::drivers::PciNetworkInterrupt::irq() const
+@fn unsigned xv::drivers::PciNetworkInterrupt::irq() const override
 @brief 返回该中断源服务的 PLIC 线路号。
 ```
 
@@ -156,7 +164,7 @@
 ## `xv::drivers::PciNetworkInterrupt::initialize`
 
 ```doxygen
-@fn void xv::drivers::PciNetworkInterrupt::initialize()
+@fn void xv::drivers::PciNetworkInterrupt::initialize() override
 @brief 共享中断源无需独立硬件初始化；E1000 初始化负责设备寄存器。
 ```
 
@@ -165,7 +173,7 @@
 ## `xv::drivers::PciNetworkInterrupt::handle_interrupt`
 
 ```doxygen
-@fn void xv::drivers::PciNetworkInterrupt::handle_interrupt()
+@fn void xv::drivers::PciNetworkInterrupt::handle_interrupt() override
 @brief 遍历所有已发现网卡，对 IRQ 与本线路一致的设备逐个处理；支持多个 PCI 插槽共享 INTx。
 ```
 
@@ -204,4 +212,64 @@
 @fn BlockDevice *xv::drivers::data_device()
 @brief 取得已连接的第二个 VirtIO 块设备。
 @details 板级静态实例位于根盘之后的 MMIO 页和 IRQ；未发现设备时返回 nullptr。
+```
+
+<a id="fn-f0e4ac986e868925"></a>
+
+## `xv::drivers::ConsoleFlow::devices`
+
+```doxygen
+@fn static void xv::drivers::ConsoleFlow::devices(Context &) noexcept
+@brief 按原顺序登记 console 与 ptmx。
+@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b54510fdb4f2206b"></a>
+
+## `xv::drivers::ConsoleFlow::serial`
+
+```doxygen
+@fn static void xv::drivers::ConsoleFlow::serial(Context &) noexcept
+@brief 连接原终端并初始化 UART。
+@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-0e7177c0981f3b7a"></a>
+
+## `xv::drivers::ConsoleFlow::terminal`
+
+```doxygen
+@fn static void xv::drivers::ConsoleFlow::terminal(Context &) noexcept
+@brief 初始化板级 TTY 与 PTY 列表。
+@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-d29facf8ea670c0e"></a>
+
+## `xv::drivers::InterruptsFlow::discover`
+
+```doxygen
+@fn static void xv::drivers::InterruptsFlow::discover(Context &c) noexcept
+@brief 按原四设备容量扫描 PCI 并保存网卡数。
+@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-bbee61fe23e23e4a"></a>
+
+## `xv::drivers::InterruptsFlow::locate`
+
+```doxygen
+@fn static void xv::drivers::InterruptsFlow::locate(Context &c) noexcept
+@brief 将发现插槽绑定到对应固定网卡及 INTx 编号。
+@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-807dc2b114e2fef1"></a>
+
+## `xv::drivers::InterruptsFlow::route`
+
+```doxygen
+@fn static void xv::drivers::InterruptsFlow::route(Context &) noexcept
+@brief 初始化原控制器与中断路由。
+@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

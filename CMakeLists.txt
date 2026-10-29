@@ -80,6 +80,13 @@ list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel rootfs-image USES_TERMINAL)
 enable_testing()
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME fork_progress_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fork_progress.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --cpus ${cpus} --output "${PROJECT_BINARY_DIR}/fork-progress-${cpus}cpu.json")
+  set_tests_properties(fork_progress_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS process)
+endforeach()
 add_test(NAME password_hash_contract COMMAND "${PROJECT_BINARY_DIR}/password_hash_contract")
 set_tests_properties(password_hash_contract PROPERTIES TIMEOUT 15 LABELS users)
 add_test(NAME image_layout COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/image_layout.py"
@@ -93,6 +100,8 @@ set_tests_properties(process_groups_contract PROPERTIES TIMEOUT 45 LABELS proces
 add_test(NAME process_storage_contract COMMAND "${PROJECT_BINARY_DIR}/process_storage_contract")
 set_tests_properties(process_storage_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME runtime_contract COMMAND "${PROJECT_BINARY_DIR}/runtime_contract")
+add_test(NAME print_contract COMMAND "${PROJECT_BINARY_DIR}/print_contract")
+set_tests_properties(print_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 set_tests_properties(runtime_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 add_test(NAME trap_contract COMMAND "${PROJECT_BINARY_DIR}/trap_contract")
 set_tests_properties(trap_contract PROPERTIES TIMEOUT 45 LABELS trap)
@@ -310,3 +319,11 @@ foreach(cpus 1 5)
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --firewall)
   set_tests_properties(firewall_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS network)
 endforeach()
+
+add_test(NAME flow_contract COMMAND "${PROJECT_BINARY_DIR}/flow_contract")
+add_test(NAME flow_compile_checks COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/flow_compile_checks.py" --cxx "${XV_HOST_CLANG}")
+set_tests_properties(flow_contract flow_compile_checks PROPERTIES TIMEOUT 60 LABELS support)
+
+add_test(NAME stats_contract COMMAND "${PROJECT_BINARY_DIR}/stats_contract")
+set_tests_properties(stats_contract PROPERTIES TIMEOUT 30 LABELS support)

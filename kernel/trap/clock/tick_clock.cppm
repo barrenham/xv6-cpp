@@ -25,6 +25,8 @@ public:
 
 private:
 
+  struct PauseFlow;
+
   mutable xv::sync::SpinLock lock_;
   unsigned ticks_;
 };

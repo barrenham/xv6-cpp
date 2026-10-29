@@ -1,6 +1,7 @@
 module;
 
 #include "kernel/support/types.h"
+#include "kernel/support/flow.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/register_constants.h"
@@ -12,6 +13,71 @@ import :manager;
 
 namespace xv::process
 {
+
+namespace flow = xv::flow;
+
+struct Process::CommitFlow
+{
+  struct Context
+  {
+    Process &owner;
+    AddressSpace &image;
+    unsigned long entry, stack, arguments;
+    const char *path;
+    unsigned long environment;
+  };
+
+  static void linearize(Context &c) noexcept
+  {
+    process_manager.did_exec(c.owner);
+  }
+
+  static void image(Context &c) noexcept
+  {
+    c.owner.memory_.swap(c.image);
+  }
+
+  static void signals(Context &c) noexcept
+  {
+    c.owner.pending_signals_.on_exec();
+    c.owner.signal_depth_ = 0;
+    c.owner.suspended_mask_ = c.owner.suspend_restarted_ = false;
+  }
+
+  static void registers(Context &c) noexcept
+  {
+    c.owner.trapframe->epc = c.entry;
+    c.owner.trapframe->sp = c.stack;
+    c.owner.trapframe->a1 = c.arguments;
+    c.owner.trapframe->a2 = c.environment;
+  }
+
+  static void name(Context &c) noexcept
+  {
+    const char *last = c.path;
+    for (auto *p = c.path; *p; ++p)
+    {
+      if (*p == '/')
+      {
+        last = p + 1;
+      }
+    }
+    c.owner.set_name(last);
+  }
+  struct Linearize;
+  struct Image;
+  struct Signals;
+  struct Registers;
+  struct Name;
+  using Graph = flow::graph<
+      Linearize,
+      flow::types<flow::node<Linearize, flow::action<&linearize>, flow::go<Image>>,
+                  flow::node<Image, flow::action<&image>, flow::go<Signals>>,
+                  flow::node<Signals, flow::action<&signals>, flow::go<Registers>>,
+                  flow::node<Registers, flow::action<&registers>, flow::go<Name>>,
+                  flow::node<Name, flow::action<&name>, flow::stop>>>;
+};
+
 void Process::set_name(const char *label)
 {
   xv::sync::ScopedLock guard(lock);
@@ -27,25 +93,7 @@ void Process::commit_image(AddressSpace &image, unsigned long entry,
                            unsigned long stack, unsigned long arguments,
                            const char *path, unsigned long environment)
 {
-  // All fallible loading has completed. Linearize successful exec against a
-  // parent attempting setpgid before publishing the new image.
-  process_manager.did_exec(*this);
-  memory_.swap(image);
-  pending_signals_.on_exec();
-  signal_depth_ = 0;
-  suspended_mask_ = suspend_restarted_ = false;
-  trapframe->epc = entry;
-  trapframe->sp = stack;
-  trapframe->a1 = arguments;
-  trapframe->a2 = environment;
-  const char *last = path;
-  for (auto *c = path; *c; ++c)
-  {
-    if (*c == '/')
-    {
-      last = c + 1;
-    }
-  }
-  set_name(last);
+  CommitFlow::Context context{*this, image, entry, stack, arguments, path, environment};
+  (void)CommitFlow::Graph::run<0>(context);
 }
 } // namespace xv::process

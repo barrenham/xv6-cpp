@@ -1,0 +1,539 @@
+{
+  "status": "identified_complex_paths_connected",
+  "scope": "trap/sync/arch/io/tty/support source files, including assembly and conditional stats source",
+  "modules": [
+    {
+      "module": "trap",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/trap/arch/riscv/entry.cpp",
+          "sha256": "5af90f6c6feafab2761cc890330c693cdf11c6feae52ee1f52d0dd50aa3310a5",
+          "review": "原 C ABI usertrap/kerneltrap 仅委托 TrapController，汇编边界不改。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/arch/riscv/entry.h",
+          "sha256": "195436fd57af2ccffe0d873fc1fd5c85ac6706f1a0aa9a9aca559a4ad516fbb6",
+          "review": "原 C ABI 函数与汇编符号声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+          "sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938",
+          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。",
+          "graph_entries": [
+            {
+              "qualified": "xv::trap::detail::refill_stack_reserve",
+              "usr": "c:@N@xv@N@trap@N@detail@F@refill_stack_reserve#",
+              "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+              "source_sha256": "4758d12bb1e428e1c127f1959f9cda2c7cbaf57a4286939304103a81016d9619",
+              "graphs": [
+                "RefillReserveFlow::Graph"
+              ]
+            },
+            {
+              "qualified": "xv::trap::detail::prepare_user_return",
+              "usr": "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
+              "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+              "source_sha256": "6b729065722b526b9c13c803c4857964ac82595cb22ecec50b2b1157d1046db3",
+              "graphs": [
+                "UserReturnFlow::Graph"
+              ]
+            },
+            {
+              "qualified": "kernel_stack_prepare",
+              "usr": "c:@F@kernel_stack_prepare",
+              "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+              "source_sha256": "29ce225147e9b940e755f40c634dc8a086a4a425b1aa10a663f87da7e3397b8d",
+              "graphs": [
+                "KernelStackPrepareFlow::Graph"
+              ]
+            },
+            {
+              "qualified": "xv::trap::scheduler_stack_top",
+              "usr": "c:@N@xv@N@trap@F@scheduler_stack_top#",
+              "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+              "source_sha256": "05544cb92563ee5c8bcce04d751c86d19d121701804c52aa224dd79a8094540b",
+              "graphs": [
+                "SchedulerStackFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/arch/riscv/kernelvec.S",
+          "sha256": "97495689d31d18570e903ef4f5c0e991382f2944c4da7cff754cbf6b2204487f",
+          "review": "原 CSR/寄存器保存、独立入口栈、kernel_stack_prepare 返回一时重执行和常规 kerneltrap 调用/恢复；汇编不可用模板取代且本批未改。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/arch/riscv/trampoline.S",
+          "sha256": "fc29a9c01f7c8ff8ec92473adb7913f2d1044205420e934fb0a9442691152f76",
+          "review": "原固定页 trampoline 用户寄存器/SATP 切换、内核栈/hart 恢复和 sret；保持底层 ABI 原语。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/clock/flow.cppm",
+          "sha256": "e88f968202f8d8a93dc9eb5202293ca2df070c3ba11b0719798381fc831c4fc4",
+          "review": "PauseFlow 声明 elapsed/interrupted/wait/unlock 循环，无递归增长；睡眠前登记、释放/复取锁保持单一等待动作。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/clock/tick_clock.cpp",
+          "sha256": "adedebe9315bf24140d90cb89316cc333e04c478ddfe53206b7e8a74ddbd5145",
+          "review": "pause 运行 PauseFlow；initialize 为单锁初始化，uptime 为锁内读取，interrupt 为 hart0 锁内计数/唤醒和每 hart 定时器重装的固定硬件回调。",
+          "graph_entries": [
+            {
+              "qualified": "xv::trap::TickClock::pause",
+              "usr": "c:@N@xv@N@trap@S@TickClock@F@pause#I#",
+              "source": "kernel/trap/clock/tick_clock.cpp",
+              "source_sha256": "a3ca6f3fa4a2d8f41c5f058b5168d9e265ab0f81ced12aff7299ec8dc1f71435",
+              "graphs": [
+                "PauseFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/clock/tick_clock.cppm",
+          "sha256": "5a996d0f1f2dcccb20607a2cb4473c7dea2d5a3390fdf36332d322847caf947b",
+          "review": "时钟状态/固定间隔与私有 PauseFlow 声明，无额外执行图。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/controller/flow.cppm",
+          "sha256": "dc8f0c2ab0628267edd9d8ecbbab50bb9a8acc7c2b164d221178fa4a1479f464",
+          "review": "UserGraph/KernelGraph 声明来源检查、分派、信号、退出/让出和寄存器恢复，业务 TrapAction 不混同图控制。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/controller/trap_controller.cpp",
+          "sha256": "5ab0fb930090864f22604bfec57f69435ae625fcd77e108e1507f31a14c3dde3",
+          "review": "handle_user/handle_kernel 使用入口图；initialize_hart、prepare_return 和 noreturn 返回为固定平台/信号委托与 trampoline 入口组合。",
+          "graph_entries": [
+            {
+              "qualified": "xv::trap::TrapController::handle_user",
+              "usr": "c:@N@xv@N@trap@S@TrapController@F@handle_user#",
+              "source": "kernel/trap/controller/trap_controller.cpp",
+              "source_sha256": "de8d51f4f4abd12bfc15126ff9e3114e92bc5359a2f8a618645bf394b01cf259",
+              "graphs": [
+                "EntryFlow::UserGraph"
+              ]
+            },
+            {
+              "qualified": "xv::trap::TrapController::handle_kernel",
+              "usr": "c:@N@xv@N@trap@S@TrapController@F@handle_kernel#",
+              "source": "kernel/trap/controller/trap_controller.cpp",
+              "source_sha256": "41bd2cb9c039fe5d990d9f6d37d841440cba51d2d2b76747de64c8548e3ac44f",
+              "graphs": [
+                "EntryFlow::KernelGraph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/controller/trap_controller.cppm",
+          "sha256": "e42b4b2b38c1e2909276f6a9d78281f2f608eade4c6b7413bfd4240fb5b6bde9",
+          "review": "控制器的非拥有 dispatcher 引用、接口与私有 Flow 声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/dispatch/flow.cppm",
+          "sha256": "e8c22269ab593a4d2f9a62cef66e3840eb10afe68797a37f05a36238d0947a40",
+          "review": "DispatchFlow 按原顺序逐项 accepts，选中后只调用一次 handle；缺失表/空项保持原诊断。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/dispatch/trap_dispatcher.cpp",
+          "sha256": "b841f27e1809cd87901b99f935616c95fe9e6fb8bd8efce640294c3a3f9cf1a2",
+          "review": "实际分派入口运行私有 DispatchFlow 并返回业务 TrapAction。",
+          "graph_entries": [
+            {
+              "qualified": "xv::trap::TrapDispatcher::dispatch",
+              "usr": "c:@N@xv@N@trap@S@TrapDispatcher@F@dispatch#&1$@N@xv@N@trap@S@TrapEvent#",
+              "source": "kernel/trap/dispatch/trap_dispatcher.cpp",
+              "source_sha256": "a5064585148b3ee74d092ed6c3c90efe42b2fcc602b8e82f0c12259f4184d4aa",
+              "graphs": [
+                "DispatchFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/dispatch/trap_dispatcher.cppm",
+          "sha256": "4fb1c952af86b3ad37ee4b5893979079cdc50d2cce61062cec2392b02217a4fb",
+          "review": "固定非拥有 handler 表/数量和原虚接口声明，未增加运行时注册。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/event/trap_event.cppm",
+          "sha256": "15b292562d3813be97928c2d41458156238b467571d6e03090494cb438b11f35",
+          "review": "TrapCause 的 CSR 位和固定异常号分类、事件快照值对象与业务 TrapAction 枚举。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/handlers/external_interrupt.cpp",
+          "sha256": "224d36c6916e15df41d66c1e2e791e88877252cdb98888e897f25ddab1a04177",
+          "review": "事件类型谓词及原一次外部中断路由委托；设备 claim/complete 协议由 drivers 图负责。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/handlers/handlers.cppm",
+          "sha256": "aa3263cfcebdcbabaa6efc69ba44ad66099090912ad8ec48035eecfba9c62721",
+          "review": "四种固定处理器接口、常量名称和非拥有时钟引用。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/handlers/page_fault.cpp",
+          "sha256": "d310ca8cf5747c02daa76f265b669e3e284f86fd616b273ed388f5eef7755ba3",
+          "review": "用户故障谓词、固定访问类型投影与一次内存故障委托/业务结果映射。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/handlers/system_call.cpp",
+          "sha256": "5fa54cc1de25853d175bd3cfbded56b187826dbf7b65d03c7e8ca736104d498b",
+          "review": "已终止检查和 advance PC→enable IRQ→一次 syscall dispatch 的固定 ABI 适配；系统调用内部一次执行/重启由 DispatchFlow 负责。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/handlers/timer_interrupt.cpp",
+          "sha256": "f854870ddfb08ec2923848aec85e7b9b20b68cd02afed39ad16d396d310a340b",
+          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/platform/platform.cppm",
+          "sha256": "1d8941b785e42d62e40c753cf374d5dbd69561a0bccb5da7b17c3052f68a34ce",
+          "review": "架构平台边界函数声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/service.cpp",
+          "sha256": "b4019bd05ecc156dd56fc2369809be6024565dcab6fe52d29edf4f95a290db80",
+          "review": "constinit 固定 handler/clock/controller/dispatcher 接线及 getter/单次初始化/返回委托；不引入全局构造或注册。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/trap/trap.cppm",
+          "sha256": "f6136b053029a8cda2780faa115392b876580644311bab6247304af65d41e857",
+          "review": "导出模块/接口声明。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    },
+    {
+      "module": "sync",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/sync/interrupts.cppm",
+          "sha256": "6be1724a3b96430e8ac6aba7f0b6f8bcbc90398c6b01302512ba80947c954d9e",
+          "review": "匹配关中断/恢复入口声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/lock.cppm",
+          "sha256": "2d007a1ff6406a6da7a1c14959ee41d9779acfd5030623cc4b5ff9307f0a34eb",
+          "review": "非拥有锁接口、名称 getter 和 LockKind；原虚接口保留，工具本身不依赖它。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/platform/kernel_bridge.cpp",
+          "sha256": "e0df605529d82b1726953fea5b4de9ddd062c7ba5cd6d0416245eba4f3b43df2",
+          "review": "CPU/进程标识、等待/唤醒、中断开关和 panic 的单次平台委托。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/platform/kernel_platform.cpp",
+          "sha256": "9646b729006d9c7e5fa2b4f0d9704982d5f7fbf4516d2e6e90ec268504f6d44d",
+          "review": "push/pop 的 CSR 关中断、原 intena/noff 嵌套和恢复诊断为底层临界区原语，不在每个原子步骤插入分派。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/platform/platform.cppm",
+          "sha256": "1561ab77e98a2823a040c65bb7df758aca90dd4858fb9f4b92cc97da33e1da9f",
+          "review": "私有平台函数声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/poll_table.cppm",
+          "sha256": "f857ae843f3e8bd33c624e3de3af840c5856940159451a4d458eabf53a06c176",
+          "review": "原 poll watch 接口及 events 标量访问；实际等待协议位于 process 图。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/scoped_lock.cppm",
+          "sha256": "6a8a5adcb0aa6833829f171f9d9e54b3c5ff8675030be5796db77d390b2f4c11",
+          "review": "原构造获取/析构释放及 adopt-lock 非拥有 RAII；不跨调度交接制造第二套锁所有权。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/sleep/flow.cppm",
+          "sha256": "946bcc1cabf5248c3c466ee26c22389d144af56970a6e5620051a4c1da689cbb",
+          "review": "共享 AcquireFlow 连接普通/可中断等待、claim 与公共 unlock，循环迭代。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/sleep/sleeplock.cpp",
+          "sha256": "fd669c4d5748e16e13fc5888fd04034ea4db6fa74f902955b251465915952723",
+          "review": "阻塞入口接入共享图；available/try_acquire/holding/release 为同一状态锁内的固定状态读/写和一次 wake 原语。",
+          "graph_entries": [
+            {
+              "qualified": "xv::sync::SleepLock::acquire",
+              "usr": "c:@N@xv@N@sync@S@SleepLock@F@acquire#",
+              "source": "kernel/sync/sleep/sleeplock.cpp",
+              "source_sha256": "110229fcd7f4d82b378562777eb3e2d2a9b16fb79adce809782835cb9c74deca",
+              "graphs": [
+                "AcquireFlow::Graph"
+              ]
+            },
+            {
+              "qualified": "xv::sync::SleepLock::acquire_interruptible",
+              "usr": "c:@N@xv@N@sync@S@SleepLock@F@acquire_interruptible#",
+              "source": "kernel/sync/sleep/sleeplock.cpp",
+              "source_sha256": "37105aaf47c9405d7770b77d40ec9f54fe989acd5ce1071c8ccc44a596291b0f",
+              "graphs": [
+                "AcquireFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/sleep/sleeplock.cppm",
+          "sha256": "19a37f1b81b223f958ade0327d986180033cd1663f463ea4c7603207a95b96f7",
+          "review": "锁状态、原虚接口与私有 AcquireFlow 声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/spin/spinlock.cpp",
+          "sha256": "6d77a6f16b1c99ed6c8eaa8a60995521aa586d753fa8e8c30dc9964db502db3e",
+          "review": "acquire 交换自旋/owner 发布与 release-owner/释放屏障/恢复 noff 为底层原子锁原语；保留诊断和原内存序。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/spin/spinlock.cppm",
+          "sha256": "4f0e61f8b4c39a26ceddf0ad1544a9b7ed4e325d56a577a173a847ae4082fd7b",
+          "review": "constexpr 锁对象布局、标量 owner/locked 和接口声明，无新增全局初始化。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/sync/sync.cppm",
+          "sha256": "1a4b85a19bb72035ab9ee64d1f261c46f2d1b3c182fc99b4cdfb7e8a3f89f460",
+          "review": "导出分区集合，无执行编排。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    },
+    {
+      "module": "arch",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/arch/arch.cppm",
+          "sha256": "88331e4d2bbc0755f26a766ede5e280f2f6f55ac927f08e30a9bb5cd90b77d06",
+          "review": "命名空间内重用寄存器指令定义，保持原导出 ABI。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/arch/riscv/register_constants.h",
+          "sha256": "fd64c76ad7f250e1451727bf24ba0faa7c8112285e14f614e08378795d46f2f3",
+          "review": "RV64 标量类型、CSR/PTE 位及页表地址转换宏，无资源协议。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/arch/riscv/register_operations.inc",
+          "sha256": "575bc9d0ed90559260eb83d9e526c186f5f9f37c034961aa4f596634184ae414",
+          "review": "各 CSR/通用寄存器读写、原 memory clobber、TLB/IO/I-cache fence 为单条或固定序列内联汇编原语。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/arch/riscv/riscv.h",
+          "sha256": "e463845c511543fb888bc0c50b8d12d6f35dee7c15f4f27c1826f099bc50e40c",
+          "review": "用户兼容头，仅复用常量与非汇编指令声明。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    },
+    {
+      "module": "io",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/io/object.cppm",
+          "sha256": "6a05ee3359f2dab837e17f1b02a3ca0a4de037e930d37c3b5f61ade2ad96c352",
+          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/stat.h",
+          "sha256": "08b47cd32e508525178ebf499ef94f74ad53cc8aa73e2bf91d6d508e31b0ac5e",
+          "review": "共享元数据布局和节点类型 ABI 常量。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    },
+    {
+      "module": "tty",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/tty/termios.h",
+          "sha256": "a9442c3c113f74a719e56b47b581b89da74a8751705800b948744c190b9b248a",
+          "review": "共享内核/用户 termios/winsize 布局和固定 ioctl/标志 ABI；TTY 执行流程在 drivers/tty，不能为常量头制造空图。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    },
+    {
+      "module": "support",
+      "status": "identified_complex_paths_connected",
+      "files": [
+        {
+          "source": "kernel/support/compiler_memory.cpp",
+          "sha256": "4b2e1799eb062304c03816b38cac21fa99022bb37b9c56f09b3d134e22d84f65",
+          "review": "编译器 freestanding memset/move/copy/compare ABI 委托到原 runtime 原语，不引入库依赖。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/cpp_runtime.cpp",
+          "sha256": "9fc8aae648c7a907c3b75acbe2bcb09f85416a2b5f8698324af83784f39ab1e3",
+          "review": "原纯虚调用 fatal ABI 钩子；不依赖异常/RTTI 或堆。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/flow.h",
+          "sha256": "f45031a73d5dd41cfa09a4018016e0e7020a9768c68f5f590ea3f50068a12039",
+          "review": "可复用编译期类型/策略/检查和元数据访问；运行引擎为迭代静态分派、有界返回位置和显式控制结果。执行器不能自举为调用自身的流程图。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/param.h",
+          "sha256": "a130a29d49d9b55128967252ab26e6f29bce87360249e7ed2189689b26b58a5e",
+          "review": "固定内核容量常量。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/placement_new.hpp",
+          "sha256": "f04d13385881eb3bd0fa4c661cd559f99b26719450f17f732fbe4ea086075f05",
+          "review": "只返回已有存储地址的 placement new，不分配堆或引入 hosted new。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/print.cppm",
+          "sha256": "4fbef93cab15ad65f17a401a30f9c37ce101b7468c7b2d31cfcbe0b45e1ca7d2",
+          "review": "打印/致命输出接口声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/printk.cpp",
+          "sha256": "ccfb0d3450a191daeddce0ea49151b4118a2cb8e96c00d1ccd3f2a4012e68549",
+          "review": "FormatFlow 连接格式选择和游标；原 va_list 生命周期/锁留在入口。整数/指针/字节输出、panic 标志/固定输出/最终 halt 为业务/致命原语。",
+          "graph_entries": [
+            {
+              "qualified": "xv::print::printk",
+              "usr": "c:@N@xv@N@print@F@printk#*1C.#",
+              "source": "kernel/support/printk.cpp",
+              "source_sha256": "a79d311ce04b9ca77300d9024e06240d86813bb9dfe18a4086a32db649343d61",
+              "graphs": [
+                "FormatFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/runtime.cppm",
+          "sha256": "ae888738b25e6276ce33ee522c7eb73468969defec75fb61c23a8d870052b473",
+          "review": "复制、比较、字符串接口及 constexpr 数组大小声明。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/stats.cpp",
+          "sha256": "fa23d4903a724a1f135042fadf351a8c2433f9d58207500f479a54c8fccd0c8f",
+          "review": "LAB_LOCK StatsReadFlow 保留首次双服务填充、有序裁剪/复制、仅复制被接受才推进游标、EOF 复位和必经解锁；statswrite/StatsDevice/statsinit 为固定适配。实际源在原实现和迁移后均由独立 LAB_LOCK/LAB_PGTBL 宿主夹具验证。生产 STATS/缺失实验服务未补造，完整 LAB_LOCK 原有构建限制仍存在。",
+          "graph_entries": [
+            {
+              "qualified": "xv::drivers::detail::statsread",
+              "usr": "c:@N@xv@N@drivers@N@detail@F@statsread#I#l#I#",
+              "source": "kernel/support/stats.cpp",
+              "source_sha256": "488b124201dd28e0797181084aaf58d58d1bdae21d6a46c1c685c86062c2a8f2",
+              "graphs": [
+                "StatsReadFlow::Graph"
+              ]
+            }
+          ],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/string.cpp",
+          "sha256": "283b736b766a43eae176a57bc6f181bc25abcd1273ff0e0af0ec42ba5bdc42d1",
+          "review": "逐字节 fill/move/compare/copy/length，包含重叠方向和 NUL 策略，为紧凑数据原语，不能按字节增加图分派。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/types.h",
+          "sha256": "74f425bc03a7857b7af6282172aa6cacc6231d1e67300172fee8e7bd8d3a3f51",
+          "review": "固定宽度整型/页表项别名。",
+          "graph_entries": [],
+          "pending": []
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "原完整 LAB_LOCK 仍缺 STATS 与实验统计服务/读写锁测试实现；该条件源以测试专用选择值完成 RISC-V 编译及实际源宿主契约，不等同完整实验配置构建通过。",
+    "Current configured tests do not establish throughput or worst-case stack usage."
+  ]
+}

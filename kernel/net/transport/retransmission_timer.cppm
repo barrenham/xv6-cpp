@@ -47,47 +47,11 @@ public:
     ambiguous_ = true;
   }
 
-  void acknowledge(unsigned acknowledgement, unsigned long now, bool outstanding)
-  {
-    if (sampling_ && !wire::before(acknowledgement, sample_end_))
-    {
-      unsigned sample = now - started_;
-      if (!sample)
-      {
-        sample = 1;
-      }
-      if (!smoothed_)
-      {
-        smoothed_ = sample;
-        variation_ = sample / 2;
-      }
-      else
-      {
-        unsigned difference =
-            sample > smoothed_ ? sample - smoothed_ : smoothed_ - sample;
-        variation_ = (3 * variation_ + difference) / 4;
-        smoothed_ = (7 * smoothed_ + sample) / 8;
-      }
-      unsigned deviation = 4 * variation_;
-      interval_ = smoothed_ + (deviation > 100 ? deviation : 100);
-      if (interval_ < 1000)
-      {
-        interval_ = 1000;
-      }
-      if (interval_ > 60000)
-      {
-        interval_ = 60000;
-      }
-      sampling_ = false;
-    }
-    if (!outstanding)
-    {
-      ambiguous_ = false;
-    }
-    start(now);
-  }
+  void acknowledge(unsigned acknowledgement, unsigned long now, bool outstanding);
 
 private:
+
+  struct AcknowledgeFlow;
 
   unsigned smoothed_ = 0, variation_ = 0, interval_ = 1000, sample_end_ = 0;
   unsigned long started_ = 0, deadline_ = 0;

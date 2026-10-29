@@ -1,0 +1,1093 @@
+{
+  "scope": "整个 kernel/net：保留原类与原 cppm，对处理流程进行声明式迁移；契约、值和资源原语保持直接实现。",
+  "original_cppm_preserved": 34,
+  "current_cppm_registered": 77,
+  "classes": [
+    {
+      "class": "ArpCache",
+      "interface": "kernel/net/link/arp.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "SendFlow",
+          "source": "kernel/net/link/arp/flows.cppm"
+        },
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/link/arp/flows.cppm"
+        },
+        {
+          "flow": "TickFlow",
+          "source": "kernel/net/link/arp/flows.cppm"
+        },
+        {
+          "flow": "RequestFlow",
+          "source": "kernel/net/link/arp/request.cppm"
+        }
+      ]
+    },
+    {
+      "class": "FrameReceiver",
+      "interface": "kernel/net/link/port.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯接收契约，没有处理流程实现。"
+    },
+    {
+      "class": "Layer2Port",
+      "interface": "kernel/net/link/port.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "链路能力接口及一次锁内快照、锁外交付的基础适配，保留其小型同步原语。"
+    },
+    {
+      "class": "EthernetProtocol",
+      "interface": "kernel/net/link/ethernet.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯协议接收契约。"
+    },
+    {
+      "class": "EthernetLayer",
+      "interface": "kernel/net/link/ethernet.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "EncapsulationFlow",
+          "source": "kernel/net/link/ethernet/encapsulation.cppm"
+        },
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/link/ethernet/flows.cppm"
+        },
+        {
+          "flow": "SendFlow",
+          "source": "kernel/net/link/ethernet/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "DhcpManager",
+      "interface": "kernel/net/dhcp/client.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "CommandFlow",
+          "source": "kernel/net/dhcp/flows/command.cppm"
+        },
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/dhcp/flows/receive.cppm"
+        },
+        {
+          "flow": "TickFlow",
+          "source": "kernel/net/dhcp/flows/timing.cppm"
+        },
+        {
+          "flow": "TransmitFlow",
+          "source": "kernel/net/dhcp/flows/timing.cppm"
+        }
+      ]
+    },
+    {
+      "class": "DhcpCodec",
+      "interface": "kernel/net/dhcp/message.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "DecodeFlow",
+          "source": "kernel/net/dhcp/flows/codec.cppm"
+        },
+        {
+          "flow": "EncodeFlow",
+          "source": "kernel/net/dhcp/flows/codec.cppm"
+        },
+        {
+          "flow": "LeaseFlow",
+          "source": "kernel/net/dhcp/flows/codec.cppm"
+        },
+        {
+          "flow": "OptionsFlow",
+          "source": "kernel/net/dhcp/flows/options.cppm"
+        }
+      ]
+    },
+    {
+      "class": "LeaseConfiguration",
+      "interface": "kernel/net/dhcp/lease.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "租约值到地址事务的薄转换器，实际安装和移除委托已经流程化的 AddressConfiguration。"
+    },
+    {
+      "class": "IpReceiver",
+      "interface": "kernel/net/interface/interface.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯 IP 接收契约。"
+    },
+    {
+      "class": "NetworkInterface",
+      "interface": "kernel/net/interface/interface.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "DeliverFlow",
+          "source": "kernel/net/interface/registry/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "InterfaceRegistry",
+      "interface": "kernel/net/interface/interface.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "RegistrationFlow",
+          "source": "kernel/net/interface/registry/flows.cppm"
+        },
+        {
+          "flow": "UpdateFlow",
+          "source": "kernel/net/interface/registry/updates.cppm"
+        },
+        {
+          "flow": "SealFlow",
+          "source": "kernel/net/interface/registry/updates.cppm"
+        }
+      ]
+    },
+    {
+      "class": "ConfigurationGuard",
+      "interface": "kernel/net/interface/configuration.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "中断与配置锁的 RAII 原语，保留其原始词法作用域和获取/释放配对。"
+    },
+    {
+      "class": "EthernetInterface",
+      "interface": "kernel/net/interface/ethernet_interface.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "TransmitFlow",
+          "source": "kernel/net/interface/ethernet/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "AddressConfiguration",
+      "interface": "kernel/net/interface/address_configuration.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "StaticFlow",
+          "source": "kernel/net/interface/address/flows.cppm"
+        },
+        {
+          "flow": "LeaseFlow",
+          "source": "kernel/net/interface/address/flows.cppm"
+        },
+        {
+          "flow": "RemoveLeaseFlow",
+          "source": "kernel/net/interface/address/remove.cppm"
+        }
+      ]
+    },
+    {
+      "class": "LoopbackInterface",
+      "interface": "kernel/net/interface/loopback.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "TransmitFlow",
+          "source": "kernel/net/interface/loopback/flows.cppm"
+        },
+        {
+          "flow": "DrainFlow",
+          "source": "kernel/net/interface/loopback/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "IpInIpInterface",
+      "interface": "kernel/net/interface/tunnel.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "TransmitFlow",
+          "source": "kernel/net/interface/tunnel/flows.cppm"
+        },
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/interface/tunnel/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "IpInIpProtocol",
+      "interface": "kernel/net/interface/tunnel.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "DispatchFlow",
+          "source": "kernel/net/interface/tunnel/protocol.cppm"
+        }
+      ]
+    },
+    {
+      "class": "NetworkSetup",
+      "interface": "kernel/net/interface/tunnel.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "由使用方实现的启动配置契约。"
+    },
+    {
+      "class": "IcmpProtocol",
+      "interface": "kernel/net/ip/icmp.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ReplyFlow",
+          "source": "kernel/net/ip/icmp/reply.cppm"
+        }
+      ]
+    },
+    {
+      "class": "Ipv4Reassembly",
+      "interface": "kernel/net/ip/reassembly.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "AcceptFlow",
+          "source": "kernel/net/ip/reassembly/accept.cppm"
+        }
+      ]
+    },
+    {
+      "class": "RoutingTable",
+      "interface": "kernel/net/ip/routing.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "LookupFlow",
+          "source": "kernel/net/ip/routing/lookup.cppm"
+        },
+        {
+          "flow": "ValidationFlow",
+          "source": "kernel/net/ip/routing/transactions.cppm"
+        },
+        {
+          "flow": "MutationFlow",
+          "source": "kernel/net/ip/routing/transactions.cppm"
+        },
+        {
+          "flow": "LeaseFlow",
+          "source": "kernel/net/ip/routing/transactions.cppm"
+        }
+      ]
+    },
+    {
+      "class": "Ipv4Bootstrap",
+      "interface": "kernel/net/ip/ipv4.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯引导报文接收契约。"
+    },
+    {
+      "class": "IpProtocol",
+      "interface": "kernel/net/ip/ipv4.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯 IP 协议接收契约。"
+    },
+    {
+      "class": "Ipv4Layer",
+      "interface": "kernel/net/ip/ipv4.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/ip/ipv4/receive.cppm"
+        },
+        {
+          "flow": "SendFlow",
+          "source": "kernel/net/ip/ipv4/send.cppm"
+        }
+      ]
+    },
+    {
+      "class": "RetransmissionTimer",
+      "interface": "kernel/net/transport/retransmission_timer.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "AcknowledgeFlow",
+          "source": "kernel/net/transport/algorithms/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpSegmentSink",
+      "interface": "kernel/net/transport/tcp.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯已验证 TCP 段接收契约。"
+    },
+    {
+      "class": "TcpProtocol",
+      "interface": "kernel/net/transport/tcp.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/transport/tcp_protocol/receive.cppm"
+        },
+        {
+          "flow": "TransmitFlow",
+          "source": "kernel/net/transport/tcp_protocol/transmit.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpPageBuffer",
+      "interface": "kernel/net/transport/stream_buffer.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "InitializeFlow",
+          "source": "kernel/net/transport/algorithms/buffers.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpSendBuffer",
+      "interface": "kernel/net/transport/stream_buffer.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "AppendFlow",
+          "source": "kernel/net/transport/algorithms/buffers.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpReceiveBuffer",
+      "interface": "kernel/net/transport/stream_buffer.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "InsertFlow",
+          "source": "kernel/net/transport/algorithms/buffers.cppm"
+        }
+      ]
+    },
+    {
+      "class": "DatagramSink",
+      "interface": "kernel/net/transport/udp.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯已验证 UDP 数据报接收契约。"
+    },
+    {
+      "class": "UdpProtocol",
+      "interface": "kernel/net/transport/udp.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/transport/udp/flows.cppm"
+        },
+        {
+          "flow": "SendFlow",
+          "source": "kernel/net/transport/udp/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpCongestion",
+      "interface": "kernel/net/transport/congestion.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "DuplicateFlow",
+          "source": "kernel/net/transport/algorithms/flows.cppm"
+        },
+        {
+          "flow": "AcknowledgeFlow",
+          "source": "kernel/net/transport/algorithms/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "UdpSocket",
+      "interface": "kernel/net/socket/udp_socket.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ConnectFlow",
+          "source": "kernel/net/socket/udp/edges.cppm"
+        },
+        {
+          "flow": "DeliveryFlow",
+          "source": "kernel/net/socket/udp/edges.cppm"
+        },
+        {
+          "flow": "SendFlow",
+          "source": "kernel/net/socket/udp/flows.cppm"
+        },
+        {
+          "flow": "ReceiveFlow",
+          "source": "kernel/net/socket/udp/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "SocketRegistry",
+      "interface": "kernel/net/socket/registry.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "CreationFlow",
+          "source": "kernel/net/socket/registry/create.cppm"
+        },
+        {
+          "flow": "DeliveryFlow",
+          "source": "kernel/net/socket/registry/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "InetSocket",
+      "interface": "kernel/net/socket/registry.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "BindFlow",
+          "source": "kernel/net/socket/registry/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "TcpSocket",
+      "interface": "kernel/net/socket/tcp_socket.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "IncomingFlow",
+          "source": "kernel/net/socket/tcp/incoming.cppm"
+        },
+        {
+          "flow": "ConnectFlow",
+          "source": "kernel/net/socket/tcp/io.cppm"
+        },
+        {
+          "flow": "AcceptFlow",
+          "source": "kernel/net/socket/tcp/io.cppm"
+        },
+        {
+          "flow": "ReadFlow",
+          "source": "kernel/net/socket/tcp/io.cppm"
+        },
+        {
+          "flow": "WriteFlow",
+          "source": "kernel/net/socket/tcp/io.cppm"
+        },
+        {
+          "flow": "ListenFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "PassiveFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "PollFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "ShutdownFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "CloseFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "WindowFlow",
+          "source": "kernel/net/socket/tcp/lifecycle.cppm"
+        },
+        {
+          "flow": "AcknowledgeFlow",
+          "source": "kernel/net/socket/tcp/reliability.cppm"
+        },
+        {
+          "flow": "RetransmitFlow",
+          "source": "kernel/net/socket/tcp/reliability.cppm"
+        },
+        {
+          "flow": "FinishFlow",
+          "source": "kernel/net/socket/tcp/reliability.cppm"
+        },
+        {
+          "flow": "PersistFlow",
+          "source": "kernel/net/socket/tcp/reliability.cppm"
+        },
+        {
+          "flow": "PumpFlow",
+          "source": "kernel/net/socket/tcp/sender.cppm"
+        },
+        {
+          "flow": "TickFlow",
+          "source": "kernel/net/socket/tcp/sender.cppm"
+        }
+      ]
+    },
+    {
+      "class": "Socket",
+      "interface": "kernel/net/socket/socket.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "IoObject 能力适配与 socket 抽象契约；具体实现分别由 TcpSocket、UdpSocket 的图处理。"
+    },
+    {
+      "class": "BridgeInterface",
+      "interface": "kernel/net/bridge/bridge.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "ForwardFlow",
+          "source": "kernel/net/bridge/forward/flow.cppm"
+        }
+      ]
+    },
+    {
+      "class": "BridgeManager",
+      "interface": "kernel/net/bridge/bridge.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "MembershipFlow",
+          "source": "kernel/net/bridge/manager/flows.cppm"
+        },
+        {
+          "flow": "ExecuteFlow",
+          "source": "kernel/net/bridge/manager/flows.cppm"
+        }
+      ]
+    },
+    {
+      "class": "NetworkManager",
+      "interface": "kernel/net/core/control.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "InspectFlow",
+          "source": "kernel/net/core/control/details.cppm"
+        },
+        {
+          "flow": "MutationFlow",
+          "source": "kernel/net/core/control/details.cppm"
+        },
+        {
+          "flow": "ExecuteFlow",
+          "source": "kernel/net/core/control/execute.cppm"
+        }
+      ]
+    },
+    {
+      "class": "Packet",
+      "interface": "kernel/net/core/packet.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "独占页面和值语义原语，保留移动、释放、复制和前缀字节操作，供各流程共享使用。"
+    },
+    {
+      "class": "Firewall",
+      "interface": "kernel/net/filter/filter.cppm",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "AcceptFlow",
+          "source": "kernel/net/filter/flows/accept.cppm"
+        }
+      ]
+    },
+    {
+      "class": "PacketFilter",
+      "interface": "kernel/net/filter/hook.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "纯报文过滤契约，实际过滤工作由 Firewall、Engine 的图执行。"
+    },
+    {
+      "class": "Engine",
+      "interface": "kernel/net/filter/engine.h",
+      "classification": "declarative_workflows",
+      "workflows": [
+        {
+          "flow": "EvaluationFlow",
+          "source": "kernel/net/filter/flows/engine.h"
+        },
+        {
+          "flow": "CommandFlow",
+          "source": "kernel/net/filter/flows/engine.h"
+        }
+      ]
+    }
+  ],
+  "standalone_workflow_helpers": [
+    {
+      "flow": "InitializationFlow",
+      "source": "kernel/net/core/service.cpp"
+    },
+    {
+      "flow": "TimerFlow",
+      "source": "kernel/net/core/service.cpp"
+    },
+    {
+      "flow": "MetadataDecodeFlow",
+      "source": "kernel/net/filter/flows/decoder.h"
+    },
+    {
+      "flow": "TcpMssFlow",
+      "source": "kernel/net/socket/tcp/options.cppm"
+    }
+  ],
+  "graph_definitions": [
+    {
+      "graph": "SelectionGraph",
+      "source": "kernel/net/bridge/forward/flow.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/bridge/forward/flow.cppm"
+    },
+    {
+      "graph": "PrepareGraph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "CreateGraph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "ConfigurationGraph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "AdminGraph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/bridge/manager/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/core/control/details.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/core/control/details.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/core/control/execute.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/core/control/execute.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/core/service.cpp"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/core/service.cpp"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/codec.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/codec.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/codec.cppm"
+    },
+    {
+      "graph": "ConfigurationGraph",
+      "source": "kernel/net/dhcp/flows/command.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/command.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/options.cppm"
+    },
+    {
+      "graph": "ApplyGraph",
+      "source": "kernel/net/dhcp/flows/receive.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/receive.cppm"
+    },
+    {
+      "graph": "ClientGraph",
+      "source": "kernel/net/dhcp/flows/timing.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/timing.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/dhcp/flows/timing.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/filter/flows/accept.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/filter/flows/decoder.h"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/filter/flows/engine.h"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/filter/flows/engine.h"
+    },
+    {
+      "graph": "AddGraph",
+      "source": "kernel/net/interface/address/flows.cppm"
+    },
+    {
+      "graph": "RemoveGraph",
+      "source": "kernel/net/interface/address/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/address/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/address/remove.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/ethernet/flows.cppm"
+    },
+    {
+      "graph": "BootstrapGraph",
+      "source": "kernel/net/interface/ethernet/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/loopback/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/loopback/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/registry/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/registry/flows.cppm"
+    },
+    {
+      "graph": "AddGraph",
+      "source": "kernel/net/interface/registry/updates.cppm"
+    },
+    {
+      "graph": "PublishGraph",
+      "source": "kernel/net/interface/registry/updates.cppm"
+    },
+    {
+      "graph": "WithdrawGraph",
+      "source": "kernel/net/interface/registry/updates.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/registry/updates.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/tunnel/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/interface/tunnel/flows.cppm"
+    },
+    {
+      "graph": "AddGraph",
+      "source": "kernel/net/interface/tunnel/protocol.cppm"
+    },
+    {
+      "graph": "ReceiveGraph",
+      "source": "kernel/net/interface/tunnel/protocol.cppm"
+    },
+    {
+      "graph": "EchoGraph",
+      "source": "kernel/net/ip/icmp/reply.cppm"
+    },
+    {
+      "graph": "UnreachableGraph",
+      "source": "kernel/net/ip/icmp/reply.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/ip/ipv4/receive.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/ip/ipv4/send.cppm"
+    },
+    {
+      "graph": "BootstrapGraph",
+      "source": "kernel/net/ip/ipv4/send.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/ip/reassembly/accept.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/ip/reassembly/accept.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/ip/routing/lookup.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/ip/routing/transactions.cppm"
+    },
+    {
+      "graph": "AddGraph",
+      "source": "kernel/net/ip/routing/transactions.cppm"
+    },
+    {
+      "graph": "RemoveGraph",
+      "source": "kernel/net/ip/routing/transactions.cppm"
+    },
+    {
+      "graph": "MatchGraph",
+      "source": "kernel/net/ip/routing/transactions.cppm"
+    },
+    {
+      "graph": "ReplaceGraph",
+      "source": "kernel/net/ip/routing/transactions.cppm"
+    },
+    {
+      "graph": "ResolutionGraph",
+      "source": "kernel/net/link/arp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/arp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/arp/flows.cppm"
+    },
+    {
+      "graph": "PendingGraph",
+      "source": "kernel/net/link/arp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/arp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/arp/request.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/ethernet/encapsulation.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/ethernet/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/link/ethernet/flows.cppm"
+    },
+    {
+      "graph": "TcpGraph",
+      "source": "kernel/net/socket/registry/create.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/socket/registry/create.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/registry/create.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/registry/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/registry/flows.cppm"
+    },
+    {
+      "graph": "AutoGraph",
+      "source": "kernel/net/socket/registry/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/incoming.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/io.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/io.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/io.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/io.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/lifecycle.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/options.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/reliability.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/reliability.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/reliability.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/reliability.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/sender.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/tcp/sender.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/socket/udp/edges.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/udp/edges.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/udp/edges.cppm"
+    },
+    {
+      "graph": "LockedGraph",
+      "source": "kernel/net/socket/udp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/udp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/socket/udp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/buffers.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/buffers.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/buffers.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/algorithms/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/tcp_protocol/receive.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/tcp_protocol/transmit.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/udp/flows.cppm"
+    },
+    {
+      "graph": "Graph",
+      "source": "kernel/net/transport/udp/flows.cppm"
+    }
+  ],
+  "workflow_owner_count": 31,
+  "graph_definition_count": 110,
+  "retained_algorithms": [
+    "字节复制、网络序读写与校验和",
+    "Packet 独占所有权、克隆与前缀移动",
+    "有限数组查找与压缩、规则字段匹配和位集可达性判断",
+    "重组位图检查和数据插入、TCP 连续前沿推进",
+    "单纯的状态读取、计数更新、接口转发和平台同步原语"
+  ]
+}

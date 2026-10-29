@@ -5,6 +5,7 @@ module;
 #include "kernel/fs/stat.h"
 
 module xv.fs;
+import :cache_flow;
 import :platform;
 import :lru;
 
@@ -38,38 +39,10 @@ void LruBlockCache::initialize()
 // In either case, return locked buffer.
 Buffer *LruBlockCache::get(unsigned dev, unsigned blockno)
 {
-  Buffer *b;
-
   lock_.acquire();
-
-  // Is the block already cached?
-  for (b = head_.next; b != &head_; b = b->next)
-  {
-    if (b->dev == dev && b->blockno == blockno)
-    {
-      b->refcnt++;
-      lock_.release();
-      b->lock.acquire();
-      return b;
-    }
-  }
-
-  // Not cached.
-  // Recycle the least recently used (LRU) unused buffer.
-  for (b = head_.prev; b != &head_; b = b->prev)
-  {
-    if (b->refcnt == 0)
-    {
-      b->dev = dev;
-      b->blockno = blockno;
-      b->valid = 0;
-      b->refcnt = 1;
-      lock_.release();
-      b->lock.acquire();
-      return b;
-    }
-  }
-  detail::fail("bget: no buffers");
+  GetFlow::Context context{*this, dev, blockno};
+  (void)GetFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 // Return a locked buf with the contents of the indicated block.
@@ -108,28 +81,8 @@ void LruBlockCache::write(Buffer &buffer)
 // Move to the head of the most-recently-used list.
 void LruBlockCache::release(Buffer &buffer)
 {
-  auto *b = &buffer;
-  if (!b->lock.holding())
-  {
-    detail::fail("brelse");
-  }
-
-  b->lock.release();
-
-  lock_.acquire();
-  b->refcnt--;
-  if (b->refcnt == 0)
-  {
-    // no one is waiting for it.
-    b->next->prev = b->prev;
-    b->prev->next = b->next;
-    b->next = head_.next;
-    b->prev = &head_;
-    head_.next->prev = b;
-    head_.next = b;
-  }
-
-  lock_.release();
+  ReleaseFlow::Context context{*this, buffer};
+  (void)ReleaseFlow::Graph::run<0>(context);
 }
 
 void LruBlockCache::pin(Buffer &buffer)

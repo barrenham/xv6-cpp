@@ -53,6 +53,8 @@
 @fn int xv::fs::InodeBackend::read(xv::io::Buffer destination, int count)
 @brief 按共享偏移读取动态快照或实际节点。
 @details 在所属文件系统锁内串行化偏移。快照调用 PageBuffer 跨页复制，普通文件委托节点 read；仅用实际成功字节数推进，失败复制不会跳过未完成部分。
+@details 流程由 ReadFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 保留具体后端读取结果；正返回值才推进共享文件偏移。
 ```
 
 <a id="fn-1bb8e957e0af8807"></a>
@@ -63,6 +65,8 @@
 @fn int xv::fs::InodeBackend::write(xv::io::Buffer source, int count)
 @brief 串行更新共享偏移并执行分块写入。
 @details 每块写入在事务和 inode 锁内清除特殊执行位；O_APPEND 在同一锁内从最新 EOF 定位，避免独立打开的追加覆盖。只推进实际成功写入的字节数。
+@details 流程由 WriteFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 返回已完成字节数；无进展的非空或中断失败返回 -1，空写入返回 0。
 ```
 
 <a id="fn-f0d5394ca9774a31"></a>
@@ -253,6 +257,8 @@
 @fn long xv::fs::InodeBackend::seek(long offset, int origin)
 @brief 在普通文件上调整共享偏移。
 @details inode 锁内按 SET/CUR/END 计算，拒绝未知 origin、负结果和超出当前整型范围的偏移；快照的 END 使用固定快照长度，失败不改变偏移。
+@details 流程由 SeekFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 成功返回提交的新偏移；类型、origin 或范围不合法返回 -1。
 ```
 
 <a id="fn-ae883e791f590ed4"></a>
@@ -263,6 +269,8 @@
 @fn int xv::fs::InodeBackend::resize(unsigned size)
 @brief 在事务内调整可写普通文件的长度。
 @details 调用者已检查打开权限；锁住 inode，拒绝快照和只读后端，清除 setid 位并交给后端 resize，不改变本次打开的偏移。
+@details 流程由 ResizeFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 保留具体文件系统 resize 的返回值；快照或只读后端返回 -1。
 ```
 
 <a id="fn-1e17b13e14602c79"></a>
@@ -273,4 +281,6 @@
 @fn int xv::fs::InodeBackend::sync()
 @brief 等待相关日志批次并刷新所属后端。
 @details 只接受普通文件和目录；持久节点等待根盘和可选数据日志，再 flush 所属设备，RAM 节点成功返回而不写磁盘。
+@details 流程由 SyncFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@return 普通文件或目录同步成功返回 0，其他类型返回 -1。
 ```

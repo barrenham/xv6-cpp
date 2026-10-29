@@ -25,11 +25,19 @@ public:
   unsigned long allocate_process_stack();
   bool grow_process_stack(unsigned long address, unsigned long lowest);
   void free_process_stack(unsigned long address);
-  FaultResult handle_stack_fault(unsigned long base, unsigned long stack, unsigned long fault,
-                                 FaultAccess access, void *(*frame)());
+  FaultResult handle_stack_fault(unsigned long base, unsigned long stack,
+                                 unsigned long fault, FaultAccess access,
+                                 void *(*frame)());
   bool region(unsigned long address, VirtualRegion &result);
 
 private:
+
+  struct InitializeFlow;
+  struct CommitFlow;
+  struct ReleaseFlow;
+  struct AllocateFlow;
+  struct FreeFlow;
+  struct FaultFlow;
 
   void *root_ = nullptr;
   unsigned long stack_slots_ = KSTACK_SLOTS;

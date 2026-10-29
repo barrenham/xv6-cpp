@@ -8,45 +8,88 @@ namespace xv::drivers
 class Pty final
 {
 public:
+
   class Output final : public TerminalOutput
   {
   public:
-    constexpr explicit Output(Pty &pair) : pair_(pair) {}
+
+    constexpr explicit Output(Pty &pair) : pair_(pair)
+    {
+    }
+
     int transmit(const char *data, int count, bool nonblocking = false) override;
     void put_sync(int character) override;
     void drain() override;
     bool writable(xv::sync::PollTable *table = nullptr) override;
+
   private:
+
     Pty &pair_;
   };
 
   class Endpoint final : public CharacterDevice
   {
   public:
-    constexpr Endpoint(Pty &pair, bool master) : pair_(pair), master_(master) {}
-    const char *name() const override { return master_ ? "pty master" : "pty slave"; }
-    void initialize() override {}
+
+    constexpr Endpoint(Pty &pair, bool master) : pair_(pair), master_(master)
+    {
+    }
+
+    const char *name() const override
+    {
+      return master_ ? "pty master" : "pty slave";
+    }
+
+    void initialize() override
+    {
+    }
+
     int read(IoBuffer destination, int count) override;
     int write(IoBuffer source, int count) override;
     int ioctl(unsigned request, IoBuffer argument) override;
-    void put_sync(int) override {}
+
+    void put_sync(int) override
+    {
+    }
+
     void close() override;
     unsigned poll(xv::sync::PollTable *table = nullptr) override;
+
   private:
+
+    struct IoctlFlow;
+    struct PollFlow;
     Pty &pair_;
     bool master_;
   };
 
-  constexpr Pty() : output_(*this), terminal_(output_, discipline_),
-                    master_(*this, true), slave_(*this, false) {}
+  constexpr Pty()
+      : output_(*this), terminal_(output_, discipline_), master_(*this, true),
+        slave_(*this, false)
+  {
+  }
+
   void initialize();
   int read_master(IoBuffer destination, int count);
   int write_master(IoBuffer source, int count);
   void close(bool master);
   void release();
-  void timer_tick() { terminal_.timer_tick(); }
-  Endpoint &master() { return master_; }
-  Endpoint &slave() { return slave_; }
+
+  void timer_tick()
+  {
+    terminal_.timer_tick();
+  }
+
+  Endpoint &master()
+  {
+    return master_;
+  }
+
+  Endpoint &slave()
+  {
+    return slave_;
+  }
+
   Pty *next = nullptr;
   unsigned references = 2;
   unsigned slave_files = 1;
@@ -58,6 +101,13 @@ public:
   void attach_slave();
 
 private:
+
+  struct ReleaseFlow;
+  struct CloseFlow;
+  struct TransmitFlow;
+  struct DrainFlow;
+  struct ReadMasterFlow;
+  struct WriteMasterFlow;
   static constexpr unsigned Capacity = 1024;
   Output output_;
   NttyDiscipline discipline_;
@@ -73,4 +123,4 @@ private:
   bool master_open_ = true;
   bool slave_open_ = true;
 };
-}
+} // namespace xv::drivers

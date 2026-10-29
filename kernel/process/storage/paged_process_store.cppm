@@ -27,6 +27,9 @@ public:
 
 private:
 
+  struct AllocateFlow;
+  struct ReleaseFlow;
+
   struct Node
   {
     Node *next = nullptr;

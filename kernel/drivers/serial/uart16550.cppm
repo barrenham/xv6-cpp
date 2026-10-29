@@ -35,6 +35,9 @@ public:
 
 private:
 
+  struct TransmitFlow;
+  struct DrainFlow;
+
   int get();
   void pump();
   static constexpr unsigned TxCapacity = 128;

@@ -1,0 +1,145 @@
+{
+  "status": "requirements_verified",
+  "scope": "Full requested workflow migration, excluding kernel/boot; reviewed atomic/register/data primitives intentionally direct",
+  "requirements": [
+    {
+      "id": "reusable_implementation",
+      "requirement": "独立原生 C++20 模板工具，不依赖具体业务",
+      "evidence": "kernel/support/flow.h; docs/flow.md; tests/flow_compile_checks.py",
+      "status": "verified"
+    },
+    {
+      "id": "compile_time_structure",
+      "requirement": "通过类型、模板节点和控制策略确定结构，检查重复 ID/入口/全部跳转目标且允许合法循环",
+      "evidence": "tests/flow_compile_checks.py: 15 compile checks; final-tests.log flow_compile_checks",
+      "status": "verified"
+    },
+    {
+      "id": "business_control_separation",
+      "requirement": "静态动作/条件接收共享 ctx，业务返回码和资源置于字段，控制使用 go/branch/call/return_/stop",
+      "evidence": "docs/flow.md; examples/flow/minimal.h; tests/flow_contract.cpp",
+      "status": "verified"
+    },
+    {
+      "id": "directed_graph_features",
+      "requirement": "分支汇合、循环/重试、公共子流程、返回和提前结束",
+      "evidence": "examples/flow/minimal.h; flow_contract: fast/slow/abort/Common twice/NestedStop",
+      "status": "verified"
+    },
+    {
+      "id": "identity_and_reuse",
+      "requirement": "节点 Id 与动作类型独立，公共类型/片段可复用，重复到达不去重",
+      "evidence": "flow_contract Repeated count=2; Composed; stats_contract both fill services",
+      "status": "verified"
+    },
+    {
+      "id": "shared_context",
+      "requirement": "共享 ctx 引用，未加入本阶段不要求的权限隔离",
+      "evidence": "kernel/support/flow.h static Context& callbacks; docs/flow.md",
+      "status": "verified"
+    },
+    {
+      "id": "freestanding",
+      "requirement": "工具无标准/第三方头、堆、异常、RTTI、虚调用、运行注册或全局构造依赖",
+      "evidence": "flow_compile_checks freestanding/nostdinc++/noexceptions/nortti; kernel ELF no undefined symbols or init_array",
+      "status": "verified"
+    },
+    {
+      "id": "bounded_execution_stack",
+      "requirement": "图循环在迭代执行器运行，子流程使用显式有界返回位置，不依赖尾调用",
+      "evidence": "flow_contract million-step loop, recursive graph overflow and nested return/stop; flow.h run",
+      "status": "verified"
+    },
+    {
+      "id": "metadata",
+      "requirement": "节点和静态策略公开为类型元数据，可 visit 提取，不执行业务",
+      "evidence": "flow_contract Inspector; graph::visit; docs/flow.md visualization section",
+      "status": "verified"
+    },
+    {
+      "id": "all_module_scope",
+      "requirement": "覆盖所有 kernel 源代码，kernel/boot 排除，接口/底层原语/扫描有明确逐文件理由",
+      "evidence": "docs/kernel-flow-source-manifest.json; source-report: 359 files, 236 current-reviewed +117 prior-network +6 boot-excluded",
+      "status": "verified"
+    },
+    {
+      "id": "behavior_and_ownership",
+      "requirement": "保留公开调用形式、原锁/事务/引用/回滚/事件消费次序，保持普通用户功能",
+      "evidence": "per-module source audits; 91 final checks including actual-source contracts and 1/5 CPU QEMU integrations",
+      "status": "verified"
+    },
+    {
+      "id": "conditional_source",
+      "requirement": "条件统计读取迁移且保留双填充、复制失败返回/游标和 EOF 原语，VM 互斥图变体已记录",
+      "evidence": "stats_contract before/after + ASan/UBSan/LSan + freestanding RISC-V fixture compile; COW VM alternate compile-only",
+      "status": "verified"
+    },
+    {
+      "id": "preserved_prior_work",
+      "requirement": "保留先前网络迁移、fork 家庭列表/SIGCHLD/栈余量算法优化，未修改 boot",
+      "evidence": "source-report subtree hashes; new stack flow retains original mapped-margin predicate and skips global growth on hit; final functional tests",
+      "status": "verified"
+    },
+    {
+      "id": "no_fork_retiming",
+      "requirement": "遵从不复测 fork 计时，保留普通功能回归",
+      "evidence": "final-test-plan 91 tests excludes both fork_progress entries; no standalone fork timing",
+      "status": "verified"
+    },
+    {
+      "id": "delivery_and_tradeoffs",
+      "requirement": "交付工具、接口说明、最小示例及执行/性能取舍，不承诺模板零开销",
+      "evidence": "flow.h; docs/flow.md; examples/flow/minimal.h; kernel-flows final size table and execution-cost discussion",
+      "status": "verified"
+    }
+  ],
+  "verification": {
+    "functional_tests": 91,
+    "fork_timing_tests_excluded": 2,
+    "source_report": {
+      "source_files": 359,
+      "reviewed_non_network_non_boot": 236,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 220,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 219,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "documentation": {
+      "kernel_files": 359,
+      "default_unique_symbols": 4494,
+      "all_cpp_symbols": 4565,
+      "documentation_entries": 4568,
+      "indexable_entries": 4494,
+      "documentation_only": 74,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "stats_sanitizers": "ASan/UBSan/LSan passed for actual conditional stats source with test-only platform/service hooks",
+    "dev_kernel_size": {
+      "text": 366944,
+      "data": 259176,
+      "bss": 176616
+    },
+    "baseline_kernel_size": {
+      "text": 257232,
+      "data": 259168,
+      "bss": 176616
+    }
+  },
+  "limitations": [
+    "完整原有 LAB_LOCK 配置仍缺 STATS 与实验统计服务/读写锁测试实现；未补造 ABI。本次修改的条件源通过显式测试选择值的 freestanding RISC-V 编译及实际源宿主契约，不能称为完整 LAB_LOCK 构建通过。",
+    "三处 LAB_PGTBL 外的 VM 结构变体仅以 COW 标志编译该翻译单元；不宣称完整 COW 系统链接/运行已验证。",
+    "未测本次整体迁移吞吐或最坏栈占用，未重新计时 fork；镜像体积增量包含整体重构，不能当作纯模板分派成本。",
+    "现有生产设备/文件系统虚接口保留；独立流程工具自身不要求虚函数或标准库。"
+  ]
+}

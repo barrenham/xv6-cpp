@@ -4,11 +4,11 @@
 
 ## 函数导航
 
-- [`xv::net::configuration_lock`](configuration.cpp.md#fn-557bd6206ad9f26a)
 - [`xv::net::ConfigurationGuard::ConfigurationGuard`](configuration.cppm.md#fn-ceb30f08fd73447e)
-- [`xv::net::ConfigurationGuard::~ConfigurationGuard`](configuration.cppm.md#fn-be2b3f12d7b2d373)
 - [`xv::net::ConfigurationGuard::ConfigurationGuard`](configuration.cppm.md#fn-137bf23101d30d90)
 - [`xv::net::ConfigurationGuard::operator=`](configuration.cppm.md#fn-35da480158e4f367)
+- [`xv::net::ConfigurationGuard::~ConfigurationGuard`](configuration.cppm.md#fn-be2b3f12d7b2d373)
+- [`xv::net::configuration_lock`](configuration.cpp.md#fn-557bd6206ad9f26a)
 
 <a id="fn-ceb30f08fd73447e"></a>
 

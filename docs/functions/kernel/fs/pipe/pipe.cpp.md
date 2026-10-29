@@ -67,13 +67,11 @@
 @param n 请求传输的字节数上限；成功与错误约定见本函数的返回分支。
 @param nonblocking 为真时，资源暂不可用不得进入睡眠等待。
 @details 不超过管道容量的小写请求按整体空间等待或检查，避免小写交错。大写可分段，边写边通知读端；无读者或信号中断时按已有进展返回，非阻塞无空间返回 EAGAIN。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `detail::killed` → `lock_.release` → `detail::prepare_interruptible_sleep` → `detail::sleep` → `detail::wakeup` → `detail::copy_in`。
-@details 本函数可见的状态更新包括：`data_[written_++ % Capacity] = ch;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`n <= 0`；`static_cast<unsigned>(n) <= Capacity && Capacity - (written_ - read_) < static_cast<unsigned>(n)`；`!reader_open_ || detail::killed()`；`nonblocking`；`i < n`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
 @note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
 @return 各分支实际返回：`n == 0 ? 0 : -1`；`-1`；`-EAGAIN`；`i ? i : -1`；`i ? i : -EAGAIN`；`i`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 编排由 WriteFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-64b695cc57f76b14"></a>
@@ -87,10 +85,9 @@
 @param n 请求传输的字节数上限；成功与错误约定见本函数的返回分支。
 @param nonblocking 为真时，资源暂不可用不得进入睡眠等待。
 @details 持管道锁检查数据和写端存活；空且写端仍开时登记可中断等待或返回 EAGAIN。读取推进读游标并通知写端，写端关闭且排空后才是 EOF。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `detail::killed` → `lock_.release` → `detail::prepare_interruptible_sleep` → `detail::sleep` → `detail::copy_out` → `detail::wakeup`。
-@details 需要特别跟踪的条件：`n <= 0`；`read_ == written_ && writer_open_`；`detail::killed()`；`nonblocking`；`read_ == written_`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
 @note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
 @return 各分支实际返回：`n == 0 ? 0 : -1`；`-1`；`-EAGAIN`；`i`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 编排由 ReadFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```

@@ -36,6 +36,13 @@ extern "C" int main(int argc,char **argv)
     check(!setuid(12345),"drop credentials"); auto q=request(); check(call(FW_CHAIN,q)==1,"unprivileged query");
     const unsigned ops[]={FW_APPEND,FW_INSERT,FW_DELETE,FW_FLUSH,FW_POLICY,FW_NEW_CHAIN,FW_DELETE_CHAIN,FW_ZERO};
     for (auto op:ops) { q=request(); check(call(op,q)==-1,"unprivileged mutation denied"); }
+    auto *invalid = reinterpret_cast<netctl_request *>(~0UL);
+    check(netctl(FW_APPEND, invalid) == -1, "firewall permission before copy");
+    check(netctl(NETCTL_SET_LINK, invalid) == -14, "network copy before permission");
+    netctl_request network{};
+    network.version = NETCTL_VERSION; network.size = sizeof(network); network.ifindex = 2;
+    check(netctl(NETCTL_SET_LINK, &network) == -1, "network mutation permission");
+    check(netctl(NETCTL_LINK, &network) == 1, "unprivileged network query");
     exit(0);
   }
   int status; check(waitpid(pid,&status,0)==pid && !status,"permission checks");

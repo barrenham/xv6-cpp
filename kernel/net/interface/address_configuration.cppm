@@ -21,6 +21,11 @@ public:
 
 private:
 
+  struct RemoveLeaseFlow;
+
+  struct StaticFlow;
+  struct LeaseFlow;
+
   InterfaceRegistry &interfaces_;
   RoutingTable &routes_;
   NetworkInterface &loopback_;

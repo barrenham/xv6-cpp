@@ -29,6 +29,7 @@ function(xv_add_driver_modules target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/serial/uart16550.cppm"
+      "${module_root}/serial/flow.cppm"
       "${module_root}/tty/ldisc/n_tty.cppm"
       "${module_root}/tty/core/tty.cppm"
       "${module_root}/block/virtio/virtio_block.cppm"

@@ -4,29 +4,29 @@
 
 ## 函数导航
 
-- [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
-- [`xv::net::NetworkInterface::accepts_destination`](interface.cpp.md#fn-afdbdf714f5adc2b)
-- [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
-- [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
-- [`xv::net::NetworkInterface::add_address`](interface.cpp.md#fn-29e4fdf0db63d8be)
-- [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
-- [`xv::net::NetworkInterface::configure_link`](interface.cpp.md#fn-38a3be6d9f984d65)
-- [`xv::net::NetworkInterface::set_dhcp_active`](interface.cpp.md#fn-d319bc6cf8fb7b63)
-- [`xv::net::NetworkInterface::topology_changed`](interface.cpp.md#fn-0aaeed5dbb643a04)
-- [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
-- [`xv::net::InterfaceRegistry::registration_error`](interface.cpp.md#fn-371622e603f8de22)
 - [`xv::net::InterfaceRegistry::add`](interface.cpp.md#fn-19629c883c7bf34c)
-- [`xv::net::InterfaceRegistry::publish`](interface.cpp.md#fn-10d3ef393b2b8755)
-- [`xv::net::InterfaceRegistry::withdraw`](interface.cpp.md#fn-8fd44ee2a0436af7)
-- [`xv::net::InterfaceRegistry::seal`](interface.cpp.md#fn-6dc874d592d4900e)
 - [`xv::net::InterfaceRegistry::find`](interface.cpp.md#fn-bfd9e34fed60845d)
 - [`xv::net::InterfaceRegistry::owns`](interface.cpp.md#fn-9875c43aa204f3b9)
+- [`xv::net::InterfaceRegistry::publish`](interface.cpp.md#fn-10d3ef393b2b8755)
+- [`xv::net::InterfaceRegistry::registration_error`](interface.cpp.md#fn-371622e603f8de22)
+- [`xv::net::InterfaceRegistry::seal`](interface.cpp.md#fn-6dc874d592d4900e)
 - [`xv::net::InterfaceRegistry::tick`](interface.cpp.md#fn-11570218be60251c)
-- [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
+- [`xv::net::InterfaceRegistry::withdraw`](interface.cpp.md#fn-8fd44ee2a0436af7)
+- [`xv::net::NetworkInterface::accepts_destination`](interface.cpp.md#fn-afdbdf714f5adc2b)
+- [`xv::net::NetworkInterface::account_send`](interface.cpp.md#fn-c99a4c9b5b90a08c)
+- [`xv::net::NetworkInterface::add_address`](interface.cpp.md#fn-29e4fdf0db63d8be)
+- [`xv::net::NetworkInterface::broadcast`](interface.cpp.md#fn-aa7c7468ae954fd0)
+- [`xv::net::NetworkInterface::configure_link`](interface.cpp.md#fn-38a3be6d9f984d65)
+- [`xv::net::NetworkInterface::deliver`](interface.cpp.md#fn-9b5c9773ed945053)
+- [`xv::net::NetworkInterface::owns`](interface.cpp.md#fn-24e03455c304d9fd)
 - [`xv::net::NetworkInterface::receive_drop`](interface.cpp.md#fn-72713f8a1c6e3db4)
 - [`xv::net::NetworkInterface::send`](interface.cpp.md#fn-02e2a99c0121b11a)
 - [`xv::net::NetworkInterface::send_bootstrap`](interface.cpp.md#fn-4486a19c308f9201)
-- [`xv::net::NetworkInterface::account_send`](interface.cpp.md#fn-c99a4c9b5b90a08c)
+- [`xv::net::NetworkInterface::set_dhcp_active`](interface.cpp.md#fn-d319bc6cf8fb7b63)
+- [`xv::net::NetworkInterface::set_up`](interface.cpp.md#fn-0dd1df949d25550a)
+- [`xv::net::NetworkInterface::source_for`](interface.cpp.md#fn-1c833c16e2ec25f4)
+- [`xv::net::NetworkInterface::statistics`](interface.cpp.md#fn-a1a1eb1c46a2f883)
+- [`xv::net::NetworkInterface::topology_changed`](interface.cpp.md#fn-0aaeed5dbb643a04)
 
 <a id="fn-24e03455c304d9fd"></a>
 
@@ -122,6 +122,7 @@
 ```doxygen
 @fn void xv::net::NetworkInterface::deliver(Packet &packet)
 @brief 在已启用且已挂接接收器时累计纯 IP 入站计数，再在配置锁外以本接口身份回调；禁止投递则累计丢弃。
+@details 实现通过 DeliverFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-371622e603f8de22"></a>
@@ -133,6 +134,7 @@
 @brief 检查注册所需的非零身份、名称、MTU、地址冲突和容量，供启动及运行期发布共用。
 @return 合法返回零，字段无效 -EINVAL，ID、名称或地址冲突 -EEXIST，满表 -ENOBUFS。
 @pre 调用方已持配置锁，接口对象及名称稳定存活。
+@details 实现通过 RegistrationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-19629c883c7bf34c"></a>
@@ -142,7 +144,7 @@
 ```doxygen
 @fn bool xv::net::InterfaceRegistry::add(NetworkInterface &interface)
 @brief 在配置锁内校验并借用注册启动接口；封存或身份、地址、容量校验失败返回 false。
-@details 本操作不推进接口代次，不解除启动封存；对象及名称须长期存活。
+@details 本操作不推进接口代次，不解除启动封存；对象及名称须长期存活。 实现通过 UpdateFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-10d3ef393b2b8755"></a>
@@ -152,7 +154,7 @@
 ```doxygen
 @fn int xv::net::InterfaceRegistry::publish(NetworkInterface &interface)
 @brief 在配置锁内校验并发布运行期接口，成功时封存该接口的启动配置并推进代次。
-@details 校验失败不改变注册表、接口代次或封存状态。接口由调用方长期持有，注册表只借用指针。
+@details 校验失败不改变注册表、接口代次或封存状态。接口由调用方长期持有，注册表只借用指针。 实现通过 UpdateFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @return 成功零，字段、冲突或容量错误为负 errno。
 @pre 调用方以外层配置锁覆盖具体接口的 active 状态及本次发布。
 ```
@@ -164,7 +166,7 @@
 ```doxygen
 @fn bool xv::net::InterfaceRegistry::withdraw(NetworkInterface &interface)
 @brief 在配置锁内按对象身份撤销接口注册，压紧数组并保持其他接口次序。
-@details 成功推进被撤销接口的代次，保留其启动封存状态；不销毁对象，不清理协议、地址或路由。
+@details 成功推进被撤销接口的代次，保留其启动封存状态；不销毁对象，不清理协议、地址或路由。 实现通过 UpdateFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 调用方已确认接口无地址、DHCP、路由及成员引用，并保证所有存活的借用指针仍指向有效对象。
 @return 找到并撤销返回 true，未注册返回 false 且不改变状态。
 ```
@@ -176,6 +178,7 @@
 ```doxygen
 @fn bool xv::net::InterfaceRegistry::seal()
 @brief 启动结束时在配置锁内双向核对地址拥有冲突，封存启动注册及配置 API；运行期桥发布、地址和状态交管理器协调。
+@details 实现通过 SealFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-bfd9e34fed60845d"></a>

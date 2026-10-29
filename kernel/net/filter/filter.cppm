@@ -18,6 +18,8 @@ public:
 
 private:
 
+  struct AcceptFlow;
+
   filter::Engine engine_;
   xv::sync::SpinLock lock_;
 };

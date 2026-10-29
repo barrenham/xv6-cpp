@@ -54,7 +54,8 @@ public:
   bool is_killed() const;
   void request_kill();
   int termination_status() const;
-  int signal_action(int signal, unsigned long action, unsigned long old, unsigned long restorer);
+  int signal_action(int signal, unsigned long action, unsigned long old,
+                    unsigned long restorer);
   int signal_mask(int how, unsigned long set, unsigned long old);
   int signal_pending(unsigned long set);
   int signal_suspend(unsigned long set);
@@ -89,8 +90,15 @@ public:
     return memory_;
   }
 
-  Credentials &credentials() { return credentials_; }
-  const Credentials &credentials() const { return credentials_; }
+  Credentials &credentials()
+  {
+    return credentials_;
+  }
+
+  const Credentials &credentials() const
+  {
+    return credentials_;
+  }
 
   DescriptorTable &files()
   {
@@ -104,9 +112,19 @@ public:
 
   bool create_image(AddressSpace &image);
   void commit_image(AddressSpace &image, unsigned long entry, unsigned long stack,
-                    unsigned long arguments, const char *path, unsigned long environment = 0);
+                    unsigned long arguments, const char *path,
+                    unsigned long environment = 0);
 
 private:
+
+  struct CommitFlow;
+  struct FirstReturnFlow;
+
+  struct SignalActionFlow;
+  struct SignalMaskFlow;
+  struct SignalSuspendFlow;
+  struct EnterSignalFlow;
+  struct ReturnSignalFlow;
 
   bool enter_signal_handler();
   constexpr Process() = default;
@@ -139,7 +157,13 @@ private:
   bool continued_event_ = false;
   bool continue_notification_ = false; // independent of waitpid event consumption
   int pid = 0;
-  Process *parent = nullptr;           // protected by the manager's family lock
+  Process *parent = nullptr; // protected by the manager's family lock
+  // Intrusive family links are protected by the same family lock, which pins
+  // linked descriptors against reap; process locks protect their wait events.
+  Process *first_child_ = nullptr;
+  Process *last_child_ = nullptr;
+  Process *sibling_previous_ = nullptr;
+  Process *sibling_next_ = nullptr;
   ProcessMembership membership_{this}; // protected by ProcessGroups
   unsigned long kstack = 0;
   AddressSpace memory_;

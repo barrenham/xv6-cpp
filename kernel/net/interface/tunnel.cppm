@@ -37,6 +37,9 @@ public:
 
 private:
 
+  struct TransmitFlow;
+  struct ReceiveFlow;
+
   Ipv4Layer *ip_ = nullptr;
   NetworkInterface *underlay_ = nullptr;
   unsigned outer_local_ = 0, outer_remote_ = 0;
@@ -50,6 +53,8 @@ public:
   void receive(Packet &packet, const IpDatagram &datagram) override;
 
 private:
+
+  struct DispatchFlow;
 
   IpInIpInterface *tunnels_[8]{};
 };

@@ -18,5 +18,11 @@ public:
   static void dispatch(Process &process, CpuState &cpu);
   static void suspend();
   static void yield(Scheduler &scheduler);
+
+private:
+
+  struct DispatchFlow;
+  struct SuspendFlow;
+  struct YieldFlow;
 };
 } // namespace xv::process

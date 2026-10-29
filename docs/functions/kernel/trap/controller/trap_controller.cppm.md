@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::trap::controller`](../service.cpp.md#fn-600af30c3d4e40d2)
 - [`xv::trap::TrapController::TrapController`](trap_controller.cppm.md#fn-99f5597352abd02c)
 - [`xv::trap::TrapController::TrapController`](trap_controller.cppm.md#fn-2d136298ad6ddafd)
 - [`xv::trap::TrapController::handle_kernel`](trap_controller.cpp.md#fn-1e01ca83cbbc98f6)
@@ -19,6 +18,7 @@
 - [`xv::trap::TrapController::operator=`](trap_controller.cppm.md#fn-031529e9dcb30872)
 - [`xv::trap::TrapController::prepare_return`](trap_controller.cpp.md#fn-0713205e94c82bbd)
 - [`xv::trap::TrapController::return_to_user`](trap_controller.cpp.md#fn-d181f139ca490928)
+- [`xv::trap::controller`](../service.cpp.md#fn-600af30c3d4e40d2)
 
 <a id="fn-99f5597352abd02c"></a>
 

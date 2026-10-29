@@ -41,6 +41,9 @@ public:
 
 private:
 
+  struct ReceiveFlow;
+  struct TransmitFlow;
+
   Ipv4Layer &ip_;
   TcpSegmentSink *sink_ = nullptr;
 };

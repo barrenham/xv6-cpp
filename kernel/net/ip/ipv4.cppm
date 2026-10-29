@@ -76,6 +76,9 @@ public:
 
 private:
 
+  struct ReceiveFlow;
+  struct SendFlow;
+
   void write_header(Packet &packet, unsigned source, unsigned destination,
                     unsigned protocol);
   bool output_allowed(const Packet &packet, const NetworkInterface &interface);

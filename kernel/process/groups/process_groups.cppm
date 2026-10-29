@@ -59,6 +59,14 @@ public:
 
 private:
 
+  struct DetachFlow;
+  struct SessionProtocol;
+  struct InitialFlow;
+  struct SessionFlow;
+  struct SetGroupFlow;
+  struct ClaimTerminalFlow;
+  struct ForegroundFlow;
+
   ProcessGroup *find_group(int id);
   ProcessMembership *find_member(int pid);
   ProcessGroup *allocate_group(int id, Session &session);

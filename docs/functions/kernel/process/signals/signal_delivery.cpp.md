@@ -10,6 +10,41 @@
 
 ## 函数导航
 
+- [`xv::process::ProcessManager::DeliverSignalFlow::caught`](signal_delivery.cpp.md#fn-38ef1d6ef167ae85)
+- [`xv::process::ProcessManager::DeliverSignalFlow::defaults`](signal_delivery.cpp.md#fn-044e80ec1a66b44c)
+- [`xv::process::ProcessManager::DeliverSignalFlow::entered`](signal_delivery.cpp.md#fn-cb03b92572b8ea10)
+- [`xv::process::ProcessManager::DeliverSignalFlow::fault`](signal_delivery.cpp.md#fn-757ba97fc7963478)
+- [`xv::process::ProcessManager::DeliverSignalFlow::handler`](signal_delivery.cpp.md#fn-3aeaa1af8002dcb6)
+- [`xv::process::ProcessManager::DeliverSignalFlow::prepare`](signal_delivery.cpp.md#fn-641bb66435ddf15a)
+- [`xv::process::ProcessManager::DeliverSignalFlow::publish`](signal_delivery.cpp.md#fn-c876d4c97652ad8f)
+- [`xv::process::ProcessManager::DeliverSignalFlow::retry`](signal_delivery.cpp.md#fn-307320d5e3bbd1e1)
+- [`xv::process::ProcessManager::DeliverSignalFlow::status`](signal_delivery.cpp.md#fn-01a46cd178ffa830)
+- [`xv::process::ProcessManager::DeliverSignalFlow::stopping`](signal_delivery.cpp.md#fn-f6ac4423a1b1c085)
+- [`xv::process::ProcessManager::DeliverSignalFlow::suspend`](signal_delivery.cpp.md#fn-c417f4e9eae2749f)
+- [`xv::process::ProcessManager::DeliverSignalFlow::terminate`](signal_delivery.cpp.md#fn-23a1d0ac5f5919ea)
+- [`xv::process::ProcessManager::DeliverSignalFlow::terminating`](signal_delivery.cpp.md#fn-7f9e8b3931bcf7a4)
+- [`xv::process::ProcessManager::DeliverSignalFlow::valid_stop`](signal_delivery.cpp.md#fn-aa9fc9fb3f9d4dcf)
+- [`xv::process::ProcessManager::NotifyChildFlow::again`](signal_delivery.cpp.md#fn-b890898e036c42de)
+- [`xv::process::ProcessManager::NotifyChildFlow::collect`](signal_delivery.cpp.md#fn-c549043117dd8daf)
+- [`xv::process::ProcessManager::NotifyChildFlow::wake`](signal_delivery.cpp.md#fn-b044ef981295a2f1)
+- [`xv::process::ProcessManager::SendGroupSignalFlow::matched`](signal_delivery.cpp.md#fn-2b220c97724945b3)
+- [`xv::process::ProcessManager::SendGroupSignalFlow::signal`](signal_delivery.cpp.md#fn-287e9cc22f04e67e)
+- [`xv::process::ProcessManager::SendGroupSignalFlow::success`](signal_delivery.cpp.md#fn-868e41f4a1334631)
+- [`xv::process::ProcessManager::SendGroupSignalFlow::visit`](signal_delivery.cpp.md#fn-921c28a61bc8f3b1)
+- [`xv::process::ProcessManager::SendGroupSignalFlow::wake`](signal_delivery.cpp.md#fn-1a04dd75c97b58d0)
+- [`xv::process::ProcessManager::SendPidSignalFlow::find`](signal_delivery.cpp.md#fn-11058bd57e79e470)
+- [`xv::process::ProcessManager::SendPidSignalFlow::found`](signal_delivery.cpp.md#fn-c612c08a5164604d)
+- [`xv::process::ProcessManager::SendPidSignalFlow::notify`](signal_delivery.cpp.md#fn-68f2e16ccfc18896)
+- [`xv::process::ProcessManager::SendPidSignalFlow::permitted`](signal_delivery.cpp.md#fn-5089273aeb49c304)
+- [`xv::process::ProcessManager::SendPidSignalFlow::post`](signal_delivery.cpp.md#fn-5d0b53ba75d5ff99)
+- [`xv::process::ProcessManager::SendPidSignalFlow::postable`](signal_delivery.cpp.md#fn-80487efaf58718c0)
+- [`xv::process::ProcessManager::SendPidSignalFlow::unlock`](signal_delivery.cpp.md#fn-6cd36e183bb56c66)
+- [`xv::process::ProcessManager::WakeSignalFlow::clear_wait`](signal_delivery.cpp.md#fn-43997b60aa5d28b3)
+- [`xv::process::ProcessManager::WakeSignalFlow::continued`](signal_delivery.cpp.md#fn-8bc156188219c4d0)
+- [`xv::process::ProcessManager::WakeSignalFlow::interrupt`](signal_delivery.cpp.md#fn-81ad5dd90ca9066d)
+- [`xv::process::ProcessManager::WakeSignalFlow::resume`](signal_delivery.cpp.md#fn-9979a62b92679527)
+- [`xv::process::ProcessManager::WakeSignalFlow::runnable`](signal_delivery.cpp.md#fn-251cc7a2578091ec)
+- [`xv::process::ProcessManager::WakeSignalFlow::sleeping`](signal_delivery.cpp.md#fn-371ebec4c595b489)
 - [`xv::process::ProcessManager::deliver_signals`](signal_delivery.cpp.md#fn-f31a3cd50df7bcf4)
 - [`xv::process::ProcessManager::notify_child_events`](signal_delivery.cpp.md#fn-8b264f5ebddc7cc5)
 - [`xv::process::ProcessManager::post_child_signal`](signal_delivery.cpp.md#fn-53b39d608263bc67)
@@ -28,6 +63,7 @@
 @fn int xv::process::ProcessManager::send_signal(int target, int signal)
 @brief 授权并向 PID 或进程组发送信号。
 @details 发送前保存调用者凭据，每个目标按真实/保存 UID 规则独立判断；信号 0 只探测权限。用户请求与内核终端产生的组通知分开，避免中断上下文依赖 current。
+@details 流程由 SendPidSignalFlow::Graph, SendGroupSignalFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-f31a3cd50df7bcf4"></a>
@@ -37,12 +73,9 @@
 ```doxygen
 @fn void xv::process::ProcessManager::deliver_signals()
 @brief 进程生命周期管理器：在安全返回边界执行默认动作或建立用户信号帧。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`current` → `process->termination_status` → `process->pending_signals_.terminating_signal` → `exit_process` → `process->stop_requested` → `process->pending_signals_.caught_signal` → `process->enter_signal_handler` → `SIGNAL_EXIT_STATUS` → `process->pending_signals_.handled` → `process->pending_signals_.mask` → `process->pending_signals_.consume` → `process->pending_signals_.consume_continue`。
-@details 本函数可见的状态更新包括：`process->stop_signal_ = signal;`；`process->stop_event_ = true;`；`process->continued_event_ = false;`；`process->state = ProcessState::Stopped;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`status != 0`；`!process->stop_requested() && process->pending_signals_.caught_signal()`；`!process->enter_signal_handler()`；`!(process->pending_signals_.handled() & (1U << SIGCHLD)) && !(process->pending_signals_.mask() & (1U << SIGCHLD))`；`!(process->pending_signals_.handled() & (1U << SIGCONT))`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`wait_lock_.acquire` → `process->lock.acquire` → `process->lock.release` → `wait_lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 DeliverSignalFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-51bd3bad2bb3bae7"></a>
@@ -94,11 +127,9 @@
 @fn void xv::process::ProcessManager::wake_for_signal(Process &process)
 @brief 进程生命周期管理器：根据目标状态唤醒可中断或停止的进程。
 @param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`process.pending_signals_.pending` → `process.pending_signals_.terminating_signal` → `process.pending_signals_.continuing` → `__atomic_store_n` → `scheduler_.make_runnable` → `process.pending_signals_.interrupting`。
-@details 本函数可见的状态更新包括：`process.stop_event_ = false;`；`process.continued_event_ = !fatal;`；`process.continue_notification_ = process.continue_notification_ || !fatal;`；`process.chan = nullptr;`；`process.interruptible_ = false;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`process.state == ProcessState::Stopped && (process.killed || (bits & (1U << SIGKILL)) || process.pending_signals_.continuing())`；`!process.interruptible_ || (!process.killed && !process.pending_signals_.interrupting())`；`process.state == ProcessState::Sleeping`。这些条件决定检查、重试或提前返回路径。
 @note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 WakeSignalFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-e54dae23e0a9982b"></a>
@@ -122,8 +153,8 @@
 @fn void xv::process::ProcessManager::post_child_signal(Process &child)
 @brief 进程生命周期管理器：向真实父进程登记子状态通知。
 @param child 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`child.parent->pending_signals_.post` → `__atomic_store_n`。
-@details 需要特别跟踪的条件：`child.parent`。这些条件决定检查、重试或提前返回路径。
+@details 始终按信号处置规则登记父进程的 SIGCHLD pending 状态；只有父进程存在可中断信号时才设置延迟全表唤醒标志。默认、忽略或被屏蔽的 SIGCHLD 不触发这次扫描；wait/waitpid 的家庭事件通知仍独立保留。
+@details 父指针由调用者持有的家庭锁稳定。处置与屏蔽字只能由运行中的父进程修改；再次登记可中断睡眠时会在父进程锁下重查 pending，避免跳过无效唤醒后丢失实际中断。
 @note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
@@ -135,9 +166,357 @@
 ```doxygen
 @fn void xv::process::ProcessManager::notify_child_events()
 @brief 进程生命周期管理器：在锁顺序允许的边界发布子进程状态变化。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`__atomic_exchange_n` → `family` → `Continued` → `manager_` → `visit` → `manager_.post_child_signal` → `continued` → `store_.visit` → `wakeup` → `wake_signal_waiters`。
-@details 本函数可见的状态更新包括：`child.continue_notification_ = false;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`__atomic_exchange_n(&child_notifications_, false, __ATOMIC_ACQ_REL)`；`!child.continue_notification_`。这些条件决定检查、重试或提前返回路径。
 @note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 NotifyChildFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+```
+
+<a id="fn-38ef1d6ef167ae85"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::caught`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::DeliverSignalFlow::caught(Context &c) noexcept
+@brief 按原读取次序检查非停止状态与捕获信号。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-044e80ec1a66b44c"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::defaults`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::defaults(Context &c) noexcept
+@brief 按原动作和掩码分别消费默认 CHLD 与 CONT。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-cb03b92572b8ea10"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::entered`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::DeliverSignalFlow::entered(Context &c) noexcept
+@brief 检查用户处理器是否成功建立。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-757ba97fc7963478"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::fault`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::fault(Context &c) noexcept
+@brief 按 SIGSEGV 结束无法建立用户信号帧的进程。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3aeaa1af8002dcb6"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::handler`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::handler(Context &c) noexcept
+@brief 尝试构造并进入用户信号处理帧。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-641bb66435ddf15a"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::prepare`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::prepare(Context &c) noexcept
+@brief 取消等待、获取家庭锁、唤醒父事件后获取子锁并取得停止信号。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c876d4c97652ad8f"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::publish`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::publish(Context &c) noexcept
+@brief 发布停止状态与父通知然后释放家庭锁。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-307320d5e3bbd1e1"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::retry`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::retry(Context &c) noexcept
+@brief 释放子锁再释放家庭锁以重新检查信号。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-01a46cd178ffa830"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::status`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::status(Context &c) noexcept
+@brief 读取持锁保护的终止状态。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-f6ac4423a1b1c085"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::stopping`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::DeliverSignalFlow::stopping(Context &c) noexcept
+@brief 检查是否仍请求停止。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c417f4e9eae2749f"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::suspend`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::suspend(Context &c) noexcept
+@brief 持子进程锁切换调度，恢复后释放子锁。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-23a1d0ac5f5919ea"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::terminate`
+
+```doxygen
+@fn static void xv::process::ProcessManager::DeliverSignalFlow::terminate(Context &c) noexcept
+@brief 再次读取终止信号并按原回退规则退出。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-7f9e8b3931bcf7a4"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::terminating`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::DeliverSignalFlow::terminating(Context &c) noexcept
+@brief 检查是否应立即结束进程。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-aa9fc9fb3f9d4dcf"></a>
+
+## `xv::process::ProcessManager::DeliverSignalFlow::valid_stop`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::DeliverSignalFlow::valid_stop(Context &c) noexcept
+@brief 检查停止信号有效且未被终止状态覆盖。
+@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b890898e036c42de"></a>
+
+## `xv::process::ProcessManager::NotifyChildFlow::again`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::NotifyChildFlow::again(Context &c) noexcept
+@brief 原子取得并清除新通知以决定是否继续迭代。
+@details 无通知快路径直接返回；每轮家庭锁保护 parent，访问器不获取父进程锁，家庭锁释放后才扫描唤醒。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c549043117dd8daf"></a>
+
+## `xv::process::ProcessManager::NotifyChildFlow::collect`
+
+```doxygen
+@fn static void xv::process::ProcessManager::NotifyChildFlow::collect(Context &c) noexcept
+@brief 在家庭锁下收集继续通知、向父进程投递并唤醒家庭事件。
+@details 无通知快路径直接返回；每轮家庭锁保护 parent，访问器不获取父进程锁，家庭锁释放后才扫描唤醒。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b044ef981295a2f1"></a>
+
+## `xv::process::ProcessManager::NotifyChildFlow::wake`
+
+```doxygen
+@fn static void xv::process::ProcessManager::NotifyChildFlow::wake(Context &c) noexcept
+@brief 释放家庭锁后唤醒信号等待者且不递归通知。
+@details 无通知快路径直接返回；每轮家庭锁保护 parent，访问器不获取父进程锁，家庭锁释放后才扫描唤醒。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-2b220c97724945b3"></a>
+
+## `xv::process::ProcessManager::SendGroupSignalFlow::matched`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::SendGroupSignalFlow::matched(Context &c) noexcept
+@brief 检查是否至少匹配一个有权限的目标。
+@details 组锁仅在 visit 回调期间固定 owner，原子投递不获取进程锁；访问完成后才扫描唤醒，不保留借用指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-287e9cc22f04e67e"></a>
+
+## `xv::process::ProcessManager::SendGroupSignalFlow::signal`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::SendGroupSignalFlow::signal(Context &c) noexcept
+@brief 检查本次是否投递非零信号。
+@details 组锁仅在 visit 回调期间固定 owner，原子投递不获取进程锁；访问完成后才扫描唤醒，不保留借用指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-868e41f4a1334631"></a>
+
+## `xv::process::ProcessManager::SendGroupSignalFlow::success`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendGroupSignalFlow::success(Context &c) noexcept
+@brief 记录零成功码。
+@details 组锁仅在 visit 回调期间固定 owner，原子投递不获取进程锁；访问完成后才扫描唤醒，不保留借用指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-921c28a61bc8f3b1"></a>
+
+## `xv::process::ProcessManager::SendGroupSignalFlow::visit`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendGroupSignalFlow::visit(Context &c) noexcept
+@brief 枚举目标组并用原访问器检查权限和原子投递。
+@details 组锁仅在 visit 回调期间固定 owner，原子投递不获取进程锁；访问完成后才扫描唤醒，不保留借用指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-1a04dd75c97b58d0"></a>
+
+## `xv::process::ProcessManager::SendGroupSignalFlow::wake`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendGroupSignalFlow::wake(Context &c) noexcept
+@brief 在组锁释放后扫描可中断等待者。
+@details 组锁仅在 visit 回调期间固定 owner，原子投递不获取进程锁；访问完成后才扫描唤醒，不保留借用指针。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-11058bd57e79e470"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::find`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendPidSignalFlow::find(Context &c) noexcept
+@brief 按原谓词查找并取得持锁进程。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c612c08a5164604d"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::found`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::SendPidSignalFlow::found(Context &c) noexcept
+@brief 检查目标是否存在。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-68f2e16ccfc18896"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::notify`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendPidSignalFlow::notify(Context &c) noexcept
+@brief 处理子进程事件并记录零成功码。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-5089273aeb49c304"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::permitted`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::SendPidSignalFlow::permitted(Context &c) noexcept
+@brief 检查初始进程限制与发送方目标方凭据权限。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-5d0b53ba75d5ff99"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::post`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendPidSignalFlow::post(Context &c) noexcept
+@brief 原子投递信号并处理目标唤醒。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-80487efaf58718c0"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::postable`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::SendPidSignalFlow::postable(Context &c) noexcept
+@brief 检查非零信号且目标尚非僵尸。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-6cd36e183bb56c66"></a>
+
+## `xv::process::ProcessManager::SendPidSignalFlow::unlock`
+
+```doxygen
+@fn static void xv::process::ProcessManager::SendPidSignalFlow::unlock(Context &c) noexcept
+@brief 释放查找取得的目标进程锁。
+@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-43997b60aa5d28b3"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::clear_wait`
+
+```doxygen
+@fn static void xv::process::ProcessManager::WakeSignalFlow::clear_wait(Context &c) noexcept
+@brief 清除等待通道与可中断标志。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-8bc156188219c4d0"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::continued`
+
+```doxygen
+@fn static void xv::process::ProcessManager::WakeSignalFlow::continued(Context &c) noexcept
+@brief 设置继续事件并发布子进程通知。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-81ad5dd90ca9066d"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::interrupt`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::WakeSignalFlow::interrupt(Context &c) noexcept
+@brief 检查当前等待是否可由待处理信号中断。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-9979a62b92679527"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::resume`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::WakeSignalFlow::resume(Context &c) noexcept
+@brief 检查已停止进程是否需要因 kill 或 continue 恢复。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-251cc7a2578091ec"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::runnable`
+
+```doxygen
+@fn static void xv::process::ProcessManager::WakeSignalFlow::runnable(Context &c) noexcept
+@brief 交由调度器使进程可运行。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-371ebec4c595b489"></a>
+
+## `xv::process::ProcessManager::WakeSignalFlow::sleeping`
+
+```doxygen
+@fn static bool xv::process::ProcessManager::WakeSignalFlow::sleeping(Context &c) noexcept
+@brief 检查进程是否处于睡眠状态。
+@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

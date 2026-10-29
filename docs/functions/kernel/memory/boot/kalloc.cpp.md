@@ -10,6 +10,14 @@
 
 ## 函数导航
 
+- [`xv::memory::BootInitializeFlow::discover`](kalloc.cpp.md#fn-ca094a83ada9f57d)
+- [`xv::memory::BootInitializeFlow::initialize`](kalloc.cpp.md#fn-02f29380e4420738)
+- [`xv::memory::BootInitializeFlow::invalid_layout`](kalloc.cpp.md#fn-92da10524e4a727d)
+- [`xv::memory::BootInitializeFlow::invalid_tree`](kalloc.cpp.md#fn-eae3c99cdef2d9fd)
+- [`xv::memory::BootInitializeFlow::ok`](kalloc.cpp.md#fn-b04607679bc30c19)
+- [`xv::memory::BootInitializeFlow::outside`](kalloc.cpp.md#fn-1f3f05c5ba65af6c)
+- [`xv::memory::BootInitializeFlow::report`](kalloc.cpp.md#fn-e94df4064c4365f5)
+- [`xv::memory::BootInitializeFlow::resident`](kalloc.cpp.md#fn-c14473c4e8d3b353)
 - [`xv::memory::boot_initialize`](kalloc.cpp.md#fn-df1a8ede82b392e0)
 - [`xv::memory::configured_allocator_kind`](kalloc.cpp.md#fn-d516d0e9e55b7d40)
 - [`xv::memory::detail::fail`](kalloc.cpp.md#fn-b1d0993dea3ca642)
@@ -60,7 +68,86 @@
 @brief 物理页所有权、地址范围、页表和用户内存复制：引导初始化。
 @param kind 本次操作使用的 种类 值。
 @param device_tree 固件传入的设备树物理地址。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`source` → `device_tree.pointer` → `source.discover` → `detail::fail` → `memory.ram` → `contains` → `initialize` → `PhysicalAddress::from_pointer` → `allocator` → `layout` → `xv::print::printk` → `layout.ram`。
-@details 需要特别跟踪的条件：`!source.discover(memory)`；`!memory.ram().contains(device_tree)`；`!initialize(kind, memory, PhysicalAddress::from_pointer(end))`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 BootInitializeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+```
+
+<a id="fn-ca094a83ada9f57d"></a>
+
+## `xv::memory::BootInitializeFlow::discover`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::discover(Context &c) noexcept
+@brief 从固件提供的 DTB 发现候选 RAM 描述。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-02f29380e4420738"></a>
+
+## `xv::memory::BootInitializeFlow::initialize`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::initialize(Context &c) noexcept
+@brief 使用原内核末尾符号初始化选定分配器。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-92da10524e4a727d"></a>
+
+## `xv::memory::BootInitializeFlow::invalid_layout`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::invalid_layout(Context &) noexcept
+@brief 按原无效布局或元数据不足诊断终止。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-eae3c99cdef2d9fd"></a>
+
+## `xv::memory::BootInitializeFlow::invalid_tree`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::invalid_tree(Context &) noexcept
+@brief 按原无效设备树诊断终止。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-b04607679bc30c19"></a>
+
+## `xv::memory::BootInitializeFlow::ok`
+
+```doxygen
+@fn static bool xv::memory::BootInitializeFlow::ok(Context &c) noexcept
+@brief 检查发现或分配器初始化是否成功。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-1f3f05c5ba65af6c"></a>
+
+## `xv::memory::BootInitializeFlow::outside`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::outside(Context &) noexcept
+@brief 按原 DTB 位于 RAM 外诊断终止。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-e94df4064c4365f5"></a>
+
+## `xv::memory::BootInitializeFlow::report`
+
+```doxygen
+@fn static void xv::memory::BootInitializeFlow::report(Context &c) noexcept
+@brief 输出当前 RAM、元数据与可用页统计。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-c14473c4e8d3b353"></a>
+
+## `xv::memory::BootInitializeFlow::resident`
+
+```doxygen
+@fn static bool xv::memory::BootInitializeFlow::resident(Context &c) noexcept
+@brief 检查固件 DTB 起点位于发现的 RAM 内。
+@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
 ```

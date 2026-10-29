@@ -21,12 +21,18 @@ public:
     return "xv6 disk filesystem";
   }
 
-  Inode *root() override { return get(device_, ROOTINO); }
+  Inode *root() override
+  {
+    return get(device_, ROOTINO);
+  }
+
   Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset) override;
-  Inode *create_at(Inode *directory, const char *name, short type, short major, short minor) override;
+  Inode *create_at(Inode *directory, const char *name, short type, short major,
+                   short minor) override;
   int link_at(Inode *directory, const char *name, Inode *target) override;
   int unlink_at(Inode *directory, const char *name) override;
-  int rename_at(Inode *from, const char *old_name, Inode *to, const char *new_name) override;
+  int rename_at(Inode *from, const char *old_name, Inode *to,
+                const char *new_name) override;
   xv::drivers::CharacterDevice *open_device(Inode *node, bool nonblocking) override;
   void initialize(int device) override;
   void initialize_inodes() override;
@@ -39,9 +45,19 @@ public:
   void update(Inode *node) override;
   void truncate(Inode *node) override;
   int resize(Inode *node, unsigned size) override;
-  void flush() override { cache_.flush(); }
+
+  void flush() override
+  {
+    cache_.flush();
+  }
+
   bool busy() override;
-  Journal *transaction_log() override { return &journal_; }
+
+  Journal *transaction_log() override
+  {
+    return &journal_;
+  }
+
   int read(Inode *node, int user, unsigned long destination, unsigned offset,
            unsigned count) override;
   int write(Inode *node, int user, unsigned long source, unsigned offset,
@@ -49,6 +65,25 @@ public:
   void stat(Inode *node, Stat *result) override;
 
 private:
+
+  struct LinkFlow;
+  struct UnlinkFlow;
+  struct CreateFlow;
+  struct RenameFlow;
+
+  struct InitializeFlow;
+  struct AllocateBlockFlow;
+  struct AllocateFlow;
+  struct GetFlow;
+  struct LockFlow;
+  struct ReleaseFlow;
+  struct ReclaimFlow;
+  struct MapBlockFlow;
+  struct TruncateFlow;
+  struct ReadFlow;
+  struct WriteFlow;
+  struct ResizeFlow;
+  struct BlockIoProtocol;
 
   void read_super(int device, superblock *layout);
   void zero_block(int device, int block);

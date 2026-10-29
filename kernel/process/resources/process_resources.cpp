@@ -1,9 +1,68 @@
+module;
+#include "kernel/support/flow.h"
+
 module xv.process;
 
 import :resource_platform;
 
 namespace xv::process
 {
+
+namespace flow = xv::flow;
+
+struct DescriptorTable::DuplicateFlow
+{
+  struct Context
+  {
+    DescriptorTable &owner;
+    int descriptor;
+    xv::fs::File *borrowed = nullptr, *reference = nullptr;
+    int result = -1;
+  };
+
+  static void lookup(Context &c) noexcept
+  {
+    c.borrowed = c.owner.get(c.descriptor);
+  }
+
+  static bool found(Context &c) noexcept
+  {
+    return c.borrowed != nullptr;
+  }
+
+  static void retain(Context &c) noexcept
+  {
+    c.reference = detail::retain_file(c.borrowed);
+  }
+
+  static void install(Context &c) noexcept
+  {
+    c.result = c.owner.install(c.reference);
+  }
+
+  static bool installed(Context &c) noexcept
+  {
+    return c.result >= 0;
+  }
+
+  static void rollback(Context &c) noexcept
+  {
+    detail::release_file(c.reference);
+  }
+  struct Lookup;
+  struct Retain;
+  struct Install;
+  struct Rollback;
+  using Graph = flow::graph<
+      Lookup, flow::types<flow::node<Lookup, flow::action<&lookup>,
+                                     flow::branch<flow::condition<&found>,
+                                                  flow::go<Retain>, flow::stop>>,
+                          flow::node<Retain, flow::action<&retain>, flow::go<Install>>,
+                          flow::node<Install, flow::action<&install>,
+                                     flow::branch<flow::condition<&installed>,
+                                                  flow::stop, flow::go<Rollback>>>,
+                          flow::node<Rollback, flow::action<&rollback>, flow::stop>>>;
+};
 
 xv::fs::File *DescriptorTable::get(int descriptor) const
 {
@@ -32,7 +91,8 @@ int DescriptorTable::install(xv::fs::File *owned)
 xv::fs::File *DescriptorTable::take(int descriptor)
 {
   xv::sync::ScopedLock guard(lock_);
-  auto *owned = descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr;
+  auto *owned =
+      descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr;
   if (owned)
   {
     entries_[descriptor] = nullptr;
@@ -53,18 +113,9 @@ bool DescriptorTable::close(int descriptor)
 
 int DescriptorTable::duplicate(int descriptor)
 {
-  auto *borrowed = get(descriptor);
-  if (!borrowed)
-  {
-    return -1;
-  }
-  auto *reference = detail::retain_file(borrowed);
-  auto result = install(reference);
-  if (result < 0)
-  {
-    detail::release_file(reference);
-  }
-  return result;
+  DuplicateFlow::Context context{*this, descriptor};
+  (void)DuplicateFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 void DescriptorTable::close_all()
@@ -97,8 +148,12 @@ unsigned DescriptorTable::snapshot(xv::fs::File **references, unsigned capacity)
   unsigned count = 0;
   for (unsigned i = 0; i < capacity; ++i)
   {
-    references[i] = i < Capacity && entries_[i] ? detail::retain_file(entries_[i]) : nullptr;
-    if (references[i]) ++count;
+    references[i] =
+        i < Capacity && entries_[i] ? detail::retain_file(entries_[i]) : nullptr;
+    if (references[i])
+    {
+      ++count;
+    }
   }
   return count;
 }
@@ -110,7 +165,10 @@ unsigned DescriptorTable::inspect(xv::fs::FileInfo *entries, unsigned capacity) 
   for (unsigned i = 0; i < capacity; ++i)
   {
     entries[i] = {};
-    if (i < Capacity && entries_[i] && detail::file_info(entries_[i], entries[i])) ++count;
+    if (i < Capacity && entries_[i] && detail::file_info(entries_[i], entries[i]))
+    {
+      ++count;
+    }
   }
   return count;
 }

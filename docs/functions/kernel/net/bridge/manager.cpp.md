@@ -4,11 +4,11 @@
 
 ## 函数导航
 
-- [`xv::net::BridgeManager::initialize`](manager.cpp.md#fn-063d16e712668e1c)
-- [`xv::net::BridgeManager::find`](manager.cpp.md#fn-d2dcd2b27caa0414)
-- [`xv::net::BridgeManager::unused`](manager.cpp.md#fn-c333fba347c24bcd)
-- [`xv::net::BridgeManager::membership`](manager.cpp.md#fn-9249cf80bd2b818c)
 - [`xv::net::BridgeManager::execute`](manager.cpp.md#fn-0497bea6af90ed3f)
+- [`xv::net::BridgeManager::find`](manager.cpp.md#fn-d2dcd2b27caa0414)
+- [`xv::net::BridgeManager::initialize`](manager.cpp.md#fn-063d16e712668e1c)
+- [`xv::net::BridgeManager::membership`](manager.cpp.md#fn-9249cf80bd2b818c)
+- [`xv::net::BridgeManager::unused`](manager.cpp.md#fn-c333fba347c24bcd)
 
 <a id="fn-063d16e712668e1c"></a>
 
@@ -26,7 +26,7 @@
 ```doxygen
 @fn int xv::net::BridgeManager::execute(unsigned operation, netctl_request &request)
 @brief 校验桥管理请求，协调创建删除、成员关系、FDB 查询及清空。
-@details 创建删除通过 InterfaceRegistry 发布或撤销稳定桥对象，不访问注册数组；active 与注册操作在同一配置锁内完成，成员驱动回调在锁外执行。
+@details 创建删除通过 InterfaceRegistry 发布或撤销稳定桥对象，不访问注册数组；active 与注册操作在同一配置锁内完成，成员驱动回调在锁外执行。 实现通过 ExecuteFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @return 查询成功一、枚举结束或修改成功零，失败负 errno。
 ```
 
@@ -57,5 +57,5 @@
 ```doxygen
 @fn int xv::net::BridgeManager::membership(BridgeInterface &bridge, NetworkInterface &interface, bool add)
 @brief 在配置锁内协调网桥成员关系与接口拓扑代次，锁外切换驱动混杂模式和清理邻居。
-@details 加入前后两次验证桥、端口和槽位状态；混杂模式失败或快照失效时保持未加入，并恢复混杂模式。退出清除成员与对应 FDB 记录，代次通过 topology_changed 推进。
+@details 加入前后两次验证桥、端口和槽位状态；混杂模式失败或快照失效时保持未加入，并恢复混杂模式。退出清除成员与对应 FDB 记录，代次通过 topology_changed 推进。 实现通过 MembershipFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

@@ -1025,8 +1025,10 @@ forkforkfork(char *s)
   }
   if (pid == 0) {
     while (1) {
-      int fd = open("stopforking", 0);
-      if (fd >= 0) {
+      // This is a stop condition, not an open-file stress test. The dynamic
+      // process registry can outgrow NFILE; a failed open must not hide an
+      // existing stop file and keep the fork storm alive indefinitely.
+      if (access("stopforking", F_OK) == 0) {
         exit(0);
       }
       if (fork() < 0) {

@@ -4,12 +4,12 @@
 
 ## 函数导航
 
-- [`xv::net::TcpSegmentSink::deliver_segment`](tcp.cppm.md#fn-49f79078ce0f513c)
-- [`xv::net::TcpSegmentSink::~TcpSegmentSink`](tcp.cppm.md#fn-6cfd12c3758cde47)
 - [`xv::net::TcpProtocol::TcpProtocol`](tcp.cppm.md#fn-7ee8dd9bb0c00f97)
 - [`xv::net::TcpProtocol::attach`](tcp.cppm.md#fn-cd1363e17f15f5a2)
 - [`xv::net::TcpProtocol::receive`](tcp_protocol.cpp.md#fn-b649250825e39e1b)
 - [`xv::net::TcpProtocol::transmit`](tcp_protocol.cpp.md#fn-08feda01927d4d5e)
+- [`xv::net::TcpSegmentSink::deliver_segment`](tcp.cppm.md#fn-49f79078ce0f513c)
+- [`xv::net::TcpSegmentSink::~TcpSegmentSink`](tcp.cppm.md#fn-6cfd12c3758cde47)
 
 <a id="fn-49f79078ce0f513c"></a>
 

@@ -1,6 +1,8 @@
 module;
 #include "kernel/support/placement_new.hpp"
 module xv.net;
+import :registry_create_flow;
+import :registry_flows;
 import :registry;
 import :tcp_socket;
 import :udp_socket;
@@ -42,45 +44,16 @@ void SocketRegistry::destroy(InetSocket &socket)
 
 Socket *SocketRegistry::create(int type, int protocol)
 {
-  if ((type != 1 && type != 2) || (protocol && protocol != (type == 1 ? 6 : 17)))
-  {
-    return nullptr;
-  }
-  xv::sync::ScopedLock guard(lock_);
-  if (type == 1)
-  {
-    return create_tcp();
-  }
-  static_assert(sizeof(UdpSocket) <= 4096);
-  auto *page = detail::allocate_page();
-  if (!page)
-  {
-    return nullptr;
-  }
-  auto *socket = new (page) UdpSocket(*this);
-  if (add(*socket))
-  {
-    return socket;
-  }
-  socket->destroy();
-  return nullptr;
+  CreationFlow::Context ctx{*this, type, protocol};
+  (void)CreationFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 TcpSocket *SocketRegistry::create_tcp()
 {
-  static_assert(sizeof(TcpSocket) <= 4096);
-  auto *page = detail::allocate_page();
-  if (!page)
-  {
-    return nullptr;
-  }
-  auto *socket = new (page) TcpSocket(*this);
-  if (socket->initialize() && add(*socket))
-  {
-    return socket;
-  }
-  socket->destroy();
-  return nullptr;
+  CreationFlow::Context ctx{*this, 1, 6};
+  (void)CreationFlow::TcpGraph::run<0>(ctx);
+  return static_cast<TcpSocket *>(ctx.result);
 }
 
 bool SocketRegistry::port_used(unsigned protocol, unsigned short port,
@@ -145,38 +118,9 @@ bool SocketRegistry::deliver(Packet &packet, Endpoint source, Endpoint destinati
 bool SocketRegistry::deliver_segment(const TcpSegment &segment)
 {
   xv::sync::ScopedLock guard(lock_);
-  TcpSocket *listener = nullptr;
-  for (auto *socket : sockets_)
-  {
-    if (!socket || socket->protocol() != 6)
-    {
-      continue;
-    }
-    auto *tcp = static_cast<TcpSocket *>(socket);
-    if (tcp->matches(segment.destination, segment.source))
-    {
-      tcp->incoming(segment.source, segment.destination, segment.data, segment.length);
-      return true;
-    }
-    if (tcp->listening(segment.destination))
-    {
-      listener = tcp;
-    }
-  }
-  if (!listener || (segment.data[13] & 0x17) != 2)
-  {
-    return false;
-  }
-  if (child_count(*listener) >= listener->backlog_)
-  {
-    return true;
-  }
-  if (auto *child = create_tcp())
-  {
-    child->passive(*listener, segment.destination, segment.source, segment.data,
-                   segment.length);
-  }
-  return true;
+  DeliveryFlow::Context ctx{*this, segment};
+  (void)DeliveryFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 unsigned SocketRegistry::child_count(const TcpSocket &listener) const

@@ -8,7 +8,6 @@
 
 ## 函数导航
 
-- [`xv::process::supported_signal`](pending_signals.cppm.md#fn-61ff6553596cbb52)
 - [`xv::process::PendingSignals::PendingSignals`](pending_signals.cppm.md#fn-4b98f3f11386c457)
 - [`xv::process::PendingSignals::PendingSignals`](pending_signals.cppm.md#fn-d3c879de37373f0c)
 - [`xv::process::PendingSignals::action`](pending_signals.cppm.md#fn-424641a20d1b2a92)
@@ -32,6 +31,7 @@
 - [`xv::process::PendingSignals::stopping_signal`](pending_signals.cppm.md#fn-434b21a505b88509)
 - [`xv::process::PendingSignals::take_stop`](pending_signals.cppm.md#fn-164df2530296d0ae)
 - [`xv::process::PendingSignals::terminating_signal`](pending_signals.cppm.md#fn-5a25b62a6479f685)
+- [`xv::process::supported_signal`](pending_signals.cppm.md#fn-61ff6553596cbb52)
 
 <a id="fn-61ff6553596cbb52"></a>
 

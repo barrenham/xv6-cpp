@@ -5,6 +5,7 @@ module;
 //
 
 #include <stdarg.h>
+#include "kernel/support/flow.h"
 
 #include "kernel/support/types.h"
 
@@ -29,7 +30,8 @@ static constinit struct
 
 static char digits[] = "0123456789abcdef";
 
-static void printint(long long xx, int base, int sign)
+// Referenced by Integer::run; clangd may parse without instantiating that template.
+[[maybe_unused]] static void printint(long long xx, int base, int sign)
 {
   char buf[20];
   int i;
@@ -72,122 +74,181 @@ static void printptr(uint64 x)
   }
 }
 
+namespace flow = xv::flow;
+
+struct FormatFlow
+{
+  struct Context
+  {
+    const char *format;
+    va_list &arguments;
+    int index = 0, c0 = 0, c1 = 0, c2 = 0;
+  };
+
+  static void literals(Context &c) noexcept
+  {
+    int ch;
+    while ((ch = c.format[c.index] & 0xff) != 0 && ch != '%')
+    {
+      xv::drivers::console().put_sync(ch);
+      ++c.index;
+    }
+  }
+
+  static bool more(Context &c) noexcept
+  {
+    return c.format[c.index] != 0;
+  }
+
+  static void decode(Context &c) noexcept
+  {
+    ++c.index;
+    c.c0 = c.format[c.index] & 0xff;
+    c.c1 = c.c2 = 0;
+    if (c.c0)
+    {
+      c.c1 = c.format[c.index + 1] & 0xff;
+    }
+    if (c.c1)
+    {
+      c.c2 = c.format[c.index + 2] & 0xff;
+    }
+  }
+
+  template <char First, char Second = 0, char Third = 0> struct Match
+  {
+    static bool test(Context &c) noexcept
+    {
+      return c.c0 == First && (!Second || c.c1 == Second) && (!Third || c.c2 == Third);
+    }
+  };
+
+  template <class Value, int Base, bool Signed, unsigned Extra = 0> struct Integer
+  {
+    static void run(Context &c) noexcept
+    {
+      printint(va_arg(c.arguments, Value), Base, Signed);
+      c.index += Extra;
+    }
+  };
+
+  static void pointer(Context &c) noexcept
+  {
+    printptr(va_arg(c.arguments, uint64));
+  }
+
+  static void character(Context &c) noexcept
+  {
+    xv::drivers::console().put_sync(va_arg(c.arguments, uint));
+  }
+
+  static void string(Context &c) noexcept
+  {
+    const char *text = va_arg(c.arguments, const char *);
+    if (!text)
+    {
+      text = "(null)";
+    }
+    for (; *text; ++text)
+    {
+      xv::drivers::console().put_sync(*text);
+    }
+  }
+
+  static void percent(Context &) noexcept
+  {
+    xv::drivers::console().put_sync('%');
+  }
+
+  static bool end(Context &c) noexcept
+  {
+    return c.c0 == 0;
+  }
+
+  static void unknown(Context &c) noexcept
+  {
+    xv::drivers::console().put_sync('%');
+    xv::drivers::console().put_sync(c.c0);
+  }
+
+  static void advance(Context &c) noexcept
+  {
+    ++c.index;
+  }
+  struct Literal;
+  struct Decode;
+  struct Advance;
+  struct End;
+  struct Unknown;
+  template <class Id> struct Emit;
+  template <class Id, class Predicate, class Action, class Otherwise>
+  using Case = flow::types<
+      flow::node<Id, flow::noop,
+                 flow::branch<Predicate, flow::go<Emit<Id>>, flow::go<Otherwise>>>,
+      flow::node<Emit<Id>, Action, flow::go<Advance>>>;
+  struct Signed;
+  struct LongSigned;
+  struct LongLongSigned;
+  struct Unsigned;
+  struct LongUnsigned;
+  struct LongLongUnsigned;
+  struct Hex;
+  struct LongHex;
+  struct LongLongHex;
+  struct Pointer;
+  struct Character;
+  struct String;
+  struct Percent;
+  using Graph = flow::graph<
+      Literal,
+      flow::concat<
+          flow::types<flow::node<Literal, flow::action<&literals>,
+                                 flow::branch<flow::condition<&more>, flow::go<Decode>,
+                                              flow::stop>>,
+                      flow::node<Decode, flow::action<&decode>, flow::go<Signed>>,
+                      flow::node<Advance, flow::action<&advance>, flow::go<Literal>>,
+                      flow::node<End, flow::noop,
+                                 flow::branch<flow::condition<&end>, flow::stop,
+                                              flow::go<Unknown>>>,
+                      flow::node<Unknown, flow::action<&unknown>, flow::go<Advance>>>,
+          Case<Signed, Match<'d'>, Integer<int, 10, true>, LongSigned>,
+          Case<LongSigned, Match<'l', 'd'>, Integer<uint64, 10, true, 1>,
+               LongLongSigned>,
+          Case<LongLongSigned, Match<'l', 'l', 'd'>, Integer<uint64, 10, true, 2>,
+               Unsigned>,
+          Case<Unsigned, Match<'u'>, Integer<uint32, 10, false>, LongUnsigned>,
+          Case<LongUnsigned, Match<'l', 'u'>, Integer<uint64, 10, false, 1>,
+               LongLongUnsigned>,
+          Case<LongLongUnsigned, Match<'l', 'l', 'u'>, Integer<uint64, 10, false, 2>,
+               Hex>,
+          Case<Hex, Match<'x'>, Integer<uint32, 16, false>, LongHex>,
+          Case<LongHex, Match<'l', 'x'>, Integer<uint64, 16, false, 1>, LongLongHex>,
+          Case<LongLongHex, Match<'l', 'l', 'x'>, Integer<uint64, 16, false, 2>,
+               Pointer>,
+          Case<Pointer, Match<'p'>, flow::action<&pointer>, Character>,
+          Case<Character, Match<'c'>, flow::action<&character>, String>,
+          Case<String, Match<'s'>, flow::action<&string>, Percent>,
+          Case<Percent, Match<'%'>, flow::action<&percent>, End>>>;
+};
+
 } // namespace
 
 // Print to the console.
 int printk(const char *fmt, ...)
 {
   va_list ap;
-  int i, cx, c0, c1, c2;
-  const char *s;
-
   if (!panicking())
   {
     pr.lock.acquire();
   }
-
   va_start(ap, fmt);
-  for (i = 0; (cx = fmt[i] & 0xff) != 0; i++)
-  {
-    if (cx != '%')
-    {
-      xv::drivers::console().put_sync(cx);
-      continue;
-    }
-    i++;
-    c0 = fmt[i + 0] & 0xff;
-    c1 = c2 = 0;
-    if (c0)
-    {
-      c1 = fmt[i + 1] & 0xff;
-    }
-    if (c1)
-    {
-      c2 = fmt[i + 2] & 0xff;
-    }
-    if (c0 == 'd')
-    {
-      printint(va_arg(ap, int), 10, 1);
-    }
-    else if (c0 == 'l' && c1 == 'd')
-    {
-      printint(va_arg(ap, uint64), 10, 1);
-      i += 1;
-    }
-    else if (c0 == 'l' && c1 == 'l' && c2 == 'd')
-    {
-      printint(va_arg(ap, uint64), 10, 1);
-      i += 2;
-    }
-    else if (c0 == 'u')
-    {
-      printint(va_arg(ap, uint32), 10, 0);
-    }
-    else if (c0 == 'l' && c1 == 'u')
-    {
-      printint(va_arg(ap, uint64), 10, 0);
-      i += 1;
-    }
-    else if (c0 == 'l' && c1 == 'l' && c2 == 'u')
-    {
-      printint(va_arg(ap, uint64), 10, 0);
-      i += 2;
-    }
-    else if (c0 == 'x')
-    {
-      printint(va_arg(ap, uint32), 16, 0);
-    }
-    else if (c0 == 'l' && c1 == 'x')
-    {
-      printint(va_arg(ap, uint64), 16, 0);
-      i += 1;
-    }
-    else if (c0 == 'l' && c1 == 'l' && c2 == 'x')
-    {
-      printint(va_arg(ap, uint64), 16, 0);
-      i += 2;
-    }
-    else if (c0 == 'p')
-    {
-      printptr(va_arg(ap, uint64));
-    }
-    else if (c0 == 'c')
-    {
-      xv::drivers::console().put_sync(va_arg(ap, uint));
-    }
-    else if (c0 == 's')
-    {
-      if ((s = va_arg(ap, const char *)) == 0)
-      {
-        s = "(null)";
-      }
-      for (; *s; s++)
-      {
-        xv::drivers::console().put_sync(*s);
-      }
-    }
-    else if (c0 == '%')
-    {
-      xv::drivers::console().put_sync('%');
-    }
-    else if (c0 == 0)
-    {
-      break;
-    }
-    else
-    {
-      // Print unknown % sequence to draw attention.
-      xv::drivers::console().put_sync('%');
-      xv::drivers::console().put_sync(c0);
-    }
-  }
+  FormatFlow::Context context{fmt, ap};
+  (void)FormatFlow::Graph::run<0>(context);
   va_end(ap);
-
   if (!panicking())
   {
     pr.lock.release();
   }
-
   return 0;
 }
 

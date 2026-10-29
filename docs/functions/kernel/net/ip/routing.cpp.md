@@ -4,23 +4,23 @@
 
 ## 函数导航
 
-- [`xv::net::RoutingTable::valid`](routing.cpp.md#fn-cadd66a2b3d00d62)
 - [`xv::net::RoutingTable::add`](routing.cpp.md#fn-9936922a5ae03a29)
-- [`xv::net::RoutingTable::at`](routing.cpp.md#fn-b8409f8dc1870a38)
-- [`xv::net::RoutingTable::references`](routing.cpp.md#fn-bb34c84c11c1b132)
-- [`xv::net::RoutingTable::same_path`](routing.cpp.md#fn-aebc669c97dde387)
-- [`xv::net::RoutingTable::find`](routing.cpp.md#fn-51f31c949311b75a)
-- [`xv::net::RoutingTable::erase`](routing.cpp.md#fn-3fc57a9eef8fb259)
-- [`xv::net::RoutingTable::add_static`](routing.cpp.md#fn-dbbb529d2a5000b6)
-- [`xv::net::RoutingTable::remove_static`](routing.cpp.md#fn-36c109e5285e1dc2)
-- [`xv::net::RoutingTable::address_routes`](routing.cpp.md#fn-fc66c407a7ebe8aa)
 - [`xv::net::RoutingTable::add_address_routes`](routing.cpp.md#fn-d2237136a2190524)
-- [`xv::net::RoutingTable::remove_address_routes`](routing.cpp.md#fn-baf01748347dc4e9)
+- [`xv::net::RoutingTable::add_static`](routing.cpp.md#fn-dbbb529d2a5000b6)
+- [`xv::net::RoutingTable::address_routes`](routing.cpp.md#fn-fc66c407a7ebe8aa)
+- [`xv::net::RoutingTable::at`](routing.cpp.md#fn-b8409f8dc1870a38)
+- [`xv::net::RoutingTable::erase`](routing.cpp.md#fn-3fc57a9eef8fb259)
+- [`xv::net::RoutingTable::find`](routing.cpp.md#fn-51f31c949311b75a)
 - [`xv::net::RoutingTable::lease_route_count`](routing.cpp.md#fn-81139327de9a7d47)
 - [`xv::net::RoutingTable::lease_routes_match`](routing.cpp.md#fn-6c00bff74534bbcb)
-- [`xv::net::RoutingTable::replace_lease_routes`](routing.cpp.md#fn-eb063be1375b395c)
-- [`xv::net::RoutingTable::remove_lease_routes`](routing.cpp.md#fn-7ce648c7ca6190da)
 - [`xv::net::RoutingTable::lookup`](routing.cpp.md#fn-8144db493f085cfd)
+- [`xv::net::RoutingTable::references`](routing.cpp.md#fn-bb34c84c11c1b132)
+- [`xv::net::RoutingTable::remove_address_routes`](routing.cpp.md#fn-baf01748347dc4e9)
+- [`xv::net::RoutingTable::remove_lease_routes`](routing.cpp.md#fn-7ce648c7ca6190da)
+- [`xv::net::RoutingTable::remove_static`](routing.cpp.md#fn-36c109e5285e1dc2)
+- [`xv::net::RoutingTable::replace_lease_routes`](routing.cpp.md#fn-eb063be1375b395c)
+- [`xv::net::RoutingTable::same_path`](routing.cpp.md#fn-aebc669c97dde387)
+- [`xv::net::RoutingTable::valid`](routing.cpp.md#fn-cadd66a2b3d00d62)
 
 <a id="fn-cadd66a2b3d00d62"></a>
 
@@ -31,6 +31,7 @@
 @brief 检查待添加路由的前缀、出口注册身份、桥成员状态、首选源和网关有效性。
 @pre route.interface 非空，调用方已持配置锁。
 @note 不修改表，也不检查容量或启动封存状态，供启动添加和运行期静态添加共用。
+@details 实现通过 ValidationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-9936922a5ae03a29"></a>
@@ -99,7 +100,7 @@
 ```doxygen
 @fn int xv::net::RoutingTable::add_static(unsigned network, unsigned prefix, NetworkInterface &interface, unsigned gateway, unsigned metric, unsigned source)
 @brief 在配置锁内添加运行期手工路由，不改变启动封存状态。
-@details 归一化网络后依次检查重复路径、容量和路由有效性；失败保持原表。
+@details 归一化网络后依次检查重复路径、容量和路由有效性；失败保持原表。 实现通过 MutationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @return 成功零，前缀或路由无效 -EINVAL，重复 -EEXIST，满表 -ENOBUFS。
 ```
 
@@ -111,6 +112,7 @@
 @fn int xv::net::RoutingTable::remove_static(unsigned network, unsigned prefix, NetworkInterface &interface, unsigned gateway, unsigned metric, unsigned source)
 @brief 在配置锁内删除匹配的手工路由，保护地址自动路由及租约路由。
 @return 成功零，前缀无效 -EINVAL，未找到 -ENOENT，托管路由 -EBUSY。
+@details 实现通过 MutationFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
 
 <a id="fn-fc66c407a7ebe8aa"></a>
@@ -162,7 +164,7 @@
 ```doxygen
 @fn bool xv::net::RoutingTable::lease_routes_match(NetworkInterface &interface, NetworkInterface &loopback, Ipv4Address address, unsigned gateway, unsigned metric) const
 @brief 在配置锁内比较本接口现有租约路由与期望的地址、前缀、网关和 metric。
-@details 要求数量相同且每条期望路径存在；不改变路由次序或计数。
+@details 要求数量相同且每条期望路径存在；不改变路由次序或计数。 实现通过 LeaseFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 接口已注册且 ID 非零；跨地址和路由比较由外层 ConfigurationGuard 覆盖。
 ```
 
@@ -173,7 +175,7 @@
 ```doxygen
 @fn bool xv::net::RoutingTable::replace_lease_routes(NetworkInterface &interface, NetworkInterface &loopback, Ipv4Address address, unsigned gateway, unsigned metric)
 @brief 在配置锁内预检可复用的旧租约容量，再整组替换本接口租约路由。
-@details 预检失败不修改表；成功保留其他路由相对顺序并在尾部追加新路由。
+@details 预检失败不修改表；成功保留其他路由相对顺序并在尾部追加新路由。 实现通过 LeaseFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 接口已注册且 ID 非零，地址和网关已验证；调用方以外层 ConfigurationGuard 覆盖地址提交及本次替换。
 @return 前缀超限或容量不足返回 false，否则返回 true。
 ```
@@ -197,4 +199,5 @@
 ```doxygen
 @fn bool xv::net::RoutingTable::lookup(unsigned destination, RouteSelection &result, unsigned source, const NetworkInterface *via) const
 @brief 在一致配置快照内排除桥成员、禁用/断链、无源及失效网关路由，再按最长前缀和较小 metric 选择；桥本机作为普通以太 IP 出口参与选路。
+@details 实现通过 LookupFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

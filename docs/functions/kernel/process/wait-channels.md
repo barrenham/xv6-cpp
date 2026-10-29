@@ -60,6 +60,7 @@
 @details 先以 acquire 原子读取 wait_key_；再按桶锁、进程锁的顺序加锁，重新核对键值。如果并发唤醒或重新登记已改变键，则释放锁后重试；仍相同时交给 unlink。
 @note 信号唤醒可以只清除 chan，暂时保留桶节点。本函数负责之后真正摘链，防止节点悬空；不清理独立的 poll 订阅。
 @see WaitChannels::prepare
+@details 流程由 CancelFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="wait-waitchannels-prepare"></a>
@@ -80,6 +81,7 @@
 @see xv::process::prepare_interruptible_sleep
 @see xv::process::sleep
 @see WaitChannels::wake
+@details 流程由 PrepareFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="wait-waitchannels-wake"></a>
@@ -96,4 +98,5 @@
 @details 对还没真正睡眠的进程，清空 chan 已足够。随后遍历同桶 pollers，按完整地址通知 PollWait；poll 回调在进程锁下记录 triggered，防止通知早于睡眠被遗忘。
 @note 哈希碰撞不会误唤醒其他对象；节点先保存 next 再摘除。全过程不执行用户处理函数，也不直接切换到被唤醒进程。
 @see WaitChannels::prepare
+@details 流程由 WakeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```

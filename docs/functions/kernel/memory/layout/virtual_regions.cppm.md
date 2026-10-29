@@ -13,7 +13,6 @@
 - [`xv::memory::VirtualRegions::swap`](virtual_regions.cpp.md#fn-6db77b90e60c05c2)
 - [`xv::memory::VirtualRegions::vacant`](virtual_regions.cpp.md#fn-31bbbc071056140a)
 
-
 实现可增长的虚拟地址区域登记，记录半开边界、权限、用途及匿名按需补页策略。
 元数据明确由一个地址空间拥有，调用者串行化修改，reset 显式结束所有权。
 

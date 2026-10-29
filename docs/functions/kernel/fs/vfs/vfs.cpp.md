@@ -45,6 +45,7 @@
 @fn void xv::fs::VirtualFileSystem::initialize_inodes()
 @brief 初始化固定、动态及可选磁盘后端同步。
 @details 额外初始化借用的数据卷 inode 缓存；根的恢复和分配继续留给首个进程上下文。
+@details 流程由 InitializeFlow::InodesGraph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-e6a15b643dd8c735"></a>
@@ -55,6 +56,7 @@
 @fn void xv::fs::VirtualFileSystem::initialize(int device)
 @brief 恢复根卷并建立三个系统挂载。
 @details 第一个 VirtIO 块设备提供根文件系统，默认由持久 rootfs 镜像承载；初始化可选辅助卷并发布第二日志，但不自动挂载 /data。在事务内挂载 dev/proc/tmp，辅助盘只通过显式 mount_disk 挂载。
+@details 流程由 InitializeFlow::BackendsGraph, InitializeFlow::MountsGraph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-7cbd893bc133ef55"></a>
@@ -96,6 +98,7 @@
 @fn Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)
 @brief 按节点类型创建或取得文件。
 @details 普通文件在同一命名空间锁内跟随链接或按 NOFOLLOW 拒绝，支持悬空链接目标的最终创建；其他类型沿父节点调用后端。成功返回已锁定引用。
+@details 流程由 CreateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-365a4e7acb8561db"></a>
@@ -106,6 +109,7 @@
 @fn int xv::fs::VirtualFileSystem::link(char *old_path, char *new_path)
 @brief 为最终节点本身建立同后端硬链接。
 @details 源路径不跟随最终符号链接；仍以事务固定源和目标父目录，禁止跨后端硬链接并释放所有临时引用。
+@details 流程由 LinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-5b042e585b21f4bf"></a>
@@ -116,6 +120,7 @@
 @fn int xv::fs::VirtualFileSystem::unlink(char *path)
 @brief 在事务内解析父路径并请求删除名称。
 @details 委托 unlink_at 保护挂载覆盖节点与设备根，再调用实际文件系统删除。释放父引用，返回 0 或 -1。
+@details 流程由 UnlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-b14436f73059aab1"></a>
@@ -269,6 +274,7 @@
 @brief 在稳定挂载关系下删除目录项。
 @details 命名空间锁串行化检查和实际删除。短暂锁住目录并查找目标，拒绝覆盖点或挂载根，释放临时引用后转交后端执行目录/sticky 权限与空目录检查。
 @return 0 表示成功，-1 表示挂载保护或后端拒绝。
+@details 流程由 UnlinkAtFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-fd77401a8aa09874"></a>
@@ -279,6 +285,7 @@
 @fn bool xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
 @brief 装配系统生命周期的启动后端。
 @details 容量上限扩为八条记录；只供启动阶段串行调用，保留覆盖节点、根、父节点和路径，运行期分别走 RAM/磁盘挂载入口。
+@details 流程由 MountFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 <a id="fn-81e896ba99fe170a"></a>
 
@@ -288,6 +295,7 @@
 @fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating)
 @brief 在稳定命名空间中解析路径与符号链接。
 @details 相对链接保留所在父目录，绝对链接从根开始，拼接剩余路径并限制 16 次展开和 MAXPATH。链接目标末尾的斜杠也要求最终结果为目录。可禁止跟随最终链接，也可为 O_CREATE 建立悬空链接的最终目标；普通组件保留 xv6 的 DIRSIZ 截断规则。
+@details 流程由 WalkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-f4cf807217fcb7f0"></a>
@@ -319,6 +327,7 @@
 @brief 沿父目录关系判断一个节点是否包含另一个节点。
 @details 命名空间锁内保留待检查节点；遇到挂载根使用挂载表中的父节点，否则读取后端 ..。每一步归还旧引用；最多走 128 步，超出时保守返回 true，供环与挂载祖先保护使用。
 @return 匹配或达到遍历上限返回 true；到达根且不匹配返回 false。
+@details 流程由 AncestorFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-09eb092ae4d24474"></a>
@@ -329,6 +338,7 @@
 @fn int xv::fs::VirtualFileSystem::mount_ram(const char *path)
 @brief 发布独立动态 RAM 实例。
 @details 总表上限八项，动态 RAM 池仍四槽；保留规范路径、覆盖目录、OOM 回滚和新根 0755 的约束。
+@details 流程由 MountRamFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-5396bbf57ffd12ef"></a>
@@ -339,6 +349,7 @@
 @fn int xv::fs::VirtualFileSystem::unmount(const char *path)
 @brief 安全撤销 RAM 或持久卷挂载。
 @details 保护三个系统挂载，按后端 busy 检查引用。RAM 销毁全部页面，磁盘仅 flush 并释放根引用，不销毁持久内容；移除记录与入口受命名空间锁保护。
+@details 流程由 UnmountFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-0747d0fa1f7514e8"></a>
@@ -360,6 +371,7 @@
 @brief 在稳定挂载拓扑下校验并转发原子重命名。
 @details 事务与命名空间锁内查找两端父目录，拒绝跨后端、点目录、目录环、挂载点及含挂载的祖先。临时取得源/目标引用供检查，调用所属后端 rename_at 后按所有分支释放引用。
 @return 0 表示后端重命名成功，-1 表示校验或后端失败。
+@details 流程由 RenameFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-67eba603f2e485ac"></a>
@@ -370,6 +382,7 @@
 @fn int xv::fs::VirtualFileSystem::symlink(const char *target, const char *path)
 @brief 原子创建保存目标字节的链接节点。
 @details 限制非空目标小于 MAXPATH，事务及命名空间锁内建立新节点并写入目标；失败移除新目录项，不要求目标已经存在。
+@details 流程由 SymlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-410eacc267e87225"></a>
@@ -380,4 +393,5 @@
 @fn int xv::fs::VirtualFileSystem::mount_disk(const char *path)
 @brief 把已连接的数据卷挂到一个已有目录。
 @details 事务及命名空间锁内拒绝容量不足、重复挂载、无效目录和覆盖已有挂载根；保留数据卷根并登记特殊磁盘槽，不重新格式化介质。
+@details 流程由 MountDiskFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```

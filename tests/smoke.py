@@ -90,7 +90,7 @@ def expect(token, timeout=30):
                     raise RuntimeError('job control contract failed')
                 if b'fgtest: FAIL:' in transcript:
                     raise RuntimeError('foreground contract failed')
-                if b'SOME TESTS FAILED' in transcript:
+                if b'SOME TESTS FAILED' in transcript or b'runtest: fork error' in transcript:
                     raise RuntimeError('guest regression test failed')
                 if b'panic:' in transcript:
                     raise RuntimeError('kernel panic')

@@ -84,6 +84,7 @@
 @fn Inode *xv::fs::Xv6FileSystem::create_at(Inode *dp, const char *name, short type, short major, short minor)
 @brief 在磁盘父目录创建并返回锁定节点。
 @details 父锁内验证目录仍有链接及 W/X；设备创建仅 root。新节点使用有效 uid/gid，文件 0666、目录 0777、设备 0600 再扣除 umask；失败回滚引用和链接。
+@details 流程由 CreateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-603e65641638664d"></a>
@@ -94,6 +95,7 @@
 @fn int xv::fs::Xv6FileSystem::link_at(Inode *dp, const char *name, Inode *ip)
 @brief 在磁盘目录添加已有文件的硬链接。
 @details 拒绝跨后端和目录目标；父目录锁内验证 W/X 与链接状态，发布目录项失败时撤销增加的链接数。调用者维持磁盘事务。
+@details 流程由 LinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-5b4b6b7276311573"></a>
@@ -104,6 +106,7 @@
 @fn int xv::fs::Xv6FileSystem::unlink_at(Inode *dp, const char *name)
 @brief 在磁盘目录删除目录项。
 @details 父子节点锁内检查父 W/X 及 sticky：root、目录属主或目标属主可删；仍拒绝点目录及非空目录。日志化目录项和链接数，最后引用回收由 inode 生命周期管理。
+@details 流程由 UnlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-df5473361440e15d"></a>
@@ -115,4 +118,5 @@
 @brief 在单个日志事务内重命名磁盘文件或目录。
 @details 父目录按 inode 号排序加锁；源/目标与父节点别名时先拒绝，避免递归取得同一 inode 锁，然后锁定源和不同的目标。检查写/执行权限、sticky 属主、类型和空目录约束；先安装目标再清除源项，目录跨父移动时改写 .. 和父链接计数。相同 inode 的两个名字保持不变。解锁后释放节点引用；调用者持有 VFS 命名空间锁和日志事务。
 @return 0 表示成功，-1 表示校验或安装失败。
+@details 流程由 RenameFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```

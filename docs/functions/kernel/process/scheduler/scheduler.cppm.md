@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::process::scheduler`](../lifecycle/service.cpp.md#fn-7abeaa33d65489ea)
 - [`xv::process::Scheduler::Scheduler`](scheduler.cppm.md#fn-087112f2f52c9a12)
 - [`xv::process::Scheduler::Scheduler`](scheduler.cppm.md#fn-7849fdcb99edf01f)
 - [`xv::process::Scheduler::make_runnable`](scheduler.cppm.md#fn-5d21738df9c371cc)
@@ -20,6 +19,7 @@
 - [`xv::process::Scheduler::suspend`](scheduler.cppm.md#fn-34e8f43299600c34)
 - [`xv::process::Scheduler::yield`](scheduler.cppm.md#fn-511de5124105eee7)
 - [`xv::process::Scheduler::~Scheduler`](scheduler.cppm.md#fn-0ee984bb6da8f0ae)
+- [`xv::process::scheduler`](../lifecycle/service.cpp.md#fn-7abeaa33d65489ea)
 
 <a id="fn-7849fdcb99edf01f"></a>
 

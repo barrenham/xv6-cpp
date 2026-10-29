@@ -3,26 +3,70 @@ import :network;
 import :interrupt;
 import :mmio;
 import xv.sync;
+
 namespace xv::drivers
 {
 class E1000 final : public InterruptDevice, public EthernetDevice
 {
 public:
-  constexpr E1000(unsigned long base, unsigned irq) : registers_(base), base_(base), irq_(irq) {}
-  const char *name() const override { return "Intel 82540EM Ethernet"; }
-  unsigned irq() const override { return irq_; }
+
+  constexpr E1000(unsigned long base, unsigned irq)
+      : registers_(base), base_(base), irq_(irq)
+  {
+  }
+
+  const char *name() const override
+  {
+    return "Intel 82540EM Ethernet";
+  }
+
+  unsigned irq() const override
+  {
+    return irq_;
+  }
+
   void initialize() override;
-  void locate(unsigned slot) { slot_ = slot; irq_ = 32 + slot%4; }
+
+  void locate(unsigned slot)
+  {
+    slot_ = slot;
+    irq_ = 32 + slot % 4;
+  }
+
   void mac_address(unsigned char *destination) const override
-  { for (unsigned i = 0; i < 6; ++i) destination[i] = mac_[i]; }
-  void attach(EthernetReceiver &receiver) { receiver_ = &receiver; }
-  bool online() const override { return ready_; }
-  bool carrier() const override { return ready_ && (registers_.read32(8)&2); }
+  {
+    for (unsigned i = 0; i < 6; ++i)
+    {
+      destination[i] = mac_[i];
+    }
+  }
+
+  void attach(EthernetReceiver &receiver)
+  {
+    receiver_ = &receiver;
+  }
+
+  bool online() const override
+  {
+    return ready_;
+  }
+
+  bool carrier() const override
+  {
+    return ready_ && (registers_.read32(8) & 2);
+  }
+
   bool transmit(void *page, unsigned length) override;
   bool promiscuous(bool enable) override;
   void handle_interrupt() override;
+
 private:
+
+  struct InitializeFlow;
+  struct TransmitFlow;
+  struct InterruptFlow;
   void reclaim();
+
   struct TxDescriptor
   {
     unsigned long address;
@@ -30,6 +74,7 @@ private:
     unsigned char checksum_offset, command, status, checksum_start;
     unsigned short special;
   };
+
   struct RxDescriptor
   {
     unsigned long address;
@@ -37,6 +82,7 @@ private:
     unsigned char status, errors;
     unsigned short special;
   };
+
   static_assert(sizeof(TxDescriptor) == 16 && sizeof(RxDescriptor) == 16);
   static constexpr unsigned Count = 16;
   detail::MmioRegion registers_;
@@ -53,4 +99,4 @@ private:
   EthernetReceiver *receiver_ = nullptr;
   bool ready_ = false;
 };
-}
+} // namespace xv::drivers

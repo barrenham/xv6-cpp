@@ -23,6 +23,11 @@ public:
 
 private:
 
+  struct InspectFlow;
+  struct MutationFlow;
+
+  struct ExecuteFlow;
+
   int inspect(unsigned operation, netctl_request &request);
   int mutate(unsigned operation, const netctl_request &request,
              NetworkInterface &interface);

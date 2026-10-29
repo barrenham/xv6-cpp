@@ -34,6 +34,11 @@ public:
 
 private:
 
+  struct InitializeFlow;
+  struct ChainFlow;
+  struct TransferFlow;
+  struct InterruptFlow;
+
   int allocate_descriptor();
   void free_descriptor(int index);
   void free_chain(int index);

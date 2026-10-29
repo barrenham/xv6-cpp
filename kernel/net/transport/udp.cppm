@@ -29,6 +29,9 @@ public:
 
 private:
 
+  struct ReceiveFlow;
+  struct SendFlow;
+
   Ipv4Layer &ip_;
   IcmpProtocol &icmp_;
   DatagramSink *sink_ = nullptr;

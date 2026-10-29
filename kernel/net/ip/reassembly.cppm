@@ -17,6 +17,8 @@ public:
 
 private:
 
+  struct AcceptFlow;
+
   struct Key
   {
     const void *ingress = nullptr;

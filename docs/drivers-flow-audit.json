@@ -1,0 +1,504 @@
+{
+  "status": "identified_complex_paths_connected",
+  "scope": "kernel/drivers current source files; interfaces, scalar and bounded data primitives intentionally direct",
+  "files": [
+    {
+      "source": "kernel/drivers/block/block_device.cppm",
+      "sha256": "177869ccda712fc12795a06866809e0960008e3cab28511a87c021de7346137f",
+      "review": "块设备虚接口与默认 flush 能力，无控制图注册或所有权转移。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/block/virtio/protocol.cppm",
+      "sha256": "ee51531fd9c8425d2e7eb336cfa9d7561d1a3dc598d2ee0cf738a1b11f5c26a6",
+      "review": "VirtIO 固定描述符/环/请求布局和标志常量。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+      "sha256": "33e2f276e24f3acbe51953b9a4136d8ece86c405f80488574b65af81c3f646e6",
+      "review": "Initialize/Chain/Transfer/Interrupt 四图连接协商、三槽候选回滚、提交/等待/回收和 IRQ 完成；单槽清理/唤醒、固定三槽 free_chain 与访问器为业务原语。flush 仍分配三槽、在线两槽、回收三槽。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::VirtioBlock::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@initialize#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "8844aa0afdba916c5a4629e45defaef04a8ea1fb0cf8bd1495a58685291bd406",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::allocate_chain",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@allocate_chain#*I#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "8f845cf9a9d1152d5e9ee1cae7d39310775a06db207d29a1c3f434ab46a6ee15",
+          "graphs": [
+            "ChainFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::transfer",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@transfer#$@N@xv@N@drivers@E@BlockOperation#l#*v#i#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "e8bddfb573a11672ff779a4b5910deb572f950288fd8ce699302d2a27b06b887",
+          "graphs": [
+            "TransferFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@handle_interrupt#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "46810f4f50151373dc95c9a9829fa15de72e6d79ed0087e497a0e1aa0606dbc4",
+          "graphs": [
+            "InterruptFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/block/virtio/virtio_block.cppm",
+      "sha256": "a1d90091b9ef9102b8b0b7abe8225a4fcc5a87fa99cb634139060d87ed8c03a1",
+      "review": "设备布局和私有 Flow 声明，保留原块/中断接口。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/board/qemu_virt.cpp",
+      "sha256": "5cf235ab9fef20044d73ce6df6e3d6e30d69d97912110334994dd6dbacf72089",
+      "review": "Console/Interrupts 图连接终端/PTY/串口/设备和 PCI 发现/定位/路由；constinit 固定设备接线、固定 IRQ 枚举、带索引门槛的网络委托、定时器固定回调及 getter 保留原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::initialize_console",
+          "usr": "c:@N@xv@N@drivers@F@initialize_console#",
+          "source": "kernel/drivers/board/qemu_virt.cpp",
+          "source_sha256": "3d33edec138d3484d2e0f60ee7e71a20ae66d94402a2d3ea744307d826450e6c",
+          "graphs": [
+            "ConsoleFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::initialize_interrupts",
+          "usr": "c:@N@xv@N@drivers@F@initialize_interrupts#",
+          "source": "kernel/drivers/board/qemu_virt.cpp",
+          "source_sha256": "58fd83afb93463cc3b4b2238816a8a3bcb579108763daa43cba8f784314760ef",
+          "graphs": [
+            "InterruptsFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/console/character_device.cppm",
+      "sha256": "de26b676bf0ef3698079349aecc653e82db329b87151b4be3e9fd5e0a913ce65",
+      "review": "字符设备/地址空间/缓冲和默认能力接口。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/device.cppm",
+      "sha256": "6e03359e3db42fd2143f5a1978fe0f969a006452c305a91d91527e737f050d8e",
+      "review": "设备/中断设备契约和固定名称/IRQ 投影。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/device_numbers.h",
+      "sha256": "13659b30d3e8bd19323304905df2275d0b430fdc184597105974c9ee275c5e4f",
+      "review": "已有 CONSOLE 设备号常量；未添加 STATS 生产 ABI。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/drivers.cppm",
+      "sha256": "fcbeef343ab5192821cc465cb34ee87d68d6dca24a6084b274eb886d7fa1ea70",
+      "review": "导出接口与板级、PTY、网络访问声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/interrupt/interrupt_controller.cppm",
+      "sha256": "34e5baf03e76e4092f60acfb44ba1bfb27693c7bdba7b22912f8a2c58715f273",
+      "review": "中断控制器原虚接口。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/interrupt/interrupt_router.cpp",
+      "sha256": "631fe1766096d15661034bb0ec8ffe95b751e4b5e61c08c63224e0dde8118446",
+      "review": "初始化图先验证全部固定源再编程，分派图非零 claim 恰好 complete 一次；initialize_hart 为固定表使能枚举。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::InterruptRouter::initialize",
+          "usr": "c:@N@xv@N@drivers@S@InterruptRouter@F@initialize#",
+          "source": "kernel/drivers/interrupt/interrupt_router.cpp",
+          "source_sha256": "f411b1217076ce90af94443ab0be3b0fdf7437852e3c436123c9b6dfd0a86d56",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::InterruptRouter::dispatch",
+          "usr": "c:@N@xv@N@drivers@S@InterruptRouter@F@dispatch#I#",
+          "source": "kernel/drivers/interrupt/interrupt_router.cpp",
+          "source_sha256": "7d84c4c9fcd00475c9274c48a7ab5437710a884d7500ad8d2b37a08cbd33c43f",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/interrupt/interrupt_router.cppm",
+      "sha256": "4a27017823b961017bb35ad5ee5314b071753ee9d3f8c14294b70a06a14fd65c",
+      "review": "固定非拥有控制器/源表和私有 Flow 声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/interrupt/plic.cpp",
+      "sha256": "b7fc86044f04bd426e77fa5cc34dcfad4ed93ec6dc7bb3c97a2cd0a65dbc89a1",
+      "review": "单次 MMIO 读写/位更新、固定使能字清零与阈值设置为硬件原语；claim/complete 顺序由路由图负责。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/interrupt/plic.cppm",
+      "sha256": "3bff0125a877189e9ad1928ec72405e1fa52ce7fcdabb21132f1055e5c3a15a2",
+      "review": "PLIC 地址、MMIO 窗口及原接口声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/mmio.cppm",
+      "sha256": "4bb201c910b1fed21e91cdf41c4b1f4f27e1a49485dbc684131e6ca6ff2436a3",
+      "review": "不拥有映射的 volatile 8/32 位寄存器访问。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/net/e1000/e1000.cpp",
+      "sha256": "7fc51479db2280fff5b8152e41b39f1e9c4e6aeb14b18ce6daab11728c7e36e7",
+      "review": "初始化/发送/IRQ 三图负责候选、发布、替换/解锁后递送；复位/EEPROM 有界轮询、固定环 reclaim/过滤器位、访问器保留原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::E1000::initialize",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@initialize#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "59dbfecce2dcda346e920d37b8ff3d5aef14db8c48c8f1957416736856ea511b",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::E1000::transmit",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@transmit#*v#i#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "50993f17f919e861921910e454cb5ce62d62e1a8b5851a9216998e86a04c9643",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::E1000::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@handle_interrupt#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "dcaac6d3464a5ef531b6876ee32d71148bff7e219a75253ba13f0d2dbf2fb994",
+          "graphs": [
+            "InterruptFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/net/e1000/e1000.cppm",
+      "sha256": "ed4692fb56cdae6a87e0a66db80ca9a0cca7f1586d6a85edb34724f84232be5f",
+      "review": "原以太网/中断接口、环/缓冲布局和私有 Flow 声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/net/ethernet.cppm",
+      "sha256": "634e2297c73fe261373ec3e54b42ca64db5a4c5ab9311d9afaa4890137c2f683",
+      "review": "帧所有权、接收方和设备原契约，不做虚构去重。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/pci/qemu_pci.cpp",
+      "sha256": "bf0a636616478228ce185b8c8698a014cdda4b2c2a088bed6793da4282d1ba16",
+      "review": "配置图保留标识检查、命令禁用/BAR/启用与屏障；find_e1000 固定 32 槽扫描/容量边界保留紧凑原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::detail::configure_e1000",
+          "usr": "c:@N@xv@N@drivers@N@detail@F@configure_e1000#l#i#",
+          "source": "kernel/drivers/pci/qemu_pci.cpp",
+          "source_sha256": "3be0fcaf7e20cab8d8208051a869f0519e2b90379e481a043c0e1254b80fe5e5",
+          "graphs": [
+            "PciConfigureFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/pci/qemu_pci.cppm",
+      "sha256": "1bf61e27a50fcd39cb8f0b60b248eb4233d9af60e063e315a277d4faf133204e",
+      "review": "PCI 发现/配置声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/platform/kernel_platform.cpp",
+      "sha256": "3ce2617e50c2b2c265be651674a1f073d7181ed8d00f62f23fdf0765952a255b",
+      "review": "有效身份、复制、进程/终端信号、等待、内存、IRQ 屏障和 fatal 的固定平台适配；挂断后的通知服务顺序保留。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/platform/platform.cppm",
+      "sha256": "299386ba5db6385d3106304ff4c9a18780d36beae5baa58dfc606c6af96079b7",
+      "review": "私有平台边界声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/serial/flow.cppm",
+      "sha256": "e2ae806f8aedf5de4e8d1cf726428400780b34242b8c272fd6db5c5df1092fb1",
+      "review": "Transmit/Drain 图声明发送候选/空间等待、锁交接、取消和排空；逐字符泵送为硬件动作。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/serial/serial_port.cppm",
+      "sha256": "05d2ac649eeef06177d5693f76910653f88f2df97bf70f31f10f3f28f1da2c5c",
+      "review": "原输入/串口/终端输出接口与非阻塞不支持的固定策略。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/serial/uart16550.cpp",
+      "sha256": "a874c0c95407fb8a0e544bd308629209b4e61f42375dbb516be1be958311755e",
+      "review": "transmit/drain 使用图；initialize 固定寄存器配方，pump 与 IRQ 接收是逐寄存器/字节紧凑循环；write 以固定块调用已迁移 transmit，put_sync 保留 panic 绕锁和同步硬件轮询，避免按字节增加图成本。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::Uart16550::transmit",
+          "usr": "c:@N@xv@N@drivers@S@Uart16550@F@transmit#*1C#I#b#",
+          "source": "kernel/drivers/serial/uart16550.cpp",
+          "source_sha256": "357b5c2070d8ba394de833a0e40459c8b9a9bbdf0b091979336909132d4d1c6c",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Uart16550::drain",
+          "usr": "c:@N@xv@N@drivers@S@Uart16550@F@drain#",
+          "source": "kernel/drivers/serial/uart16550.cpp",
+          "source_sha256": "176b932e6c7be90027ef63ad5987524621d7a92e0bf538a2531b5b63965040d0",
+          "graphs": [
+            "DrainFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/serial/uart16550.cppm",
+      "sha256": "96985de07e8096ae91e347dcb280ca59a2580387115431c2a3bb987d38675b24",
+      "review": "UART 环、MMIO/接收方、原锁/等待状态与私有 Flow 声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/tty/core/terminal_output.cppm",
+      "sha256": "b070a53e3e17c6512f2f19b0daaa39879509291157eaa59f2fa7dad4c06eb3dd",
+      "review": "终端输出/排空/可写性原接口。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/tty/core/tty.cpp",
+      "sha256": "940c8fcc69cdcd48f3618c5299811033b410433da34de632df98d45ea1b1d09c",
+      "review": "Inject/Poll/Read/Write/Ioctl 六图负责多阶段操作；初始化为固定 termios/锁赋值，receive 为锁内行规程与固定通知，计时/刷新和原单一状态快照保持原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::Tty::inject",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@inject#c#b#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "0f5587658c83876d6fb4d05a6757a69b6df27e18d5be78bdd69efc540a30c58e",
+          "graphs": [
+            "InjectFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::poll",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@poll#*$@N@xv@N@sync@S@PollTable#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "d07a6b7ea8ef4ec67282ebd0961f324ca1d0ece12b571a3a413165c19bca1b2a",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::read",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "2a7e2617ed9c5090f02e43e95505967f27ea87749da666f8cd5bd58c138e78d1",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::write",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@write#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "dcaaabb962e920f467a6ee89faf50fbe52e2b6ab427b427399f9934386808559",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "301cc406d2df0f7d42ff843d2d0bbac37dbd441aca06d2b61a80589993a14d97",
+          "graphs": [
+            "IoctlFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/tty/core/tty.cppm",
+      "sha256": "e74a23904d315ecbdbdfacd881e51898d0dd213f5667f71dbc54833cb271c365",
+      "review": "TTY 原状态、固定容量、接口与私有 Flow 声明。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/tty/ldisc/line_discipline.cppm",
+      "sha256": "c532d0968c4417c45a2b36ccb08b37b9bbc934f2014061da341074707980cbce",
+      "review": "行规程模式、结果和输入/消费接口。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/tty/ldisc/n_tty.cpp",
+      "sha256": "7016038f1c39ba4f0737004708e15b33e156097c5830a6463b7b27cfee57f541",
+      "review": "ReceiveFlow 处理输入动作选择和汇合；change_mode 为固定环压缩，erase/echo 为单字符显示策略、固定宽度输出，保留原字节/EOF 语义。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::NttyDiscipline::receive",
+          "usr": "c:@N@xv@N@drivers@S@NttyDiscipline@F@receive#c#&1$@S@termios#&$@N@xv@N@drivers@S@TerminalOutput#",
+          "source": "kernel/drivers/tty/ldisc/n_tty.cpp",
+          "source_sha256": "b0ec9dd0d9d050e1bcb017484d2147c6a0c1c0a109e5c446b6d05be4113769a2",
+          "graphs": [
+            "ReceiveFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/tty/ldisc/n_tty.cppm",
+      "sha256": "7e773e93f9c234156b9dd3f085797058e8a451f3f4a5d99b8993832b985e4397",
+      "review": "环槽布局和标量/容量访问器、私有 ReceiveFlow。",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/tty/pty/pty.cpp",
+      "sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5",
+      "review": "十一图负责创建/释放、端点关闭、输出/排空、主端 I/O、端点 ioctl/poll 和命名创建/打开；ID 查找/位扫描、列表与引用字段操作、pin/权限查询和固定 tick 枚举为原语。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::create_pty",
+          "usr": "c:@N@xv@N@drivers@F@create_pty#**$@N@xv@N@drivers@S@CharacterDevice#S0_#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "df1b3deb9bd6088fbaff936bb4f6d7396e05dc4facb3ec3d7a40fb2d9c217fec",
+          "graphs": [
+            "CreatePtyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::open_named_pty",
+          "usr": "c:@N@xv@N@drivers@F@open_named_pty#i#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "262bc97a1b360cc7f5fa3006b2044a7873fbd7d4c865a4b5fd48ab77de9176ed",
+          "graphs": [
+            "OpenNamedPtyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::release",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@release#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "cb37b85f7eba34e20e2869964e0c694d572bf5973f28f8de4144bb9d453e3e24",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::close",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@close#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "676e3219ecbc273e834b238cc098e82e5184eddea822aa42bc9aacfd21f89858",
+          "graphs": [
+            "CloseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::read_master",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@read_master#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "6568bb265f6c8a12bc7d7a4a0adaae07ba6b6217a12d4f3f4595029b5ee1f14e",
+          "graphs": [
+            "ReadMasterFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::write_master",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@write_master#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "5014f94f3025e4f1beeec05616f5a61a47056bed67723c0ca32fcc598154e40e",
+          "graphs": [
+            "WriteMasterFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Output::transmit",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Output@F@transmit#*1C#I#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "67e66ab69160bd86ef67e46440b89aa91d862ea1304304fb1d8c09b3ea5a577e",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Output::drain",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Output@F@drain#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "ef31156cfa1db08978f15c496bd8ae89907c4b9e0e114e7cd3a2cbcad4627c16",
+          "graphs": [
+            "DrainFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Endpoint::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Endpoint@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "7ec97413acc396374db33bea2f3d7e8879e5665e88cf0753c187f84bf4786608",
+          "graphs": [
+            "IoctlFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Endpoint::poll",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Endpoint@F@poll#*$@N@xv@N@sync@S@PollTable#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "f20885d65d98665c4ccf056eae95336511803ff6258eddfdd02e5532f0094dbc",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::PtyMultiplexer::open",
+          "usr": "c:pty.cpp@N@xv@N@drivers@aN@S@PtyMultiplexer@F@open#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "dc384cc1d423df16e4c20373e79c644baddd9bc279b1f55048c6c75555f212c2",
+          "graphs": [
+            "OpenFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/drivers/tty/pty/pty.cppm",
+      "sha256": "7d759ce0c86fa5f99d2845a4a445fb5d47cc0c21e85a0360a523fcd2149e366a",
+      "review": "端点/输出原接口、锁/引用/环字段与私有 Flow 声明。",
+      "graph_entries": []
+    }
+  ],
+  "graph_count": 31,
+  "original_entry_count": 31,
+  "limitations": [
+    "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
+    "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."
+  ]
+}

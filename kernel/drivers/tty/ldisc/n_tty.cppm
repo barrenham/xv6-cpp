@@ -23,6 +23,8 @@ public:
 
 private:
 
+  struct ReceiveFlow;
+
   static constexpr unsigned Capacity = 128;
   TerminalByte ring_[Capacity]{};
   unsigned tail_ = 0;

@@ -1,6 +1,8 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :tunnel_protocol_flow;
+import :tunnel_flows;
 import :tunnel;
 
 namespace xv::net
@@ -23,73 +25,28 @@ bool IpInIpInterface::initialize(Ipv4Layer &ip, NetworkInterface &underlay,
 
 int IpInIpInterface::transmit(Packet &packet, unsigned)
 {
-  if (!up() || !carrier() || !ip_)
-  {
-    return -ENETUNREACH;
-  }
-  if (packet.size() > mtu() || packet.size() < 20)
-  {
-    return -EMSGSIZE;
-  }
-  if (!packet.prepend(20))
-  {
-    return -EMSGSIZE;
-  }
-  int result = ip_->send(packet, outer_remote_, 4, outer_local_, underlay_);
-  if (result < 0)
-  {
-    packet.remove_prefix(20);
-  }
-  return result;
+  TransmitFlow::Context ctx{*this, packet};
+  (void)TransmitFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool IpInIpInterface::receive_outer(Packet &packet, const IpDatagram &d)
 {
-  if (!up() || !ip_ || d.interface != underlay_ || d.source != outer_remote_ ||
-      d.destination != outer_local_)
-  {
-    return false;
-  }
-  if (d.length < 20 || !packet.enter_tunnel())
-  {
-    return true;
-  }
-  packet.resize(d.offset + d.length);
-  if (packet.remove_prefix(d.offset))
-  {
-    deliver(packet);
-  }
-  return true;
+  ReceiveFlow::Context ctx{*this, packet, d};
+  (void)ReceiveFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 bool IpInIpProtocol::add(IpInIpInterface &interface)
 {
-  for (auto *tunnel : tunnels_)
-  {
-    if (tunnel == &interface)
-    {
-      return false;
-    }
-  }
-  for (auto &tunnel : tunnels_)
-  {
-    if (!tunnel)
-    {
-      tunnel = &interface;
-      return true;
-    }
-  }
-  return false;
+  DispatchFlow::AddContext ctx{*this, interface};
+  (void)DispatchFlow::AddGraph::run<0>(ctx);
+  return ctx.result;
 }
 
 void IpInIpProtocol::receive(Packet &packet, const IpDatagram &datagram)
 {
-  for (auto *tunnel : tunnels_)
-  {
-    if (tunnel && tunnel->receive_outer(packet, datagram))
-    {
-      return;
-    }
-  }
+  DispatchFlow::ReceiveContext ctx{*this, packet, datagram};
+  (void)DispatchFlow::ReceiveGraph::run<0>(ctx);
 }
 } // namespace xv::net

@@ -1,0 +1,4102 @@
+{
+  "status": "complete",
+  "excluded": [
+    "kernel/boot"
+  ],
+  "network_coverage": "docs/network-flow-coverage.json",
+  "entries": [
+    {
+      "module": "sync",
+      "owner": "SleepLock",
+      "methods": [
+        "acquire",
+        "acquire_interruptible"
+      ],
+      "definition": "kernel/sync/sleep/flow.cppm",
+      "graphs": [
+        "AcquireFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::sync::SleepLock::acquire",
+          "usr": "c:@N@xv@N@sync@S@SleepLock@F@acquire#",
+          "source": "kernel/sync/sleep/sleeplock.cpp",
+          "source_sha256": "110229fcd7f4d82b378562777eb3e2d2a9b16fb79adce809782835cb9c74deca",
+          "graphs": [
+            "AcquireFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::sync::SleepLock::acquire_interruptible",
+          "usr": "c:@N@xv@N@sync@S@SleepLock@F@acquire_interruptible#",
+          "source": "kernel/sync/sleep/sleeplock.cpp",
+          "source_sha256": "37105aaf47c9405d7770b77d40ec9f54fe989acd5ce1071c8ccc44a596291b0f",
+          "graphs": [
+            "AcquireFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "946bcc1cabf5248c3c466ee26c22389d144af56970a6e5620051a4c1da689cbb"
+    },
+    {
+      "module": "trap",
+      "owner": "TrapController",
+      "methods": [
+        "handle_user",
+        "handle_kernel"
+      ],
+      "definition": "kernel/trap/controller/flow.cppm",
+      "graphs": [
+        "EntryFlow::UserGraph",
+        "EntryFlow::KernelGraph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::trap::TrapController::handle_user",
+          "usr": "c:@N@xv@N@trap@S@TrapController@F@handle_user#",
+          "source": "kernel/trap/controller/trap_controller.cpp",
+          "source_sha256": "de8d51f4f4abd12bfc15126ff9e3114e92bc5359a2f8a618645bf394b01cf259",
+          "graphs": [
+            "EntryFlow::UserGraph"
+          ]
+        },
+        {
+          "qualified": "xv::trap::TrapController::handle_kernel",
+          "usr": "c:@N@xv@N@trap@S@TrapController@F@handle_kernel#",
+          "source": "kernel/trap/controller/trap_controller.cpp",
+          "source_sha256": "41bd2cb9c039fe5d990d9f6d37d841440cba51d2d2b76747de64c8548e3ac44f",
+          "graphs": [
+            "EntryFlow::KernelGraph"
+          ]
+        }
+      ],
+      "definition_sha256": "dc8f0c2ab0628267edd9d8ecbbab50bb9a8acc7c2b164d221178fa4a1479f464"
+    },
+    {
+      "module": "trap",
+      "owner": "TrapDispatcher",
+      "methods": [
+        "dispatch"
+      ],
+      "definition": "kernel/trap/dispatch/flow.cppm",
+      "graphs": [
+        "DispatchFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::trap::TrapDispatcher::dispatch",
+          "usr": "c:@N@xv@N@trap@S@TrapDispatcher@F@dispatch#&1$@N@xv@N@trap@S@TrapEvent#",
+          "source": "kernel/trap/dispatch/trap_dispatcher.cpp",
+          "source_sha256": "a5064585148b3ee74d092ed6c3c90efe42b2fcc602b8e82f0c12259f4184d4aa",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e8c22269ab593a4d2f9a62cef66e3840eb10afe68797a37f05a36238d0947a40"
+    },
+    {
+      "module": "trap",
+      "owner": "TickClock",
+      "methods": [
+        "pause"
+      ],
+      "definition": "kernel/trap/clock/flow.cppm",
+      "graphs": [
+        "PauseFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::trap::TickClock::pause",
+          "usr": "c:@N@xv@N@trap@S@TickClock@F@pause#I#",
+          "source": "kernel/trap/clock/tick_clock.cpp",
+          "source_sha256": "a3ca6f3fa4a2d8f41c5f058b5168d9e265ab0f81ced12aff7299ec8dc1f71435",
+          "graphs": [
+            "PauseFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e88f968202f8d8a93dc9eb5202293ca2df070c3ba11b0719798381fc831c4fc4"
+    },
+    {
+      "module": "process",
+      "owner": "AddressSpace",
+      "methods": [
+        "create",
+        "resize",
+        "grow_to",
+        "copy_to",
+        "protect_guard"
+      ],
+      "definition": "kernel/process/memory/flows.cppm",
+      "graphs": [
+        "CreateFlow::Graph",
+        "ResizeFlow::Graph",
+        "GrowFlow::Graph",
+        "CopyFlow::Graph",
+        "GuardFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::AddressSpace::create",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@create#*v#S0_#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "5e37cccf9c4f0e33b9a8ae0df9d4274eb1aebb7ad4da89bd2d46027dfdbfb174",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::resize",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@resize#I#b#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "8226ebc42ac1830cc74ac661330f99675e94519a3bfac5f824433f91614e63f8",
+          "graphs": [
+            "ResizeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::grow_to",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#b#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "3cb218f6aeae4528aae84c7684dc97077eba79cb54b645a2c6c84abed951b215",
+          "graphs": [
+            "GrowFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::copy_to",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "591d99b02ab120e423911e5e64fa9599016fac35417e029678d8b045a1a82fdd",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::protect_guard",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@protect_guard#l#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "bd05959525f77dff7bc83afe7832b0948da7e69c3e2f7ea51032aa988ff179b8",
+          "graphs": [
+            "GuardFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "94f50ebd9a8437b7c06459951b5b0f59f21b2cd05fa3335f82206a8db7ad09cf"
+    },
+    {
+      "module": "process",
+      "owner": "ElfLoader",
+      "methods": [
+        "load"
+      ],
+      "definition": "kernel/process/exec/elf_loader.cpp",
+      "graphs": [
+        "LoadFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ElfLoader::load",
+          "usr": "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
+          "source": "kernel/process/exec/elf_loader.cpp",
+          "source_sha256": "bea41b85f7ab256f7b65bd514ec9cfd43e4802494795633f5d8b2fdacb4e22ca",
+          "graphs": [
+            "LoadFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "73fc109a2f172675bd57d5e438cf9ac23e2406a24bdee6d960b04b2b02aee2f4"
+    },
+    {
+      "module": "memory",
+      "owner": "VirtualRegions",
+      "methods": [
+        "reserve",
+        "erase",
+        "copy_to"
+      ],
+      "definition": "kernel/memory/layout/virtual_regions.cpp",
+      "graphs": [
+        "ReserveFlow::Graph",
+        "EraseFlow::Graph",
+        "CopyFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::VirtualRegions::reserve",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "7ad45b1734bd487de2b0fc971b2155f6a541eadac9df6d0cbb5285e97130a255",
+          "graphs": [
+            "ReserveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::VirtualRegions::erase",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "5bc4123605037ad9ac0ebd63edf27734925bcf9834ca8328e128d03c8a7fe946",
+          "graphs": [
+            "EraseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::VirtualRegions::copy_to",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "b2a993f9f698a545fa8a682145d2961b448aff6b01201c003e14470d383a0149",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "8782b2bb26817de72652af15e02361b166de035fce69c72e9a36057cd47e862e"
+    },
+    {
+      "module": "fs",
+      "owner": "Pipe",
+      "methods": [
+        "write",
+        "read"
+      ],
+      "definition": "kernel/fs/pipe/flow.cppm",
+      "graphs": [
+        "WriteFlow::Graph",
+        "ReadFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::Pipe::write",
+          "usr": "c:@N@xv@N@fs@S@Pipe@F@write#l#I#b#",
+          "source": "kernel/fs/pipe/pipe.cpp",
+          "source_sha256": "6853e19dec02ff13f820812791a933a12ad89eb6b6bd3faa74c2e1acc9356715",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Pipe::read",
+          "usr": "c:@N@xv@N@fs@S@Pipe@F@read#l#I#b#",
+          "source": "kernel/fs/pipe/pipe.cpp",
+          "source_sha256": "88d123672cc03bd56565b840fcae93278ad5e5d6b459dc27839769e905095a41",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "9f752f9e053574bd720f3c1bc9414cff38b53a93647db19fe512c5e06fb50f22"
+    },
+    {
+      "module": "drivers",
+      "owner": "Uart16550",
+      "methods": [
+        "transmit",
+        "drain"
+      ],
+      "definition": "kernel/drivers/serial/flow.cppm",
+      "graphs": [
+        "TransmitFlow::Graph",
+        "DrainFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::Uart16550::transmit",
+          "usr": "c:@N@xv@N@drivers@S@Uart16550@F@transmit#*1C#I#b#",
+          "source": "kernel/drivers/serial/uart16550.cpp",
+          "source_sha256": "357b5c2070d8ba394de833a0e40459c8b9a9bbdf0b091979336909132d4d1c6c",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Uart16550::drain",
+          "usr": "c:@N@xv@N@drivers@S@Uart16550@F@drain#",
+          "source": "kernel/drivers/serial/uart16550.cpp",
+          "source_sha256": "176b932e6c7be90027ef63ad5987524621d7a92e0bf538a2531b5b63965040d0",
+          "graphs": [
+            "DrainFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e2ae806f8aedf5de4e8d1cf726428400780b34242b8c272fd6db5c5df1092fb1"
+    },
+    {
+      "module": "syscall",
+      "owner": null,
+      "methods": [
+        "sys_poll"
+      ],
+      "definition": "kernel/syscall/syspoll.cpp",
+      "graphs": [
+        "PollFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_poll",
+          "usr": "c:@N@xv@N@syscall@F@sys_poll#",
+          "source": "kernel/syscall/syspoll.cpp",
+          "source_sha256": "61dc84ebf4b87c7ab72bc867a4e9389f41a1f5be771ab967d08961787ce6c516",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "bced9ef4e3814c008cbc2553f45b1b50504df533102fa178008f5e06b98d58f0"
+    },
+    {
+      "module": "support",
+      "owner": null,
+      "methods": [
+        "printk"
+      ],
+      "definition": "kernel/support/printk.cpp",
+      "graphs": [
+        "FormatFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::print::printk",
+          "usr": "c:@N@xv@N@print@F@printk#*1C.#",
+          "source": "kernel/support/printk.cpp",
+          "source_sha256": "a79d311ce04b9ca77300d9024e06240d86813bb9dfe18a4086a32db649343d61",
+          "graphs": [
+            "FormatFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "ccfb0d3450a191daeddce0ea49151b4118a2cb8e96c00d1ccd3f2a4012e68549"
+    },
+    {
+      "module": "fs",
+      "owner": "PageBuffer",
+      "methods": [
+        "page",
+        "write",
+        "read",
+        "resize"
+      ],
+      "definition": "kernel/fs/buffer/flow.cppm",
+      "graphs": [
+        "PageFlow::Graph",
+        "WriteFlow::Graph",
+        "ReadFlow::Graph",
+        "ResizeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::PageBuffer::page",
+          "usr": "c:@N@xv@N@fs@S@PageBuffer@F@page#i#b#",
+          "source": "kernel/fs/buffer/page_buffer.cpp",
+          "source_sha256": "662e82381776f2f625adf6e8bbdb47f92b92a55a4f4d5fc004a59cb22a17fb3d",
+          "graphs": [
+            "PageFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::PageBuffer::write",
+          "usr": "c:@N@xv@N@fs@S@PageBuffer@F@write#i#b#l#i#",
+          "source": "kernel/fs/buffer/page_buffer.cpp",
+          "source_sha256": "0c25a6fe772570f9501787819b2cbc1aedafa979e2d122704f3eea0642319474",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::PageBuffer::read",
+          "usr": "c:@N@xv@N@fs@S@PageBuffer@F@read#i#b#l#i#1",
+          "source": "kernel/fs/buffer/page_buffer.cpp",
+          "source_sha256": "1220867f071367c834f1262506dc88ccecf37882fb07a7409f0de0a53955d4fb",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::PageBuffer::resize",
+          "usr": "c:@N@xv@N@fs@S@PageBuffer@F@resize#i#",
+          "source": "kernel/fs/buffer/page_buffer.cpp",
+          "source_sha256": "93a325eea0dc8d26337063e788bb2078f84c288f0e27d12edc7cbb8f552d6123",
+          "graphs": [
+            "ResizeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "cc3532cb26f6a0b486beb7d4809f8078e9cab5f0d2afa6135c22db360c851960"
+    },
+    {
+      "module": "fs",
+      "owner": "Journal",
+      "methods": [
+        "begin",
+        "end",
+        "commit",
+        "recover",
+        "record",
+        "sync"
+      ],
+      "definition": "kernel/fs/journal/flow.cppm",
+      "graphs": [
+        "BeginFlow::Graph",
+        "EndFlow::Graph",
+        "CommitFlow::Graph",
+        "RecoverFlow::Graph",
+        "RecordFlow::Graph",
+        "SyncFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@begin#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "09759a90f02846fe3242032c89ea158167ec846f6cbcc50ea926dbde7e74157c",
+          "graphs": [
+            "BeginFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@end#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "4864ea1418f0c89fc6a8d55a8a59f91c2a3e7d15b95ab4bc8ccddccd2e2fa0d1",
+          "graphs": [
+            "EndFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Journal::commit",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@commit#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "6e35587e7d794e5ba01c04dc54f06aa02e1b39a12b565f63dfb79ec49d4fab64",
+          "graphs": [
+            "CommitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Journal::recover",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@recover#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "a0dec2f295e640f4d3b22603194849533fec476805ec8ee2a885ca1b5a51846b",
+          "graphs": [
+            "RecoverFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "d1a07e57fb95204fc13ee3de46c1dfa0f88dfa387a05f04e2d4aafd79e785278",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Journal@F@sync#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "3b01d4e22b4a6253052fd738a4ca20fc5a2b649444b49b3971155770e70d84ae",
+          "graphs": [
+            "SyncFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "055320b1f0fb2e6d9387f612023601b4b56bc3522e190fa4e122e77a87332a8c"
+    },
+    {
+      "module": "fs",
+      "owner": "OpenFileTable",
+      "methods": [
+        "release",
+        "bind_inode"
+      ],
+      "definition": "kernel/fs/file/flow.cppm",
+      "graphs": [
+        "ReleaseFlow::Graph",
+        "BindInodeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::OpenFileTable::release",
+          "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@release#*$@N@xv@N@fs@S@File#",
+          "source": "kernel/fs/file/open_file.cpp",
+          "source_sha256": "e8949e140213590d6d8b3f6a0afa216895feb20e19e00e194e3b693e7d8481fe",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::OpenFileTable::bind_inode",
+          "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@bind_inode#&$@N@xv@N@fs@S@File#&$@N@xv@N@fs@S@Inode#b#b#b#b#",
+          "source": "kernel/fs/file/open_file.cpp",
+          "source_sha256": "a69db545151da2660070f3d3e03d6907117f1df7f46339368368ee5ce1d98260",
+          "graphs": [
+            "BindInodeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e1be0a25b82ca686beabd1e27dfa20314978e606c63bc473851540febb6b162d"
+    },
+    {
+      "module": "fs",
+      "owner": "DeviceRegistry",
+      "methods": [
+        "attach"
+      ],
+      "definition": "kernel/fs/file/flow.cppm",
+      "graphs": [
+        "AttachFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::DeviceRegistry::attach",
+          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach#*1C#i#i#&$@N@xv@N@drivers@S@CharacterDevice#",
+          "source": "kernel/fs/file/open_file.cpp",
+          "source_sha256": "7b98c79136315b79a59b6e7f64d9d218f973c573302b75da2ca6f2f6908e8dae",
+          "graphs": [
+            "AttachFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e1be0a25b82ca686beabd1e27dfa20314978e606c63bc473851540febb6b162d"
+    },
+    {
+      "module": "fs",
+      "owner": "InodeBackend",
+      "methods": [
+        "read",
+        "write",
+        "seek",
+        "resize",
+        "sync"
+      ],
+      "definition": "kernel/fs/file/inode_backend_flow.cppm",
+      "graphs": [
+        "ReadFlow::Graph",
+        "WriteFlow::Graph",
+        "SeekFlow::Graph",
+        "ResizeFlow::Graph",
+        "SyncFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::InodeBackend::read",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@read#$@N@xv@N@io@S@Buffer#I#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "25f54a5ccd90b21e578fc99be1c17ca1d721a75cfb80e8b810eb2977fa3c4911",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::InodeBackend::write",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@write#$@N@xv@N@io@S@Buffer#I#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "3763bd527947a76f6b08b103a1783bb11060c2c4c0410534a6ad9d1f32fac2e7",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::InodeBackend::seek",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@seek#L#I#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "363b38c9d3d490a68d0aea39d7108515979b22f329d9ff0150e995ed59062f58",
+          "graphs": [
+            "SeekFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::InodeBackend::resize",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@resize#i#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "4dacaa7985fb08fc846d327acce29dd2e8e5d3ef8bfe9ca794ff7b67175cf76c",
+          "graphs": [
+            "ResizeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::InodeBackend::sync",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@sync#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "f9bce639e328decc617bfaabce715fa86f9ba5002ca24a1e8dfa7a802f19d9c1",
+          "graphs": [
+            "SyncFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "7c1f2364bbdb7ff04a0cac8a0cd309edb9db8967e9641d6621bc4f721668388f"
+    },
+    {
+      "module": "fs",
+      "owner": "LruBlockCache",
+      "methods": [
+        "get",
+        "release"
+      ],
+      "definition": "kernel/fs/cache/flow.cppm",
+      "graphs": [
+        "GetFlow::Graph",
+        "ReleaseFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::LruBlockCache::get",
+          "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
+          "source": "kernel/fs/cache/lru_block_cache.cpp",
+          "source_sha256": "b03a608b6363fa991c485e724f2b1c8737d890df09436675d43700413614b92a",
+          "graphs": [
+            "GetFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::LruBlockCache::release",
+          "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@release#&$@N@xv@N@fs@S@Buffer#",
+          "source": "kernel/fs/cache/lru_block_cache.cpp",
+          "source_sha256": "e68316d18b289e6de74ed30153a226837f72230edb0034c48c1eeab77e7b085e",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "5766b94ffc68892e40880909964beb655bd848faee15fc20a01e2e7d3dd0a454"
+    },
+    {
+      "module": "fs",
+      "owner": null,
+      "methods": [
+        "create_pipe"
+      ],
+      "definition": "kernel/fs/pipe/pipe_factory.cpp",
+      "graphs": [
+        "PipeFactoryFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::create_pipe",
+          "usr": "c:@N@xv@N@fs@F@create_pipe#**$@N@xv@N@fs@S@File#S0_#",
+          "source": "kernel/fs/pipe/pipe_factory.cpp",
+          "source_sha256": "e6ba52b3925e91be954db5ccc2cdfb7047b211d98fd0e2bba06d06807bd295bd",
+          "graphs": [
+            "PipeFactoryFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "cdf2552f2f67dc69c08b94e3440aba8a60bfbb10aea41816c16a692b0bbdae26"
+    },
+    {
+      "module": "fs",
+      "owner": "VirtualFileSystem",
+      "methods": [
+        "walk",
+        "ancestor",
+        "create",
+        "link",
+        "unlink",
+        "unlink_at",
+        "rename",
+        "symlink"
+      ],
+      "definition": "kernel/fs/vfs/path_flow.cppm",
+      "graphs": [
+        "WalkFlow::Graph",
+        "AncestorFlow::Graph",
+        "CreateFlow::Graph",
+        "LinkFlow::Graph",
+        "UnlinkFlow::Graph",
+        "UnlinkAtFlow::Graph",
+        "RenameFlow::Graph",
+        "SymlinkFlow::Graph",
+        "CreateFlow::RegularGraph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::VirtualFileSystem::walk",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "543ce3b769e8cdc92c41f7d156fd6a0fa7a6113a662d44bc83c5307fc36e25c0",
+          "graphs": [
+            "WalkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::ancestor",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@ancestor#*$@N@xv@N@fs@S@Inode#S0_#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "ed5e366d9a6d852f47947228fe0ded7232b7d535a133b9fb6093a7207106aa8d",
+          "graphs": [
+            "AncestorFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::create",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@create#*C#S#S#S#b#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "2f592aa45fa5c590cb562fcc6e1d0e23896c66e1a4296092edade5f784118eea",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::link",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@link#*C#S0_#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "06eccc474e9280dbda963e5445404d6a4ddc626c9197131135b188a4b3a990e1",
+          "graphs": [
+            "LinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::unlink",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink#*C#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "b1f6df1b5366087865139ab26767fbb42f3bc83226c3679bbeb098281ecc615f",
+          "graphs": [
+            "UnlinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::unlink_at",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "2ff03bec4122d7ccfd3d2d2d1ffd815dfe04e50c3c54cfc6e8bc1e99ae95351e",
+          "graphs": [
+            "UnlinkAtFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::rename",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@rename#*1C#S0_#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "07d41ae6db44244ebb4027fe305ccb14069d201548202f480a6314fa57d034b9",
+          "graphs": [
+            "RenameFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::symlink",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "6910f88cdec3ea52ab65e963090cfba90d22583c09cc780e14cde274a38f361a",
+          "graphs": [
+            "SymlinkFlow::Graph"
+          ]
+        }
+      ],
+      "internal_bindings": [
+        {
+          "qualified": "xv::fs::VirtualFileSystem::CreateFlow::open_regular",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@S@CreateFlow@F@open_regular#&$@N@xv@N@fs@S@VirtualFileSystem@S@CreateFlow@S@Context#S",
+          "source": "kernel/fs/vfs/path_flow.cppm",
+          "source_sha256": "073f6a0f6f6e78a44cc7eff8c83a4d46962664b52926c75110833b412c294da6",
+          "graphs": [
+            "CreateFlow::RegularGraph"
+          ]
+        }
+      ],
+      "definition_sha256": "19105c932e5d255f1188a026383aba4b2a35cca9286c96ff2e1f770330c4f2ce"
+    },
+    {
+      "module": "fs",
+      "owner": "VirtualFileSystem",
+      "methods": [
+        "mount",
+        "mount_ram",
+        "mount_disk",
+        "unmount"
+      ],
+      "definition": "kernel/fs/vfs/mount_flow.cppm",
+      "graphs": [
+        "MountFlow::Graph",
+        "MountRamFlow::Graph",
+        "MountDiskFlow::Graph",
+        "UnmountFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::VirtualFileSystem::mount",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount#*1C#&$@N@xv@N@fs@S@FileSystem#i#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "b5cb93e918f44b1bffd78fff84dc7fece06aa070f90d896b9c60f0305a4fb974",
+          "graphs": [
+            "MountFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::mount_ram",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_ram#*1C#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "3de9d08e42fc3afd5ab4c3ff0f428941ebedd75ff4b8ab407bd9824d80971a96",
+          "graphs": [
+            "MountRamFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::mount_disk",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "b37b8d674a4406074bdf336706f879bdecaa5f3fc05d2a48832cf4ca8c341cbf",
+          "graphs": [
+            "MountDiskFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::unmount",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unmount#*1C#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "b8d17fb822d18acf54fdb671dd98b9a11b98dfdc4f87a45559ab8ac6d894e1ab",
+          "graphs": [
+            "UnmountFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "0aada67908fc0d99ad648c9e4791c44f0517490b0b4d38c6f7a73010e2ad0c1c"
+    },
+    {
+      "module": "fs",
+      "owner": "VirtualFileSystem",
+      "methods": [
+        "initialize_inodes",
+        "initialize"
+      ],
+      "definition": "kernel/fs/vfs/initialize_flow.cppm",
+      "graphs": [
+        "InitializeFlow::InodesGraph",
+        "InitializeFlow::BackendsGraph",
+        "InitializeFlow::MountsGraph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::VirtualFileSystem::initialize_inodes",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize_inodes#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "6f11879a004dd4d1288fb2d50bd2890f015a83b04aa206e3cb051e01e8ee1534",
+          "graphs": [
+            "InitializeFlow::InodesGraph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::VirtualFileSystem::initialize",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize#I#",
+          "source": "kernel/fs/vfs/vfs.cpp",
+          "source_sha256": "045077b7996e0d9240f99c7e4ec51e54c6c26762e1ce32b925b1a393408a0b36",
+          "graphs": [
+            "InitializeFlow::BackendsGraph",
+            "InitializeFlow::MountsGraph"
+          ]
+        }
+      ],
+      "definition_sha256": "fb37036dbfe85812484fc322742c5e7f005ce49719ae1fbf6cf0cd4ec75a00c3"
+    },
+    {
+      "module": "fs",
+      "owner": "RamFileSystem",
+      "methods": [
+        "initialize_mount",
+        "make",
+        "release",
+        "reclaim",
+        "create_at",
+        "link_at",
+        "unlink_at",
+        "read",
+        "rename_at"
+      ],
+      "definition": "kernel/fs/ramfs/flow.cppm",
+      "graphs": [
+        "InitializeMountFlow::Graph",
+        "MakeFlow::Graph",
+        "ReleaseFlow::Graph",
+        "ReclaimFlow::Graph",
+        "CreateFlow::Graph",
+        "LinkFlow::Graph",
+        "UnlinkFlow::Graph",
+        "ReadFlow::Graph",
+        "RenameFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::RamFileSystem::initialize_mount",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@initialize_mount#i#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "0f0d1d2b1517cf213ab1b2f1bf6082e80b4aef62499dc757d01f83316db78e26",
+          "graphs": [
+            "InitializeMountFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::make",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@make#S#*$@N@xv@N@fs@S@RamFileSystem@S@Node#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "431796ca306a93cbf1534934fffb12a2d8fdc1c5e35cfb249a8f2df2af265b41",
+          "graphs": [
+            "MakeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::release",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@release#*$@N@xv@N@fs@S@Inode#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "15a32471866b1c423428ea8da3fd888eabd3c26f10e365bb13e6e0a83e340145",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::reclaim",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@reclaim#*$@N@xv@N@fs@S@RamFileSystem@S@Node#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "a94e2dd032e2ff2089bb70694d5722a85d75d89c96491f88d5013f4f10e27f66",
+          "graphs": [
+            "ReclaimFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::create_at",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "50dc7640659489c7b01db8c7e9c2e93f0a6674de4d790c8e29ffa5af7c782700",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::link_at",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@link_at#*$@N@xv@N@fs@S@Inode#*1C#S0_#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "f46fd02fe27ad8b8ab6b1d681b5f26770aeb3bda4f80973d809b9a3716b6c51f",
+          "graphs": [
+            "LinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::unlink_at",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "e2c19d6da3b41c07d3d8014e85de89797dc18a28f586e3bfc4c9cbe74096c971",
+          "graphs": [
+            "UnlinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::read",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "e346c5f2cbd8482e6dbdad76fc7840c3faafb3228874252f974be2d425859ace",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::RamFileSystem::rename_at",
+          "usr": "c:@N@xv@N@fs@S@RamFileSystem@F@rename_at#*$@N@xv@N@fs@S@Inode#*1C#S0_#S2_#",
+          "source": "kernel/fs/ramfs/ramfs.cpp",
+          "source_sha256": "87c413dfbaf5edc986a6cbc256cacd6ac3f0d05ec9122e819a9efe133b375e19",
+          "graphs": [
+            "RenameFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "839af99d35a0e34e4a0591315eb262fdcd3b2414b348a0dbb85ff83d29cc9334"
+    },
+    {
+      "module": "fs",
+      "owner": "DevFileSystem",
+      "methods": [
+        "release",
+        "lookup_entry",
+        "read",
+        "create_at"
+      ],
+      "definition": "kernel/fs/devfs/flow.cppm",
+      "graphs": [
+        "ReleaseFlow::Graph",
+        "LookupFlow::Graph",
+        "ReadFlow::Graph",
+        "CreateFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::DevFileSystem::release",
+          "usr": "c:@N@xv@N@fs@S@DevFileSystem@F@release#*$@N@xv@N@fs@S@Inode#",
+          "source": "kernel/fs/devfs/devfs.cpp",
+          "source_sha256": "18fb86beeee101bb88d55391d57e90be25ffb12abb157ec1314e954d61c51a77",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::DevFileSystem::lookup_entry",
+          "usr": "c:@N@xv@N@fs@S@DevFileSystem@F@lookup_entry#*$@N@xv@N@fs@S@Inode#*1C#*i#",
+          "source": "kernel/fs/devfs/devfs.cpp",
+          "source_sha256": "fa57e07eecae57d7c9d45ff3530ce58377e11e3fbf8b684876aa4a7ef19b34e5",
+          "graphs": [
+            "LookupFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::DevFileSystem::read",
+          "usr": "c:@N@xv@N@fs@S@DevFileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
+          "source": "kernel/fs/devfs/devfs.cpp",
+          "source_sha256": "a5b9d896a613cece4f677e7bd732f0fe9908fc2e840f017a1c986296cb33e689",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::DevFileSystem::create_at",
+          "usr": "c:@N@xv@N@fs@S@DevFileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
+          "source": "kernel/fs/devfs/devfs.cpp",
+          "source_sha256": "b3d6f97e23747d9b1b979902f514b3db086acdc34ae660fec84223511e140284",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1d0961a4eaf1261d89132dfb4ffe4a67eb90638e2b33c2537cda49e4e81f164b"
+    },
+    {
+      "module": "fs",
+      "owner": "ProcFileSystem",
+      "methods": [
+        "get",
+        "lookup_entry",
+        "snapshot"
+      ],
+      "definition": "kernel/fs/procfs/procfs.cpp",
+      "graphs": [
+        "GetFlow::Graph",
+        "LookupFlow::Graph",
+        "SnapshotFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::ProcFileSystem::get",
+          "usr": "c:@N@xv@N@fs@S@ProcFileSystem@F@get#i#i#i#",
+          "source": "kernel/fs/procfs/procfs.cpp",
+          "source_sha256": "724dff93ba4df84302fe17263c71c7ea8bb77d0f113ca1426900df0b042a05a7",
+          "graphs": [
+            "GetFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::ProcFileSystem::lookup_entry",
+          "usr": "c:@N@xv@N@fs@S@ProcFileSystem@F@lookup_entry#*$@N@xv@N@fs@S@Inode#*1C#*i#",
+          "source": "kernel/fs/procfs/procfs.cpp",
+          "source_sha256": "333aae4613642c00d067063b51069b5a61941f4407ac6aa98b72573c6aab0e3f",
+          "graphs": [
+            "LookupFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::ProcFileSystem::snapshot",
+          "usr": "c:@N@xv@N@fs@S@ProcFileSystem@F@snapshot#*$@N@xv@N@fs@S@Inode#&$@N@xv@N@fs@S@PageBuffer#",
+          "source": "kernel/fs/procfs/procfs.cpp",
+          "source_sha256": "c11ab0aa2d3fef280b5d7d4e05a9e5bd332bfc058dc41e22d486efe24b10bda2",
+          "graphs": [
+            "SnapshotFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "209a8f335413c2ce2d55e4b1ada4c5e2c60048df55c6fdeba68c4d4eaa2bca94"
+    },
+    {
+      "module": "fs",
+      "owner": "Xv6FileSystem",
+      "methods": [
+        "initialize",
+        "allocate_block",
+        "allocate",
+        "get",
+        "lock",
+        "release",
+        "reclaim",
+        "map_block",
+        "truncate",
+        "read",
+        "write",
+        "resize"
+      ],
+      "definition": "kernel/fs/inode/flow.cppm",
+      "graphs": [
+        "InitializeFlow::Graph",
+        "AllocateBlockFlow::Graph",
+        "AllocateFlow::Graph",
+        "GetFlow::Graph",
+        "LockFlow::Graph",
+        "ReleaseFlow::Graph",
+        "ReclaimFlow::Graph",
+        "MapBlockFlow::Graph",
+        "TruncateFlow::Graph",
+        "ReadFlow::Graph",
+        "WriteFlow::Graph",
+        "ResizeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::Xv6FileSystem::initialize",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@initialize#I#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "2ed4be4668a30250d64ed90dfb66d77a2004f88bbbcb3c6899df5d26340d9d65",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::allocate_block",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@allocate_block#i#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "91e3f09f45bc2f9e89eb2f3aa2fc90fd4b2f3f47ba7add1e4bc16e54b249bc57",
+          "graphs": [
+            "AllocateBlockFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::allocate",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@allocate#i#S#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "af6d736b1026eb0fd4e8cd67c4e21414c611940c3c33ec43c792096e0366354f",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::get",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@get#i#i#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "d7764d21fcccee5e4a6441d04a70150039ec0e23afaca971b157bea0ca09265e",
+          "graphs": [
+            "GetFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::lock",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@lock#*$@N@xv@N@fs@S@Inode#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "2ac0788e19aa217485fc100d3d3659f52d5470e61619ae3655d9a3fc1510b6a5",
+          "graphs": [
+            "LockFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::release",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@release#*$@N@xv@N@fs@S@Inode#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "45b737d2980edead4f6e4361aec0f5eb6a90807ccdc6523a0ab43642b406b510",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::reclaim",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@reclaim#I#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "6fa09d3a9dfec20a9a7999eed83da88f5c9a7041efdf67c6f52d16ac04dbcd54",
+          "graphs": [
+            "ReclaimFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::map_block",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@map_block#*$@N@xv@N@fs@S@Inode#i#b#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "dc622f838b62a7d32dbc5fd3c1cda70e8dc96a958ed16e35b93c9703834e6e06",
+          "graphs": [
+            "MapBlockFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::truncate",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@truncate#*$@N@xv@N@fs@S@Inode#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "ef4816f284eafb18babc8937449b83758497d04e65055ec1cad85ec5f81054f3",
+          "graphs": [
+            "TruncateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::read",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "59ae0fa87ce668448b292ecd6c425129a52b15b40c13c2a61f2518a3ba4e19c9",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::write",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "19072d72556dd15059db29968ea3f57891c1054fc63f095d78dd80d904653c9d",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::resize",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@resize#*$@N@xv@N@fs@S@Inode#i#",
+          "source": "kernel/fs/inode/xv6_filesystem.cpp",
+          "source_sha256": "3b7de6e3666af7a1e927744a6f7174aa99d2bd4cdbea2b0f4316186938c80bdf",
+          "graphs": [
+            "ResizeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "a039f24318e82584dfaa31bf3bf4020995a630d2d03de723283501f1e649942c"
+    },
+    {
+      "module": "fs",
+      "owner": "Xv6FileSystem",
+      "methods": [
+        "link_at",
+        "unlink_at",
+        "create_at",
+        "rename_at"
+      ],
+      "definition": "kernel/fs/path/flow.cppm",
+      "graphs": [
+        "LinkFlow::Graph",
+        "UnlinkFlow::Graph",
+        "CreateFlow::Graph",
+        "RenameFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::Xv6FileSystem::link_at",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@link_at#*$@N@xv@N@fs@S@Inode#*1C#S0_#",
+          "source": "kernel/fs/path/path_operations.cpp",
+          "source_sha256": "11e57818d597c6b132b80f2e53088ab9974633d9f08ca78db4f1d07e929088de",
+          "graphs": [
+            "LinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::unlink_at",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
+          "source": "kernel/fs/path/path_operations.cpp",
+          "source_sha256": "5fffcdc84fdf8f858dd167ef86253119cc4371ee922f20acffe0ff7f850b6659",
+          "graphs": [
+            "UnlinkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::create_at",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
+          "source": "kernel/fs/path/path_operations.cpp",
+          "source_sha256": "4f63e1bc80dba9bc4136c72222b5bcac368de051a55e87b396c4abe065c422e8",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6FileSystem::rename_at",
+          "usr": "c:@N@xv@N@fs@S@Xv6FileSystem@F@rename_at#*$@N@xv@N@fs@S@Inode#*1C#S0_#S2_#",
+          "source": "kernel/fs/path/path_operations.cpp",
+          "source_sha256": "769d32c960dd6ed188e292cf68ecf3f482621867af2b79f64af4d015b3a4141e",
+          "graphs": [
+            "RenameFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "6e4cb15e7a2e39a285b2fb0a54a8cbcfcf71d4d94638b39af10a56edf3cea98a"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessManager",
+      "methods": [
+        "allocate",
+        "reap",
+        "create_initial_process",
+        "fork_process",
+        "reparent",
+        "exit_process",
+        "kill",
+        "inspect_files"
+      ],
+      "definition": "kernel/process/lifecycle/process_manager.cpp",
+      "graphs": [
+        "AllocateFlow::Graph",
+        "ReapFlow::Graph",
+        "InitialFlow::Graph",
+        "ForkFlow::Graph",
+        "ReparentFlow::Graph",
+        "ExitFlow::Graph",
+        "KillFlow::Graph",
+        "InspectFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ProcessManager::allocate",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@allocate#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "e9100a59315afe415aca41fdf1a51805a6818c19e30421accb911707101898b4",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::reap",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@reap#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "f1126cd2660b12ac00900a4e776c0329b7a25a8cfcb115c494d084e1b969db65",
+          "graphs": [
+            "ReapFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::create_initial_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@create_initial_process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "d9db5eefcfafb425c7f3cc54d69190966520b0a595bb5bc86476d5c5ee188776",
+          "graphs": [
+            "InitialFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::fork_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@fork_process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "5d49fc348bca42127aa3747fe04871f3695cf6e2ee212d417d8a029950c2b2c9",
+          "graphs": [
+            "ForkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::reparent",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@reparent#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "3d6f071f3f5fc7a630881f2ffb8349ab632d84d0dc6fce695f811724f2f05ab8",
+          "graphs": [
+            "ReparentFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::exit_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@exit_process#I#I#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "29a19a625d22095cb3aa5a027e8528a38e555f2f05345d4d5ba98f5d785a1252",
+          "graphs": [
+            "ExitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::kill",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "8c4531277093d72777145e947144bf4333ca08db4b9c1822b7df881371a2ab52",
+          "graphs": [
+            "KillFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::inspect_files",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "88238962feb66ca9451124659faf7a3122a45427214d64d18cfd403a7351ada4",
+          "graphs": [
+            "InspectFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "2f145f1e1f4ea3d2b2cf780a4fdd199a37591cec4a96646faf38b36791d1d6f3"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessManager",
+      "methods": [
+        "wait_child"
+      ],
+      "definition": "kernel/process/wait/wait_child.cpp",
+      "graphs": [
+        "WaitFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ProcessManager::wait_child",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@wait_child#I#l#I#b#",
+          "source": "kernel/process/wait/wait_child.cpp",
+          "source_sha256": "a0c20313f39695fe40eedbc81eb7991b7ff476e063ca62ae414b86642865af0b",
+          "graphs": [
+            "WaitFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e76a3b98fa15034b73de100a124137e84027147b99113197a77e72da3eed9b49"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessGroups",
+      "methods": [
+        "detach",
+        "create_initial",
+        "create_session",
+        "set_group"
+      ],
+      "definition": "kernel/process/groups/process_groups.cpp",
+      "graphs": [
+        "DetachFlow::Graph",
+        "InitialFlow::Graph",
+        "SessionFlow::Graph",
+        "SetGroupFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ProcessGroups::detach",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@detach#&$@N@xv@N@process@S@ProcessMembership#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "21afa3a9a0208b1181a778f13cde2a1f6cf3289684b37af69192a4ddf421f894",
+          "graphs": [
+            "DetachFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::create_initial",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@create_initial#&$@N@xv@N@process@S@ProcessMembership#I#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "1c144e96bf1aca622d4f9ae3e7202d2c232d22571037df2cac97fc27025b56b2",
+          "graphs": [
+            "InitialFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::create_session",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@create_session#&$@N@xv@N@process@S@ProcessMembership#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "22ff4fcc02e421d2d228189f78b954e36ee534b134922d675c658d28d8a722a6",
+          "graphs": [
+            "SessionFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::set_group",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@set_group#&$@N@xv@N@process@S@ProcessMembership#I#I#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "f9f174191ed2f30c897852b3768e6460b1d00b6feb4d9c843644ad9c0e7dd005",
+          "graphs": [
+            "SetGroupFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "27482c13bcc80e09bcbc9a432e1193a8e7f9b4bf5df57a8c2233220651fa8872"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessGroups",
+      "methods": [
+        "claim_terminal",
+        "set_foreground"
+      ],
+      "definition": "kernel/process/groups/terminal_control.cpp",
+      "graphs": [
+        "ClaimTerminalFlow::Graph",
+        "ForegroundFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ProcessGroups::claim_terminal",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@claim_terminal#&1$@N@xv@N@process@S@ProcessMembership#*v#",
+          "source": "kernel/process/groups/terminal_control.cpp",
+          "source_sha256": "ec941528232f638dd3b56f0a6d52e2cb4e6d5cab83853f81b9227ac56bf97d8a",
+          "graphs": [
+            "ClaimTerminalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::set_foreground",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@set_foreground#&1$@N@xv@N@process@S@ProcessMembership#*v#I#",
+          "source": "kernel/process/groups/terminal_control.cpp",
+          "source_sha256": "8f297c8877bbfa9e1b5acbcdacd22280bbbac7d60ace2e8b88254d7ff5300fac",
+          "graphs": [
+            "ForegroundFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "031b892d4da722f080cccce9e2cd238110f72c9914a7b429426302fb162cd087"
+    },
+    {
+      "module": "process",
+      "owner": "Process",
+      "methods": [
+        "signal_action",
+        "signal_mask",
+        "signal_suspend",
+        "enter_signal_handler",
+        "signal_return"
+      ],
+      "definition": "kernel/process/signals/user_signals.cpp",
+      "graphs": [
+        "SignalActionFlow::Graph",
+        "SignalMaskFlow::Graph",
+        "SignalSuspendFlow::Graph",
+        "EnterSignalFlow::Graph",
+        "ReturnSignalFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::Process::signal_action",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_action#I#l#l#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "8a35ee6e121b50af3c63194ca16a04bfc95f1d61aef34a51a84a89b76b380585",
+          "graphs": [
+            "SignalActionFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_mask",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_mask#I#l#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "7e56090bc6c0f980a0a45479cae5be1e4b997896536e392db1fc0e7f07e63dcf",
+          "graphs": [
+            "SignalMaskFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_suspend",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_suspend#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "6abb3cd84186e89bfbb9e0012cd307109c418764f5e1d5925c4ac7905c241710",
+          "graphs": [
+            "SignalSuspendFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::enter_signal_handler",
+          "usr": "c:@N@xv@N@process@S@Process@F@enter_signal_handler#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "82bb7f5681148c04ed6cef0a2c9c2006363a61ef636d699127aae929ebee7bbc",
+          "graphs": [
+            "EnterSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_return",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_return#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "41cc260d3ca5b091ae5ab635d721c80e842ca9d9d267e586f6c40adc016b9580",
+          "graphs": [
+            "ReturnSignalFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "0811482c4fb21aeb4f107ddd26e68d6af73b28ca252436f9bc28ed708eb64168"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessManager",
+      "methods": [
+        "wake_for_signal",
+        "send_signal",
+        "notify_child_events",
+        "deliver_signals"
+      ],
+      "definition": "kernel/process/signals/signal_delivery.cpp",
+      "graphs": [
+        "WakeSignalFlow::Graph",
+        "SendPidSignalFlow::Graph",
+        "SendGroupSignalFlow::Graph",
+        "NotifyChildFlow::Graph",
+        "DeliverSignalFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::ProcessManager::wake_for_signal",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@wake_for_signal#&$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "b61da5188bdb964a5560e36ee4d6d42becb794778dbd16724afe87e274bb5bc2",
+          "graphs": [
+            "WakeSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::send_signal",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@send_signal#I#I#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "1494d63c75b5b7190bc874779f2c40296c5b656c21a3c5178d1866251cb338a0",
+          "graphs": [
+            "SendPidSignalFlow::Graph",
+            "SendGroupSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::notify_child_events",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@notify_child_events#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "3c2d577dadd320a1ebcaa42e63d14c23880233bdb6cfe231d29d0e3cdae68809",
+          "graphs": [
+            "NotifyChildFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::deliver_signals",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@deliver_signals#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "6c0e2de4c55d97cbccf513866b72ebcace91d0019fa42d30d2c779a8c4eafed5",
+          "graphs": [
+            "DeliverSignalFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "f6a46cb74d6287a62ff37f7180d6171264a52393ad57149bd438fa7b80387bbb"
+    },
+    {
+      "module": "process",
+      "owner": "RoundRobinScheduler",
+      "methods": [
+        "run"
+      ],
+      "definition": "kernel/process/scheduler/policies/round_robin.cpp",
+      "graphs": [
+        "RunFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::RoundRobinScheduler::run",
+          "usr": "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
+          "source": "kernel/process/scheduler/policies/round_robin.cpp",
+          "source_sha256": "b8bd64a90fc44ad3fba122e7b35e286447f9714a156fa982965f94556debb019",
+          "graphs": [
+            "RunFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "0009502df9332d7eb81d079b2217a6223192a7c58d41fb6e492f6721e1cfdf68"
+    },
+    {
+      "module": "process",
+      "owner": "SchedulerContext",
+      "methods": [
+        "dispatch",
+        "suspend",
+        "yield"
+      ],
+      "definition": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+      "graphs": [
+        "DispatchFlow::Graph",
+        "SuspendFlow::Graph",
+        "YieldFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::SchedulerContext::dispatch",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "74c074a8be41fbeee88e0c8d3ae6ad1d40d6625a6df6343e8c11706ac668cb05",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::SchedulerContext::suspend",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@suspend#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "e69ebd0ecdc44cb2f30046b356211ffd08dd26db3d65114cfa364cff9acf9694",
+          "graphs": [
+            "SuspendFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::SchedulerContext::yield",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@yield#&$@N@xv@N@process@S@Scheduler#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "c58cf30f7907007497c9ed99348940273bc16d6e64e49528c2757776213a1651",
+          "graphs": [
+            "YieldFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "a703b8a770c1b69fb15dd91702481b9635ec216528df7380bdc8ebb4f55363fd"
+    },
+    {
+      "module": "process",
+      "owner": "WaitChannels",
+      "methods": [
+        "cancel",
+        "prepare",
+        "wake"
+      ],
+      "definition": "kernel/process/wait/wait_channels.cpp",
+      "graphs": [
+        "CancelFlow::Graph",
+        "PrepareFlow::Graph",
+        "WakeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::WaitChannels::cancel",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@cancel#&$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "7d2a82831e2f6dd03d81d6c3afca1c454176c059755bf7497a2b920fd84f6ddd",
+          "graphs": [
+            "CancelFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::WaitChannels::prepare",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@prepare#&$@N@xv@N@process@S@Process#*v#b#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "b2a297fce380788b8ed373681a4af00e708ad4023112aa4a4a5765bf49b985a6",
+          "graphs": [
+            "PrepareFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::WaitChannels::wake",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "60c7b5e126fa65dfc0370c22d3f8da9e9fb8d64f7f1a03d33f685c4aecd31ebb",
+          "graphs": [
+            "WakeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "6c341554d0525546480cd2872369f59937f42b3bff3feac36798d59d786afa0e"
+    },
+    {
+      "module": "process",
+      "owner": "PollWait",
+      "methods": [
+        "watch",
+        "~PollWait",
+        "sleep"
+      ],
+      "definition": "kernel/process/wait/poll_wait.cpp",
+      "graphs": [
+        "WatchFlow::Graph",
+        "ReleaseFlow::Graph",
+        "SleepFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::PollWait::watch",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@watch#*v#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "f9f76519fccc6fb620d0bad503df3b2df32f546530a2e6b7b31715fa5faa4987",
+          "graphs": [
+            "WatchFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PollWait::~PollWait",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@~PollWait#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "17daf75edfe3cacdfbbb1ad8faa97bf90be420c3b7e8e4100e1a51cdedc51bc3",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PollWait::sleep",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@sleep#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "aee6c9c882d90a7513b9e0b015a1793079f0663ce383522140eaa087b5591aff",
+          "graphs": [
+            "SleepFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c"
+    },
+    {
+      "module": "process",
+      "owner": "WaitChannels",
+      "methods": [
+        "expire_timers"
+      ],
+      "definition": "kernel/process/wait/poll_wait.cpp",
+      "graphs": [
+        "ExpireFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::WaitChannels::expire_timers",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "118785a5fbd9ce6bdd45a5d604a0ee0fd3a95e973fede5b996c0c617f64a0fee",
+          "graphs": [
+            "ExpireFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c"
+    },
+    {
+      "module": "process",
+      "owner": "PagedProcessStore",
+      "methods": [
+        "allocate",
+        "release"
+      ],
+      "definition": "kernel/process/storage/paged_process_store.cpp",
+      "graphs": [
+        "AllocateFlow::Graph",
+        "ReleaseFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::PagedProcessStore::allocate",
+          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
+          "source": "kernel/process/storage/paged_process_store.cpp",
+          "source_sha256": "b37f004fa500561498679c8c9bd9b3caa1e104b0a49afbcd71d9a7c442e09749",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PagedProcessStore::release",
+          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@release#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/storage/paged_process_store.cpp",
+          "source_sha256": "1ad1562c19a5b29c6f4f79e0b9f0d05aa105275c01e55f58ea7ae76cf8d41454",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "81ba68b223ca604d068b25b52c5cae6a41e7ca45043e48dbe14162ca4b4e6a1f"
+    },
+    {
+      "module": "process",
+      "owner": "DescriptorTable",
+      "methods": [
+        "duplicate"
+      ],
+      "definition": "kernel/process/resources/process_resources.cpp",
+      "graphs": [
+        "DuplicateFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::DescriptorTable::duplicate",
+          "usr": "c:@N@xv@N@process@S@DescriptorTable@F@duplicate#I#",
+          "source": "kernel/process/resources/process_resources.cpp",
+          "source_sha256": "98afd829f9a9ebb31c816f1a6bba0faff17b9fc7cbdb51ed869316e9a68b5cb6",
+          "graphs": [
+            "DuplicateFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "be0eae8889099a4822b94609bca5d101a5b1e933d8daa6da839dd872c242cdc2"
+    },
+    {
+      "module": "process",
+      "owner": "Process",
+      "methods": [
+        "commit_image"
+      ],
+      "definition": "kernel/process/lifecycle/process.cpp",
+      "graphs": [
+        "CommitFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::Process::commit_image",
+          "usr": "c:@N@xv@N@process@S@Process@F@commit_image#&$@N@xv@N@process@S@AddressSpace#l#l#l#*1C#l#",
+          "source": "kernel/process/lifecycle/process.cpp",
+          "source_sha256": "1a8abf4300ab15923ec6008e4be95cb913edbb0151710bb5ac247cd125f05df6",
+          "graphs": [
+            "CommitFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "e12b586f54fd86d40f408cb4728cdaa4033652bc409492baf512dbf2af28b6af"
+    },
+    {
+      "module": "process",
+      "owner": "",
+      "methods": [
+        "first_return"
+      ],
+      "definition": "kernel/process/lifecycle/first_return.cpp",
+      "graphs": [
+        "FirstReturnFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::first_return",
+          "usr": "c:@N@xv@N@process@F@first_return#",
+          "source": "kernel/process/lifecycle/first_return.cpp",
+          "source_sha256": "820fbda16d23c82afcb93be0545d3b1836630cdc145bd9638d8f3db444b8f36b",
+          "graphs": [
+            "FirstReturnFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "d2bfed7003c5898a3f82ec10eaff5ba92983772d47e90a416b05675013ecde62"
+    },
+    {
+      "module": "memory",
+      "owner": "",
+      "methods": [
+        "make_kernel_page_table"
+      ],
+      "definition": "kernel/memory/paging/kernel_page_table.cpp",
+      "graphs": [
+        "KernelBuildFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::make_kernel_page_table",
+          "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "ec0364015dd8d4332711f16a34928958f4e193b40d8f6eb1fa02bdf7ce99ae4d",
+          "graphs": [
+            "KernelBuildFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "0d9aa1a8786b56df06c92e2f8f28d676e1077392adcc2a0a88ae0796442cc9b3"
+    },
+    {
+      "module": "memory",
+      "owner": "KernelPageTable",
+      "methods": [
+        "initialize",
+        "commit_stack",
+        "release_stack",
+        "allocate_process_stack",
+        "free_process_stack",
+        "handle_stack_fault"
+      ],
+      "definition": "kernel/memory/paging/kernel_page_table.cpp",
+      "graphs": [
+        "InitializeFlow::Graph",
+        "CommitFlow::Graph",
+        "ReleaseFlow::Graph",
+        "AllocateFlow::Graph",
+        "FreeFlow::Graph",
+        "FaultFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::KernelPageTable::initialize",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "399b5fc7175d68d2403a454de23a29f044dcae3c460d8b54b791056bb9d167d1",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::commit_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@commit_stack#l#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "95e1ce15ca6dc3687137f049a045779166c7dc90079cb4a2e7c85207284d5b1f",
+          "graphs": [
+            "CommitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::release_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "858cfdeade1c977bcf13a7ca637c4f09b459bd701f1c661455416740044e1ff2",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@allocate_process_stack#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "1f611df664bee37e5eb791a0f2b820683c93cebb09bf2ebd72253e8f06606aa9",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::free_process_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "8a68638bdde6dfb813e2603bf9892421dc9d391571e06804cf0875f3db67b451",
+          "graphs": [
+            "FreeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::handle_stack_fault",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "675378046cb43023d0d5c2c4500b732fc63247476da28878b2dfbaa013f52324",
+          "graphs": [
+            "FaultFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "0d9aa1a8786b56df06c92e2f8f28d676e1077392adcc2a0a88ae0796442cc9b3"
+    },
+    {
+      "module": "memory",
+      "owner": "Sv39PageTable",
+      "methods": [
+        "map_leaf",
+        "map_range"
+      ],
+      "definition": "kernel/memory/paging/sv39_page_table.cpp",
+      "graphs": [
+        "LeafFlow::Graph",
+        "RangeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::Sv39PageTable::map_leaf",
+          "usr": "c:@N@xv@N@memory@S@Sv39PageTable@F@map_leaf#l#$@N@xv@N@memory@S@PhysicalAddress#i#l#",
+          "source": "kernel/memory/paging/sv39_page_table.cpp",
+          "source_sha256": "d583d26945f01c02682d72e5cd0e538a22e9099ead27aa61466b60a2f6d9d9fd",
+          "graphs": [
+            "LeafFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::Sv39PageTable::map_range",
+          "usr": "c:@N@xv@N@memory@S@Sv39PageTable@F@map_range#l#$@N@xv@N@memory@S@PhysicalAddress#l#l#",
+          "source": "kernel/memory/paging/sv39_page_table.cpp",
+          "source_sha256": "e211af586d8d15d78ec892cfceff0ce95c4bd9d79d6a6c203078d5370d6047cd",
+          "graphs": [
+            "RangeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "f77f79791fe14446bf8e2e1bc4ff9114941d5fee461714ac23cf8575da13208d"
+    },
+    {
+      "module": "memory",
+      "owner": "",
+      "methods": [
+        "supermap",
+        "superdemote",
+        "demote_user_pages",
+        "map_user_pages",
+        "unmap_user_pages",
+        "allocate_user_pages",
+        "clone_user_pages",
+        "resolve_user_fault"
+      ],
+      "definition": "kernel/memory/paging/vm.cpp",
+      "graphs": [
+        "SuperMapFlow::Graph",
+        "SuperDemoteFlow::Graph",
+        "DemoteUserFlow::Graph",
+        "MapUserFlow::Graph",
+        "UnmapUserFlow::Graph",
+        "AllocateUserFlow::Graph",
+        "CloneUserFlow::Graph",
+        "FaultUserFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::supermap",
+          "usr": "c:vm.cpp@N@xv@N@memory@F@supermap#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "3196cba00fb2233a5cea8d35509b8a63986de1a51b2ac0ede74cb59947987c66",
+          "graphs": [
+            "SuperMapFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::superdemote",
+          "usr": "c:vm.cpp@N@xv@N@memory@F@superdemote#*l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "43f35fb8b7640e96e49be8d908df2ffee4bb3caa153a95c9331826a3b2aa137a",
+          "graphs": [
+            "SuperDemoteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::demote_user_pages",
+          "usr": "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "a2901ecf15558f847bfb16273c03530fb9964c6d3e984865a6f736c0cb501df7",
+          "graphs": [
+            "DemoteUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::map_user_pages",
+          "usr": "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "5177cc5adf38b96635a351cda7cdf0c38c1ad0352ff78ae50e6f12689d27283e",
+          "graphs": [
+            "MapUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::unmap_user_pages",
+          "usr": "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "05c0b6f30127034c34223e08659ae34ef91390a494ecd1efbf89ef9ffc81842f",
+          "graphs": [
+            "UnmapUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::allocate_user_pages",
+          "usr": "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "0302d78bb59f1030235561f962a2b6cff91c15c219e97f770cc263db3ad44452",
+          "graphs": [
+            "AllocateUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::clone_user_pages",
+          "usr": "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "f69f887f39569f06dcdaa569ed620395a5a956ae033caa6cc7ed48647cbc210f",
+          "graphs": [
+            "CloneUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::resolve_user_fault",
+          "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "5d960987253b2904d5d41c6561c4534799ab7c60939dfe7a634a20beea9b4b00",
+          "graphs": [
+            "FaultUserFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "5f2da81e57d1cfc5de73d48f535d6cf753426a8b17ec4d725916903ed89db972",
+      "conditional_variants": [
+        {
+          "graph": "UnmapUserFlow::Graph",
+          "conditions": [
+            "defined(LAB_PGTBL)",
+            "!defined(LAB_PGTBL)"
+          ],
+          "additional_validation": "compile-only with LAB_COW/SOL_COW and LAB_PGTBL/SOL_PGTBL undefined"
+        },
+        {
+          "graph": "AllocateUserFlow::Graph",
+          "conditions": [
+            "defined(LAB_PGTBL)",
+            "!defined(LAB_PGTBL)"
+          ],
+          "additional_validation": "compile-only with LAB_COW/SOL_COW and LAB_PGTBL/SOL_PGTBL undefined"
+        },
+        {
+          "graph": "CloneUserFlow::Graph",
+          "conditions": [
+            "defined(LAB_PGTBL)",
+            "!defined(LAB_PGTBL)"
+          ],
+          "additional_validation": "compile-only with LAB_COW/SOL_COW and LAB_PGTBL/SOL_PGTBL undefined"
+        }
+      ]
+    },
+    {
+      "module": "memory",
+      "owner": "BuddyPageAllocator",
+      "methods": [
+        "allocate",
+        "deallocate",
+        "initialize_layout"
+      ],
+      "definition": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+      "graphs": [
+        "AllocateFlow::Graph",
+        "DeallocateFlow::Graph",
+        "InitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::allocate",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@allocate#i#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "7a35a54f637ef33aad21632e8ebd86c5cc44b0725f1ddcf3cee9816c97e1c76f",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::deallocate",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@deallocate#*v#i#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "1362ea0953c373d171e3120fd8c088a8efadc7781f39df1b5452337843c034ef",
+          "graphs": [
+            "DeallocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::initialize_layout",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@initialize_layout#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "3a3d98c41aae9c4e50ecb3d6e05c52d3a91cbb597a7887e7ac23e10adf9c339e",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "fdfbb88b6565f4792038421a845a8732970bb8e8240e29790a9c25e8149fd609"
+    },
+    {
+      "module": "memory",
+      "owner": "",
+      "methods": [
+        "initialize"
+      ],
+      "definition": "kernel/memory/allocator/allocator_service.cpp",
+      "graphs": [
+        "InitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::initialize",
+          "usr": "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#&1$@N@xv@N@memory@S@BootMemoryInfo#$@N@xv@N@memory@S@PhysicalAddress#",
+          "source": "kernel/memory/allocator/allocator_service.cpp",
+          "source_sha256": "0d116adfeae75f3cf2f963cd79ad52a80578e3e1df8745b5213493d024b28086",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "53cceffaa5e029e0870344bf2f5e606c5110a030ba5f2f3212bf26f1076153ec"
+    },
+    {
+      "module": "memory",
+      "owner": "PhysicalMemoryLayout",
+      "methods": [
+        "reserve",
+        "reserve_metadata",
+        "subtract"
+      ],
+      "definition": "kernel/memory/layout/physical_memory_layout.cppm",
+      "graphs": [
+        "ReserveFlow::Graph",
+        "MetadataFlow::Graph",
+        "SubtractFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::reserve",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@reserve#$@N@xv@N@memory@S@PhysicalMemoryRange#b#",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "3cc3d7bb1c6af5d14d7ab845e8eac6670a62d8af6d7c81c54574ca4170f7cfd6",
+          "graphs": [
+            "ReserveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::reserve_metadata",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@reserve_metadata#l#",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "81518448f229c3bf196cec41df56f0d39b4987971993e5619ba0eccb15a5a85f",
+          "graphs": [
+            "MetadataFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::subtract",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@subtract#*$@N@xv@N@memory@S@PhysicalMemoryRange#&i#S1_#S",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "03cae3771eab926cfb8d75edd4280dec627cb28752b8a5180e50758af80c58c4",
+          "graphs": [
+            "SubtractFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "923ace2bd0624589972c1c4a7520be1d5f1ddc1852d1933290ef96cceb5dbf31"
+    },
+    {
+      "module": "memory",
+      "owner": "",
+      "methods": [
+        "record"
+      ],
+      "definition": "kernel/memory/boot/boot_memory.cpp",
+      "graphs": [
+        "RecordFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::record",
+          "usr": "c:boot_memory.cpp@N@xv@N@memory@aN@F@record#&1$@N@xv@N@memory@aN@S@Node#&$@N@xv@N@memory@S@BootMemoryInfo#",
+          "source": "kernel/memory/boot/boot_memory.cpp",
+          "source_sha256": "c62fc92e4814dd93ebe6864ea7d683082ab8dde4d48c39de275175736fb4d96c",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af"
+    },
+    {
+      "module": "memory",
+      "owner": "FdtMemorySource",
+      "methods": [
+        "discover"
+      ],
+      "definition": "kernel/memory/boot/boot_memory.cpp",
+      "graphs": [
+        "DiscoverFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::FdtMemorySource::discover",
+          "usr": "c:@N@xv@N@memory@S@FdtMemorySource@F@discover#&$@N@xv@N@memory@S@BootMemoryInfo#",
+          "source": "kernel/memory/boot/boot_memory.cpp",
+          "source_sha256": "249288308064718cdc1be5dddcf0a341c1331c60051ffb613ddd919a115e7bdb",
+          "graphs": [
+            "DiscoverFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af"
+    },
+    {
+      "module": "memory",
+      "owner": "",
+      "methods": [
+        "boot_initialize"
+      ],
+      "definition": "kernel/memory/boot/kalloc.cpp",
+      "graphs": [
+        "BootInitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::memory::boot_initialize",
+          "usr": "c:@N@xv@N@memory@F@boot_initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalAddress#",
+          "source": "kernel/memory/boot/kalloc.cpp",
+          "source_sha256": "06246f1c9aea52a7911111f7cbef82d51e684bd410d07124d73f8c2215365fc3",
+          "graphs": [
+            "BootInitializeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "98fd3224a179a18b81645451acb53560f7f2e78b859078cfdd3e030bfdff9fdd"
+    },
+    {
+      "module": "drivers",
+      "owner": "Tty",
+      "methods": [
+        "inject",
+        "poll",
+        "read",
+        "write",
+        "ioctl"
+      ],
+      "definition": "kernel/drivers/tty/core/tty.cpp",
+      "graphs": [
+        "InjectFlow::Graph",
+        "PollFlow::Graph",
+        "ReadFlow::Graph",
+        "WriteFlow::Graph",
+        "IoctlFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::Tty::inject",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@inject#c#b#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "0f5587658c83876d6fb4d05a6757a69b6df27e18d5be78bdd69efc540a30c58e",
+          "graphs": [
+            "InjectFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::poll",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@poll#*$@N@xv@N@sync@S@PollTable#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "d07a6b7ea8ef4ec67282ebd0961f324ca1d0ece12b571a3a413165c19bca1b2a",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::read",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "2a7e2617ed9c5090f02e43e95505967f27ea87749da666f8cd5bd58c138e78d1",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::write",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@write#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "dcaaabb962e920f467a6ee89faf50fbe52e2b6ab427b427399f9934386808559",
+          "graphs": [
+            "WriteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Tty::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@Tty@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/tty/core/tty.cpp",
+          "source_sha256": "301cc406d2df0f7d42ff843d2d0bbac37dbd441aca06d2b61a80589993a14d97",
+          "graphs": [
+            "IoctlFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "940c8fcc69cdcd48f3618c5299811033b410433da34de632df98d45ea1b1d09c"
+    },
+    {
+      "module": "drivers",
+      "owner": "NttyDiscipline",
+      "methods": [
+        "receive"
+      ],
+      "definition": "kernel/drivers/tty/ldisc/n_tty.cpp",
+      "graphs": [
+        "ReceiveFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::NttyDiscipline::receive",
+          "usr": "c:@N@xv@N@drivers@S@NttyDiscipline@F@receive#c#&1$@S@termios#&$@N@xv@N@drivers@S@TerminalOutput#",
+          "source": "kernel/drivers/tty/ldisc/n_tty.cpp",
+          "source_sha256": "b0ec9dd0d9d050e1bcb017484d2147c6a0c1c0a109e5c446b6d05be4113769a2",
+          "graphs": [
+            "ReceiveFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "7016038f1c39ba4f0737004708e15b33e156097c5830a6463b7b27cfee57f541"
+    },
+    {
+      "module": "drivers",
+      "owner": "",
+      "methods": [
+        "create_pty",
+        "open_named_pty"
+      ],
+      "definition": "kernel/drivers/tty/pty/pty.cpp",
+      "graphs": [
+        "CreatePtyFlow::Graph",
+        "OpenNamedPtyFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::create_pty",
+          "usr": "c:@N@xv@N@drivers@F@create_pty#**$@N@xv@N@drivers@S@CharacterDevice#S0_#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "df1b3deb9bd6088fbaff936bb4f6d7396e05dc4facb3ec3d7a40fb2d9c217fec",
+          "graphs": [
+            "CreatePtyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::open_named_pty",
+          "usr": "c:@N@xv@N@drivers@F@open_named_pty#i#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "262bc97a1b360cc7f5fa3006b2044a7873fbd7d4c865a4b5fd48ab77de9176ed",
+          "graphs": [
+            "OpenNamedPtyFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+    },
+    {
+      "module": "drivers",
+      "owner": "Pty",
+      "methods": [
+        "release",
+        "close",
+        "read_master",
+        "write_master"
+      ],
+      "definition": "kernel/drivers/tty/pty/pty.cpp",
+      "graphs": [
+        "ReleaseFlow::Graph",
+        "CloseFlow::Graph",
+        "ReadMasterFlow::Graph",
+        "WriteMasterFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::Pty::release",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@release#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "cb37b85f7eba34e20e2869964e0c694d572bf5973f28f8de4144bb9d453e3e24",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::close",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@close#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "676e3219ecbc273e834b238cc098e82e5184eddea822aa42bc9aacfd21f89858",
+          "graphs": [
+            "CloseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::read_master",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@read_master#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "6568bb265f6c8a12bc7d7a4a0adaae07ba6b6217a12d4f3f4595029b5ee1f14e",
+          "graphs": [
+            "ReadMasterFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::write_master",
+          "usr": "c:@N@xv@N@drivers@S@Pty@F@write_master#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "5014f94f3025e4f1beeec05616f5a61a47056bed67723c0ca32fcc598154e40e",
+          "graphs": [
+            "WriteMasterFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+    },
+    {
+      "module": "drivers",
+      "owner": "Pty::Output",
+      "methods": [
+        "transmit",
+        "drain"
+      ],
+      "definition": "kernel/drivers/tty/pty/pty.cpp",
+      "graphs": [
+        "TransmitFlow::Graph",
+        "DrainFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::Pty::Output::transmit",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Output@F@transmit#*1C#I#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "67e66ab69160bd86ef67e46440b89aa91d862ea1304304fb1d8c09b3ea5a577e",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Output::drain",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Output@F@drain#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "ef31156cfa1db08978f15c496bd8ae89907c4b9e0e114e7cd3a2cbcad4627c16",
+          "graphs": [
+            "DrainFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+    },
+    {
+      "module": "drivers",
+      "owner": "Pty::Endpoint",
+      "methods": [
+        "ioctl",
+        "poll"
+      ],
+      "definition": "kernel/drivers/tty/pty/pty.cpp",
+      "graphs": [
+        "IoctlFlow::Graph",
+        "PollFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::Pty::Endpoint::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Endpoint@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "7ec97413acc396374db33bea2f3d7e8879e5665e88cf0753c187f84bf4786608",
+          "graphs": [
+            "IoctlFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::Pty::Endpoint::poll",
+          "usr": "c:@N@xv@N@drivers@S@Pty@S@Endpoint@F@poll#*$@N@xv@N@sync@S@PollTable#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "f20885d65d98665c4ccf056eae95336511803ff6258eddfdd02e5532f0094dbc",
+          "graphs": [
+            "PollFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+    },
+    {
+      "module": "drivers",
+      "owner": "PtyMultiplexer",
+      "methods": [
+        "open"
+      ],
+      "definition": "kernel/drivers/tty/pty/pty.cpp",
+      "graphs": [
+        "OpenFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::PtyMultiplexer::open",
+          "usr": "c:pty.cpp@N@xv@N@drivers@aN@S@PtyMultiplexer@F@open#b#",
+          "source": "kernel/drivers/tty/pty/pty.cpp",
+          "source_sha256": "dc384cc1d423df16e4c20373e79c644baddd9bc279b1f55048c6c75555f212c2",
+          "graphs": [
+            "OpenFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioBlock",
+      "methods": [
+        "initialize",
+        "allocate_chain",
+        "transfer",
+        "handle_interrupt"
+      ],
+      "definition": "kernel/drivers/block/virtio/virtio_block.cpp",
+      "graphs": [
+        "InitializeFlow::Graph",
+        "ChainFlow::Graph",
+        "TransferFlow::Graph",
+        "InterruptFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioBlock::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@initialize#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "8844aa0afdba916c5a4629e45defaef04a8ea1fb0cf8bd1495a58685291bd406",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::allocate_chain",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@allocate_chain#*I#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "8f845cf9a9d1152d5e9ee1cae7d39310775a06db207d29a1c3f434ab46a6ee15",
+          "graphs": [
+            "ChainFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::transfer",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@transfer#$@N@xv@N@drivers@E@BlockOperation#l#*v#i#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "e8bddfb573a11672ff779a4b5910deb572f950288fd8ce699302d2a27b06b887",
+          "graphs": [
+            "TransferFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioBlock::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@VirtioBlock@F@handle_interrupt#",
+          "source": "kernel/drivers/block/virtio/virtio_block.cpp",
+          "source_sha256": "46810f4f50151373dc95c9a9829fa15de72e6d79ed0087e497a0e1aa0606dbc4",
+          "graphs": [
+            "InterruptFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "33e2f276e24f3acbe51953b9a4136d8ece86c405f80488574b65af81c3f646e6"
+    },
+    {
+      "module": "drivers",
+      "owner": "InterruptRouter",
+      "methods": [
+        "initialize",
+        "dispatch"
+      ],
+      "definition": "kernel/drivers/interrupt/interrupt_router.cpp",
+      "graphs": [
+        "InitializeFlow::Graph",
+        "DispatchFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::InterruptRouter::initialize",
+          "usr": "c:@N@xv@N@drivers@S@InterruptRouter@F@initialize#",
+          "source": "kernel/drivers/interrupt/interrupt_router.cpp",
+          "source_sha256": "f411b1217076ce90af94443ab0be3b0fdf7437852e3c436123c9b6dfd0a86d56",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::InterruptRouter::dispatch",
+          "usr": "c:@N@xv@N@drivers@S@InterruptRouter@F@dispatch#I#",
+          "source": "kernel/drivers/interrupt/interrupt_router.cpp",
+          "source_sha256": "7d84c4c9fcd00475c9274c48a7ab5437710a884d7500ad8d2b37a08cbd33c43f",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "631fe1766096d15661034bb0ec8ffe95b751e4b5e61c08c63224e0dde8118446"
+    },
+    {
+      "module": "drivers",
+      "owner": "E1000",
+      "methods": [
+        "initialize",
+        "transmit",
+        "handle_interrupt"
+      ],
+      "definition": "kernel/drivers/net/e1000/e1000.cpp",
+      "graphs": [
+        "InitializeFlow::Graph",
+        "TransmitFlow::Graph",
+        "InterruptFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::E1000::initialize",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@initialize#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "59dbfecce2dcda346e920d37b8ff3d5aef14db8c48c8f1957416736856ea511b",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::E1000::transmit",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@transmit#*v#i#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "50993f17f919e861921910e454cb5ce62d62e1a8b5851a9216998e86a04c9643",
+          "graphs": [
+            "TransmitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::E1000::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@E1000@F@handle_interrupt#",
+          "source": "kernel/drivers/net/e1000/e1000.cpp",
+          "source_sha256": "dcaac6d3464a5ef531b6876ee32d71148bff7e219a75253ba13f0d2dbf2fb994",
+          "graphs": [
+            "InterruptFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "7fc51479db2280fff5b8152e41b39f1e9c4e6aeb14b18ce6daab11728c7e36e7"
+    },
+    {
+      "module": "drivers",
+      "owner": "detail",
+      "methods": [
+        "configure_e1000"
+      ],
+      "definition": "kernel/drivers/pci/qemu_pci.cpp",
+      "graphs": [
+        "PciConfigureFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::detail::configure_e1000",
+          "usr": "c:@N@xv@N@drivers@N@detail@F@configure_e1000#l#i#",
+          "source": "kernel/drivers/pci/qemu_pci.cpp",
+          "source_sha256": "3be0fcaf7e20cab8d8208051a869f0519e2b90379e481a043c0e1254b80fe5e5",
+          "graphs": [
+            "PciConfigureFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "bf0a636616478228ce185b8c8698a014cdda4b2c2a088bed6793da4282d1ba16"
+    },
+    {
+      "module": "drivers",
+      "owner": "",
+      "methods": [
+        "initialize_console",
+        "initialize_interrupts"
+      ],
+      "definition": "kernel/drivers/board/qemu_virt.cpp",
+      "graphs": [
+        "ConsoleFlow::Graph",
+        "InterruptsFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::initialize_console",
+          "usr": "c:@N@xv@N@drivers@F@initialize_console#",
+          "source": "kernel/drivers/board/qemu_virt.cpp",
+          "source_sha256": "3d33edec138d3484d2e0f60ee7e71a20ae66d94402a2d3ea744307d826450e6c",
+          "graphs": [
+            "ConsoleFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::initialize_interrupts",
+          "usr": "c:@N@xv@N@drivers@F@initialize_interrupts#",
+          "source": "kernel/drivers/board/qemu_virt.cpp",
+          "source_sha256": "58fd83afb93463cc3b4b2238816a8a3bcb579108763daa43cba8f784314760ef",
+          "graphs": [
+            "InterruptsFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "5cf235ab9fef20044d73ce6df6e3d6e30d69d97912110334994dd6dbacf72089"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_netctl"
+      ],
+      "definition": "kernel/syscall/sysnetctl.cpp",
+      "graphs": [
+        "FirewallControlFlow::Graph",
+        "NetworkControlFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_netctl",
+          "usr": "c:@N@xv@N@syscall@F@sys_netctl#",
+          "source": "kernel/syscall/sysnetctl.cpp",
+          "source_sha256": "830fdd198b8c785aba86f742720c1100f659a3491b5cb5922508001c1a25f817",
+          "graphs": [
+            "FirewallControlFlow::Graph",
+            "NetworkControlFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "2bfd7c56b6822138db7c112bba7d6a379fb4492b9512b45ea3692098972e9943"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_pgaccess"
+      ],
+      "definition": "kernel/syscall/sysproc.cpp",
+      "graphs": [
+        "PgAccessFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_pgaccess",
+          "usr": "c:@N@xv@N@syscall@F@sys_pgaccess#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "80084c872ddd585a35cb1d172a594652a04c53b77ce9a8f46d64c0e940b77c37",
+          "graphs": [
+            "PgAccessFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_ksupernpte"
+      ],
+      "definition": "kernel/syscall/sysvm.cpp",
+      "graphs": [
+        "KernelStatisticsFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_ksupernpte",
+          "usr": "c:@N@xv@N@syscall@F@sys_ksupernpte#",
+          "source": "kernel/syscall/sysvm.cpp",
+          "source_sha256": "5ee56ec0bb14b28ca0d135d33870202d993b2dc4959ba8012158d274de507767",
+          "graphs": [
+            "KernelStatisticsFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "7b4373a8f1dbf50a023e9f9be23ea1db1fe6b3eebe7babbf9de72a3fb21e9b2b"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_open"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "OpenFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_open",
+          "usr": "c:@N@xv@N@syscall@F@sys_open#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "51b32cc217c24683a1c7b9c556d8115edae3cedecc90311ad6037cc5688c756a",
+          "graphs": [
+            "OpenFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_mkdir",
+        "sys_mknod"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "CreateNodeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_mkdir",
+          "usr": "c:@N@xv@N@syscall@F@sys_mkdir#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "5fbdcfbcd526a542557ea274af54e2ab2a30628385206fa0f7070ea92766830d",
+          "graphs": [
+            "CreateNodeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_mknod",
+          "usr": "c:@N@xv@N@syscall@F@sys_mknod#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "0947e5c29c793636012558cf488f0c56e010ac247f5c8fceafeb91ad98db9ff6",
+          "graphs": [
+            "CreateNodeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_chdir"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "DirectoryFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_chdir",
+          "usr": "c:@N@xv@N@syscall@F@sys_chdir#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "413c610046fc3dd81383c7a9a3748c92838a0799bb71f1bd3577107eba54f4a8",
+          "graphs": [
+            "DirectoryFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_pipe"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "PipeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_pipe",
+          "usr": "c:@N@xv@N@syscall@F@sys_pipe#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "691b3cf98e9b119b112369849ea8f65d065400a4611c1331fa85e59de11e545a",
+          "graphs": [
+            "PipeFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_openpty"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "PtyOpenFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_openpty",
+          "usr": "c:@N@xv@N@syscall@F@sys_openpty#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "5e7b561860f7e860d59b48a532de829f0d7f0fae02bd516c250e0d50869f0068",
+          "graphs": [
+            "PtyOpenFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "attributes"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "AttributesFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::attributes",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@F@attributes#b#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "d3b0ebcf65dd842acf009619c2426fbbab1738b2bac0712e923beecf73b08bc3",
+          "graphs": [
+            "AttributesFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_access"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "AccessFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_access",
+          "usr": "c:@N@xv@N@syscall@F@sys_access#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "3a032d489279629d34b73f67ea4c97e4b8c0ce2ecc6a98083c26f8aed8f9fa10",
+          "graphs": [
+            "AccessFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_stat",
+        "sys_lstat"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "StatFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_stat",
+          "usr": "c:@N@xv@N@syscall@F@sys_stat#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "ac22f4bc858351ed972782cee800f2734c75fd47388fee6706527011a6261fcf",
+          "graphs": [
+            "StatFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_lstat",
+          "usr": "c:@N@xv@N@syscall@F@sys_lstat#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "e6781118096c1a6a201ad015d2692475e731ef018a9419f421c077ad88a086cf",
+          "graphs": [
+            "StatFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_mount"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "MountFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_mount",
+          "usr": "c:@N@xv@N@syscall@F@sys_mount#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "e1d130d5ff2c408ef983490cf6f4d97a7b2c2bc4e6698c82e3d49607d2742c8d",
+          "graphs": [
+            "MountFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_umount"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "UnmountFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_umount",
+          "usr": "c:@N@xv@N@syscall@F@sys_umount#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "7c0ceacd6916416e7b2e7d9ebcb932452fd402aa9bfc3b42d0f6376185a7836c",
+          "graphs": [
+            "UnmountFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_mountinfo"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "MountInfoFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_mountinfo",
+          "usr": "c:@N@xv@N@syscall@F@sys_mountinfo#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "cf8e0a8b4fbc171d48aa59196b5abd7df66051a1be37dc0523d36f4847c3b73d",
+          "graphs": [
+            "MountInfoFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_readlink"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "ReadlinkFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_readlink",
+          "usr": "c:@N@xv@N@syscall@F@sys_readlink#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "dcfcc0aaacd83e958ba75a8c9051aafc608bd81bb9ea79fb868170252d219aaf",
+          "graphs": [
+            "ReadlinkFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "ArgumentVector",
+      "methods": [
+        "copy"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "CopyFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::ArgumentVector::copy",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@S@ArgumentVector@F@copy#l#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "a9452e9747efdaf005df35c8056f07408323a609c3568f3b61e5abd82bd03211",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "execute_image"
+      ],
+      "definition": "kernel/syscall/sysfile.cpp",
+      "graphs": [
+        "ExecuteImageFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::execute_image",
+          "usr": "c:sysfile.cpp@N@xv@N@syscall@aN@F@execute_image#b#",
+          "source": "kernel/syscall/sysfile.cpp",
+          "source_sha256": "b357b191270a0cbdb7b0c210a8e5d9228cc4d4a277e3e5f676b7751ad425a58c",
+          "graphs": [
+            "ExecuteImageFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "install"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketInstallFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::install",
+          "usr": "c:syssocket.cpp@N@xv@N@syscall@aN@F@install#*$@N@xv@N@net@S@Socket#b#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "96c97c20eff4be714e861e0ea2b9cdc6ce97dfc8a22b5fe185014227b5c00f96",
+          "graphs": [
+            "SocketInstallFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "output_address"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketAddressFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::output_address",
+          "usr": "c:syssocket.cpp@N@xv@N@syscall@aN@F@output_address#l#l#$@N@xv@N@net@S@Endpoint#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "7976d8a417886511b2ac2d9c3bdf66d55683ce00b331c286b1716416f0f1c096",
+          "graphs": [
+            "SocketAddressFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_sockbind"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketBindFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_sockbind",
+          "usr": "c:@N@xv@N@syscall@F@sys_sockbind#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "348628e36ad160c52e51d1fc36fbddb64f11b0fe4ac2fd13e817ae7c931ca96f",
+          "graphs": [
+            "SocketBindFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_connect"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketConnectFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_connect",
+          "usr": "c:@N@xv@N@syscall@F@sys_connect#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "101eb26c19b0f918861290d7ca5a0b65d01cb46052046cdf98fa690569083897",
+          "graphs": [
+            "SocketConnectFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_accept"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketAcceptFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_accept",
+          "usr": "c:@N@xv@N@syscall@F@sys_accept#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "74b0ad2bf2105bc4782487b0be95938eae7c53d0bcc412c282a5ad4216744759",
+          "graphs": [
+            "SocketAcceptFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_sendto"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketSendFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_sendto",
+          "usr": "c:@N@xv@N@syscall@F@sys_sendto#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "42933443a5bb142ef5794a4a824d998ba98a17b1001ff93ed8778d504741ee0c",
+          "graphs": [
+            "SocketSendFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_recvfrom"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketReceiveFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_recvfrom",
+          "usr": "c:@N@xv@N@syscall@F@sys_recvfrom#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "790860a6b30f7b857f14346441199474c13e5a0da586983196c34af6178f04c7",
+          "graphs": [
+            "SocketReceiveFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_getsockopt"
+      ],
+      "definition": "kernel/syscall/syssocket.cpp",
+      "graphs": [
+        "SocketOptionFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_getsockopt",
+          "usr": "c:@N@xv@N@syscall@F@sys_getsockopt#",
+          "source": "kernel/syscall/syssocket.cpp",
+          "source_sha256": "9ce57c7c5651c042e7cd08e556d10f1d1983a6ee62c82ada03c1bc3a1bc2434e",
+          "graphs": [
+            "SocketOptionFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "dispatch"
+      ],
+      "definition": "kernel/syscall/syscall.cpp",
+      "graphs": [
+        "DispatchFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::dispatch",
+          "usr": "c:@N@xv@N@syscall@F@dispatch#",
+          "source": "kernel/syscall/syscall.cpp",
+          "source_sha256": "56b4d5f976d03e77d6c59bb794c7c98d64d03fd970176f4eed317840259da117",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "9ca98f922f18fa342efa96012135ed16ff6a4cae141f4515272d2a75bd479959"
+    },
+    {
+      "module": "syscall",
+      "owner": "",
+      "methods": [
+        "sys_getgroups",
+        "sys_setgroups"
+      ],
+      "definition": "kernel/syscall/sysproc.cpp",
+      "graphs": [
+        "GetGroupsFlow::Graph",
+        "SetGroupsFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::syscall::sys_getgroups",
+          "usr": "c:@N@xv@N@syscall@F@sys_getgroups#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "5c11f56cd23e00e8cf076456d22bc94d903062c56bb92b10a6465bd278bb3d99",
+          "graphs": [
+            "GetGroupsFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::syscall::sys_setgroups",
+          "usr": "c:@N@xv@N@syscall@F@sys_setgroups#",
+          "source": "kernel/syscall/sysproc.cpp",
+          "source_sha256": "9f96734319a8e21f40843359ac77ba9087edfde3b7a7d0ff11d27063d75d04c7",
+          "graphs": [
+            "SetGroupsFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627"
+    },
+    {
+      "module": "trap",
+      "owner": "detail",
+      "methods": [
+        "refill_stack_reserve",
+        "prepare_user_return"
+      ],
+      "definition": "kernel/trap/arch/riscv/kernel_platform.cpp",
+      "graphs": [
+        "RefillReserveFlow::Graph",
+        "UserReturnFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::trap::detail::refill_stack_reserve",
+          "usr": "c:@N@xv@N@trap@N@detail@F@refill_stack_reserve#",
+          "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+          "source_sha256": "4758d12bb1e428e1c127f1959f9cda2c7cbaf57a4286939304103a81016d9619",
+          "graphs": [
+            "RefillReserveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::trap::detail::prepare_user_return",
+          "usr": "c:@N@xv@N@trap@N@detail@F@prepare_user_return#",
+          "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+          "source_sha256": "6b729065722b526b9c13c803c4857964ac82595cb22ecec50b2b1157d1046db3",
+          "graphs": [
+            "UserReturnFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+    },
+    {
+      "module": "trap",
+      "owner": "",
+      "namespace": "",
+      "methods": [
+        "kernel_stack_prepare"
+      ],
+      "definition": "kernel/trap/arch/riscv/kernel_platform.cpp",
+      "graphs": [
+        "KernelStackPrepareFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "kernel_stack_prepare",
+          "usr": "c:@F@kernel_stack_prepare",
+          "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+          "source_sha256": "29ce225147e9b940e755f40c634dc8a086a4a425b1aa10a663f87da7e3397b8d",
+          "graphs": [
+            "KernelStackPrepareFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+    },
+    {
+      "module": "trap",
+      "owner": "",
+      "methods": [
+        "scheduler_stack_top"
+      ],
+      "definition": "kernel/trap/arch/riscv/kernel_platform.cpp",
+      "graphs": [
+        "SchedulerStackFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::trap::scheduler_stack_top",
+          "usr": "c:@N@xv@N@trap@F@scheduler_stack_top#",
+          "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+          "source_sha256": "05544cb92563ee5c8bcce04d751c86d19d121701804c52aa224dd79a8094540b",
+          "graphs": [
+            "SchedulerStackFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "fc70e7593c051700c1c5c5b063cf1e21608524b2904fd8e321bc4f862b5f1938"
+    },
+    {
+      "module": "support",
+      "owner": "",
+      "namespace": "xv::drivers::detail",
+      "configuration": "LAB_LOCK/LAB_NET",
+      "condition": "defined(LAB_LOCK)",
+      "methods": [
+        "statsread"
+      ],
+      "definition": "kernel/support/stats.cpp",
+      "graphs": [
+        "StatsReadFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::detail::statsread",
+          "usr": "c:@N@xv@N@drivers@N@detail@F@statsread#I#l#I#",
+          "source": "kernel/support/stats.cpp",
+          "source_sha256": "488b124201dd28e0797181084aaf58d58d1bdae21d6a46c1c685c86062c2a8f2",
+          "graphs": [
+            "StatsReadFlow::Graph"
+          ]
+        }
+      ],
+      "definition_sha256": "fa23d4903a724a1f135042fadf351a8c2433f9d58207500f479a54c8fccd0c8f"
+    }
+  ],
+  "reviewed_primitives": [
+    {
+      "module": "fs",
+      "owner": "VirtualFileSystem",
+      "scope": [
+        "same",
+        "enter_mount",
+        "lookup",
+        "lookup_parent",
+        "mounts",
+        "allocate",
+        "retain",
+        "release",
+        "lock",
+        "unlock",
+        "unlock_release",
+        "update",
+        "truncate",
+        "read",
+        "write",
+        "stat",
+        "allowed",
+        "lookup_entry",
+        "create_at",
+        "link_at"
+      ],
+      "reason": "身份与固定挂载表查询、锁保护入口和单一后端委托；复杂路径解析及变更编排已由对应私有图承担。"
+    },
+    {
+      "module": "fs",
+      "owner": "RamFileSystem",
+      "scope": [
+        "initialize_inodes",
+        "initialize",
+        "root",
+        "retain",
+        "unlock_release",
+        "slot",
+        "find",
+        "insert",
+        "empty",
+        "lookup_entry",
+        "truncate",
+        "write",
+        "stat",
+        "busy",
+        "shutdown",
+        "resize"
+      ],
+      "reason": "容器定位与插入、位图/目录槽扫描、批量销毁、引用锁原语、属性编码和单一 PageBuffer 委托保留直接实现，避免每次槽查找增加分派。"
+    },
+    {
+      "module": "fs",
+      "owner": "DevFileSystem",
+      "scope": [
+        "initialize_inodes",
+        "initialize",
+        "retain",
+        "lock",
+        "unlock",
+        "unlock_release",
+        "stat",
+        "open_device",
+        "allocate",
+        "update",
+        "truncate",
+        "write",
+        "link_at",
+        "unlink_at"
+      ],
+      "reason": "固定表构造、简单引用/锁和设备委托、明确不支持的操作保留直接实现；MemoryDevice 保留单一职责的固定块复制循环。"
+    },
+    {
+      "module": "fs",
+      "owner": "ProcFileSystem",
+      "scope": [
+        "initialize_inodes",
+        "initialize",
+        "retain",
+        "release",
+        "lock",
+        "unlock",
+        "unlock_release",
+        "update",
+        "truncate",
+        "stat",
+        "read"
+      ],
+      "reason": "固定表构造、短引用锁和单一快照读取委托保留；Text 与数字、类型格式化为图复用的业务原语。"
+    },
+    {
+      "module": "fs",
+      "owner": "detail/service",
+      "scope": [
+        "permissions.cpp",
+        "platform/kernel_platform.cpp",
+        "service.cpp"
+      ],
+      "reason": "权限条件、平台数据适配与启动服务接线按原职责保留，均未因一个检查或数据扫描制造空编排。"
+    },
+    {
+      "module": "fs",
+      "owner": "Xv6FileSystem",
+      "scope": [
+        "open_device",
+        "read_super",
+        "zero_block",
+        "free_block",
+        "initialize_inodes",
+        "update",
+        "retain",
+        "unlock",
+        "free_inode",
+        "unlock_release",
+        "stat",
+        "busy",
+        "compare_names",
+        "lookup_entry",
+        "link_entry",
+        "directory_empty",
+        "root",
+        "flush",
+        "transaction_log",
+        "release 的普通引用递减快路径"
+      ],
+      "reason": "单一块/元数据编码和引用锁原语、固定表构造、目录记录定位或插入原语保留直接实现；复杂分配、回收、映射、I/O 及目录变更编排已接入私有图。 普通 inode 引用释放保持短临界区，仅最后无链接引用的复杂回收路径进入图。"
+    },
+    {
+      "module": "fs",
+      "owner": "shared business primitives",
+      "scope": [
+        "FileSystem/Inode/BlockHandle/Transaction 简单接口及守卫",
+        "PageBuffer 清理/移动与链表原语",
+        "OpenFileTable 槽分配、简单委托和 fcntl CAS",
+        "DeviceRegistry 查询与打开",
+        "Journal 块搬运和头编码",
+        "Pipe 缓冲字节循环与简单 ready/close"
+      ],
+      "reason": "共享业务对象的原语和数据循环不按每个字段、字节、位或目录槽增加流程分派；资源决策与失败清理由已登记图编排。"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessManager lifecycle primitives",
+      "scope": [
+        "initialize",
+        "allocate_pid",
+        "attach_child",
+        "detach_child",
+        "wakeup",
+        "dump",
+        "snapshot_after",
+        "wait",
+        "waitpid"
+      ],
+      "reason": "数值分配、O(1) 子链更新、锁内数据查询、格式输出和简单参数验证/委托保留直接实现；进程对象分配、fork/exit/reap、收养、等待及锁后查询编排已接入图。"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessGroups",
+      "scope": [
+        "initialize",
+        "find_group",
+        "find_member",
+        "allocate_group",
+        "attach",
+        "detach 的普通成员摘链快路径",
+        "inherit",
+        "reparent",
+        "did_exec",
+        "release",
+        "get_group",
+        "get_session",
+        "visit_group",
+        "foreground",
+        "may_read_terminal",
+        "exit_terminal",
+        "detach_terminal",
+        "visit_foreground"
+      ],
+      "reason": "锁内链表查询、成员链接、标志和数据操作、简单参数检查与访问策略、受锁保护的成员枚举回调保留直接执行；空组/会话回收、分配回滚、迁移和终端绑定编排已由图承担。"
+    },
+    {
+      "module": "process",
+      "owner": "ProcessManager group/terminal wrappers",
+      "scope": [
+        "get_process_group",
+        "set_process_group",
+        "get_session",
+        "create_session",
+        "did_exec",
+        "detach_terminal",
+        "claim_terminal",
+        "terminal_foreground",
+        "set_terminal_foreground",
+        "may_read_terminal"
+      ],
+      "reason": "已核对 groups/group_operations.cpp：均为基于当前成员关系的简单后端委托，或后台读时投递 SIGTTIN 的单一访问策略，不为这些原语制造额外图分派。"
+    },
+    {
+      "module": "process",
+      "owner": "signal primitives",
+      "scope": [
+        "PendingSignals atomic/bitset operations",
+        "executable",
+        "signal_pending",
+        "begin_system_call",
+        "finish_system_call",
+        "wake_signal_waiters",
+        "post_terminal_interrupt",
+        "service_signal_notifications",
+        "set_signal_disposition",
+        "post_child_signal"
+      ],
+      "reason": "保留紧凑位操作、原子策略、可执行映射查询、系统调用结果与 PC 调整、受锁枚举和简单委托；post_child_signal 保留避免无效全局唤醒扫描的快路径。"
+    },
+    {
+      "module": "process",
+      "owner": "scheduler/wait primitives",
+      "scope": [
+        "ReadyQueue predicates and accessors",
+        "FifoReadyQueue enqueue/take",
+        "SchedulerContext prepare_cpu/begin_round/idle/make_runnable",
+        "RoundRobinScheduler suspend/yield/make_runnable delegates",
+        "WaitChannels index/initialize/unlink/subscribe/unsubscribe/arm_timer/remove_timer",
+        "PollWait allocate_page/table/notify/triggered/set_deadline",
+        "prepare_sleep/prepare_interruptible_sleep/sleep"
+      ],
+      "reason": "保留紧凑链表扫描与摘挂、固定桶初始化、原子发布、硬件指令和锁下单次状态策略；取消重试、调度轮次、上下文切换及多页订阅回收等编排已由图承担。"
+    },
+    {
+      "module": "process",
+      "owner": "process remaining primitives",
+      "scope": [
+        "PagedProcessStore find/visit/count/index/initialize",
+        "ProcessStore construction/retirement/lock adapters",
+        "DescriptorTable get/install/take/close/bulk scans/inheritance/snapshot/inspect",
+        "WorkingDirectory ownership adapters",
+        "Credentials validation/mutation policies",
+        "CPU identity/affinity and swtch ABI",
+        "Process set_name/create_image/accessors",
+        "ProcessManager initialize/allocate_pid/family links/dump/snapshot_after",
+        "service and platform delegates",
+        "ELF permissions/page read primitives",
+        "AddressSpace reset/swap and memory delegates"
+      ],
+      "reason": "保留单次状态策略、受锁枚举与快照、紧凑固定容量扫描、局部引用转移、CPU/ABI 原语和简单适配；失败回滚、跨锁退役回收、exec 发布及首次进程启动编排已由图连接。详见 process-flow-audit.json 的逐文件指纹与审查说明。"
+    },
+    {
+      "module": "memory",
+      "owner": "KernelPageTable/Sv39PageTable primitives",
+      "scope": [
+        "map_initial_range",
+        "KernelPageTable activate_hart/grow_process_stack/region/statistics/root accessor",
+        "LargestPagePolicy choose",
+        "Sv39 encode/child/index/translation/count/clear",
+        "OwnedSv39PageTable root ownership"
+      ],
+      "reason": "保留硬件 fence/SATP 原语、短校验与委托、固定上限的目录/位图和叶表扫描、页级回收、最多三层的查询/计数/清除及原有 RAII 页所有权。映射策略、跨叶范围、内核栈分配回滚和故障编排已由图承担。"
+    },
+    {
+      "module": "memory",
+      "owner": "user VM primitives",
+      "scope": [
+        "walkto/walk_entry/translate_user_page",
+        "vmprint_level/print_page_table",
+        "map_kernel_range/create_user_table",
+        "deallocate_user_pages/freewalk/free_user_table/protect_user_guard",
+        "permission_for/accessible_region/user_access/accessible_bytes",
+        "copy_to_user/copy_from_user/copy_user_string/is_user_mapped"
+      ],
+      "reason": "保留最多三层查询/清除、硬件与页级数据操作、简单校验委托、固定树深度诊断、字节/页片复制循环及映射存在性查询。增长/解除、超页拆分回收、克隆与 COW/按需故障的复杂协议已由图控制。"
+    },
+    {
+      "module": "memory",
+      "owner": "physical memory primitives",
+      "scope": [
+        "Buddy tags/claim/insert/remove/validation/split_to_pages",
+        "FreeList single-lock allocate/deallocate/initialize/split validation",
+        "PhysicalPageAllocator retain/release/page_references and initialization adapters",
+        "PhysicalMemoryLayout configure/can_subtract/getters/scans",
+        "FDT endian/string/cell/bounds and property field decoding",
+        "BootMemoryInfo fixed reservation storage and address/range arithmetic"
+      ],
+      "reason": "保留 CAS 引用计数、紧凑单锁链表和固定容量数组、有限阶标签策略、字节解码与断言；跨阶锁转换、候选规划/发布、双视图预留、token/节点循环及内存启动编排已由图负责。逐文件审查见 docs/memory-flow-audit.json。"
+    },
+    {
+      "module": "drivers",
+      "owner": "TTY/line discipline primitives",
+      "scope": [
+        "Tty initialize/put_sync/receive/hangup/input_writable/timer_tick",
+        "Ntty input_room/available/readable_bytes/front/consume/flush/change_mode/erase",
+        "valid/matches/word_space/echo"
+      ],
+      "reason": "保留紧凑硬件 RX 通知、单次锁内挂断/状态策略、固定环容量转换及计数、字符回显与纯参数匹配。读写等待、模式代数、ioctl 排空序列、软件重试及接收策略已由图连接。"
+    },
+    {
+      "module": "drivers",
+      "owner": "PTY primitives",
+      "scope": [
+        "initialize_ptys/pty_timer_tick",
+        "Pty initialize/attach_slave/timer/accessors and ordinary release decrement",
+        "Output put_sync/writable",
+        "Endpoint read/write/close delegates",
+        "ptmx/retain_named_pty/named_pty_owner/release_named_pty/named_pty_ids"
+      ],
+      "reason": "保留紧凑全局受锁枚举、单次状态和引用转移、尽力回显、短就绪策略及直接委托；创建发布、最后回收、关闭、阻塞 I/O、请求分派和命名打开协议已由图承担。"
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtIO/interrupt primitives",
+      "scope": [
+        "VirtioBlock allocate_descriptor/free_descriptor/free_chain/present/flush",
+        "InterruptRouter initialize_hart",
+        "Plic register operations/initialize_hart/enable/claim/complete"
+      ],
+      "reason": "保留紧凑槽位扫描、描述符字段与链回收、单次能力委托、固定接线枚举和 MMIO 位操作；设备协商、候选分配回滚、DMA 提交/等待/完成与路由 claim/handler/complete 协议已由图负责。"
+    },
+    {
+      "module": "drivers",
+      "owner": "E1000/PCI/board primitives",
+      "scope": [
+        "E1000 reclaim/promiscuous/accessors/attach/locate",
+        "find_e1000 fixed 32-slot scan",
+        "board fixed callbacks/initialize_network/hart delegation/timer/accessors",
+        "MmioRegion register operations"
+      ],
+      "reason": "固定环扫描、寄存器位操作、固定接线枚举和薄委托保留直接实现；设备初始化、候选失败回收、发送发布、接收替换/释放锁后递送、PCI 配置与板级启动连接已由图负责。"
+    },
+    {
+      "module": "syscall",
+      "owner": "VM syscall primitives",
+      "scope": [
+        "sys_pgpte/pgpte",
+        "PgAccessFlow bounded source/output/sample/clear page scans",
+        "sys_netctl fixed firewall operation range selection"
+      ],
+      "reason": "单次页表查询、固定范围选择和紧凑页扫描保留直接操作；网络请求权限/复制/执行/回写、页访问位验证/降级/采样/提交和统计部分写入由图负责。"
+    },
+    {
+      "module": "syscall",
+      "owner": "File/socket boundary primitives",
+      "scope": [
+        "argfd/fdalloc and single-delegate read/write/stat/fcntl/ioctl/seek/resize/sync wrappers",
+        "link/unlink/symlink path adapters and bounded rename component scan",
+        "ArgumentVector destructor page release loop",
+        "socket_argument/input_address and socket creation/listen/shutdown/name adapters",
+        "attribute scalar group/mode policy inside locked assess action"
+      ],
+      "reason": "参数提取与范围门槛、单次委托、固定 ABI 转换、紧凑字符串扫描和权限标量策略保留直接业务实现；事务内资源协议、候选交接/失败汇合/用户输出/参数候选循环已由图负责。"
+    },
+    {
+      "module": "syscall",
+      "owner": "Remaining syscall primitives",
+      "scope": [
+        "lookup_syscall fixed ABI switch",
+        "arguments.cpp register selection/address and string copy/length adapters",
+        "sysproc signal/lifecycle/credentials/clock thin adapters and sbrk single resize policy"
+      ],
+      "reason": "固定 ABI 查询和参数投影保持原语；dispatch 的一次调用/结束/重放与组查询/复制/提交边界已由图负责。"
+    },
+    {
+      "module": "trap",
+      "owner": "Architecture trap primitives",
+      "scope": [
+        "take_stack_frame allocation policy",
+        "snapshot/vector install/register setters and return trampoline",
+        "fixed interrupt/timer service delegates",
+        "XV_VM_SELF_TEST deliberate recursive probe"
+      ],
+      "reason": "紧急帧 callback 保持 noff 规则和无锁储备取得，寄存器与汇编、固定平台委托保持边界原语；刻意递归的诊断探针用于验证栈增长，不是运行流程循环。"
+    },
+    {
+      "module": "support",
+      "owner": "Conditional statistics adapters",
+      "scope": [
+        "statswrite",
+        "StatsDevice delegates",
+        "statsinit fixed fixture/ABI registration"
+      ],
+      "reason": "条件 StatsReadFlow 负责缓存首次填充、有序双服务、长度限制、复制/游标/EOF 与必经解锁；固定设备委托和原返回常量保持原语。生产配置不补造 STATS 或缺失实验服务，实际代码由隔离宿主夹具验证。"
+    }
+  ],
+  "pending_fs": [],
+  "module_audits": {
+    "fs": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "process_lifecycle": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "process_groups_owner": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "process_signals": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "scheduler_wait": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "process_remaining": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "memory_kernel_paging": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "memory_user_vm": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "memory_remaining": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "drivers_tty": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "drivers_pty": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "drivers_virtio_irq": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "drivers_e1000_pci_board": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "syscall_control_vm": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "syscall_file_socket": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "syscall_remaining": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "trap_stack_return": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "sync_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "trap_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "arch_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "io_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "tty_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "support_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "drivers_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "34 个源文件及 31 张图；逐文件理由见 docs/drivers-flow-audit.json，条件统计源按 support 审查。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    },
+    "fs_final_scope": {
+      "status": "verified_with_documented_scope",
+      "note": "52 个源文件、71 张图与 69 个原入口；固定初始化/扫描/析构/单锁操作的理由见 docs/fs-flow-audit.json。",
+      "final_verification": "docs/kernel-flow-acceptance.json"
+    }
+  },
+  "final_verification": "docs/kernel-flow-acceptance.json"
+}

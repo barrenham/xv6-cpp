@@ -5,17 +5,15 @@ module;
 #include "kernel/fs/stat.h"
 
 module xv.fs;
+import :xv6_inode_flow;
 import :platform;
 import :xv6;
 
 namespace xv::fs
 {
 xv::drivers::CharacterDevice *Xv6FileSystem::open_device(Inode *node, bool nonblocking)
-{ return open_registered_device(node, nonblocking); }
-
-static unsigned min(unsigned first, unsigned second)
 {
-  return first < second ? first : second;
+  return open_registered_device(node, nonblocking);
 }
 
 // Read the super block.
@@ -31,14 +29,8 @@ void Xv6FileSystem::read_super(int dev, superblock *layout)
 // Init fs
 void Xv6FileSystem::initialize(int dev)
 {
-  device_ = dev;
-  read_super(dev, &layout_);
-  if (layout_.magic != FSMAGIC)
-  {
-    detail::fail("invalid file system");
-  }
-  journal_.initialize(dev, &layout_);
-  reclaim(dev);
+  InitializeFlow::Context context{*this, dev};
+  (void)InitializeFlow::Graph::run<0>(context);
 }
 
 // Zero a block.
@@ -58,29 +50,10 @@ void Xv6FileSystem::zero_block(int dev, int bno)
 // returns 0 if out of disk space.
 uint Xv6FileSystem::allocate_block(uint dev)
 {
-  int b, bi, m;
-  BlockHandle bp;
-
-  bp = {};
-  for (b = 0; b < layout_.size; b += BPB)
-  {
-    bp = cache_.read(dev, BBLOCK(b, layout_));
-    for (bi = 0; bi < BPB && b + bi < layout_.size; bi++)
-    {
-      m = 1 << (bi % 8);
-      if ((bp->bytes()[bi / 8] & m) == 0)
-      {                           // Is block free?
-        bp->bytes()[bi / 8] |= m; // Mark block in use.
-        journal_.record(*bp);
-        bp.reset();
-        zero_block(dev, b + bi);
-        return b + bi;
-      }
-    }
-    bp.reset();
-  }
-  detail::report("balloc: out of blocks\n");
-  return 0;
+  BlockHandle block;
+  AllocateBlockFlow::Context context{*this, dev, block};
+  (void)AllocateBlockFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 // Free a disk block.
@@ -188,26 +161,10 @@ void Xv6FileSystem::initialize_inodes()
 // or NULL if there is no free inode.
 Inode *Xv6FileSystem::allocate(uint dev, short type)
 {
-  int inum;
-  BlockHandle bp;
-  struct dinode *dip;
-
-  for (inum = 1; inum < layout_.ninodes; inum++)
-  {
-    bp = cache_.read(dev, IBLOCK(inum, layout_));
-    dip = (struct dinode *)bp->bytes() + inum % IPB;
-    if (dip->type == 0)
-    { // a free inode
-      detail::fill(dip, 0, sizeof(*dip));
-      dip->type = type;
-      journal_.record(*bp); // mark it allocated on the disk
-      bp.reset();
-      return get(dev, inum);
-    }
-    bp.reset();
-  }
-  detail::report("ialloc: no inodes\n");
-  return 0;
+  BlockHandle block;
+  AllocateFlow::Context context{*this, dev, type, block};
+  (void)AllocateFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 // Copy a modified in-memory inode to disk.
@@ -226,7 +183,9 @@ void Xv6FileSystem::update(Inode *ip)
   dip->minor = ip->minor;
   dip->nlink = ip->nlink;
   dip->size = ip->size;
-  dip->uid = ip->uid_; dip->gid = ip->gid_; dip->mode = ip->mode_;
+  dip->uid = ip->uid_;
+  dip->gid = ip->gid_;
+  dip->mode = ip->mode_;
   detail::move(dip->addrs, ip->addrs, sizeof(ip->addrs));
   journal_.record(*bp);
   bp.reset();
@@ -237,40 +196,10 @@ void Xv6FileSystem::update(Inode *ip)
 // the inode and does not read it from disk.
 Inode *Xv6FileSystem::get(uint dev, uint inum)
 {
-  Inode *ip, *empty;
-
   inode_lock_.acquire();
-
-  // Is the inode already in the table?
-  empty = 0;
-  for (ip = &inodes_[0]; ip < &inodes_[NINODE]; ip++)
-  {
-    if (ip->ref > 0 && ip->dev == dev && ip->inum == inum)
-    {
-      ip->ref++;
-      inode_lock_.release();
-      return ip;
-    }
-    if (empty == 0 && ip->ref == 0) // Remember empty slot.
-    {
-      empty = ip;
-    }
-  }
-
-  // Recycle an inode entry.
-  if (empty == 0)
-  {
-    detail::fail("iget: no inodes");
-  }
-
-  ip = empty;
-  ip->dev = dev;
-  ip->inum = inum;
-  ip->ref = 1;
-  ip->valid = 0;
-  inode_lock_.release();
-
-  return ip;
+  GetFlow::Context context{*this, dev, inum};
+  (void)GetFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 // Increment reference count for ip.
@@ -287,34 +216,9 @@ Inode *Xv6FileSystem::retain(Inode *ip)
 // Reads the inode from disk if necessary.
 void Xv6FileSystem::lock(Inode *ip)
 {
-  BlockHandle bp;
-  struct dinode *dip;
-
-  if (ip == 0 || ip->ref < 1)
-  {
-    detail::fail("ilock");
-  }
-
-  ip->lock.acquire();
-
-  if (ip->valid == 0)
-  {
-    bp = cache_.read(ip->dev, IBLOCK(ip->inum, layout_));
-    dip = (struct dinode *)bp->bytes() + ip->inum % IPB;
-    ip->type = dip->type;
-    ip->major = dip->major;
-    ip->minor = dip->minor;
-    ip->nlink = dip->nlink;
-    ip->size = dip->size;
-    ip->uid_ = dip->uid; ip->gid_ = dip->gid; ip->mode_ = dip->mode;
-    detail::move(ip->addrs, dip->addrs, sizeof(ip->addrs));
-    bp.reset();
-    ip->valid = 1;
-    if (ip->type == 0)
-    {
-      detail::fail("ilock: no type");
-    }
-  }
+  BlockHandle block;
+  LockFlow::Context context{*this, ip, block};
+  (void)LockFlow::Graph::run<0>(context);
 }
 
 // Unlock the given inode.
@@ -348,34 +252,16 @@ void Xv6FileSystem::free_inode(uint dev, uint inum)
 void Xv6FileSystem::release(Inode *ip)
 {
   inode_lock_.acquire();
-
-  // Last reference of an unlinked inode?  Capture dev/inum before ref--,
-  // since once ref hits 0, ip may be recycled by a concurrent get()
-  // for a different inum.
-  int last = (ip->ref == 1 && ip->valid && ip->nlink == 0);
-  uint dev = ip->dev, inum = ip->inum;
-
-  if (last)
+  // Keep the common reference decrement within the original short critical section.
+  // Only unlinked last-reference destruction needs the multi-stage flow.
+  if (ip->ref != 1 || !ip->valid || ip->nlink != 0)
   {
-    // ip->ref == 1 means no other process can have ip locked.
-    ip->lock.acquire();
+    --ip->ref;
     inode_lock_.release();
-
-    truncate(ip); // free the data blocks (type stays nonzero on disk)
-    ip->valid = 0;
-
-    ip->lock.release();
-
-    inode_lock_.acquire();
+    return;
   }
-
-  ip->ref--;
-  inode_lock_.release();
-
-  if (last)
-  {
-    free_inode(dev, inum); // now clear type on disk: inum becomes allocatable
-  }
+  ReleaseFlow::Context context{*this, ip, ip->dev, ip->inum};
+  (void)ReleaseFlow::Graph::run<0>(context);
 }
 
 // Common idiom: unlock, then put.
@@ -387,25 +273,8 @@ void Xv6FileSystem::unlock_release(Inode *ip)
 
 void Xv6FileSystem::reclaim(int dev)
 {
-  for (int inum = 1; inum < layout_.ninodes; inum++)
-  {
-    Inode *ip = 0;
-    BlockHandle bp = cache_.read(dev, IBLOCK(inum, layout_));
-    struct dinode *dip = (struct dinode *)bp->bytes() + inum % IPB;
-    if (dip->type != 0 && dip->nlink == 0)
-    { // is an orphaned inode
-      detail::report("ireclaim: orphaned inode %d\n", inum);
-      ip = get(dev, inum);
-    }
-    bp.reset();
-    if (ip)
-    {
-      Transaction transaction(journal_);
-      lock(ip);
-      unlock(ip);
-      release(ip);
-    }
-  }
+  ReclaimFlow::Context context{*this, dev};
+  (void)ReclaimFlow::Graph::run<0>(context);
 }
 
 // Inode content
@@ -420,92 +289,18 @@ void Xv6FileSystem::reclaim(int dev)
 // returns 0 if out of disk space.
 uint Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)
 {
-  uint addr, *a;
-  BlockHandle bp;
-
-  if (bn < NDIRECT)
-  {
-    if ((addr = ip->addrs[bn]) == 0)
-    {
-      if (!create) return 0;
-      addr = allocate_block(ip->dev);
-      if (addr == 0)
-      {
-        return 0;
-      }
-      ip->addrs[bn] = addr;
-    }
-    return addr;
-  }
-  bn -= NDIRECT;
-
-  if (bn < NINDIRECT)
-  {
-    // Load indirect block, allocating if necessary.
-    if ((addr = ip->addrs[NDIRECT]) == 0)
-    {
-      if (!create) return 0;
-      addr = allocate_block(ip->dev);
-      if (addr == 0)
-      {
-        return 0;
-      }
-      ip->addrs[NDIRECT] = addr;
-    }
-    bp = cache_.read(ip->dev, addr);
-    a = (uint *)bp->bytes();
-    if ((addr = a[bn]) == 0)
-    {
-      if (!create) return 0;
-      addr = allocate_block(ip->dev);
-      if (addr)
-      {
-        a[bn] = addr;
-        journal_.record(*bp);
-      }
-    }
-    bp.reset();
-    return addr;
-  }
-
-  detail::fail("bmap: out of range");
+  BlockHandle block;
+  MapBlockFlow::Context context{*this, ip, bn, create, block};
+  (void)MapBlockFlow::Graph::run<0>(context);
+  return context.address;
 }
 
 // Truncate inode (discard contents).
 // Caller must hold ip->lock.
 void Xv6FileSystem::truncate(Inode *ip)
 {
-  int i, j;
-  BlockHandle bp;
-  uint *a;
-
-  for (i = 0; i < NDIRECT; i++)
-  {
-    if (ip->addrs[i])
-    {
-      free_block(ip->dev, ip->addrs[i]);
-      ip->addrs[i] = 0;
-    }
-  }
-
-  if (ip->addrs[NDIRECT])
-  {
-    bp = cache_.read(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint *)bp->bytes();
-    for (j = 0; j < NINDIRECT; j++)
-    {
-      if (a[j])
-      {
-        free_block(ip->dev, a[j]);
-      }
-    }
-    bp.reset();
-    free_block(ip->dev, ip->addrs[NDIRECT]);
-    ip->addrs[NDIRECT] = 0;
-  }
-
-  ip->size = 0;
-  update(ip);
+  TruncateFlow::Context context{*this, ip};
+  (void)TruncateFlow::Graph::run<0>(context);
 }
 
 // Copy stat information from inode.
@@ -526,38 +321,10 @@ void Xv6FileSystem::stat(Inode *ip, Stat *st)
 // otherwise, dst is a kernel address.
 int Xv6FileSystem::read(Inode *ip, int user_dst, uint64 dst, uint off, uint n)
 {
-  uint tot, m;
-  BlockHandle bp;
-
-  if (off > ip->size || off + n < off)
-  {
-    return 0;
-  }
-  if (off + n > ip->size)
-  {
-    n = ip->size - off;
-  }
-
-  for (tot = 0; tot < n; tot += m, off += m, dst += m)
-  {
-    uint addr = map_block(ip, off / BSIZE, false);
-    m = min(n - tot, BSIZE - off % BSIZE);
-    if (!addr)
-    {
-      static const unsigned char zeros[BSIZE]{};
-      if (detail::copy_out(user_dst, dst, zeros, m) < 0) return tot ? static_cast<int>(tot) : -1;
-      continue;
-    }
-    bp = cache_.read(ip->dev, addr);
-    if (detail::copy_out(user_dst, dst, bp->bytes() + (off % BSIZE), m) == -1)
-    {
-      bp.reset();
-      tot = -1;
-      break;
-    }
-    bp.reset();
-  }
-  return tot;
+  BlockHandle block;
+  ReadFlow::Context context{*this, ip, user_dst, dst, off, n, block};
+  (void)ReadFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 // Write data to inode.
@@ -569,81 +336,27 @@ int Xv6FileSystem::read(Inode *ip, int user_dst, uint64 dst, uint off, uint n)
 // there was an error of some kind.
 int Xv6FileSystem::write(Inode *ip, int user_src, uint64 src, uint off, uint n)
 {
-  uint tot, m;
-  BlockHandle bp;
-
-  if (off + n < off)
-  {
-    return -1;
-  }
-  if (off + n > MAXFILE * BSIZE)
-  {
-    return -1;
-  }
-
-  for (tot = 0; tot < n; tot += m, off += m, src += m)
-  {
-    uint addr = map_block(ip, off / BSIZE);
-    if (addr == 0)
-    {
-      break;
-    }
-    bp = cache_.read(ip->dev, addr);
-    m = min(n - tot, BSIZE - off % BSIZE);
-    if (detail::copy_in(bp->bytes() + (off % BSIZE), user_src, src, m) == -1)
-    {
-      // Might have partially updated the block, so we need to log it.
-      journal_.record(*bp);
-      bp.reset();
-      break;
-    }
-    journal_.record(*bp);
-    bp.reset();
-  }
-
-  if (off > ip->size)
-  {
-    ip->size = off;
-  }
-
-  // write the i-node back to disk even if the size didn't change
-  // because the loop above might have called map_block() and added a new
-  // block to ip->addrs[].
-  update(ip);
-
-  return tot;
+  BlockHandle block;
+  WriteFlow::Context context{*this, ip, user_src, src, off, n, block};
+  (void)WriteFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 int Xv6FileSystem::resize(Inode *node, unsigned size)
 {
-  if (node->type != T_FILE || size > MAXFILE * BSIZE) return -1;
-  unsigned keep = (size + BSIZE - 1) / BSIZE;
-  for (unsigned i = keep; i < NDIRECT; ++i)
-    if (node->addrs[i]) { free_block(node->dev, node->addrs[i]); node->addrs[i] = 0; }
-  if (node->addrs[NDIRECT])
-  {
-    auto block = cache_.read(node->dev, node->addrs[NDIRECT]);
-    auto *entries = reinterpret_cast<unsigned *>(block->bytes()); bool any = false;
-    for (unsigned i = 0; i < NINDIRECT; ++i)
-    {
-      if (i + NDIRECT >= keep && entries[i]) { free_block(node->dev, entries[i]); entries[i] = 0; }
-      any |= entries[i] != 0;
-    }
-    if (any) journal_.record(*block);
-    block.reset();
-    if (!any) { free_block(node->dev, node->addrs[NDIRECT]); node->addrs[NDIRECT] = 0; }
-  }
-  if (size < node->size && size % BSIZE)
-  {
-    auto address = map_block(node, size / BSIZE, false);
-    if (address) { auto block = cache_.read(node->dev, address); detail::fill(block->bytes() + size % BSIZE, 0, BSIZE - size % BSIZE); journal_.record(*block); }
-  }
-  node->size = size; update(node); return 0;
+  ResizeFlow::Context context{*this, node, size};
+  (void)ResizeFlow::Graph::run<0>(context);
+  return context.result;
 }
+
 bool Xv6FileSystem::busy()
 {
   xv::sync::ScopedLock guard(inode_lock_);
-  unsigned references = 0; for (auto &node : inodes_) references += node.ref;
+  unsigned references = 0;
+  for (auto &node : inodes_)
+  {
+    references += node.ref;
+  }
   return references != 1;
 }
 

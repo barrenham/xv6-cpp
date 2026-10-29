@@ -1,0 +1,436 @@
+{
+  "status": "identified_complex_paths_connected",
+  "scope": "kernel/memory including memory/boot in current dev plus the two native allocator configurations",
+  "limitations": [
+    "This source/ownership audit does not prove all experimental kernel builds.",
+    "The fixed physical RAM fixture is incompatible with ASan shadow layout; UBSan and functional evidence are reported separately.",
+    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+  ],
+  "files": [
+    {
+      "source": "kernel/memory/address/physical_address.cppm",
+      "sha256": "0a9b98dd908a66d9e2211f6a7620fd8d29244cbc95db0f8388644a232addcc77",
+      "review": "Checked scalar address arithmetic, comparison and explicit pointer conversion are value primitives, with no RAM ownership or execution loop to schedule.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/address/physical_memory_range.cppm",
+      "sha256": "af9b272c0ad0f5396c906601493bbd618101bec068f74f64dc52119ec431a9c7",
+      "review": "Half-open range validation, page alignment, indexing and containment are compact value predicates. Overflow and alignment diagnostics stay in the original policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/allocator/allocator_detail.cppm",
+      "sha256": "ccad144519f28e1eb438915e3b0ab6ad89d5e773bf51bb49a32d18579854ca9d",
+      "review": "Hardware address constants, block-size arithmetic and poison/panic declarations only.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/allocator/allocator_service.cpp",
+      "sha256": "53cceffaa5e029e0870344bf2f5e606c5110a030ba5f2f3212bf26f1076153ec",
+      "review": "InitializeFlow inside the original friend function owns planning, reservation iteration, initialization CAS, construction, metadata failure reset and release publication. Reference retain/release CAS loops, address validation, access and initialization adapters remain atomic/business primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::initialize",
+          "usr": "c:@N@xv@N@memory@F@initialize#$@N@xv@N@memory@E@AllocatorKind#&1$@N@xv@N@memory@S@BootMemoryInfo#$@N@xv@N@memory@S@PhysicalAddress#",
+          "source": "kernel/memory/allocator/allocator_service.cpp",
+          "source_sha256": "0d116adfeae75f3cf2f963cd79ad52a80578e3e1df8745b5213493d024b28086",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+      "sha256": "fdfbb88b6565f4792038421a845a8732970bb8e8240e29790a9c25e8149fd609",
+      "review": "Private Allocate/Deallocate/Initialize graphs own cross-order search/split/coalesce and seeding. Per-order list operations, tags, claim CAS, block validation and bounded split-to-page tags remain primitives; no order locks are nested.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::allocate",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@allocate#i#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "7a35a54f637ef33aad21632e8ebd86c5cc44b0725f1ddcf3cee9816c97e1c76f",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::deallocate",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@deallocate#*v#i#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "1362ea0953c373d171e3120fd8c088a8efadc7781f39df1b5452337843c034ef",
+          "graphs": [
+            "DeallocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::BuddyPageAllocator::initialize_layout",
+          "usr": "c:@N@xv@N@memory@S@BuddyPageAllocator@F@initialize_layout#",
+          "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cpp",
+          "source_sha256": "3a3d98c41aae9c4e50ecb3d6e05c52d3a91cbb597a7887e7ac23e10adf9c339e",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/allocator/buddy/buddy_page_allocator.cppm",
+      "sha256": "367afa3aca15385201af77040b836b15a12ade5781ac7e733ff35e3dfc5b7c6d",
+      "review": "Concrete policy, state layout, bounded metadata sizing, constants and private flow declarations retain the original allocator API.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/allocator/freelist/freelist_page_allocator.cpp",
+      "sha256": "a2c277096e79390216df7a0b18360f57e43c62056166dabd17775e00df721482",
+      "review": "Compact single-lock pop/push, state checking, accounting and page poison; initialization is a direct bounded enumeration of usable pages. These are the concrete allocator business operations, with no cross-order protocol, extra candidates or rollback to schedule.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/allocator/freelist/freelist_page_allocator.cppm",
+      "sha256": "0cb1a815b51bdecb018c48f9ea4e3a55f1cc4e1a284238f57ba7f237b927c1a3",
+      "review": "Concrete single-page policy and state layout only; existing API and virtual business extension points retained.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/allocator/page_allocator.cppm",
+      "sha256": "f71277d40b2828fee5660c14fc7a8a202b3deaa673e66bfd008748b5b85670ce",
+      "review": "Original allocator interface, count accessor and OwnedPage local ownership transfer/destructor remain direct. The flow tool adds no heap owner or virtual interface.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/boot/boot_memory.cpp",
+      "sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af",
+      "review": "DiscoverFlow owns bounded reservation/token/node loops and final output commit. RecordFlow owns reg tuple validation/iteration. Endian/string/cell/bounds and individual property-field decoding remain data primitives. Failed parsing modifies only local candidates.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::record",
+          "usr": "c:boot_memory.cpp@N@xv@N@memory@aN@F@record#&1$@N@xv@N@memory@aN@S@Node#&$@N@xv@N@memory@S@BootMemoryInfo#",
+          "source": "kernel/memory/boot/boot_memory.cpp",
+          "source_sha256": "c62fc92e4814dd93ebe6864ea7d683082ab8dde4d48c39de275175736fb4d96c",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::FdtMemorySource::discover",
+          "usr": "c:@N@xv@N@memory@S@FdtMemorySource@F@discover#&$@N@xv@N@memory@S@BootMemoryInfo#",
+          "source": "kernel/memory/boot/boot_memory.cpp",
+          "source_sha256": "249288308064718cdc1be5dddcf0a341c1331c60051ffb613ddd919a115e7bdb",
+          "graphs": [
+            "DiscoverFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/boot/boot_memory.cppm",
+      "sha256": "b0ced327215d3b8ccfd42d1edd7b3c914ceaeac0114eaab41acc32e91add5c29",
+      "review": "Fixed-capacity BootMemoryInfo storage and existing source interfaces remain direct; only a private DiscoverFlow declaration was added.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/boot/kalloc.cpp",
+      "sha256": "98fd3224a179a18b81645451acb53560f7f2e78b859078cfdd3e030bfdff9fdd",
+      "review": "BootInitializeFlow owns discovery, DTB residency, allocator setup diagnostics and report order. Fill/panic and configured policy adapters stay direct. This file is memory/boot, not excluded kernel/boot.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::boot_initialize",
+          "usr": "c:@N@xv@N@memory@F@boot_initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalAddress#",
+          "source": "kernel/memory/boot/kalloc.cpp",
+          "source_sha256": "06246f1c9aea52a7911111f7cbef82d51e684bd410d07124d73f8c2215365fc3",
+          "graphs": [
+            "BootInitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/layout/memlayout.h",
+      "sha256": "46cedd9af0780c28a15017581958d481e100905a06a7bb23561c6483b41c805a",
+      "review": "Hardware/virtual layout constants and address macros only.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/layout/physical_memory_layout.cppm",
+      "sha256": "923ace2bd0624589972c1c4a7520be1d5f1ddc1852d1933290ef96cceb5dbf31",
+      "review": "Reserve/Metadata/Subtract graphs own dual-view preflight, metadata publication and interval mutation. Configure, bounded scans, accessors and capacity predicates remain value/data primitives; original private/public object state is unchanged.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::reserve",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@reserve#$@N@xv@N@memory@S@PhysicalMemoryRange#b#",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "3cc3d7bb1c6af5d14d7ab845e8eac6670a62d8af6d7c81c54574ca4170f7cfd6",
+          "graphs": [
+            "ReserveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::reserve_metadata",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@reserve_metadata#l#",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "81518448f229c3bf196cec41df56f0d39b4987971993e5619ba0eccb15a5a85f",
+          "graphs": [
+            "MetadataFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::PhysicalMemoryLayout::subtract",
+          "usr": "c:@N@xv@N@memory@S@PhysicalMemoryLayout@F@subtract#*$@N@xv@N@memory@S@PhysicalMemoryRange#&i#S1_#S",
+          "source": "kernel/memory/layout/physical_memory_layout.cppm",
+          "source_sha256": "03cae3771eab926cfb8d75edd4280dec627cb28752b8a5180e50758af80c58c4",
+          "graphs": [
+            "SubtractFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/layout/virtual_regions.cpp",
+      "sha256": "8782b2bb26817de72652af15e02361b166de035fce69c72e9a36057cd47e862e",
+      "review": "Existing Reserve/Erase/Copy graphs own fallible candidate mutation. Compact searches, page descriptor linkage, reset and range probes remain business primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::VirtualRegions::reserve",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@reserve#l#l#i#$@N@xv@N@memory@E@RegionKind#b#",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "7ad45b1734bd487de2b0fc971b2155f6a541eadac9df6d0cbb5285e97130a255",
+          "graphs": [
+            "ReserveFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::VirtualRegions::erase",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@erase#l#l#",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "5bc4123605037ad9ac0ebd63edf27734925bcf9834ca8328e128d03c8a7fe946",
+          "graphs": [
+            "EraseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::VirtualRegions::copy_to",
+          "usr": "c:@N@xv@N@memory@S@VirtualRegions@F@copy_to#&$@N@xv@N@memory@S@VirtualRegions#1",
+          "source": "kernel/memory/layout/virtual_regions.cpp",
+          "source_sha256": "b2a993f9f698a545fa8a682145d2961b448aff6b01201c003e14470d383a0149",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/layout/virtual_regions.cppm",
+      "sha256": "76d02fcf2b77c1b0a91bf0104f6c7149facf2e8a62ec758478b204711d30ba3c",
+      "review": "Virtual region data and original interface/private flow declarations; no new execution protocol.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/memory.cppm",
+      "sha256": "5694278b522830f2b078fe792f6af633421263557975aad4b71cc21e7deea96c",
+      "review": "Public module composition and exports only.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/paging/kernel_page_table.cpp",
+      "sha256": "0d9aa1a8786b56df06c92e2f8f28d676e1077392adcc2a0a88ae0796442cc9b3",
+      "review": "KernelBuild and private KernelPageTable graphs own initial mapping, stack allocation/rollback/reclamation and lock-free fault protocol. Hardware fences/SATP, leaf scans, region probes, statistics and short guarded delegation remain primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::make_kernel_page_table",
+          "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@F@make_kernel_page_table#&$@N@xv@N@memory@S@VirtualRegions#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "ec0364015dd8d4332711f16a34928958f4e193b40d8f6eb1fa02bdf7ce99ae4d",
+          "graphs": [
+            "KernelBuildFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::initialize",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@initialize#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "399b5fc7175d68d2403a454de23a29f044dcae3c460d8b54b791056bb9d167d1",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::commit_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@commit_stack#l#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "95e1ce15ca6dc3687137f049a045779166c7dc90079cb4a2e7c85207284d5b1f",
+          "graphs": [
+            "CommitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::release_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "858cfdeade1c977bcf13a7ca637c4f09b459bd701f1c661455416740044e1ff2",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@allocate_process_stack#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "1f611df664bee37e5eb791a0f2b820683c93cebb09bf2ebd72253e8f06606aa9",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::free_process_stack",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@free_process_stack#l#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "8a68638bdde6dfb813e2603bf9892421dc9d391571e06804cf0875f3db67b451",
+          "graphs": [
+            "FreeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::KernelPageTable::handle_stack_fault",
+          "usr": "c:@N@xv@N@memory@S@KernelPageTable@F@handle_stack_fault#l#l#l#$@N@xv@N@memory@E@FaultAccess#*F*v()#",
+          "source": "kernel/memory/paging/kernel_page_table.cpp",
+          "source_sha256": "675378046cb43023d0d5c2c4500b732fc63247476da28878b2dfbaa013f52324",
+          "graphs": [
+            "FaultFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/paging/kernel_page_table.cppm",
+      "sha256": "668f38c9a38dff27f8dbc0a526d148240744a740c7a9bbfcc15444add2451445",
+      "review": "Original public kernel paging interface and state layout; private flows own implementation only.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/paging/sv39_page_table.cpp",
+      "sha256": "f77f79791fe14446bf8e2e1bc4ff9114941d5fee461714ac23cf8575da13208d",
+      "review": "Leaf/Range graphs own mapping selection, intermediate ownership and range-prefix failures. Translation, fixed-depth traversal/clear/count and encoding remain compact primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::Sv39PageTable::map_leaf",
+          "usr": "c:@N@xv@N@memory@S@Sv39PageTable@F@map_leaf#l#$@N@xv@N@memory@S@PhysicalAddress#i#l#",
+          "source": "kernel/memory/paging/sv39_page_table.cpp",
+          "source_sha256": "d583d26945f01c02682d72e5cd0e538a22e9099ead27aa61466b60a2f6d9d9fd",
+          "graphs": [
+            "LeafFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::Sv39PageTable::map_range",
+          "usr": "c:@N@xv@N@memory@S@Sv39PageTable@F@map_range#l#$@N@xv@N@memory@S@PhysicalAddress#l#l#",
+          "source": "kernel/memory/paging/sv39_page_table.cpp",
+          "source_sha256": "e211af586d8d15d78ec892cfceff0ce95c4bd9d79d6a6c203078d5370d6047cd",
+          "graphs": [
+            "RangeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/paging/sv39_page_table.cppm",
+      "sha256": "5b46c5a2f3e30d47c2c8dd56feb6d8e62cf207f55754951c192144b7f50ca195",
+      "review": "Existing page policy and root RAII ownership, bounded leaf-size validation, types and private mapping flow declarations.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/paging/user_paging.cppm",
+      "sha256": "8307a23df3259a8ea73f2c50faffe9e606e960c4bdabb8715f93366a4266ff52",
+      "review": "Original user VM declarations and aliases; no runtime protocol in this interface.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/paging/vm.cpp",
+      "sha256": "5f2da81e57d1cfc5de73d48f535d6cf753426a8b17ec4d725916903ed89db972",
+      "review": "SuperMap/SuperDemote/DemoteUser/MapUser/UnmapUser/AllocateUser/CloneUser/FaultUser graphs own identified complex protocols. Three-level walks, guard updates, fixed teardown, permission predicates and byte/page-slice copy loops remain primitives, preserving partial progress.",
+      "graph_entries": [
+        {
+          "qualified": "xv::memory::supermap",
+          "usr": "c:vm.cpp@N@xv@N@memory@F@supermap#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "3196cba00fb2233a5cea8d35509b8a63986de1a51b2ac0ede74cb59947987c66",
+          "graphs": [
+            "SuperMapFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::superdemote",
+          "usr": "c:vm.cpp@N@xv@N@memory@F@superdemote#*l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "43f35fb8b7640e96e49be8d908df2ffee4bb3caa153a95c9331826a3b2aa137a",
+          "graphs": [
+            "SuperDemoteFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::demote_user_pages",
+          "usr": "c:@N@xv@N@memory@F@demote_user_pages#*l#l#l#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "a2901ecf15558f847bfb16273c03530fb9964c6d3e984865a6f736c0cb501df7",
+          "graphs": [
+            "DemoteUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::map_user_pages",
+          "usr": "c:@N@xv@N@memory@F@map_user_pages#*l#l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "5177cc5adf38b96635a351cda7cdf0c38c1ad0352ff78ae50e6f12689d27283e",
+          "graphs": [
+            "MapUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::unmap_user_pages",
+          "usr": "c:@N@xv@N@memory@F@unmap_user_pages#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "05c0b6f30127034c34223e08659ae34ef91390a494ecd1efbf89ef9ffc81842f",
+          "graphs": [
+            "UnmapUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::allocate_user_pages",
+          "usr": "c:@N@xv@N@memory@F@allocate_user_pages#*l#l#l#I#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "0302d78bb59f1030235561f962a2b6cff91c15c219e97f770cc263db3ad44452",
+          "graphs": [
+            "AllocateUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::clone_user_pages",
+          "usr": "c:@N@xv@N@memory@F@clone_user_pages#*l#S0_#l#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "f69f887f39569f06dcdaa569ed620395a5a956ae033caa6cc7ed48647cbc210f",
+          "graphs": [
+            "CloneUserFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::memory::resolve_user_fault",
+          "usr": "c:@N@xv@N@memory@F@resolve_user_fault#*l#l#&1$@N@xv@N@memory@S@VirtualRegions#l#$@N@xv@N@memory@E@FaultAccess#",
+          "source": "kernel/memory/paging/vm.cpp",
+          "source_sha256": "5d960987253b2904d5d41c6561c4534799ab7c60939dfe7a634a20beea9b4b00",
+          "graphs": [
+            "FaultUserFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/memory/paging/vm.h",
+      "sha256": "fea1f9cac6a04885df9d386bd6ebfbe9f3c353f52570779ce9bd027061fb6c01",
+      "review": "User ABI constants only.",
+      "graph_entries": []
+    }
+  ],
+  "graph_count": 30,
+  "original_entry_count": 30
+}

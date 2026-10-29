@@ -4,12 +4,12 @@
 
 ## 函数导航
 
-- [`xv::net::TcpCongestion::initialize`](congestion.cppm.md#fn-897de3663634a9cc)
-- [`xv::net::TcpCongestion::window`](congestion.cppm.md#fn-5aafbf9377c4fe12)
-- [`xv::net::TcpCongestion::timeout`](congestion.cppm.md#fn-b7bc1e44d5976a33)
-- [`xv::net::TcpCongestion::duplicate`](congestion.cppm.md#fn-eec120850e614e58)
 - [`xv::net::TcpCongestion::acknowledged`](congestion.cppm.md#fn-e71caffb7e38751d)
+- [`xv::net::TcpCongestion::duplicate`](congestion.cppm.md#fn-eec120850e614e58)
+- [`xv::net::TcpCongestion::initialize`](congestion.cppm.md#fn-897de3663634a9cc)
 - [`xv::net::TcpCongestion::reset_duplicates`](congestion.cppm.md#fn-68bbeb650c221e9d)
+- [`xv::net::TcpCongestion::timeout`](congestion.cppm.md#fn-b7bc1e44d5976a33)
+- [`xv::net::TcpCongestion::window`](congestion.cppm.md#fn-5aafbf9377c4fe12)
 
 <a id="fn-897de3663634a9cc"></a>
 
@@ -51,7 +51,7 @@
 ```doxygen
 @fn bool xv::net::TcpCongestion::duplicate(unsigned acknowledgement, unsigned flight, unsigned next)
 @brief 累计重复 ACK 并执行快速重传入口与窗口膨胀。
-@details 第三个合格重复确认记录恢复边界并请求重传，后续重复确认逐步增加恢复额度；超时恢复屏障之前的旧确认不重新触发恢复。
+@details 第三个合格重复确认记录恢复边界并请求重传，后续重复确认逐步增加恢复额度；超时恢复屏障之前的旧确认不重新触发恢复。 实现通过 DuplicateFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
 
@@ -62,7 +62,7 @@
 ```doxygen
 @fn bool xv::net::TcpCongestion::acknowledged(unsigned bytes, unsigned acknowledgement)
 @brief 按新确认字节执行慢启动、拥塞避免或 NewReno 恢复。
-@details 部分恢复 ACK 收缩膨胀额度并请求修复下一个缺口；覆盖恢复边界后退出。普通慢启动每 ACK 至多增加一个 MSS，拥塞避免按字节信用累计增长。
+@details 部分恢复 ACK 收缩膨胀额度并请求修复下一个缺口；覆盖恢复边界后退出。普通慢启动每 ACK 至多增加一个 MSS，拥塞避免按字节信用累计增长。 实现通过 AcknowledgeFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
 

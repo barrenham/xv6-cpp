@@ -25,6 +25,8 @@ public:
 
 private:
 
+  struct RunFlow;
+
   ReadyQueue &ready_;
 };
 } // namespace xv::process

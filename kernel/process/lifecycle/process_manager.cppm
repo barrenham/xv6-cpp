@@ -48,6 +48,23 @@ public:
 
 private:
 
+  struct WakeSignalFlow;
+  struct SendPidSignalFlow;
+  struct SendGroupSignalFlow;
+  struct NotifyChildFlow;
+  struct DeliverSignalFlow;
+
+  struct KillFlow;
+  struct InspectFlow;
+
+  struct AllocateFlow;
+  struct ReapFlow;
+  struct InitialFlow;
+  struct ForkFlow;
+  struct ReparentFlow;
+  struct ExitFlow;
+  struct WaitFlow;
+
   void wake_for_signal(Process &process);
   void wake_signal_waiters(bool notify_children = true);
   void post_child_signal(Process &child); // caller holds wait_lock_, no parent lock
@@ -60,6 +77,8 @@ private:
   void reap(Process *process);
   int allocate_pid();
   void reparent(Process *parent);
+  static void attach_child(Process &parent, Process &child);
+  static void detach_child(Process &child);
   ProcessStore &store_;
   Scheduler &scheduler_;
   WaitChannels &waits_;

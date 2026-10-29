@@ -5,6 +5,7 @@ module;
 #include "kernel/fs/stat.h"
 
 module xv.fs;
+import :journal_flow;
 import :platform;
 
 namespace xv::fs
@@ -75,81 +76,25 @@ void Journal::write_header(void)
 
 void Journal::recover(void)
 {
-  read_header();
-  install(1); // if committed, copy from log to disk
-  cache_.flush();
-  header_.count = 0;
-  write_header(); // clear the log
-  cache_.flush();
+  RecoverFlow::Context context{*this};
+  (void)RecoverFlow::Graph::run<0>(context);
 }
 
 // called at the start of each FS system call.
 void Journal::begin(void)
 {
   lock_.acquire();
-  while (1)
-  {
-    if (committing_)
-    {
-      detail::prepare_sleep(this);
-      lock_.release();
-      detail::sleep();
-      lock_.acquire();
-    }
-    else if (header_.count + (outstanding_ + 1) * MAXOPBLOCKS > LOGBLOCKS)
-    {
-      // this op might exhaust log space; wait for commit.
-      detail::prepare_sleep(this);
-      lock_.release();
-      detail::sleep();
-      lock_.acquire();
-    }
-    else
-    {
-      outstanding_ += 1;
-      lock_.release();
-      break;
-    }
-  }
+  BeginFlow::Context context{*this};
+  (void)BeginFlow::Graph::run<0>(context);
 }
 
 // called at the end of each FS system call.
 // commits if this was the last outstanding operation.
 void Journal::end(void)
 {
-  int do_commit = 0;
-
   lock_.acquire();
-  outstanding_ -= 1;
-  if (committing_)
-  {
-    detail::fail("committing_");
-  }
-  if (outstanding_ == 0)
-  {
-    do_commit = 1;
-    committing_ = 1;
-  }
-  else
-  {
-    // begin() may be waiting for log space,
-    // and decrementing outstanding_ has decreased
-    // the amount of reserved space.
-    detail::wakeup(this);
-  }
-  lock_.release();
-
-  if (do_commit)
-  {
-    // call commit w/o holding locks, since not allowed
-    // to sleep with locks.
-    commit();
-    lock_.acquire();
-    committing_ = 0;
-    commits_ += 1;
-    detail::wakeup(this);
-    lock_.release();
-  }
+  EndFlow::Context context{*this};
+  (void)EndFlow::Graph::run<0>(context);
 }
 
 // Copy modified blocks from cache to log.
@@ -170,18 +115,8 @@ void Journal::write_log(void)
 
 void Journal::commit()
 {
-  if (header_.count > 0)
-  {
-    write_log();
-    cache_.flush();    // Write modified blocks from cache to log
-    write_header(); // Write header to disk -- the real commit
-    cache_.flush();
-    install(0);     // Now install writes to home locations
-    cache_.flush();
-    header_.count = 0;
-    write_header(); // Erase the transaction from the log
-    cache_.flush();
-  }
+  CommitFlow::Context context{*this};
+  (void)CommitFlow::Graph::run<0>(context);
 }
 
 // Caller has modified b->bytes() and is done with the buffer.
@@ -195,51 +130,16 @@ void Journal::commit()
 //   brelse(bp)
 void Journal::record(Buffer &buffer)
 {
-  auto *b = &buffer;
-  int i;
-
   lock_.acquire();
-  if (header_.count >= LOGBLOCKS)
-  {
-    detail::fail("too big a transaction");
-  }
-  if (outstanding_ < 1)
-  {
-    detail::fail("log_write outside of trans");
-  }
-
-  for (i = 0; i < header_.count; i++)
-  {
-    if (header_.blocks[i] == b->block_number()) // log absorption
-    {
-      break;
-    }
-  }
-  header_.blocks[i] = b->block_number();
-  if (i == header_.count)
-  { // Add new block to log?
-    cache_.pin(*b);
-    header_.count++;
-  }
-  lock_.release();
+  RecordFlow::Context context{{*this}, buffer};
+  (void)RecordFlow::Graph::run<0>(context);
 }
 
 void Journal::sync(void)
 {
   lock_.acquire();
-  if (committing_ || outstanding_ > 0)
-  {
-    int n = commits_ + 1;
-    while (commits_ < n)
-    {
-      detail::prepare_sleep(this);
-      lock_.release();
-      detail::sleep();
-      lock_.acquire();
-    }
-  }
-  lock_.release();
-  cache_.flush();
+  SyncFlow::Context context{{*this}};
+  (void)SyncFlow::Graph::run<0>(context);
 }
 
 } // namespace xv::fs

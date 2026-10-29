@@ -138,6 +138,69 @@ static void vm_test()
   regions.reset();
   check(allocator().free_pages() == initial, "all shared pages and tables reclaimed");
 }
+static void sole_owner_oom_test()
+{
+  auto initial = allocator().free_pages();
+  VirtualRegions regions;
+  check(regions.reserve(0, PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap, true),
+        "sole owner region");
+  auto table = create_user_table(), child = create_user_table();
+  check(table && child && allocate_user_pages(table, 0, PGSIZE, PTE_W) == PGSIZE,
+        "sole owner fixture");
+  auto physical = translate_user_page(table, 0);
+  check(clone_user_pages(table, child, PGSIZE) == 0, "share sole owner fixture");
+  free_user_table(child, PGSIZE);
+  check(allocator().page_references(reinterpret_cast<void *>(physical)) == 1 &&
+        (*walk_entry(table, 0, 0) & PTE_COW), "last COW reference remains marked");
+  std::vector<void *> held;
+  while (auto *page = allocator().allocate()) held.push_back(page);
+  auto resolved = resolve_user_fault(table, PGSIZE, regions, 0, FaultAccess::Write);
+  check(resolved.result == FaultResult::Resolved && resolved.physical == physical &&
+        allocator().free_pages() == 0 &&
+        (*walk_entry(table, 0, 0) & (PTE_W | PTE_COW)) == PTE_W,
+        "sole-owner COW promotes in place with no free frames");
+  for (auto *page : held) allocator().deallocate(page);
+  free_user_table(table, PGSIZE); regions.reset();
+  check(allocator().free_pages() == initial, "sole owner fixture fully reclaimed");
+}
+static void superpage_ownership_test()
+{
+  if (!allocator().supports(SuperpageOrder)) return;
+  auto initial = allocator().free_pages();
+  auto table = create_user_table();
+  check(table && allocate_user_pages(table, 0, SUPERPGSIZE, PTE_W) == SUPERPGSIZE,
+        "allocate superpage ownership fixture");
+  auto *huge = walk_entry(table, 0, 0);
+  check(huge == walk_entry(table, PGSIZE, 0), "fixture uses a huge leaf");
+  auto physical = PTE2PA(*huge);
+  *reinterpret_cast<char *>(physical + SUPERPGSIZE - 2 * PGSIZE) = 'Z';
+  auto original = *huge;
+  std::vector<void *> held;
+  while (auto *page = allocator().allocate()) held.push_back(page);
+  check(demote_user_pages(table, 0, 1) < 0 && *huge == original,
+        "non-freeing demotion OOM preserves the huge leaf");
+  unmap_user_pages(table, SUPERPGSIZE - PGSIZE, 1, 1);
+  check(!translate_user_page(table, SUPERPGSIZE - PGSIZE) &&
+        translate_user_page(table, 0) == physical &&
+        *reinterpret_cast<char *>(physical + SUPERPGSIZE - 2 * PGSIZE) == 'Z',
+        "partial unmap recycles the discarded frame as a table without losing neighbors");
+  for (auto *page : held) allocator().deallocate(page);
+  free_user_table(table, SUPERPGSIZE);
+  check(allocator().free_pages() == initial, "recycled superpage fixture fully reclaimed");
+
+  table = create_user_table();
+  check(table && allocate_user_pages(table, 0, SUPERPGSIZE, PTE_W) == SUPERPGSIZE &&
+        demote_user_pages(table, PGSIZE, 1) == 0 &&
+        walk_entry(table, 0, 0) != walk_entry(table, PGSIZE, 0),
+        "ordinary demotion publishes independent page entries");
+  unmap_user_pages(table, 0, SUPERPGSIZE / PGSIZE, 1);
+  check(allocate_user_pages(table, 0, SUPERPGSIZE, PTE_W) == SUPERPGSIZE &&
+        walk_entry(table, 0, 0) == walk_entry(table, PGSIZE, 0),
+        "huge mapping reclaims the old empty leaf table before reuse");
+  free_user_table(table, SUPERPGSIZE);
+  check(allocator().free_pages() == initial, "empty-table reuse fixture fully reclaimed");
+}
+extern void address_space_contracts();
 int main(int argc, char **argv)
 {
   check(argc == 2, "allocator argument");
@@ -148,6 +211,7 @@ int main(int argc, char **argv)
   auto kind = !std::strcmp(argv[1], "buddy") ? AllocatorKind::Buddy : AllocatorKind::FreeList;
   check(initialize(kind, reinterpret_cast<void *>(KERNBASE + 2 * 1024 * 1024),
                    reinterpret_cast<void *>(KERNBASE + bytes)), "initialize physical allocator");
-  regions_test(); metadata_oom_test(); references_test(); fork_oom_test(); vm_test();
+  regions_test(); metadata_oom_test(); references_test(); fork_oom_test(); vm_test(); sole_owner_oom_test(); superpage_ownership_test();
+  address_space_contracts();
   std::puts("VM region, protection, OOM and COW contracts passed");
 }

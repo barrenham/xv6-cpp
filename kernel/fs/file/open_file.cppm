@@ -9,7 +9,15 @@ export import xv.io;
 export namespace xv::fs
 {
 class Pipe;
-enum class FileKind : unsigned { Unknown, Node, Pipe, Terminal, Socket };
+enum class FileKind : unsigned
+{
+  Unknown,
+  Node,
+  Pipe,
+  Terminal,
+  Socket
+};
+
 struct FileInfo
 {
   unsigned long identity = 0;
@@ -52,7 +60,8 @@ public:
   File *allocate();
   File *retain(File *file);
   void release(File *file);
-  bool bind_inode(File &file, Inode &node, bool readable, bool writable, bool nonblocking = false, bool append = false);
+  bool bind_inode(File &file, Inode &node, bool readable, bool writable,
+                  bool nonblocking = false, bool append = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
   void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
@@ -70,7 +79,11 @@ public:
 
 private:
 
-  void configure(File &file, xv::io::IoObject &object, bool readable, bool writable, bool nonblocking, FileKind kind, const Inode *node = nullptr);
+  struct ReleaseFlow;
+  struct BindInodeFlow;
+
+  void configure(File &file, xv::io::IoObject &object, bool readable, bool writable,
+                 bool nonblocking, FileKind kind, const Inode *node = nullptr);
   xv::sync::SpinLock lock_;
   File files_[NFILE]{};
   unsigned long next_identity_ = 1;
@@ -83,6 +96,7 @@ class DeviceRegistry final
 public:
 
   constexpr DeviceRegistry() = default;
+
   struct Entry
   {
     char name[14]{};
@@ -90,14 +104,30 @@ public:
     unsigned minor = 0;
     xv::drivers::CharacterDevice *device = nullptr;
   };
+
   void attach(unsigned major, xv::drivers::CharacterDevice &device);
-  void attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device);
+  void attach(const char *name, unsigned major, unsigned minor,
+              xv::drivers::CharacterDevice &device);
   xv::drivers::CharacterDevice *get(int major, int minor = 0) const;
-  unsigned count() const { return count_; }
-  const Entry &entry(unsigned index) const { return entries_[index]; }
-  void seal() { sealed_ = true; }
+
+  unsigned count() const
+  {
+    return count_;
+  }
+
+  const Entry &entry(unsigned index) const
+  {
+    return entries_[index];
+  }
+
+  void seal()
+  {
+    sealed_ = true;
+  }
 
 private:
+
+  struct AttachFlow;
 
   Entry entries_[NDEV]{};
   unsigned count_ = 0;

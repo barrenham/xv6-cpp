@@ -80,6 +80,12 @@ extern "C"
     uint64 super, regular;
     check(ksupernpte(&super, &regular) == 0, "kernel page counts");
     check(super > 0 && regular < 1610, "kernel uses bounded mixed-size mappings");
+    uint64 first = ~0UL;
+    check(ksupernpte(&first, (uint64 *)MAXVA) == -1 && first == super,
+          "second statistics copy failure preserves first write");
+    regular = ~0UL;
+    check(ksupernpte((uint64 *)MAXVA, &regular) == -1 && regular == ~0UL,
+          "first statistics copy failure skips second write");
     printf("pgtblext: kernel superpages=%ld regular leaves=%ld\n", super, regular);
     printf("pgtblext: all tests succeeded\n");
     exit(0);

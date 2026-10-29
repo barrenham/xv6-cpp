@@ -5,18 +5,18 @@
 ## 函数导航
 
 - [`xv::net::EthernetInterface::EthernetInterface`](ethernet_interface.cppm.md#fn-e8752742067697dc)
-- [`xv::net::EthernetInterface::initialize`](ethernet_interface.cpp.md#fn-6aa7b41af4f709cb)
-- [`xv::net::EthernetInterface::receiver`](ethernet_interface.cppm.md#fn-b39f14a27d219261)
-- [`xv::net::EthernetInterface::mac`](ethernet_interface.cppm.md#fn-5768eaba9cc42609)
 - [`xv::net::EthernetInterface::carrier`](ethernet_interface.cppm.md#fn-1d271cadfb212572)
-- [`xv::net::EthernetInterface::layer2`](ethernet_interface.cppm.md#fn-f8c668746d15b180)
-- [`xv::net::EthernetInterface::master`](ethernet_interface.cppm.md#fn-6abccc5d2585ce1c)
-- [`xv::net::EthernetInterface::transmit_bootstrap`](ethernet_interface.cpp.md#fn-6a23b3040e6fa382)
-- [`xv::net::EthernetInterface::transmit`](ethernet_interface.cpp.md#fn-3e698439f28e1935)
-- [`xv::net::EthernetInterface::neighbor`](ethernet_interface.cppm.md#fn-6595b5d65f41b1c5)
+- [`xv::net::EthernetInterface::initialize`](ethernet_interface.cpp.md#fn-6aa7b41af4f709cb)
 - [`xv::net::EthernetInterface::invalidate`](ethernet_interface.cppm.md#fn-f6d1075dc84faef7)
-- [`xv::net::EthernetInterface::tick`](ethernet_interface.cppm.md#fn-df47067df667684e)
+- [`xv::net::EthernetInterface::layer2`](ethernet_interface.cppm.md#fn-f8c668746d15b180)
+- [`xv::net::EthernetInterface::mac`](ethernet_interface.cppm.md#fn-5768eaba9cc42609)
+- [`xv::net::EthernetInterface::master`](ethernet_interface.cppm.md#fn-6abccc5d2585ce1c)
+- [`xv::net::EthernetInterface::neighbor`](ethernet_interface.cppm.md#fn-6595b5d65f41b1c5)
 - [`xv::net::EthernetInterface::receive`](ethernet_interface.cpp.md#fn-00530c658ce99424)
+- [`xv::net::EthernetInterface::receiver`](ethernet_interface.cppm.md#fn-b39f14a27d219261)
+- [`xv::net::EthernetInterface::tick`](ethernet_interface.cppm.md#fn-df47067df667684e)
+- [`xv::net::EthernetInterface::transmit`](ethernet_interface.cpp.md#fn-3e698439f28e1935)
+- [`xv::net::EthernetInterface::transmit_bootstrap`](ethernet_interface.cpp.md#fn-6a23b3040e6fa382)
 
 <a id="fn-e8752742067697dc"></a>
 

@@ -169,6 +169,8 @@ protected:
 
 private:
 
+  struct DeliverFlow;
+
   friend class InterfaceRegistry;
   friend class AddressConfiguration;
   int account_send(unsigned length, int result);
@@ -209,6 +211,11 @@ public:
   void tick(unsigned long now);
 
 private:
+
+  struct UpdateFlow;
+  struct SealFlow;
+
+  struct RegistrationFlow;
 
   static constexpr unsigned Capacity = 8;
   int registration_error(const NetworkInterface &interface) const;

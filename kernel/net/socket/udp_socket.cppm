@@ -24,6 +24,12 @@ public:
 
 private:
 
+  struct ConnectFlow;
+  struct DeliveryFlow;
+
+  struct SendFlow;
+  struct ReceiveFlow;
+
   struct Message
   {
     void *page = nullptr;

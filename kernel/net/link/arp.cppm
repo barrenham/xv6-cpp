@@ -23,6 +23,12 @@ public:
 
 private:
 
+  struct RequestFlow;
+
+  struct SendFlow;
+  struct ReceiveFlow;
+  struct TickFlow;
+
   void request(unsigned address);
 
   struct Neighbor

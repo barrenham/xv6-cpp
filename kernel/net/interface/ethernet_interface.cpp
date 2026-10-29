@@ -1,6 +1,7 @@
 module;
 #include "kernel/net/errno.h"
 module xv.net;
+import :ethernet_interface_flows;
 import :ethernet_interface;
 
 namespace xv::net
@@ -15,20 +16,9 @@ void EthernetInterface::initialize(xv::drivers::EthernetDevice &device)
 
 int EthernetInterface::transmit(Packet &packet, unsigned next_hop)
 {
-  if (master() || !up() || !carrier() || !address_count())
-  {
-    return -ENETUNREACH;
-  }
-  if (packet.size() > mtu())
-  {
-    return -EMSGSIZE;
-  }
-  if (next_hop == 0xffffffff)
-  {
-    constexpr unsigned char broadcast[6] = {255, 255, 255, 255, 255, 255};
-    return link_.send_ip(packet, broadcast);
-  }
-  return arp_.send(packet, next_hop);
+  TransmitFlow::Context ctx{*this, packet, next_hop};
+  (void)TransmitFlow::Graph::run<0>(ctx);
+  return ctx.result;
 }
 
 void EthernetInterface::receive(Packet &packet)
@@ -44,15 +34,8 @@ namespace xv::net
 {
 int EthernetInterface::transmit_bootstrap(Packet &packet)
 {
-  if (master() || !up() || !carrier())
-  {
-    return -ENETUNREACH;
-  }
-  if (!packet || packet.size() < 28 || packet.size() > mtu())
-  {
-    return -EMSGSIZE;
-  }
-  constexpr unsigned char broadcast[6] = {255, 255, 255, 255, 255, 255};
-  return link_.send_ip(packet, broadcast);
+  TransmitFlow::Context ctx{*this, packet, 0xffffffff};
+  (void)TransmitFlow::BootstrapGraph::run<0>(ctx);
+  return ctx.result;
 }
 } // namespace xv::net

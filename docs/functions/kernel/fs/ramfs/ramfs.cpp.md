@@ -67,6 +67,7 @@
 @brief 分配带归属、权限及生命周期登记的 RAM 节点。
 @details 树锁内选择空闲编号并分配单页 Node。登记节点链表和初始外部引用，继承当前 UID/GID/umask；目录保留父节点的内部引用，此引用不计 live_references_。分配失败不占编号。
 @return 初始引用为 1 的节点；编号或页面不足返回 nullptr。
+@details 流程由 MakeFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-0339515fc48a1692"></a>
@@ -88,6 +89,7 @@
 @fn void xv::fs::RamFileSystem::release(Inode *node)
 @brief 归还外部节点引用并按需回收已删除节点。
 @details 多引用时在 references_ 内同步减少 ref 和 live_references_；最后引用先取得 tree_ 后才减少外部计数，使卸载不能在释放者等待树锁时提前销毁实例。nlink 为零时执行迭代回收；已持树锁时避免递归获取。
+@details 流程由 ReleaseFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-1a54a9d94f11be0a"></a>
@@ -98,6 +100,7 @@
 @fn void xv::fs::RamFileSystem::reclaim(Node *node)
 @brief 迭代回收零链接、零引用节点及失去最后固定引用的父目录。
 @details 树锁内先从全实例节点链表和编号位图移除，再析构目录页、PageBuffer 和节点。父引用是内部引用，只扣父 ref 而不扣 live_references_；因此深目录回收不递归占用内核栈，孤儿目录仍能阻止卸载。
+@details 流程由 ReclaimFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-652b84b0201f47dc"></a>
@@ -168,6 +171,7 @@
 @fn Inode *xv::fs::RamFileSystem::create_at(Inode *directory, const char *name, short type, short, short)
 @brief 在树锁内创建 RAM 节点。
 @details 除普通文件和目录外允许 T_SYMLINK；权限、编号、父固定引用与失败回收仍沿用原有约定。
+@details 流程由 CreateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-284ead7688a027d6"></a>
@@ -178,6 +182,7 @@
 @fn int xv::fs::RamFileSystem::link_at(Inode *directory, const char *name, Inode *target)
 @brief 在 RAM 目录添加硬链接。
 @details 树锁内检查后端一致、父 W/X、目标类型和链接上限；目录槽成功发布才增加 nlink，失败保持输入引用及原内容。
+@details 流程由 LinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-33548eacf725bea9"></a>
@@ -188,6 +193,7 @@
 @fn int xv::fs::RamFileSystem::unlink_at(Inode *directory, const char *name)
 @brief 删除 RAM 目录项并应用 sticky 策略。
 @details 共享树锁内验证父 W/X，sticky 仅允许 root、目录属主或目标属主；拒绝点目录及非空目录。先固定目标再撤链接，最后引用归还时回收数据页和编号。
+@details 流程由 UnlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-bda258709d76e544"></a>
@@ -208,6 +214,7 @@
 @fn int xv::fs::RamFileSystem::read(Inode *node, int user, unsigned long destination, unsigned offset, unsigned count)
 @brief 读取 RAM 文件、链接内容或目录记录。
 @details 普通文件与符号链接共用 PageBuffer；目录仍按固定 dirent 布局逐段复制，失败不越过有效数据。
+@details 流程由 ReadFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-9512b40f84b5ad5d"></a>
@@ -239,6 +246,7 @@
 @brief 尝试分配独立 RAM 根而不在 OOM 时触发 panic。
 @details 树锁内分配根、设置自指父节点、root:root 01777 和初始链接。失败释放树锁返回 false；动态 VFS 随后将其根权限改为 0755，启动 /tmp 保留 01777。
 @return true 表示根已初始化，false 表示页面分配失败。
+@details 流程由 InitializeMountFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-bf6f827e9769d7e9"></a>
@@ -271,6 +279,7 @@
 @brief 在树锁内移动或替换 RAM 目录项。
 @details 检查源/目标父目录授权、sticky、类型、目标目录是否为空及链接数边界。先完成目标槽安装，再清除源槽；替换 inode 减少链接并在最后引用释放时回收。跨父目录移动转换内部父节点引用，同时维护外部引用计数。调用前由 VFS 拒绝目录环及挂载移动。
 @return 0 表示成功，-1 表示检查或槽分配失败。
+@details 流程由 RenameFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-26a32874b953ad67"></a>

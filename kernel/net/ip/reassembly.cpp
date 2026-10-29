@@ -1,4 +1,5 @@
 module xv.net;
+import :reassembly_accept_flow;
 import :reassembly;
 import :wire;
 import :platform;
@@ -92,55 +93,9 @@ Packet Ipv4Reassembly::accept(const void *ingress, const Packet &fragment,
                               unsigned header_length, unsigned total_length,
                               unsigned long now)
 {
-  if (!fragment || header_length != 20 || total_length < header_length ||
-      total_length > fragment.size())
-  {
-    return {};
-  }
-  const auto *header = fragment.data();
-  unsigned flags = wire::read16(header + 6);
-  unsigned offset = (flags & 0x1fff) * 8, length = total_length - header_length;
-  if (!length || offset + length > MaxPayload || ((flags & 0x2000) && (length & 7)))
-  {
-    return {};
-  }
-  Key key{ingress, wire::read32(header + 12), wire::read32(header + 16),
-          wire::read16(header + 4), header[9]};
-  void *page;
-  unsigned complete_length = 0;
-  Packet::Context context;
-  {
-    xv::sync::ScopedLock guard(lock_);
-    auto *assembly = find_or_create(key, fragment, now);
-    if (!assembly)
-    {
-      return {};
-    }
-    bool valid =
-        insert(*assembly, header + header_length, offset, length, !(flags & 0x2000));
-    if (valid && !(assembly->last && assembly->received == assembly->total))
-    {
-      return {};
-    }
-    page = assembly->page;
-    context = assembly->context;
-    if (valid)
-    {
-      complete_length = 20 + assembly->total;
-    }
-    *assembly = {};
-  }
-  Packet complete(page, complete_length, context);
-  if (!complete_length)
-  {
-    return {};
-  }
-  auto *ip = complete.data();
-  wire::write16(ip + 2, complete_length);
-  wire::write16(ip + 6, 0);
-  wire::write16(ip + 10, 0);
-  wire::write16(ip + 10, ~wire::sum(ip, 20));
-  return complete;
+  AcceptFlow::Context ctx{*this, ingress, fragment, header_length, total_length, now};
+  (void)AcceptFlow::Graph::run<0>(ctx);
+  return Packet(ctx.page, ctx.complete_length, ctx.context);
 }
 
 void Ipv4Reassembly::tick(unsigned long now)

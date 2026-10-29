@@ -39,12 +39,10 @@
 @fn void xv::sync::SleepLock::acquire()
 @brief 睡眠锁：取得锁所有权。
 @details 持 state_lock_ 检查 locked_；忙时先登记 this 通道，再释放状态锁并睡眠，恢复后重新获取状态锁重查。最后登记当前 PID 为拥有者；业务临界区不持有 state_lock_。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`state_lock_.acquire` → `detail::current_pid` → `detail::fail` → `detail::prepare_sleep` → `state_lock_.release` → `detail::sleep_process`。
-@details 本函数可见的状态更新包括：`locked_ = true;`；`pid_ = detail::current_pid();`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`locked_`；`pid_ == detail::current_pid()`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`state_lock_.acquire` → `state_lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 编排由 AcquireFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-4bf66df4f890a6a5"></a>
@@ -55,12 +53,10 @@
 @fn bool xv::sync::SleepLock::acquire_interruptible()
 @brief 睡眠锁：等待锁可用，并允许可投递信号取消。
 @details 与普通睡眠锁等待采用相同登记协议，但在每轮尝试前检查 interrupted，并使用可中断通道。取消时返回 false；成功时调用者负责配对 release。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`state_lock_.acquire` → `detail::interrupted` → `state_lock_.release` → `detail::current_pid` → `detail::fail` → `detail::prepare_interruptible_sleep` → `detail::sleep_process`。
-@details 本函数可见的状态更新包括：`locked_ = true;`；`pid_ = detail::current_pid();`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`detail::interrupted()`；`!locked_`；`pid_ == detail::current_pid()`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`state_lock_.acquire` → `state_lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @pre 等待路径必须遵守“条件锁下登记、释放条件锁后真正睡眠”的协议；不能携带无关自旋锁进入调度。是否可中断由具体登记入口决定。
 @return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 编排由 AcquireFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-cb0bae526473552b"></a>

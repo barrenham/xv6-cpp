@@ -1,4 +1,5 @@
 module;
+#include "kernel/support/flow.h"
 
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
@@ -175,89 +176,173 @@ uint64 sys_vmprint(void)
 #endif
 
 #ifdef LAB_PGTBL
-uint64 sys_pgaccess(void)
+namespace
 {
-  // A bounded byte array supports up to 4096 pages without large stack use.
+namespace flow = xv::flow;
+struct PgAccessFlow
+{
   enum
   {
     MAXPAGES = 4096
   };
+  struct Context
+  {
+    xv::process::Process *process;
+    uchar *bits;
+    uint64 base, out;
+    int npages;
+    int nbytes = 0;
+    uint64 result = static_cast<uint64>(-1);
+  };
+  static bool bounds(Context &c) noexcept
+  {
+    if (c.npages <= 0 || c.npages > MAXPAGES || c.base >= MAXVA)
+    {
+      return false;
+    }
+    c.base = PGROUNDDOWN(c.base);
+    if ((uint64)c.npages > (MAXVA - c.base) / PGSIZE)
+    {
+      return false;
+    }
 
+    return true;
+  }
+  static void prepare(Context &c) noexcept
+  {
+    c.nbytes = (c.npages + 7) / 8;
+    xv::runtime::fill(c.bits, 0, c.nbytes);
+  }
+  static bool sources(Context &c) noexcept
+  {
+    // Validate the whole range before changing any access bits.
+    for (int i = 0; i < c.npages; i++)
+    {
+      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
+                                          c.base + (uint64)i * PGSIZE, 0);
+      if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) || !PTE_LEAF(*pte))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  static bool output(Context &c) noexcept
+  {
+    // Reject unmapped/read-only output pages; COW is logically writable.
+    if (c.out >= MAXVA || (uint64)c.nbytes > MAXVA - c.out)
+    {
+      return false;
+    }
+    for (uint64 va = PGROUNDDOWN(c.out); va < c.out + c.nbytes; va += PGSIZE)
+    {
+      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(), va, 0);
+      if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) ||
+          !(*pte & (PTE_W | PTE_COW)))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  static bool demote(Context &c) noexcept
+  {
+    // Superpages share one hardware A bit. Demote them so later samples
+    // still detect accesses at the 4 KiB granularity promised by pgaccess.
+    if (xv::memory::demote_user_pages(c.process->memory().page_table(), c.base,
+                                      c.npages) < 0)
+    {
+      return false;
+    }
+
+    return true;
+  }
+  static void sample(Context &c) noexcept
+  {
+    for (int i = 0; i < c.npages; i++)
+    {
+      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
+                                          c.base + (uint64)i * PGSIZE, 0);
+      if (*pte & PTE_A)
+      {
+        c.bits[i / 8] |= 1U << (i % 8);
+      }
+    }
+  }
+  static bool copy_result(Context &c) noexcept
+  {
+    if (xv::memory::copy_to_user(
+            c.process->memory().page_table(), c.process->memory().size(),
+            c.process->memory().regions(), c.out, (char *)c.bits, c.nbytes) < 0)
+    {
+      return false;
+    }
+
+    return true;
+  }
+  static void clear(Context &c) noexcept
+  {
+    for (int i = 0; i < c.npages; i++)
+    {
+      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
+                                          c.base + (uint64)i * PGSIZE, 0);
+      *pte &= ~PTE_A;
+    }
+    // Invalidate cached translations so future accesses set PTE_A again.
+    xv::arch::sfence_vma();
+    c.result = 0;
+  }
+  struct Bounds;
+  struct Prepare;
+  struct Sources;
+  struct Output;
+  struct Demote;
+  struct Sample;
+  struct CopyResult;
+  struct Clear;
+  using Graph = flow::graph<
+      Bounds,
+      flow::types<
+          flow::node<
+              Bounds, flow::noop,
+              flow::branch<flow::condition<&bounds>, flow::go<Prepare>, flow::stop>>,
+          flow::node<Prepare, flow::action<&prepare>, flow::go<Sources>>,
+          flow::node<
+              Sources, flow::noop,
+              flow::branch<flow::condition<&sources>, flow::go<Output>, flow::stop>>,
+          flow::node<
+              Output, flow::noop,
+              flow::branch<flow::condition<&output>, flow::go<Demote>, flow::stop>>,
+          flow::node<
+              Demote, flow::noop,
+              flow::branch<flow::condition<&demote>, flow::go<Sample>, flow::stop>>,
+          flow::node<Sample, flow::action<&sample>, flow::go<CopyResult>>,
+          flow::node<
+              CopyResult, flow::noop,
+              flow::branch<flow::condition<&copy_result>, flow::go<Clear>, flow::stop>>,
+          flow::node<Clear, flow::action<&clear>, flow::stop>>>;
+};
+
+} // namespace
+
+uint64 sys_pgaccess(void)
+{
+  enum
+  {
+    MAXPAGES = 4096
+  };
   uchar bits[MAXPAGES / 8];
   uint64 base, out;
   int npages;
-  xv::process::Process *p = xv::process::current();
-
+  auto *process = xv::process::current();
   argument_address(0, &base);
   argument_integer(1, &npages);
   argument_address(2, &out);
-  if (npages <= 0 || npages > MAXPAGES || base >= MAXVA)
-  {
-    return -1;
-  }
-  base = PGROUNDDOWN(base);
-  if ((uint64)npages > (MAXVA - base) / PGSIZE)
-  {
-    return -1;
-  }
-
-  int nbytes = (npages + 7) / 8;
-  xv::runtime::fill(bits, 0, nbytes);
-  // Validate the whole range before changing any access bits.
-  for (int i = 0; i < npages; i++)
-  {
-    pte_t *pte =
-        xv::memory::walk_entry(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
-    if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) || !PTE_LEAF(*pte))
-    {
-      return -1;
-    }
-  }
-
-  // Reject unmapped/read-only output pages; COW is logically writable.
-  if (out >= MAXVA || (uint64)nbytes > MAXVA - out)
-  {
-    return -1;
-  }
-  for (uint64 va = PGROUNDDOWN(out); va < out + nbytes; va += PGSIZE)
-  {
-    pte_t *pte = xv::memory::walk_entry(p->memory().page_table(), va, 0);
-    if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) ||
-        !(*pte & (PTE_W | PTE_COW)))
-    {
-      return -1;
-    }
-  }
-  // Superpages share one hardware A bit. Demote them so later samples
-  // still detect accesses at the 4 KiB granularity promised by pgaccess.
-  if (xv::memory::demote_user_pages(p->memory().page_table(), base, npages) < 0)
-  {
-    return -1;
-  }
-  for (int i = 0; i < npages; i++)
-  {
-    pte_t *pte =
-        xv::memory::walk_entry(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
-    if (*pte & PTE_A)
-    {
-      bits[i / 8] |= 1U << (i % 8);
-    }
-  }
-  if (xv::memory::copy_to_user(p->memory().page_table(), p->memory().size(), p->memory().regions(), out,
-                               (char *)bits, nbytes) < 0)
-  {
-    return -1;
-  }
-
-  for (int i = 0; i < npages; i++)
-  {
-    pte_t *pte =
-        xv::memory::walk_entry(p->memory().page_table(), base + (uint64)i * PGSIZE, 0);
-    *pte &= ~PTE_A;
-  }
-  // Invalidate cached translations so future accesses set PTE_A again.
-  xv::arch::sfence_vma();
-  return 0;
+  PgAccessFlow::Context context{process, bits, base, out, npages};
+  (void)PgAccessFlow::Graph::run<0>(context);
+  return context.result;
 }
 #endif
 
@@ -295,21 +380,103 @@ uint64 sys_seteuid() { int value; argument_integer(0, &value); return xv::proces
 uint64 sys_setgid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_gid(value); }
 uint64 sys_setegid() { int value; argument_integer(0, &value); return xv::process::current()->credentials().set_gid(value, true); }
 uint64 sys_umask() { int mask; argument_integer(0, &mask); return xv::process::current()->credentials().set_mask(mask); }
+namespace
+{
+namespace flow = xv::flow;
+struct GetGroupsFlow
+{
+  struct Context
+  {
+    int count;
+    uint64 address;
+    const xv::process::CredentialState &state;
+    uint64 result = static_cast<uint64>(-1);
+  };
+  static bool query(Context &c) noexcept { return c.count == 0; }
+  static bool capacity(Context &c) noexcept
+  {
+    return c.count >= 0 && static_cast<unsigned>(c.count) >= c.state.group_count;
+  }
+  static bool copy(Context &c) noexcept
+  {
+    return !c.state.group_count ||
+           xv::process::current()->memory().copy_out(
+               c.address, c.state.groups, c.state.group_count * sizeof(unsigned)) >= 0;
+  }
+  static void success(Context &c) noexcept { c.result = c.state.group_count; }
+  struct Query;
+  struct Capacity;
+  struct Copy;
+  struct Success;
+  using Graph = flow::graph<
+      Query,
+      flow::types<flow::node<Query, flow::noop,
+                             flow::branch<flow::condition<&query>, flow::go<Success>,
+                                          flow::go<Capacity>>>,
+                  flow::node<Capacity, flow::noop,
+                             flow::branch<flow::condition<&capacity>, flow::go<Copy>,
+                                          flow::stop>>,
+                  flow::node<Copy, flow::noop,
+                             flow::branch<flow::condition<&copy>, flow::go<Success>,
+                                          flow::stop>>,
+                  flow::node<Success, flow::action<&success>, flow::stop>>>;
+};
+struct SetGroupsFlow
+{
+  struct Context
+  {
+    int count;
+    uint64 address;
+    unsigned *groups;
+    uint64 result = static_cast<uint64>(-1);
+  };
+  static bool capacity(Context &c) noexcept { return c.count >= 0 && c.count <= 16; }
+  static bool copy(Context &c) noexcept
+  {
+    return !c.count || xv::process::current()->memory().copy_in(
+                           c.groups, c.address, c.count * sizeof(unsigned)) >= 0;
+  }
+  static void apply(Context &c) noexcept
+  {
+    c.result = xv::process::current()->credentials().set_groups(c.groups, c.count);
+  }
+  struct Capacity;
+  struct Copy;
+  struct Apply;
+  using Graph = flow::graph<
+      Capacity,
+      flow::types<
+          flow::node<
+              Capacity, flow::noop,
+              flow::branch<flow::condition<&capacity>, flow::go<Copy>, flow::stop>>,
+          flow::node<Copy, flow::noop,
+                     flow::branch<flow::condition<&copy>, flow::go<Apply>, flow::stop>>,
+          flow::node<Apply, flow::action<&apply>, flow::stop>>>;
+};
+
+} // namespace
+
 uint64 sys_getgroups()
 {
-  int count; uint64 address; argument_integer(0, &count); argument_address(1, &address);
+  int count;
+  uint64 address;
+  argument_integer(0, &count);
+  argument_address(1, &address);
   auto state = xv::process::current()->credentials().snapshot();
-  if (!count) return state.group_count;
-  if (count < 0 || static_cast<unsigned>(count) < state.group_count) return -1;
-  if (state.group_count && xv::process::current()->memory().copy_out(address, state.groups, state.group_count * sizeof(unsigned)) < 0) return -1;
-  return state.group_count;
+  GetGroupsFlow::Context context{count, address, state};
+  (void)GetGroupsFlow::Graph::run<0>(context);
+  return context.result;
 }
 uint64 sys_setgroups()
 {
-  int count; uint64 address; argument_integer(0, &count); argument_address(1, &address);
+  int count;
+  uint64 address;
+  argument_integer(0, &count);
+  argument_address(1, &address);
   unsigned groups[16];
-  if (count < 0 || count > 16 || (count && xv::process::current()->memory().copy_in(groups, address, count * sizeof(unsigned)) < 0)) return -1;
-  return xv::process::current()->credentials().set_groups(groups, count);
+  SetGroupsFlow::Context context{count, address, groups};
+  (void)SetGroupsFlow::Graph::run<0>(context);
+  return context.result;
 }
 uint64 sys_clockticks()
 { uint64 value; asm volatile("rdtime %0" : "=r"(value)); return value; }

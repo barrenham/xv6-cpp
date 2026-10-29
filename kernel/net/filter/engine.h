@@ -92,136 +92,14 @@ public:
     }
   }
 
-  int execute(unsigned operation, firewall_request &request)
-  {
-    if (request.version != FW_VERSION || request.size != sizeof(request) ||
-        request.reserved[0] || request.reserved[1] || request.reserved[2])
-    {
-      return Invalid;
-    }
-    if (operation == FW_CHAIN)
-    {
-      return inspect_chain(request);
-    }
-    if (!name_valid(request.chain))
-    {
-      return Invalid;
-    }
+  int execute(unsigned operation, firewall_request &request);
 
-    int owner = find(request.chain);
-    if (operation == FW_NEW_CHAIN)
-    {
-      return create_chain(request.chain);
-    }
-    if (owner < 0)
-    {
-      return Missing;
-    }
-    auto &chain = chains_[owner];
-    switch (operation)
-    {
-    case FW_RULE:
-      if (request.index >= chain.count)
-      {
-        return 0;
-      }
-      request.rule = chain.entries[request.index].rule;
-      request.packets = chain.entries[request.index].counter.packets;
-      request.bytes = chain.entries[request.index].counter.bytes;
-      return 1;
-    case FW_APPEND:
-      return insert_rule(owner, chain.count, request.rule);
-    case FW_INSERT:
-      return insert_rule(owner, request.index, request.rule);
-    case FW_DELETE:
-      return remove_rule(chain, request.index);
-    case FW_FLUSH:
-      chain.count = 0;
-      return 0;
-    case FW_ZERO:
-      chain.counter = {};
-      for (unsigned i = 0; i < chain.count; ++i)
-      {
-        chain.entries[i].counter = {};
-      }
-      return 0;
-    case FW_POLICY:
-      if (unsigned(owner) >= BuiltinChainCount ||
-          (request.policy != FW_ACCEPT && request.policy != FW_DROP))
-      {
-        return Invalid;
-      }
-      chain.policy = request.policy;
-      return 0;
-    case FW_DELETE_CHAIN:
-      return remove_chain(owner);
-    default:
-      return Invalid;
-    }
-  }
-
-  bool accept(BuiltinChain entry_chain, const Metadata &packet)
-  {
-    unsigned root;
-    switch (entry_chain)
-    {
-    case BuiltinChain::Input:
-      root = InputChain;
-      break;
-    case BuiltinChain::Output:
-      root = OutputChain;
-      break;
-    default:
-      return false;
-    }
-
-    struct Frame
-    {
-      unsigned chain, next;
-    } stack[FW_MAX_CHAINS]{};
-
-    unsigned depth = 0, current = root, next = 0;
-    for (unsigned step = 0; step < EvaluationStepLimit; ++step)
-    {
-      auto &chain = chains_[current];
-      if (next < chain.count)
-      {
-        auto &entry = chain.entries[next++];
-        if (!matches(entry.rule, packet))
-        {
-          continue;
-        }
-        entry.counter.hit(packet.total_length);
-        if (entry.rule.action == FW_ACCEPT || entry.rule.action == FW_DROP)
-        {
-          return entry.rule.action == FW_ACCEPT;
-        }
-        if (entry.rule.action == FW_JUMP)
-        {
-          int target = find(entry.rule.target);
-          if (target < int(BuiltinChainCount) || depth == FW_MAX_CHAINS)
-          {
-            return false;
-          }
-          stack[depth++] = {current, next};
-          current = target;
-          next = 0;
-          continue;
-        }
-        // RETURN and the end of a chain share the same unwind path.
-      }
-      if (!depth)
-      {
-        return apply_policy(root, packet.total_length);
-      }
-      auto caller = stack[--depth];
-      current = caller.chain;
-      next = caller.next;
-    }
-    return false; // Bound work even for a DAG with many repeated jumps.
-  }
+  bool accept(BuiltinChain entry_chain, const Metadata &packet);
 
 private:
+
+  struct EvaluationFlow;
+  struct CommandFlow;
 
   static constexpr unsigned InputChain = 0;
   static constexpr unsigned OutputChain = 1;
@@ -455,3 +333,5 @@ private:
   Chain chains_[FW_MAX_CHAINS]{};
 };
 } // namespace xv::net::filter
+
+#include "kernel/net/filter/flows/engine.h"

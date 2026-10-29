@@ -5,12 +5,12 @@
 ## 函数导航
 
 - [`xv::net::IpInIpInterface::IpInIpInterface`](tunnel.cppm.md#fn-0f4903b461079f38)
-- [`xv::net::IpInIpInterface::initialize`](tunnel.cpp.md#fn-414d9b2164bde204)
 - [`xv::net::IpInIpInterface::accepts_destination`](tunnel.cppm.md#fn-981dbfd84fe417af)
-- [`xv::net::IpInIpInterface::is_tunnel`](tunnel.cppm.md#fn-2fcbe5ac1b8a96b6)
 - [`xv::net::IpInIpInterface::carrier`](tunnel.cppm.md#fn-a02d4d873452dbc8)
-- [`xv::net::IpInIpInterface::transmit`](tunnel.cpp.md#fn-6e1ec61ddfefeb21)
+- [`xv::net::IpInIpInterface::initialize`](tunnel.cpp.md#fn-414d9b2164bde204)
+- [`xv::net::IpInIpInterface::is_tunnel`](tunnel.cppm.md#fn-2fcbe5ac1b8a96b6)
 - [`xv::net::IpInIpInterface::receive_outer`](tunnel.cpp.md#fn-9e6c6c02ccc93ae4)
+- [`xv::net::IpInIpInterface::transmit`](tunnel.cpp.md#fn-6e1ec61ddfefeb21)
 - [`xv::net::IpInIpProtocol::add`](tunnel.cpp.md#fn-c1358ee430c56716)
 - [`xv::net::IpInIpProtocol::receive`](tunnel.cpp.md#fn-0bbf7c9d366e4c64)
 - [`xv::net::NetworkSetup::configure`](tunnel.cppm.md#fn-c156bec475eea836)

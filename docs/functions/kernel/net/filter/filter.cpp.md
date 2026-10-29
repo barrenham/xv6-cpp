@@ -4,9 +4,9 @@
 
 ## 函数导航
 
-- [`xv::net::Firewall::initialize`](filter.cpp.md#fn-e044e49987bca493)
-- [`xv::net::Firewall::execute`](filter.cpp.md#fn-6c6726c5c280a782)
 - [`xv::net::Firewall::accept`](filter.cpp.md#fn-b1ddf21079255883)
+- [`xv::net::Firewall::execute`](filter.cpp.md#fn-6c6726c5c280a782)
+- [`xv::net::Firewall::initialize`](filter.cpp.md#fn-e044e49987bca493)
 
 <a id="fn-e044e49987bca493"></a>
 
@@ -34,5 +34,5 @@
 ```doxygen
 @fn bool xv::net::Firewall::accept(FilterHook hook, const unsigned char *data, unsigned size, unsigned interface)
 @brief 显式映射过滤 hook 与内建入口链，锁外解析报文，锁内完成判决及计数。
-@details 无效 hook 或报文解析失败直接拒绝。仅借用报文字节；返回前释放服务锁，由 IPv4 调用方继续处理页面。
+@details 无效 hook 或报文解析失败直接拒绝。仅借用报文字节；返回前释放服务锁，由 IPv4 调用方继续处理页面。 实现通过 AcceptFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

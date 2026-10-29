@@ -29,7 +29,7 @@
 @brief 校验 UDP 数据报并交给唯一 SocketRegistry 接收端按地址和端口匹配。
 @param packet 包含完整 IPv4 报文的独占页面。
 @param d IPv4 层已验证的数据报描述，包含载荷范围、源地址和目的地址。
-@details 检查最小头长度、UDP 长度、非零目的端口与可选伪首部校验和。匹配 socket 后接收端可转移页面到其有界队列；没有匹配接收者时走 ICMP 不可达路径。
+@details 检查最小头长度、UDP 长度、非零目的端口与可选伪首部校验和。匹配 socket 后接收端可转移页面到其有界队列；没有匹配接收者时走 ICMP 不可达路径。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @note 不维护独立于 socket 的 UDP 端口表。
 ```
 
@@ -40,4 +40,5 @@
 ```doxygen
 @fn int xv::net::UdpProtocol::send(Endpoint source, Endpoint destination, const void *data, unsigned length)
 @brief 先按路由确定源地址，再编码 UDP 及使用同一源的伪首部校验和；IP 层继续检查出口 MTU，避免跨接口校验和错误。
+@details 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```

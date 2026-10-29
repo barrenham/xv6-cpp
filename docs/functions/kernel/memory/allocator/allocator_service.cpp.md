@@ -27,6 +27,8 @@
 @fn bool xv::memory::initialize(AllocatorKind kind, const BootMemoryInfo &memory, PhysicalAddress first_usable)
 @brief 校验启动内存并发布物理分配器与共享帧计数。
 @details 先保留具体分配器元数据，再按四字节对齐预留每 RAM 页一个原子引用计数；具体分配器初始化后清零计数数组。仅成功完成布局、锁与可用页初始化后发布 active，失败不替换已运行分配器。
+@details 流程由 InitializeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@details 局部 InitializeFlow 的静态阶段为 configure/ok/remaining/reserve/next/claim/construct/metadata/reset/initialize_layout/publish；图声明预留迭代、CAS 认领、元数据失败复位及最终 release 发布。此局部类沿用原友元函数的私有访问权限，不新增友元或共享状态；clangd 全局函数清点未单独登记这些局部成员，其协议在本入口说明。
 ```
 
 <a id="fn-6294cdfa90bca295"></a>

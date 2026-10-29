@@ -10,17 +10,7 @@ public:
 
   static constexpr unsigned Capacity = 16384;
 
-  bool initialize()
-  {
-    for (auto &page : pages_)
-    {
-      if (!page && !(page = static_cast<unsigned char *>(detail::allocate_page())))
-      {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool initialize();
 
   void release()
   {
@@ -50,6 +40,8 @@ public:
   }
 
 private:
+
+  struct InitializeFlow;
 
   unsigned char *pages_[4]{};
 };
@@ -93,18 +85,7 @@ public:
     return TcpPageBuffer::Capacity - size();
   }
 
-  unsigned append(const unsigned char *data, unsigned length)
-  {
-    if (length > space())
-    {
-      length = space();
-    }
-    for (unsigned i = 0; i < length; ++i)
-    {
-      data_.at(end_++) = data[i];
-    }
-    return length;
-  }
+  unsigned append(const unsigned char *data, unsigned length);
 
   unsigned discard(unsigned acknowledgement)
   {
@@ -124,6 +105,8 @@ public:
   }
 
 private:
+
+  struct AppendFlow;
 
   TcpPageBuffer data_;
   unsigned begin_ = 0, end_ = 0;
@@ -185,53 +168,7 @@ public:
   }
 
   unsigned insert(unsigned sequence, const unsigned char *data, unsigned length,
-                  bool fin)
-  {
-    if (finished_)
-    {
-      return 0;
-    }
-    unsigned old = next_, right = next_ + window(), ending = sequence + length;
-    if (fin && !wire::before(ending, next_) && wire::before(ending, right) &&
-        (!fin_pending_ || wire::before(ending, fin_sequence_)))
-    {
-      fin_pending_ = true;
-      fin_sequence_ = ending;
-    }
-    for (unsigned i = 0; i < length; ++i)
-    {
-      unsigned position = sequence + i;
-      if (wire::before(position, next_) || !wire::before(position, right) ||
-          (fin_pending_ && !wire::before(position, fin_sequence_)))
-      {
-        continue;
-      }
-      unsigned slot = position & (TcpPageBuffer::Capacity - 1), mask = 1U << (slot % 8);
-      if (!(present_[slot / 8] & mask))
-      {
-        data_.at(position) = data[i];
-        present_[slot / 8] |= mask;
-      }
-    }
-    for (;;)
-    {
-      if (fin_pending_ && next_ == fin_sequence_)
-      {
-        finished_ = true;
-        ++next_;
-        break;
-      }
-      unsigned slot = next_ & (TcpPageBuffer::Capacity - 1), mask = 1U << (slot % 8);
-      if (!(present_[slot / 8] & mask))
-      {
-        break;
-      }
-      present_[slot / 8] &= ~mask;
-      ++next_;
-      ++ready_;
-    }
-    return next_ - old;
-  }
+                  bool fin);
 
   unsigned read(unsigned char *out, unsigned length)
   {
@@ -254,6 +191,8 @@ public:
   }
 
 private:
+
+  struct InsertFlow;
 
   TcpPageBuffer data_;
   unsigned next_ = 0, read_ = 0, ready_ = 0, fin_sequence_ = 0;

@@ -303,6 +303,60 @@ static void test_boot_memory_and_layout()
           "reject unsupported banks, cell counts, and overflow");
   }
 
+  for (unsigned nesting : {23U, 24U})
+  {
+    FdtFixture tree;
+    tree.begin("");
+    FdtFixture::word(tree.structure, 4);
+    tree.number("#address-cells", 2); tree.number("#size-cells", 2);
+    tree.region("memory@80000000", KERNBASE, TestRamBytes);
+    for (unsigned i = 0; i < nesting; ++i) tree.begin("nested");
+    for (unsigned i = 0; i < nesting; ++i) tree.end();
+    tree.end();
+    auto blob = tree.finish();
+    BootMemoryInfo output;
+    auto previous = PhysicalMemoryRange(PhysicalAddress(KERNBASE), PhysicalAddress(KERNBASE + PageSize));
+    check(output.set_ram(previous), "seed parser output");
+    FdtMemorySource source(blob.data(), blob.size());
+    check(source.discover(output) == (nesting == 23), "fixed-depth parser boundary");
+    check(output.ram().size() == (nesting == 23 ? TestRamBytes : PageSize),
+          "depth failure after RAM discovery preserves existing output");
+  }
+  for (bool late_property : {false, true})
+  {
+    FdtFixture tree;
+    tree.begin(""); tree.number("#address-cells", 2); tree.number("#size-cells", 2);
+    tree.region("memory@80000000", KERNBASE, TestRamBytes);
+    if (late_property) tree.number("#size-cells", 2);
+    else FdtFixture::word(tree.structure, 0xdeadbeef);
+    tree.end(); auto blob = tree.finish();
+    BootMemoryInfo output;
+    check(output.set_ram(PhysicalMemoryRange(PhysicalAddress(KERNBASE), PhysicalAddress(KERNBASE + PageSize))) &&
+          output.reserve(PhysicalMemoryRange(PhysicalAddress(KERNBASE), PhysicalAddress(KERNBASE + 1))),
+          "seed late-error output");
+    FdtMemorySource source(blob.data(), blob.size());
+    check(!source.discover(output) && output.ram().size() == PageSize && output.reservation_count() == 1,
+          "unknown token or late property does not commit candidate RAM/reservations");
+  }
+  {
+    PhysicalMemoryLayout bounded;
+    auto begin = PhysicalAddress(KERNBASE);
+    auto first = begin.advanced(128 * PageSize);
+    auto end = begin.advanced(TestRamBytes);
+    check(bounded.configure(PhysicalMemoryRange(begin, end), first), "bounded layout fixture");
+    for (unsigned i = 1; i < PhysicalMemoryLayout::MaxRanges; ++i)
+      check(bounded.reserve(PhysicalMemoryRange(begin.advanced(2 * i * PageSize),
+                                               begin.advanced((2 * i + 1) * PageSize)), true),
+            "fill direct view with holes outside usable RAM");
+    check(bounded.direct_count() == PhysicalMemoryLayout::MaxRanges && bounded.usable_count() == 1,
+          "direct capacity can fill independently of usable capacity");
+    auto candidate = PhysicalMemoryRange(first.advanced(2 * PageSize), first.advanced(3 * PageSize));
+    check(!bounded.reserve(candidate, true) && bounded.usable_count() == 1 &&
+          bounded.direct_count() == PhysicalMemoryLayout::MaxRanges &&
+          bounded.usable(0).begin() == first && bounded.usable(0).end() == end &&
+          bounded.contains_usable_block(candidate.begin(), candidate.size()),
+          "no-map preflight failure preserves the entire usable view");
+  }
   PhysicalMemoryLayout layout;
   PhysicalMemoryRange ram(PhysicalAddress(KERNBASE),
                           PhysicalAddress(KERNBASE + TestRamBytes));
@@ -479,6 +533,43 @@ static void test_sv39(PhysicalPageAllocator &memory)
     auto counts = owner.view().statistics();
     check(counts.leaves_4k == 512 && counts.leaves_2m == 0 && counts.table_pages == 3,
           "4 KiB-only policy reuses the same mapper");
+  }
+  class InvalidTail final : public PageMappingPolicy
+  {
+  public:
+    explicit InvalidTail(bool bad_level) : bad_level_(bad_level) {}
+    Sv39LeafLevel choose(VirtualAddress va, PhysicalAddress, MemorySize) const override
+    {
+      if (!va) return Sv39LeafLevel::Page4KiB;
+      return bad_level_ ? static_cast<Sv39LeafLevel>(3) : Sv39LeafLevel::Page2MiB;
+    }
+  private:
+    bool bad_level_;
+  };
+  for (bool bad_level : {false, true})
+  {
+    InvalidTail policy(bad_level);
+    OwnedSv39PageTable owner(memory, policy);
+    check(owner.view().map_range(0, PhysicalAddress(4 * GiB), 2 * PageSize, RW) ==
+              MappingResult::InvalidRange,
+          "policy failure after a successful prefix retains its error code");
+    PageTranslation mapped;
+    check(owner.view().translate(0, mapped) && mapped.physical.raw() == 4 * GiB &&
+              !owner.view().translate(PageSize, mapped),
+          "invalid policy tail preserves only the mapped prefix");
+  }
+  {
+    LargestPagePolicy small(Sv39LeafLevel::Page4KiB);
+    BudgetAllocator limited(memory, 3);
+    OwnedSv39PageTable owner(limited, small);
+    check(owner.view().map_range(0, PhysicalAddress(4 * GiB), 2 * MiB + PageSize, RW) ==
+              MappingResult::OutOfMemory,
+          "later leaf-table allocation failure preserves its OOM result");
+    PageTranslation mapped;
+    check(owner.view().translate(2 * MiB - 1, mapped) &&
+              mapped.physical.raw() == 4 * GiB + 2 * MiB - 1 &&
+              !owner.view().translate(2 * MiB, mapped),
+          "OOM preserves the complete successful prefix and leaves the tail absent");
   }
   {
     BudgetAllocator limited(memory, 2);

@@ -55,6 +55,10 @@ public:
 
 private:
 
+  struct CreationFlow;
+
+  struct DeliveryFlow;
+
   static constexpr unsigned Capacity = 64;
   bool add(InetSocket &socket);
   TcpSocket *create_tcp();
@@ -71,6 +75,8 @@ private:
 
 class InetSocket : public Socket
 {
+  struct BindFlow;
+
 public:
 
   constexpr InetSocket(SocketRegistry &registry, unsigned protocol)

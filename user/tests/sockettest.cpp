@@ -7,6 +7,7 @@
 namespace
 {
 char sent[262144], received[262144];
+const socklen_t fixed_capacity = sizeof(sockaddr_in);
 void check(bool good, const char *message)
 { if (!good) { fprintf(2, "sockettest: FAIL: %s\n", message); exit(1); } }
 sockaddr_in address(unsigned ip, unsigned port)
@@ -37,6 +38,14 @@ extern "C" int main(int argc, char **argv)
   check(bind(udp, sa(local), sizeof(local)) == 0, "UDP bind");
   unsigned size = sizeof(local);
   check(getsockname(udp, sa(local), &size) == 0 && ntohs(local.sin_port) == 2020, "local name");
+  auto truncated = address(0x11223344, 0x5566);
+  size = sizeof(truncated.sin_family);
+  check(getsockname(udp, sa(truncated), &size) == 0 && size == sizeof(truncated) &&
+        truncated.sin_family == AF_INET && ntohs(truncated.sin_port) == 0x5566,
+        "name output respects capacity and reports full length");
+  truncated = {};
+  check(getsockname(udp, sa(truncated), const_cast<socklen_t *>(&fixed_capacity)) == -1 &&
+        ntohs(truncated.sin_port) == 2020, "name length failure retains first output");
   check(recv(udp, received, 10, 0) == -EAGAIN, "nonblocking UDP");
   pollfd p{udp, POLLIN, 0}; check(poll(&p, 1, 0) == 0, "UDP poll empty");
   auto host = address(0x0a000202, udp_port);

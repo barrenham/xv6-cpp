@@ -1,4 +1,5 @@
 module;
+#include "kernel/support/flow.h"
 
 #include "kernel/support/types.h"
 #include "kernel/syscall/syscall.h"
@@ -112,38 +113,71 @@ static SyscallHandler lookup_syscall(int number)
   }
 }
 
+namespace
+{
+namespace flow = xv::flow;
+struct DispatchFlow
+{
+  struct Context
+  {
+    xv::process::Process *process;
+    int number;
+    SyscallHandler handler;
+    unsigned long argument = 0, result = 0;
+  };
+  static bool known(Context &c) noexcept { return c.handler != nullptr; }
+  static void invoke(Context &c) noexcept
+  {
+    c.argument = c.process->registers()->a0;
+    c.process->begin_system_call();
+    c.result = static_cast<unsigned long>(
+        c.process->finish_system_call(c.number, c.argument, c.handler()));
+  }
+  static bool restart(Context &c) noexcept
+  {
+    bool restartable =
+        c.number == SYS_read || c.number == SYS_write || c.number == SYS_wait ||
+        c.number == SYS_waitpid || c.number == SYS_accept || c.number == SYS_recvfrom ||
+        c.number == SYS_sendto || c.number == SYS_pause || c.number == SYS_sigsuspend;
+    return c.result == ~0UL && restartable && c.process->stop_requested();
+  }
+  static void rewind(Context &c) noexcept
+  {
+    c.process->registers()->epc -= 4;
+    c.process->registers()->a0 = c.argument;
+  }
+  static void publish(Context &c) noexcept { c.process->registers()->a0 = c.result; }
+  static void unknown(Context &c) noexcept
+  {
+    xv::print::printk("%d %s: unknown sys call %d\n", c.process->id(),
+                      c.process->debug_name(), c.number);
+    c.process->registers()->a0 = -1;
+  }
+  struct Known;
+  struct Invoke;
+  struct Rewind;
+  struct Publish;
+  struct Unknown;
+  using Graph = flow::graph<
+      Known, flow::types<flow::node<Known, flow::noop,
+                                    flow::branch<flow::condition<&known>,
+                                                 flow::go<Invoke>, flow::go<Unknown>>>,
+                         flow::node<Invoke, flow::action<&invoke>,
+                                    flow::branch<flow::condition<&restart>,
+                                                 flow::go<Rewind>, flow::go<Publish>>>,
+                         flow::node<Rewind, flow::action<&rewind>, flow::stop>,
+                         flow::node<Publish, flow::action<&publish>, flow::stop>,
+                         flow::node<Unknown, flow::action<&unknown>, flow::stop>>>;
+};
+
+} // namespace
+
 void dispatch()
 {
-  int num;
-  xv::process::Process *p = xv::process::current();
-
-  num = p->registers()->a7;
-  auto handler = lookup_syscall(num);
-  if (handler)
-  {
-    // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->registers()->a0
-    auto argument = p->registers()->a0;
-    p->begin_system_call();
-    auto result = static_cast<unsigned long>(p->finish_system_call(num, argument, handler()));
-    bool restartable = num == SYS_read || num == SYS_write || num == SYS_wait ||
-                       num == SYS_waitpid || num == SYS_accept || num == SYS_recvfrom || num == SYS_sendto || num == SYS_pause || num == SYS_sigsuspend;
-    if (result == ~0UL && restartable && p->stop_requested())
-    {
-      // Retry an interrupted operation after continuation. Partial transfers
-      // report a positive count and are never replayed.
-      p->registers()->epc -= 4;
-      p->registers()->a0 = argument;
-    }
-    else
-    {
-      p->registers()->a0 = result;
-    }
-  }
-  else
-  {
-    xv::print::printk("%d %s: unknown sys call %d\n", p->id(), p->debug_name(), num);
-    p->registers()->a0 = -1;
-  }
+  auto *process = xv::process::current();
+  int number = process->registers()->a7;
+  auto handler = lookup_syscall(number);
+  DispatchFlow::Context context{process, number, handler};
+  (void)DispatchFlow::Graph::run<0>(context);
 }
 } // namespace xv::syscall

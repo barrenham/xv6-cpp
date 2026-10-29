@@ -4,12 +4,14 @@ module;
 #include <functional>
 #include "kernel/tty/termios.h"
 #include "kernel/fs/io_status.h"
+#include "kernel/fs/poll.h"
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
 #include <type_traits>
 #include <sys/wait.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 module xv.drivers;
@@ -21,6 +23,8 @@ import :uart;
 import :plic;
 import :virtio;
 import :protocol;
+import :e1000;
+import :pci;
 
 namespace xv::drivers
 {
@@ -65,6 +69,8 @@ unsigned wakeups = 0;
 unsigned dumps = 0;
 unsigned interrupts = 0;
 std::vector<void *> dma_pages;
+bool fail_dma = false;
+unsigned hangups = 0, signal_services = 0;
 
 class FakeSerial final : public SerialPort
 {
@@ -189,6 +195,11 @@ void console_contract()
         "word erase");
   feed("\026\004\n");
   check(console.read(destination, 256) == 2 && input[0] == 4, "literal EOF");
+  settings.c_iflag |= IGNCR;
+  set();
+  feed("\026\r\004\n");
+  check(console.read(destination, 256) == 2 && input[0] == 4 && input[1] == '\n',
+        "ignored CR preserves the pending literal-next quote");
   feed("unfinished");
   settings = defaults;
   settings.c_lflag = 0;
@@ -224,6 +235,16 @@ void console_contract()
     feed(sleeps == 1 ? "a" : "bc");
   };
   check(console.read(destination, 256) == 3 && sleeps == 2, "MIN blocks for bytes");
+  feed("m");
+  sleeps = 0;
+  on_sleep = [&]
+  {
+    check(++sleeps == 1, "configuration change must complete a partial read");
+    settings.c_cc[VMIN] = 200;
+    set();
+  };
+  check(console.read(destination, 256) == 1 && input[0] == 'm' && sleeps == 1,
+        "generation change returns consumed bytes before adopting the new minimum");
   settings.c_cc[VMIN] = 200;
   set();
   sleeps = 0;
@@ -321,6 +342,14 @@ void console_contract()
   };
   check(console.write(destination, 1) == 1, "blocking writer survives contention");
   serial.on_transmit = nullptr;
+  char chunks[65];
+  std::memset(chunks, 'x', sizeof(chunks));
+  serial.output.clear();
+  serial.on_transmit = [&] { fail_copy = true; };
+  check(console.write(buffer(chunks), sizeof(chunks)) == 32 && serial.output.size() == 32,
+        "later source-copy failure preserves the completed source-byte count");
+  fail_copy = false;
+  serial.on_transmit = nullptr;
   on_sleep = nullptr;
   winsize size{40, 100, 0, 0}, actual{};
   check(console.ioctl(TIOCSWINSZ, buffer(&size)) == 0 &&
@@ -350,12 +379,153 @@ void console_contract()
   check(interrupts == 3 && queued() == 0, "VSUSP posts stop action");
 }
 
+
+void pty_contract()
+{
+  initialize_ptys();
+  auto baseline = dma_pages.size();
+  auto buffer = [](void *p, bool nonblocking = false)
+  { return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p), nonblocking}; };
+  CharacterDevice *master = nullptr, *slave = nullptr;
+  fail_dma = true;
+  check(!create_pty(&master, &slave) && !master && !slave && dma_pages.size() == baseline,
+        "PTY allocation failure publishes no endpoints");
+  fail_dma = false;
+  check(create_pty(&master, &slave) && master && slave, "create actual PTY endpoints");
+  termios raw{};
+  check(slave->ioctl(TCGETS, buffer(&raw)) == 0, "PTY termios snapshot");
+  raw.c_iflag = 0; raw.c_lflag = 0; raw.c_oflag = OPOST | ONLCR;
+  raw.c_cc[VMIN] = 0; raw.c_cc[VTIME] = 0;
+  check(slave->ioctl(TCSETS, buffer(&raw)) == 0, "PTY raw input with CRLF output");
+  char input[1100]{};
+  char message[] = "abc";
+  check(master->write(buffer(message), 3) == 3 && slave->read(buffer(input), 3) == 3 &&
+        std::string(input, 3) == "abc", "master input reaches actual TTY");
+  char newline[] = "q\n";
+  check(slave->write(buffer(newline), 2) == 2 && master->read(buffer(input), 3) == 3 &&
+        std::string(input, 3) == "q\r\n", "PTY output expands newline atomically");
+  std::memset(input, 'x', 1023);
+  check(slave->write(buffer(input), 1023) == 1023, "fill all but one output slot");
+  check(slave->write(buffer(newline + 1, true), 1) == -EAGAIN,
+        "nonblocking CRLF does not consume the last single slot");
+  int available = -1;
+  check(master->ioctl(FIONREAD, buffer(&available)) == 0 && available == 1023,
+        "failed CRLF publishes neither half");
+  check(master->read(buffer(input), 1023) == 1023, "drain full PTY output");
+  char value = 'z';
+  check(slave->write(buffer(&value), 1) == 1, "queue output for copy failure");
+  fail_copy = true;
+  check(master->read(buffer(input), 1) == -1, "PTY copy failure reported");
+  fail_copy = false;
+  check(master->read(buffer(input), 1) == 1 && input[0] == 'z', "PTY fault retains byte");
+  std::memset(input, 'a', 128);
+  check(master->write(buffer(input), 128) == 128 && master->write(buffer(&value, true), 1) == -EAGAIN,
+        "full software input uses nonblocking backpressure");
+  unsigned sleeps = 0;
+  on_sleep = [&]
+  { check(++sleeps == 1, "PTY input retry should wake once"); char byte; check(slave->read(buffer(&byte), 1) == 1, "consume input while writer sleeps"); };
+  check(master->write(buffer(&value), 1) == 1 && sleeps == 1,
+        "software input registers before unlocking and retries after wake");
+  on_sleep = nullptr;
+  check(slave->read(buffer(input), 128) == 128 && input[127] == 'z', "retry preserves input order");
+  sleeps = 0;
+  on_sleep = [&]
+  { check(++sleeps == 1, "PTY output reader wakes once"); check(slave->write(buffer(&value), 1) == 1, "publish output before reader resumes"); };
+  check(master->read(buffer(input), 1) == 1 && input[0] == 'z', "blocking master read resumes");
+  on_sleep = nullptr;
+  check(slave->write(buffer(&value), 1) == 1, "queue output before termios drain");
+  sleeps = 0;
+  on_sleep = [&]
+  { check(++sleeps == 1, "PTY drain wakes once"); check(master->read(buffer(input), 1) == 1, "drain callback holds no output lock"); };
+  check(slave->ioctl(TCSETSW, buffer(&raw)) == 0 && sleeps == 1, "termios drain releases pair lock while sleeping");
+  on_sleep = nullptr;
+  master->close();
+  check(slave->read(buffer(input), 1) == 0 && slave->write(buffer(&value), 1) == -1,
+        "master close lets slave observe EOF and output hangup");
+  slave->close();
+  check(dma_pages.size() == baseline && hangups == 1 && signal_services > 0,
+        "anonymous endpoints release pair once after software signal service");
+
+  master = ptmx().open(false);
+  unsigned number = MaxNamedPtys;
+  check(master && master->ioctl(TIOCGPTN, buffer(&number)) == 0, "create named master");
+  unsigned uid = 0, gid = 0;
+  check(named_pty_owner(number, uid, gid) && uid == 1000 && gid == 100 && !open_named_pty(number),
+        "named ownership is captured before publication and slave starts locked");
+  int unlocked = 0;
+  check(master->ioctl(TIOCSPTLCK, buffer(&unlocked)) == 0 && retain_named_pty(number), "unlock and pin named node");
+  slave = open_named_pty(number);
+  check(slave, "open named slave");
+  master->close();
+  unsigned ids[3]{};
+  check(!open_named_pty(number) && !retain_named_pty(number) && named_pty_ids(ids, 3) == 0 &&
+        named_pty_owner(number, uid, gid), "unpublished pair survives only through existing references");
+  slave->close();
+  check(dma_pages.size() == baseline + 1, "node pin survives endpoint closes");
+  release_named_pty(number);
+  check(dma_pages.size() == baseline, "last node pin releases pair");
+
+  CharacterDevice *masters[MaxNamedPtys]{};
+  for (unsigned i = 0; i < MaxNamedPtys; ++i)
+  {
+    masters[i] = ptmx().open(false); number = MaxNamedPtys;
+    check(masters[i] && masters[i]->ioctl(TIOCGPTN, buffer(&number)) == 0 && number == i,
+          "named allocation chooses lowest unused ID");
+  }
+  check(named_pty_ids(ids, 3) == 3 && ids[0] == 0 && ids[1] == 1 && ids[2] == 2,
+        "named enumeration is sorted and capacity bounded");
+  check(!ptmx().open(false) && dma_pages.size() == baseline + MaxNamedPtys,
+        "named ID exhaustion destroys only the unpublished candidate");
+  for (auto *endpoint : masters) endpoint->close();
+  check(dma_pages.size() == baseline, "all named endpoints reclaim their pages");
+}
+
+
+void pci_contract()
+{
+  constexpr unsigned long base = 0x30000000UL;
+  constexpr unsigned long span = 32UL << 15;
+  auto *arena = mmap(reinterpret_cast<void *>(base), span, PROT_READ | PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
+  check(arena != MAP_FAILED, "map isolated PCI config fixture without replacement");
+  auto config = [&](unsigned slot) { return reinterpret_cast<unsigned *>(base + (static_cast<unsigned long>(slot) << 15)); };
+  for (unsigned slot : {1U, 5U, 29U}) config(slot)[0] = 0x100e8086;
+  unsigned slots[4]{};
+  check(detail::find_e1000(nullptr, 0) == 0 && detail::find_e1000(slots, 2) == 2 &&
+        slots[0] == 1 && slots[1] == 5, "PCI discovery honors output capacity and slot order");
+  check(detail::find_e1000(slots, 4) == 3 && slots[2] == 29, "PCI discovery scans all 32 slots");
+  config(0)[1] = 0x12345678; config(0)[4] = 0x98765432;
+  check(!detail::configure_e1000(0x40000000, 32) &&
+        !detail::configure_e1000(0x40000000, 0) && config(0)[1] == 0x12345678 &&
+        config(0)[4] == 0x98765432, "invalid PCI slot/vendor leaves command and BAR untouched");
+  config(5)[1] = 0xabcd0403;
+  check(detail::configure_e1000(0x40020000, 5) && config(5)[4] == 0x40020000 &&
+        config(5)[1] == 7, "PCI configuration preserves low command bits and enables memory/bus master IRQ");
+  struct Receiver final : EthernetReceiver
+  { void receive_frame(void *, unsigned) override { check(false, "unready NIC must not deliver frames"); } } receiver;
+  unsigned registers[0x6000 / 4]{};
+  E1000 nic(reinterpret_cast<unsigned long>(registers), 0);
+  nic.initialize();
+  check(!nic.online() && !nic.carrier(), "NIC without receiver remains offline");
+  nic.attach(receiver); nic.locate(0); nic.initialize();
+  check(!nic.online() && registers[0] == 0, "PCI rejection stops NIC before reset programming");
+  auto before = dma_pages.size();
+  auto *page = detail::allocate_dma_page();
+  check(!nic.transmit(page, 64) && dma_pages.size() == before + 1,
+        "offline NIC rejects TX without taking page ownership");
+  detail::free_dma_page(page);
+  check(dma_pages.size() == before, "rejected TX remains caller-owned");
+  check(munmap(arena, span) == 0, "unmap isolated PCI fixture");
+}
+
 class FakeController final : public InterruptController
 {
 public:
 
   unsigned next = 0;
   unsigned completed = 0;
+  unsigned completions = 0;
+  bool forbid_initialize = false;
   unsigned priorities = 0;
   unsigned enabled = 0;
   int last_hart = -1;
@@ -368,6 +538,7 @@ public:
 
   void initialize() override
   {
+    if (forbid_initialize) std::_Exit(98);
   }
 
   void set_priority(unsigned irq, unsigned value) override
@@ -401,6 +572,7 @@ public:
       check(*phase == 1, "completion follows handler");
       *phase = 2;
     }
+    ++completions;
     completed = irq;
   }
 };
@@ -459,6 +631,14 @@ void interrupt_contract()
   controller.next = 0;
   check(router.dispatch(2) == 0 && controller.completed == 0,
         "spurious IRQ not completed");
+  check(controller.completions == 2, "each nonzero claim completes exactly once");
+  FakeController guarded;
+  guarded.forbid_initialize = true;
+  InterruptDevice *duplicates[] = {&device, &device};
+  InterruptDevice *missing[] = {nullptr};
+  expect_panic([&] { InterruptRouter invalid(guarded, duplicates, 2); invalid.initialize(); });
+  expect_panic([&] { InterruptRouter invalid(guarded, missing, 1); invalid.initialize(); });
+
 
   std::vector<unsigned> registers(0x208000 / 4, ~0U);
   Plic plic(reinterpret_cast<unsigned long>(registers.data()));
@@ -597,6 +777,33 @@ void block_contract()
   }
   disk.flush();
   check(transfer_count == 25, "queue wraps and descriptors are recycled");
+  for (unsigned i = 0; i < 16; ++i)
+  {
+    disk.flush();
+    expected_sector = 100 + i; expected_write = false;
+    disk.transfer(BlockOperation::Read, expected_sector, data, sizeof(data));
+  }
+  check(transfer_count == 57,
+        "repeated flush and data requests recycle all three allocated slots");
+  auto before_empty_irq = wakeups;
+  disk.handle_interrupt();
+  check(wakeups == before_empty_irq, "empty used queue does not repeat completion wakes");
+  expect_panic([&]
+  {
+    on_sleep = [&]
+    {
+      auto *desc = reinterpret_cast<virtq_desc *>(address_register(VIRTIO_MMIO_QUEUE_DESC_LOW));
+      auto *avail = reinterpret_cast<virtq_avail *>(address_register(VIRTIO_MMIO_DRIVER_DESC_LOW));
+      auto *used = reinterpret_cast<virtq_used *>(address_register(VIRTIO_MMIO_DEVICE_DESC_LOW));
+      auto head = avail->ring[(avail->idx - 1) % QueueSize];
+      auto tail = desc[desc[head].next].next;
+      *reinterpret_cast<unsigned char *>(desc[tail].addr) = 1;
+      used->ring[device_used % QueueSize].id = head; used->idx = ++device_used;
+      disk.handle_interrupt();
+    };
+    disk.transfer(BlockOperation::Read, expected_sector, data, sizeof(data));
+  });
+
   check(registers[VIRTIO_MMIO_INTERRUPT_ACK / 4] == 1, "VirtIO interrupt acknowledged");
   expect_panic([&] { disk.transfer(BlockOperation::Read, 0, data, 513); });
   auto *used =
@@ -615,6 +822,20 @@ void block_contract()
 
 namespace detail
 {
+unsigned effective_uid() { return 1000; }
+unsigned effective_gid() { return 100; }
+void hangup_terminal(void *) { ++test::hangups; }
+void service_terminal_signals() { ++test::signal_services; }
+void free_terminal_page(void *page)
+{
+  auto &pages = test::dma_pages;
+  for (auto it = pages.begin(); it != pages.end(); ++it)
+    if (*it == page) { pages.erase(it); std::free(page); return; }
+  test::check(false, "free terminal page exactly once");
+}
+
+void free_dma_page(void *page) { free_terminal_page(page); }
+
 unsigned long terminal_milliseconds()
 {
   return test::milliseconds;
@@ -723,6 +944,7 @@ void io_barrier()
 
 void *allocate_dma_page()
 {
+  if (test::fail_dma) return nullptr;
   void *page = std::aligned_alloc(4096, 4096);
   test::check(page != nullptr, "DMA page allocation");
   test::dma_pages.push_back(page);
@@ -744,6 +966,8 @@ void zero_page(void *page)
 extern "C" int run_driver_contracts()
 {
   xv::drivers::test::console_contract();
+  xv::drivers::test::pty_contract();
+  xv::drivers::test::pci_contract();
   xv::drivers::test::interrupt_contract();
   xv::drivers::test::uart_contract();
   xv::drivers::test::block_contract();

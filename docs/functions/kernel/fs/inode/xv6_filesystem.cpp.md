@@ -34,19 +34,6 @@
 - [`xv::fs::Xv6FileSystem::update`](xv6_filesystem.cpp.md#fn-d23dade71242312c)
 - [`xv::fs::Xv6FileSystem::write`](xv6_filesystem.cpp.md#fn-b5be87921570227b)
 - [`xv::fs::Xv6FileSystem::zero_block`](xv6_filesystem.cpp.md#fn-e9142d5fbb52fb87)
-- [`xv::fs::min`](xv6_filesystem.cpp.md#fn-8b8b180ad809a797)
-
-<a id="fn-8b8b180ad809a797"></a>
-
-## `xv::fs::min`
-
-```doxygen
-@fn static unsigned xv::fs::min(unsigned first, unsigned second)
-@brief 文件描述、inode、路径、块缓存与日志事务：读取或计算 `first < second ? first : second`，返回当前查询结果。
-@param first 本次操作使用的 首项 值。
-@param second 本次操作使用的 second 值。
-@return 各分支实际返回：`first < second ? first : second`。应结合上面的条件检查区分正常值、空值和错误值。
-```
 
 <a id="fn-8886c17d9bd7f74a"></a>
 
@@ -69,6 +56,7 @@
 @fn void xv::fs::Xv6FileSystem::initialize(int dev)
 @brief 初始化指定磁盘的布局、日志恢复与孤儿回收。
 @details 保存根节点使用的 device_，读取并验证超级块，然后初始化 Journal 并清理无链接 inode。必须在可睡眠的首个进程上下文调用。
+@details 流程由 InitializeFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-e9142d5fbb52fb87"></a>
@@ -92,9 +80,8 @@
 @fn uint xv::fs::Xv6FileSystem::allocate_block(uint dev)
 @brief xv6 inode 文件系统：从位图中分配磁盘数据块。
 @param dev 块设备编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_.read` → `BBLOCK` → `bp->bytes` → `journal_.record` → `bp.reset` → `zero_block` → `detail::report`。
-@details 需要特别跟踪的条件：`(bp->bytes()[bi / 8] & m) == 0`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`b + bi`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 AllocateBlockFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-9f690bb8450d7917"></a>
@@ -130,10 +117,8 @@
 @brief xv6 inode 文件系统：分配并取得对象或存储资源。
 @param dev 块设备编号。
 @param type 本次操作使用的 type 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_.read` → `IBLOCK` → `bp->bytes` → `detail::fill` → `journal_.record` → `bp.reset` → `get` → `detail::report`。
-@details 本函数可见的状态更新包括：`dip->type = type;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`dip->type == 0`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`get(dev, inum)`；`0`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 AllocateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-d23dade71242312c"></a>
@@ -155,11 +140,9 @@
 @brief xv6 inode 文件系统：取得。
 @param dev 块设备编号。
 @param inum 本次操作使用的 inum 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`inode_lock_.acquire` → `inode_lock_.release` → `detail::fail`。
-@details 本函数可见的状态更新包括：`ip->dev = dev;`；`ip->inum = inum;`；`ip->ref = 1;`；`ip->valid = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`ip->ref > 0 && ip->dev == dev && ip->inum == inum`；`empty == 0 && ip->ref == 0`；`empty == 0`。这些条件决定检查、重试或提前返回路径。
 @note 源码中出现的锁操作：`inode_lock_.acquire` → `inode_lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 各分支实际返回：`ip`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 流程由 GetFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-cf818bc3fcef07af"></a>
@@ -183,6 +166,7 @@
 @fn void xv::fs::Xv6FileSystem::lock(Inode *ip)
 @brief 锁定磁盘 inode 并按需加载缓存。
 @details 持有效引用取得睡眠锁，首次从 128 字节 dinode 读取类型、块地址与 uid/gid/mode；无效类型触发内核错误，后续访问复用缓存。
+@details 流程由 LockFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-93ed9249a65b47aa"></a>
@@ -219,13 +203,11 @@
 
 ```doxygen
 @fn void xv::fs::Xv6FileSystem::release(Inode *ip)
-@brief xv6 inode 文件系统：释放当前引用或归还对象占用的资源。
+@brief 归还 inode 引用，并在最后无链接引用时回收磁盘资源。
 @param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`inode_lock_.acquire` → `ip->lock.acquire` → `inode_lock_.release` → `truncate` → `ip->lock.release` → `free_inode`。
-@details 本函数可见的状态更新包括：`ip->valid = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`last`。这些条件决定检查、重试或提前返回路径。
-@note 源码中出现的锁操作：`inode_lock_.acquire` → `ip->lock.acquire` → `inode_lock_.release` → `ip->lock.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 ReleaseFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 普通引用在 inode 表锁内直接递减并解锁，不进行图分派；只有 ref 为一、缓存有效且链接数为零时运行 ReleaseFlow。进入图前保存设备与 inode 号，释放缓存引用后不再读取可能已被重用的缓存身份。
 ```
 
 <a id="fn-45dcd30b8fa7a526"></a>
@@ -248,9 +230,8 @@
 @fn void xv::fs::Xv6FileSystem::reclaim(int dev)
 @brief xv6 inode 文件系统：回收不再有外部使用者的 inode 状态。
 @param dev 块设备编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_.read` → `IBLOCK` → `bp->bytes` → `detail::report` → `get` → `bp.reset` → `transaction` → `lock` → `unlock` → `release`。
-@details 需要特别跟踪的条件：`dip->type != 0 && dip->nlink == 0`；`ip`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 ReclaimFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-e115e4280d884517"></a>
@@ -261,6 +242,7 @@
 @fn uint xv::fs::Xv6FileSystem::map_block(Inode *ip, uint bn, bool create)
 @brief 查找或按需建立磁盘数据块映射。
 @details create 为 false 时缺失的直接或间接映射返回零，绝不分配；create 为 true 保留原有分配与日志记录行为。
+@details 流程由 MapBlockFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-c1850e2e3bb309e8"></a>
@@ -271,10 +253,8 @@
 @fn void xv::fs::Xv6FileSystem::truncate(Inode *ip)
 @brief xv6 inode 文件系统：释放 inode 数据块并重置文件长度。
 @param ip 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`free_block` → `cache_.read` → `bp->bytes` → `bp.reset` → `update`。
-@details 本函数可见的状态更新包括：`ip->addrs[i] = 0;`；`ip->addrs[NDIRECT] = 0;`；`ip->size = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`ip->addrs[i]`；`ip->addrs[NDIRECT]`；`a[j]`。这些条件决定检查、重试或提前返回路径。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 流程由 TruncateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-380640571e8b5b9b"></a>
@@ -295,6 +275,7 @@
 @fn int xv::fs::Xv6FileSystem::read(Inode *ip, int user_dst, uint64 dst, uint off, uint n)
 @brief 读取文件内容并对稀疏空洞补零。
 @details 只查找现有块映射，缺块用只读零缓冲复制，不因读取分配磁盘空间；仍遵守 EOF 与用户复制失败处理。
+@details 流程由 ReadFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-b5be87921570227b"></a>
@@ -305,6 +286,7 @@
 @fn int xv::fs::Xv6FileSystem::write(Inode *ip, int user_src, uint64 src, uint off, uint n)
 @brief 在文件范围内写入数据并允许 EOF 后定位。
 @details 拒绝溢出和 MAXFILE 之外的请求，仅为实际写入范围分配块；未分配间隔读取为零，成功后更新长度和 inode 映射。
+@details 流程由 WriteFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 <a id="fn-9f79fb79bd4090b4"></a>
 
@@ -324,6 +306,7 @@
 @fn int xv::fs::Xv6FileSystem::resize(Inode *node, unsigned size)
 @brief 在日志事务内调整磁盘普通文件长度。
 @details 缩短时释放超出新 EOF 的直接/间接块，清空残留尾部；增长仅修改长度，不预分配空洞。拒绝非普通文件和超出 MAXFILE 的长度。
+@details 流程由 ResizeFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
 ```
 
 <a id="fn-2af87439a305e904"></a>

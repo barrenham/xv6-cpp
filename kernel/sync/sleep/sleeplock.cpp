@@ -1,4 +1,5 @@
 module xv.sync;
+import :sleep_flow;
 
 import :platform;
 
@@ -15,63 +16,35 @@ void SleepLock::init(const char *label)
 void SleepLock::acquire()
 {
   state_lock_.acquire();
-  while (locked_)
-  {
-    if (pid_ == detail::current_pid())
-    {
-      detail::fail("sleeplock: recursive acquire");
-    }
-    // Register while holding the state lock to avoid a lost wakeup.
-    detail::prepare_sleep(this);
-    state_lock_.release();
-    detail::sleep_process();
-    state_lock_.acquire();
-  }
-  locked_ = true;
-  pid_ = detail::current_pid();
-  state_lock_.release();
+  AcquireFlow::Context ctx{*this, false};
+  (void)AcquireFlow::Graph::run<0>(ctx);
 }
 
 bool SleepLock::acquire_interruptible()
 {
   state_lock_.acquire();
-  for (;;)
-  {
-    if (detail::interrupted())
-    {
-      state_lock_.release();
-      return false;
-    }
-    if (!locked_)
-    {
-      break;
-    }
-    if (pid_ == detail::current_pid())
-    {
-      detail::fail("sleeplock: recursive acquire");
-    }
-    detail::prepare_interruptible_sleep(this);
-    state_lock_.release();
-    detail::sleep_process();
-    state_lock_.acquire();
-  }
-  locked_ = true;
-  pid_ = detail::current_pid();
-  state_lock_.release();
-  return true;
+  AcquireFlow::Context ctx{*this, true};
+  (void)AcquireFlow::Graph::run<0>(ctx);
+  return ctx.acquired;
 }
 
 bool SleepLock::available(PollTable *table) const
 {
   ScopedLock guard(state_lock_);
-  if (table) table->watch(const_cast<SleepLock *>(this));
+  if (table)
+  {
+    table->watch(const_cast<SleepLock *>(this));
+  }
   return !locked_;
 }
 
 bool SleepLock::try_acquire()
 {
   ScopedLock guard(state_lock_);
-  if (locked_) return false;
+  if (locked_)
+  {
+    return false;
+  }
   locked_ = true;
   pid_ = detail::current_pid();
   return true;

@@ -4,9 +4,9 @@
 
 ## 函数导航
 
-- [`xv::net::Packet::~Packet`](packet.cpp.md#fn-38f798f54b47cbb2)
 - [`xv::net::Packet::allocate`](packet.cpp.md#fn-5633cc7891c8536f)
 - [`xv::net::Packet::clone`](packet.cpp.md#fn-b249acc31eb1ae38)
+- [`xv::net::Packet::~Packet`](packet.cpp.md#fn-38f798f54b47cbb2)
 
 <a id="fn-38f798f54b47cbb2"></a>
 

@@ -51,6 +51,21 @@ set_target_properties(sync_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OU
 xv_add_sync_modules(sync_contract)
 
 include("${XV_ROOT}/cmake/driver-modules.cmake")
+add_executable(print_contract
+  "${XV_ROOT}/tests/print_contract.cpp"
+  "${XV_ROOT}/tests/print_console.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/support/printk.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp")
+target_sources(print_contract PRIVATE FILE_SET print_interface TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/kernel/support" FILES "${XV_ROOT}/kernel/support/print.cppm")
+xv_add_sync_modules(print_contract)
+xv_add_driver_interfaces(print_contract)
+target_compile_features(print_contract PRIVATE cxx_std_20)
+target_compile_options(print_contract PRIVATE -O2 -Wall -Wextra -Werror -Wno-sign-compare -fno-rtti -fno-exceptions)
+target_link_libraries(print_contract PRIVATE Threads::Threads)
+set_target_properties(print_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 add_executable(driver_contract
   "${XV_ROOT}/tests/driver_contract.cpp"
   "${XV_ROOT}/tests/driver_test_platform.cpp"
@@ -59,6 +74,9 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
   "${XV_ROOT}/kernel/drivers/serial/uart16550.cpp"
   "${XV_ROOT}/kernel/drivers/tty/core/tty.cpp"
+  "${XV_ROOT}/kernel/drivers/tty/pty/pty.cpp"
+  "${XV_ROOT}/kernel/drivers/net/e1000/e1000.cpp"
+  "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cpp"
   "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
   "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
@@ -70,6 +88,11 @@ target_link_libraries(driver_contract PRIVATE Threads::Threads)
 set_target_properties(driver_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(driver_contract)
 xv_add_driver_modules(driver_contract)
+
+target_sources(driver_contract PRIVATE FILE_SET driver_contract_internals TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/kernel/drivers" FILES "${XV_ROOT}/kernel/drivers/tty/pty/pty.cppm"
+    "${XV_ROOT}/kernel/drivers/net/e1000/e1000.cppm"
+    "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cppm")
 
 include("${XV_ROOT}/cmake/process-modules.cmake")
 add_executable(process_contract
@@ -210,6 +233,7 @@ add_executable(network_contract
   "${XV_ROOT}/tests/tcp_contract.cpp"
   "${XV_ROOT}/tests/tcp_buffers.cpp"
   "${XV_ROOT}/tests/tcp_registry.cpp"
+  "${XV_ROOT}/tests/tcp_protocol_flow.cpp"
   "${XV_ROOT}/tests/network_interfaces.cpp"
   "${XV_ROOT}/tests/network_control.cpp"
   "${XV_ROOT}/tests/bridge_contract.cpp"
@@ -250,6 +274,8 @@ set_target_properties(password_hash_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY
 
 add_executable(vm_contract
   "${XV_ROOT}/tests/vm_contract.cpp"
+  "${XV_ROOT}/tests/address_space_contract.cpp"
+  "${XV_ROOT}/kernel/process/memory/address_space.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/memory/layout/virtual_regions.cpp"
@@ -263,7 +289,11 @@ add_executable(vm_contract
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
 target_sources(vm_contract PRIVATE FILE_SET vm_test_modules TYPE CXX_MODULES
-  BASE_DIRS "${XV_ROOT}/tests" FILES "${XV_ROOT}/tests/vm_arch.cppm" "${XV_ROOT}/tests/vm_print.cppm")
+  BASE_DIRS "${XV_ROOT}/tests" FILES "${XV_ROOT}/tests/vm_arch.cppm" "${XV_ROOT}/tests/vm_print.cppm"
+    "${XV_ROOT}/tests/vm_process.cppm")
+target_sources(vm_contract PRIVATE FILE_SET vm_address_space TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/kernel/process" FILES "${XV_ROOT}/kernel/process/memory/address_space.cppm")
+xv_add_address_space_flow(vm_contract)
 xv_add_memory_modules(vm_contract)
 xv_add_sync_modules(vm_contract)
 xv_add_runtime_module(vm_contract)
@@ -273,3 +303,36 @@ target_compile_options(vm_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -
 target_compile_definitions(vm_contract PRIVATE LAB_PGTBL SOL_PGTBL)
 target_link_libraries(vm_contract PRIVATE Threads::Threads)
 set_target_properties(vm_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+# Header-only flow utility; the executable itself needs no C++ standard library.
+add_executable(flow_contract "${XV_ROOT}/tests/flow_contract.cpp")
+target_include_directories(flow_contract PRIVATE "${XV_ROOT}")
+target_compile_features(flow_contract PRIVATE cxx_std_20)
+target_compile_options(flow_contract PRIVATE -O2 -Wall -Wextra -Werror
+  -nostdinc++ -fno-exceptions -fno-rtti)
+set_target_properties(flow_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+# Exercise the original conditional source with explicit test-only lab services.
+# STATS=7 is a fixture selector, not a new production device ABI.
+add_executable(stats_contract
+  "${XV_ROOT}/tests/stats_contract.cpp"
+  "${XV_ROOT}/tests/stats_driver.cpp"
+  "${XV_ROOT}/tests/stats_process.cpp"
+  "${XV_ROOT}/tests/stats_fs.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/support/stats.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+target_sources(stats_contract PRIVATE FILE_SET stats_unused_memory TYPE CXX_MODULES
+  BASE_DIRS "${XV_ROOT}/tests" FILES "${XV_ROOT}/tests/stats_memory.cppm")
+xv_add_sync_modules(stats_contract)
+xv_add_driver_interfaces(stats_contract)
+xv_add_fs_interfaces(stats_contract)
+xv_add_process_interfaces(stats_contract)
+target_include_directories(stats_contract PRIVATE "${XV_ROOT}")
+target_compile_features(stats_contract PRIVATE cxx_std_20)
+target_compile_definitions(stats_contract PRIVATE LAB_LOCK LAB_PGTBL STATS=7)
+target_compile_options(stats_contract PRIVATE -O2 -Wall -Wextra -Werror
+  -Wno-unused-parameter -Wno-sign-compare -fno-rtti -fno-exceptions)
+target_link_libraries(stats_contract PRIVATE Threads::Threads)
+set_target_properties(stats_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

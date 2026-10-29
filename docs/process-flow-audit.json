@@ -1,0 +1,804 @@
+{
+  "status": "identified_complex_paths_connected",
+  "scope": "kernel/process in the current dev configuration",
+  "limitations": [
+    "This is an explicit source/ownership audit, not proof of zero overhead or of alternate LAB_LOCK build success.",
+    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+  ],
+  "files": [
+    {
+      "source": "kernel/process/arch/cpu.cpp",
+      "sha256": "7fce27be3a2c6c4d394e660b0998e01eed86039b0ca5c6a56b6748b2e0e21fa7",
+      "review": "CPU identity/current lookup, interrupt bracketing and optional affinity are compact hardware or single-lock state primitives. Register layouts and swtch assembly retain their ABI; scheduler graphs own the surrounding handoff.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/arch/cpu.cppm",
+      "sha256": "776451f559851a3c8309f419fb03d2854688559153941002c940505a4fdb8103",
+      "review": "CPU identity/current lookup, interrupt bracketing and optional affinity are compact hardware or single-lock state primitives. Register layouts and swtch assembly retain their ABI; scheduler graphs own the surrounding handoff.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/arch/cpu_affinity.cpp",
+      "sha256": "ed5fe51cf42aa48393cd2dd267450b38daf1e9fc7af109ac025af903ad8c1ece",
+      "review": "CPU identity/current lookup, interrupt bracketing and optional affinity are compact hardware or single-lock state primitives. Register layouts and swtch assembly retain their ABI; scheduler graphs own the surrounding handoff.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/arch/registers.cppm",
+      "sha256": "a3369ba91cac20feda2bfa838322577389876fd897604e09e572065cd57c23d8",
+      "review": "CPU identity/current lookup, interrupt bracketing and optional affinity are compact hardware or single-lock state primitives. Register layouts and swtch assembly retain their ABI; scheduler graphs own the surrounding handoff.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/arch/swtch.S",
+      "sha256": "baff65e42b8f80e3b2ec5e1f67e2033b0b9bd7b35564db998573f576bc816088",
+      "review": "CPU identity/current lookup, interrupt bracketing and optional affinity are compact hardware or single-lock state primitives. Register layouts and swtch assembly retain their ABI; scheduler graphs own the surrounding handoff.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/credentials/credentials.cppm",
+      "sha256": "9b1a2cbf36ed18c76e1b74fb5ee807c385c7f830ab97131c9382e2a6e4705dc1",
+      "review": "Locked credential validation and bounded group copies are business access policies. Snapshot/inheritance and exec identity updates remain direct; no allocation, retry ownership or rollback is hidden here.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/exec/elf_format.cppm",
+      "sha256": "6b0b83ad3f852e11dc9f40458a01726230ed13d48fc63146bdf9cbad16533f9e",
+      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/exec/elf_loader.cpp",
+      "sha256": "73fc109a2f172675bd57d5e438cf9ac23e2406a24bdee6d960b04b2b02aee2f4",
+      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ElfLoader::load",
+          "usr": "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
+          "source": "kernel/process/exec/elf_loader.cpp",
+          "source_sha256": "bea41b85f7ab256f7b65bd514ec9cfd43e4802494795633f5d8b2fdacb4e22ca",
+          "graphs": [
+            "LoadFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/exec/elf_loader.cppm",
+      "sha256": "d4442ab4527052cc93de852dccc5eb82155d49c0288545451f54ba894a34b693",
+      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/exec/executable_loader.cppm",
+      "sha256": "d211e893711a8d1586ae47ee73ec39710d5f19c3a8accc13a2a65692f80215ff",
+      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/group_operations.cpp",
+      "sha256": "9b8e3b2a1c98ee2ca2cbe163175c7da9705ab7d85ced9b43326f03f06ddc295b",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/kernel_platform.cpp",
+      "sha256": "411e1b77d6974cd60ae4c748f4741eb9be7dfe003a1613dfd4db0146a5b3e4fc",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/platform.cppm",
+      "sha256": "7a57d185edc533b6b38e5a145cebaa849af35fbc1a9b7283d7bbde6a9c5a6ab7",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/process_groups.cpp",
+      "sha256": "27482c13bcc80e09bcbc9a432e1193a8e7f9b4bf5df57a8c2233220651fa8872",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ProcessGroups::detach",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@detach#&$@N@xv@N@process@S@ProcessMembership#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "21afa3a9a0208b1181a778f13cde2a1f6cf3289684b37af69192a4ddf421f894",
+          "graphs": [
+            "DetachFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::create_initial",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@create_initial#&$@N@xv@N@process@S@ProcessMembership#I#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "1c144e96bf1aca622d4f9ae3e7202d2c232d22571037df2cac97fc27025b56b2",
+          "graphs": [
+            "InitialFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::create_session",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@create_session#&$@N@xv@N@process@S@ProcessMembership#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "22ff4fcc02e421d2d228189f78b954e36ee534b134922d675c658d28d8a722a6",
+          "graphs": [
+            "SessionFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::set_group",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@set_group#&$@N@xv@N@process@S@ProcessMembership#I#I#",
+          "source": "kernel/process/groups/process_groups.cpp",
+          "source_sha256": "f9f174191ed2f30c897852b3768e6460b1d00b6feb4d9c843644ad9c0e7dd005",
+          "graphs": [
+            "SetGroupFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/groups/process_groups.cppm",
+      "sha256": "79275968c5a845cf9281ee64241825fe4b2270248fdbe4a23b333ea139245a6d",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/process_membership.cppm",
+      "sha256": "2f2daa56ab97278b63943ebf8c589ee504e4f4c763d1c0a2a34d27b6372aa643",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/groups/terminal_control.cpp",
+      "sha256": "031b892d4da722f080cccce9e2cd238110f72c9914a7b429426302fb162cd087",
+      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ProcessGroups::claim_terminal",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@claim_terminal#&1$@N@xv@N@process@S@ProcessMembership#*v#",
+          "source": "kernel/process/groups/terminal_control.cpp",
+          "source_sha256": "ec941528232f638dd3b56f0a6d52e2cb4e6d5cab83853f81b9227ac56bf97d8a",
+          "graphs": [
+            "ClaimTerminalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessGroups::set_foreground",
+          "usr": "c:@N@xv@N@process@S@ProcessGroups@F@set_foreground#&1$@N@xv@N@process@S@ProcessMembership#*v#I#",
+          "source": "kernel/process/groups/terminal_control.cpp",
+          "source_sha256": "8f297c8877bbfa9e1b5acbcdacd22280bbbac7d60ace2e8b88254d7ff5300fac",
+          "graphs": [
+            "ForegroundFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/lifecycle/first_return.cpp",
+      "sha256": "d2bfed7003c5898a3f82ec10eaff5ba92983772d47e90a416b05675013ecde62",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::first_return",
+          "usr": "c:@N@xv@N@process@F@first_return#",
+          "source": "kernel/process/lifecycle/first_return.cpp",
+          "source_sha256": "820fbda16d23c82afcb93be0545d3b1836630cdc145bd9638d8f3db444b8f36b",
+          "graphs": [
+            "FirstReturnFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/lifecycle/process.cpp",
+      "sha256": "e12b586f54fd86d40f408cb4728cdaa4033652bc409492baf512dbf2af28b6af",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::Process::commit_image",
+          "usr": "c:@N@xv@N@process@S@Process@F@commit_image#&$@N@xv@N@process@S@AddressSpace#l#l#l#*1C#l#",
+          "source": "kernel/process/lifecycle/process.cpp",
+          "source_sha256": "1a8abf4300ab15923ec6008e4be95cb913edbb0151710bb5ac247cd125f05df6",
+          "graphs": [
+            "CommitFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/lifecycle/process_manager.cpp",
+      "sha256": "2f145f1e1f4ea3d2b2cf780a4fdd199a37591cec4a96646faf38b36791d1d6f3",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ProcessManager::allocate",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@allocate#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "e9100a59315afe415aca41fdf1a51805a6818c19e30421accb911707101898b4",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::reap",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@reap#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "f1126cd2660b12ac00900a4e776c0329b7a25a8cfcb115c494d084e1b969db65",
+          "graphs": [
+            "ReapFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::create_initial_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@create_initial_process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "d9db5eefcfafb425c7f3cc54d69190966520b0a595bb5bc86476d5c5ee188776",
+          "graphs": [
+            "InitialFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::fork_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@fork_process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "5d49fc348bca42127aa3747fe04871f3695cf6e2ee212d417d8a029950c2b2c9",
+          "graphs": [
+            "ForkFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::reparent",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@reparent#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "3d6f071f3f5fc7a630881f2ffb8349ab632d84d0dc6fce695f811724f2f05ab8",
+          "graphs": [
+            "ReparentFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::exit_process",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@exit_process#I#I#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "29a19a625d22095cb3aa5a027e8528a38e555f2f05345d4d5ba98f5d785a1252",
+          "graphs": [
+            "ExitFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::kill",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "8c4531277093d72777145e947144bf4333ca08db4b9c1822b7df881371a2ab52",
+          "graphs": [
+            "KillFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::inspect_files",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "88238962feb66ca9451124659faf7a3122a45427214d64d18cfd403a7351ada4",
+          "graphs": [
+            "InspectFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/lifecycle/process_manager.cppm",
+      "sha256": "1718390d38ed493a438896e23b191b9d9e6c91678eac4cfc7fceddca18907343",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/lifecycle/service.cpp",
+      "sha256": "d91efd5fc7bec58ca3b43287c1def42e0b27e5e7dbb777009eaebc8a10e4dced",
+      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/memory/address_space.cpp",
+      "sha256": "57a15cc0f5838758c3493510ac02ae5209df647a2f550b6311415cc005e0b200",
+      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::AddressSpace::create",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@create#*v#S0_#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "5e37cccf9c4f0e33b9a8ae0df9d4274eb1aebb7ad4da89bd2d46027dfdbfb174",
+          "graphs": [
+            "CreateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::resize",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@resize#I#b#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "8226ebc42ac1830cc74ac661330f99675e94519a3bfac5f824433f91614e63f8",
+          "graphs": [
+            "ResizeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::grow_to",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@grow_to#l#I#b#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "3cb218f6aeae4528aae84c7684dc97077eba79cb54b645a2c6c84abed951b215",
+          "graphs": [
+            "GrowFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::copy_to",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "591d99b02ab120e423911e5e64fa9599016fac35417e029678d8b045a1a82fdd",
+          "graphs": [
+            "CopyFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::protect_guard",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@protect_guard#l#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "bd05959525f77dff7bc83afe7832b0948da7e69c3e2f7ea51032aa988ff179b8",
+          "graphs": [
+            "GuardFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/memory/address_space.cppm",
+      "sha256": "1ded837c07820ea2f2fc3c14c3cd8a5b91e896379cd93d8986d2046cb9bf27b4",
+      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/memory/flows.cppm",
+      "sha256": "94f50ebd9a8437b7c06459951b5b0f59f21b2cd05fa3335f82206a8db7ad09cf",
+      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/process.cppm",
+      "sha256": "d385fb1ad567af28bb7c1800b8f3df365322d14f3ff255ae17288930057c756e",
+      "review": "Process state, public accessors and friend/private Flow declarations preserve the object layout. Complex implementations are owned by private Flow types in their original implementation units.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/process_module.cppm",
+      "sha256": "bcfa082b7fdc3574774640ca22746ff388f486c4571db7c9395f8a57e6f4a425",
+      "review": "Module composition and exports only; no execution protocol.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/resources/kernel_platform.cpp",
+      "sha256": "e8945e7bfffd4ea5a72dde86ad4db7f7702300f21511403df232bc77ad46dc4f",
+      "review": "DescriptorTable::DuplicateFlow owns retain/install rollback. get/install/take/close and fixed capacity scans preserve existing local reference-transfer contracts. WorkingDirectory is owner-thread managed and transfers references directly; its potentially sleeping inode release still requires the caller transaction.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/resources/process_resources.cpp",
+      "sha256": "be0eae8889099a4822b94609bca5d101a5b1e933d8daa6da839dd872c242cdc2",
+      "review": "DescriptorTable::DuplicateFlow owns retain/install rollback. get/install/take/close and fixed capacity scans preserve existing local reference-transfer contracts. WorkingDirectory is owner-thread managed and transfers references directly; its potentially sleeping inode release still requires the caller transaction.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::DescriptorTable::duplicate",
+          "usr": "c:@N@xv@N@process@S@DescriptorTable@F@duplicate#I#",
+          "source": "kernel/process/resources/process_resources.cpp",
+          "source_sha256": "98afd829f9a9ebb31c816f1a6bba0faff17b9fc7cbdb51ed869316e9a68b5cb6",
+          "graphs": [
+            "DuplicateFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/resources/process_resources.cppm",
+      "sha256": "fdae2f0e8cbd6445a850d92154aa02119c8cb81bfc9fded3e1eccaad9430f0e8",
+      "review": "DescriptorTable::DuplicateFlow owns retain/install rollback. get/install/take/close and fixed capacity scans preserve existing local reference-transfer contracts. WorkingDirectory is owner-thread managed and transfers references directly; its potentially sleeping inode release still requires the caller transaction.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/resources/resource_platform.cppm",
+      "sha256": "9d2e21c6af306973aeb5370f8f02a101da63c58909d96ec5d5dfff22b94f1e39",
+      "review": "DescriptorTable::DuplicateFlow owns retain/install rollback. get/install/take/close and fixed capacity scans preserve existing local reference-transfer contracts. WorkingDirectory is owner-thread managed and transfers references directly; its potentially sleeping inode release still requires the caller transaction.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/policies/round_robin.cpp",
+      "sha256": "0009502df9332d7eb81d079b2217a6223192a7c58d41fb6e492f6721e1cfdf68",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::RoundRobinScheduler::run",
+          "usr": "c:@N@xv@N@process@S@RoundRobinScheduler@F@run#",
+          "source": "kernel/process/scheduler/policies/round_robin.cpp",
+          "source_sha256": "b8bd64a90fc44ad3fba122e7b35e286447f9714a156fa982965f94556debb019",
+          "graphs": [
+            "RunFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/scheduler/policies/round_robin.cppm",
+      "sha256": "1f7e8acc90ce7d46334ef0fda9e0b9dce533581551797e88dfca472e5d80bbbb",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/fifo_ready_queue.cpp",
+      "sha256": "adbe8a13409f2d4968a2676109c4e8cc11133cffdb59bbaa94fb56bb6fed6e4d",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/fifo_ready_queue.cppm",
+      "sha256": "f8c60e27fe8905291afd77c884488aa72cc65a0ba5099bcaa84e85f5a8ab2cea",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/ready_queue.cpp",
+      "sha256": "e77a3dd5dbc464207b18db02d1a53fbfbeac7e2fd25fd36f4dafdb550148f8a5",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/queues/ready_queue.cppm",
+      "sha256": "210448f3ea836b69097a3a7b1437232b435aad4355f135b69319625ae262d7d0",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+      "sha256": "a703b8a770c1b69fb15dd91702481b9635ec216528df7380bdc8ebb4f55363fd",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::SchedulerContext::dispatch",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@dispatch#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@CpuState#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "74c074a8be41fbeee88e0c8d3ae6ad1d40d6625a6df6343e8c11706ac668cb05",
+          "graphs": [
+            "DispatchFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::SchedulerContext::suspend",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@suspend#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "e69ebd0ecdc44cb2f30046b356211ffd08dd26db3d65114cfa364cff9acf9694",
+          "graphs": [
+            "SuspendFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::SchedulerContext::yield",
+          "usr": "c:@N@xv@N@process@S@SchedulerContext@F@yield#&$@N@xv@N@process@S@Scheduler#S",
+          "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
+          "source_sha256": "c58cf30f7907007497c9ed99348940273bc16d6e64e49528c2757776213a1651",
+          "graphs": [
+            "YieldFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/scheduler/runtime/scheduler_context.cppm",
+      "sha256": "01902b8e280ef687988e55f994065957173f4afca3c7308935a22cb3c1e8449f",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/scheduler/scheduler.cppm",
+      "sha256": "acfe237ab5f1ed3a7e3a6d5580acfabaaf412bb998d3d244beaaa1740cdfa7e7",
+      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/signals/pending_signals.cppm",
+      "sha256": "4963b569aa2ba7e5cc4b9a47acc34cc7b3cc1583ba968535581961306f01eef1",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/signals/process_signals.cpp",
+      "sha256": "ce8a75ad7e88fec91eaed2c3e7251ab407ccb0b29361606f31597275bed7ffe4",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/signals/signal.h",
+      "sha256": "fe26959598f13f4849da2aa015f8a8533c07348273df037e2b6cc7ab575ffda1",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/signals/signal_abi.h",
+      "sha256": "9e86bc6c06a2f2f8346cc72d9919db2c3324af0ee00b07eed3f80b6c53e09df7",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/signals/signal_delivery.cpp",
+      "sha256": "f6a46cb74d6287a62ff37f7180d6171264a52393ad57149bd438fa7b80387bbb",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ProcessManager::wake_for_signal",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@wake_for_signal#&$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "b61da5188bdb964a5560e36ee4d6d42becb794778dbd16724afe87e274bb5bc2",
+          "graphs": [
+            "WakeSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::send_signal",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@send_signal#I#I#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "1494d63c75b5b7190bc874779f2c40296c5b656c21a3c5178d1866251cb338a0",
+          "graphs": [
+            "SendPidSignalFlow::Graph",
+            "SendGroupSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::notify_child_events",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@notify_child_events#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "3c2d577dadd320a1ebcaa42e63d14c23880233bdb6cfe231d29d0e3cdae68809",
+          "graphs": [
+            "NotifyChildFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::deliver_signals",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@deliver_signals#",
+          "source": "kernel/process/signals/signal_delivery.cpp",
+          "source_sha256": "6c0e2de4c55d97cbccf513866b72ebcace91d0019fa42d30d2c779a8c4eafed5",
+          "graphs": [
+            "DeliverSignalFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/signals/user_signals.cpp",
+      "sha256": "0811482c4fb21aeb4f107ddd26e68d6af73b28ca252436f9bc28ed708eb64168",
+      "review": "Signal action/mask/suspend/frame and manager delivery/notification graphs own complex protocols. PendingSignals CAS/bitsets, priority policies, ABI constants, executable-page checks, syscall PC/result policy and notification adapters stay direct. post_child_signal preserves its no-scan fast path.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::Process::signal_action",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_action#I#l#l#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "8a35ee6e121b50af3c63194ca16a04bfc95f1d61aef34a51a84a89b76b380585",
+          "graphs": [
+            "SignalActionFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_mask",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_mask#I#l#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "7e56090bc6c0f980a0a45479cae5be1e4b997896536e392db1fc0e7f07e63dcf",
+          "graphs": [
+            "SignalMaskFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_suspend",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_suspend#l#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "6abb3cd84186e89bfbb9e0012cd307109c418764f5e1d5925c4ac7905c241710",
+          "graphs": [
+            "SignalSuspendFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::enter_signal_handler",
+          "usr": "c:@N@xv@N@process@S@Process@F@enter_signal_handler#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "82bb7f5681148c04ed6cef0a2c9c2006363a61ef636d699127aae929ebee7bbc",
+          "graphs": [
+            "EnterSignalFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::Process::signal_return",
+          "usr": "c:@N@xv@N@process@S@Process@F@signal_return#",
+          "source": "kernel/process/signals/user_signals.cpp",
+          "source_sha256": "41cc260d3ca5b091ae5ab635d721c80e842ca9d9d267e586f6c40adc016b9580",
+          "graphs": [
+            "ReturnSignalFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/storage/kernel_platform.cpp",
+      "sha256": "3b6333ca7a6637e7c78dea7239486fb3e4d8afafdc4c96613dbcd0a26ea7b449",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/storage/paged_process_store.cpp",
+      "sha256": "81ba68b223ca604d068b25b52c5cae6a41e7ca45043e48dbe14162ca4b4e6a1f",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::PagedProcessStore::allocate",
+          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
+          "source": "kernel/process/storage/paged_process_store.cpp",
+          "source_sha256": "b37f004fa500561498679c8c9bd9b3caa1e104b0a49afbcd71d9a7c442e09749",
+          "graphs": [
+            "AllocateFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PagedProcessStore::release",
+          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@release#*$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/storage/paged_process_store.cpp",
+          "source_sha256": "1ad1562c19a5b29c6f4f79e0b9f0d05aa105275c01e55f58ea7ae76cf8d41454",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/storage/paged_process_store.cppm",
+      "sha256": "a6977dc6321969f966ada173d1b95099cf2bef63153ab12f1fe4480c5da840d5",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/storage/platform.cppm",
+      "sha256": "161480c8b10a3a8a5ebc3aafd8cca17f24de28f61da262b01af65d2a612865b5",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/storage/process_store.cpp",
+      "sha256": "c0b8dd91e3c8b9e93b29bcad162bfebadbf622fcc457934cabd2e405c6ef503a",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/storage/process_store.cppm",
+      "sha256": "f2a63a8f4b9ed999bcbb4c4d124a62f25dc5782309c3e69c5af4b15649936541",
+      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/poll_entry.cppm",
+      "sha256": "aa6fd05cca8dfde4370f8e63529d0c997233e5b1c53cf1c03d10259492311f68",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/poll_wait.cpp",
+      "sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::PollWait::watch",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@watch#*v#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "f9f76519fccc6fb620d0bad503df3b2df32f546530a2e6b7b31715fa5faa4987",
+          "graphs": [
+            "WatchFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PollWait::~PollWait",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@~PollWait#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "17daf75edfe3cacdfbbb1ad8faa97bf90be420c3b7e8e4100e1a51cdedc51bc3",
+          "graphs": [
+            "ReleaseFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::PollWait::sleep",
+          "usr": "c:@N@xv@N@process@S@PollWait@F@sleep#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "aee6c9c882d90a7513b9e0b015a1793079f0663ce383522140eaa087b5591aff",
+          "graphs": [
+            "SleepFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::WaitChannels::expire_timers",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
+          "source": "kernel/process/wait/poll_wait.cpp",
+          "source_sha256": "118785a5fbd9ce6bdd45a5d604a0ee0fd3a95e973fede5b996c0c617f64a0fee",
+          "graphs": [
+            "ExpireFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/wait/poll_wait.cppm",
+      "sha256": "46f3eaf363f7d3791f185e6e1feb77c69855f4760d06cb7c675888b3d27fc3d5",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/sleep.cpp",
+      "sha256": "ad88ba0dbc5338f7bb0a607609c646658bb8b892b2d79a3be7904d84283d6166",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/wait.h",
+      "sha256": "a7796a86df7da004d1bb185245fd03c56adae6054ec8593ac066c5253ba7bd8c",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/wait_channels.cpp",
+      "sha256": "6c341554d0525546480cd2872369f59937f42b3bff3feac36798d59d786afa0e",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::WaitChannels::cancel",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@cancel#&$@N@xv@N@process@S@Process#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "7d2a82831e2f6dd03d81d6c3afca1c454176c059755bf7497a2b920fd84f6ddd",
+          "graphs": [
+            "CancelFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::WaitChannels::prepare",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@prepare#&$@N@xv@N@process@S@Process#*v#b#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "b2a297fce380788b8ed373681a4af00e708ad4023112aa4a4a5765bf49b985a6",
+          "graphs": [
+            "PrepareFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::WaitChannels::wake",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#",
+          "source": "kernel/process/wait/wait_channels.cpp",
+          "source_sha256": "60c7b5e126fa65dfc0370c22d3f8da9e9fb8d64f7f1a03d33f685c4aecd31ebb",
+          "graphs": [
+            "WakeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "kernel/process/wait/wait_channels.cppm",
+      "sha256": "b72f3478b568030dbcab5ca8e58bfb19be2a9016294ef225b8efcc01837fe5a5",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/process/wait/wait_child.cpp",
+      "sha256": "e76a3b98fa15034b73de100a124137e84027147b99113197a77e72da3eed9b49",
+      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "graph_entries": [
+        {
+          "qualified": "xv::process::ProcessManager::wait_child",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@wait_child#I#l#I#b#",
+          "source": "kernel/process/wait/wait_child.cpp",
+          "source_sha256": "a0c20313f39695fe40eedbc81eb7991b7ff476e063ca62ae414b86642865af0b",
+          "graphs": [
+            "WaitFlow::Graph"
+          ]
+        }
+      ]
+    }
+  ],
+  "graph_count": 47,
+  "original_entry_count": 46,
+  "excluded_execution_primitives": "Register/CSR/assembly operations, compact bitset policies, stable scans, fixed table transfers and simple delegates are intentionally direct; their outer complex orchestration uses graphs."
+}

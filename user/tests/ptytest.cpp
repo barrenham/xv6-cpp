@@ -190,6 +190,21 @@ static void signals(bool hangup)
 static void allocation()
 {
   int fds[2];
+  auto *previous = sbrk(0);
+  unsigned padding = 4096 - (reinterpret_cast<unsigned long>(previous) & 4095);
+  check(sbrk(padding) != SBRK_ERROR, "rollback output page");
+  auto *partial = reinterpret_cast<int *>(previous + padding - sizeof(int));
+  int available = dup(0); check(available >= 0, "rollback descriptor probe"); close(available);
+  for (unsigned i = 0; i < 16; ++i)
+  {
+    *partial = -1;
+    check(pipe(partial) == -1 && *partial == available, "pipe second copy failure");
+    int probe = dup(0); check(probe == available, "pipe failure restores descriptors"); close(probe);
+    *partial = -1;
+    check(openpty(partial) == -1 && *partial == available, "PTY partial copy failure");
+    probe = dup(0); check(probe == available, "PTY failure restores descriptors"); close(probe);
+  }
+  check(sbrk(-static_cast<int>(padding)) != SBRK_ERROR, "release rollback output page");
   for (int i = 0; i < 40; ++i)
     check(openpty(reinterpret_cast<int *>(~0UL)) == -1, "failed copyout rollback");
   for (int i = 0; i < 128; ++i) { pair(fds); close_pair(fds); }
@@ -203,6 +218,7 @@ static void allocation()
   check(count > 0, "descriptor fill");
   close(fill[--count]); // Exactly one descriptor free; openpty needs two.
   check(openpty(fds) == -1, "descriptor shortage rollback");
+  check(pipe(fds) == -1, "pipe descriptor shortage rollback");
   int last = dup(0);
   check(last >= 0, "failed openpty did not consume descriptor");
   close(last);

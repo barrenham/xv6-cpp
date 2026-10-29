@@ -27,6 +27,9 @@ public:
 
 private:
 
+  struct TransmitFlow;
+  struct DrainFlow;
+
   xv::sync::SpinLock lock_;
 
   struct Pending

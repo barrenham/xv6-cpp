@@ -1,8 +1,9 @@
 module;
-#include "kernel/support/types.h"
-#include "kernel/support/param.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
+#include "kernel/support/flow.h"
+#include "kernel/support/param.h"
+#include "kernel/support/types.h"
 #include "kernel/trap/arch/riscv/entry.h"
 
 module xv.trap;
@@ -23,24 +24,63 @@ namespace xv::trap::detail
 alignas(4096) unsigned char entry_stacks[NCPU][16384]{};
 unsigned long scheduler_stacks[NCPU]{};
 constexpr unsigned StackReservePages = 64;
-struct StackReserve { void *pages[StackReservePages]{}; unsigned count = 0; };
+struct StackReserve
+{
+  void *pages[StackReservePages]{};
+  unsigned count = 0;
+};
 StackReserve stack_reserves[NCPU];
+
+namespace flow = xv::flow;
+struct RefillReserveFlow
+{
+  struct Context
+  {
+    StackReserve &reserve;
+    void *page = nullptr;
+  };
+  static bool space(Context &c) noexcept { return c.reserve.count < StackReservePages; }
+  static bool allocate(Context &c) noexcept
+  {
+    c.page = xv::memory::allocator().allocate();
+    return c.page;
+  }
+  static void publish(Context &c) noexcept
+  {
+    c.reserve.pages[c.reserve.count++] = c.page;
+  }
+  struct Space;
+  struct Allocate;
+  struct Publish;
+  using Graph = flow::graph<
+      Space, flow::types<flow::node<Space, flow::noop,
+                                    flow::branch<flow::condition<&space>,
+                                                 flow::go<Allocate>, flow::stop>>,
+                         flow::node<Allocate, flow::noop,
+                                    flow::branch<flow::condition<&allocate>,
+                                                 flow::go<Publish>, flow::stop>>,
+                         flow::node<Publish, flow::action<&publish>, flow::go<Space>>>>;
+};
 
 void refill_stack_reserve()
 {
-  if (xv::process::current_cpu()->noff) return;
-  auto &reserve = stack_reserves[xv::process::cpu_id()];
-  while (reserve.count < StackReservePages)
+  if (xv::process::current_cpu()->noff)
   {
-    auto *page = xv::memory::allocator().allocate();
-    if (!page) break;
-    reserve.pages[reserve.count++] = page;
+    return;
   }
+  auto &reserve = stack_reserves[xv::process::cpu_id()];
+  RefillReserveFlow::Context context{reserve};
+  (void)RefillReserveFlow::Graph::run<0>(context);
 }
 void *take_stack_frame()
 {
   if (!xv::process::current_cpu()->noff)
-    if (auto *page = xv::memory::allocator().allocate()) return page;
+  {
+    if (auto *page = xv::memory::allocator().allocate())
+    {
+      return page;
+    }
+  }
   auto &reserve = stack_reserves[xv::process::cpu_id()];
   return reserve.count ? reserve.pages[--reserve.count] : nullptr;
 }
@@ -48,7 +88,10 @@ void *take_stack_frame()
 __attribute__((noinline)) unsigned long stack_probe(unsigned depth)
 {
   volatile unsigned char page[4096];
-  for (unsigned i = 0; i < sizeof(page); ++i) page[i] = depth;
+  for (unsigned i = 0; i < sizeof(page); ++i)
+  {
+    page[i] = depth;
+  }
   page[4095] = depth + 1;
   auto next = depth ? stack_probe(depth - 1) : 0;
   return next + page[0] + page[4095];
@@ -57,8 +100,10 @@ void run_vm_kernel_probe()
 {
   auto base = xv::process::current()->kernel_stack();
 #if XV_VM_SELF_TEST == 2
-  auto *entry = xv::memory::walk_entry(static_cast<xv::memory::PageTable>(
-      const_cast<void *>(xv::memory::kernel_page_table().root())), base + KSTACK_BYTES - PGSIZE, 0);
+  auto *entry =
+      xv::memory::walk_entry(static_cast<xv::memory::PageTable>(const_cast<void *>(
+                                 xv::memory::kernel_page_table().root())),
+                             base + KSTACK_BYTES - PGSIZE, 0);
   *entry &= ~PTE_W;
   xv::arch::sfence_vma();
   *reinterpret_cast<volatile char *>(base + KSTACK_BYTES - PGSIZE) = 0;
@@ -74,8 +119,12 @@ void run_vm_kernel_probe()
   auto checksum = stack_probe(XV_VM_SELF_TEST == 3 ? 200 : 48);
   auto after = __atomic_load_n(&reserve.count, __ATOMIC_ACQUIRE);
   lock.release();
-  xv::print::printk("stack probe checksum=%lu reserve=%u->%u\n", checksum, before, after);
-  if (checksum != 2401 || after >= before) xv::print::panic("VM locked stack probe failed");
+  xv::print::printk("stack probe checksum=%lu reserve=%u->%u\n", checksum, before,
+                    after);
+  if (checksum != 2401 || after >= before)
+  {
+    xv::print::panic("VM locked stack probe failed");
+  }
   xv::print::printk("kernel stack locked growth: OK\n");
 #endif
 }
@@ -92,65 +141,33 @@ TrapEvent snapshot()
 
 void install_kernel_vector()
 {
-  auto top = reinterpret_cast<unsigned long>(&entry_stacks[xv::process::cpu_id()][16384]);
+  auto top =
+      reinterpret_cast<unsigned long>(&entry_stacks[xv::process::cpu_id()][16384]);
   asm volatile("csrw sscratch, %0" : : "r"(top));
   xv::arch::w_stvec(reinterpret_cast<Word>(kernelvec));
 }
 
-bool has_process()
-{
-  return xv::process::current() != nullptr;
-}
+bool has_process() { return xv::process::current() != nullptr; }
 
-void deliver_signals()
-{
-  xv::process::deliver_signals();
-}
+void deliver_signals() { xv::process::deliver_signals(); }
 
-bool interrupted()
-{
-  return xv::process::current()->is_killed();
-}
+bool interrupted() { return xv::process::current()->is_killed(); }
 
-bool killed()
-{
-  return xv::process::current()->termination_status() != 0;
-}
+bool killed() { return xv::process::current()->termination_status() != 0; }
 
-void request_kill()
-{
-  xv::process::current()->request_kill();
-}
+void request_kill() { xv::process::current()->request_kill(); }
 
-[[noreturn]] void exit_current(int status)
-{
-  xv::process::exit_process(status);
-}
+[[noreturn]] void exit_current(int status) { xv::process::exit_process(status); }
 
-void yield_current()
-{
-  xv::process::scheduler().yield();
-}
+void yield_current() { xv::process::scheduler().yield(); }
 
-void save_user_pc(Word pc)
-{
-  xv::process::current()->registers()->epc = pc;
-}
+void save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }
 
-void advance_user_pc(Word bytes)
-{
-  xv::process::current()->registers()->epc += bytes;
-}
+void advance_user_pc(Word bytes) { xv::process::current()->registers()->epc += bytes; }
 
-void enable_interrupts()
-{
-  xv::arch::intr_on();
-}
+void enable_interrupts() { xv::arch::intr_on(); }
 
-void dispatch_system_call()
-{
-  xv::syscall::dispatch();
-}
+void dispatch_system_call() { xv::syscall::dispatch(); }
 
 void dispatch_external_interrupt()
 {
@@ -161,8 +178,14 @@ void dispatch_external_interrupt()
 
 bool resolve_page_fault(Word address, MemoryAccess access)
 {
-  return xv::process::current()->memory().handle_fault(address, access == MemoryAccess::Read ? xv::memory::FaultAccess::Read :
-      access == MemoryAccess::Write ? xv::memory::FaultAccess::Write : xv::memory::FaultAccess::Execute).result == xv::memory::FaultResult::Resolved;
+  return xv::process::current()
+             ->memory()
+             .handle_fault(address, access == MemoryAccess::Read
+                                        ? xv::memory::FaultAccess::Read
+                                    : access == MemoryAccess::Write
+                                        ? xv::memory::FaultAccess::Write
+                                        : xv::memory::FaultAccess::Execute)
+             .result == xv::memory::FaultResult::Resolved;
 }
 
 void report_user_fault(const TrapEvent &event)
@@ -179,27 +202,60 @@ void report_user_fault(const TrapEvent &event)
   xv::print::panic(message);
 }
 
+struct UserReturnFlow
+{
+  struct Context
+  {
+    xv::process::Process *process;
+    xv::process::TrapFrame *frame = nullptr;
+  };
+  static void mask(Context &) noexcept { xv::arch::intr_off(); }
+  static void vector(Context &c) noexcept
+  {
+    const auto address = TRAMPOLINE + (reinterpret_cast<Word>(uservec) -
+                                       reinterpret_cast<Word>(trampoline));
+    xv::arch::w_stvec(address);
+    c.frame = c.process->registers();
+  }
+  static void frame(Context &c) noexcept
+  {
+    c.frame->kernel_satp = xv::arch::r_satp();
+    c.frame->kernel_sp = c.process->kernel_stack() + KSTACK_PAGES * PGSIZE;
+    c.frame->kernel_trap = reinterpret_cast<Word>(usertrap);
+    c.frame->kernel_hartid = xv::arch::r_tp();
+  }
+  static void commit(Context &c) noexcept
+  {
+    auto status = xv::arch::r_sstatus();
+    status &= ~SSTATUS_SPP;
+    status |= SSTATUS_SPIE;
+    xv::arch::w_sstatus(status);
+    xv::arch::w_sepc(c.frame->epc);
+  }
+  struct Mask;
+  struct Vector;
+  struct Frame;
+  struct Commit;
+  using Graph = flow::graph<
+      Mask, flow::types<flow::node<Mask, flow::action<&mask>, flow::go<Vector>>,
+                        flow::node<Vector, flow::action<&vector>, flow::go<Frame>>,
+                        flow::node<Frame, flow::action<&frame>, flow::go<Commit>>,
+                        flow::node<Commit, flow::action<&commit>, flow::stop>>>;
+};
+
 void prepare_user_return()
 {
 #if XV_VM_SELF_TEST
   static bool tested = false;
-  if (!tested) { tested = true; run_vm_kernel_probe(); }
+  if (!tested)
+  {
+    tested = true;
+    run_vm_kernel_probe();
+  }
 #endif
   auto *process = xv::process::current();
-  xv::arch::intr_off();
-  const auto vector = TRAMPOLINE + (reinterpret_cast<Word>(uservec) -
-                                    reinterpret_cast<Word>(trampoline));
-  xv::arch::w_stvec(vector);
-  auto *frame = process->registers();
-  frame->kernel_satp = xv::arch::r_satp();
-  frame->kernel_sp = process->kernel_stack() + KSTACK_PAGES * PGSIZE;
-  frame->kernel_trap = reinterpret_cast<Word>(usertrap);
-  frame->kernel_hartid = xv::arch::r_tp();
-  auto status = xv::arch::r_sstatus();
-  status &= ~SSTATUS_SPP;
-  status |= SSTATUS_SPIE;
-  xv::arch::w_sstatus(status);
-  xv::arch::w_sepc(frame->epc);
+  UserReturnFlow::Context context{process};
+  (void)UserReturnFlow::Graph::run<0>(context);
 }
 
 Word user_page_table_token()
@@ -221,20 +277,11 @@ void restore_kernel(const TrapEvent &event)
   __builtin_unreachable();
 }
 
-int hart_id()
-{
-  return xv::process::cpu_id();
-}
+int hart_id() { return xv::process::cpu_id(); }
 
-Word time()
-{
-  return xv::arch::r_time();
-}
+Word time() { return xv::arch::r_time(); }
 
-void arm_timer(Word deadline)
-{
-  xv::arch::w_stimecmp(deadline);
-}
+void arm_timer(Word deadline) { xv::arch::w_stimecmp(deadline); }
 
 void service_timer_devices()
 {
@@ -251,59 +298,180 @@ void prepare_interruptible_sleep(void *channel)
   xv::process::prepare_interruptible_sleep(channel);
 }
 
-void prepare_sleep(void *channel)
-{
-  xv::process::prepare_sleep(channel);
-}
+void prepare_sleep(void *channel) { xv::process::prepare_sleep(channel); }
 
-void sleep()
-{
-  xv::process::sleep();
-}
+void sleep() { xv::process::sleep(); }
 
-void wakeup(void *channel)
+void wakeup(void *channel) { xv::process::wakeup(channel); }
+struct KernelStackPrepareFlow
 {
-  xv::process::wakeup(channel);
-}
+  struct Context
+  {
+    unsigned long base, stack, cause, fault;
+    xv::memory::FaultResult fault_result = xv::memory::FaultResult::Resolved;
+    unsigned long lowest = 0;
+    xv::memory::KernelPageTable *table = nullptr;
+    pte_t *entry = nullptr;
+    int result = 0;
+  };
+  static bool within(Context &c) noexcept
+  {
+    return c.stack >= c.base && c.stack <= c.base + KSTACK_BYTES;
+  }
+  static void outside(Context &c) noexcept
+  {
+    if (c.stack >= KSTACK_BOTTOM && c.stack < KSTACK_TOP)
+    {
+      xv::print::panic("kernel stack reserve exhausted");
+    }
+  }
+  static bool stack_fault(Context &c) noexcept
+  {
+    bool page_fault = c.cause == 12 || c.cause == 13 || c.cause == 15;
+    bool in_stack = c.fault >= c.base && c.fault < c.base + KSTACK_BYTES;
+    bool in_guard = c.fault >= c.base - KSTACK_BYTES && c.fault < c.base;
+    return page_fault && (in_stack || in_guard);
+  }
+  static void resolve(Context &c) noexcept
+  {
+    auto access = c.cause == 12   ? xv::memory::FaultAccess::Execute
+                  : c.cause == 15 ? xv::memory::FaultAccess::Write
+                                  : xv::memory::FaultAccess::Read;
+    c.fault_result = xv::memory::kernel_page_table().handle_stack_fault(
+        c.base, c.stack, c.fault, access, take_stack_frame);
+  }
+  static bool resolved(Context &c) noexcept
+  {
+    return c.fault_result == xv::memory::FaultResult::Resolved;
+  }
+  // Return directly to the trapped instruction, without registry or refill work.
+  static void handled(Context &c) noexcept { c.result = 1; }
+  static void diagnose(Context &c) noexcept
+  {
+    if (c.fault_result == xv::memory::FaultResult::Permission)
+    {
+      xv::print::panic("kernel stack: protection fault");
+    }
+    if (c.fault_result == xv::memory::FaultResult::AlreadyMapped)
+    {
+      xv::print::panic("kernel stack: unexpected mapped-page fault");
+    }
+    if (c.fault_result == xv::memory::FaultResult::OutsideRegion)
+    {
+      xv::print::panic("kernel stack: guard overflow");
+    }
+    if (c.fault_result == xv::memory::FaultResult::OutOfMemory)
+    {
+      xv::print::panic("kernel stack: emergency frames exhausted");
+    }
+    xv::print::panic("kernel stack: invalid mapping");
+  }
+  static bool unlocked(Context &) noexcept { return !xv::process::current_cpu()->noff; }
+  static void margin(Context &c) noexcept
+  {
+    refill_stack_reserve();
+    c.lowest = c.stack > c.base + 32768 ? c.stack - 32768 : c.base;
+    c.table = &xv::memory::kernel_page_table();
+    // Running ownership pins the leaf tables. A committed contiguous suffix means
+    // a valid lowest margin page proves the entire requested margin exists.
+    c.entry = xv::memory::walk_entry(
+        static_cast<xv::memory::PageTable>(const_cast<void *>(c.table->root())),
+        c.lowest & ~(PGSIZE - 1UL), 0);
+  }
+  // Preserve the mapped-margin fast path: no global stack lock on a hit.
+  static bool needs_growth(Context &c) noexcept
+  {
+    return !c.entry || !(__atomic_load_n(c.entry, __ATOMIC_ACQUIRE) & PTE_V);
+  }
+  static void grow(Context &c) noexcept
+  {
+    c.table->grow_process_stack(c.base, c.lowest);
+  }
+  struct Within;
+  struct Fault;
+  struct Resolve;
+  struct Handled;
+  struct Diagnose;
+  struct Outside;
+  struct Unlocked;
+  struct Margin;
+  struct Grow;
+  using Graph = flow::graph<
+      Within,
+      flow::types<flow::node<Within, flow::noop,
+                             flow::branch<flow::condition<&within>, flow::go<Fault>,
+                                          flow::go<Outside>>>,
+                  flow::node<Fault, flow::noop,
+                             flow::branch<flow::condition<&stack_fault>,
+                                          flow::go<Resolve>, flow::go<Unlocked>>>,
+                  flow::node<Resolve, flow::action<&resolve>,
+                             flow::branch<flow::condition<&resolved>, flow::go<Handled>,
+                                          flow::go<Diagnose>>>,
+                  flow::node<Handled, flow::action<&handled>, flow::stop>,
+                  flow::node<Diagnose, flow::action<&diagnose>, flow::stop>,
+                  flow::node<Outside, flow::action<&outside>, flow::stop>,
+                  flow::node<Unlocked, flow::noop,
+                             flow::branch<flow::condition<&unlocked>, flow::go<Margin>,
+                                          flow::stop>>,
+                  flow::node<Margin, flow::action<&margin>,
+                             flow::branch<flow::condition<&needs_growth>,
+                                          flow::go<Grow>, flow::stop>>,
+                  flow::node<Grow, flow::action<&grow>, flow::stop>>>;
+};
+struct SchedulerStackFlow
+{
+  struct Context
+  {
+    unsigned long &base;
+  };
+  static bool exists(Context &c) noexcept { return c.base != 0; }
+  static void duplicate(Context &) noexcept
+  {
+    xv::print::panic("scheduler stack already initialized");
+  }
+  static void refill(Context &) noexcept { refill_stack_reserve(); }
+  static bool allocate(Context &c) noexcept
+  {
+    c.base = xv::memory::kernel_page_table().allocate_process_stack();
+    return c.base != 0;
+  }
+  static void failed(Context &) noexcept
+  {
+    xv::print::panic("scheduler stack allocation failed");
+  }
+  struct Exists;
+  struct Duplicate;
+  struct Refill;
+  struct Allocate;
+  struct Failed;
+  using Graph = flow::graph<
+      Exists,
+      flow::types<flow::node<Exists, flow::noop,
+                             flow::branch<flow::condition<&exists>, flow::go<Duplicate>,
+                                          flow::go<Refill>>>,
+                  flow::node<Duplicate, flow::action<&duplicate>, flow::stop>,
+                  flow::node<Refill, flow::action<&refill>, flow::go<Allocate>>,
+                  flow::node<Allocate, flow::noop,
+                             flow::branch<flow::condition<&allocate>, flow::stop,
+                                          flow::go<Failed>>>,
+                  flow::node<Failed, flow::action<&failed>, flow::stop>>>;
+};
+
 } // namespace xv::trap::detail
 
-extern "C" int kernel_stack_prepare(unsigned long stack, unsigned long cause, unsigned long fault)
+extern "C" int kernel_stack_prepare(unsigned long stack, unsigned long cause,
+                                    unsigned long fault)
 {
   auto *process = xv::process::current();
-  auto base = process ? process->kernel_stack() : xv::trap::detail::scheduler_stacks[xv::process::cpu_id()];
-  if (!base) return 0;
-  if (stack < base || stack > base + KSTACK_BYTES)
+  auto base = process ? process->kernel_stack()
+                      : xv::trap::detail::scheduler_stacks[xv::process::cpu_id()];
+  if (!base)
   {
-    if (stack >= KSTACK_BOTTOM && stack < KSTACK_TOP) xv::print::panic("kernel stack reserve exhausted");
     return 0;
   }
-  bool page_fault = cause == 12 || cause == 13 || cause == 15;
-  bool in_stack = fault >= base && fault < base + KSTACK_BYTES;
-  bool in_guard = fault >= base - KSTACK_BYTES && fault < base;
-  if (page_fault && (in_stack || in_guard))
-  {
-    auto access = cause == 12 ? xv::memory::FaultAccess::Execute :
-                  cause == 15 ? xv::memory::FaultAccess::Write : xv::memory::FaultAccess::Read;
-    auto result = xv::memory::kernel_page_table().handle_stack_fault(
-        base, stack, fault, access, xv::trap::detail::take_stack_frame);
-    if (result != xv::memory::FaultResult::Resolved)
-    {
-      if (result == xv::memory::FaultResult::Permission) xv::print::panic("kernel stack: protection fault");
-      if (result == xv::memory::FaultResult::AlreadyMapped) xv::print::panic("kernel stack: unexpected mapped-page fault");
-      if (result == xv::memory::FaultResult::OutsideRegion) xv::print::panic("kernel stack: guard overflow");
-      if (result == xv::memory::FaultResult::OutOfMemory) xv::print::panic("kernel stack: emergency frames exhausted");
-      xv::print::panic("kernel stack: invalid mapping");
-    }
-    // No registry/allocator lock is acquired when interrupted code owns a lock.
-    return 1;
-  }
-  if (!xv::process::current_cpu()->noff)
-  {
-    xv::trap::detail::refill_stack_reserve();
-    auto lowest = stack > base + 32768 ? stack - 32768 : base;
-    xv::memory::kernel_page_table().grow_process_stack(base, lowest);
-  }
-  return 0;
+  xv::trap::detail::KernelStackPrepareFlow::Context context{base, stack, cause, fault};
+  (void)xv::trap::detail::KernelStackPrepareFlow::Graph::run<0>(context);
+  return context.result;
 }
 
 namespace xv::trap
@@ -311,10 +479,8 @@ namespace xv::trap
 unsigned long scheduler_stack_top()
 {
   auto &base = detail::scheduler_stacks[xv::process::cpu_id()];
-  if (base) xv::print::panic("scheduler stack already initialized");
-  detail::refill_stack_reserve();
-  base = xv::memory::kernel_page_table().allocate_process_stack();
-  if (!base) xv::print::panic("scheduler stack allocation failed");
+  detail::SchedulerStackFlow::Context context{base};
+  (void)detail::SchedulerStackFlow::Graph::run<0>(context);
   return base + KSTACK_BYTES;
 }
-}
+} // namespace xv::trap

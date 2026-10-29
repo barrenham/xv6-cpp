@@ -48,6 +48,9 @@ flowchart TD
 
 普通 IPv4 发送与 DHCP 引导广播共用 `write_header()` 和 `output_allowed()`，保持 TTL、DF、ID、地址、校验和与 OUTPUT 时机一致；各自的选路和引导条件检查仍留在对应入口。
 
+类的 `.cppm` 接口、私有流程类型与各层迁移入口见
+[网络声明式流程](network-flows.md)。现有类继续持有状态和依赖，节点负责连接具名业务阶段。
+
 ## 模块维护约定
 
 - 新功能沿现有层次接入：协议处理留在协议层，管理请求在控制边界转换，对象创建与依赖注入集中在 `core/service.cpp`。

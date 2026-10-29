@@ -5,24 +5,24 @@
 ## 函数导航
 
 - [`xv::net::Packet::Packet`](packet.cppm.md#fn-597161c987b8107f)
+- [`xv::net::Packet::Packet`](packet.cppm.md#fn-b88a374c79150150)
+- [`xv::net::Packet::Packet`](packet.cppm.md#fn-01632cbe68dab430)
 - [`xv::net::Packet::Packet`](packet.cppm.md#fn-5c3922f76c0ef31b)
 - [`xv::net::Packet::Packet`](packet.cppm.md#fn-1a910797fa21702c)
-- [`xv::net::Packet::Packet`](packet.cppm.md#fn-01632cbe68dab430)
-- [`xv::net::Packet::operator=`](packet.cppm.md#fn-08a685fdd47de862)
-- [`xv::net::Packet::Packet`](packet.cppm.md#fn-b88a374c79150150)
-- [`xv::net::Packet::~Packet`](packet.cpp.md#fn-38f798f54b47cbb2)
 - [`xv::net::Packet::allocate`](packet.cpp.md#fn-5633cc7891c8536f)
 - [`xv::net::Packet::clone`](packet.cpp.md#fn-b249acc31eb1ae38)
+- [`xv::net::Packet::context`](packet.cppm.md#fn-84e4c6593ec65664)
 - [`xv::net::Packet::data`](packet.cppm.md#fn-93666e5af03c5105)
 - [`xv::net::Packet::data`](packet.cppm.md#fn-d33007dacc01e7f6)
-- [`xv::net::Packet::context`](packet.cppm.md#fn-84e4c6593ec65664)
 - [`xv::net::Packet::enter_tunnel`](packet.cppm.md#fn-adf125d19993490f)
-- [`xv::net::Packet::size`](packet.cppm.md#fn-1d7d9da5732ac3be)
+- [`xv::net::Packet::operator bool`](packet.cppm.md#fn-7c6cb6aacc141b80)
+- [`xv::net::Packet::operator=`](packet.cppm.md#fn-08a685fdd47de862)
 - [`xv::net::Packet::prepend`](packet.cppm.md#fn-46a5b790042dab38)
+- [`xv::net::Packet::release`](packet.cppm.md#fn-b3b0ea47a1af76a5)
 - [`xv::net::Packet::remove_prefix`](packet.cppm.md#fn-361caf43f836ba30)
 - [`xv::net::Packet::resize`](packet.cppm.md#fn-e16cf3a638254443)
-- [`xv::net::Packet::operator bool`](packet.cppm.md#fn-7c6cb6aacc141b80)
-- [`xv::net::Packet::release`](packet.cppm.md#fn-b3b0ea47a1af76a5)
+- [`xv::net::Packet::size`](packet.cppm.md#fn-1d7d9da5732ac3be)
+- [`xv::net::Packet::~Packet`](packet.cpp.md#fn-38f798f54b47cbb2)
 
 <a id="fn-597161c987b8107f"></a>
 

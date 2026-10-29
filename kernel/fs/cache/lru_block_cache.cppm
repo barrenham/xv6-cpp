@@ -27,7 +27,12 @@ public:
   }
 
   void initialize() override;
-  void flush() override { device_->flush(); }
+
+  void flush() override
+  {
+    device_->flush();
+  }
+
   BlockHandle read(unsigned device, unsigned block) override;
   void write(Buffer &buffer) override;
   void release(Buffer &buffer) override;
@@ -35,6 +40,9 @@ public:
   void unpin(Buffer &buffer) override;
 
 private:
+
+  struct GetFlow;
+  struct ReleaseFlow;
 
   Buffer *get(unsigned device, unsigned block);
   xv::drivers::BlockDevice *device_;
