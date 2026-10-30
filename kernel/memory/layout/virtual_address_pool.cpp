@@ -6,61 +6,39 @@ import xv.memory;
 
 namespace xv::memory
 {
+namespace
+{
+#if XV_DEFAULT_SLAB_BITMAP
+constinit BitmapSlabCache pool_nodes;
+#else
+constinit FreeListSlabCache pool_nodes;
+#endif
+int pool_nodes_ready = 0;
+void prepare_pool_nodes(unsigned long bytes, unsigned long alignment)
+{
+  if (__atomic_load_n(&pool_nodes_ready, __ATOMIC_ACQUIRE) == 2) return;
+  int expected = 0;
+  if (__atomic_compare_exchange_n(&pool_nodes_ready, &expected, 1, false,
+                                   __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+  {
+    if (!pool_nodes.initialize(allocator(), bytes, alignment, 0)) __builtin_trap();
+    __atomic_store_n(&pool_nodes_ready, 2, __ATOMIC_RELEASE);
+  }
+  else while (__atomic_load_n(&pool_nodes_ready, __ATOMIC_ACQUIRE) != 2) {}
+}
+}
+
 VirtualAddressPool::Node *VirtualAddressPool::take_node()
 {
-  if (!available_)
-  {
-    static_assert(sizeof(Page) <= PageSize);
-    auto *storage = allocator().allocate();
-    if (!storage) return nullptr;
-    auto *page = new (storage) Page{};
-    page->next = pages_;
-    if (pages_) pages_->previous = page;
-    pages_ = page;
-    available_ = page;
-    for (auto &node : page->entries)
-    {
-      node.parent = page->spare;
-      page->spare = &node;
-    }
-  }
-  auto *page = available_;
-  auto *node = page->spare;
-  page->spare = node->parent;
-  if (++page->used == NodesPerPage)
-  {
-    available_ = page->available_next;
-    if (available_) available_->available_previous = nullptr;
-    page->available_next = page->available_previous = nullptr;
-  }
-  *node = Node{};
-  return node;
+  prepare_pool_nodes(sizeof(Node), alignof(Node));
+  auto *storage = pool_nodes.allocate();
+  return storage ? new (storage) Node{} : nullptr;
 }
 
 void VirtualAddressPool::put_node(Node *node)
 {
-  // Each slab is one aligned allocator page, so ownership needs no per-node
-  // pointer or search. Both slab lists can unlink an empty page in O(1).
-  auto *page = reinterpret_cast<Page *>(reinterpret_cast<unsigned long>(node) & ~(PageSize - 1));
-  if (page->used == NodesPerPage)
-  {
-    page->available_next = available_;
-    page->available_previous = nullptr;
-    if (available_) available_->available_previous = page;
-    available_ = page;
-  }
-  node->parent = page->spare;
-  page->spare = node;
-  if (--page->used == 0)
-  {
-    if (page->available_previous) page->available_previous->available_next = page->available_next;
-    else available_ = page->available_next;
-    if (page->available_next) page->available_next->available_previous = page->available_previous;
-    if (page->previous) page->previous->next = page->next;
-    else pages_ = page->next;
-    if (page->next) page->next->previous = page->previous;
-    allocator().deallocate(page);
-  }
+  node->~Node();
+  if (!pool_nodes.deallocate(node)) __builtin_trap();
 }
 
 bool VirtualAddressPool::initialize(unsigned long begin, unsigned long end,
@@ -334,8 +312,6 @@ void VirtualAddressPool::swap(VirtualAddressPool &other)
   free_.swap(other.free_);
   allocated_.swap(other.allocated_);
   auto exchange = []<class T>(T &a, T &b) { auto value = a; a = b; b = value; };
-  exchange(pages_, other.pages_);
-  exchange(available_, other.available_);
   exchange(begin_, other.begin_);
   exchange(end_, other.end_);
   exchange(granule_, other.granule_);
@@ -348,15 +324,8 @@ unsigned long VirtualAddressPool::largest_free() const
 
 void VirtualAddressPool::reset()
 {
-  while (auto *node = free_.first()) free_.erase(*node);
-  while (auto *node = allocated_.first()) allocated_.erase(*node);
-  while (pages_)
-  {
-    auto *page = pages_;
-    pages_ = page->next;
-    allocator().deallocate(page);
-  }
-  available_ = nullptr;
+  while (auto *node = free_.first()) { free_.erase(*node); put_node(node); }
+  while (auto *node = allocated_.first()) { allocated_.erase(*node); put_node(node); }
   begin_ = end_ = granule_ = 0;
 }
 } // namespace xv::memory

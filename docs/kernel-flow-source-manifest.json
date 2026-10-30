@@ -675,13 +675,13 @@
     },
     {
       "source": "kernel/memory/layout/virtual_address_pool.cpp",
-      "sha256": "028f01138e9a98f2716873708967a586e2768ce6a92d5f22a929bc29919130e9",
+      "sha256": "0de72427334d4467dc430de865cb923c041f53e88300a2eaf1b54ce88bb76f1f",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
     {
       "source": "kernel/memory/layout/virtual_address_pool.cppm",
-      "sha256": "b3a0412f34a7df09863de683b328e92bd021fab69a6780416519627332096725",
+      "sha256": "4dfcf1295939bca1b0175b77891d8ce245a3f352b4eb79d08913a854f4e6d893",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -693,7 +693,7 @@
     },
     {
       "source": "kernel/memory/memory.cppm",
-      "sha256": "6d2103d6f90bf0a53b97b5bcaed972b3ded10edcb902efe1f29998e7e9d6940c",
+      "sha256": "a14276f375fb38d832cf8995736c75bb5144fa733e1f1a420376a005f379ce9f",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -736,6 +736,24 @@
     {
       "source": "kernel/memory/paging/vm.h",
       "sha256": "fea1f9cac6a04885df9d386bd6ebfbe9f3c353f52570779ce9bd027061fb6c01",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/memory-flow-audit.json"
+    },
+    {
+      "source": "kernel/memory/slab/slab_cache.cpp",
+      "sha256": "6190305091bc12dd76cddc7a7ff54cbc1ccbbe18a98ec127d58af0c3eaf14c94",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/memory-flow-audit.json"
+    },
+    {
+      "source": "kernel/memory/slab/slab_cache.cppm",
+      "sha256": "25ce426fdbf52325e09b89f45dc8cffaa184740039914c102319b065244b5bd7",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/memory-flow-audit.json"
+    },
+    {
+      "source": "kernel/memory/slab/slab_service.cpp",
+      "sha256": "3b5f30698fda7206c981d5e828531143afadc5953f0c223067c0cf72c403f9d4",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -1509,19 +1527,19 @@
     },
     {
       "source": "kernel/process/groups/kernel_platform.cpp",
-      "sha256": "411e1b77d6974cd60ae4c748f4741eb9be7dfe003a1613dfd4db0146a5b3e4fc",
+      "sha256": "ea5401d417157e2fed07aa7066eae6ffac87b8172f564d3f39d8391895930520",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/groups/platform.cppm",
-      "sha256": "7a57d185edc533b6b38e5a145cebaa849af35fbc1a9b7283d7bbde6a9c5a6ab7",
+      "sha256": "beb349bae2e861cb37c68b44ed86ea4e4d1545c48083a7dcf3b9648650868fa1",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/groups/process_groups.cpp",
-      "sha256": "7652a8b966a7c724c88dcbfb4947c250a4d0b1019861d213ec98e894ba211cf5",
+      "sha256": "648600a16c8449720d6a6697292207066800d47743ed55d69fadb08c0c5974c2",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1755,25 +1773,25 @@
     },
     {
       "source": "kernel/process/storage/kernel_platform.cpp",
-      "sha256": "1866a5fb09c299f8fda3237b9c77469d31a7ba8d97ccb5cbcde516a2ab2a6308",
+      "sha256": "fe51f8fd2220d333082ca5e7d87bc33427389afa380259496159f4bf62788f8d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/storage/paged_process_store.cpp",
-      "sha256": "81ba68b223ca604d068b25b52c5cae6a41e7ca45043e48dbe14162ca4b4e6a1f",
+      "sha256": "26a98ec69b507346eb62bd2b21fe8b4f4b66eac07ef98622f1814634d6bb0979",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/storage/paged_process_store.cppm",
-      "sha256": "a6977dc6321969f966ada173d1b95099cf2bef63153ab12f1fe4480c5da840d5",
+      "sha256": "4eaf7b7c9e8bc1110cddd64631f4f9950b256112aa00a7924d75dae8f7f2b5f4",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/storage/platform.cppm",
-      "sha256": "ca544eee22a8dc2155be1bbf58e3799250e0536414426b8a19319b8e532b06b2",
+      "sha256": "2a3aa37dcdab5a459fa5b96d579c57938d42b69b0b94b33699c1b5f57fdf4099",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2097,7 +2115,7 @@
     },
     {
       "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-      "sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59",
+      "sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },

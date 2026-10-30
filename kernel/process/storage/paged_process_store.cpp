@@ -24,7 +24,7 @@ struct PagedProcessStore::AllocateFlow
 
   static void page(Context &c) noexcept
   {
-    c.page = detail::allocate_process_page();
+    c.page = detail::allocate_process_object();
   }
 
   static bool has_page(Context &c) noexcept
@@ -44,7 +44,7 @@ struct PagedProcessStore::AllocateFlow
 
   static void rollback(Context &c) noexcept
   {
-    detail::free_process_page(c.page);
+    detail::free_process_object(c.page);
   }
 
   static void construct(Context &c) noexcept
@@ -127,7 +127,7 @@ struct PagedProcessStore::ReleaseFlow
 
   static void free_page(Context &c) noexcept
   {
-    detail::free_process_page(c.node);
+    detail::free_process_object(c.node);
   }
   struct Retire;
   struct Remove;
@@ -145,6 +145,8 @@ struct PagedProcessStore::ReleaseFlow
 void PagedProcessStore::initialize()
 {
   lock_.init("process registry");
+  static_assert(sizeof(Node) <= 2048);
+  detail::initialize_process_objects(sizeof(Node), alignof(Node));
 }
 
 Process *PagedProcessStore::process_at(Node &node)
@@ -160,7 +162,7 @@ PagedProcessStore::Node *PagedProcessStore::node_at(Process &process)
 
 Process *PagedProcessStore::allocate()
 {
-  static_assert(sizeof(Node) <= 4096);
+  static_assert(sizeof(Node) <= 2048);
   AllocateFlow::Context context{*this};
   (void)AllocateFlow::Graph::run<0>(context);
   return context.process;

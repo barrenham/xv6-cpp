@@ -5,14 +5,14 @@ import xv.print;
 
 namespace xv::process::detail
 {
-void *allocate_group_page()
+void *allocate_group_object(unsigned long bytes, unsigned long alignment)
 {
-  return xv::memory::allocator().allocate();
+  return xv::memory::allocate_object(bytes, alignment);
 }
 
-void free_group_page(void *page)
+void free_group_object(void *page)
 {
-  xv::memory::allocator().deallocate(page);
+  if (!xv::memory::deallocate_object(page)) xv::print::panic("groups: invalid slab object");
 }
 
 [[noreturn]] void group_fail(const char *message)

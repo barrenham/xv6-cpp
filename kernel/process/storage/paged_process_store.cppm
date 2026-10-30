@@ -5,8 +5,8 @@ import xv.sync;
 
 namespace xv::process
 {
-// Each descriptor lives in its own allocator page. Nodes never move, and are
-// removed only after callers have released all execution/resource ownership.
+// Stable descriptors share backing pages through an exact-size slab cache.
+// Removal follows release of all execution/resource ownership.
 class PagedProcessStore final : public ProcessStore
 {
 public:
@@ -15,7 +15,7 @@ public:
 
   const char *name() const override
   {
-    return "paged-registry";
+    return "slab-registry";
   }
 
   void initialize() override;

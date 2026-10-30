@@ -37,9 +37,8 @@
 
 ```doxygen
 @fn void xv::process::PagedProcessStore::initialize()
-@brief 稳定的分页进程登记：建立该对象开始工作所需的初始状态。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.init`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 在发布前验证对象大小、对齐及页内容量，绑定物理分配器和空页上限，不提前申请 slab 页。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
 
 <a id="fn-9fad93a93800939d"></a>
@@ -72,9 +71,8 @@
 
 ```doxygen
 @fn Process *xv::process::PagedProcessStore::allocate()
-@brief 稳定的分页进程登记：分配并取得对象或存储资源。
-@return 各分支实际返回：`nullptr`；`process`。应结合上面的条件检查区分正常值、空值和错误值。
-@details 流程由 AllocateFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 锁内选取非满页，必要时申请并初始化一页；通过策略虚方法取得槽位，更新活跃位、计数与链表。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
 
 <a id="fn-b890f202b0802620"></a>

@@ -467,3 +467,7 @@
 - [MlfqPolicy](process/scheduler/policies/mlfq.cppm.md)
 
 - [`kernel/memory/layout/virtual_memory_types.cppm`](memory/layout/virtual_memory_types.cppm.md)
+
+- [`kernel/memory/slab/slab_cache.cppm`](memory/slab/slab_cache.cppm.md)
+- [`kernel/memory/slab/slab_cache.cpp`](memory/slab/slab_cache.cpp.md)
+- [`kernel/memory/slab/slab_service.cpp`](memory/slab/slab_service.cpp.md)

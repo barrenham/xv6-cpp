@@ -264,7 +264,7 @@ void concurrent()
 
 namespace xv::process::detail
 {
-void *allocate_group_page()
+void *allocate_group_object(unsigned long bytes, unsigned long alignment)
 {
   if (group_test::budget == 0)
   {
@@ -274,6 +274,8 @@ void *allocate_group_page()
   {
     --group_test::budget;
   }
+  (void)bytes;
+  (void)alignment;
   auto *page = std::aligned_alloc(4096, 4096);
   if (page)
   {
@@ -282,7 +284,7 @@ void *allocate_group_page()
   return page;
 }
 
-void free_group_page(void *page)
+void free_group_object(void *page)
 {
   std::free(page);
   --group_test::pages;

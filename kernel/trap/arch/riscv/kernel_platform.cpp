@@ -85,6 +85,9 @@ void *take_stack_frame()
   return reserve.count ? reserve.pages[--reserve.count] : nullptr;
 }
 #if XV_VM_SELF_TEST
+#if XV_VM_SELF_TEST == 7
+#include "tests/slab_kernel_probe.h"
+#endif
 __attribute__((noinline)) unsigned long stack_probe(unsigned depth)
 {
   volatile unsigned char page[4096];
@@ -99,7 +102,9 @@ __attribute__((noinline)) unsigned long stack_probe(unsigned depth)
 void run_vm_kernel_probe()
 {
   auto base = xv::process::current()->kernel_stack();
-#if XV_VM_SELF_TEST == 6
+#if XV_VM_SELF_TEST == 7
+  slab_kernel_probe(base);
+#elif XV_VM_SELF_TEST == 6
   (void)base;
   auto &table = xv::memory::kernel_page_table();
   auto fixture = table.allocate_process_stack();

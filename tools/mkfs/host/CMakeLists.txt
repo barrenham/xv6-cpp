@@ -20,6 +20,8 @@ add_executable(allocator_contract
   "${XV_ROOT}/kernel/memory/layout/virtual_address_pool.cpp"
   "${XV_ROOT}/kernel/memory/paging/sv39_page_table.cpp"
   "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
+  "${XV_ROOT}/kernel/memory/slab/slab_cache.cpp"
+  "${XV_ROOT}/kernel/memory/slab/slab_service.cpp"
   "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
   "${XV_ROOT}/kernel/memory/allocator/buddy/buddy_page_allocator.cpp"
   "${XV_ROOT}/kernel/memory/allocator/freelist/freelist_page_allocator.cpp")
@@ -281,7 +283,9 @@ add_executable(vm_contract
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/memory/layout/virtual_address_pool.cpp"
-    "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
+    "${XV_ROOT}/kernel/memory/slab/slab_cache.cpp"
+  "${XV_ROOT}/kernel/memory/slab/slab_service.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
   "${XV_ROOT}/kernel/memory/allocator/buddy/buddy_page_allocator.cpp"
   "${XV_ROOT}/kernel/memory/allocator/freelist/freelist_page_allocator.cpp"
   "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
@@ -352,3 +356,27 @@ foreach(contract support_containers scheduling_policy)
   target_compile_options(${contract}_contract PRIVATE -O2 -Wall -Wextra -Werror)
   set_target_properties(${contract}_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 endforeach()
+
+add_executable(slab_contract
+  "${XV_ROOT}/tests/slab_contract.cpp"
+  "${XV_ROOT}/tests/allocator_test_platform.cpp"
+  "${XV_ROOT}/tests/sync_test_platform.cpp"
+  "${XV_ROOT}/kernel/memory/layout/virtual_address_pool.cpp"
+  "${XV_ROOT}/kernel/memory/slab/slab_cache.cpp"
+  "${XV_ROOT}/kernel/memory/slab/slab_service.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/allocator_service.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/buddy/buddy_page_allocator.cpp"
+  "${XV_ROOT}/kernel/memory/allocator/freelist/freelist_page_allocator.cpp"
+  "${XV_ROOT}/kernel/memory/boot/boot_memory.cpp"
+  "${XV_ROOT}/kernel/memory/paging/sv39_page_table.cpp"
+  "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
+  "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp")
+xv_add_memory_modules(slab_contract)
+xv_add_sync_modules(slab_contract)
+target_include_directories(slab_contract PRIVATE "${XV_ROOT}")
+target_compile_features(slab_contract PRIVATE cxx_std_20)
+target_compile_options(slab_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+target_link_libraries(slab_contract PRIVATE Threads::Threads)
+set_target_properties(slab_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+target_compile_definitions(slab_contract PRIVATE XV_DEFAULT_SLAB_BITMAP=$<STREQUAL:${XV_SLAB_ALLOCATOR},bitmap>)

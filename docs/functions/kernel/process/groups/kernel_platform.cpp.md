@@ -10,31 +10,28 @@
 
 ## 函数导航
 
-- [`xv::process::detail::allocate_group_page`](kernel_platform.cpp.md#fn-260b981f8ba4b97f)
-- [`xv::process::detail::free_group_page`](kernel_platform.cpp.md#fn-6e0f34dce9194c4c)
+- [`xv::process::detail::allocate_group_object`](kernel_platform.cpp.md#fn-260b981f8ba4b97f)
+- [`xv::process::detail::free_group_object`](kernel_platform.cpp.md#fn-6e0f34dce9194c4c)
 - [`xv::process::detail::group_fail`](kernel_platform.cpp.md#fn-1898d24834d875a8)
 
 <a id="fn-260b981f8ba4b97f"></a>
 
-## `xv::process::detail::allocate_group_page`
+## `xv::process::detail::allocate_group_object`
 
 ```doxygen
-@fn void *xv::process::detail::allocate_group_page()
-@brief 进程对象生命周期、组身份、调度、等待与信号：读取或计算 `xv::memory::allocator().allocate()`，返回当前查询结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocator` → `allocate`。
-@return 各分支实际返回：`xv::memory::allocator().allocate()`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn void *xv::process::detail::allocate_group_object(unsigned long bytes, unsigned long alignment)
+@brief 通过 memory 模块 slab 服务按实际大小与对齐申请会话或进程组的原始存储。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
 
 <a id="fn-6e0f34dce9194c4c"></a>
 
-## `xv::process::detail::free_group_page`
+## `xv::process::detail::free_group_object`
 
 ```doxygen
-@fn void xv::process::detail::free_group_page(void *page)
-@brief 进程对象生命周期、组身份、调度、等待与信号：释放进程组页。
-@param page 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::memory::allocator` → `deallocate`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@fn void xv::process::detail::free_group_object(void *page)
+@brief 将已析构的组或会话存储交回所属 slab，非法归还视为内核错误。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
 
 <a id="fn-1898d24834d875a8"></a>

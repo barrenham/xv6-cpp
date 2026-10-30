@@ -44,6 +44,13 @@ void free_process_page(void *page)
   std::free(page);
 }
 
+void initialize_process_objects(unsigned long bytes, unsigned long alignment)
+{
+  if (!bytes || bytes > 2048 || alignment > 4096) std::_Exit(99);
+}
+void *allocate_process_object() { return allocate_process_page(); }
+void free_process_object(void *object) { free_process_page(object); }
+
 unsigned long allocate_kernel_stack()
 {
   return reinterpret_cast<unsigned long>(allocate_process_page());

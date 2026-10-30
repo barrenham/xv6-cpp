@@ -7655,27 +7655,27 @@
     "anchor": "fn-260b981f8ba4b97f",
     "document": "docs/functions/kernel/process/groups/kernel_platform.cpp.md",
     "source": "kernel/process/groups/kernel_platform.cpp",
-    "spelling": "allocate_group_page",
-    "qualified": "xv::process::detail::allocate_group_page",
-    "signature": "void *allocate_group_page()",
-    "fn": "void *xv::process::detail::allocate_group_page()",
+    "spelling": "allocate_group_object",
+    "qualified": "xv::process::detail::allocate_group_object",
+    "signature": "void *allocate_group_object(unsigned long bytes, unsigned long alignment)",
+    "fn": "void *xv::process::detail::allocate_group_object(unsigned long bytes, unsigned long alignment)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@process@N@detail@F@allocate_group_page#",
+    "usr": "c:@N@xv@N@process@N@detail@F@allocate_group_object#l#l#",
     "hover_expectation": "observe",
-    "source_sha256": "ae952c0aa424a410fdee238a458a7f148cfd3288d67e85e73d9ae133c47df628"
+    "source_sha256": "2298c9d55e2532dd2bf954409e47efb1295bd182de08d9ce7c2fb02ebe658381"
   },
   {
     "anchor": "fn-6e0f34dce9194c4c",
     "document": "docs/functions/kernel/process/groups/kernel_platform.cpp.md",
     "source": "kernel/process/groups/kernel_platform.cpp",
-    "spelling": "free_group_page",
-    "qualified": "xv::process::detail::free_group_page",
-    "signature": "void free_group_page(void *page)",
-    "fn": "void xv::process::detail::free_group_page(void *page)",
+    "spelling": "free_group_object",
+    "qualified": "xv::process::detail::free_group_object",
+    "signature": "void free_group_object(void *page)",
+    "fn": "void xv::process::detail::free_group_object(void *page)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@process@N@detail@F@free_group_page#*v#",
+    "usr": "c:@N@xv@N@process@N@detail@F@free_group_object#*v#",
     "hover_expectation": "observe",
-    "source_sha256": "bc40026bdc4519fb4c02a157783da89a86b6d8c98684a8e49fa2d34deec2de6a"
+    "source_sha256": "d0a3724fb87d42479f68982074b33b3e5ee890f240bbce914abba1870ddd35f6"
   },
   {
     "anchor": "fn-1898d24834d875a8",
@@ -7733,14 +7733,14 @@
     "anchor": "fn-1dbdc5852a1b5676",
     "document": "docs/functions/kernel/process/groups/process_groups.cpp.md",
     "source": "kernel/process/groups/process_groups.cpp",
-    "spelling": "allocate_group",
+    "spelling": "ProcessGroups::allocate_group",
     "qualified": "xv::process::ProcessGroups::allocate_group",
     "signature": "ProcessGroup *ProcessGroups::allocate_group(int id, Session &session)",
     "fn": "ProcessGroup *xv::process::ProcessGroups::allocate_group(int id, Session &session)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@ProcessGroups@F@allocate_group#I#&$@N@xv@N@process@S@Session#",
     "hover_expectation": "observe",
-    "source_sha256": "a0b8cfdad3e907ac1b78b6239437d2e9e7b875a5853a49d4624d44bd192010dd"
+    "source_sha256": "d44a836b5d1615cbcbdff38c4f198958626b2bab9232849036f0e11be22d1253"
   },
   {
     "anchor": "fn-99e88e769ce178e2",
@@ -10320,14 +10320,14 @@
     "anchor": "fn-06625233c22e977d",
     "document": "docs/functions/kernel/process/storage/paged_process_store.cpp.md",
     "source": "kernel/process/storage/paged_process_store.cpp",
-    "spelling": "initialize",
+    "spelling": "PagedProcessStore::initialize",
     "qualified": "xv::process::PagedProcessStore::initialize",
     "signature": "void PagedProcessStore::initialize()",
     "fn": "void xv::process::PagedProcessStore::initialize()",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@initialize#",
     "hover_expectation": "observe",
-    "source_sha256": "98927842b4f1cfda1ccf09d71c1baae17d57263fc594c034a5d08e3a77094b85"
+    "source_sha256": "fe2bb315793226374eaedf439d7bcbf4f26b961616d6d7917723692475bf0535"
   },
   {
     "anchor": "fn-9fad93a93800939d",
@@ -10366,7 +10366,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
     "hover_expectation": "observe",
-    "source_sha256": "b37f004fa500561498679c8c9bd9b3caa1e104b0a49afbcd71d9a7c442e09749"
+    "source_sha256": "ac243bae83982596659d4782bbb7e626d28219ce175c146afaa3e3a2bcf57e73"
   },
   {
     "anchor": "fn-b890f202b0802620",
@@ -10444,7 +10444,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@name#1",
     "hover_expectation": "observe",
-    "source_sha256": "da3537b40bdcd5931b3e4216dcf76ec60c0d3e76f43f0f8db517528293d3a3d9"
+    "source_sha256": "8a1a1e40fe743da2ca4451abceaa86fee5b2ea19fc100f629b2c45fe5ac0719e"
   },
   {
     "anchor": "fn-8a84fd244ecbdafa",
@@ -48672,7 +48672,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessGroups@S@DetachFlow@F@drop#&$@N@xv@N@process@S@ProcessGroups@S@DetachFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "eca03f3ac33c4744c870160e82eeac315285a83b07ab69fa8c44ed14b74183d8"
+    "source_sha256": "ce3dde6ad50acbe949e17f67dcb309fd03ba9a319c49eeed56541b133b88f0ed"
   },
   {
     "anchor": "fn-07d45898f9aff9f1",
@@ -48711,7 +48711,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessGroups@S@DetachFlow@F@free_session#&$@N@xv@N@process@S@ProcessGroups@S@DetachFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "ed1da932114d84ff49b9217700d8c7296ffb84e17db9f7694c6af2059a5a5c8e"
+    "source_sha256": "e4bbf5b09dabc5e97cd45a4547ae75c2c5d50f3c39fef562579eca6b9484dae5"
   },
   {
     "anchor": "fn-18fbce99f46ca84f",
@@ -48893,7 +48893,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessGroups@S@SessionProtocol@F@allocate_session#&$@N@xv@N@process@S@ProcessGroups@S@SessionProtocol@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "6a11790cea801079a1e9e2c62083429c886f0969c5863b2313d551596354022c"
+    "source_sha256": "de7c7d42ed22ed6fd49c39c20803fba48eb5c339c1b94ab65cbbc937f8186669"
   },
   {
     "anchor": "fn-8ec0e59b7a34d40f",
@@ -48932,7 +48932,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessGroups@S@SessionProtocol@F@rollback#&$@N@xv@N@process@S@ProcessGroups@S@SessionProtocol@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "21b58732b480bb8636536ad879d86187dc850288b625d3e2e65febbd047d4c1d"
+    "source_sha256": "31916a77b9114cbf8766eeab8c8f49c3147818eff64f7e49364b7e854a510544"
   },
   {
     "anchor": "fn-1a9d730fdfbc1c67",
@@ -50596,7 +50596,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@S@AllocateFlow@F@page#&$@N@xv@N@process@S@PagedProcessStore@S@AllocateFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "e87cbcb604c614a9f84cb78a7ce9739d7a73ba10f5aaf5842da8a135de5ebc39"
+    "source_sha256": "c4fde9fc2aebcd170be8496e63ec344a783220c11efa10a2b6f49980b83d5360"
   },
   {
     "anchor": "fn-8e66bc154e7394e8",
@@ -50622,7 +50622,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@S@AllocateFlow@F@rollback#&$@N@xv@N@process@S@PagedProcessStore@S@AllocateFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "626eddede0c16ca5b3698d82835f59860afbd7d77898a4a7d396a257073d020a"
+    "source_sha256": "23a1fb3fc807778a0bfb92dc6ac7458b1ac529c81d52e85169ede47bbcd74f6b"
   },
   {
     "anchor": "fn-8250f0d0f78d17f9",
@@ -50661,7 +50661,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@PagedProcessStore@S@ReleaseFlow@F@free_page#&$@N@xv@N@process@S@PagedProcessStore@S@ReleaseFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "5cb366e45d61a0c33f4fc91faee7711d1b5da2df16113dfd68a0c01d36d709ec"
+    "source_sha256": "a31eabf3f9b36920df5446e28bcb1536269bfa213df187df873a1c44ed833b56"
   },
   {
     "anchor": "fn-d471fc848b0f4fa7",
@@ -58973,7 +58973,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@VirtualAddressPool@F@take_node#",
     "hover_expectation": "observe",
-    "source_sha256": "7ce91e74eaf85314b4f44f8b495c3d083e16a17ba307b330447e518dc989856d"
+    "source_sha256": "7f2bf93a5a3832c39bf2ff0220f0dc05f2e1acaa639231afe2139e32bef65dec"
   },
   {
     "anchor": "fn-017f88ea27af8b28",
@@ -58986,7 +58986,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@VirtualAddressPool@F@put_node#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
     "hover_expectation": "observe",
-    "source_sha256": "d8b013198ebe92d05ffc929956313a797fe78c75d46fd9816b4eca59f3611a30"
+    "source_sha256": "9e352aed86b2eb49f16cc53bdb5df4ae7992e8a7b09a3977b16fc89c7f282a4d"
   },
   {
     "anchor": "fn-0009ac3368aaa857",
@@ -59051,7 +59051,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@memory@S@VirtualAddressPool@F@reset#",
     "hover_expectation": "observe",
-    "source_sha256": "4bc355d8f2688164cc6cf241c44600f848fe18fee81e5ee48c3f76ca2ef88930"
+    "source_sha256": "a676786ab3e1e18030975bf69418c65cb992215c4db6ab9e0139360030903d34"
   },
   {
     "anchor": "fn-126cc52d8db34a4d",
@@ -60662,7 +60662,7 @@
     "usr": "c:@N@xv@N@memory@S@VirtualAddressPool@F@swap#&$@N@xv@N@memory@S@VirtualAddressPool#",
     "signature": "void VirtualAddressPool::swap(VirtualAddressPool &other)",
     "spelling": "VirtualAddressPool::swap",
-    "source_sha256": "d880620bff5524bb3f2395a2ccb9c8979020ad0c38ad7c185aaf9a60224ee385",
+    "source_sha256": "2bc1ed095b4eb6b3791b476966dbe97857846e8beffc0fb1e895c7c3f1f3cc49",
     "fn": "void xv::memory::VirtualAddressPool::swap(VirtualAddressPool &other)"
   },
   {
@@ -60809,5 +60809,499 @@
     "spelling": "swap",
     "source_sha256": "74d908f6915285dbcddb7767cc661d9068f6fa7c69efc1a655205ae47b764ed4",
     "fn": "void xv::support::RbTree::swap(RbTree &other)"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::initialize",
+    "signature": "bool SlabCache::initialize(PhysicalPageAllocator &pages, unsigned long bytes, unsigned long alignment, unsigned empty_limit)",
+    "spelling": "SlabCache::initialize",
+    "fn": "bool xv::memory::SlabCache::initialize(PhysicalPageAllocator &pages, unsigned long bytes, unsigned long alignment, unsigned empty_limit)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@initialize#&$@N@xv@N@memory@S@PhysicalPageAllocator#l#l#i#",
+    "source_sha256": "27cf2b4d454181c1e18d441396c684e891e9f38634ffb567168df6daca2581e9",
+    "anchor": "fn-cdeed7dab456794b",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::slot_address",
+    "signature": "void *SlabCache::slot_address(Page &page, unsigned slot) const",
+    "spelling": "SlabCache::slot_address",
+    "fn": "void *xv::memory::SlabCache::slot_address(Page &page, unsigned slot) const",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@slot_address#&$@N@xv@N@memory@S@SlabCache@S@Page#i#1",
+    "source_sha256": "fea1a9ea31615173e025cc9e910b8144d47bab60c472f8d63ab33fb1a1fb3337",
+    "anchor": "fn-5eab8b2fbd20d3cf",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::link_available",
+    "signature": "void SlabCache::link_available(Page &page)",
+    "spelling": "SlabCache::link_available",
+    "fn": "void xv::memory::SlabCache::link_available(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@link_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "0dd1a4f9f73ce2c176fb107c944c1241e6426a3cd002851b1b62fb314c17036c",
+    "anchor": "fn-35b94690adfd82cc",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::unlink_available",
+    "signature": "void SlabCache::unlink_available(Page &page)",
+    "spelling": "SlabCache::unlink_available",
+    "fn": "void xv::memory::SlabCache::unlink_available(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@unlink_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "6f30ae8a36a1485f98c51a89ab6779ba185f46a31989dfe42bf6e4d6cdd34da8",
+    "anchor": "fn-25336609199f53f0",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::unlink_empty",
+    "signature": "void SlabCache::unlink_empty(Page &page)",
+    "spelling": "SlabCache::unlink_empty",
+    "fn": "void xv::memory::SlabCache::unlink_empty(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@unlink_empty#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "213df31e6ea1a228a0c4459f8603d050163a16f1e122965ebb3c66d45b026d75",
+    "anchor": "fn-49dbe6b89fb3307f",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::allocate",
+    "signature": "void *SlabCache::allocate()",
+    "spelling": "SlabCache::allocate",
+    "fn": "void *xv::memory::SlabCache::allocate()",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@allocate#",
+    "source_sha256": "a26868a1d6e2dccdefeef5defae75467faf6d4c41e4099eefcd71e910c01eda9",
+    "anchor": "fn-48e214e4c232ec57",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::owner_of",
+    "signature": "SlabCache *SlabCache::owner_of(void *object)",
+    "spelling": "SlabCache::owner_of",
+    "fn": "SlabCache *xv::memory::SlabCache::owner_of(void *object)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@owner_of#*v#S",
+    "source_sha256": "26055eb9f21ea2632232152bc9e430daf13267e9fb299637121920961949fd62",
+    "anchor": "fn-0f4890c255694b3a",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::deallocate",
+    "signature": "bool SlabCache::deallocate(void *object)",
+    "spelling": "SlabCache::deallocate",
+    "fn": "bool xv::memory::SlabCache::deallocate(void *object)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@deallocate#*v#",
+    "source_sha256": "10ea7578f65e7a103586d88a1a264634f88f9a8bac263b92fad2b7e1a54b7363",
+    "anchor": "fn-116cd4cb490e600a",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::trim",
+    "signature": "unsigned long SlabCache::trim()",
+    "spelling": "SlabCache::trim",
+    "fn": "unsigned long xv::memory::SlabCache::trim()",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@trim#",
+    "source_sha256": "3c0d07a7f7587498c3c391a4ed74ac3eff2ab94bc514b833f1f46d29d4d34ef1",
+    "anchor": "fn-f536c841ff918335",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::statistics",
+    "signature": "SlabStatistics SlabCache::statistics()",
+    "spelling": "SlabCache::statistics",
+    "fn": "SlabStatistics xv::memory::SlabCache::statistics()",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@statistics#",
+    "source_sha256": "072efb14982db4ec68d248f6c36eae1d212ab4e71ca4e95ea7e645c201080126",
+    "anchor": "fn-80e1643f01271a2f",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::FreeListSlabCache::prepare_page",
+    "signature": "void FreeListSlabCache::prepare_page(Page &page)",
+    "spelling": "FreeListSlabCache::prepare_page",
+    "fn": "void xv::memory::FreeListSlabCache::prepare_page(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@FreeListSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "2bc30fdcdcbc164e93515a7365f0817f909e39772405346ca0f5e031361bad4b",
+    "anchor": "fn-10b848041e2743c4",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::FreeListSlabCache::take_slot",
+    "signature": "unsigned FreeListSlabCache::take_slot(Page &page)",
+    "spelling": "FreeListSlabCache::take_slot",
+    "fn": "unsigned xv::memory::FreeListSlabCache::take_slot(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@FreeListSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "9104b6b99219f578b8d1b662324851b2baee8d70622cb5b269189e5b3ac404b3",
+    "anchor": "fn-354b953875e14a3c",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::FreeListSlabCache::return_slot",
+    "signature": "void FreeListSlabCache::return_slot(Page &page, unsigned slot)",
+    "spelling": "FreeListSlabCache::return_slot",
+    "fn": "void xv::memory::FreeListSlabCache::return_slot(Page &page, unsigned slot)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@FreeListSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+    "source_sha256": "41f7aa4ce51ccca6e66057672ccff1c6356ac52853ef2b5f7be39a7b33c8ca2b",
+    "anchor": "fn-3c2cbdb56af3999a",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::BitmapSlabCache::prepare_page",
+    "signature": "void BitmapSlabCache::prepare_page(Page &)",
+    "spelling": "BitmapSlabCache::prepare_page",
+    "fn": "void xv::memory::BitmapSlabCache::prepare_page(Page &)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@BitmapSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "488ef290da241c68f22ee1ca8fac026d5bf849517df635ecf162beff26131202",
+    "anchor": "fn-d1ade02bcba292a6",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::BitmapSlabCache::take_slot",
+    "signature": "unsigned BitmapSlabCache::take_slot(Page &page)",
+    "spelling": "BitmapSlabCache::take_slot",
+    "fn": "unsigned xv::memory::BitmapSlabCache::take_slot(Page &page)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@BitmapSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "57a12708e70847cb8d99b45321cccf4879470353b8bc935f093858105af5fa94",
+    "anchor": "fn-7675ee16018ca775",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::BitmapSlabCache::return_slot",
+    "signature": "void BitmapSlabCache::return_slot(Page &, unsigned)",
+    "spelling": "BitmapSlabCache::return_slot",
+    "fn": "void xv::memory::BitmapSlabCache::return_slot(Page &, unsigned)",
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "usr": "c:@N@xv@N@memory@S@BitmapSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+    "source_sha256": "b337747dd574900afcba98b321e1902d4dcd80283b23150eb108cc5547ab73e7",
+    "anchor": "fn-f2d27006b444c953",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::SlabCache",
+    "signature": "constexpr SlabCache() = default",
+    "spelling": "SlabCache",
+    "fn": "constexpr xv::memory::SlabCache::SlabCache() = default",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@SlabCache#",
+    "source_sha256": "5382810978801bc113a50c02b3ba836f834eddb77c19931048bc8cb27d9ce684",
+    "anchor": "fn-4457a1f9a2782e59",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::SlabCache",
+    "signature": "SlabCache(const SlabCache &) = delete",
+    "spelling": "SlabCache",
+    "fn": "xv::memory::SlabCache::SlabCache(const SlabCache &) = delete",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@SlabCache#&1$@N@xv@N@memory@S@SlabCache#",
+    "source_sha256": "51a6c0ecbf17b5b6d57111dc76f63ce71c0275fad0cb854dcac7484e5fbda198",
+    "anchor": "fn-2f809b9d0100cc66",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::operator=",
+    "signature": "SlabCache &operator=(const SlabCache &) = delete",
+    "spelling": "operator=",
+    "fn": "SlabCache &xv::memory::SlabCache::operator=(const SlabCache &) = delete",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@operator=#&1$@N@xv@N@memory@S@SlabCache#",
+    "source_sha256": "500d3106ed11c38f528e143f61fb31995a5c9a7ddccae2fd66df41a2e0e21d7d",
+    "anchor": "fn-b204341310fabed8",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::name",
+    "signature": "virtual const char *name() const = 0",
+    "spelling": "name",
+    "fn": "virtual const char *xv::memory::SlabCache::name() const = 0",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@name#1",
+    "source_sha256": "f6b52d724fdd3fd7b0da02e584867282251b59b75d2eab9fa56f4bf214e34e3b",
+    "anchor": "fn-b1a1198e084bc177",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::~SlabCache",
+    "signature": "~SlabCache() = default",
+    "spelling": "~SlabCache",
+    "fn": "xv::memory::SlabCache::~SlabCache() = default",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@~SlabCache#",
+    "source_sha256": "b91e4f46cfd183854d1a673db5cc2d8da53f87865bfa7aee49707cf6e2d81fa9",
+    "anchor": "fn-4dfd7d3e7224c5d8",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Destructor"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::prepare_page",
+    "signature": "virtual void prepare_page(Page &page) = 0",
+    "spelling": "prepare_page",
+    "fn": "virtual void xv::memory::SlabCache::prepare_page(Page &page) = 0",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "cc4a8eca7015c03c4a15ac92c0d3850af8e4ecf1ee876a7c411924bb78c8a9da",
+    "anchor": "fn-9ee0991b24d49fcb",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::take_slot",
+    "signature": "virtual unsigned take_slot(Page &page) = 0",
+    "spelling": "take_slot",
+    "fn": "virtual unsigned xv::memory::SlabCache::take_slot(Page &page) = 0",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+    "source_sha256": "43760026c1a008bbb62f14e4c4e729a62cc5379add30aa80dc5cb104f616820a",
+    "anchor": "fn-49233115439dc0b1",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::SlabCache::return_slot",
+    "signature": "virtual void return_slot(Page &page, unsigned slot) = 0",
+    "spelling": "return_slot",
+    "fn": "virtual void xv::memory::SlabCache::return_slot(Page &page, unsigned slot) = 0",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@SlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+    "source_sha256": "9809952c34587d021f720484fc53b4e102945d0be9fca083d893ec090bf53266",
+    "anchor": "fn-a35e6d8cb1d16070",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::FreeListSlabCache::FreeListSlabCache",
+    "signature": "constexpr FreeListSlabCache() = default",
+    "spelling": "FreeListSlabCache",
+    "fn": "constexpr xv::memory::FreeListSlabCache::FreeListSlabCache() = default",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@FreeListSlabCache@F@FreeListSlabCache#",
+    "source_sha256": "24ca760dcdc06e23d0dfdd84ab4c8f6895944b38faa52405e6c6440bf497df5b",
+    "anchor": "fn-a688ed727874d1ec",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor"
+  },
+  {
+    "qualified": "xv::memory::FreeListSlabCache::name",
+    "signature": "const char *name() const override",
+    "spelling": "name",
+    "fn": "const char *xv::memory::FreeListSlabCache::name() const override",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@FreeListSlabCache@F@name#1",
+    "source_sha256": "56f25bc00c9453eb5461c29706d5f8deaf333fbda7e150ac52b1c21becec6e90",
+    "anchor": "fn-b8dba7ca8bc8b83d",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::BitmapSlabCache::BitmapSlabCache",
+    "signature": "constexpr BitmapSlabCache() = default",
+    "spelling": "BitmapSlabCache",
+    "fn": "constexpr xv::memory::BitmapSlabCache::BitmapSlabCache() = default",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@BitmapSlabCache@F@BitmapSlabCache#",
+    "source_sha256": "a11962a8d05374e02d3b46f9951a511ddcd4d46e3379a556fdbab9a06682d063",
+    "anchor": "fn-7903977f9674b4a4",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "Constructor"
+  },
+  {
+    "qualified": "xv::memory::BitmapSlabCache::name",
+    "signature": "const char *name() const override",
+    "spelling": "name",
+    "fn": "const char *xv::memory::BitmapSlabCache::name() const override",
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "usr": "c:@N@xv@N@memory@S@BitmapSlabCache@F@name#1",
+    "source_sha256": "d43061abb4fd24acfc0e3a7e27374c6991699b6ac6c106404664438f6a05b5eb",
+    "anchor": "fn-2a131ce7e7fc18a5",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::configured_slab_kind",
+    "signature": "SlabKind configured_slab_kind()",
+    "spelling": "configured_slab_kind",
+    "fn": "SlabKind xv::memory::configured_slab_kind()",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:@N@xv@N@memory@F@configured_slab_kind#",
+    "source_sha256": "20ee94181283475c0b491a3795bd6733da699eba596e1e26288163b7ea167247",
+    "anchor": "fn-426c49f6ae22702c",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "Function"
+  },
+  {
+    "qualified": "xv::memory::allocate_object",
+    "signature": "void *allocate_object(unsigned long bytes, unsigned long alignment)",
+    "spelling": "allocate_object",
+    "fn": "void *xv::memory::allocate_object(unsigned long bytes, unsigned long alignment)",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:@N@xv@N@memory@F@allocate_object#l#l#",
+    "source_sha256": "cdb1dd653aa1a2ce03c8cdb9790481a424cdf4e5e028fef0d76b5e8dae96252f",
+    "anchor": "fn-8c9c7394dfc70a4f",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "Function"
+  },
+  {
+    "qualified": "xv::memory::deallocate_object",
+    "signature": "bool deallocate_object(void *object)",
+    "spelling": "deallocate_object",
+    "fn": "bool xv::memory::deallocate_object(void *object)",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:@N@xv@N@memory@F@deallocate_object#*v#",
+    "source_sha256": "e0e232d33b54256daff938053a2ab5f289fda23ef84e4ae65570a1330be5e3f4",
+    "anchor": "fn-b3ffd68f7c669dcc",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "Function"
+  },
+  {
+    "qualified": "xv::memory::trim_object_caches",
+    "signature": "unsigned long trim_object_caches()",
+    "spelling": "trim_object_caches",
+    "fn": "unsigned long xv::memory::trim_object_caches()",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:@N@xv@N@memory@F@trim_object_caches#",
+    "source_sha256": "a882f5952c50e22908274b8c44066b420c70b794a2f9b935a1fc4c770f906e7a",
+    "anchor": "fn-62cad3f2729a908b",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "Function"
+  },
+  {
+    "qualified": "xv::memory::cache_at",
+    "signature": "SlabCache &cache_at(unsigned index)",
+    "spelling": "cache_at",
+    "fn": "SlabCache &xv::memory::cache_at(unsigned index)",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:slab_service.cpp@N@xv@N@memory@aN@F@cache_at#i#",
+    "source_sha256": "22a0df3f34b6dd79a0bde9a46f8e9ce1a3fe4abb1623dc660e5d68379b718751",
+    "anchor": "fn-814d5d13fc341da6",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::prepare_caches",
+    "signature": "void prepare_caches()",
+    "spelling": "prepare_caches",
+    "fn": "void xv::memory::prepare_caches()",
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "usr": "c:slab_service.cpp@N@xv@N@memory@aN@F@prepare_caches#",
+    "source_sha256": "af4ad06746e4657287713d61d427eeea5efb78337bbdbf2a28b2b1604ca00536",
+    "anchor": "fn-554fa3704ea7e301",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::memory::prepare_pool_nodes",
+    "signature": "void prepare_pool_nodes(unsigned long bytes, unsigned long alignment)",
+    "spelling": "prepare_pool_nodes",
+    "fn": "void xv::memory::prepare_pool_nodes(unsigned long bytes, unsigned long alignment)",
+    "source": "kernel/memory/layout/virtual_address_pool.cpp",
+    "usr": "c:virtual_address_pool.cpp@N@xv@N@memory@aN@F@prepare_pool_nodes#l#l#",
+    "source_sha256": "f5c566c797a2b61e683329dbe07b254bebd091d4656b1ceb4d880260843160ad",
+    "anchor": "fn-7520c7b62288f91d",
+    "document": "docs/functions/kernel/memory/layout/virtual_address_pool.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::process::detail::initialize_process_objects",
+    "signature": "void initialize_process_objects(unsigned long bytes, unsigned long alignment)",
+    "spelling": "initialize_process_objects",
+    "fn": "void xv::process::detail::initialize_process_objects(unsigned long bytes, unsigned long alignment)",
+    "source": "kernel/process/storage/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
+    "source_sha256": "c00ed62304b225317764c0203092507ed86c58c19ee146b3b546183aadaa5c78",
+    "anchor": "fn-7d233fbcfe20643c",
+    "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::process::detail::allocate_process_object",
+    "signature": "void *allocate_process_object()",
+    "spelling": "allocate_process_object",
+    "fn": "void *xv::process::detail::allocate_process_object()",
+    "source": "kernel/process/storage/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
+    "source_sha256": "9981935aa73331a086dd5d0db99b3ec0041250e877e3b0b719815399aae15c66",
+    "anchor": "fn-caa4a1fb931599c7",
+    "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
+  },
+  {
+    "qualified": "xv::process::detail::free_process_object",
+    "signature": "void free_process_object(void *object)",
+    "spelling": "free_process_object",
+    "fn": "void xv::process::detail::free_process_object(void *object)",
+    "source": "kernel/process/storage/kernel_platform.cpp",
+    "usr": "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
+    "source_sha256": "d818041a0acb419e72fd8f39402ba4528d343768b8e4bbd65fdb9fd1b931d1eb",
+    "anchor": "fn-9ac05fbc453dc8b6",
+    "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
+    "hover_expectation": "observe",
+    "kind": "InstanceMethod"
   }
 ]

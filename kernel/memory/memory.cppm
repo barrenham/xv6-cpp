@@ -8,6 +8,7 @@ export import xv.vm_pool;
 export import xv.vm_types;
 export import :boot;
 export import :allocator;
+export import :slab;
 export import :sv39;
 export import :kernel_paging;
 export import :user_paging;

@@ -249,3 +249,9 @@ python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 栈数量不再受 `KSTACK_SLOTS` 限制，仍受空闲虚拟地址容量、单栈配置、物理内存和进程表容量约束。
 地址池支持不同长度的区间；当前栈服务仍按配置申请固定容量的栈及等大保护区，不支持单栈越界扩容。
 地址池细节与测试见 [内核虚拟地址池](../../docs/virtual-address-pool.md)。
+
+## slab 小对象分配
+
+`SlabCache` 将物理页分成固定尺寸对象，提供空闲链表与位图两种多态实现。
+尺寸类服务已接入会话和进程组，精确尺寸缓存已接入进程描述符和虚拟区间节点；`XV_SLAB_ALLOCATOR` 与物理页分配器选择独立。
+接口、生命周期、空页回收和实测方法见 [slab 设计](../../docs/slab.md)。

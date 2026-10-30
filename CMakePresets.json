@@ -41,6 +41,15 @@
       "cacheVariables": {
         "XV_SCHEDULER": "mlfq"
       }
+    },
+    {
+      "name": "slab-bitmap",
+      "inherits": "dev",
+      "displayName": "RISC-V / bitmap object slabs",
+      "binaryDir": "${sourceDir}/build/slab-bitmap",
+      "cacheVariables": {
+        "XV_SLAB_ALLOCATOR": "bitmap"
+      }
     }
   ],
   "buildPresets": [
@@ -59,6 +68,10 @@
     {
       "name": "mlfq",
       "configurePreset": "mlfq"
+    },
+    {
+      "name": "slab-bitmap",
+      "configurePreset": "slab-bitmap"
     }
   ],
   "testPresets": [
@@ -86,6 +99,13 @@
     {
       "name": "mlfq",
       "configurePreset": "mlfq",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "slab-bitmap",
+      "configurePreset": "slab-bitmap",
       "output": {
         "outputOnFailure": true
       }

@@ -188,7 +188,7 @@
     },
     {
       "source": "kernel/memory/memory.cppm",
-      "sha256": "6d2103d6f90bf0a53b97b5bcaed972b3ded10edcb902efe1f29998e7e9d6940c",
+      "sha256": "a14276f375fb38d832cf8995736c75bb5144fa733e1f1a420376a005f379ce9f",
       "review": "Public module composition and exports only.",
       "graph_entries": []
     },
@@ -392,20 +392,38 @@
     },
     {
       "source": "kernel/memory/layout/virtual_address_pool.cppm",
-      "sha256": "b3a0412f34a7df09863de683b328e92bd021fab69a6780416519627332096725",
-      "review": "Single owner of free intervals and attributed occupied intervals, with fixed reserve, automatic/bounded allocation, containment lookup, atomic attribute splitting, partial erase, candidate copy and explicit swap/reset. Slab capacity is derived from the attributed node size. Caller provides exclusion; mapping/frame ownership stays external.",
+      "sha256": "4dfcf1295939bca1b0175b77891d8ce245a3f352b4eb79d08913a854f4e6d893",
+      "review": "One address-space owner of free/live interval trees and window/granule values. Attributed nodes are allocated from the common memory slab; no per-pool metadata page lists or slot scans. Original region, fault and transactional-copy interfaces are retained.",
       "graph_entries": []
     },
     {
       "source": "kernel/memory/layout/virtual_address_pool.cpp",
-      "sha256": "028f01138e9a98f2716873708967a586e2768ce6a92d5f22a929bc29919130e9",
-      "review": "Unified attributed free/live red-black interval container. Fixed reserve, protect and erase preflight all required nodes before tree mutation; exact release allocates nothing; copies use a candidate pool and commit by root/slab swap. Slab free lists avoid slot scans and reclaim empty pages. Bounded aligned fit prunes by subtree length but may inspect multiple candidates; recursion is bounded by tree height. Container algorithms remain direct primitives; page-table/frame lifecycle stays in paging graphs.",
+      "sha256": "0de72427334d4467dc430de865cb923c041f53e88300a2eaf1b54ce88bb76f1f",
+      "review": "Attributed free/live red-black interval container. Node lifetimes use a shared exact-size slab with atomic first-use publication and immediate empty-page reclamation, eliminating per-address-space metadata pages. Preflight before reserve/protect/erase preserves failure atomicity; root swap transfers only trees/window state; reset returns only owned nodes so neighboring address spaces remain valid. Container operations remain direct primitives.",
       "graph_entries": []
     },
     {
       "source": "kernel/memory/layout/virtual_memory_types.cppm",
       "sha256": "d69674d74baf78b0821fdca63a5cb619275003b99816ad18f4845227d99a678c",
       "review": "Value-only region attributes and fault result types shared by the unified pool and paging; no interval ownership or execution flow.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/slab/slab_cache.cppm",
+      "sha256": "25ce426fdbf52325e09b89f45dc8cffaa184740039914c102319b065244b5bd7",
+      "review": "Polymorphic fixed-size object cache API, raw storage and explicit trim lifetime. Shared metadata/header ownership is independent of mapped frames. Free-list and bitmap strategies are genuine virtual implementations; caller serializes initialization, cache serializes operations. No global heap or implicit destructor reclamation.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/slab/slab_cache.cpp",
+      "sha256": "6190305091bc12dd76cddc7a7ff54cbc1ccbbe18a98ec127d58af0c3eaf14c94",
+      "review": "Reviewed allocation-container primitives: layout validation and aligned page-local slots, O(1) partial/empty list updates, per-slot live validation, physical OOM before publication, bounded empty reserve and explicit trim. Cache->physical lock ordering; free-list indices versus bounded word-level bitmap search. Algorithms stay direct rather than wrapping data-structure mutations in flow nodes.",
+      "graph_entries": []
+    },
+    {
+      "source": "kernel/memory/slab/slab_service.cpp",
+      "sha256": "3b5f30698fda7206c981d5e828531143afadc5953f0c223067c0cf72c403f9d4",
+      "review": "Size-class object allocation adapter with compile-time polymorphic implementation selection, constant-initialized cache controls and acquire/release first-use publication. No boot slab pages, no full-page fallback, and zero empty-page retention. RAM/known-cache ownership checks precede free dispatch; raw mapped pointer precondition remains explicit.",
       "graph_entries": []
     }
   ],

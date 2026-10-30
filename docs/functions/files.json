@@ -3582,9 +3582,12 @@
     "document": "docs/functions/kernel/process/storage/platform.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@process@N@detail@F@allocate_kernel_stack#",
+      "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
+      "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
       "c:@N@xv@N@process@N@detail@F@scheduling_time#",
       "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
     ]
@@ -3649,9 +3652,12 @@
     "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@process@N@detail@F@allocate_kernel_stack#",
+      "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
+      "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
       "c:@N@xv@N@process@N@detail@F@scheduling_time#",
       "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
     ]
@@ -3842,8 +3848,8 @@
     "source": "kernel/process/groups/platform.cppm",
     "document": "docs/functions/kernel/process/groups/platform.cppm.md",
     "function_usrs": [
-      "c:@N@xv@N@process@N@detail@F@allocate_group_page#",
-      "c:@N@xv@N@process@N@detail@F@free_group_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@allocate_group_object#l#l#",
+      "c:@N@xv@N@process@N@detail@F@free_group_object#*v#",
       "c:@N@xv@N@process@N@detail@F@group_fail#*1C#"
     ]
   },
@@ -3902,8 +3908,8 @@
     "source": "kernel/process/groups/kernel_platform.cpp",
     "document": "docs/functions/kernel/process/groups/kernel_platform.cpp.md",
     "function_usrs": [
-      "c:@N@xv@N@process@N@detail@F@allocate_group_page#",
-      "c:@N@xv@N@process@N@detail@F@free_group_page#*v#",
+      "c:@N@xv@N@process@N@detail@F@allocate_group_object#l#l#",
+      "c:@N@xv@N@process@N@detail@F@free_group_object#*v#",
       "c:@N@xv@N@process@N@detail@F@group_fail#*1C#"
     ]
   },
@@ -7770,7 +7776,8 @@
       "c:@N@xv@N@memory@S@VirtualAddressPool@F@return_free#*$@N@xv@N@memory@S@VirtualAddressPool@S@Node#",
       "c:@N@xv@N@memory@S@VirtualAddressPool@F@swap#&$@N@xv@N@memory@S@VirtualAddressPool#",
       "c:@N@xv@N@memory@S@VirtualAddressPool@F@take_node#",
-      "c:@N@xv@N@memory@S@VirtualAddressPool@F@valid#l#l#1"
+      "c:@N@xv@N@memory@S@VirtualAddressPool@F@valid#l#l#1",
+      "c:virtual_address_pool.cpp@N@xv@N@memory@aN@F@prepare_pool_nodes#l#l#"
     ]
   },
   {
@@ -7938,5 +7945,77 @@
     "source": "kernel/memory/layout/virtual_memory_types.cppm",
     "document": "docs/functions/kernel/memory/layout/virtual_memory_types.cppm.md",
     "function_usrs": []
+  },
+  {
+    "source": "kernel/memory/slab/slab_cache.cppm",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@F@allocate_object#l#l#",
+      "c:@N@xv@N@memory@F@configured_slab_kind#",
+      "c:@N@xv@N@memory@F@deallocate_object#*v#",
+      "c:@N@xv@N@memory@F@trim_object_caches#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@BitmapSlabCache#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@name#1",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@FreeListSlabCache#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@name#1",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@SlabCache#",
+      "c:@N@xv@N@memory@S@SlabCache@F@SlabCache#&1$@N@xv@N@memory@S@SlabCache#",
+      "c:@N@xv@N@memory@S@SlabCache@F@allocate#",
+      "c:@N@xv@N@memory@S@SlabCache@F@deallocate#*v#",
+      "c:@N@xv@N@memory@S@SlabCache@F@initialize#&$@N@xv@N@memory@S@PhysicalPageAllocator#l#l#i#",
+      "c:@N@xv@N@memory@S@SlabCache@F@link_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@name#1",
+      "c:@N@xv@N@memory@S@SlabCache@F@operator=#&1$@N@xv@N@memory@S@SlabCache#",
+      "c:@N@xv@N@memory@S@SlabCache@F@owner_of#*v#S",
+      "c:@N@xv@N@memory@S@SlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+      "c:@N@xv@N@memory@S@SlabCache@F@slot_address#&$@N@xv@N@memory@S@SlabCache@S@Page#i#1",
+      "c:@N@xv@N@memory@S@SlabCache@F@statistics#",
+      "c:@N@xv@N@memory@S@SlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@trim#",
+      "c:@N@xv@N@memory@S@SlabCache@F@unlink_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@unlink_empty#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@~SlabCache#"
+    ]
+  },
+  {
+    "source": "kernel/memory/slab/slab_cache.cpp",
+    "document": "docs/functions/kernel/memory/slab/slab_cache.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+      "c:@N@xv@N@memory@S@BitmapSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@prepare_page#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@return_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#i#",
+      "c:@N@xv@N@memory@S@FreeListSlabCache@F@take_slot#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@allocate#",
+      "c:@N@xv@N@memory@S@SlabCache@F@deallocate#*v#",
+      "c:@N@xv@N@memory@S@SlabCache@F@initialize#&$@N@xv@N@memory@S@PhysicalPageAllocator#l#l#i#",
+      "c:@N@xv@N@memory@S@SlabCache@F@link_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@owner_of#*v#S",
+      "c:@N@xv@N@memory@S@SlabCache@F@slot_address#&$@N@xv@N@memory@S@SlabCache@S@Page#i#1",
+      "c:@N@xv@N@memory@S@SlabCache@F@statistics#",
+      "c:@N@xv@N@memory@S@SlabCache@F@trim#",
+      "c:@N@xv@N@memory@S@SlabCache@F@unlink_available#&$@N@xv@N@memory@S@SlabCache@S@Page#",
+      "c:@N@xv@N@memory@S@SlabCache@F@unlink_empty#&$@N@xv@N@memory@S@SlabCache@S@Page#"
+    ]
+  },
+  {
+    "source": "kernel/memory/slab/slab_service.cpp",
+    "document": "docs/functions/kernel/memory/slab/slab_service.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@memory@F@allocate_object#l#l#",
+      "c:@N@xv@N@memory@F@configured_slab_kind#",
+      "c:@N@xv@N@memory@F@deallocate_object#*v#",
+      "c:@N@xv@N@memory@F@trim_object_caches#",
+      "c:slab_service.cpp@N@xv@N@memory@aN@F@cache_at#i#",
+      "c:slab_service.cpp@N@xv@N@memory@aN@F@prepare_caches#"
+    ]
   }
 ]

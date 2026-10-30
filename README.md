@@ -6,7 +6,7 @@
 
 ## 功能
 
-- **内存**：设备树 RAM 发现、伙伴/链表页分配器、Sv39 页表与大页映射、虚拟区域登记、按需内核栈及应急补页、写时复制 fork。
+- **内存**：设备树 RAM 发现、伙伴/链表页分配器、可选空闲链表/位图 slab、Sv39 页表与大页映射、虚拟区域登记、按需内核栈及应急补页、写时复制 fork。
 - **进程**：多核调度、动态进程登记、信号处理、进程组、shell 作业控制、历史编辑/补全、脚本与环境变量。
 - **文件与终端**：日志文件系统、VFS、devfs/ramfs、动态 RAM/磁盘挂载、持久 rootfs、符号链接、pwd/cp/mv、随机文件 I/O、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
 - **用户与权限**：UID/GID、附加组、文件权限、umask、登录与密码、用户/组管理、普通用户改密、chmod/chown。
@@ -65,3 +65,5 @@ curl http://example.com/
 基于 xv6-labs-2026，采用 [MIT 许可](LICENSE)。上游说明见 [README.xv6](README.xv6)。
 
 IPv4 报文过滤与 `iptables` 命令的分层设计、用法及支持范围见 [防火墙说明](docs/network-firewall.md)。
+
+Slab 的接口、实现选择与性能门禁见 [slab 对象分配](docs/slab.md)。

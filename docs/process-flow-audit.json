@@ -84,19 +84,19 @@
     },
     {
       "source": "kernel/process/groups/kernel_platform.cpp",
-      "sha256": "411e1b77d6974cd60ae4c748f4741eb9be7dfe003a1613dfd4db0146a5b3e4fc",
-      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "sha256": "ea5401d417157e2fed07aa7066eae6ffac87b8172f564d3f39d8391895930520",
+      "review": "Non-sleeping sized-object adapter to the memory slab service for Session and ProcessGroup. Invalid frees panic; group/physical ownership is not interchanged.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/groups/platform.cppm",
-      "sha256": "7a57d185edc533b6b38e5a145cebaa849af35fbc1a9b7283d7bbde6a9c5a6ab7",
-      "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy.",
+      "sha256": "beb349bae2e861cb37c68b44ed86ea4e4d1545c48083a7dcf3b9648650868fa1",
+      "review": "Storage-independent sized/aligned group-object platform contract. Native shim retains allocation-failure injection; real kernel adapter uses slab.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/groups/process_groups.cpp",
-      "sha256": "7652a8b966a7c724c88dcbfb4947c250a4d0b1019861d213ec98e894ba211cf5",
+      "sha256": "648600a16c8449720d6a6697292207066800d47743ed55d69fadb08c0c5974c2",
       "review": "ProcessGroups graphs own allocation rollback, empty group/session reclamation, set_group and terminal binding. Remaining locked searches, membership links, foreground access policies and stable callback enumeration stay direct; manager wrappers delegate or apply the background-read SIGTTIN policy. Follow-up: group hash insertion precedes list publication; last-group detach removes the exact hash identity before freeing its page. The original group lock, member/family lifetime and session-reference protocols are unchanged.",
       "graph_entries": [
         {
@@ -621,20 +621,20 @@
     },
     {
       "source": "kernel/process/storage/kernel_platform.cpp",
-      "sha256": "1866a5fb09c299f8fda3237b9c77469d31a7ba8d97ccb5cbcde516a2ab2a6308",
-      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "sha256": "fe51f8fd2220d333082ca5e7d87bc33427389afa380259496159f4bf62788f8d",
+      "review": "Production process descriptor storage uses a selected exact-size SlabCache initialized before publication, with atomic cross-store first-use and layout consistency checks. Actual wait-buffer pages and stack mappings retain physical-page APIs. Invalid descriptor frees panic; object slots never move.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/storage/paged_process_store.cpp",
-      "sha256": "81ba68b223ca604d068b25b52c5cae6a41e7ca45043e48dbe14162ca4b4e6a1f",
+      "sha256": "26a98ec69b507346eb62bd2b21fe8b4f4b66eac07ef98622f1814634d6bb0979",
       "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
       "graph_entries": [
         {
           "qualified": "xv::process::PagedProcessStore::allocate",
           "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
           "source": "kernel/process/storage/paged_process_store.cpp",
-          "source_sha256": "b37f004fa500561498679c8c9bd9b3caa1e104b0a49afbcd71d9a7c442e09749",
+          "source_sha256": "ac243bae83982596659d4782bbb7e626d28219ce175c146afaa3e3a2bcf57e73",
           "graphs": [
             "AllocateFlow::Graph"
           ]
@@ -652,13 +652,13 @@
     },
     {
       "source": "kernel/process/storage/paged_process_store.cppm",
-      "sha256": "a6977dc6321969f966ada173d1b95099cf2bef63153ab12f1fe4480c5da840d5",
-      "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
+      "sha256": "4eaf7b7c9e8bc1110cddd64631f4f9950b256112aa00a7924d75dae8f7f2b5f4",
+      "review": "Stable registry nodes and opaque Process storage, now sourced from an exact-size slab while retaining the ProcessStore interface and intrusive ownership links. Runtime name identifies the slab registry.",
       "graph_entries": []
     },
     {
       "source": "kernel/process/storage/platform.cppm",
-      "sha256": "ca544eee22a8dc2155be1bbf58e3799250e0536414426b8a19319b8e532b06b2",
+      "sha256": "2a3aa37dcdab5a459fa5b96d579c57938d42b69b0b94b33699c1b5f57fdf4099",
       "review": "PagedProcessStore allocation and retirement/reclamation use graphs. Find/visit retain registry-to-process lock ordering and stable callback lifetime; index/layout, construct/retire assertions, count and allocator adapters are compact storage primitives.",
       "graph_entries": []
     },

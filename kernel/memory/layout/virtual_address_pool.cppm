@@ -55,18 +55,7 @@ private:
     bool operator()(const Node &a, const Node &b) const { return a.begin < b.begin; }
   };
   using Tree = xv::support::RbTree<Node, Less>;
-  static constexpr unsigned NodesPerPage = (4096 - 64) / sizeof(Node);
-  struct Page
-  {
-    Page *next, *previous;
-    Page *available_next, *available_previous;
-    Node *spare;
-    unsigned used;
-    Node entries[NodesPerPage];
-  };
   Tree free_, allocated_;
-  Page *pages_ = nullptr;
-  Page *available_ = nullptr;
   unsigned long begin_ = 0, end_ = 0, granule_ = 0;
   Node *take_node();
   void put_node(Node *node);

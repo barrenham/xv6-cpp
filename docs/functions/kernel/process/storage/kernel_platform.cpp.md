@@ -17,6 +17,10 @@
 - [`xv::process::detail::scheduling_time`](kernel_platform.cpp.md#fn-4fba22f386559889)
 - [`xv::process::detail::storage_fail`](kernel_platform.cpp.md#fn-81d9f378847f3b25)
 
+- [`xv::process::detail::initialize_process_objects`](kernel_platform.cpp.md#fn-7d233fbcfe20643c)
+- [`xv::process::detail::allocate_process_object`](kernel_platform.cpp.md#fn-caa4a1fb931599c7)
+- [`xv::process::detail::free_process_object`](kernel_platform.cpp.md#fn-9ac05fbc453dc8b6)
+
 <a id="fn-e1bcdb7d80c1c4c6"></a>
 
 ## `xv::process::detail::allocate_process_page`
@@ -80,4 +84,34 @@
 @fn unsigned long xv::process::detail::scheduling_time()
 @brief 读取平台 r_time 作为调度实际运行时间基准。
 @details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
+```
+
+<a id="fn-7d233fbcfe20643c"></a>
+
+## `xv::process::detail::initialize_process_objects`
+
+```doxygen
+@fn void xv::process::detail::initialize_process_objects(unsigned long bytes, unsigned long alignment)
+@brief 在首次发布前准备精确尺寸进程描述符缓存，并校验后续初始化的布局一致性。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
+```
+
+<a id="fn-caa4a1fb931599c7"></a>
+
+## `xv::process::detail::allocate_process_object`
+
+```doxygen
+@fn void *xv::process::detail::allocate_process_object()
+@brief 从精确尺寸 slab 分配稳定的进程描述符存储，与真正的整页等待缓冲分配分离。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
+```
+
+<a id="fn-9ac05fbc453dc8b6"></a>
+
+## `xv::process::detail::free_process_object`
+
+```doxygen
+@fn void xv::process::detail::free_process_object(void *object)
+@brief 将已销毁的进程描述符归还所属精确尺寸 slab，非法归还视为内核错误。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```

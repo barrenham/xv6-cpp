@@ -56,7 +56,7 @@ struct ProcessGroups::DetachFlow
   static void drop(Context &c) noexcept
   {
     c.group->~ProcessGroup();
-    detail::free_group_page(c.group);
+    detail::free_group_object(c.group);
     c.last = --c.session->groups == 0;
   }
 
@@ -68,7 +68,7 @@ struct ProcessGroups::DetachFlow
   static void free_session(Context &c) noexcept
   {
     c.session->~Session();
-    detail::free_group_page(c.session);
+    detail::free_group_object(c.session);
   }
   struct Find;
   struct Invalid;
@@ -100,7 +100,7 @@ struct ProcessGroups::SessionProtocol
 
   static void allocate_session(Context &c) noexcept
   {
-    auto *page = detail::allocate_group_page();
+    auto *page = detail::allocate_group_object(sizeof(Session), alignof(Session));
     if (page)
     {
       c.session = new (page) Session{c.id};
@@ -125,7 +125,7 @@ struct ProcessGroups::SessionProtocol
   static void rollback(Context &c) noexcept
   {
     c.session->~Session();
-    detail::free_group_page(c.session);
+    detail::free_group_object(c.session);
   }
 };
 
@@ -374,8 +374,8 @@ ProcessMembership *ProcessGroups::find_member(int pid)
 
 ProcessGroup *ProcessGroups::allocate_group(int id, Session &session)
 {
-  static_assert(sizeof(ProcessGroup) <= 4096 && sizeof(Session) <= 4096);
-  auto *page = detail::allocate_group_page();
+  static_assert(sizeof(ProcessGroup) <= 2048 && sizeof(Session) <= 2048);
+  auto *page = detail::allocate_group_object(sizeof(ProcessGroup), alignof(ProcessGroup));
   if (!page)
   {
     return nullptr;

@@ -2,6 +2,8 @@ include("${PROJECT_SOURCE_DIR}/cmake/memory-modules.cmake")
 xv_add_memory_modules(kernel)
 
 target_sources(kernel PRIVATE
+  slab/slab_cache.cpp
+  slab/slab_service.cpp
   layout/virtual_address_pool.cpp
   paging/sv39_page_table.cpp
   boot/boot_memory.cpp
@@ -20,4 +22,14 @@ elseif(XV_PAGE_ALLOCATOR STREQUAL "buddy")
   target_compile_definitions(kernel PRIVATE XV_DEFAULT_ALLOCATOR_FREELIST=0)
 else()
   message(FATAL_ERROR "XV_PAGE_ALLOCATOR must be buddy or freelist")
+endif()
+
+set(XV_SLAB_ALLOCATOR "freelist" CACHE STRING "Kernel object slab: freelist or bitmap")
+set_property(CACHE XV_SLAB_ALLOCATOR PROPERTY STRINGS freelist bitmap)
+if(XV_SLAB_ALLOCATOR STREQUAL "bitmap")
+  target_compile_definitions(kernel PRIVATE XV_DEFAULT_SLAB_BITMAP=1)
+elseif(XV_SLAB_ALLOCATOR STREQUAL "freelist")
+  target_compile_definitions(kernel PRIVATE XV_DEFAULT_SLAB_BITMAP=0)
+else()
+  message(FATAL_ERROR "XV_SLAB_ALLOCATOR must be freelist or bitmap")
 endif()

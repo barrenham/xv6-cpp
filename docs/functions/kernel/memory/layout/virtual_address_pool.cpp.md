@@ -27,13 +27,15 @@
 - [`xv::memory::VirtualAddressPool::copy_to`](virtual_address_pool.cpp.md#fn-f51d1468efd29191)
 - [`xv::memory::VirtualAddressPool::swap`](virtual_address_pool.cpp.md#fn-76152a5847515bfc)
 
+- [`xv::memory::prepare_pool_nodes`](virtual_address_pool.cpp.md#fn-7520c7b62288f91d)
+
 <a id="fn-70afa19e0dd61a33"></a>
 
 ## `xv::memory::VirtualAddressPool::take_node`
 
 ```doxygen
 @fn VirtualAddressPool::Node *xv::memory::VirtualAddressPool::take_node()
-@brief 从有空槽页的备用链表取节点，必要时分配一页元数据，容量按节点大小计算。
+@brief 从所有地址池共享的精确尺寸 slab 缓存构造一个区间节点，首次使用时原子初始化缓存。
 @details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
@@ -43,7 +45,7 @@
 
 ```doxygen
 @fn void xv::memory::VirtualAddressPool::put_node(Node *node)
-@brief 将节点归还页内备用链表，整页无在用节点时摘链并归还物理分配器。
+@brief 销毁已摘树的区间节点并交回共享 slab，最后一个活跃槽位释放后归还物理页。
 @details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
 
@@ -224,6 +226,16 @@
 
 ```doxygen
 @fn void xv::memory::VirtualAddressPool::swap(VirtualAddressPool &other)
-@brief 交换两棵树的根、元数据页链表及窗口参数，保持各池所有权完整。
+@brief 交换两棵树的根和窗口参数，转移节点所有权；共享 slab 无需迁移或交换页链表。
 @details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
+```
+
+<a id="fn-7520c7b62288f91d"></a>
+
+## `xv::memory::prepare_pool_nodes`
+
+```doxygen
+@fn void xv::memory::prepare_pool_nodes(unsigned long bytes, unsigned long alignment)
+@brief 通过原子初始化协议准备所有地址池共享的精确尺寸节点缓存，不预分配物理页。
+@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```

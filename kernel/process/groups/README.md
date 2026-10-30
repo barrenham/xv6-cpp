@@ -85,3 +85,6 @@ ctest --preset dev -j1 -R '^(process_groups_contract|process_groups_[13]cpu)$'
 信号层支持默认终止和停止/继续；控制终端、前台组、Ctrl-C/Ctrl-Z 和 shell
 jobs/fg/bg 已接入，见 [作业控制说明](../signals/job-control.md)。孤儿进程组的
 SIGHUP/SIGCONT 规则仍未实现。setsid 不会关闭已打开的 console 描述符。
+
+Session 和 ProcessGroup 的原始存储由 memory 模块的 slab 对象服务提供，
+按实际类型大小和对齐申请。析构后通过所属缓存归还；家庭/组引用、锁顺序及失败回滚语义保留。

@@ -22,7 +22,7 @@
         },
         {
           "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-          "sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59",
+          "sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515",
           "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock.",
           "graph_entries": [
             {

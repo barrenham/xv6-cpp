@@ -19,6 +19,7 @@ function(xv_add_memory_modules target)
       "${module_root}/layout/physical_memory_layout.cppm"
       "${module_root}/boot/boot_memory.cppm"
       "${module_root}/allocator/page_allocator.cppm"
+      "${module_root}/slab/slab_cache.cppm"
       "${module_root}/allocator/allocator_detail.cppm"
       "${module_root}/allocator/buddy/buddy_page_allocator.cppm"
       "${module_root}/allocator/freelist/freelist_page_allocator.cppm"

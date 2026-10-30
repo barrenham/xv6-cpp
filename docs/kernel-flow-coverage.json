@@ -1430,7 +1430,7 @@
           ]
         }
       ],
-      "definition_sha256": "7652a8b966a7c724c88dcbfb4947c250a4d0b1019861d213ec98e894ba211cf5"
+      "definition_sha256": "648600a16c8449720d6a6697292207066800d47743ed55d69fadb08c0c5974c2"
     },
     {
       "module": "process",
@@ -1789,7 +1789,7 @@
           "qualified": "xv::process::PagedProcessStore::allocate",
           "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
           "source": "kernel/process/storage/paged_process_store.cpp",
-          "source_sha256": "b37f004fa500561498679c8c9bd9b3caa1e104b0a49afbcd71d9a7c442e09749",
+          "source_sha256": "ac243bae83982596659d4782bbb7e626d28219ce175c146afaa3e3a2bcf57e73",
           "graphs": [
             "AllocateFlow::Graph"
           ]
@@ -1804,7 +1804,7 @@
           ]
         }
       ],
-      "definition_sha256": "81ba68b223ca604d068b25b52c5cae6a41e7ca45043e48dbe14162ca4b4e6a1f"
+      "definition_sha256": "26a98ec69b507346eb62bd2b21fe8b4f4b66eac07ef98622f1814634d6bb0979"
     },
     {
       "module": "process",
@@ -3467,7 +3467,7 @@
           ]
         }
       ],
-      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
+      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
     },
     {
       "module": "trap",
@@ -3491,7 +3491,7 @@
           ]
         }
       ],
-      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
+      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
     },
     {
       "module": "trap",
@@ -3514,7 +3514,7 @@
           ]
         }
       ],
-      "definition_sha256": "35277679075de28e99cf926d381d10a13715064e84e4fd46324c9b847fe5bb59"
+      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
     },
     {
       "module": "support",

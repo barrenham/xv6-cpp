@@ -350,3 +350,17 @@ foreach(cpus 1 5)
     --scheduler --scheduler-policy "${XV_SCHEDULER}" --cpus ${cpus})
   set_tests_properties(scheduler_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
 endforeach()
+
+foreach(physical IN ITEMS buddy freelist)
+  add_test(NAME slab_${physical}_contract COMMAND "${PROJECT_BINARY_DIR}/slab_contract" ${physical})
+  set_tests_properties(slab_${physical}_contract PROPERTIES TIMEOUT 60 LABELS memory)
+  add_test(NAME slab_${physical}_performance COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/slab_performance.py" --binary "${PROJECT_BINARY_DIR}/slab_contract"
+    --allocator ${physical} --output "${PROJECT_BINARY_DIR}/slab-${physical}-performance.json")
+  set_tests_properties(slab_${physical}_performance PROPERTIES TIMEOUT 60 LABELS "memory;performance" RUN_SERIAL TRUE)
+endforeach()
+
+add_test(NAME slab_kernel_performance COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/slab_kernel.py" --qemu "${XV_QEMU}"
+  --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
+set_tests_properties(slab_kernel_performance PROPERTIES TIMEOUT 90 LABELS "memory;performance" RUN_SERIAL TRUE)
