@@ -106,12 +106,23 @@ bool SocketRegistry::deliver(Packet &packet, Endpoint source, Endpoint destinati
   for (auto *socket : sockets_)
   {
     if (socket && socket->protocol() == 17 &&
-        static_cast<UdpSocket *>(socket)->deliver(packet, source, destination, offset,
+        static_cast<DatagramSocket *>(socket)->deliver(packet, source, destination, offset,
                                                   length))
     {
       return true;
     }
   }
+  return false;
+}
+
+bool SocketRegistry::deliver_echo(Packet &packet, const IpDatagram &d)
+{
+  auto identifier = wire::read16(packet.data() + d.offset + 4);
+  xv::sync::ScopedLock guard(lock_);
+  for (auto *socket : sockets_)
+    if (socket && socket->protocol() == 1 &&
+        static_cast<DatagramSocket *>(socket)->deliver(packet, {d.source, 0},
+            {d.destination, static_cast<unsigned short>(identifier)}, d.offset, d.length)) return true;
   return false;
 }
 

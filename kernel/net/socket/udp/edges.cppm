@@ -8,18 +8,18 @@ namespace xv::net
 {
 namespace flow = xv::flow;
 
-struct UdpSocket::ConnectFlow
+struct DatagramSocket::ConnectFlow
 {
   struct Context
   {
-    UdpSocket &owner;
+    DatagramSocket &owner;
     Endpoint peer;
     int result = 0;
   };
 
   static inline bool valid(Context &c) noexcept
   {
-    return c.peer.address && c.peer.port;
+    return c.peer.address && (c.peer.port || c.owner.protocol() == 1);
   }
 
   static inline void bind(Context &c) noexcept
@@ -71,11 +71,11 @@ struct UdpSocket::ConnectFlow
                         flow::node<Invalid, flow::action<&invalid>, flow::stop>>>;
 };
 
-struct UdpSocket::DeliveryFlow
+struct DatagramSocket::DeliveryFlow
 {
   struct Context
   {
-    UdpSocket &owner;
+    DatagramSocket &owner;
     Packet &packet;
     Endpoint source, destination;
     unsigned offset, length;
@@ -87,8 +87,9 @@ struct UdpSocket::DeliveryFlow
     auto &s = c.owner;
     return s.local_.port && s.local_.port == c.destination.port &&
            (!s.local_.address || s.local_.address == c.destination.address) &&
-           (!s.peer_.port ||
-            (s.peer_.port == c.source.port && s.peer_.address == c.source.address));
+           (s.protocol() == 1 ? (!s.peer_.address || s.peer_.address == c.source.address)
+                            : (!s.peer_.port ||
+                               (s.peer_.port == c.source.port && s.peer_.address == c.source.address)));
   }
 
   static inline void claim(Context &c) noexcept

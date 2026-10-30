@@ -26,7 +26,7 @@ constinit EthernetInterface ethernet[] = {
 constinit IcmpProtocol icmp(ip);
 constinit UdpProtocol udp(ip, icmp);
 constinit TcpProtocol tcp(ip);
-constinit SocketRegistry sockets(ip, udp, tcp);
+constinit SocketRegistry sockets(ip, udp, tcp, &icmp);
 constinit IpInIpProtocol tunnels;
 constinit BridgeManager bridges(interface_registry, routes, ip);
 constinit LeaseConfiguration lease_configuration(interface_registry, routes, loopback);
@@ -86,6 +86,7 @@ void attach_protocols()
   ip.attach(17, udp);
   ip.attach(6, tcp);
   ip.attach(4, tunnels);
+  icmp.attach(sockets);
   udp.attach(sockets);
   tcp.attach(sockets);
 }

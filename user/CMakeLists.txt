@@ -56,6 +56,8 @@ set(programs
   tests/workflowtest.cpp
   tests/envtest.cpp
   tests/permissiontest.cpp
+  apps/ping/ping.cpp
+  apps/clear/clear.cpp
   apps/curl/curl.cpp
   apps/nslookup/nslookup.cpp
   apps/iptables/iptables.cpp

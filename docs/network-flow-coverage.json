@@ -408,7 +408,7 @@
       ]
     },
     {
-      "class": "UdpSocket",
+      "class": "DatagramSocket",
       "interface": "kernel/net/socket/udp_socket.cppm",
       "classification": "declarative_workflows",
       "workflows": [
@@ -535,7 +535,7 @@
       "class": "Socket",
       "interface": "kernel/net/socket/socket.cppm",
       "classification": "contract_or_primitive",
-      "reason": "IoObject 能力适配与 socket 抽象契约；具体实现分别由 TcpSocket、UdpSocket 的图处理。"
+      "reason": "IoObject 能力适配与 socket 抽象契约；具体实现分别由 TcpSocket、DatagramSocket 的图处理。"
     },
     {
       "class": "BridgeInterface",
@@ -619,6 +619,12 @@
           "source": "kernel/net/filter/flows/engine.h"
         }
       ]
+    },
+    {
+      "interface": "kernel/net/ip/icmp.cppm",
+      "classification": "contract_or_primitive",
+      "reason": "受限 Echo Reply 交付契约；无算法或拥有存储。",
+      "class": "IcmpEchoSink"
     }
   ],
   "standalone_workflow_helpers": [
@@ -1088,6 +1094,7 @@
     "Packet 独占所有权、克隆与前缀移动",
     "有限数组查找与压缩、规则字段匹配和位集可达性判断",
     "重组位图检查和数据插入、TCP 连续前沿推进",
-    "单纯的状态读取、计数更新、接口转发和平台同步原语"
+    "单纯的状态读取、计数更新、接口转发和平台同步原语",
+    "kernel/net/ip/icmp.cpp：send_echo 是有界头部校验、标识符重写和已有 IPv4 委托；receive 前缀仅校验并交付 Reply，原 ReplyFlow 保留。SocketRegistry::deliver_echo 复用原表扫描和数据报队列，无新控制图。"
   ]
 }

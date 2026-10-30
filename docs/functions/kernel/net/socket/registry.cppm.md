@@ -43,14 +43,16 @@
 - [`xv::net::SocketRegistry::udp`](registry.cppm.md#fn-5bf9bee61e4d9914)
 - [`xv::net::socket_registry`](../core/service.cpp.md#fn-a6dd2cdb97db1848)
 
+- [`xv::net::SocketRegistry::icmp`](registry.cppm.md#fn-8e3742665243fa2b)
+
 <a id="fn-aa2694f78b82aa17"></a>
 
 ## `xv::net::SocketRegistry::SocketRegistry`
 
 ```doxygen
-@fn constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp)
-@brief 借用所属 IPv4、UDP 和 TCP 协议服务，构造独立的 socket 注册表。
-@pre 三个服务属于同一网络实例且比注册表存活更久；TCP/UDP 接收入口在服务发布前注入本注册表。
+@fn constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr) : ip_(ip), udp_(udp), tcp_(tcp), icmp_(icmp)
+@brief 绑定 IPv4、UDP、TCP 及可选 ICMP Echo 服务，初始化注册表锁。
+@note icmp 为空时保留只支持 UDP/TCP 的独立测试配置。
 ```
 
 <a id="fn-0fa9280129146c53"></a>
@@ -150,4 +152,14 @@
 @fn bool xv::net::InetSocket::owned() const
 @brief InetSocket：持注册锁查询是否仍由应用 File 或待安装的调用者持有；未接受及最终 close 后为 false。
 @details 持注册锁查询是否仍由应用 File 或待安装的调用者持有；未接受及最终 close 后为 false。
+```
+
+<a id="fn-8e3742665243fa2b"></a>
+
+## `xv::net::SocketRegistry::icmp`
+
+```doxygen
+@fn IcmpProtocol &xv::net::SocketRegistry::icmp()
+@brief 借用已绑定的 ICMP 协议服务。
+@pre 仅由成功创建的 protocol 1 socket 使用；无 ICMP 服务的独立测试注册表不能创建该类 socket。
 ```

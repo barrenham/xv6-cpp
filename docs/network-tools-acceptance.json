@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-30",
+  "baseline_commit": "58dfa0b5a351ed5d88123fda6ee5080aa0c03362",
+  "scope": [
+    "curl buffering, high-resolution network deadline, per-hop connection cap and write-out statistics",
+    "restricted ICMP Echo datagram sockets and ping",
+    "clear and clear -x"
+  ],
+  "validation": {
+    "default_ctest_cases": 103,
+    "first_run_passed": 101,
+    "environment_only_failures": [
+      "vm_stack_contract",
+      "slab_kernel_performance"
+    ],
+    "retry_passed": 2,
+    "retry_reason": "Initial CTest environment omitted the conda bin directory from PATH; both scripts failed before execution because ninja was not found. Rerun with OS-LAB PATH passed.",
+    "http_1cpu": true,
+    "http_5cpu": true,
+    "http_and_echo_helpers_asan_ubsan_leaks": "passed",
+    "kernel_flow_integrity": "passed: 374 sources, no pending sources or unregistered runners",
+    "documentation": "complete inventory and index; 1398 network/native symbols plus five cross-module checks verified; final assembly documentation rechecked after wording update"
+  },
+  "curl_output_comparison": {
+    "body_bytes": 24000,
+    "chunk_payload_bytes": 137,
+    "cpus": [
+      1,
+      5
+    ],
+    "buffered_write_calls": [
+      3,
+      3
+    ],
+    "unbuffered_write_calls": [
+      201,
+      201
+    ],
+    "body_content_identical": true,
+    "scope": "Output syscall reduction on a controlled chunked binary stream, not a general throughput guarantee."
+  },
+  "fork_performance": {
+    "1cpu": {
+      "runs": 6,
+      "children_per_run": 1000,
+      "max_guest_seconds": 4.3153429,
+      "max_host_test_seconds": 4.348,
+      "max_standalone_command_seconds": 3.961,
+      "threshold_seconds": 5,
+      "passed": true
+    },
+    "5cpu": {
+      "runs": 6,
+      "children_per_run": 1000,
+      "max_guest_seconds": 3.971778,
+      "max_host_test_seconds": 4.02,
+      "max_standalone_command_seconds": 4.162,
+      "threshold_seconds": 5,
+      "passed": true
+    }
+  },
+  "boundaries": [
+    "HTTP only; TLS/HTTPS not implemented",
+    "IPv4 Echo only; no TTL or ICMP error-detail reporting",
+    "Serial ping probes; only the latest successful probe is retained for duplicate recognition",
+    "Milliseconds and microseconds describe parameters/measurement, not guaranteed scheduler wakeup precision",
+    "Existing socket table and queue bounds retained"
+  ],
+  "artifact_directory": "build/docs/network-tools-final/",
+  "source_sha256": {
+    "kernel/net/core/service.cpp": "401758b547009ee3a605f79d20342adbc5d10bb7ce35dc2f4eff5ec54e76b971",
+    "kernel/net/ip/icmp.cpp": "1fd5b50603d449df5a450898ce7c4a970807d739db0c239a4b890ad61c8fa230",
+    "kernel/net/ip/icmp.cppm": "efec68874b39d8340df890879034b35e96ae0fc03a438948e2fef5932ba6beec",
+    "kernel/net/socket/registry.cpp": "ae8b5046c3f31bd20fa8083113ad5512076bda7c472c1b7170ed2596c6a2eea6",
+    "kernel/net/socket/registry.cppm": "a16f1cfa21a94aac75a483f245c44d1710a11c25f396cec90e950a63608fa369",
+    "kernel/net/socket/registry/create.cppm": "e10afe95e212b6d0578f6e2671348112228473152484aee0ca18bd88199737c3",
+    "kernel/net/socket/socket.h": "6713bc81fef3e29e7a7e3e60a9d0150107901dc8f30386cdb512f5186f0bf008",
+    "kernel/net/socket/udp/edges.cppm": "dae1c65787196fe8e1c3f3e1a981884565c306bc91d2109cf05330df0f4e105f",
+    "kernel/net/socket/udp/flows.cppm": "8f89e7cc80b2cbfdb37cf6fe01f4d5d1cf8f237098b2c91648ed3f9af14a76f2",
+    "kernel/net/socket/udp_socket.cpp": "4a736836c1a737d32186493dbef85d213dc101683152de3b8d27fc43fb18635f",
+    "kernel/net/socket/udp_socket.cppm": "abbd8440937170d6738f6030161c7a316c30c0dfaca34ebb85c531f23e0c8825",
+    "tests/http_contract.cpp": "658ca8436bba5b1b4c786a28fe341de690b4e056e150cdb1dc48b451bc8eddf8",
+    "tests/http_network.py": "e80c087baba592e7a6aeaef499e5ed5ac7ce3ffe3d4b257894abcf65b1d0d502",
+    "tests/network_contract.cpp": "bd6f16819ec1decfdb2fa68de5a56c337d0e6b8a64a36fdad640e4e61792b17a",
+    "user/CMakeLists.txt": "6aad5256f8d1524c8e3deaa906233b90f614de150a90f457a96b5d23098625f1",
+    "user/apps/clear/clear.cpp": "ae0b5f61df4e68d4157f958b4cf923dee40bdadbdd37916c16bb96c2039060b5",
+    "user/apps/curl/curl.cpp": "423ae790baddf22af4e8c0dc54da6c17c47fbce30b967f6300d3a07e1a16fcea",
+    "user/apps/ping/ping.cpp": "d72bbfc1cd879c1ef20e445327d0ccd011fb32c669af54d2124de78858e0db00",
+    "user/runtime/http/client.cpp": "d1d3b723fe0f639065b9a47a67832cf2070f0fc619968b430ef7280476467fc9",
+    "user/runtime/http/http.h": "b30ce2c9364f569f39b916893b70c2e1c58d4e3af14fdb6924434ec4aa50fc62",
+    "user/runtime/icmp/echo.h": "f1f41264d79b50a08544dec659c9e55d0ae892f1b7bc5d8a0a71d567cd5f9307",
+    "user/runtime/parse.h": "382d72afcdca77c2830f38b99864b81df87853c848a4683a2e9636e68a9274b6"
+  }
+}

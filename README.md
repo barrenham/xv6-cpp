@@ -4,6 +4,8 @@
 
 用 C++20 重构的 xv6 RISC-V 教学操作系统。内核按具名模块组织，通过类接口和 RAII 管理设备、内存、文件与进程资源。使用 CMake、Ninja 和 Clang/LLD 构建，在 QEMU 上运行。
 
+这是一个用于个人学习和实验的项目，主要用来理解操作系统原理、练习 C++ 内核设计，并记录实现与验证过程。功能和接口会随学习过程演进。
+
 ## 功能
 
 - **内存**：设备树 RAM 发现、伙伴/链表页分配器、可选空闲链表/位图 slab、Sv39 页表与大页映射、虚拟区域登记、按需内核栈及应急补页、写时复制 fork。
@@ -11,7 +13,7 @@
 - **文件与终端**：日志文件系统、VFS、devfs/ramfs、动态 RAM/磁盘挂载、持久 rootfs、符号链接、pwd/cp/mv、随机文件 I/O、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。
 - **用户与权限**：UID/GID、附加组、文件权限、umask、登录与密码、用户/组管理、普通用户改密、chmod/chown。
 - **网络**：E1000、IPv4、ARP、ICMP、TCP/UDP、socket、多网卡、网桥、IP-in-IP 隧道与 IPv4 报文过滤。
-- **网络应用**：DHCP 自动取址、DNS 解析、netctl、nslookup、iptables 和 HTTP curl。
+- **网络应用**：DHCP 自动取址、DNS 解析、netctl、nslookup、iptables、HTTP curl、ping 和 clear。
 
 ## 构建与运行
 
@@ -50,6 +52,21 @@ curl http://example.com/
 ```
 
 要生成另一份独立 rootfs，可配置 `-DXV_ROOTFS_IMAGE="$PWD/data/my-rootfs.img"` 后再次运行 `rootfs-create`。该目标要求输出尚不存在，不会覆盖已有磁盘。
+
+## 将 user 程序安装到已有系统
+
+修改 `user/` 下的程序后，先在客体执行 `sync`，再退出使用该根盘的 QEMU。在项目根目录运行：
+
+```sh
+conda activate OS-LAB
+cmake --preset dev
+cmake --build build/dev --target rootfs-update
+cmake --build build/dev --target qemu
+```
+
+`rootfs-update` 会先编译用户程序并生成安装种子，再将清单内的程序安装到已有的 `data/rootfs.img`（或配置的 `XV_ROOTFS_IMAGE`）。例如本次的 `curl`、`ping` 和 `clear` 安装到 `/bin`。更新前会备份根盘，原有账户、密码和用户文件保留。
+
+新增应用需要先将源文件加入 `user/CMakeLists.txt` 的 `programs` 列表，再执行上述命令。普通应用安装到 `/bin`，指定的管理命令安装到 `/sbin`，测试程序安装到 `/usr/tests`。仅重新编译不会更新已有根盘；已有系统使用 `rootfs-update`，无需再次创建根盘。完整步骤、自定义根盘和预览方式见 [rootfs 工具说明](docs/rootfs-tools.md)。
 
 ## 文档
 

@@ -9,11 +9,11 @@ namespace xv::net
 {
 namespace flow = xv::flow;
 
-struct UdpSocket::SendFlow
+struct DatagramSocket::SendFlow
 {
   struct Context
   {
-    UdpSocket &owner;
+    DatagramSocket &owner;
     xv::io::Buffer data;
     unsigned length;
     const Endpoint *destination;
@@ -50,7 +50,7 @@ struct UdpSocket::SendFlow
 
   static inline bool connected(Context &c) noexcept
   {
-    return c.peer.address && c.peer.port;
+    return c.peer.address && (c.peer.port || c.owner.protocol() == 1);
   }
 
   static inline void bind(Context &c) noexcept
@@ -65,8 +65,9 @@ struct UdpSocket::SendFlow
 
   static inline void send(Context &c) noexcept
   {
-    c.result =
-        c.owner.registry_.udp().send(c.owner.local_, c.peer, c.staged.data(), c.length);
+    c.result = c.owner.protocol() == 1
+        ? c.owner.registry_.icmp().send_echo(c.staged.data(), c.length, c.owner.local_, c.peer)
+        : c.owner.registry_.udp().send(c.owner.local_, c.peer, c.staged.data(), c.length);
     if (c.result >= 0)
     {
       c.result = static_cast<int>(c.length);
@@ -136,11 +137,11 @@ struct UdpSocket::SendFlow
                   flow::node<BadCopy, flow::action<&bad_copy>, flow::stop>>>;
 };
 
-struct UdpSocket::ReceiveFlow
+struct DatagramSocket::ReceiveFlow
 {
   struct Context
   {
-    UdpSocket &owner;
+    DatagramSocket &owner;
     xv::io::Buffer data;
     unsigned length;
     Endpoint *peer;

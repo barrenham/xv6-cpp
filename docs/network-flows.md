@@ -44,7 +44,7 @@ Flow 是原类的私有嵌套类型。它能访问原类私有状态，因此不
 | `UdpProtocol` / `transport/udp.cppm` | UDP 校验、接收器分派、ICMP 不可达和发送 | [transport/udp](../kernel/net/transport/udp/) |
 | `TcpSocket` / `socket/tcp_socket.cppm` | 主动/被动/同时握手、接收、窗口、ACK、发送循环、重传、persist、FIN、定时回收，以及 connect/listen/accept/read/write/poll/shutdown/close | [socket/tcp](../kernel/net/socket/tcp/) |
 | `SocketRegistry`、`InetSocket` / `socket/registry.cppm` | 对象创建与失败销毁、连接/监听分派、绑定和自动绑定 | [socket/registry](../kernel/net/socket/registry/) |
-| `UdpSocket` / `socket/udp_socket.cppm` | connect、发送、匹配入队、接收等待和复制 | [socket/udp](../kernel/net/socket/udp/) |
+| `DatagramSocket` / `socket/udp_socket.cppm` | connect、发送、匹配入队、接收等待和复制 | [socket/udp](../kernel/net/socket/udp/) |
 | `Ipv4Layer` / `ip/ipv4.cppm` | 接收、目的分类、INPUT、引导分派、普通发送与 DHCP 引导发送 | [ip/ipv4](../kernel/net/ip/ipv4/) |
 | `Ipv4Reassembly` / `ip/reassembly.cppm` | 片段检查、重组槽操作、等待/拒绝/完成与首部修复 | [ip/reassembly](../kernel/net/ip/reassembly/) |
 | `IcmpProtocol` / `ip/icmp.cppm` | Echo 应答和端口不可达应答 | [ip/icmp](../kernel/net/ip/icmp/) |

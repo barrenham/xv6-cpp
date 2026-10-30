@@ -1,5 +1,5 @@
 {
-  "scope": "Every kernel C++/header/include/assembly source; kernel/boot excluded, previous kernel/net migration preserved",
+  "scope": "Every kernel source; kernel/boot excluded. Network flow baseline preserved and explicitly extended with restricted ICMP Echo sockets for ping; see docs/network-tools.md.",
   "files": [
     {
       "source": "kernel/arch/arch.cppm",
@@ -837,7 +837,7 @@
     },
     {
       "source": "kernel/net/core/service.cpp",
-      "sha256": "8eb17e47a76c9342b985dcbab179839e00e1012ac478ad137becb791ff31dfbf",
+      "sha256": "401758b547009ee3a605f79d20342adbc5d10bb7ce35dc2f4eff5ec54e76b971",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1101,13 +1101,13 @@
     },
     {
       "source": "kernel/net/ip/icmp.cpp",
-      "sha256": "2db90dd01d859877f8ab6dfe758face16103614403793782725a1f3879d7f173",
+      "sha256": "1fd5b50603d449df5a450898ce7c4a970807d739db0c239a4b890ad61c8fa230",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/ip/icmp.cppm",
-      "sha256": "b6a0f5aa789026446e5bf122d21a36f9586685660779382d266f3d8c8d8b2eb2",
+      "sha256": "efec68874b39d8340df890879034b35e96ae0fc03a438948e2fef5932ba6beec",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1263,19 +1263,19 @@
     },
     {
       "source": "kernel/net/socket/registry.cpp",
-      "sha256": "a1b77b7b8b17ce3cbd49656a2a19a136645afcb89bba5de0dd7b31fcdccc328c",
+      "sha256": "ae8b5046c3f31bd20fa8083113ad5512076bda7c472c1b7170ed2596c6a2eea6",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/registry.cppm",
-      "sha256": "0bd18b417360c9e699026180ec6076a7f62d84ad4c9c3cc3417ac469c8b6e457",
+      "sha256": "a16f1cfa21a94aac75a483f245c44d1710a11c25f396cec90e950a63608fa369",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/registry/create.cppm",
-      "sha256": "24895c80e484010fe9a9fed36a833f407fdc8009509b18a0a818d18afad269ed",
+      "sha256": "e10afe95e212b6d0578f6e2671348112228473152484aee0ca18bd88199737c3",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1293,7 +1293,7 @@
     },
     {
       "source": "kernel/net/socket/socket.h",
-      "sha256": "04112ccaf6e6798096fcb477708430a9763d6076ff7facf73cd900ffea4af164",
+      "sha256": "6713bc81fef3e29e7a7e3e60a9d0150107901dc8f30386cdb512f5186f0bf008",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1359,25 +1359,25 @@
     },
     {
       "source": "kernel/net/socket/udp/edges.cppm",
-      "sha256": "ae261629e227fb4d495e032455a756ca38c6d8d7cf1f9cf8f688a7dbf95f57a2",
+      "sha256": "dae1c65787196fe8e1c3f3e1a981884565c306bc91d2109cf05330df0f4e105f",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/udp/flows.cppm",
-      "sha256": "20f8a5e23cf5527c2b455c4b7368438adc2bd500007f3b29fca1649bf0e527e6",
+      "sha256": "8f89e7cc80b2cbfdb37cf6fe01f4d5d1cf8f237098b2c91648ed3f9af14a76f2",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/udp_socket.cpp",
-      "sha256": "fe58122d62c71a80606047524ff0ba54250bf90f518cfd4d1968fc1bf71820ce",
+      "sha256": "4a736836c1a737d32186493dbef85d213dc101683152de3b8d27fc43fb18635f",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/udp_socket.cppm",
-      "sha256": "6e39f33e23de1e982a48a892e88de47acce2f0581956f3f8322c22c258f1ef00",
+      "sha256": "abbd8440937170d6738f6030161c7a316c30c0dfaca34ebb85c531f23e0c8825",
       "classification": "previously_migrated",
       "review": "docs/network-flow-coverage.json"
     },
@@ -2290,9 +2290,9 @@
       "kernel/net/ip/reassembly.cpp": "309318e9d540a168cdfa4203673e948a6c7b2be317212040ea821a7eb6b8def2",
       "kernel/net/ip/routing.cpp": "fd865d99c5b4694f6de4367935ca209c3fbe49e98404f3139757313aa2909197",
       "kernel/net/ip/ipv4.cpp": "85e5f7196e6c148866f519217349eeacb40347ef49382b4fbfe272f9fbb826a6",
-      "kernel/net/ip/icmp.cppm": "b6a0f5aa789026446e5bf122d21a36f9586685660779382d266f3d8c8d8b2eb2",
+      "kernel/net/ip/icmp.cppm": "efec68874b39d8340df890879034b35e96ae0fc03a438948e2fef5932ba6beec",
       "kernel/net/ip/reassembly.cppm": "96ea72c2f90ab42f6d574ebd398c90d9aea15859b80f89ce060d7b721d897429",
-      "kernel/net/ip/icmp.cpp": "2db90dd01d859877f8ab6dfe758face16103614403793782725a1f3879d7f173",
+      "kernel/net/ip/icmp.cpp": "1fd5b50603d449df5a450898ce7c4a970807d739db0c239a4b890ad61c8fa230",
       "kernel/net/ip/routing.cppm": "57a0d8def4443c5432e5a9530d610f462567233c909ed8bf3025218bf38a788f",
       "kernel/net/ip/ipv4.cppm": "bb6aea5b5ac0faca702c9970fde9c11da3fdf5e002ecaf72f2882a15b8143ee1",
       "kernel/net/transport/retransmission_timer.cppm": "51617730dcb02f8b564a577ed7d4ccc49f35a73c5e0d2c1b37d5793ec8cbc872",
@@ -2303,22 +2303,22 @@
       "kernel/net/transport/udp.cppm": "73797e33edb14a918e2db20e7c63bf1f0f740f8ea57be84d94a0429d15e61ca8",
       "kernel/net/transport/congestion.cppm": "153ff70ae15a93a320579dc7e7f9de8ecb99eba3bec2395f892f18a125a5ada0",
       "kernel/net/transport/algorithms.cpp": "0a50e23ab66fba414787d995e44255142b176d9dd26331c85eb1a7c2124bb2bd",
-      "kernel/net/socket/udp_socket.cppm": "6e39f33e23de1e982a48a892e88de47acce2f0581956f3f8322c22c258f1ef00",
+      "kernel/net/socket/udp_socket.cppm": "abbd8440937170d6738f6030161c7a316c30c0dfaca34ebb85c531f23e0c8825",
       "kernel/net/socket/inet_socket.cpp": "3b5d64f383e8c075e9a5835b7fd67a1db80756242dcd03a8545bbeee3ccb20f2",
       "kernel/net/socket/tcp_sender.cpp": "6528d737892f10e6dc9f7c7cf5ee5a214a368ab73eb9d37a7eb1497d2902745c",
-      "kernel/net/socket/registry.cppm": "0bd18b417360c9e699026180ec6076a7f62d84ad4c9c3cc3417ac469c8b6e457",
+      "kernel/net/socket/registry.cppm": "a16f1cfa21a94aac75a483f245c44d1710a11c25f396cec90e950a63608fa369",
       "kernel/net/socket/tcp_socket.cppm": "de5efcfa0556ab1fd2a21d24055a2c40ae66ba99e99ef6ab891816f3a172cfd0",
       "kernel/net/socket/tcp_receiver.cpp": "01238cf113bbe4e515ececc9d6c81beb7ca53a775f9e7487a6087224200e481e",
-      "kernel/net/socket/registry.cpp": "a1b77b7b8b17ce3cbd49656a2a19a136645afcb89bba5de0dd7b31fcdccc328c",
-      "kernel/net/socket/udp_socket.cpp": "fe58122d62c71a80606047524ff0ba54250bf90f518cfd4d1968fc1bf71820ce",
+      "kernel/net/socket/registry.cpp": "ae8b5046c3f31bd20fa8083113ad5512076bda7c472c1b7170ed2596c6a2eea6",
+      "kernel/net/socket/udp_socket.cpp": "4a736836c1a737d32186493dbef85d213dc101683152de3b8d27fc43fb18635f",
       "kernel/net/socket/tcp_socket.cpp": "973e6b0631c26216b0236898417fbdf7987c1def8a92922d6c6570b778b3c1fa",
       "kernel/net/socket/socket.cppm": "3db79653732b9b19b2ac7ba772a14c123e5aa9e580b886e9514f5eec33ec1216",
-      "kernel/net/socket/socket.h": "04112ccaf6e6798096fcb477708430a9763d6076ff7facf73cd900ffea4af164",
+      "kernel/net/socket/socket.h": "6713bc81fef3e29e7a7e3e60a9d0150107901dc8f30386cdb512f5186f0bf008",
       "kernel/net/bridge/bridge.cpp": "cca6bf46c222000e3cca4115e49d25b033d7eb9c87a62d5d0eab7780913fae0d",
       "kernel/net/bridge/manager.cpp": "20331b7a1da3346779f38297dce08bb32b22e5bb6db76168241cae96a0a220de",
       "kernel/net/bridge/bridge.cppm": "a5537d48127f2230ee605f50a663bede9ae0f68764fe5c37451966fb6d649a24",
       "kernel/net/core/wire.cppm": "2d8b6a1e79dad7c8a0f469a91fcb429270eeff09f445df3b7ece1655646e67cb",
-      "kernel/net/core/service.cpp": "8eb17e47a76c9342b985dcbab179839e00e1012ac478ad137becb791ff31dfbf",
+      "kernel/net/core/service.cpp": "401758b547009ee3a605f79d20342adbc5d10bb7ce35dc2f4eff5ec54e76b971",
       "kernel/net/core/control.cppm": "716233a87630a553c95f27cef6007fc7fb9989e46b9fc47cefd34c4bb88b1257",
       "kernel/net/core/packet.cppm": "4fd60e27342c5b8218d0d74e8898c2d1ac9612d7fba03474f3968035b396598e",
       "kernel/net/core/packet.cpp": "19b527c95937cde97a91181cc5d847996c07bfe5fdd385a9b85e5479545a9ff1",
@@ -2338,10 +2338,10 @@
       "kernel/net/core/control/execute.cppm": "3db2da3a55150ce9d997b517b32474d29f1923bc027b556dc73b7b1a839daf55",
       "kernel/net/bridge/forward/flow.cppm": "e52a38ae4b8b7d938220b1e6e51eec10ac7aefdc1f59b12f1c56d89fd9de1052",
       "kernel/net/bridge/manager/flows.cppm": "5ce0f95086dfd0aca2ab09c2569786178efef96f5df5265666cbd5fb09bf5d92",
-      "kernel/net/socket/udp/flows.cppm": "20f8a5e23cf5527c2b455c4b7368438adc2bd500007f3b29fca1649bf0e527e6",
-      "kernel/net/socket/udp/edges.cppm": "ae261629e227fb4d495e032455a756ca38c6d8d7cf1f9cf8f688a7dbf95f57a2",
+      "kernel/net/socket/udp/flows.cppm": "8f89e7cc80b2cbfdb37cf6fe01f4d5d1cf8f237098b2c91648ed3f9af14a76f2",
+      "kernel/net/socket/udp/edges.cppm": "dae1c65787196fe8e1c3f3e1a981884565c306bc91d2109cf05330df0f4e105f",
       "kernel/net/socket/registry/flows.cppm": "7bd1de3f248cc72f5be2d540e6a6ba91ec623370229d0192f1c5b188761c12d4",
-      "kernel/net/socket/registry/create.cppm": "24895c80e484010fe9a9fed36a833f407fdc8009509b18a0a818d18afad269ed",
+      "kernel/net/socket/registry/create.cppm": "e10afe95e212b6d0578f6e2671348112228473152484aee0ca18bd88199737c3",
       "kernel/net/socket/tcp/reliability.cppm": "bf44d6c5d4f61ae3174794483e1baded74707e105d3081aeccc6f101b28560ad",
       "kernel/net/socket/tcp/sender.cppm": "54c88624b3c52cefc9646a92823506cee09d3cbb08e8c45481d7ea2f1d2e0e82",
       "kernel/net/socket/tcp/lifecycle.cppm": "515022e26abfee2fd4981e8ff4d22092d7528e9c389ea67af240ef02ff925634",

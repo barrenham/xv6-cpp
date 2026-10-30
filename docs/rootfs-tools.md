@@ -10,6 +10,8 @@
 先在客体运行 `sync`，再退出使用这块根盘的 QEMU（Ctrl-a 后按 x），在项目根目录运行：
 
 ```sh
+conda activate OS-LAB
+cmake --preset dev
 cmake --build build/dev --target rootfs-update
 cmake --build build/dev --target qemu
 ```
@@ -47,6 +49,29 @@ python tools/update_rootfs.py --seed build/dev/fs.img \
 
 dry-run 也检查容量与锁，但不写磁盘或备份。工具没有自动清理备份；确认不再需要后自行管理。
 根盘布局、inode 数和容量保持原样，这不是扩容、在线更新或完整 fsck 工具。
+
+## 把 user 中的程序加入安装清单
+
+已有程序直接修改相应的 `user/apps/` 或 `user/tests/` 源文件即可。新增应用以 `hello` 为例：
+
+1. 创建 `user/apps/hello/hello.cpp`，使用项目的用户运行库和系统调用接口编写入口。
+2. 在 `user/CMakeLists.txt` 的 `set(programs ...)` 中加入 `apps/hello/hello.cpp`。
+3. 按上一节运行配置和 `rootfs-update`，然后重新启动 QEMU。
+4. 在客体 shell 运行 `hello`；普通应用的安装位置是 `/bin/hello`。
+
+`xv_add_program` 根据清单编译并链接 RISC-V 用户程序，构建产物为 `build/dev/user/_hello`，同时生成 `build/dev/fs-manifest.tsv` 中的安装映射。更新工具根据该映射安装编译产物，源文件和运行库本身不会作为应用复制进去。程序名取源文件的文件名，不含扩展名，因此清单中应避免重名。
+
+当前规则将普通应用安装到 `/bin`，将 init、用户/组管理、netctl、iptables 等指定管理命令安装到 `/sbin`，将测试程序安装到 `/usr/tests`。例如 `curl`、`ping` 和 `clear` 都位于 `/bin`。需要新增管理命令时，还应在同一文件的目标路径判断中登记名称。
+
+如果使用另一块已有根盘，先显式选择它，再更新：
+
+```sh
+cmake --preset dev -DXV_ROOTFS_IMAGE="$PWD/data/my-rootfs.img"
+cmake --build build/dev --target rootfs-update
+cmake --build build/dev --target qemu
+```
+
+`rootfs-update` 要求目标根盘已经存在。新使用者尚无根盘时，按下一节使用 `rootfs-create` 创建；日常程序更新使用 `rootfs-update`。安装种子 `build/dev/fs.img` 随构建更新，已有持久根盘需要显式安装才会改变。
 
 ## 别人生成自己的 rootfs
 

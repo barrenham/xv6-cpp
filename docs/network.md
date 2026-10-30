@@ -1,6 +1,6 @@
 # 分层 IPv4、TCP/UDP 与 socket
 
-实现前的网络基线已提交并推送为 `bb2a632`。E1000 现支持启动期发现多块设备及共享中断；原来混合在 `stack.cpp` 的 Ethernet/ARP/IP/UDP 处理已经拆开。旧实验 PID 端口 API、`stack.cpp` 兼容适配和旧系统调用已移除，UDP 收发统一进入 SocketRegistry/UdpSocket。
+实现前的网络基线已提交并推送为 `bb2a632`。E1000 现支持启动期发现多块设备及共享中断；原来混合在 `stack.cpp` 的 Ethernet/ARP/IP/UDP 处理已经拆开。旧实验 PID 端口 API、`stack.cpp` 兼容适配和旧系统调用已移除，UDP 收发统一进入 SocketRegistry/DatagramSocket。
 
 ## 架构与所有权
 
@@ -8,7 +8,7 @@
 flowchart TD
   U[用户 socket / read / write / poll] --> F[DescriptorTable 与 File]
   F --> S[xv.io::IoObject / xv.net::Socket]
-  S --> US[UdpSocket]
+  S --> US[DatagramSocket]
   S --> TS[TcpSocket]
   US --> UDP[UdpProtocol]
   TS --> TCP[TcpProtocol]
@@ -202,3 +202,5 @@ UDP 的端口占用、接收队列和生命周期统一由 socket 管理。fork 
 配置访问由 `ConfigurationGuard` 统一保护。Guard 在检查配置锁 owner 前先关闭本地中断，避免检查期间被抢占并迁移 CPU；每个 Guard 独立配对恢复关中断计数，只有实际 acquire 的实例负责 release。支持嵌套调用、调用前已关中断和借用已有配置锁。临界区仍禁止睡眠、发包回调及反向获取 ARP/设备锁，锁外快照的对象存活和代次校验另行维护。见 [独立函数说明](functions/kernel/net/interface/configuration.cppm.md)。
 
 `network_contract` 包含针对配置 Guard 的确定性测试：另一线程持锁时，归属查询必须已经处于关中断作用域；还验证竞争互斥、嵌套、已有中断禁用作用域、借用手工持锁和提前返回的计数恢复。宿主机用线程局部计数模拟关中断，实际内核中断恢复另由单核/五核 QEMU 网络回归覆盖。
+
+IPv4 Echo 测量、受限 ICMP socket 与 clear 见 [网络测量命令](network-tools.md)。

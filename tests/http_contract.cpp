@@ -1,4 +1,6 @@
 #include "user/runtime/http/codec.h"
+#include "user/runtime/parse.h"
+#include "user/runtime/icmp/echo.h"
 #include <cassert>
 #include <cstring>
 #include <cstdio>
@@ -6,6 +8,23 @@
 using namespace xv::http;
 int main()
 {
+  unsigned ms=0;
+  assert(xv::cli::duration_ms(".001",ms) && ms==1);
+  assert(xv::cli::duration_ms("1.234",ms) && ms==1234);
+  assert(xv::cli::duration_ms("3600",ms) && ms==3600000);
+  for(auto bad : {"", "0", ".", "1.", "-1", "nan", "0.0001", "3600.001", "99999999999999999999"})
+    assert(!xv::cli::duration_ms(bad,ms));
+  unsigned char sent[1472],reply[1472];
+  for(unsigned length : {8U,9U,15U,16U,65U,1472U}) {
+    xv::echo::request(sent,length,65535,0x123456789abcdef0ULL);
+    assert(!xv::echo::checksum(sent,length));
+    memcpy(reply,sent,length);reply[0]=0;xv::echo::write16(reply+4,32768);
+    reply[2]=reply[3]=0;xv::echo::write16(reply+2,xv::echo::checksum(reply,length));
+    assert(xv::echo::matches(reply,length,sent,length,32768));
+    assert(!xv::echo::matches(reply,length-1,sent,length,32768));
+    assert(!xv::echo::matches(reply,length,sent,length,32769));
+    reply[length-1]^=1;assert(!xv::echo::matches(reply,length,sent,length,32768));
+  }
   Url base{}, out{};
   assert(!parse_url("HTTP://Example.COM:8080/a/b/../c?x=1#frag", base));
   assert(!strcmp(base.host, "example.com") && base.port == 8080 && !strcmp(base.target, "/a/c?x=1"));

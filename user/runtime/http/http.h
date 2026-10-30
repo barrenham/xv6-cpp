@@ -7,6 +7,7 @@ enum Error { Ok = 0, Unsupported = 1, InvalidUrl = 3, Resolve = 6, Connect = 7,
 struct Options
 {
   unsigned timeout_ms = 30000;
+  unsigned connect_timeout_ms = 0; // zero uses the remaining whole-operation budget
   unsigned max_redirects = 5;
   bool head = false;
   bool follow = false;
@@ -18,6 +19,8 @@ struct Response
   unsigned status = 0;
   unsigned redirects = 0;
   unsigned long long body_bytes = 0;
+  unsigned long long total_us = 0, namelookup_us = 0, connect_us = 0, first_byte_us = 0;
+  unsigned connects = 0, socket_reads = 0, socket_writes = 0;
 };
 class Sink
 {

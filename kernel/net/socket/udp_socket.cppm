@@ -3,11 +3,11 @@ import :registry;
 
 namespace xv::net
 {
-class UdpSocket final : public InetSocket
+class DatagramSocket final : public InetSocket
 {
 public:
 
-  explicit UdpSocket(SocketRegistry &registry) : InetSocket(registry, 17)
+  explicit DatagramSocket(SocketRegistry &registry, unsigned protocol = 17) : InetSocket(registry, protocol)
   {
   }
 

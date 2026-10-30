@@ -17,10 +17,10 @@
 
 <a id="fn-2b7d32d9e1d8d3b4"></a>
 
-## `xv::net::UdpSocket::UdpSocket`
+## `xv::net::DatagramSocket::DatagramSocket`
 
 ```doxygen
-@fn explicit xv::net::UdpSocket::UdpSocket(SocketRegistry &registry)
-@brief 构造 UdpSocket 的状态与依赖。
-@details 构造 UDP 协议标识与空的十六项数据报队列；对象尚未自动绑定端口。
+@fn explicit xv::net::DatagramSocket::DatagramSocket(SocketRegistry &registry, unsigned protocol = 17) : InetSocket(registry, protocol)
+@brief 初始化 UDP 或 ICMP Echo 数据报 socket，共用有界收包队列和生命周期。
+@param protocol 17 为 UDP，1 为受限 Echo socket；注册表验证后构造。
 ```

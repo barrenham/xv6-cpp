@@ -68,7 +68,7 @@
 
 ```doxygen
 @fn void xv::net::attach_protocols()
-@brief 挂接 IPv4 协议号处理器，并把同一 socket 注册表分别注入 UDP 数据报与 TCP 段接收入口。
+@brief 挂接 IPv4 协议号处理器，并把同一 socket 注册表分别注入 UDP 数据报、TCP 段与 ICMP Echo Reply 接收入口。
 @details TCP 编解码对象只借用 IPv4；注册表构造时已显式借用同一个 TCP 发送对象。装配在发布收发服务前完成。
 ```
 

@@ -37,6 +37,7 @@
 
 - [DNS 用户态解析与 nslookup](network-dns.md)：DHCP DNS、A/CNAME、UDP/TCP、运行库 API 与测试。
 
+- [ping 与 clear](network-tools.md)：ICMP 测量、受限数据报 socket 和终端清屏。
 - [HTTP 客户端与 curl](network-http.md)：流式下载、重定向、HTTP 定界、用户态类库与测试。
 
 - [TCP 滑动窗口与连接管理](network-tcp.md)：收发队列、乱序重排、NewReno、重传与关闭。

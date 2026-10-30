@@ -13,7 +13,7 @@ namespace flow = xv::flow;
 
 struct SocketRegistry::CreationFlow
 {
-  static_assert(sizeof(TcpSocket) <= 4096 && sizeof(UdpSocket) <= 4096);
+  static_assert(sizeof(TcpSocket) <= 4096 && sizeof(DatagramSocket) <= 4096);
 
   struct Context
   {
@@ -21,14 +21,15 @@ struct SocketRegistry::CreationFlow
     int type, protocol;
     void *page = nullptr;
     TcpSocket *tcp = nullptr;
-    UdpSocket *udp = nullptr;
+    DatagramSocket *udp = nullptr;
     Socket *result = nullptr;
   };
 
   static inline bool valid(Context &c) noexcept
   {
     return (c.type == 1 || c.type == 2) &&
-           (!c.protocol || c.protocol == (c.type == 1 ? 6 : 17));
+           (!c.protocol || c.protocol == (c.type == 1 ? 6 : 17) ||
+            (c.type == 2 && c.protocol == 1 && c.owner.icmp_));
   }
 
   static inline bool tcp(Context &c) noexcept
@@ -73,7 +74,7 @@ struct SocketRegistry::CreationFlow
 
   static inline void construct_udp(Context &c) noexcept
   {
-    c.udp = new (c.page) UdpSocket(c.owner);
+    c.udp = new (c.page) DatagramSocket(c.owner, c.protocol == 1 ? 1 : 17);
   }
 
   static inline bool register_udp(Context &c) noexcept

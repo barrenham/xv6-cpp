@@ -3,6 +3,7 @@
 #define SOCK_STREAM 1
 #define SOCK_DGRAM 2
 #define SOCK_NONBLOCK 0x800
+#define IPPROTO_ICMP 1
 #define IPPROTO_TCP 6
 #define IPPROTO_UDP 17
 #define SOL_SOCKET 1

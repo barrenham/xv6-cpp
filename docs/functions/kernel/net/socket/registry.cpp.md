@@ -22,6 +22,8 @@
 - [`xv::net::SocketRegistry::tick`](registry.cpp.md#fn-c06a8341d8d22f53)
 - [`xv::net::create_socket`](registry.cpp.md#fn-75b80a83f7b1ba17)
 
+- [`xv::net::SocketRegistry::deliver_echo`](registry.cpp.md#fn-203f77c89adc34f4)
+
 <a id="fn-659351b0c1327217"></a>
 
 ## `xv::net::SocketRegistry::initialize`
@@ -203,4 +205,14 @@
 @fn Socket *xv::net::create_socket(int type, int protocol)
 @brief 通过唯一 SocketRegistry 工厂创建支持的 STREAM/DGRAM 实例。
 @details 通过唯一 SocketRegistry 工厂创建支持的 STREAM/DGRAM 实例，调用者取得应用拥有权，须安装 File 或 close 回滚。
+```
+
+<a id="fn-203f77c89adc34f4"></a>
+
+## `xv::net::SocketRegistry::deliver_echo`
+
+```doxygen
+@fn bool xv::net::SocketRegistry::deliver_echo(Packet &packet, const IpDatagram &d)
+@brief 从 Echo 标识符选择 protocol 1 socket，在注册表锁内交付接收队列。
+@details 同时匹配本地地址及已连接对端地址。队列满时按原 DatagramSocket 有界队列规则丢弃并释放；未匹配的报文保持调用者所有权。
 ```

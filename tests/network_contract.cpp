@@ -1,3 +1,4 @@
+#include "user/runtime/icmp/echo.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -171,6 +172,27 @@ int main()
   check(captured_length == 45 && icmp[34] == 0 && checksum(icmp+34, 11) == 0, "ICMP echo");
   datagram->close();
   net_test_clear_interrupt();
+  // Echo datagram sockets use independent identifiers and preserve queue ownership.
+  auto *ping = xv::net::create_socket(2, 1);
+  auto *ping2 = xv::net::create_socket(2, 1);
+  check(ping && ping2, "ICMP sockets");
+  check(!ping->connect({0x7f000001,0},false) && !ping2->connect({0x7f000001,0},false), "ICMP portless connect");
+  check(ping->local().port != ping2->local().port, "unique ICMP identifiers");
+  unsigned char request[65], reply[65];
+  xv::echo::request(request,sizeof(request),7,12345);
+  check(ping->send_to({address(request),false},7,nullptr)==-90, "short echo rejected");
+  request[0]=3;
+  check(ping->send_to({address(request),false},sizeof(request),nullptr)==-22, "only echo requests allowed");
+  request[0]=8;
+  for (unsigned i=0;i<50;++i) {
+    check(ping->send_to({address(request),false},sizeof(request),nullptr)==sizeof(request), "ICMP loopback send");
+    tick(16001+i*2); tick(16002+i*2);
+    check(ping->receive_from({address(reply),true},sizeof(reply),nullptr)==sizeof(reply), "ICMP loopback receive");
+    check(xv::echo::matches(reply,sizeof(reply),request,sizeof(request),ping->local().port), "ICMP checksum payload and identifier rewrite");
+    check(ping2->receive_from({address(reply),true},sizeof(reply),nullptr)==-11, "ICMP socket isolation");
+  }
+  ping->close();ping2->close();
+  check(net_test_pages()==0,"ICMP socket pages released");
   run_tcp_contracts();
   run_network_interface_contracts();
   run_network_control_contracts();

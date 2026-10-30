@@ -8,11 +8,11 @@ namespace
 {
 class Deadline
 {
-  unsigned began_ = unsigned(uptime()), timeout_;
+  uint64 ends_;
 public:
-  explicit Deadline(unsigned timeout) : timeout_(timeout) {}
+  explicit Deadline(unsigned timeout) : ends_(clockticks()+uint64(timeout)*10000) {}
   unsigned remaining() const
-  { unsigned used = (unsigned(uptime()) - began_)*100U; return used >= timeout_ ? 0 : timeout_ - used; }
+  { auto now=clockticks(); return now>=ends_ ? 0 : unsigned((ends_-now+9999)/10000); }
   int wait(int fd, short events) const
   {
     unsigned left = remaining(); if (!left) return Timeout;
@@ -27,35 +27,44 @@ class Connection
   int fd_ = -1;
   Deadline &deadline_;
   char *data_;
+  Response &response_;
+  uint64 began_;
+  bool saw_first_ = false;
   unsigned cursor_ = 0, used_ = 0;
 public:
-  Connection(Deadline &deadline, char *buffer) : deadline_(deadline), data_(buffer) {}
+  Connection(Deadline &deadline, char *buffer, Response &response, uint64 began)
+      : deadline_(deadline), data_(buffer), response_(response), began_(began) {}
   ~Connection() { reset(); }
   void reset() { if (fd_ >= 0) close(fd_); fd_ = -1; cursor_ = used_ = 0; }
-  int open(const Url &url, dns_result &addresses)
+  int open(const Url &url, dns_result &addresses, unsigned connect_timeout)
   {
     reset(); dns_options options{};
-    options.total_timeout_ms = deadline_.remaining();
+    auto started=clockticks();
+    unsigned budget=deadline_.remaining();
+    if(connect_timeout && connect_timeout<budget)budget=connect_timeout;
+    Deadline connecting(budget);
+    options.total_timeout_ms = budget;
     if (!options.total_timeout_ms) return Timeout;
     int status = dns_lookup(url.host, &addresses, &options);
+    response_.namelookup_us+=(clockticks()-started)/10;
     if (status) return status == DNS_TIMEOUT ? Timeout : Resolve;
     for (unsigned i = 0; i < addresses.count; ++i)
     {
-      if (!deadline_.remaining()) return Timeout;
+      if (!connecting.remaining()) return Timeout;
       fd_ = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
       if (fd_ < 0) return Connect;
       sockaddr_in peer{}; peer.sin_family = AF_INET; peer.sin_port = htons(url.port); peer.sin_addr.s_addr = htonl(addresses.addresses[i]);
       status = connect(fd_, reinterpret_cast<sockaddr *>(&peer), sizeof(peer));
       if (status == -115)
       {
-        status = deadline_.wait(fd_, POLLOUT);
+        status = connecting.wait(fd_, POLLOUT);
         if (!status)
         {
           int error = 0; socklen_t size = sizeof(error);
           status = getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &size) || error ? Connect : 0;
         }
       }
-      if (!status) return 0;
+      if (!status) { ++response_.connects;response_.connect_us+=(clockticks()-started)/10;return 0; }
       reset(); if (status == Timeout) return Timeout;
     }
     return Connect;
@@ -66,6 +75,7 @@ public:
     while (done < length)
     {
       if (!deadline_.remaining()) return Timeout;
+      ++response_.socket_writes;
       int n = write(fd_, data+done, int(length-done));
       if (n == -11) { int status = deadline_.wait(fd_, POLLOUT); if (status) return status; }
       else if (n <= 0) return Connect;
@@ -84,7 +94,9 @@ public:
     for (;;)
     {
       if (!deadline_.remaining()) return -Timeout;
+      ++response_.socket_reads;
       int n = read(fd_, data, int(length));
+      if(n>0 && !saw_first_) { response_.first_byte_us=(clockticks()-began_)/10;saw_first_=true; }
       if (n != -11) return n < 0 ? -Connect : n;
       int status = deadline_.wait(fd_, POLLIN); if (status) return -status;
     }
@@ -97,7 +109,7 @@ public:
       if (cursor_ == used_)
       {
         cursor_ = used_ = 0;
-        int received = receive(data_, 2048);
+        int received = receive(data_, 8192);
         if (received <= 0) return received < 0 ? -received : Partial;
         used_ = unsigned(received);
       }
@@ -115,8 +127,8 @@ struct Workspace
   HeaderParser parser;
   char line[line_size];
   char request[target_size+512];
-  char body[2048];
-  char network[2048];
+  char body[8192];
+  char network[8192];
   dns_result addresses;
 };
 class RequestBuilder
@@ -179,12 +191,12 @@ int read_body(Connection &connection, Workspace &w, Sink &sink, Response &respon
     response.body_bytes += unsigned(n);
   }
 }
-int perform(Workspace &w, const Options &options, Sink &sink, Response &response)
+int perform(Workspace &w, const Options &options, Sink &sink, Response &response, uint64 began)
 {
-  Deadline deadline(options.timeout_ms); Connection connection(deadline, w.network);
+  Deadline deadline(options.timeout_ms); Connection connection(deadline, w.network, response, began);
   for (;;)
   {
-    int status = connection.open(w.current, w.addresses); if (status) return status;
+    int status = connection.open(w.current, w.addresses, options.connect_timeout_ms); if (status) return status;
     RequestBuilder request(w.request, sizeof(w.request));
     if (!request.append(options.head ? "HEAD " : "GET ") || !request.append(w.current.target) ||
         !request.append(" HTTP/1.1\r\nHost: ") || !request.append(w.current.host)) return InvalidUrl;
@@ -226,13 +238,14 @@ int perform(Workspace &w, const Options &options, Sink &sink, Response &response
 int Client::get(const char *url, const Options &options, Sink &sink, Response &response)
 {
   response = {};
-  if (!options.timeout_ms || options.timeout_ms > 3600000 || options.max_redirects > 20) return InvalidUrl;
+  const auto began=clockticks();
+  if (!options.timeout_ms || options.timeout_ms > 3600000 || options.max_redirects > 20 || options.connect_timeout_ms > 3600000) return InvalidUrl;
   Workspace *w = static_cast<Workspace *>(malloc(sizeof(Workspace)));
   if (!w) return Memory;
   *w = {};
   int status = parse_url(url, w->current);
-  if (!status) status = perform(*w, options, sink, response);
-  free(w); return status;
+  if (!status) status = perform(*w, options, sink, response, began);
+  free(w); response.total_us=(clockticks()-began)/10;return status;
 }
 const char *error_string(int error)
 {

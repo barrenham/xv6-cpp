@@ -31,240 +31,240 @@
 
 <a id="fn-3290497496af95ea"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::again`
+## `xv::net::DatagramSocket::ReceiveFlow::again`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::again(Context &c) noexcept
-@brief 记录非阻塞暂不可用的负 EAGAIN；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::again(Context &c) noexcept
+@brief 记录非阻塞暂不可用的负 EAGAIN；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-2acbeab81d57cf30"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::copy_out`
+## `xv::net::DatagramSocket::ReceiveFlow::copy_out`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::ReceiveFlow::copy_out(Context &c) noexcept
-@brief 将已取出的业务数据复制给用户；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline bool xv::net::DatagramSocket::ReceiveFlow::copy_out(Context &c) noexcept
+@brief 将已取出的业务数据复制给用户；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-ba82eae8863fd7cb"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::dequeue`
+## `xv::net::DatagramSocket::ReceiveFlow::dequeue`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::dequeue(Context &c) noexcept
-@brief 在原锁下取出队列头部并交还报文所有权；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::dequeue(Context &c) noexcept
+@brief 在原锁下取出队列头部并交还报文所有权；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。 Packet 成员在已有存储中原位重建，页面所有权由成员析构维持。
 ```
 
 <a id="fn-2c234f391096f466"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::interrupted`
+## `xv::net::DatagramSocket::ReceiveFlow::interrupted`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::ReceiveFlow::interrupted(Context &) noexcept
-@brief 检查当前等待是否已经被中断；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline bool xv::net::DatagramSocket::ReceiveFlow::interrupted(Context &) noexcept
+@brief 检查当前等待是否已经被中断；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-2154b468e6d6b5c1"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::interrupted_error`
+## `xv::net::DatagramSocket::ReceiveFlow::interrupted_error`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::interrupted_error(Context &c) noexcept
-@brief 记录中断或用户复制失败的负错误；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::interrupted_error(Context &c) noexcept
+@brief 记录中断或用户复制失败的负错误；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-93f5cce5c8e0d641"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::nonblocking`
+## `xv::net::DatagramSocket::ReceiveFlow::nonblocking`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::ReceiveFlow::nonblocking(Context &c) noexcept
-@brief 检查本次应用调用是否为非阻塞；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline bool xv::net::DatagramSocket::ReceiveFlow::nonblocking(Context &c) noexcept
+@brief 检查本次应用调用是否为非阻塞；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-836f3630a61b00d3"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::readable`
+## `xv::net::DatagramSocket::ReceiveFlow::readable`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::ReceiveFlow::readable(Context &c) noexcept
-@brief 检查当前队列或接收流是否存在可读内容；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline bool xv::net::DatagramSocket::ReceiveFlow::readable(Context &c) noexcept
+@brief 检查当前队列或接收流是否存在可读内容；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-d75ba59e54ea793d"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::success`
+## `xv::net::DatagramSocket::ReceiveFlow::success`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::success(Context &c) noexcept
-@brief 记录本阶段已经成功完成；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::success(Context &c) noexcept
+@brief 记录本阶段已经成功完成；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-d5f33c23489acf86"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::unlock`
+## `xv::net::DatagramSocket::ReceiveFlow::unlock`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::unlock(Context &c) noexcept
-@brief 释放本次 socket 调用仍持有的注册表锁；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::unlock(Context &c) noexcept
+@brief 释放本次 socket 调用仍持有的注册表锁；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-27abfd498ecbb389"></a>
 
-## `xv::net::UdpSocket::ReceiveFlow::wait`
+## `xv::net::DatagramSocket::ReceiveFlow::wait`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::ReceiveFlow::wait(Context &c) noexcept
-@brief 沿原等待协议登记、解锁睡眠并重新持锁；所属流程为 xv::net::UdpSocket::ReceiveFlow。
+@fn static inline void xv::net::DatagramSocket::ReceiveFlow::wait(Context &c) noexcept
+@brief 沿原等待协议登记、解锁睡眠并重新持锁；所属流程为 xv::net::DatagramSocket::ReceiveFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-70162e18a74ac9a0"></a>
 
-## `xv::net::UdpSocket::SendFlow::allocate`
+## `xv::net::DatagramSocket::SendFlow::allocate`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::allocate(Context &c) noexcept
-@brief 通过原有分配接口创建本阶段所需资源；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::allocate(Context &c) noexcept
+@brief 通过原有分配接口创建本阶段所需资源；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。 Packet 成员在已有存储中原位重建，页面所有权由成员析构维持。
 ```
 
 <a id="fn-dfd5729e9a7ebb5a"></a>
 
-## `xv::net::UdpSocket::SendFlow::allocated`
+## `xv::net::DatagramSocket::SendFlow::allocated`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::SendFlow::allocated(Context &c) noexcept
-@brief 检查本阶段分配是否成功；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline bool xv::net::DatagramSocket::SendFlow::allocated(Context &c) noexcept
+@brief 检查本阶段分配是否成功；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-8fad03f5b17bdf7c"></a>
 
-## `xv::net::UdpSocket::SendFlow::bad_copy`
+## `xv::net::DatagramSocket::SendFlow::bad_copy`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::bad_copy(Context &c) noexcept
-@brief 记录用户复制失败的负错误；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::bad_copy(Context &c) noexcept
+@brief 记录用户复制失败的负错误；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-843112b108e1f577"></a>
 
-## `xv::net::UdpSocket::SendFlow::bind`
+## `xv::net::DatagramSocket::SendFlow::bind`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::bind(Context &c) noexcept
-@brief 完成绑定或进入租约已绑定状态；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::bind(Context &c) noexcept
+@brief 完成绑定或进入租约已绑定状态；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-7140c1a73b9e5b63"></a>
 
-## `xv::net::UdpSocket::SendFlow::bound`
+## `xv::net::DatagramSocket::SendFlow::bound`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::SendFlow::bound(Context &c) noexcept
-@brief 检查绑定步骤的业务结果是否成功；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline bool xv::net::DatagramSocket::SendFlow::bound(Context &c) noexcept
+@brief 检查绑定步骤的业务结果是否成功；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-1bb201d71d2352fe"></a>
 
-## `xv::net::UdpSocket::SendFlow::connected`
+## `xv::net::DatagramSocket::SendFlow::connected`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::SendFlow::connected(Context &c) noexcept
-@brief 检查当前 socket 是否允许本次连接操作；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline bool xv::net::DatagramSocket::SendFlow::connected(Context &c) noexcept
+@brief 检查当前 socket 是否允许本次连接操作；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-b37a7360bbabd459"></a>
 
-## `xv::net::UdpSocket::SendFlow::copy_in`
+## `xv::net::DatagramSocket::SendFlow::copy_in`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::SendFlow::copy_in(Context &c) noexcept
-@brief 从用户输入暂存数据并报告结果；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline bool xv::net::DatagramSocket::SendFlow::copy_in(Context &c) noexcept
+@brief 从用户输入暂存数据并报告结果；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-253a36c367647fbb"></a>
 
-## `xv::net::UdpSocket::SendFlow::fits`
+## `xv::net::DatagramSocket::SendFlow::fits`
 
 ```doxygen
-@fn static inline bool xv::net::UdpSocket::SendFlow::fits(Context &c) noexcept
-@brief 检查长度是否能放入当前协议或存储容量；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline bool xv::net::DatagramSocket::SendFlow::fits(Context &c) noexcept
+@brief 检查长度是否能放入当前协议或存储容量；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-09e92607c43f061e"></a>
 
-## `xv::net::UdpSocket::SendFlow::no_buffer`
+## `xv::net::DatagramSocket::SendFlow::no_buffer`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::no_buffer(Context &c) noexcept
-@brief 记录本次分配或容量不足的负错误；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::no_buffer(Context &c) noexcept
+@brief 记录本次分配或容量不足的负错误；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-f5be8b79da8d63cc"></a>
 
-## `xv::net::UdpSocket::SendFlow::not_connected`
+## `xv::net::DatagramSocket::SendFlow::not_connected`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::not_connected(Context &c) noexcept
-@brief 记录尚未连接的负 ENOTCONN；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::not_connected(Context &c) noexcept
+@brief 记录尚未连接的负 ENOTCONN；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-41f72bfc57de3b30"></a>
 
-## `xv::net::UdpSocket::SendFlow::select_peer`
+## `xv::net::DatagramSocket::SendFlow::select_peer`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::select_peer(Context &c) noexcept
-@brief 选择显式传入或已连接的 UDP 对端；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::select_peer(Context &c) noexcept
+@brief 选择显式传入或已连接的 UDP 对端；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-d3ee7725a0a26584"></a>
 
-## `xv::net::UdpSocket::SendFlow::send`
+## `xv::net::DatagramSocket::SendFlow::send`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::send(Context &c) noexcept
-@brief 通过本对象所属下层服务发送并保存业务结果；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::send(Context &c) noexcept
+@brief 通过本对象所属下层服务发送并保存业务结果；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
 
 <a id="fn-d6b45361b35cf692"></a>
 
-## `xv::net::UdpSocket::SendFlow::send_locked`
+## `xv::net::DatagramSocket::SendFlow::send_locked`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::send_locked(Context &c) noexcept
-@brief 在 socket 注册表锁内执行 UDP 发送图；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::send_locked(Context &c) noexcept
+@brief 在 socket 注册表锁内执行 UDP 发送图；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。 本阶段保留局部 Guard 的锁作用域，离开该作用域后再进入外部回调阶段。 内部同步运行 LockedGraph，其 stop 结束该次内部 run。
 ```
 
 <a id="fn-adc26b9582a75f75"></a>
 
-## `xv::net::UdpSocket::SendFlow::too_large`
+## `xv::net::DatagramSocket::SendFlow::too_large`
 
 ```doxygen
-@fn static inline void xv::net::UdpSocket::SendFlow::too_large(Context &c) noexcept
-@brief 记录长度超限的负 EMSGSIZE；所属流程为 xv::net::UdpSocket::SendFlow。
+@fn static inline void xv::net::DatagramSocket::SendFlow::too_large(Context &c) noexcept
+@brief 记录长度超限的负 EMSGSIZE；所属流程为 xv::net::DatagramSocket::SendFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```

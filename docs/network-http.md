@@ -30,13 +30,44 @@ curl -f -m 10 http://example.com/
 | `-L`, `--location` | 跟随 301/302/303/307/308，最多五次；默认不跟随 |
 | `-f`, `--fail` | 最终状态码大于等于 400 时返回 22，不输出错误响应体 |
 | `-o FILE`, `--output FILE` | 创建或截断文件并写入结果；`-o -` 使用标准输出 |
-| `-m SECONDS`, `--max-time SECONDS` | DNS、TCP 连接、请求发送、响应读取及重定向共用总时限；整数 1 至 3600 秒，默认 30 秒 |
+| `-m SECONDS`, `--max-time SECONDS` | DNS、TCP 连接、请求发送、响应读取及重定向共用总时限；正数 .001 至 3600 秒，最多三位小数，默认 30 秒 |
+| `--connect-timeout SECONDS` | 每一跳的 DNS 和所有地址连接尝试共用此上限，仍受剩余总时限约束 |
+| `-N`, `--no-buffer` | 关闭默认的 8 KiB 输出缓冲，立即提交每次 Sink 回调 |
+| `-s`, `--silent` | 隐藏传输错误；与 `-S` / `--show-error` 组合可重新显示错误 |
+| `-w FORMAT`, `--write-out FORMAT` | 传输结束后将统计格式写到标准输出 |
 | `--` | 后续参数按 URL 处理 |
 | `-h`, `--help` | 显示用法 |
 
-支持 `-iL` 等无参数短选项组合。一次命令只接受一个 URL；URL 必须显式使用 `http://`。不支持 HTTPS、代理、认证、cookie、POST、自动解压、下载续传或完整上游 curl 参数集。网络时限以系统 100 ms 时钟计量；同步输出回调本身若阻塞，不由网络超时机制打断。
+支持 `-iL` 等无参数短选项组合。一次命令只接受一个 URL；URL 必须显式使用 `http://`。不支持 HTTPS、代理、认证、cookie、POST、自动解压、下载续传或完整上游 curl 参数集。网络时限使用 10 MHz 单调计数器，poll 的调度唤醒精度仍受系统定时与负载影响；同步输出回调本身若阻塞，不由网络超时机制打断。
 
-默认输出只有收到的内容，不插入进度条或额外换行。错误写到标准错误，退出码表示失败。没有 `-f` 时，404 等 HTTP 响应仍按正常传输返回零。失败前已经写出的部分文件会保留；输出文件在请求前打开，因此可能被创建或截断。
+默认输出只有收到的内容，不插入进度条或额外换行。错误写到标准错误，退出码表示失败。没有 `-f` 时，404 等 HTTP 响应仍按正常传输返回零。失败前已经写出的部分文件会保留；URL 和参数先校验，之后在请求前打开输出文件，因此网络错误仍可能留下被创建或截断的文件。
+
+## 缓冲与测量
+
+网络和响应体缓冲从 2 KiB 调整为 8 KiB，仍在堆上。默认 FileSink 用 8 KiB 合并小块输出；结束或传输失败时提交已经接收的剩余内容。`-N` 适用于需要立即看到增量数据的场景。输出处理支持部分 write，失败后不会重放已经写出的前缀。
+
+```sh
+curl -o page -w "%{http_code} %{time_total}\n" http://example.com/
+curl -m .5 --connect-timeout .2 http://example.com/
+```
+
+格式支持 `%%`、`\n`、`\r`、`\t`、`\\` 以及下表字段；未知字段在请求前作为用法错误拒绝。
+
+| 字段 | 本实现的定义 |
+| --- | --- |
+| `http_code` | 最后解析的 HTTP 状态，未取得状态时 000 |
+| `size_download` | 最终响应体交给 Sink 的字节数，不含头部与分块标记 |
+| `time_total` | 从请求开始到输出缓冲刷新和文件关闭的秒数，六位小数；不含 write-out 本身 |
+| `time_namelookup` | 各跳 DNS 调用耗时之和；IPv4 字面量走同一解析接口 |
+| `time_connect` | 各成功跳从 DNS 开始至 TCP 建连完成的耗时之和 |
+| `time_starttransfer` | 从请求开始至第一个响应字节的耗时，重定向时指第一跳 |
+| `speed_download` | body_bytes / time_total，整数 B/s |
+| `num_connects` | 成功建立的 TCP 连接数 |
+| `output_writes` | FileSink 实际调用 write 的次数，包含头部输出，不含统计和诊断 |
+
+这些是此精简客户端的明确定义，不保证与完整 curl 的每个统计语义相同。Response 另含网络读写调用数；`Client::get` 的 total_us 在返回前记录，不包含调用者后续的输出刷新。输出失败时 body_bytes 表示已交给 Sink 的数据，可能包括尚未落盘的缓冲字节。
+
+受控测试对同一 24000 字节二进制 chunked 响应比较默认模式和 `-N`，验证文件内容一致，并要求默认输出不超过四次 write、无缓冲至少 175 次。此门禁证明小块输出系统调用减少，不代表所有网络负载的吞吐提升。
 
 ## 从宿主机提供测试文件
 
@@ -206,6 +237,6 @@ Sink 回调返回 false 会立即中止并返回 Output。响应头只有启用 
 ctest --preset dev -R '^(http_.*|dns_.*)$' --output-on-failure
 ```
 
-`http_contract` 以同一份 URL/头字段/块解析代码验证 URI 引用、格式错误、数值溢出和变异语料；语料另外以 ASan/UBSan 运行。`http_1cpu/3cpu` 使用宿主机可控 TCP 服务，重复验证实际用户态类库和 CLI，包括二进制流式下载、分块和 trailer、EOF、1xx、HEAD、204、404、重定向、截断、冲突定界、慢速传输总时限和输出失败。保存后的文件由客体程序重新读取并比较长度和内容哈希。客体回环 HTTP 服务还通过 DHCP DNS 对 localhost 的实际解析验证域名链路，不依赖公网域名。
+`http_contract` 以同一份 URL/头字段/块解析代码验证 URI 引用、格式错误、数值溢出和变异语料；语料另外以 ASan/UBSan 运行。`http_1cpu/5cpu` 使用宿主机可控 TCP 服务，重复验证实际用户态类库和 CLI，包括二进制流式下载、分块和 trailer、EOF、1xx、HEAD、204、404、重定向、截断、冲突定界、慢速传输总时限和输出失败。保存后的文件由客体程序重新读取并比较长度和内容哈希。客体回环 HTTP 服务还通过 DHCP DNS 对 localhost 的实际解析验证域名链路，不依赖公网域名。
 
 协议参考：[RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html) 的 HTTP/1.1 消息语法与定界规则，以及 [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986.html) 的 URI 引用解析规则。

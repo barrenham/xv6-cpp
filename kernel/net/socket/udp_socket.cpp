@@ -8,24 +8,24 @@ import :udp_socket;
 
 namespace xv::net
 {
-int UdpSocket::connect(Endpoint peer, bool)
+int DatagramSocket::connect(Endpoint peer, bool)
 {
   ConnectFlow::Context ctx{*this, peer};
   (void)ConnectFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-int UdpSocket::read(xv::io::Buffer destination, int count)
+int DatagramSocket::read(xv::io::Buffer destination, int count)
 {
   return count < 0 ? -1 : receive_from(destination, count, nullptr);
 }
 
-int UdpSocket::write(xv::io::Buffer source, int count)
+int DatagramSocket::write(xv::io::Buffer source, int count)
 {
   return count < 0 ? -1 : send_to(source, count, nullptr);
 }
 
-int UdpSocket::send_to(xv::io::Buffer data, unsigned length,
+int DatagramSocket::send_to(xv::io::Buffer data, unsigned length,
                        const Endpoint *destination)
 {
   SendFlow::Context ctx{*this, data, length, destination};
@@ -33,7 +33,7 @@ int UdpSocket::send_to(xv::io::Buffer data, unsigned length,
   return ctx.result;
 }
 
-bool UdpSocket::deliver(Packet &packet, Endpoint source, Endpoint destination,
+bool DatagramSocket::deliver(Packet &packet, Endpoint source, Endpoint destination,
                         unsigned offset, unsigned length)
 {
   DeliveryFlow::Context ctx{*this, packet, source, destination, offset, length};
@@ -41,7 +41,7 @@ bool UdpSocket::deliver(Packet &packet, Endpoint source, Endpoint destination,
   return ctx.result;
 }
 
-int UdpSocket::receive_from(xv::io::Buffer data, unsigned length, Endpoint *peer)
+int DatagramSocket::receive_from(xv::io::Buffer data, unsigned length, Endpoint *peer)
 {
   registry_.lock().acquire();
   ReceiveFlow::Context ctx{*this, data, length, peer};
@@ -49,7 +49,7 @@ int UdpSocket::receive_from(xv::io::Buffer data, unsigned length, Endpoint *peer
   return ctx.result;
 }
 
-unsigned UdpSocket::poll(xv::sync::PollTable *table)
+unsigned DatagramSocket::poll(xv::sync::PollTable *table)
 {
   xv::sync::ScopedLock guard(registry_.lock());
   if (table)
@@ -59,13 +59,13 @@ unsigned UdpSocket::poll(xv::sync::PollTable *table)
   return POLLOUT | (count_ ? POLLIN : 0);
 }
 
-void UdpSocket::close()
+void DatagramSocket::close()
 {
   xv::sync::ScopedLock guard(registry_.lock());
   registry_.destroy(*this);
 }
 
-void UdpSocket::destroy()
+void DatagramSocket::destroy()
 {
   for (auto &message : messages_)
   {
@@ -74,7 +74,7 @@ void UdpSocket::destroy()
       detail::free_page(message.page);
     }
   }
-  this->~UdpSocket();
+  this->~DatagramSocket();
   detail::free_page(this);
 }
 } // namespace xv::net
