@@ -11,7 +11,6 @@
 ## 函数导航
 
 - [`xv::fs::DeviceRegistry::DeviceRegistry`](open_file.cppm.md#fn-22ab25588e11a366)
-- [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-3619f8a51976d854)
 - [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-bda8b34bb94e637a)
 - [`xv::fs::DeviceRegistry::count`](open_file.cppm.md#fn-563ab1ff991fa817)
 - [`xv::fs::DeviceRegistry::entry`](open_file.cppm.md#fn-57a2c4494ca4fc8e)

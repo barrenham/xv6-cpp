@@ -13,6 +13,10 @@ classDiagram
   SerialPort <|-- Uart16550
   BlockDevice <|-- VirtioBlock
   CharacterDevice <|-- Tty
+  CharacterDevice <|-- ControllingTerminal
+  CharacterDevice <|-- VirtioEntropy
+  InterruptDevice <|-- VirtioEntropy
+  Device <|-- GoldfishRtc
   InterruptController <|-- Plic
   InputReceiver <|.. Tty
   Tty --> SerialPort
@@ -34,6 +38,8 @@ classDiagram
 | `console/` | `CharacterDevice` / `IoBuffer` 字符设备接口 |
 | `tty/` | TTY 状态、读写等待、ioctl 和可替换的 N_TTY 风格行规程 |
 | `block/` | 与文件系统无关的 `BlockDevice` 接口 |
+| `rtc/` | Goldfish RTC 的串行低/高位读取及 epoch 时钟 |
+| `entropy/` | VirtIO entropy 的现代特性协商、DMA 所有权、补充队列及可中断等待 |
 | `block/virtio/` | VirtIO MMIO 块设备、私有协议常量和队列布局 |
 | `interrupt/` | 中断控制器接口、PLIC 实现和固定设备表路由 |
 | `mmio.cppm` | 内部的非拥有 MMIO 窗口，执行 volatile 寄存器访问 |
@@ -42,7 +48,7 @@ classDiagram
 
 `.cppm` 中的硬件实现分区不从主接口导出；实现文件通过 `module xv.drivers;`
 加入同一模块。地址和 IRQ 只由板级装配传给驱动。当前仍面向 QEMU virt，
-本次没有增加设备树枚举、热插拔、设备卸载或动态更换驱动。
+目前没有设备树枚举、热插拔、设备卸载或动态更换驱动。
 
 ## 对象与调用关系
 
@@ -124,3 +130,12 @@ cmake --build --preset freelist
 ctest --preset freelist --output-on-failure
 python tests/clangd_modules.py --clangd "$CONDA_PREFIX/bin/clangd"
 ```
+
+控制终端打开通过进程会话取得短暂的原子寿命引用，再在组锁外完成设备打开。
+PTY 的所有寿命计数操作使用原子读改写，列表增删仍由 PTY 锁保护；静态
+console 不需要动态寿命引用。详细协议和字符/块设备注册权限见
+[devfs](../../docs/devfs.md)。
+
+默认 QEMU 使用第三个 VirtIO MMIO 槽提供宿主 `/dev/urandom`，对应 IRQ 3；
+设备缺失时 entropy 驱动不分配队列，也不产生替代数据。板级初始化在分配器
+和内核映射就绪后初始化队列，然后装配中断路由。槽 0、1 继续供块设备使用。

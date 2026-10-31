@@ -4,6 +4,7 @@ module;
 
 module xv.fs:xv6;
 import :filesystem;
+import :xv6_journal;
 
 namespace xv::fs
 {
@@ -11,7 +12,7 @@ class Xv6FileSystem final : public FileSystem
 {
 public:
 
-  constexpr Xv6FileSystem(BlockCache &cache, Journal &journal)
+  constexpr Xv6FileSystem(BlockCache &cache, Xv6Journal &journal)
       : cache_(cache), journal_(journal)
   {
   }
@@ -20,6 +21,7 @@ public:
   {
     return "xv6 disk filesystem";
   }
+  const char *type_name() const override {return "xv6";}
 
   Inode *root() override
   {
@@ -43,6 +45,8 @@ public:
   void unlock(Inode *node) override;
   void unlock_release(Inode *node) override;
   void update(Inode *node) override;
+  int next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+  {return legacy_next_directory(node,cookie,entry);}
   void truncate(Inode *node) override;
   int resize(Inode *node, unsigned size) override;
 
@@ -98,7 +102,7 @@ private:
   int directory_empty(Inode *directory);
   unsigned device_ = ROOTDEV;
   BlockCache &cache_;
-  Journal &journal_;
+  Xv6Journal &journal_;
   superblock layout_{};
   xv::sync::SpinLock inode_lock_;
   Inode inodes_[NINODE]{};

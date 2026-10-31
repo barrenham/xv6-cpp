@@ -13,7 +13,6 @@
 - [`xv::process::Process::Process`](process.cppm.md#fn-4994347ef002a2f9)
 - [`xv::process::Process::Process`](process.cppm.md#fn-8f111832cbfaa884)
 - [`xv::process::Process::begin_system_call`](signals/user_signals.cpp.md#fn-58ff4ed2bf6d42b0)
-- [`xv::process::Process::commit_image`](lifecycle/process.cpp.md#fn-97213cc0f22d399e)
 - [`xv::process::Process::create_image`](lifecycle/process.cpp.md#fn-9d91050686d2abd0)
 - [`xv::process::Process::credentials`](process.cppm.md#fn-49caab07f1a46655)
 - [`xv::process::Process::credentials`](process.cppm.md#fn-96836ea87a81f92a)

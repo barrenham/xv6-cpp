@@ -505,6 +505,22 @@ bool VirtioBlock::present() const
          registers_.read32(VIRTIO_MMIO_DEVICE_ID) == 2;
 }
 
+unsigned long VirtioBlock::capacity_sectors() const
+{
+  // VirtIO 1.2, sections 4.2.2.2 and 5.2.4: a generation-protected,
+  // little-endian 64-bit capacity, always expressed in 512-byte sectors.
+  unsigned generation,low,high;
+  do
+  {
+    generation = registers_.read32(VIRTIO_MMIO_CONFIG_GENERATION);
+    __sync_synchronize();
+    low = registers_.read32(VIRTIO_MMIO_CONFIG);
+    high = registers_.read32(VIRTIO_MMIO_CONFIG + 4);
+    __sync_synchronize();
+  } while (generation != registers_.read32(VIRTIO_MMIO_CONFIG_GENERATION));
+  return static_cast<unsigned long>(high) << 32 | low;
+}
+
 void VirtioBlock::flush()
 {
   if (can_flush_)

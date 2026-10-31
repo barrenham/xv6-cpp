@@ -6,7 +6,7 @@
 
 extern "C" int main(int argc, char **argv)
 {
-  char target[MAXPATH];
+  static char target[MAXPATH];
   if (argc != 3 || !fileutil::destination(argv[1], argv[2], target, sizeof(target)))
   {
     fprintf(2, "usage: mv source destination\n");
@@ -17,7 +17,7 @@ extern "C" int main(int argc, char **argv)
     exit(0);
   }
   struct stat src, parent;
-  char directory[MAXPATH];
+  static char directory[MAXPATH];
   strcpy(directory, target);
   char *last = nullptr;
   for (char *p = directory; *p; ++p)

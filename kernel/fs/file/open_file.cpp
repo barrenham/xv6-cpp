@@ -152,6 +152,7 @@ bool OpenFileTable::describe(File *file, FileInfo &result) const
   }
   result = file->identity_;
   result.flags = __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
+  result.position=file->backend_->position();
   return true;
 }
 
@@ -220,16 +221,36 @@ xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocki
   return device ? device->open(nonblocking) : nullptr;
 }
 
+xv::drivers::BlockDevice *open_registered_block(Inode *node,bool writable)
+{
+  auto *record=devices().block(node->device_major(),node->device_minor());
+  return record && (!writable || !record->read_only) ? record->block : nullptr;
+}
+
 void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
 {
   attach("", major, 0, device);
 }
 
 void DeviceRegistry::attach(const char *name, unsigned major, unsigned minor,
-                            xv::drivers::CharacterDevice &device)
+                            xv::drivers::CharacterDevice &device,unsigned mode)
 {
-  AttachFlow::Context context{*this, name, major, minor, device};
+  AttachFlow::Context context{*this, name, major, minor, &device,nullptr,true,mode};
   (void)AttachFlow::Graph::run<0>(context);
+}
+
+void DeviceRegistry::attach_block(const char *name,unsigned major,unsigned minor,
+                                   xv::drivers::BlockDevice &device,bool read_only)
+{
+  AttachFlow::Context context{*this,name,major,minor,nullptr,&device,read_only,read_only ? 0440U:0660U};
+  (void)AttachFlow::Graph::run<0>(context);
+}
+const DeviceRegistry::Entry *DeviceRegistry::block(int major,int minor) const
+{
+  if(major<0 || minor<0)return nullptr;
+  for(unsigned i=0;i<count_;++i)
+    if(entries_[i].block && entries_[i].major==unsigned(major) && entries_[i].minor==unsigned(minor))return &entries_[i];
+  return nullptr;
 }
 
 xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
@@ -240,7 +261,7 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
   }
   for (unsigned i = 0; i < count_; ++i)
   {
-    if (entries_[i].major == static_cast<unsigned>(major) &&
+    if (entries_[i].device && entries_[i].major == static_cast<unsigned>(major) &&
         entries_[i].minor == static_cast<unsigned>(minor))
     {
       return entries_[i].device;
@@ -248,6 +269,9 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
   }
   return nullptr;
 }
+
+int OpenFileTable::getdents64(File *file,unsigned long address,int count)
+{return file && file->readable && file->backend_ ? file->backend_->getdents64({address,file->nonblocking()},count):-1;}
 
 long OpenFileTable::seek(File *file, long offset, int origin)
 {

@@ -8,7 +8,7 @@ namespace shell
 
 void prompt()
 {
-  char output[MAXPATH + 32], path[MAXPATH];
+  static char output[MAXPATH + 32], path[MAXPATH];
   account::User user{};
   unsigned uid = geteuid();
   if (account::find(uid, user))

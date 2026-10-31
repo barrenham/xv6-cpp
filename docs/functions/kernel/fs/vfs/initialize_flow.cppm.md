@@ -78,7 +78,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::InitializeFlow::initialize_namespace(Context &c) noexcept
 @brief 初始化 namespace 锁并直接初始化可选动态后端的 inode 表。
-@details inode 初始化、后端初始化和启动挂载使用三个独立图；启动挂载图在入口局部 Transaction 中执行，原可选后端顺序和诊断消息保留。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-f96b42a9668a1957"></a>

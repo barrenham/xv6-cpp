@@ -50,11 +50,9 @@
 ## `xv::fs::InodeBackend::read`
 
 ```doxygen
-@fn int xv::fs::InodeBackend::read(xv::io::Buffer destination, int count)
+@fn int InodeBackend::xv::fs::InodeBackend::read(xv::io::Buffer destination, int count)
 @brief 按共享偏移读取动态快照或实际节点。
-@details 在所属文件系统锁内串行化偏移。快照调用 PageBuffer 跨页复制，普通文件委托节点 read；仅用实际成功字节数推进，失败复制不会跳过未完成部分。
-@details 流程由 ReadFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
-@return 保留具体后端读取结果；正返回值才推进共享文件偏移。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-1bb8e957e0af8807"></a>
@@ -283,4 +281,123 @@
 @details 只接受普通文件和目录；持久节点等待根盘和可选数据日志，再 flush 所属设备，RAM 节点成功返回而不写磁盘。
 @details 流程由 SyncFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
 @return 普通文件或目录同步成功返回 0，其他类型返回 -1。
+```
+<a id="fn-f18f6dbcb62acdcf"></a>
+
+## `xv::fs::legacy_record`
+
+```doxygen
+@fn void xv::fs::legacy_record(const dirent &entry,DirectoryRecord &record)
+@brief 实现 xv::fs::legacy_record 的模块操作，按声明参数读写其封装状态。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-bd6bd8dfba3b3db6"></a>
+
+## `xv::fs::FileSystem::legacy_next_directory`
+
+```doxygen
+@fn int FileSystem::xv::fs::FileSystem::legacy_next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &record)
+@brief 实现 xv::fs::FileSystem::legacy_next_directory 的模块操作，按声明参数读写其封装状态。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-ad868dc021560e72"></a>
+
+## `xv::fs::InodeBackend::getdents64`
+
+```doxygen
+@fn int InodeBackend::xv::fs::InodeBackend::getdents64(xv::io::Buffer destination,int count)
+@brief 按完整Linux dirent64记录枚举目录，保留每次打开的cookie与编码模式。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-f06c2e9f8c3d4a45"></a>
+
+## `xv::fs::BlockBackend::close`
+
+```doxygen
+@fn void BlockBackend::xv::fs::BlockBackend::close()
+@brief 实现 xv::fs::BlockBackend::close 的模块操作，按声明参数读写其封装状态。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-f7bda5fc41fea0af"></a>
+
+## `xv::fs::BlockBackend::transfer`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::transfer(xv::io::Buffer buffer,int count,bool writing)
+@brief 实现 xv::fs::BlockBackend::transfer 的模块操作，按声明参数读写其封装状态。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-9cff80d478cbfd4c"></a>
+
+## `xv::fs::BlockBackend::read`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::read(xv::io::Buffer destination,int count)
+@brief 返回 `transfer(destination,count,false)`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-9a0a89c2fa978ab9"></a>
+
+## `xv::fs::BlockBackend::write`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::write(xv::io::Buffer source,int count)
+@brief 返回 `transfer(source,count,true)`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-fd2921cb4f69b8d2"></a>
+
+## `xv::fs::BlockBackend::seek`
+
+```doxygen
+@fn long BlockBackend::xv::fs::BlockBackend::seek(long delta,int origin)
+@brief 实现 xv::fs::BlockBackend::seek 的模块操作，按声明参数读写其封装状态。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-5a5394fd298e6450"></a>
+
+## `xv::fs::BlockBackend::stat`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::stat(xv::io::Metadata &value)
+@brief 返回 `0`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-0536c40d0e573cd9"></a>
+
+## `xv::fs::BlockBackend::sync`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::sync()
+@brief 返回 `0`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-80c7bfef78c14c30"></a>
+
+## `xv::fs::BlockBackend::poll`
+
+```doxygen
+@fn unsigned BlockBackend::xv::fs::BlockBackend::poll(xv::sync::PollTable *)
+@brief 返回 `POLLIN | (writable_ ? POLLOUT:0)`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-b52b92e9c3c77a32"></a>
+
+## `xv::fs::BlockBackend::ioctl`
+
+```doxygen
+@fn int BlockBackend::xv::fs::BlockBackend::ioctl(unsigned request,xv::io::Buffer argument)
+@brief 实现 xv::fs::BlockBackend::ioctl 的模块操作，按声明参数读写其封装状态。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
 ```

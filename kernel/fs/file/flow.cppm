@@ -121,6 +121,16 @@ struct OpenFileTable::BindInodeFlow
     return true;
   }
 
+  static bool block(Context &c) noexcept { return c.node.kind()==T_BLOCK; }
+  static bool bind_block(Context &c) noexcept
+  {
+    static_assert(sizeof(BlockBackend)<=File::BackendBytes && alignof(BlockBackend)<=16);
+    auto *disk=c.node.owner().open_block_device(&c.node,c.writable);
+    if(!disk || !disk->capacity_sectors() || disk->capacity_sectors()>0x7fffffffffffffffUL/512)return false;
+    c.backend=new(c.file.backend_storage_) BlockBackend(c.node,*disk,c.writable);
+    return true;
+  }
+
   static bool bind_regular(Context &c) noexcept
   {
     static_assert(sizeof(InodeBackend) <= File::BackendBytes &&
@@ -157,6 +167,8 @@ struct OpenFileTable::BindInodeFlow
   }
   struct Kind;
   struct Device;
+  struct BlockKind;
+  struct Block;
   struct Regular;
   struct Configure;
   struct AppendFlag;
@@ -165,7 +177,9 @@ struct OpenFileTable::BindInodeFlow
       Kind,
       flow::types<flow::node<Kind, flow::noop,
                              flow::branch<flow::condition<&device>, flow::go<Device>,
-                                          flow::go<Regular>>>,
+                                          flow::go<BlockKind>>>,
+                  flow::node<BlockKind,flow::noop,flow::branch<flow::condition<&block>,flow::go<Block>,flow::go<Regular>>>,
+                  flow::node<Block,flow::noop,flow::branch<flow::condition<&bind_block>,flow::go<Configure>,flow::stop>>,
                   flow::node<Device, flow::noop,
                              flow::branch<flow::condition<&bind_device>,
                                           flow::go<Configure>, flow::stop>>,
@@ -186,7 +200,10 @@ struct DeviceRegistry::AttachFlow
     DeviceRegistry &owner;
     const char *name;
     unsigned major, minor;
-    xv::drivers::CharacterDevice &device;
+    xv::drivers::CharacterDevice *device;
+    xv::drivers::BlockDevice *block = nullptr;
+    bool read_only = true;
+    unsigned mode = 0666;
     unsigned length = 0;
   };
 
@@ -200,10 +217,11 @@ struct DeviceRegistry::AttachFlow
 
   static bool valid(Context &c) noexcept
   {
-    return !(c.owner.sealed_ || c.major >= NDEV || c.minor > 32767 || c.length >= 14 ||
-             c.owner.count_ == NDEV ||
+    return !(c.owner.sealed_ || c.major > 32767 || c.minor > 32767 || c.length >= 14 ||
+             c.owner.count_ == Capacity || (c.mode & ~0777U) ||
              (c.length && (detail::compare(c.name, ".", 14) == 0 ||
-                           detail::compare(c.name, "..", 14) == 0)));
+                           detail::compare(c.name, "..", 14) == 0 ||
+                           detail::compare(c.name, "pts", 14) == 0)));
   }
 
   static void invalid(Context &) noexcept
@@ -233,7 +251,8 @@ struct DeviceRegistry::AttachFlow
     for (unsigned i = 0; i < c.owner.count_; ++i)
     {
       if ((c.owner.entries_[i].major == c.major &&
-           c.owner.entries_[i].minor == c.minor) ||
+           c.owner.entries_[i].minor == c.minor &&
+           bool(c.owner.entries_[i].block) == bool(c.block)) ||
           (c.length && detail::compare(c.owner.entries_[i].name, c.name, 14) == 0))
       {
         return false;
@@ -253,7 +272,10 @@ struct DeviceRegistry::AttachFlow
     detail::copy_fixed(record.name, c.name, 14);
     record.major = c.major;
     record.minor = c.minor;
-    record.device = &c.device;
+    record.device = c.device;
+    record.block = c.block;
+    record.read_only = c.read_only;
+    record.mode = c.mode;
   }
   struct Measure;
   struct Invalid;

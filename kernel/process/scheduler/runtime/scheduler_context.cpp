@@ -31,6 +31,7 @@ struct SchedulerContext::DispatchFlow
     c.ready.start(c.process);
     c.process.state = ProcessState::Running;
     c.cpu.current = &c.process;
+    account_dispatch();
   }
 
   static void switch_context(Context &c) noexcept

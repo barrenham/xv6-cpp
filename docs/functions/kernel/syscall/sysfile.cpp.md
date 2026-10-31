@@ -466,8 +466,7 @@
 ```doxygen
 @fn uint64 xv::syscall::sys_rename()
 @brief 校验用户路径并执行原子重命名。
-@details 复制两个非空 MAXPATH 路径，逐组件拒绝超过 DIRSIZ 的名称和尾部斜杠，然后转入 VFS。所有名字复制完成后才修改目录。
-@return 0 表示成功；-1 表示路径复制、格式或 VFS 失败。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-23199bae69c6ad55"></a>
@@ -853,7 +852,7 @@
 ```doxygen
 @fn static bool xv::syscall::MountFlow::disk(Context &c) noexcept
 @brief 检查请求类型是否为 xv6 磁盘文件系统。
-@details 权限及参数读取仍由入口按原顺序检查，图选择固定文件系统类型并交由原挂载业务执行。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-c5f23a8f6399d80f"></a>
@@ -862,8 +861,8 @@
 
 ```doxygen
 @fn static void xv::syscall::MountFlow::mount_disk(Context &c) noexcept
-@brief 执行原磁盘文件系统挂载并保存结果。
-@details 权限及参数读取仍由入口按原顺序检查，图选择固定文件系统类型并交由原挂载业务执行。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 使用MountDiskFlow挂载已选择磁盘后端，保留事务和失败回滚。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-cb43cf73881a02ed"></a>
@@ -1061,9 +1060,9 @@
 ## `xv::syscall::OpenFlow::truncate`
 
 ```doxygen
-@fn static void xv::syscall::OpenFlow::truncate(Context &c) noexcept
+@fn static bool xv::syscall::OpenFlow::truncate(Context &c) noexcept
 @brief 按原策略清除特殊权限位后截断 inode。
-@details Transaction 保留在原入口；create 返回已锁 inode，lookup 成功后加锁；失败按原顺序撤销描述符、文件引用和 inode，成功解锁并交出已绑定文件。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-9635ae189c28bdc2"></a>
@@ -1384,4 +1383,23 @@
 @fn static void xv::syscall::UnmountFlow::unmount(Context &c) noexcept
 @brief 执行卸载并保存业务返回值。
 @details 仅卸载返回零时按原顺序同步主日志和存在的次日志，不改变失败结果。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+<a id="fn-fb210246732bc020"></a>
+
+## `xv::syscall::sys_getdents64`
+
+```doxygen
+@fn uint64 xv::syscall::sys_getdents64()
+@brief 实现 xv::syscall::sys_getdents64 的模块操作，按声明参数读写其封装状态。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-7643707c0f28dddb"></a>
+
+## `xv::syscall::OpenFlow::unlock_bound`
+
+```doxygen
+@fn static void xv::syscall::OpenFlow::unlock_bound(Context &c) noexcept
+@brief 流程动作或条件 unlock_bound；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

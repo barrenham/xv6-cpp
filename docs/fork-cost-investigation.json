@@ -1,0 +1,1536 @@
+{
+  "date": "2026-10-31",
+  "upstream_commit": "e93dabeb98431235c6e1a101cb96c73c923fdbc4",
+  "environment": {
+    "qemu": "9.2.1",
+    "ram_mib": 128,
+    "current_compiler": "Clang 23.1.4 -O1",
+    "upstream_compiler": "GCC 14.2.0 -O1",
+    "timing": "Host elapsed between benchmark start/completion output; current kernel also records 10 MHz rdtime. All variants run sequentially, three samples per workload."
+  },
+  "variants": {
+    "upstream64": "Official source, NPROC=64; stock forktest and a diagnostic workload reporting successful child count",
+    "upstream1024": "Same official kernel, only NPROC raised to 1024, same diagnostic workload performing 1000 successful forks and waits",
+    "current1": "Current production kernel plus private minimal workload; 1 CPU",
+    "profile1": "Private instrumented current kernel; 1 CPU, per-PID on-CPU elapsed accounting excludes descheduled periods",
+    "fastfill1": "Only runtime fill uses aligned 64-bit stores with byte prefix/tail; existing poison/zero patterns and eight initial stack pages retained",
+    "current5": "Current production kernel plus private minimal workload; 5 CPUs",
+    "actual1": "Unchanged existing forktest binary on current production kernel; 1 CPU",
+    "fastactual1": "Unchanged existing forktest binary on the private word-fill kernel; 1 CPU"
+  },
+  "summary": [
+    {
+      "label": "upstream64",
+      "children": null,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 0.1290194019966293
+    },
+    {
+      "label": "upstream64",
+      "children": 61,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 0.19106465499498881
+    },
+    {
+      "label": "upstream1024",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 6.958865091000916
+    },
+    {
+      "label": "current1",
+      "children": 61,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 0.2673550350009464,
+      "median_guest_seconds": 0.2194199
+    },
+    {
+      "label": "current1",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 3.874934763996862,
+      "median_guest_seconds": 3.8413581
+    },
+    {
+      "label": "profile1",
+      "children": 61,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 0.31777744099963456,
+      "median_guest_seconds": 0.2822292
+    },
+    {
+      "label": "profile1",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 4.72204844999942,
+      "median_guest_seconds": 4.6948676
+    },
+    {
+      "label": "fastfill1",
+      "children": 61,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 0.17585586599307135,
+      "median_guest_seconds": 0.1211714
+    },
+    {
+      "label": "fastfill1",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 2.7510758560092654,
+      "median_guest_seconds": 2.6876202
+    },
+    {
+      "label": "current5",
+      "children": 61,
+      "cpus": 5,
+      "samples": 3,
+      "median_host_seconds": 0.36404043101356365,
+      "median_guest_seconds": 0.2311815
+    },
+    {
+      "label": "current5",
+      "children": 1000,
+      "cpus": 5,
+      "samples": 3,
+      "median_host_seconds": 3.6543418539804406,
+      "median_guest_seconds": 3.4981692
+    },
+    {
+      "label": "actual1",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 4.024881471006665,
+      "median_guest_seconds": 4.0062909
+    },
+    {
+      "label": "fastactual1",
+      "children": 1000,
+      "cpus": 1,
+      "samples": 3,
+      "median_host_seconds": 2.9357964619994164,
+      "median_guest_seconds": 2.8985324
+    }
+  ],
+  "profile_stages": {
+    "fork_total": {
+      "median_seconds": 1.9712563,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "manager_allocate": {
+      "median_seconds": 1.4239331,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "descriptor_allocate": {
+      "median_seconds": 0.8888933,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_allocate": {
+      "median_seconds": 0.7260634,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_find": {
+      "median_seconds": 0.0651963,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_prepare": {
+      "median_seconds": 0.1120234,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_commit": {
+      "median_seconds": 0.4604176,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "image_copy": {
+      "median_seconds": 0.3492121,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "inherit_resources": {
+      "median_seconds": 0.0761561,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "attach_family": {
+      "median_seconds": 0.0152304,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "wait_total": {
+      "median_seconds": 1.798636,
+      "counts": [
+        1001,
+        1001,
+        1001
+      ]
+    },
+    "reap_total": {
+      "median_seconds": 1.7475064,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_free": {
+      "median_seconds": 0.8268982,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_detach_scan": {
+      "median_seconds": 0.0265135,
+      "counts": [
+        2000,
+        2000,
+        2000
+      ]
+    },
+    "stack_free_pages": {
+      "median_seconds": 0.6241517,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "stack_pool_erase": {
+      "median_seconds": 0.1088984,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "user_address_reset": {
+      "median_seconds": 0.4050492,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "exit_files": {
+      "median_seconds": 0.0588341,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "exit_directory": {
+      "median_seconds": 0.0557004,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "exit_family": {
+      "median_seconds": 0.0085968,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "exit_publish": {
+      "median_seconds": 0.0115656,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "descriptor_free": {
+      "median_seconds": 0.9288675,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "physical_allocate": {
+      "median_seconds": 0.8586783,
+      "counts": [
+        16686,
+        16686,
+        16686
+      ]
+    },
+    "physical_deallocate": {
+      "median_seconds": 0.9536107,
+      "counts": [
+        16686,
+        16686,
+        16686
+      ]
+    },
+    "physical_alloc_publish": {
+      "median_seconds": 0.57614,
+      "counts": [
+        16686,
+        16686,
+        16686
+      ]
+    },
+    "physical_free_claim": {
+      "median_seconds": 0.6550765,
+      "counts": [
+        16686,
+        16686,
+        16686
+      ]
+    },
+    "fill": {
+      "median_seconds": 1.2792876,
+      "counts": [
+        44058,
+        44058,
+        44058
+      ]
+    },
+    "move": {
+      "median_seconds": 0.013022,
+      "counts": [
+        3427,
+        3459,
+        3483
+      ]
+    },
+    "parent_running": {
+      "median_seconds": 4.2516556,
+      "counts": [
+        1,
+        1,
+        1
+      ]
+    },
+    "children_running": {
+      "median_seconds": 0.3931483,
+      "counts": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    "dispatches": {
+      "median_seconds": 0.0,
+      "counts": [
+        1012,
+        1014,
+        1015
+      ]
+    }
+  },
+  "profile_ratios": {
+    "fill_share": 0.2698337114248017,
+    "stack_lifetime_share": 0.3343438460340597,
+    "physical_allocator_share": 0.3901755680148305,
+    "wait_outside_reap_seconds": 0.0511296
+  },
+  "measurements": [
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 0.111676879983861,
+      "profile": {}
+    },
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 0.1290194019966293,
+      "profile": {}
+    },
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 0.1347360849904362,
+      "profile": {}
+    },
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 0.19106465499498881,
+      "children": 61,
+      "profile": {}
+    },
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 0.2008447230036836,
+      "children": 61,
+      "profile": {}
+    },
+    {
+      "label": "upstream64",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 0.11397891902015544,
+      "children": 61,
+      "profile": {}
+    },
+    {
+      "label": "upstream1024",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 6.958865091000916,
+      "children": 1000,
+      "profile": {}
+    },
+    {
+      "label": "upstream1024",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 7.35524085900397,
+      "children": 1000,
+      "profile": {}
+    },
+    {
+      "label": "upstream1024",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 6.694877978996374,
+      "children": 1000,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.21958477899897844,
+      "children": 61,
+      "create_ticks": 861761,
+      "reap_ticks": 832024,
+      "total_ticks": 1693785,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.2673550350009464,
+      "children": 61,
+      "create_ticks": 1390214,
+      "reap_ticks": 803985,
+      "total_ticks": 2194199,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.30192612900282256,
+      "children": 61,
+      "create_ticks": 1284666,
+      "reap_ticks": 1159791,
+      "total_ticks": 2444457,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 4.040702425001655,
+      "children": 1000,
+      "create_ticks": 24583534,
+      "reap_ticks": 15460870,
+      "total_ticks": 40044404,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 3.874934763996862,
+      "children": 1000,
+      "create_ticks": 22309173,
+      "reap_ticks": 16104408,
+      "total_ticks": 38413581,
+      "profile": {}
+    },
+    {
+      "label": "current1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 3.253478205995634,
+      "children": 1000,
+      "create_ticks": 22212852,
+      "reap_ticks": 10026311,
+      "total_ticks": 32239163,
+      "profile": {}
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.30941336197429337,
+      "children": 61,
+      "create_ticks": 1809897,
+      "reap_ticks": 945276,
+      "total_ticks": 2755173,
+      "profile": {
+        "fork_total": {
+          "count": 61,
+          "ticks": 1418007
+        },
+        "manager_allocate": {
+          "count": 61,
+          "ticks": 983952
+        },
+        "descriptor_allocate": {
+          "count": 61,
+          "ticks": 615756
+        },
+        "stack_allocate": {
+          "count": 61,
+          "ticks": 508930
+        },
+        "stack_find": {
+          "count": 61,
+          "ticks": 34177
+        },
+        "stack_prepare": {
+          "count": 61,
+          "ticks": 94813
+        },
+        "stack_commit": {
+          "count": 61,
+          "ticks": 327363
+        },
+        "image_copy": {
+          "count": 61,
+          "ticks": 254323
+        },
+        "inherit_resources": {
+          "count": 61,
+          "ticks": 94404
+        },
+        "attach_family": {
+          "count": 61,
+          "ticks": 10387
+        },
+        "wait_total": {
+          "count": 62,
+          "ticks": 763247
+        },
+        "reap_total": {
+          "count": 61,
+          "ticks": 739837
+        },
+        "stack_free": {
+          "count": 61,
+          "ticks": 383834
+        },
+        "stack_detach_scan": {
+          "count": 122,
+          "ticks": 8628
+        },
+        "stack_free_pages": {
+          "count": 61,
+          "ticks": 286550
+        },
+        "stack_pool_erase": {
+          "count": 61,
+          "ticks": 62114
+        },
+        "user_address_reset": {
+          "count": 61,
+          "ticks": 188399
+        },
+        "exit_files": {
+          "count": 61,
+          "ticks": 36521
+        },
+        "exit_directory": {
+          "count": 61,
+          "ticks": 27292
+        },
+        "exit_family": {
+          "count": 61,
+          "ticks": 6599
+        },
+        "exit_publish": {
+          "count": 61,
+          "ticks": 9254
+        },
+        "descriptor_free": {
+          "count": 61,
+          "ticks": 450598
+        },
+        "physical_allocate": {
+          "count": 1017,
+          "ticks": 598815
+        },
+        "physical_deallocate": {
+          "count": 1017,
+          "ticks": 446522
+        },
+        "physical_alloc_publish": {
+          "count": 1017,
+          "ticks": 402921
+        },
+        "physical_free_claim": {
+          "count": 1017,
+          "ticks": 310737
+        },
+        "fill": {
+          "count": 2685,
+          "ticks": 763653
+        },
+        "move": {
+          "count": 284,
+          "ticks": 11105
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 2820327
+        },
+        "children_running": {
+          "count": 61,
+          "ticks": 217666
+        },
+        "dispatches": {
+          "count": 63,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.32686564899631776,
+      "children": 61,
+      "create_ticks": 1526881,
+      "reap_ticks": 1501321,
+      "total_ticks": 3028202,
+      "profile": {
+        "fork_total": {
+          "count": 61,
+          "ticks": 1357063
+        },
+        "manager_allocate": {
+          "count": 61,
+          "ticks": 984247
+        },
+        "descriptor_allocate": {
+          "count": 61,
+          "ticks": 587063
+        },
+        "stack_allocate": {
+          "count": 61,
+          "ticks": 494232
+        },
+        "stack_find": {
+          "count": 61,
+          "ticks": 38249
+        },
+        "stack_prepare": {
+          "count": 61,
+          "ticks": 81766
+        },
+        "stack_commit": {
+          "count": 61,
+          "ticks": 325616
+        },
+        "image_copy": {
+          "count": 61,
+          "ticks": 229468
+        },
+        "inherit_resources": {
+          "count": 61,
+          "ticks": 56938
+        },
+        "attach_family": {
+          "count": 61,
+          "ticks": 10257
+        },
+        "wait_total": {
+          "count": 62,
+          "ticks": 964614
+        },
+        "reap_total": {
+          "count": 61,
+          "ticks": 923902
+        },
+        "stack_free": {
+          "count": 61,
+          "ticks": 506708
+        },
+        "stack_detach_scan": {
+          "count": 122,
+          "ticks": 10693
+        },
+        "stack_free_pages": {
+          "count": 61,
+          "ticks": 405189
+        },
+        "stack_pool_erase": {
+          "count": 61,
+          "ticks": 53270
+        },
+        "user_address_reset": {
+          "count": 61,
+          "ticks": 238818
+        },
+        "exit_files": {
+          "count": 61,
+          "ticks": 39885
+        },
+        "exit_directory": {
+          "count": 61,
+          "ticks": 52678
+        },
+        "exit_family": {
+          "count": 61,
+          "ticks": 9025
+        },
+        "exit_publish": {
+          "count": 61,
+          "ticks": 8802
+        },
+        "descriptor_free": {
+          "count": 61,
+          "ticks": 568510
+        },
+        "physical_allocate": {
+          "count": 1017,
+          "ticks": 588053
+        },
+        "physical_deallocate": {
+          "count": 1017,
+          "ticks": 555032
+        },
+        "physical_alloc_publish": {
+          "count": 1017,
+          "ticks": 393501
+        },
+        "physical_free_claim": {
+          "count": 1017,
+          "ticks": 382694
+        },
+        "fill": {
+          "count": 2685,
+          "ticks": 811627
+        },
+        "move": {
+          "count": 285,
+          "ticks": 11583
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 2862052
+        },
+        "children_running": {
+          "count": 61,
+          "ticks": 344379
+        },
+        "dispatches": {
+          "count": 62,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.31777744099963456,
+      "children": 61,
+      "create_ticks": 1645527,
+      "reap_ticks": 1176765,
+      "total_ticks": 2822292,
+      "profile": {
+        "fork_total": {
+          "count": 61,
+          "ticks": 1462656
+        },
+        "manager_allocate": {
+          "count": 61,
+          "ticks": 1021807
+        },
+        "descriptor_allocate": {
+          "count": 61,
+          "ticks": 611422
+        },
+        "stack_allocate": {
+          "count": 61,
+          "ticks": 505859
+        },
+        "stack_find": {
+          "count": 61,
+          "ticks": 32826
+        },
+        "stack_prepare": {
+          "count": 61,
+          "ticks": 78966
+        },
+        "stack_commit": {
+          "count": 61,
+          "ticks": 338671
+        },
+        "image_copy": {
+          "count": 61,
+          "ticks": 271150
+        },
+        "inherit_resources": {
+          "count": 61,
+          "ticks": 49183
+        },
+        "attach_family": {
+          "count": 61,
+          "ticks": 11314
+        },
+        "wait_total": {
+          "count": 62,
+          "ticks": 815186
+        },
+        "reap_total": {
+          "count": 61,
+          "ticks": 793676
+        },
+        "stack_free": {
+          "count": 61,
+          "ticks": 409766
+        },
+        "stack_detach_scan": {
+          "count": 122,
+          "ticks": 8799
+        },
+        "stack_free_pages": {
+          "count": 61,
+          "ticks": 321169
+        },
+        "stack_pool_erase": {
+          "count": 61,
+          "ticks": 48215
+        },
+        "user_address_reset": {
+          "count": 61,
+          "ticks": 223192
+        },
+        "exit_files": {
+          "count": 61,
+          "ticks": 30739
+        },
+        "exit_directory": {
+          "count": 61,
+          "ticks": 25247
+        },
+        "exit_family": {
+          "count": 61,
+          "ticks": 4437
+        },
+        "exit_publish": {
+          "count": 61,
+          "ticks": 4941
+        },
+        "descriptor_free": {
+          "count": 61,
+          "ticks": 462189
+        },
+        "physical_allocate": {
+          "count": 1017,
+          "ticks": 624116
+        },
+        "physical_deallocate": {
+          "count": 1017,
+          "ticks": 502651
+        },
+        "physical_alloc_publish": {
+          "count": 1017,
+          "ticks": 411251
+        },
+        "physical_free_claim": {
+          "count": 1017,
+          "ticks": 345440
+        },
+        "fill": {
+          "count": 2685,
+          "ticks": 803576
+        },
+        "move": {
+          "count": 285,
+          "ticks": 12978
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 2944801
+        },
+        "children_running": {
+          "count": 61,
+          "ticks": 188752
+        },
+        "dispatches": {
+          "count": 62,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 4.3171385080204345,
+      "children": 1000,
+      "create_ticks": 22708961,
+      "reap_ticks": 19838624,
+      "total_ticks": 42547585,
+      "profile": {
+        "fork_total": {
+          "count": 1000,
+          "ticks": 16609330
+        },
+        "manager_allocate": {
+          "count": 1000,
+          "ticks": 11964497
+        },
+        "descriptor_allocate": {
+          "count": 1000,
+          "ticks": 7475707
+        },
+        "stack_allocate": {
+          "count": 1000,
+          "ticks": 6152936
+        },
+        "stack_find": {
+          "count": 1000,
+          "ticks": 561061
+        },
+        "stack_prepare": {
+          "count": 1000,
+          "ticks": 914737
+        },
+        "stack_commit": {
+          "count": 1000,
+          "ticks": 3913881
+        },
+        "image_copy": {
+          "count": 1000,
+          "ticks": 2971898
+        },
+        "inherit_resources": {
+          "count": 1000,
+          "ticks": 565065
+        },
+        "attach_family": {
+          "count": 1000,
+          "ticks": 152304
+        },
+        "wait_total": {
+          "count": 1001,
+          "ticks": 17436283
+        },
+        "reap_total": {
+          "count": 1000,
+          "ticks": 16988714
+        },
+        "stack_free": {
+          "count": 1000,
+          "ticks": 8085679
+        },
+        "stack_detach_scan": {
+          "count": 2000,
+          "ticks": 264080
+        },
+        "stack_free_pages": {
+          "count": 1000,
+          "ticks": 6102523
+        },
+        "stack_pool_erase": {
+          "count": 1000,
+          "ticks": 1059266
+        },
+        "user_address_reset": {
+          "count": 1000,
+          "ticks": 4002630
+        },
+        "exit_files": {
+          "count": 1000,
+          "ticks": 550636
+        },
+        "exit_directory": {
+          "count": 1000,
+          "ticks": 529989
+        },
+        "exit_family": {
+          "count": 1000,
+          "ticks": 81988
+        },
+        "exit_publish": {
+          "count": 1000,
+          "ticks": 107510
+        },
+        "descriptor_free": {
+          "count": 1000,
+          "ticks": 9055033
+        },
+        "physical_allocate": {
+          "count": 16686,
+          "ticks": 7286588
+        },
+        "physical_deallocate": {
+          "count": 16686,
+          "ticks": 9349686
+        },
+        "physical_alloc_publish": {
+          "count": 16686,
+          "ticks": 4857304
+        },
+        "physical_free_claim": {
+          "count": 16686,
+          "ticks": 6436934
+        },
+        "fill": {
+          "count": 44058,
+          "ticks": 11470392
+        },
+        "move": {
+          "count": 3427,
+          "ticks": 119073
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 38765555
+        },
+        "children_running": {
+          "count": 1000,
+          "ticks": 3743559
+        },
+        "dispatches": {
+          "count": 1012,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 4.72204844999942,
+      "children": 1000,
+      "create_ticks": 26320154,
+      "reap_ticks": 20628522,
+      "total_ticks": 46948676,
+      "profile": {
+        "fork_total": {
+          "count": 1000,
+          "ticks": 19712563
+        },
+        "manager_allocate": {
+          "count": 1000,
+          "ticks": 14239331
+        },
+        "descriptor_allocate": {
+          "count": 1000,
+          "ticks": 8888933
+        },
+        "stack_allocate": {
+          "count": 1000,
+          "ticks": 7260634
+        },
+        "stack_find": {
+          "count": 1000,
+          "ticks": 651963
+        },
+        "stack_prepare": {
+          "count": 1000,
+          "ticks": 1120234
+        },
+        "stack_commit": {
+          "count": 1000,
+          "ticks": 4604176
+        },
+        "image_copy": {
+          "count": 1000,
+          "ticks": 3492121
+        },
+        "inherit_resources": {
+          "count": 1000,
+          "ticks": 761561
+        },
+        "attach_family": {
+          "count": 1000,
+          "ticks": 144908
+        },
+        "wait_total": {
+          "count": 1001,
+          "ticks": 17986360
+        },
+        "reap_total": {
+          "count": 1000,
+          "ticks": 17475064
+        },
+        "stack_free": {
+          "count": 1000,
+          "ticks": 8268982
+        },
+        "stack_detach_scan": {
+          "count": 2000,
+          "ticks": 265135
+        },
+        "stack_free_pages": {
+          "count": 1000,
+          "ticks": 6241517
+        },
+        "stack_pool_erase": {
+          "count": 1000,
+          "ticks": 1109593
+        },
+        "user_address_reset": {
+          "count": 1000,
+          "ticks": 4050492
+        },
+        "exit_files": {
+          "count": 1000,
+          "ticks": 588341
+        },
+        "exit_directory": {
+          "count": 1000,
+          "ticks": 557004
+        },
+        "exit_family": {
+          "count": 1000,
+          "ticks": 85968
+        },
+        "exit_publish": {
+          "count": 1000,
+          "ticks": 115656
+        },
+        "descriptor_free": {
+          "count": 1000,
+          "ticks": 9288675
+        },
+        "physical_allocate": {
+          "count": 16686,
+          "ticks": 8586783
+        },
+        "physical_deallocate": {
+          "count": 16686,
+          "ticks": 9536107
+        },
+        "physical_alloc_publish": {
+          "count": 16686,
+          "ticks": 5761400
+        },
+        "physical_free_claim": {
+          "count": 16686,
+          "ticks": 6550765
+        },
+        "fill": {
+          "count": 44058,
+          "ticks": 12792876
+        },
+        "move": {
+          "count": 3459,
+          "ticks": 130220
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 42516556
+        },
+        "children_running": {
+          "count": 1000,
+          "ticks": 3931483
+        },
+        "dispatches": {
+          "count": 1014,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "profile1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 5.055687012994895,
+      "children": 1000,
+      "create_ticks": 29205516,
+      "reap_ticks": 20676650,
+      "total_ticks": 49882166,
+      "profile": {
+        "fork_total": {
+          "count": 1000,
+          "ticks": 21997016
+        },
+        "manager_allocate": {
+          "count": 1000,
+          "ticks": 15944673
+        },
+        "descriptor_allocate": {
+          "count": 1000,
+          "ticks": 9967117
+        },
+        "stack_allocate": {
+          "count": 1000,
+          "ticks": 8187084
+        },
+        "stack_find": {
+          "count": 1000,
+          "ticks": 756089
+        },
+        "stack_prepare": {
+          "count": 1000,
+          "ticks": 1224063
+        },
+        "stack_commit": {
+          "count": 1000,
+          "ticks": 5194328
+        },
+        "image_copy": {
+          "count": 1000,
+          "ticks": 3827077
+        },
+        "inherit_resources": {
+          "count": 1000,
+          "ticks": 815874
+        },
+        "attach_family": {
+          "count": 1000,
+          "ticks": 159847
+        },
+        "wait_total": {
+          "count": 1001,
+          "ticks": 18104894
+        },
+        "reap_total": {
+          "count": 1000,
+          "ticks": 17566129
+        },
+        "stack_free": {
+          "count": 1000,
+          "ticks": 8386914
+        },
+        "stack_detach_scan": {
+          "count": 2000,
+          "ticks": 279658
+        },
+        "stack_free_pages": {
+          "count": 1000,
+          "ticks": 6353851
+        },
+        "stack_pool_erase": {
+          "count": 1000,
+          "ticks": 1088984
+        },
+        "user_address_reset": {
+          "count": 1000,
+          "ticks": 4103385
+        },
+        "exit_files": {
+          "count": 1000,
+          "ticks": 619768
+        },
+        "exit_directory": {
+          "count": 1000,
+          "ticks": 561451
+        },
+        "exit_family": {
+          "count": 1000,
+          "ticks": 94247
+        },
+        "exit_publish": {
+          "count": 1000,
+          "ticks": 200902
+        },
+        "descriptor_free": {
+          "count": 1000,
+          "ticks": 9363954
+        },
+        "physical_allocate": {
+          "count": 16686,
+          "ticks": 9569540
+        },
+        "physical_deallocate": {
+          "count": 16686,
+          "ticks": 9646813
+        },
+        "physical_alloc_publish": {
+          "count": 16686,
+          "ticks": 6263228
+        },
+        "physical_free_claim": {
+          "count": 16686,
+          "ticks": 6581922
+        },
+        "fill": {
+          "count": 44058,
+          "ticks": 13326290
+        },
+        "move": {
+          "count": 3483,
+          "ticks": 155185
+        },
+        "parent_running": {
+          "count": 1,
+          "ticks": 45559610
+        },
+        "children_running": {
+          "count": 1000,
+          "ticks": 4186698
+        },
+        "dispatches": {
+          "count": 1015,
+          "ticks": 0
+        }
+      }
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.17585586599307135,
+      "children": 61,
+      "create_ticks": 499024,
+      "reap_ticks": 620626,
+      "total_ticks": 1119650,
+      "profile": {}
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.17347289097961038,
+      "children": 61,
+      "create_ticks": 589646,
+      "reap_ticks": 622068,
+      "total_ticks": 1211714,
+      "profile": {}
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 61",
+      "host_seconds": 0.24008851998951286,
+      "children": 61,
+      "create_ticks": 834035,
+      "reap_ticks": 944237,
+      "total_ticks": 1778272,
+      "profile": {}
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 2.7510758560092654,
+      "children": 1000,
+      "create_ticks": 15173557,
+      "reap_ticks": 11702645,
+      "total_ticks": 26876202,
+      "profile": {}
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 2.956655279995175,
+      "children": 1000,
+      "create_ticks": 16537876,
+      "reap_ticks": 12501346,
+      "total_ticks": 29039222,
+      "profile": {}
+    },
+    {
+      "label": "fastfill1",
+      "cpus": 1,
+      "command": "forkprobe 1000",
+      "host_seconds": 2.681353794003371,
+      "children": 1000,
+      "create_ticks": 14169649,
+      "reap_ticks": 12300120,
+      "total_ticks": 26469769,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 61",
+      "host_seconds": 0.36404043101356365,
+      "children": 61,
+      "create_ticks": 1195792,
+      "reap_ticks": 1116023,
+      "total_ticks": 2311815,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 61",
+      "host_seconds": 0.2564546969952062,
+      "children": 61,
+      "create_ticks": 720209,
+      "reap_ticks": 619623,
+      "total_ticks": 1339832,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 61",
+      "host_seconds": 0.36879444698570296,
+      "children": 61,
+      "create_ticks": 1253927,
+      "reap_ticks": 1151046,
+      "total_ticks": 2404973,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 1000",
+      "host_seconds": 3.6543418539804406,
+      "children": 1000,
+      "create_ticks": 17230730,
+      "reap_ticks": 17750962,
+      "total_ticks": 34981692,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 1000",
+      "host_seconds": 3.688490967004327,
+      "children": 1000,
+      "create_ticks": 19042202,
+      "reap_ticks": 16232383,
+      "total_ticks": 35274585,
+      "profile": {}
+    },
+    {
+      "label": "current5",
+      "cpus": 5,
+      "command": "forkprobe 1000",
+      "host_seconds": 3.2430810869846027,
+      "children": 1000,
+      "create_ticks": 17733729,
+      "reap_ticks": 14128617,
+      "total_ticks": 31862346,
+      "profile": {}
+    },
+    {
+      "label": "actual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 4.126927142002387,
+      "children": 1000,
+      "total_ticks": 40845702,
+      "profile": {}
+    },
+    {
+      "label": "actual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 4.024881471006665,
+      "children": 1000,
+      "total_ticks": 40062909,
+      "profile": {}
+    },
+    {
+      "label": "actual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 3.99222672500764,
+      "children": 1000,
+      "total_ticks": 39568185,
+      "profile": {}
+    },
+    {
+      "label": "fastactual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 2.9357964619994164,
+      "children": 1000,
+      "total_ticks": 28985324,
+      "profile": {}
+    },
+    {
+      "label": "fastactual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 2.6739705039944965,
+      "children": 1000,
+      "total_ticks": 26496715,
+      "profile": {}
+    },
+    {
+      "label": "fastactual1",
+      "cpus": 1,
+      "command": "forktest",
+      "host_seconds": 2.9443188490113243,
+      "children": 1000,
+      "total_ticks": 29250311,
+      "profile": {}
+    }
+  ],
+  "caveats": [
+    "Different compilers and kernel architectures; this is not an isolated C-versus-C++ or template-overhead comparison.",
+    "Host timing includes output delivery latency; short 61-child samples are sensitive to that latency.",
+    "Instrumentation overhead is visible. Stage values are inclusive, nested and overlap; do not sum them.",
+    "Current timings vary with host load; the new batches do not replace the previous five-second gate acceptance.",
+    "Original NPROC=1024 intentionally changes the capacity and associated scan lengths; it is not the stock configuration.",
+    "Private word-fill is an attribution experiment, not a production change or full correctness validation."
+  ],
+  "artifact_directory": "build/docs/fork-cost-research/",
+  "production_kernel_sha256": "bdd7cd1507c41e33e827e0d507bcd1a8c00bc3d619b7c7f642b7d9ae86c52f8a",
+  "production_seed_sha256": "258a789b7c3c3d4ad6ae2c09e280a5bb26c16b401f1099a0f067fabacc6c7e2d",
+  "script_sha256": {
+    "prepare.py": "75201f5d269eb25bc398a13a003a4c91df4b98c4626ae535150a238cda26f1fc",
+    "fast_fill.py": "4941fe2944292a34ee8aae9717a7d48491a5ac8af0304906622147ed4f36ec82",
+    "run.py": "e79bc96717d7f7f813d5880e4d8e6f4ac1e3342b6523bad6e0066f776a103536",
+    "run_extra.py": "27c0135d47a312eac3345e6d90a1c117329aff72019298afbdce3bcd71adeea4"
+  }
+}

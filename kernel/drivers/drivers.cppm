@@ -14,6 +14,8 @@ export namespace xv::drivers
 // QEMU virt board services own static instances; no allocation/registration at
 // global startup. Serial/console are available before the page allocator.
 void initialize_console();
+unsigned long realtime_seconds();
+unsigned long boot_time_seconds();
 void initialize_interrupts();
 void initialize_hart(int hart);
 void handle_external_interrupt(int hart);

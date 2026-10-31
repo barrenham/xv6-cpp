@@ -32,10 +32,16 @@ target_compile_options(xv_options INTERFACE
 set(CMAKE_CXX_LINK_EXECUTABLE "${XV_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 option(XV_NET_DHCP "Acquire network addresses with DHCP at boot" ON)
 add_subdirectory(kernel)
+target_compile_definitions(kernel PRIVATE XV_KERNEL_VERSION="${PROJECT_VERSION}" XV_KERNEL_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}>)
 add_subdirectory(user)
 add_subdirectory(tools/mkfs)
 configure_file(README.xv6 "${PROJECT_BINARY_DIR}/README" COPYONLY)
+set(XV_FILESYSTEM "ext3" CACHE STRING "Filesystem for newly created system images (ext3 or xv6)")
+set_property(CACHE XV_FILESYSTEM PROPERTY STRINGS ext3 xv6)
+if(NOT XV_FILESYSTEM MATCHES "^(ext3|xv6)$")
+  message(FATAL_ERROR "XV_FILESYSTEM must be ext3 or xv6")
+endif()
 set(XV_FS_DIRECTORIES "")
 foreach(directory /bin /sbin /usr /usr/tests /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /home /data)
   string(APPEND XV_FS_DIRECTORIES "dir\t0755\t${directory}\n")
@@ -44,16 +50,22 @@ string(APPEND XV_FS_DIRECTORIES "dir\t01777\t/tmp\ndir\t0700\t/root\n")
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
   CONTENT "${XV_FS_DIRECTORIES}file\t0644\t/usr/share/doc/xv6/README\t${PROJECT_BINARY_DIR}/README\n${XV_FS_ENTRIES}")
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs.img"
-  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
+  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem "${XV_FILESYSTEM}"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
   VERBATIM)
 add_custom_target(image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs.img")
 # Keep test enrollment independent of the disk used by interactive QEMU sessions.
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
-  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
+  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem "${XV_FILESYSTEM}"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
+# Keep explicit coverage of the retained xv6 disk layout and recovery protocol.
+add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
+  COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem xv6
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  VERBATIM)
+add_custom_target(legacy-test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
 set(XV_ROOTFS_IMAGE "${PROJECT_SOURCE_DIR}/data/rootfs.img" CACHE FILEPATH "Persistent root filesystem; initialized once from the build image")
 set(XV_ROOTFS_IMPORT_IMAGE "" CACHE FILEPATH "Explicit optional legacy data volume; empty creates a clean rootfs")
 set(XV_ROOTFS_IMPORT_OPTIONS "")
@@ -61,20 +73,29 @@ if(XV_ROOTFS_IMPORT_IMAGE)
   list(APPEND XV_ROOTFS_IMPORT_OPTIONS --import-data "${XV_ROOTFS_IMPORT_IMAGE}")
 endif()
 add_custom_target(rootfs-image
-  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
+  COMMAND "${CMAKE_COMMAND}" -E env "XV_EXT3_LIBRARY=${PROJECT_BINARY_DIR}/libext3_image.so"
+    "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
     --seed "${PROJECT_BINARY_DIR}/fs.img" --output "${XV_ROOTFS_IMAGE}"
     ${XV_ROOTFS_IMPORT_OPTIONS}
   DEPENDS image VERBATIM)
 add_custom_target(rootfs-create
-  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
+  COMMAND "${CMAKE_COMMAND}" -E env "XV_EXT3_LIBRARY=${PROJECT_BINARY_DIR}/libext3_image.so"
+    "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/create_rootfs.py"
     --seed "${PROJECT_BINARY_DIR}/fs.img" --output "${XV_ROOTFS_IMAGE}" --fresh
   DEPENDS image VERBATIM)
 add_custom_target(rootfs-update
-  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/update_rootfs.py"
+  COMMAND "${CMAKE_COMMAND}" -E env "XV_EXT3_LIBRARY=${PROJECT_BINARY_DIR}/libext3_image.so"
+    "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/update_rootfs.py"
     --seed "${PROJECT_BINARY_DIR}/fs.img" --image "${XV_ROOTFS_IMAGE}"
     --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
   DEPENDS image VERBATIM)
+add_custom_target(rootfs-convert
+  COMMAND "${CMAKE_COMMAND}" -E env "XV_EXT3_LIBRARY=${PROJECT_BINARY_DIR}/libext3_image.so"
+    "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convert_rootfs.py"
+    --image "${XV_ROOTFS_IMAGE}" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --filesystem "${XV_FILESYSTEM}"
+  DEPENDS host_mkfs VERBATIM)
 set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${XV_ROOTFS_IMAGE},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
+list(APPEND XV_QEMU_OPTIONS -object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
@@ -97,7 +118,7 @@ add_custom_target(fork-performance
 add_test(NAME password_hash_contract COMMAND "${PROJECT_BINARY_DIR}/password_hash_contract")
 set_tests_properties(password_hash_contract PROPERTIES TIMEOUT 15 LABELS users)
 add_test(NAME image_layout COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/image_layout.py"
-  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --image "${PROJECT_BINARY_DIR}/fs-test.img"
+  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
   --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv")
 set_tests_properties(image_layout PROPERTIES TIMEOUT 30 LABELS fs)
 add_test(NAME signal_contract COMMAND "${PROJECT_BINARY_DIR}/process_groups_contract" --signals)
@@ -112,7 +133,7 @@ set_tests_properties(print_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 set_tests_properties(runtime_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 add_test(NAME trap_contract COMMAND "${PROJECT_BINARY_DIR}/trap_contract")
 set_tests_properties(trap_contract PROPERTIES TIMEOUT 45 LABELS trap)
-add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" "${PROJECT_BINARY_DIR}/fs-test.img")
+add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
 set_tests_properties(fs_contract PROPERTIES TIMEOUT 45 LABELS fs)
 add_test(NAME process_contract COMMAND "${PROJECT_BINARY_DIR}/process_contract")
 set_tests_properties(process_contract PROPERTIES TIMEOUT 45 LABELS process)
@@ -136,6 +157,9 @@ foreach(ram 64 257 2048 2049)
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib ${ram} --boot-only)
   set_tests_properties(ram_${ram}MiB PROPERTIES TIMEOUT 120 LABELS ram)
 endforeach()
+# These cases touch more than 2 GiB during allocator startup. Keep their
+# existing boot deadline meaningful when CTest runs the remaining tests in parallel.
+set_tests_properties(ram_2048MiB ram_2049MiB PROPERTIES RUN_SERIAL TRUE)
 
 foreach(cpus 1 5)
   foreach(feature named-pty procfs ramfs environment permissions workflow session)
@@ -294,7 +318,7 @@ foreach(cpus 1 5)
 endforeach()
 
 add_test(NAME rootfs_image_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_image.py"
-  --image "${PROJECT_BINARY_DIR}/fs-test.img" --qemu "${XV_QEMU}")
+  --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --qemu "${XV_QEMU}")
 set_tests_properties(rootfs_image_contract PROPERTIES TIMEOUT 20 LABELS fs)
 
 foreach(allocator buddy freelist)
@@ -311,7 +335,7 @@ add_test(NAME vm_stack_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURC
 set_tests_properties(vm_stack_contract PROPERTIES TIMEOUT 90 LABELS memory)
 
 add_test(NAME rootfs_update_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update.py"
-  --image "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --qemu "${XV_QEMU}")
+  --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --qemu "${XV_QEMU}")
 set_tests_properties(rootfs_update_contract PROPERTIES TIMEOUT 45 LABELS fs)
 foreach(cpus 1 5)
   add_test(NAME rootfs_update_${cpus}cpu COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update_guest.py"
@@ -364,3 +388,28 @@ add_test(NAME slab_kernel_performance COMMAND "${Python3_EXECUTABLE}"
   "${PROJECT_SOURCE_DIR}/tests/slab_kernel.py" --qemu "${XV_QEMU}"
   --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
 set_tests_properties(slab_kernel_performance PROPERTIES TIMEOUT 90 LABELS "memory;performance" RUN_SERIAL TRUE)
+
+add_test(NAME ext3_jbd_contract COMMAND "${PROJECT_BINARY_DIR}/ext3_jbd_contract")
+set_tests_properties(ext3_jbd_contract PROPERTIES TIMEOUT 30 LABELS "fs;ext3")
+
+add_test(NAME ext3_volume_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_volume.py" --contract "${PROJECT_BINARY_DIR}/ext3_volume_contract" --fs-contract "${PROJECT_BINARY_DIR}/fs_contract")
+set_tests_properties(ext3_volume_contract PROPERTIES TIMEOUT 120 LABELS "fs;ext3")
+
+add_test(NAME ext3_image_tools_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_image_tools.py"
+  --mkfs "${PROJECT_BINARY_DIR}/mkfs" --legacy-seed "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
+  --ext3-seed "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv")
+set_tests_properties(ext3_image_tools_contract PROPERTIES TIMEOUT 90 LABELS "fs;ext3")
+
+# Offline tools must load this build's shared engine, including custom presets.
+add_test(NAME exec_snapshot_contract COMMAND "${PROJECT_BINARY_DIR}/exec_snapshot_contract")
+set_tests_properties(exec_snapshot_contract PROPERTIES TIMEOUT 30 LABELS "process;fs")
+add_test(NAME system_accounting_contract COMMAND "${PROJECT_BINARY_DIR}/system_accounting_contract")
+set_tests_properties(system_accounting_contract PROPERTIES TIMEOUT 30 LABELS "process;fs")
+add_test(NAME devfs_no_entropy_1cpu COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+  --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+  --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib 128 --devfs --without-entropy --cpus 1)
+set_tests_properties(devfs_no_entropy_1cpu PROPERTIES TIMEOUT 120 LABELS "fs;drivers")
+get_property(XV_CONFIGURED_TESTS DIRECTORY PROPERTY TESTS)
+set_property(TEST ${XV_CONFIGURED_TESTS} APPEND PROPERTY ENVIRONMENT_MODIFICATION
+  "XV_EXT3_LIBRARY=set:${PROJECT_BINARY_DIR}/libext3_image.so")

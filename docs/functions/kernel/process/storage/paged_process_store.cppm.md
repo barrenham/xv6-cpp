@@ -21,6 +21,8 @@
 - [`xv::process::PagedProcessStore::release`](paged_process_store.cpp.md#fn-b890f202b0802620)
 - [`xv::process::PagedProcessStore::visit`](paged_process_store.cpp.md#fn-6cb9aa1e15885253)
 
+- [`xv::process::PagedProcessStore::Less::operator()`](paged_process_store.cppm.md#fn-9be36f15de94b44c)
+
 <a id="fn-0ca5973a6b64ff3d"></a>
 
 ## `xv::process::PagedProcessStore::PagedProcessStore`
@@ -40,4 +42,14 @@
 @fn const char *xv::process::PagedProcessStore::name() const override
 @brief 稳定的分页进程登记：读取或计算 `"`，返回当前查询结果。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+```
+
+<a id="fn-9be36f15de94b44c"></a>
+
+## `xv::process::PagedProcessStore::Less::operator()`
+
+```doxygen
+@fn bool xv::process::PagedProcessStore::Less::operator()(const Node &a, const Node &b) const
+@brief 按节点中发布后保持不变的 indexed_pid 排序；不使用回收期间会被清零的 Process::pid 作为树键。
+@note 详细锁协议见 docs/process-index-wait.md。
 ```

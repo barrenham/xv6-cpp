@@ -3,6 +3,7 @@
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/poll.h"
 #include "kernel/tty/termios.h"
+#include "kernel/process/signals/signal.h"
 #include "user/runtime/user.h"
 namespace
 {
@@ -10,9 +11,59 @@ void check(bool ok, const char *message)
 { if (!ok) { fprintf(2, "namedptytest: FAIL: %s\n", message); exit(1); } }
 void raw(int fd)
 { termios value; check(tcgetattr(fd, &value) == 0, "get termios"); cfmakeraw(&value); check(tcsetattr(fd, TCSANOW, &value) == 0, "raw mode"); }
+void controlling_race()
+{
+  for(unsigned round=0;round<8;++round)
+  {
+    int master=posix_openpt(O_RDWR),gate[2],done[2];char path[32];
+    check(master>=0 && unlockpt(master)==0 && ptsname_r(master,path,sizeof(path))==0 && pipe(gate)==0 && pipe(done)==0,"controlling race fixtures");
+    int slave=open(path,O_RDWR);check(slave>=0,"controlling race slave");
+    int child=fork();check(child>=0,"controlling race fork");
+    if(!child)
+    {
+      close(master);close(gate[0]);close(done[1]);
+      check(setsid()==getpid() && signal(SIGHUP,SIG_IGN)!=SIG_ERR && ioctl(slave,TIOCSCTTY,0)==0,"controlling race session");
+      close(slave);char value;check(write(gate[1],"r",1)==1,"publish controlling race");
+      for(unsigned attempt=0;attempt<1000;++attempt)
+      {int tty=open("/dev/tty",O_RDWR);if(tty<0)break;close(tty);}
+      check(read(done[0],&value,1)==1 && open("/dev/tty",O_RDWR)<0,"controlling race eventually detached");
+      close(gate[1]);close(done[0]);exit(0);
+    }
+    close(slave);close(gate[1]);close(done[0]);char value;
+    check(read(gate[0],&value,1)==1,"wait controlling race session");
+    close(master);check(write(done[1],"h",1)==1,"controlling race master hangup");close(gate[0]);close(done[1]);
+    int status;check(wait(&status)==child && status==0,"controlling race lifetime");
+  }
+}
+void controlling_terminal()
+{
+  int pair[2],ready[2],resume[2];
+  check(openpty(pair)==0 && pipe(ready)==0 && pipe(resume)==0,"controlling tty fixtures");
+  int child=fork();check(child>=0,"controlling tty fork");
+  if(!child)
+  {
+    close(pair[0]);close(ready[0]);close(resume[1]);
+    check(setsid()==getpid() && open("/dev/tty",O_RDWR)<0,"new session initially has no controlling tty");
+    check(signal(SIGHUP,SIG_IGN)!=SIG_ERR && ioctl(pair[1],TIOCSCTTY,0)==0,"claim controlling slave");
+    raw(pair[1]);int tty=open("/dev/tty",O_RDWR);check(tty>=0,"open controlling slave alias");
+    check(tcgetpgrp(tty)==getpgrp(),"controlling alias preserves foreground session");close(pair[1]);
+    check(write(tty,"alias",5)==5,"controlling alias survives original slave close");
+    char value;check(read(tty,&value,1)==1 && value=='R',"controlling alias receives master input");
+    check(write(ready[1],"r",1)==1 && read(resume[0],&value,1)==1,"wait for master hangup");
+    check(open("/dev/tty",O_RDWR)<0 && read(tty,&value,1)==0,"hangup detaches new opens and drains old alias");
+    close(tty);close(ready[1]);close(resume[0]);exit(0);
+  }
+  close(pair[1]);close(ready[1]);close(resume[0]);
+  char bytes[5],value;unsigned got=0;
+  while(got<sizeof(bytes)){int n=read(pair[0],bytes+got,sizeof(bytes)-got);check(n>0,"controlling alias output");got+=n;}
+  check(!memcmp(bytes,"alias",5) && write(pair[0],"R",1)==1 && read(ready[0],&value,1)==1,"controlling roundtrip");
+  close(pair[0]);check(write(resume[1],"h",1)==1,"publish controlling hangup");close(resume[1]);close(ready[0]);
+  int status;check(wait(&status)==child && status==0,"controlling terminal child exits cleanly");
+}
 }
 extern "C" int main()
 {
+  controlling_terminal();controlling_race();
   char path[32], other_path[32], data[16];
   int master = posix_openpt(O_RDWR | O_NONBLOCK); check(master >= 0, "allocate master");
   check(grantpt(master) == 0 && ptsname_r(master, path, sizeof(path)) == 0, "slave name");

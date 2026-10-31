@@ -7,52 +7,18 @@ export import :cache;
 
 export namespace xv::fs
 {
-class Journal final
+class Journal
 {
 public:
-
-  constexpr explicit Journal(BlockCache &cache) : cache_(cache)
-  {
-  }
-
-  Journal(const Journal &) = delete;
-  Journal &operator=(const Journal &) = delete;
-  void initialize(int device, const superblock *layout);
-  void begin();
-  void end();
-  void record(Buffer &buffer);
-  void sync();
-
-private:
-
-  struct WaitProtocol;
-  struct BeginFlow;
-  struct EndFlow;
-  struct CommitFlow;
-  struct RecoverFlow;
-  struct RecordFlow;
-  struct SyncFlow;
-
-  struct Header
-  {
-    int count = 0;
-    int blocks[LOGBLOCKS]{};
-  } header_;
-
-  static_assert(sizeof(Header) < BlockSize);
-  void recover();
-  void install(int recovering);
-  void read_header();
-  void write_header();
-  void write_log();
-  void commit();
-  BlockCache &cache_;
-  xv::sync::SpinLock lock_;
-  int start_ = 0;
-  int outstanding_ = 0;
-  int committing_ = 0;
-  int device_ = 0;
-  int commits_ = 0;
+  Journal(const Journal &)=delete;
+  Journal &operator=(const Journal &)=delete;
+  virtual void begin()=0;
+  virtual void end()=0;
+  virtual void record(Buffer &buffer)=0;
+  virtual void sync()=0;
+protected:
+  constexpr Journal()=default;
+  ~Journal()=default;
 };
 
 Journal &journal();

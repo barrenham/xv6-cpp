@@ -6,8 +6,6 @@
 - [`xv::process::ProcessManager::AllocateFlow::descriptor`](process_manager.cpp.md#fn-992a7aa604af9bf4)
 - [`xv::process::ProcessManager::AllocateFlow::has_trapframe`](process_manager.cpp.md#fn-2a8067a3b4d5899d)
 - [`xv::process::ProcessManager::AllocateFlow::has_user_syscall`](process_manager.cpp.md#fn-6cfa98e381f42eef)
-- [`xv::process::ProcessManager::AllocateFlow::identified`](process_manager.cpp.md#fn-c519294fd10654cf)
-- [`xv::process::ProcessManager::AllocateFlow::identity`](process_manager.cpp.md#fn-d01b50a125f4bd06)
 - [`xv::process::ProcessManager::AllocateFlow::image`](process_manager.cpp.md#fn-9ea5649ddaa8d70c)
 - [`xv::process::ProcessManager::AllocateFlow::prepare_return`](process_manager.cpp.md#fn-a409244c0ce60c56)
 - [`xv::process::ProcessManager::AllocateFlow::ready`](process_manager.cpp.md#fn-809f7d761c99578f)
@@ -99,9 +97,8 @@
 
 ```doxygen
 @fn int xv::process::ProcessManager::kill(int pid)
-@brief 按用户身份授权后终止指定 PID。
-@details 只接受正 PID，定位目标并比较发送者与目标凭据；root 或 UID 匹配才设置终止状态并唤醒可中断睡眠，失败返回 -1。
-@details 流程由 KillFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 按 PID 索引取得目标并执行原有权限检查、终止标记与唤醒协议；拒绝非正 PID。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-bbc335370e273170"></a>
@@ -120,9 +117,8 @@
 
 ```doxygen
 @fn int xv::process::ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
-@brief 按凭据限制描述符元数据观测。
-@details root 或调用者有效 UID 同时匹配目标真实与有效 UID 才可检查。进程锁内确认身份，再在 fd 表短锁内复制已发布的不可变 FileInfo；不调用后端、不关闭引用，不睡眠。
-@details 流程由 InspectFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 按 PID 索引取得已锁定对象，核对凭据后复制文件描述符快照，不遍历其他进程。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-a16d407c78d63bf0"></a>
@@ -142,9 +138,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessManager::detach_child(Process &child)
-@brief 将已关联子进程从父进程子链表常数时间移除。
-@pre 已关联对象的操作由家庭锁保护；未关联构造失败对象由调用者独占。
-@details 更新相邻兄弟及父进程首尾指针，再清空子进程父指针和兄弟链接；从未关联的构造失败对象直接返回。
+@brief 持 family 锁先摘除子进程的所有事件链接，再以 O(1) 更新父子双向链；未曾关联父进程的失败回滚对象也可调用。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-a88d497d2d723a56"></a>
@@ -163,8 +158,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::AllocateFlow::descriptor(Context &c) noexcept
-@brief 尝试取得带锁的稳定进程描述符。
-@details ProcessStore 返回稳定描述符及其持有的进程锁；失败统一经 reap 回收全部已取得资源并结束本图，成功仍把进程锁转交调用者。条件编译的 LAB_PGTBL 和 LAB_LOCK 顺序保留。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 先分配正 PID，再交给存储构造和发布描述符；PID 耗尽或存储失败时保持空结果。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-2a8067a3b4d5899d"></a>
@@ -184,26 +179,6 @@
 ```doxygen
 @fn static bool xv::process::ProcessManager::AllocateFlow::has_user_syscall(Context &c) noexcept
 @brief 检查 LAB_PGTBL 系统调用共享页是否已取得。
-@details ProcessStore 返回稳定描述符及其持有的进程锁；失败统一经 reap 回收全部已取得资源并结束本图，成功仍把进程锁转交调用者。条件编译的 LAB_PGTBL 和 LAB_LOCK 顺序保留。 下一节点由图策略声明，业务结果与控制信号分离。
-```
-
-<a id="fn-c519294fd10654cf"></a>
-
-## `xv::process::ProcessManager::AllocateFlow::identified`
-
-```doxygen
-@fn static bool xv::process::ProcessManager::AllocateFlow::identified(Context &c) noexcept
-@brief 检查进程号空间尚未耗尽。
-@details ProcessStore 返回稳定描述符及其持有的进程锁；失败统一经 reap 回收全部已取得资源并结束本图，成功仍把进程锁转交调用者。条件编译的 LAB_PGTBL 和 LAB_LOCK 顺序保留。 下一节点由图策略声明，业务结果与控制信号分离。
-```
-
-<a id="fn-d01b50a125f4bd06"></a>
-
-## `xv::process::ProcessManager::AllocateFlow::identity`
-
-```doxygen
-@fn static void xv::process::ProcessManager::AllocateFlow::identity(Context &c) noexcept
-@brief 分配并保存进程号。
 @details ProcessStore 返回稳定描述符及其持有的进程锁；失败统一经 reap 回收全部已取得资源并结束本图，成功仍把进程锁转交调用者。条件编译的 LAB_PGTBL 和 LAB_LOCK 顺序保留。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
@@ -303,8 +278,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::ExitFlow::family(Context &c) noexcept
-@brief 取得 family 锁，收养当前子进程并唤醒父等待事件。
-@details 初始进程退出在入口拒绝。目录引用清理使用动作局部 Transaction；变为 Zombie 后释放 family 锁，但继续持进程锁进入调度器。调度器异常返回保留原 panic 诊断。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 持 family 锁转交全部子进程，在取得当前进程锁前只通知其父进程的等待通道；family 锁保持到 Zombie 与事件发布，关闭检查到睡眠的竞争窗口。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-b4a8db086931ec68"></a>
@@ -414,7 +389,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::ForkFlow::resources(Context &c) noexcept
 @brief 按描述符、目录、凭据次序继承资源，复制名称，保存 PID 并释放子锁。
-@details 候选先持子进程锁复制映像和资源，再释放子锁，在 family 锁内继承组并挂接父子链，随后重新取得子锁发布 Runnable。返回 PID 在发布前保存，发布后不依赖子对象仍然存活。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-f1027c67449a661e"></a>
@@ -533,8 +508,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::InspectFlow::find(Context &c) noexcept
-@brief 按原 PID 谓词查找并锁住目标进程。
-@details 入口验证 PID 和容量。查找后持目标进程锁；先读取调用者和目标两份凭据快照，即使调用者为 root 也不合并或省略读取，再按原权限判断决定是否检查文件表。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 按指定 PID 查询红黑树，成功取得已锁定且存活的进程描述符，后续权限检查和操作沿用原协议。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-f26da8f4f898fb8c"></a>
@@ -554,7 +529,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InspectFlow::inspect(Context &c) noexcept
 @brief 在目标进程锁内读取文件表快照并保存原返回值。
-@details 入口验证 PID 和容量。查找后持目标进程锁；先读取调用者和目标两份凭据快照，即使调用者为 root 也不合并或省略读取，再按原权限判断决定是否检查文件表。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-1012f4475c3bf528"></a>
@@ -583,8 +558,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::KillFlow::find(Context &c) noexcept
-@brief 按原 PID 谓词查找并锁住目标进程。
-@details PID 参数在入口验证，ProcessStore 查找返回带锁对象；保护 init 并保留原凭据快照调用，先标记和唤醒，再解进程锁并发送子事件通知。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 按指定 PID 查询红黑树，成功取得已锁定且存活的进程描述符，后续权限检查和操作沿用原协议。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-6f5431af81044331"></a>
@@ -704,7 +679,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::ReapFlow::image(Context &c) noexcept
 @brief 清空陷阱帧指针并重置拥有的用户映像。
-@details 入口持目标进程锁；有父进程时还由调用者持 family 锁，未发布候选允许没有父节点。描述符归还必须是最后一步，其后图不再访问该进程。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-8f26aeb956dc6234"></a>
@@ -723,8 +698,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::ReapFlow::reset_identity(Context &c) noexcept
-@brief 按原顺序清空 PID、名称、等待、信号与退出事件状态。
-@details 入口持目标进程锁；有父进程时还由调用者持 family 锁，未发布候选允许没有父节点。描述符归还必须是最后一步，其后图不再访问该进程。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 持子进程锁清理身份和信号状态，并从延迟继续通知队列撤销登记；PID 树使用独立不变键，之后由存储回收阶段删除。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-11e8da61c2c46eb8"></a>
@@ -733,8 +708,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::ReparentFlow::adopt(Context &c) noexcept
-@brief 取得当前子锁，转移组父关系并把节点从原子链移到 init 子链尾。
-@details 调用者持 family 锁且已排除空子链；仅按创建顺序遍历自己的子节点，包含未回收僵尸。每轮都释放子锁后再选择下一个节点，循环不增加 C++ 调用栈。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 持 family 锁取得子进程锁，转移组亲属信息，解除旧父链接及事件，再接到 init 并重建其事件队列登记。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-7a797ce9c7fe1c13"></a>
@@ -773,8 +748,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::ReparentFlow::wake(Context &c) noexcept
-@brief 完成全部收养后唤醒子事件等待者。
-@details 调用者持 family 锁且已排除空子链；仅按创建顺序遍历自己的子节点，包含未回收僵尸。每轮都释放子锁后再选择下一个节点，循环不增加 C++ 调用栈。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 所有被认领子进程锁已释放后，唤醒 init 自己的子事件等待通道。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-0fc82682334f3a9b"></a>
@@ -785,4 +760,13 @@
 @fn static bool xv::process::ProcessManager::ReparentFlow::zombie(Context &c) noexcept
 @brief 检查被收养节点是否已为僵尸。
 @details 调用者持 family 锁且已排除空子链；仅按创建顺序遍历自己的子节点，包含未回收僵尸。每轮都释放子锁后再选择下一个节点，循环不增加 C++ 调用栈。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+<a id="fn-4d81fa87fc855998"></a>
+
+## `xv::process::ProcessManager::inspect_exec`
+
+```doxygen
+@fn bool ProcessManager::xv::process::ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+@brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

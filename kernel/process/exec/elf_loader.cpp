@@ -16,6 +16,7 @@ import xv.fs;
 
 import :elf_loader;
 import :elf_format;
+import :storage_platform;
 
 namespace xv::process
 {
@@ -168,6 +169,7 @@ struct ElfLoader::LoadFlow
     char *const *environment;
     PendingImage &candidate;
     ExecutableFile &file;
+    ExecSnapshot &snapshot;
     unsigned long *user_environment, *user_arguments;
     elfhdr header{};
     proghdr segment{};
@@ -339,10 +341,15 @@ struct ElfLoader::LoadFlow
            c.candidate.memory.copy_out(c.stack, c.source, c.bytes) >= 0;
   }
 
+  static bool snapshot(Context &c) noexcept
+  {
+    return c.snapshot.prepare(c.path,c.arguments,c.environment,&detail::allocate_process_page,&detail::free_process_page,MAXARG,MAXENV);
+  }
+
   static void commit(Context &c) noexcept
   {
     c.process.commit_image(c.candidate.memory, c.header.entry, c.stack, c.stack, c.path,
-                           c.environment_address);
+                           c.environment_address,&c.snapshot);
     c.process.credentials().apply_exec(c.image_uid, c.image_gid, c.image_mode);
     c.result = c.count;
   }
@@ -372,6 +379,7 @@ struct ElfLoader::LoadFlow
   struct ArgumentArray;
   struct PushBounds;
   struct AlignStack;
+  struct Snapshot;
   struct Commit;
   using Graph = flow::graph<
       Header,
@@ -434,13 +442,14 @@ struct ElfLoader::LoadFlow
                      flow::call<PushBounds, StoreArgument>>,
           flow::node<StoreArgument, flow::action<&store_argument>, flow::go<Argument>>,
           flow::node<ArgumentArray, flow::action<&argument_array>,
-                     flow::call<PushBounds, Commit>>,
+                     flow::call<PushBounds, Snapshot>>,
           flow::node<
               PushBounds, flow::noop,
               flow::branch<flow::condition<&space>, flow::go<AlignStack>, flow::stop>>,
           flow::node<
               AlignStack, flow::action<&align_stack>,
               flow::branch<flow::condition<&copy_stack>, flow::return_, flow::stop>>,
+          flow::node<Snapshot,flow::noop,flow::branch<flow::condition<&snapshot>,flow::go<Commit>,flow::stop>>,
           flow::node<Commit, flow::action<&commit>, flow::stop>>>;
 };
 
@@ -449,9 +458,10 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments,
 {
   PendingImage candidate;
   ExecutableFile file(path);
+  ExecSnapshot snapshot;
   unsigned long user_environment[MAXENV], user_arguments[MAXARG];
   LoadFlow::Context context{process,   path, arguments,        environment,
-                            candidate, file, user_environment, user_arguments};
+                            candidate, file,snapshot, user_environment, user_arguments};
   (void)LoadFlow::Graph::run<1>(context);
   // On success candidate owns the old image; on failure it owns the partial one.
   return context.result;

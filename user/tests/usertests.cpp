@@ -144,7 +144,7 @@ copyinstr1(char *s)
 void
 copyinstr2(char *s)
 {
-  char b[MAXPATH + 1];
+  static char b[MAXPATH + 1];
 
   for (int i = 0; i < MAXPATH; i++)
     b[i] = 'x';
@@ -1800,6 +1800,20 @@ void
 fourteen(char *s)
 {
   int fd;
+  char mounts[256]{};fd=open("/proc/mounts",O_RDONLY);
+  if(fd>=0){read(fd,mounts,sizeof(mounts)-1);close(fd);}
+  bool native=false;
+  for(unsigned i=0;mounts[i];++i)
+  {const char *pattern=" / ext3 ";unsigned n=0;while(pattern[n] && mounts[i+n] && pattern[n]==mounts[i+n])++n;if(!pattern[n])native=true;}
+  if(native)
+  {
+    if(mkdir("12345678901234") || mkdir("123456789012345"))exit(1);
+    fd=open("123456789012345/abcdefghijklmno",O_CREATE|O_RDWR);if(fd<0)exit(1);close(fd);
+    if(open("12345678901234/abcdefghijklmno",O_RDONLY)>=0 || open("123456789012345/abcdefghijklmn",O_RDONLY)>=0)
+    {printf("%s: native names were truncated\n",s);exit(1);}
+    if(unlink("123456789012345/abcdefghijklmno") || unlink("123456789012345") || unlink("12345678901234"))exit(1);
+    return;
+  }
 
   // DIRSIZ is 14.
 

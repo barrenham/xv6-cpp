@@ -117,7 +117,7 @@
 ```doxygen
 @fn static void xv::process::SchedulerContext::DispatchFlow::enter(Context &c) noexcept
 @brief 取得进程锁、验证 Runnable 并开始所选策略的执行记账。
-@details 在进程锁内调用队列 start；其短队列锁释放后再标记 Running 和 cpu.current，随后交给原 swtch 节点。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-a291a904223611a7"></a>

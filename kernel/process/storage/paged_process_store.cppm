@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/rb_tree.h"
 module xv.process:paged_store;
 
 import :store;
@@ -19,9 +21,10 @@ public:
   }
 
   void initialize() override;
-  Process *allocate() override;
+  Process *allocate(int pid = 0) override;
   void release(Process *process) override;
   Process *find(ProcessPredicate &predicate) override;
+  Process *find_pid(int pid) override;
   void visit(ProcessVisitor &visitor) override;
   unsigned long count() const override;
 
@@ -30,11 +33,19 @@ private:
   struct AllocateFlow;
   struct ReleaseFlow;
 
-  struct Node
+  struct Node : xv::support::RbLinks<Node>
   {
-    Node *next = nullptr;
+    Node *next = nullptr, *previous = nullptr;
+    int indexed_pid = 0;
+    PagedProcessStore *owner = nullptr;
     alignas(Process) unsigned char storage[sizeof(Process)];
   };
+
+  struct Less
+  {
+    bool operator()(const Node &a, const Node &b) const { return a.indexed_pid < b.indexed_pid; }
+  };
+  xv::support::RbTree<Node, Less> pids_;
 
   static Process *process_at(Node &node);
   static Node *node_at(Process &process);

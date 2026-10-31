@@ -78,7 +78,7 @@ static void one(const char *directory)
   check(unlink("relative") == 0 && stat("file", &st) == 0,
         "unlink link retains target");
   check(symlink("real", "diralias") == 0 && mkdir("real") == 0 && chdir("diralias") == 0, "directory alias");
-  char physical[MAXPATH]; check(getcwd(physical, sizeof(physical)) != nullptr, "physical cwd");
+  static char physical[MAXPATH]; check(getcwd(physical, sizeof(physical)) != nullptr, "physical cwd");
   char *last = physical; for (char *p = physical; *p; ++p) if (*p == '/') last = p + 1;
   check(!strcmp(last, "real") && chdir("..") == 0, "cwd skips symbolic aliases");
   int fds[2];

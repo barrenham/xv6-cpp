@@ -46,7 +46,7 @@
 ```doxygen
 @fn static void xv::fs::InodeBackend::ReadFlow::advance(Context &c) noexcept
 @brief 仅在返回正字节数时推进共享偏移。
-@details LockedInode 留在公开 read 方法作用域；正返回值才推进共享文件偏移，快照与普通读取在推进阶段汇合。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-e478fab2378f8dc4"></a>
@@ -105,8 +105,8 @@
 
 ```doxygen
 @fn static void xv::fs::InodeBackend::SeekFlow::commit(Context &c) noexcept
-@brief 提交共享文件偏移并保存返回值。
-@details LockedInode 留在 seek 入口作用域；失败不提交新共享偏移。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@brief 提交暂存事务，提交记录落盘后再checkpoint并清理日志。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-dc616f2dcda1d834"></a>
@@ -266,5 +266,205 @@
 ```doxygen
 @fn static void xv::fs::InodeBackend::WriteFlow::write_part(Context &c) noexcept
 @brief 在局部事务和 inode 锁内清除 setid、选择追加偏移、写入并推进偏移。
-@details 每段 write_part 内先构造 Transaction 再构造 LockedInode；离开该阶段先解 inode 锁再结束事务，之后才累计总体进展。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-b0087906ea23e5d6"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::more`
+
+```doxygen
+@fn static bool xv::fs::BlockBackend::TransferFlow::more(Context &c) noexcept
+@brief 流程动作或条件 more；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-4793e740b6138c2e"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::prepare`
+
+```doxygen
+@fn static void xv::fs::BlockBackend::TransferFlow::prepare(Context &c) noexcept
+@brief 先构造不可变路径、argv和环境候选，受数量与总字节上限约束；成功才替换旧快照。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-129a51f327a2b167"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::needs_read`
+
+```doxygen
+@fn static bool xv::fs::BlockBackend::TransferFlow::needs_read(Context &c) noexcept
+@brief 流程动作或条件 needs_read；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-b3eca81ede39c31c"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::read_sector`
+
+```doxygen
+@fn static void xv::fs::BlockBackend::TransferFlow::read_sector(Context &c) noexcept
+@brief 流程动作或条件 read_sector；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-918b10c1019089a8"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::writing`
+
+```doxygen
+@fn static bool xv::fs::BlockBackend::TransferFlow::writing(Context &c) noexcept
+@brief 流程动作或条件 writing；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-813d1f93bdb17f32"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::copy_in`
+
+```doxygen
+@fn static bool xv::fs::BlockBackend::TransferFlow::copy_in(Context &c) noexcept
+@brief 流程动作或条件 copy_in；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-61b0595ac55a03e8"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::copy_out`
+
+```doxygen
+@fn static bool xv::fs::BlockBackend::TransferFlow::copy_out(Context &c) noexcept
+@brief 流程动作或条件 copy_out；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-f9772d9e264d35cf"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::write_sector`
+
+```doxygen
+@fn static void xv::fs::BlockBackend::TransferFlow::write_sector(Context &c) noexcept
+@brief 流程动作或条件 write_sector；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-b7499d4af3366dd9"></a>
+
+## `xv::fs::BlockBackend::TransferFlow::advance`
+
+```doxygen
+@fn static void xv::fs::BlockBackend::TransferFlow::advance(Context &c) noexcept
+@brief 流程动作或条件 advance；作用于当前Context，转移关系由所属图声明。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-9e07a0e8da78b2d8"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::more`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::more(Context &c) noexcept
+@brief 流程动作或条件 more；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-55cbfc37b55b1c45"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::next`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::DirectoryFlow::next(Context &c) noexcept
+@brief 计算循环日志中的下一块位置。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-bb246eeef9552be8"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::success`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::success(Context &c) noexcept
+@brief 流程动作或条件 success；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-fcb35e42067c6b8b"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::eof`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::eof(Context &c) noexcept
+@brief 流程动作或条件 eof；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-6787842e5df03a69"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::finish`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::DirectoryFlow::finish(Context &c) noexcept
+@brief 流程动作或条件 finish；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-1419d4badf7cd9eb"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::measure`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::DirectoryFlow::measure(Context &c) noexcept
+@brief 流程动作或条件 measure；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-aaa0d174a5e59f6a"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::valid`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::valid(Context &c) noexcept
+@brief 流程动作或条件 valid；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-c37c951846378fa2"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::fits`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::fits(Context &c) noexcept
+@brief 流程动作或条件 fits；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-1a9375193a3cccdb"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::serialize`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::DirectoryFlow::serialize(Context &c) noexcept
+@brief 流程动作或条件 serialize；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-27a232234067f3ad"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::copy`
+
+```doxygen
+@fn static bool xv::fs::InodeBackend::DirectoryFlow::copy(Context &c) noexcept
+@brief 将指定快照字段逐页写入sink，失败立即停止。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
+```
+
+<a id="fn-a30b845c8de6aae7"></a>
+
+## `xv::fs::InodeBackend::DirectoryFlow::advance`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::DirectoryFlow::advance(Context &c) noexcept
+@brief 流程动作或条件 advance；作用于当前Context，转移关系由所属图声明。
+@details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
 ```

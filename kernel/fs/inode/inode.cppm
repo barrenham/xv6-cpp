@@ -58,6 +58,7 @@ private:
 
   friend class FileSystem;
   friend class Xv6FileSystem;
+  friend class Ext3FileSystem;
   friend class DevFileSystem;
   friend class ProcFileSystem;
   friend class RamFileSystem;

@@ -16,5 +16,6 @@ target_sources(kernel PRIVATE
   interrupt/plic.cpp
   interrupt/interrupt_router.cpp
   platform/kernel_platform.cpp
+  entropy/virtio_entropy.cpp
   board/qemu_virt.cpp
 )

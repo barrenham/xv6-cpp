@@ -16,6 +16,8 @@ struct PagedProcessStore::AllocateFlow
   struct Context
   {
     PagedProcessStore &owner;
+    int pid;
+    bool published = false;
     void *page = nullptr;
     unsigned long stack = 0;
     Node *node = nullptr;
@@ -50,7 +52,8 @@ struct PagedProcessStore::AllocateFlow
   static void construct(Context &c) noexcept
   {
     c.node = new (c.page) Node{};
-    c.process = ProcessStore::construct(c.node->storage);
+    c.node->owner = &c.owner;
+    c.process = ProcessStore::construct(c.node->storage, c.pid, c.node);
     set_stack(*c.process, c.stack);
   }
 
@@ -58,10 +61,26 @@ struct PagedProcessStore::AllocateFlow
   {
     // The unpublished candidate is locked; no registry reader can yet wait on it.
     xv::sync::ScopedLock guard(c.owner.lock_);
+    c.node->indexed_pid = c.pid;
+    if (c.pid && !c.owner.pids_.insert(*c.node)) return;
     c.node->next = c.owner.head_;
+    if (c.owner.head_) c.owner.head_->previous = c.node;
     c.owner.head_ = c.node;
     ++c.owner.count_;
+    c.published = true;
   }
+  static bool published(Context &c) noexcept { return c.published; }
+
+  static void discard(Context &c) noexcept
+  {
+    ProcessStore::retire(*c.process);
+    ProcessStore::destroy(*c.process);
+    c.node->~Node();
+    detail::free_kernel_stack(c.stack);
+    detail::free_process_object(c.node);
+    c.process = nullptr;
+  }
+  struct Discard;
   struct Page;
   struct Stack;
   struct Rollback;
@@ -77,7 +96,9 @@ struct PagedProcessStore::AllocateFlow
                                           flow::go<Construct>, flow::go<Rollback>>>,
                   flow::node<Rollback, flow::action<&rollback>, flow::stop>,
                   flow::node<Construct, flow::action<&construct>, flow::go<Publish>>,
-                  flow::node<Publish, flow::action<&publish>, flow::stop>>>;
+                  flow::node<Publish, flow::action<&publish>,
+                             flow::branch<flow::condition<&published>, flow::stop, flow::go<Discard>>>,
+                  flow::node<Discard, flow::action<&discard>, flow::stop>>>;
 };
 
 struct PagedProcessStore::ReleaseFlow
@@ -98,16 +119,11 @@ struct PagedProcessStore::ReleaseFlow
   static void remove(Context &c) noexcept
   {
     xv::sync::ScopedLock guard(c.owner.lock_);
-    Node **link = &c.owner.head_;
-    while (*link && *link != c.node)
-    {
-      link = &(*link)->next;
-    }
-    if (!*link)
-    {
-      detail::storage_fail("process store: unknown descriptor");
-    }
-    *link = c.node->next;
+    if (c.node->previous) c.node->previous->next = c.node->next;
+    else if (c.owner.head_ == c.node) c.owner.head_ = c.node->next;
+    else detail::storage_fail("process store: unknown descriptor");
+    if (c.node->next) c.node->next->previous = c.node->previous;
+    if (c.node->indexed_pid) c.owner.pids_.erase(*c.node);
     --c.owner.count_;
     // A reader may own the process lock after dropping the registry lock.
     lock(c.process);
@@ -156,14 +172,14 @@ Process *PagedProcessStore::process_at(Node &node)
 
 PagedProcessStore::Node *PagedProcessStore::node_at(Process &process)
 {
-  return reinterpret_cast<Node *>(reinterpret_cast<unsigned char *>(&process) -
-                                  __builtin_offsetof(Node, storage));
+  return static_cast<Node *>(storage_node(process));
 }
 
-Process *PagedProcessStore::allocate()
+Process *PagedProcessStore::allocate(int pid)
 {
   static_assert(sizeof(Node) <= 2048);
-  AllocateFlow::Context context{*this};
+  if (pid < 0) return nullptr;
+  AllocateFlow::Context context{*this, pid};
   (void)AllocateFlow::Graph::run<0>(context);
   return context.process;
 }
@@ -171,6 +187,7 @@ Process *PagedProcessStore::allocate()
 void PagedProcessStore::release(Process *process)
 {
   auto *node = node_at(*process);
+  if (!node || node->owner != this) detail::storage_fail("process store: foreign descriptor");
   auto stack = process->kernel_stack();
   ReleaseFlow::Context context{*this, *process, node, stack};
   (void)ReleaseFlow::Graph::run<0>(context);
@@ -189,6 +206,21 @@ Process *PagedProcessStore::find(ProcessPredicate &predicate)
     }
     unlock(*process);
   }
+  return nullptr;
+}
+
+Process *PagedProcessStore::find_pid(int pid)
+{
+  if (pid <= 0) return nullptr;
+  xv::sync::ScopedLock guard(lock_);
+  Node key;
+  key.indexed_pid = pid;
+  auto *node = pids_.find(key);
+  if (!node) return nullptr;
+  auto *process = process_at(*node);
+  lock(*process);
+  if (has_pid(*process, pid)) return process;
+  unlock(*process);
   return nullptr;
 }
 

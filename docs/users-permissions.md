@@ -95,6 +95,8 @@ root 绕过普通读写和目录搜索位，仍受只读后端及文件执行位
 
 ## 磁盘格式与验证
 
-磁盘 inode 从 64 字节扩为 128 字节，增加 uid/gid/mode，FSMAGIC 改为 0x10203041。旧镜像不能直接加载。构建会用新版 mkfs 生成 fs.img；保留旧数据前先备份镜像，再在新格式中导入文件。mkfs 按镜像安装清单设置属主与权限：普通目录与程序默认 root:root 0755，/root 为 0700，/tmp 为 01777，文档为 0644。默认账户 shell 为 /bin/sh。
+原 xv6 后端的磁盘 inode 从 64 字节扩为 128 字节，增加 uid/gid/mode，FSMAGIC 改为 0x10203041。旧镜像不能直接加载。构建会用新版 mkfs 生成 fs.img；保留旧数据前先备份镜像，再在新格式中导入文件。mkfs 按镜像安装清单设置属主与权限：普通目录与程序默认 root:root 0755，/root 为 0700，/tmp 为 01777，文档为 0644。默认账户 shell 为 /bin/sh。
+
+新建镜像默认采用 ext3；后者使用标准 ext3 inode 与属主/权限编码，不使用 xv6 的 FSMAGIC。两种后端的选择、转换和账户保留见 [ext3 接入](ext3.md)。
 
 `permissiontest` 覆盖磁盘/RAM 权限持久化、目录搜索、真实与有效身份、附加组、sticky 删除、PTY 属主、进程和网络授权、降权不可恢复与非法参数。permissions 单核/五核测试还覆盖 useradd、命令式 su 与交互式 su。原生 process_contract/fs_contract 覆盖凭据状态机和后端授权契约。

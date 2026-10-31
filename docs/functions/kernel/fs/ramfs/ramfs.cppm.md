@@ -115,3 +115,12 @@
 @brief 取得 inode 对应的 RAM 节点控制对象。
 @details 通过私有 context_ 记录定位，不依赖跨类型布局强转。调用者保证节点归属为本实例且持有有效引用。
 ```
+<a id="fn-82c0f2f405325553"></a>
+
+## `xv::fs::RamFileSystem::next_directory`
+
+```doxygen
+@fn int xv::fs::RamFileSystem::next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+@brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

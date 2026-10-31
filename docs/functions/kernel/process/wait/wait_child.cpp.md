@@ -27,6 +27,18 @@
 - [`xv::process::ProcessManager::wait_child`](wait_child.cpp.md#fn-d7ca44eff96231ec)
 - [`xv::process::ProcessManager::waitpid`](wait_child.cpp.md#fn-3d4e53d945a90f89)
 
+- [`xv::process::ProcessManager::update_child_event`](wait_child.cpp.md#fn-b6cdc964d2b78f2e)
+
+- [`xv::process::ProcessManager::refresh_child_events`](wait_child.cpp.md#fn-03da042b7d74a1e6)
+
+- [`xv::process::ProcessManager::remove_child_events`](wait_child.cpp.md#fn-3f9e1ed58704500c)
+
+- [`xv::process::ProcessManager::queue_child_notification`](wait_child.cpp.md#fn-934632d76503279c)
+
+- [`xv::process::ProcessManager::cancel_child_notification`](wait_child.cpp.md#fn-06ba42f93fa856c3)
+
+- [`xv::process::ProcessManager::collect_child_notifications`](wait_child.cpp.md#fn-7406f868096667c7)
+
 <a id="fn-15b2744ee3edc5d8"></a>
 
 ## `xv::process::ProcessManager::wait`
@@ -78,8 +90,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::WaitFlow::consume(Context &c) noexcept
-@brief 按编码状态清除停止或继续事件，并释放子锁。
-@details 入口持 family 锁；只直接扫描自己的子链，候选事件保留子锁。复制状态成功后才消费事件或回收，reap 后仅使用提前保存的 PID。睡眠在 family 锁内登记，解锁调度后重新持锁并重扫。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 状态复制成功后清除已报告的停止或继续标志，并在 family 与子锁内同步事件队列，最后释放子进程锁。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-b90d19e2c4ba9321"></a>
@@ -168,8 +180,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::WaitFlow::select_event(Context &c) noexcept
-@brief 按原 PID/组和事件筛选顺序直接扫描子链，保留命中子锁并编码状态。
-@details 入口持 family 锁；只直接扫描自己的子链，候选事件保留子锁。复制状态成功后才消费事件或回收，reap 后仅使用提前保存的 PID。睡眠在 family 锁内登记，解锁调度后重新持锁并重扫。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 正 PID 经索引定位并核对直接亲属关系；任意子进程等待只访问请求种类的待处理事件队列，并在子锁内复核延迟继续状态。按组等待在必要时扫描直接子进程判断是否仍有匹配成员。成功保留子锁，退出优先，状态复制失败不消费。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-99647bf06191326c"></a>
@@ -198,6 +210,66 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::WaitFlow::wait(Context &c) noexcept
-@brief 在锁内登记可中断等待，解锁睡眠，再重新取得 family 锁。
-@details 入口持 family 锁；只直接扫描自己的子链，候选事件保留子锁。复制状态成功后才消费事件或回收，reap 后仅使用提前保存的 PID。睡眠在 family 锁内登记，解锁调度后重新持锁并重扫。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 仍持 family 锁时登记到当前父进程独立的子事件通道，再释放 family 锁并睡眠；唤醒后重新取得 family 锁检查事件，保持提前通知不会丢失。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
+```
+
+<a id="fn-b6cdc964d2b78f2e"></a>
+
+## `xv::process::ProcessManager::update_child_event`
+
+```doxygen
+@fn void xv::process::ProcessManager::update_child_event(Process &child, unsigned kind, bool pending)
+@brief 在 family 锁内以常数时间链接或摘除一种子进程事件；每种事件使用独立的侵入式双向链接。调用方持子进程锁，父进程由亲属关系固定；不申请内存。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-03da042b7d74a1e6"></a>
+
+## `xv::process::ProcessManager::refresh_child_events`
+
+```doxygen
+@fn void xv::process::ProcessManager::refresh_child_events(Process &child)
+@brief 在 family 与子进程锁内依据 Zombie、stop_event 和 continued_event 同步三个待报告队列。退出优先并移除过时停止/继续记录，已入队事件不重复插入。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-3f9e1ed58704500c"></a>
+
+## `xv::process::ProcessManager::remove_child_events`
+
+```doxygen
+@fn void xv::process::ProcessManager::remove_child_events(Process &child)
+@brief 在解除父子关系前，从旧父进程的三个事件队列移除该子进程；不消费业务状态，重新认领时可按现有状态重新登记。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-934632d76503279c"></a>
+
+## `xv::process::ProcessManager::queue_child_notification`
+
+```doxygen
+@fn void xv::process::ProcessManager::queue_child_notification(Process &child)
+@brief 持子进程锁，将 SIGCONT 的延迟亲属通知去重加入独立队列，并以 release 发布通知标志。队列锁内不获取进程锁或 family 锁。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-06ba42f93fa856c3"></a>
+
+## `xv::process::ProcessManager::cancel_child_notification`
+
+```doxygen
+@fn void xv::process::ProcessManager::cancel_child_notification(Process &child)
+@brief 持子进程锁，在回收之前从延迟通知队列常数时间摘除该进程。已发布子进程的回收还须持 family 锁，避免消费者借用悬空对象。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-7406f868096667c7"></a>
+
+## `xv::process::ProcessManager::collect_child_notifications`
+
+```doxygen
+@fn void xv::process::ProcessManager::collect_child_notifications()
+@brief 持 family 锁逐个取出待处理的继续通知；先释放通知队列锁再取得子进程锁，发布事件与 SIGCHLD，释放子进程锁后只唤醒其父进程。family 锁固定出队对象与父对象，收集不扫描进程注册表。
+@note 详细锁协议见 docs/process-index-wait.md。
 ```

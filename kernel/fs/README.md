@@ -1,7 +1,7 @@
 # 文件系统模块
 
 统一入口为 `import xv.fs;`。文件系统运行时类型属于具名模块；磁盘格式和
-用户 ABI 仍使用共享头文件。权限扩展使用 128 字节磁盘 inode 和新版 FSMAGIC；旧镜像需重新生成，见 [用户与权限](../../docs/users-permissions.md)。
+用户 ABI 仍使用共享头文件。保留的 xv6 后端权限扩展使用 128 字节磁盘 inode 和新版 FSMAGIC；更早的旧格式镜像需重新生成，见 [用户与权限](../../docs/users-permissions.md)。
 
 | 目录或文件 | 职责 |
 | --- | --- |
@@ -9,8 +9,9 @@
 | `format/layout.h` | superblock、磁盘 inode、目录项和磁盘布局常量 |
 | `stat.h`、`fcntl.h` | 用户 ABI 的文件状态和打开标志 |
 | `cache/` | `BlockCache` 抽象、LRU 实现、`Buffer` 与移动式 `BlockHandle` |
-| `journal/` | redo journal、事务容量预留、恢复与 `Transaction` 守卫 |
-| `inode/` | `Inode`、`FileSystem` 抽象、xv6 磁盘实现与块分配 |
+| `journal/` | 公共 `Journal` 事务接口、`Transaction` 守卫及 xv6 日志内部实现 |
+| `inode/` | `Inode`、`FileSystem` 抽象、磁盘格式选择及 xv6 实现 |
+| `ext3/` | `xv.fs:ext3` 内部分区、标准 ext3 磁盘引擎、JBD 提交及恢复 |
 | `path/` | 磁盘目录项、创建、硬链接和 unlink |
 | `vfs/` | 公共路径解析、节点归属分发与挂载边界 |
 | `devfs/` | 合成设备目录、null/zero 与动态 pts 节点 |
@@ -26,6 +27,10 @@
 classDiagram
   BlockCache <|-- LruBlockCache
   FileSystem <|-- Xv6FileSystem
+  FileSystem <|-- Ext3FileSystem
+  FileSystem <|-- DiskFileSystem
+  DiskFileSystem --> Xv6FileSystem : detect format
+  DiskFileSystem --> Ext3FileSystem : detect format
   VirtualFileSystem --> FileSystem : mount / owner dispatch
   FileSystem <|-- DevFileSystem
   FileSystem <|-- ProcFileSystem
@@ -39,8 +44,13 @@ classDiagram
   IoObject <|-- Socket
   BlockHandle --> BlockCache
   Transaction --> Journal
-  Journal --> BlockCache
-  Xv6FileSystem --> Journal
+  Journal <|-- Xv6Journal
+  Journal <|-- Ext3Log
+  Xv6Journal --> BlockCache
+  Ext3Log --> Jbd
+  Ext3FileSystem --> Ext3Log
+  Ext3FileSystem --> BlockCache
+  Xv6FileSystem --> Xv6Journal
   Xv6FileSystem --> BlockCache
   OpenFileTable *-- File
   DeviceRegistry --> CharacterDevice
@@ -49,6 +59,14 @@ classDiagram
 具体 LRU、xv6 磁盘实现、管道和具体文件后端均为内部模块分区。公开接口不依赖
 进程模块；内核平台实现导入 `xv.process`，处理用户复制、killed 检查、当前目录
 以及等待和唤醒。进程资源接口可以导入 FS 类型，接口依赖图仍然无环。
+
+ext3 也通过 `import xv.fs;` 使用。服务层为根盘和数据盘分别装配
+`DiskFileSystem`，在进程上下文读取超级块后选择 xv6 或 ext3；返回的 inode
+始终属于具体后端。`Journal` 公开分区只声明事务协议，原日志实现位于
+`xv.fs:xv6_journal`，ext3 的事务适配器位于 `xv.fs:ext3`，二者都由
+`Transaction` 调用。格式引擎的共享头用于 Linux 格式、故障注入和宿主工具
+测试，不作为另一套内核挂载入口。实现及当前边界见
+[ext3 接入说明](../../docs/ext3.md)。
 
 ## 块缓存与块句柄
 

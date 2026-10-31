@@ -449,7 +449,7 @@ struct DevFileSystem::CreateFlow
 
   static bool device(Context &c) noexcept
   {
-    return c.result->type == T_DEVICE;
+    return c.result->type == T_DEVICE || c.result->type == T_BLOCK;
   }
 
   static void reject(Context &c) noexcept

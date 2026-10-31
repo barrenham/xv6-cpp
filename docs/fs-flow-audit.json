@@ -102,8 +102,8 @@
     },
     {
       "source": "kernel/fs/devfs/devfs.cpp",
-      "sha256": "aa91f7bba4761a0a9489bee3513d52e7e136ff1913bba3476376f4ba02fe18b7",
-      "review": "Lookup/Read 图负责静态/命名 PTY 选择与目录输出；initialize 固定注册 null/zero、seal 后枚举构建节点表，没有可回滚分配；MemoryDevice 的空/零字节生成与复制为设备数据原语。",
+      "sha256": "bf88f8235251a117b3b743d90f8980d04556796e87a4e1c66651fda97dfdb5d4",
+      "review": "Lookup/Read 图负责静态/命名 PTY 选择与目录输出；initialize 固定注册 null/zero、seal 后枚举构建节点表，没有可回滚分配；MemoryDevice 的空/零字节生成与复制为设备数据原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
           "qualified": "xv::fs::DevFileSystem::release",
@@ -145,14 +145,14 @@
     },
     {
       "source": "kernel/fs/devfs/devfs.cppm",
-      "sha256": "b5ff360e44c0c17b9474448fb2f1082c45099734094968fdd370d35ca1cf3862",
-      "review": "固定节点布局、引用/锁和私有图声明；不支持的修改返回原错误。",
+      "sha256": "436180bee735a28ea621da15c21e562cdb3a24e465f1d29478aaf5f5a048d57f",
+      "review": "固定节点布局、引用/锁和私有图声明；不支持的修改返回原错误。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/devfs/flow.cppm",
-      "sha256": "1d0961a4eaf1261d89132dfb4ffe4a67eb90638e2b33c2537cda49e4e81f164b",
-      "review": "DevFS 候选获取与目录读取/复制图定义。",
+      "sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36",
+      "review": "DevFS 候选获取与目录读取/复制图定义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -163,14 +163,14 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cpp",
-      "sha256": "3662c40a7d54eeddd19db1ea9dab88b2f0e221a65138e49f4c9701536dc57734",
-      "review": "InodeBackend 的读/写/seek/resize/sync 运行图；close 以原 Transaction 范围释放 inode 后析构，DeviceBackend 保留关闭 session→事务释放→析构的固定销毁原语，简单 I/O 能力委托不增空图。",
+      "sha256": "fb2fc2871d17c5451b4c738c4ed0aabd92559e8a159ca4713fbd61fbe7e93c16",
+      "review": "InodeBackend 的读/写/seek/resize/sync 运行图；close 以原 Transaction 范围释放 inode 后析构，DeviceBackend 保留关闭 session→事务释放→析构的固定销毁原语，简单 I/O 能力委托不增空图。 新增裸块后端受容量/挂载只读限制，块传输走 TransferFlow；getdents64 走 DirectoryFlow。独立 open 初次成功 read/getdents 选择编码，dup/fork 共享模式和游标；legacy_next_directory 保留16字节目录ABI。",
       "graph_entries": [
         {
           "qualified": "xv::fs::InodeBackend::read",
           "usr": "c:@N@xv@N@fs@S@InodeBackend@F@read#$@N@xv@N@io@S@Buffer#I#",
           "source": "kernel/fs/file/file_operations.cpp",
-          "source_sha256": "25f54a5ccd90b21e578fc99be1c17ca1d721a75cfb80e8b810eb2977fa3c4911",
+          "source_sha256": "2caff0e1d7f9a7f03a52090263131937dfe9f93ee4a305837babbb26b701a913",
           "graphs": [
             "ReadFlow::Graph"
           ]
@@ -210,31 +210,49 @@
           "graphs": [
             "SyncFlow::Graph"
           ]
+        },
+        {
+          "qualified": "xv::fs::InodeBackend::getdents64",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@getdents64#$@N@xv@N@io@S@Buffer#I#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "a9258ced49f9b67b7455c4d73f19a0f976d19a357d5c142cb153058ba647c483",
+          "graphs": [
+            "DirectoryFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::BlockBackend::transfer",
+          "usr": "c:@N@xv@N@fs@S@BlockBackend@F@transfer#$@N@xv@N@io@S@Buffer#I#b#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "e4913465c42b8be5865a65f43a82d573f0ae09e7c6592f21ad5a7c5220afa3b0",
+          "graphs": [
+            "TransferFlow::Graph"
+          ]
         }
       ]
     },
     {
       "source": "kernel/fs/file/file_operations.cppm",
-      "sha256": "7d30f2609a346abefc0bd061073193084550cda2cfa82bc460c73743e4679fb5",
-      "review": "inode/device/object/pipe 后端与原就地构造/析构存储、共享修改协议和私有图声明。",
+      "sha256": "3a48a00588ac75821de29a077c3c016e2f5dcef0f1534d42367e402a41565bea",
+      "review": "inode/device/object/pipe 后端与原就地构造/析构存储、共享修改协议和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/file/flow.cppm",
-      "sha256": "e1be0a25b82ca686beabd1e27dfa20314978e606c63bc473851540febb6b162d",
-      "review": "文件释放、inode/endpoint/object 绑定与设备登记图；公共失败路径引用原资源回收。",
+      "sha256": "c596104e277e45728464f2b20d1e70556594c5fd083788e318aa88ba7bd8c710",
+      "review": "文件释放、inode/endpoint/object 绑定与设备登记图；公共失败路径引用原资源回收。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/file/inode_backend_flow.cppm",
-      "sha256": "7c1f2364bbdb7ff04a0cac8a0cd309edb9db8967e9641d6621bc4f721668388f",
-      "review": "inode 读写/seek/resize/sync 图，事务/锁/快照状态通过原 owner 引用共享。",
+      "sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213",
+      "review": "inode 读写/seek/resize/sync 图，事务/锁/快照状态通过原 owner 引用共享。 新增 BlockBackend TransferFlow：512字节边缘读改写和复制成功后才发布；DirectoryFlow：整条 getdents64 记录、8字节对齐清零、失败记录不推进 cookie，先前完整记录可返回。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/file/open_file.cpp",
-      "sha256": "9e4532048c6aa5e2f701a504395570f71aedefa6cfac2d760b65b0b2485d7f0e",
-      "review": "release/bind/registry attach 已图化；allocate 为一个文件表锁内固定槽扫描，configure 为字段/ready release 发布，fcntl 为一个状态锁内标量模式策略，其余原引用/能力/单次 I/O 委托保留。",
+      "sha256": "d7a3a7741837250cf37494d912e574d1b2f85b28875cf81c2852f3ced90fa3a3",
+      "review": "release/bind/registry attach 已图化；allocate 为一个文件表锁内固定槽扫描，configure 为字段/ready release 发布，fcntl 为一个状态锁内标量模式策略，其余原引用/能力/单次 I/O 委托保留。 设备注册表分离字符/块编号，权限来自注册记录，AttachFlow 统一校验和发布；fdinfo 用原子偏移观察，未在描述符锁内获取 I/O 睡眠锁。",
       "graph_entries": [
         {
           "qualified": "xv::fs::OpenFileTable::release",
@@ -256,9 +274,18 @@
         },
         {
           "qualified": "xv::fs::DeviceRegistry::attach",
-          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach#*1C#i#i#&$@N@xv@N@drivers@S@CharacterDevice#",
+          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach#*1C#i#i#&$@N@xv@N@drivers@S@CharacterDevice#i#",
           "source": "kernel/fs/file/open_file.cpp",
-          "source_sha256": "7b98c79136315b79a59b6e7f64d9d218f973c573302b75da2ca6f2f6908e8dae",
+          "source_sha256": "12ff13dd210e08f42eee1b4d886792b828c4f789bc9e4f503950e63523aee934",
+          "graphs": [
+            "AttachFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::DeviceRegistry::attach_block",
+          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach_block#*1C#i#i#&$@N@xv@N@drivers@S@BlockDevice#b#",
+          "source": "kernel/fs/file/open_file.cpp",
+          "source_sha256": "b4872b28282040f4be48bd2f5d4ec876125dbadbe8ee07428ed429087f419922",
           "graphs": [
             "AttachFlow::Graph"
           ]
@@ -267,8 +294,8 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "60b6b72af3e2ca160a1c05529892c693e001c265d64c06393a6eba1755ac9dca",
-      "review": "文件引用/身份、固定后端存储与文件表/设备注册接口；保留 ready/status 原子发布。",
+      "sha256": "9489cb24f541df6e88b78f1ec511bef867e88683a6562ce74d95874e3a79a262",
+      "review": "文件引用/身份、固定后端存储与文件表/设备注册接口；保留 ready/status 原子发布。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -291,8 +318,8 @@
     },
     {
       "source": "kernel/fs/inode/filesystem.cppm",
-      "sha256": "620fbb1fcca15edc9cffb62559ba07ba2ef6ebcdcb923b7b945df7be2433f4c4",
-      "review": "原 inode/文件系统契约及默认不支持操作，无运行时图注册。",
+      "sha256": "3a628f4786ff7f2749257bfabe60bb4fc506dacd145845f5b13b6fc0e0f943dd",
+      "review": "原 inode/文件系统契约及默认不支持操作，无运行时图注册。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -303,8 +330,8 @@
     },
     {
       "source": "kernel/fs/inode/inode.cppm",
-      "sha256": "b7462e13030f0531ec2f9d77053ab7af488f7f9b7f966ba1d7071d8e90d9ecc8",
-      "review": "inode 元数据值/安全字段、原锁/引用借用与 LockedInode RAII 原语。",
+      "sha256": "dd90cb6ee097336401f9d6c55fe5993f484bcf61e6e4efedb8722e0b9a451e2b",
+      "review": "inode 元数据值/安全字段、原锁/引用借用与 LockedInode RAII 原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -424,8 +451,8 @@
     },
     {
       "source": "kernel/fs/inode/xv6_filesystem.cppm",
-      "sha256": "4cc7f6476fccfd03b69a1af8b9be3ac7bf7f5a3ff9a1d92b9c012dd493c1e465",
-      "review": "磁盘 inode 缓存/根/锁字段、原虚接口与私有图声明。",
+      "sha256": "64f52b29c88b2cf29a23c364586594fefa59d6550e00f4684eefd330373b5ad0",
+      "review": "磁盘 inode 缓存/根/锁字段、原虚接口与私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -436,65 +463,101 @@
     },
     {
       "source": "kernel/fs/journal/flow.cppm",
-      "sha256": "055320b1f0fb2e6d9387f612023601b4b56bc3522e190fa4e122e77a87332a8c",
-      "review": "begin/end/write/recover/commit 等事务图，等待/提交公共路径保持原义。",
+      "sha256": "e5888348cc9324b4c9d34e1a63eb2ce46fdc138f99bcecc32d7a126cca4da283",
+      "review": "begin/end/write/recover/commit 等事务图，等待/提交公共路径保持原义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/journal/journal.cpp",
-      "sha256": "47817bc1203569d9a2c8b43de99d33069833b9f6f3d399e45e100a47c8d4d33b",
-      "review": "图连接事务准入、提交和恢复；install 为每个日志块的固定 read-log/read-destination/copy/write/unpin/reset 顺序，两个 BlockHandle 的释放顺序保留，作为一次不可分块安装业务原语；固定 header 编解码/锁内字段为原语。",
+      "sha256": "8b8a6de9e406087cdd1d5570129bb459dc8b92259988ea1399da9f8b2f436b88",
+      "review": "图连接事务准入、提交和恢复；install 为每个日志块的固定 read-log/read-destination/copy/write/unpin/reset 顺序，两个 BlockHandle 的释放顺序保留，作为一次不可分块安装业务原语；固定 header 编解码/锁内字段为原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
-          "qualified": "xv::fs::Journal::begin",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@begin#",
+          "qualified": "xv::fs::Xv6Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "09759a90f02846fe3242032c89ea158167ec846f6cbcc50ea926dbde7e74157c",
+          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
           "graphs": [
             "BeginFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::end",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@end#",
+          "qualified": "xv::fs::Xv6Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "4864ea1418f0c89fc6a8d55a8a59f91c2a3e7d15b95ab4bc8ccddccd2e2fa0d1",
+          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
           "graphs": [
             "EndFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::commit",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@commit#",
+          "qualified": "xv::fs::Xv6Journal::commit",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@commit#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "6e35587e7d794e5ba01c04dc54f06aa02e1b39a12b565f63dfb79ec49d4fab64",
+          "source_sha256": "7620435b7b5c58a8f641cfbfe0cda3354319be4eefdfca8c6939a2de7a93fbca",
           "graphs": [
             "CommitFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::recover",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@recover#",
+          "qualified": "xv::fs::Xv6Journal::recover",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@recover#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "a0dec2f295e640f4d3b22603194849533fec476805ec8ee2a885ca1b5a51846b",
+          "source_sha256": "eab985ef7139f9fe15d5f3e35b93fa06e7d5947ef1756f5348ae0c7a9f8ee316",
           "graphs": [
             "RecoverFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::record",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "qualified": "xv::fs::Xv6Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "d1a07e57fb95204fc13ee3de46c1dfa0f88dfa387a05f04e2d4aafd79e785278",
+          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
           "graphs": [
             "RecordFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::sync",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@sync#",
+          "qualified": "xv::fs::Xv6Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "3b01d4e22b4a6253052fd738a4ca20fc5a2b649444b49b3971155770e70d84ae",
+          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
+          "graphs": [
+            "SyncFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
+          "graphs": [
+            "BeginFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
+          "graphs": [
+            "EndFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
           "graphs": [
             "SyncFlow::Graph"
           ]
@@ -503,9 +566,46 @@
     },
     {
       "source": "kernel/fs/journal/journal.cppm",
-      "sha256": "9e14365cdbad8a4d644fdcd506c16ec7fbc8c289cda9feb1a71bb986d20a716d",
-      "review": "原日志字段、虚/持久化能力和 Transaction RAII 接口。",
-      "graph_entries": []
+      "sha256": "406406ef33d7648010fc2871714ba7035741c1d6f102fba2821a61c97b295039",
+      "review": "原日志字段、虚/持久化能力和 Transaction RAII 接口。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [
+        {
+          "qualified": "xv::fs::Xv6Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
+          "graphs": [
+            "BeginFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
+          "graphs": [
+            "EndFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
+          "graphs": [
+            "SyncFlow::Graph"
+          ]
+        }
+      ]
     },
     {
       "source": "kernel/fs/mount.h",
@@ -564,8 +664,8 @@
     },
     {
       "source": "kernel/fs/permissions.cpp",
-      "sha256": "b1d92b2adecfb644738ddb2990660845aedb952b3d873555944d68e947d8bf07",
-      "review": "有效/真实身份、固定组集合与权限/sticky 位的标量策略，不分配/接管资源；供外层访问图调用。",
+      "sha256": "dc3abd4472679bc1849e668613e38448d20ca94936469073109ba63e62366199",
+      "review": "有效/真实身份、固定组集合与权限/sticky 位的标量策略，不分配/接管资源；供外层访问图调用。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -623,14 +723,14 @@
     },
     {
       "source": "kernel/fs/platform/kernel_platform.cpp",
-      "sha256": "75f50ed2bb19987a1bcf366706149e59b6b3a8a5d3b9b2d00b9810c1cb673d01",
-      "review": "身份/进程/文件表快照字段复制、固定 group/descriptor 扫描、内存统计和等待/复制/分配/日志平台委托保持业务边界，不替换实际进程协议。",
+      "sha256": "48eb2d473c3e711ca7193307e5a3025b1b187eda6a8040b066bfa6ddec81bead",
+      "review": "身份/进程/文件表快照字段复制、固定 group/descriptor 扫描、内存统计和等待/复制/分配/日志平台委托保持业务边界，不替换实际进程协议。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/platform/platform.cppm",
-      "sha256": "a094996a2f0accd4daf0204516173f99a4abd5a5efb6f16a1cf764c67f683237",
-      "review": "FS 平台接口、值快照及原语声明。",
+      "sha256": "e5eec2538ad98e6e46769587414a28c2f49f58780884089758da6d3f80a8c929",
+      "review": "FS 平台接口、值快照及原语声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -641,8 +741,8 @@
     },
     {
       "source": "kernel/fs/procfs/procfs.cpp",
-      "sha256": "209a8f335413c2ce2d55e4b1ada4c5e2c60048df55c6fdeba68c4d4eaa2bca94",
-      "review": "动态枚举/lookup/read/快照填充运行图；固定 PID/文件号格式转换、节点元数据/权限和单属性访问保持紧凑原语。",
+      "sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091",
+      "review": "动态枚举/lookup/read/快照填充运行图；固定 PID/文件号格式转换、节点元数据/权限和单属性访问保持紧凑原语。 Get/Lookup/Snapshot 图按统一 provider 编号生成系统/PID内容；fdinfo 显示共享偏移/标志/inode，environ沿用凭据访问检查，打开后独立快照。",
       "graph_entries": [
         {
           "qualified": "xv::fs::ProcFileSystem::get",
@@ -675,8 +775,8 @@
     },
     {
       "source": "kernel/fs/procfs/procfs.cppm",
-      "sha256": "eb348e21a6614158419082a096b72a41055e706f3670aa1c0772378b8acdb016",
-      "review": "ProcFS 路径/节点接口、锁和私有图声明。",
+      "sha256": "d8844587ae9ae68b3c1ed7fb2ca54a6844e9cae402fc72a1e726d5992b1465ca",
+      "review": "ProcFS 路径/节点接口、锁和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -775,14 +875,14 @@
     },
     {
       "source": "kernel/fs/ramfs/ramfs.cppm",
-      "sha256": "a1010cf57269e5b9234ab3560386d618440632644a5a321944ca7307959b56c2",
-      "review": "固定节点编号池/树状态与原接口、私有图声明。",
+      "sha256": "7048faecb8e20c257372ba00614b2315f2a11c2fb4387d29fa73245254cb9460",
+      "review": "固定节点编号池/树状态与原接口、私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/service.cpp",
-      "sha256": "97fad9f0ec910420cbb13f6b35b905a205240b3d3d65c6577ed81868fd1588eb",
-      "review": "constinit 缓存/日志/后端/VFS/表的固定接线和 getter，初始化缓存与可选固定 data-device 委托保持启动业务原语。",
+      "sha256": "b4bd89db0d6b351ecd5cc5265ecf0da39f03f9c40b8218cb82e29bf1512934b4",
+      "review": "constinit 缓存/日志/后端/VFS/表的固定接线和 getter，初始化缓存与可选固定 data-device 委托保持启动业务原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -793,32 +893,42 @@
     },
     {
       "source": "kernel/fs/vfs/initialize_flow.cppm",
-      "sha256": "fb37036dbfe85812484fc322742c5e7f005ce49719ae1fbf6cf0cd4ec75a00c3",
-      "review": "VFS 启动/根/固定挂载连接图。",
+      "sha256": "860633bb8e1bae800ac3d7bc505d7039b8a085537518945d781689f5a7a97642",
+      "review": "VFS 启动/根/固定挂载连接图。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/vfs/mount_flow.cppm",
-      "sha256": "0aada67908fc0d99ad648c9e4791c44f0517490b0b4d38c6f7a73010e2ad0c1c",
-      "review": "动态挂载/卸载/候选回收与 namespace 锁协议图。",
+      "sha256": "25e9b69aed3156e39972d59a4805370a5bbd381be82527c88d83f0ca815e9d8c",
+      "review": "动态挂载/卸载/候选回收与 namespace 锁协议图。 持久磁盘由 MountDiskFlow 管理；发布前限制 mount ABI 路径127字节，避免长路径信息被截断。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/vfs/path_flow.cppm",
-      "sha256": "19105c932e5d255f1188a026383aba4b2a35cca9286c96ff2e1f770330c4f2ce",
-      "review": "路径解析、挂载边界和公共查找控制图。",
-      "graph_entries": []
+      "sha256": "959dde8b1ae641c7876e3070a0b98bdc734dbe34008eb427263218f7cd2477e1",
+      "review": "路径解析、挂载边界和公共查找控制图。 路径上限4096含NUL，内部组件256；后端 name_max 决定严格255或旧14截断，rename 对旧格式仍严格；lookup_parent 旧默认14缓冲保持边界，内部显式传容量。",
+      "graph_entries": [
+        {
+          "qualified": "xv::fs::VirtualFileSystem::CreateFlow::open_regular",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@S@CreateFlow@F@open_regular#&$@N@xv@N@fs@S@VirtualFileSystem@S@CreateFlow@S@Context#S",
+          "source": "kernel/fs/vfs/path_flow.cppm",
+          "source_sha256": "073f6a0f6f6e78a44cc7eff8c83a4d46962664b52926c75110833b412c294da6",
+          "graphs": [
+            "CreateFlow::RegularGraph"
+          ]
+        }
+      ]
     },
     {
       "source": "kernel/fs/vfs/vfs.cpp",
-      "sha256": "b921650a3a3ae22610e2d2d988147bccaf29d3f1d2651e4b4ff5bd5ce9cd819d",
-      "review": "初始化/路径/挂载等入口运行图；mounts 为一个 namespace 锁内的固定表索引/输出投影，inode retain/release/lock 和文件系统委托保持原语。",
+      "sha256": "11dfc318ddc44e4828a7da14d92697ba60fbe29c801bb29a813b07d94b09ffef",
+      "review": "初始化/路径/挂载等入口运行图；mounts 为一个 namespace 锁内的固定表索引/输出投影，inode retain/release/lock 和文件系统委托保持原语。 新增挂载信息专用发布快照锁，proc 读取不进入拓扑锁；磁盘 mount 事务接入被选后端；路径缓冲在可增长内核栈，失败不改变所有权。",
       "graph_entries": [
         {
           "qualified": "xv::fs::VirtualFileSystem::walk",
-          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#i#b#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "543ce3b769e8cdc92c41f7d156fd6a0fa7a6113a662d44bc83c5307fc36e25c0",
+          "source_sha256": "2dd51e64e06826b08eaa3a284ec953e61aa09d878657b46851dc8db48e8270a9",
           "graphs": [
             "WalkFlow::Graph"
           ]
@@ -836,7 +946,7 @@
           "qualified": "xv::fs::VirtualFileSystem::create",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@create#*C#S#S#S#b#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "2f592aa45fa5c590cb562fcc6e1d0e23896c66e1a4296092edade5f784118eea",
+          "source_sha256": "b1c046143ab5ee574c6d93a4035e86fc15f32b321c3582789d69a3bd83c0c14f",
           "graphs": [
             "CreateFlow::Graph"
           ]
@@ -845,7 +955,7 @@
           "qualified": "xv::fs::VirtualFileSystem::link",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@link#*C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "06eccc474e9280dbda963e5445404d6a4ddc626c9197131135b188a4b3a990e1",
+          "source_sha256": "bda3e16fb82aa6d300593aa18783988b2b00e95f63e8707e31d1372fe30deceb",
           "graphs": [
             "LinkFlow::Graph"
           ]
@@ -854,7 +964,7 @@
           "qualified": "xv::fs::VirtualFileSystem::unlink",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink#*C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b1f6df1b5366087865139ab26767fbb42f3bc83226c3679bbeb098281ecc615f",
+          "source_sha256": "af6491a70302f099b2d2fbc73aaddfcabd2b1881ca7ec8e8da7bd4f13075e727",
           "graphs": [
             "UnlinkFlow::Graph"
           ]
@@ -872,7 +982,7 @@
           "qualified": "xv::fs::VirtualFileSystem::rename",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@rename#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "07d41ae6db44244ebb4027fe305ccb14069d201548202f480a6314fa57d034b9",
+          "source_sha256": "a3a4ac829b77e2ece37e3f4f013c70937534cf4dde4de9007c487eaa9564a468",
           "graphs": [
             "RenameFlow::Graph"
           ]
@@ -881,7 +991,7 @@
           "qualified": "xv::fs::VirtualFileSystem::symlink",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "6910f88cdec3ea52ab65e963090cfba90d22583c09cc780e14cde274a38f361a",
+          "source_sha256": "752f06657ab80a9b29df7b6a9b96b40ac1c1faffa39d16cd28231c9bfaa6f928",
           "graphs": [
             "SymlinkFlow::Graph"
           ]
@@ -890,7 +1000,7 @@
           "qualified": "xv::fs::VirtualFileSystem::mount",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount#*1C#&$@N@xv@N@fs@S@FileSystem#i#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b5cb93e918f44b1bffd78fff84dc7fece06aa070f90d896b9c60f0305a4fb974",
+          "source_sha256": "aad5e0fe4960254d67a597d2ade0ef90db63c2c7dbaa16472cabb8c484b68558",
           "graphs": [
             "MountFlow::Graph"
           ]
@@ -899,16 +1009,16 @@
           "qualified": "xv::fs::VirtualFileSystem::mount_ram",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_ram#*1C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "3de9d08e42fc3afd5ab4c3ff0f428941ebedd75ff4b8ab407bd9824d80971a96",
+          "source_sha256": "5c42b611d96704180ccabe1e5a22826aa8968a61dc720a07141a7d5bb8311e88",
           "graphs": [
             "MountRamFlow::Graph"
           ]
         },
         {
           "qualified": "xv::fs::VirtualFileSystem::mount_disk",
-          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b37b8d674a4406074bdf336706f879bdecaa5f3fc05d2a48832cf4ca8c341cbf",
+          "source_sha256": "b3a630862f8857c1c6c81bae1d0f2f3839ee5bfb5d79cf10175edd16c12262dc",
           "graphs": [
             "MountDiskFlow::Graph"
           ]
@@ -917,7 +1027,7 @@
           "qualified": "xv::fs::VirtualFileSystem::unmount",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unmount#*1C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b8d17fb822d18acf54fdb671dd98b9a11b98dfdc4f87a45559ab8ac6d894e1ab",
+          "source_sha256": "aa455a9d5169f676483c5247074f6cedb7f744f4daf665e0ba445a97ef57e1a1",
           "graphs": [
             "UnmountFlow::Graph"
           ]
@@ -935,7 +1045,7 @@
           "qualified": "xv::fs::VirtualFileSystem::initialize",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize#I#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "045077b7996e0d9240f99c7e4ec51e54c6c26762e1ce32b925b1a393408a0b36",
+          "source_sha256": "899b50f4f2e34378565bd56efecfbd72d3de574a37a686f81dec6bec11dd88ba",
           "graphs": [
             "InitializeFlow::BackendsGraph",
             "InitializeFlow::MountsGraph"
@@ -945,13 +1055,121 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cppm",
-      "sha256": "82f92ef08d0487e820cbb7efceb7282f88946bb8ee6ba05f231a2171695e3080",
-      "review": "原固定挂载/后端/namespace 状态、接口和私有图声明。",
+      "sha256": "9d6fc9bab0a5a6ffee2c9ae52776bcb3025876afd2c29aeb0c2a41b2569f1d6b",
+      "review": "原固定挂载/后端/namespace 状态、接口和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
+    },
+    {
+      "source": "kernel/fs/ext3/format.h",
+      "sha256": "b5c495cac9a99309c939ed1a99af14b0bbed97aebf65bdf67c43e42b5fe40ade",
+      "review": "标准磁盘布局、错误枚举、端序/字节比较和回绕序号原语，无进程、锁、VFS 或隐藏分配。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/volume.cpp",
+      "sha256": "5abe67663555f1a7bbd45c595c447fe7c6af06c3e0c66504888e4aa7d56e30eb",
+      "review": "只读格式校验、元数据保留区、journal 内部映射、三级间接/稀疏读和可变长目录游标算法；挂载拒绝不支持特性。递归深度受磁盘三级间接格式约束，内核同步由模块适配器提供。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/mutate.cpp",
+      "sha256": "753883b88f7df89adc456f89a60166958db234990cf8457f8ef8ce3eff4249f9",
+      "review": "ext3 数据结构修改算法：位图/组计数、目录变更、间接树修剪和持久 orphan 链；Operation savepoint 失败自动回滚，atomic resize 不部分提交，reclaim_step 每批最多释放4物理块且受32 dirty credits限制。树算法深度最多三级，原子磁盘变更作为模块动作保留直接实现。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/ext3_filesystem.cpp",
+      "sha256": "bdf957d94ee9b0486b50115503bb1bf130072165d9e85ca59882e2d99a75775a",
+      "review": "模块适配原语在 inode锁→core睡眠锁 内执行一个磁盘原子操作，rename 按inode号排序锁，失败遵循原返回/解锁协议；用户复制按页和1KiB分段且不持自旋锁。引用表扫描受 NINODE 限制，release 不分配；CollectFlow 在最后事务提交后跳过打开 inode、分批回收并提交，OOM 保留 orphan 供重试。Log 自旋锁只管理参与者/credits，释放后才 core锁和I/O；sync 不从自身事务等待。",
+      "graph_entries": [
+        {
+          "qualified": "xv::fs::Ext3FileSystem::collect_orphans",
+          "usr": "c:@N@xv@N@fs@S@Ext3FileSystem@F@collect_orphans#",
+          "source": "kernel/fs/ext3/ext3_filesystem.cpp",
+          "source_sha256": "5db48ae0994a64b0a0ec437c3b3c10cfb0a60be5b9e50ad4e8b2e5ae96237562",
+          "graphs": [
+            "CollectFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/ext3_filesystem.cppm",
+      "sha256": "579ce41480b410ca41ea68782e5aba319aa9816feaf28fd6fedba389e9383545",
+      "review": "xv.fs 内部后端实现 FileSystem，封装块缓存适配、inode 引用/睡眠锁和独立 Journal，3页提交储备及 CollectFlow；公开接口不暴露 ext3 类型。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/volume.h",
+      "sha256": "06aa94de844c481a38079aaca23afa537950fcc4e7c47f322e3981018014395c",
+      "review": "共享 ext3 块级引擎、inode 值与 Io 抽象；提供受检查的原子修改及有界 orphan 回收；VFS 锁/引用不进入该层。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/jbd.h",
+      "sha256": "e3017643c968c5766397d7cbe22469c373c8401ad00de8ba6aa56a3f62f182d2",
+      "review": "共享 JBD 引擎及 JournalIo 抽象；固定一层 savepoint 暂存所有权、credit 容量和恢复接口，不含内核调度依赖。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/ext3/jbd.cpp",
+      "sha256": "4a0a67cb04eb53ebb8ea53232b13e0a10129fc84a9c77050a3896c4066927e80",
+      "review": "磁盘事务算法：标准大端 descriptor/revoke/commit 格式、转义、序号回绕、三阶段重放；提交记录先持久化后 checkpoint，逐次 I/O 故障切点核对 Linux 恢复。savepoint 对暂存块 COW，失败回滚。格式算法独立于内核锁与入口图，保留直接实现。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/buffer/snapshot_text.cppm",
+      "sha256": "426f8f41953f3e4afb16c09494f1f8d5ad40e20418a85e5c7be381cbfe1e7eae",
+      "review": "页缓冲文本格式化原语，粘性分配错误、无动态字符串；十进制/十六进制数值循环有65字符上界。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/journal/xv6_journal.cppm",
+      "sha256": "258add99ddfa84d39bc0facd01427f74aacb96317104aa4fd901175f3a1c63f0",
+      "review": "原 xv6 日志状态移入内部 Xv6Journal，公共 Journal 只保留虚协议；原 Begin/End/Commit/Recover/Record/Sync 图继续控制生命周期。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/inode/disk_filesystem.cppm",
+      "sha256": "3478eb05f975dc9c93cc9fca5e84b38066de3ca23a501c39898417b1d6e90c7c",
+      "review": "内部格式路由，所有真实 inode 归属具体后端；接口只做选择后委托，事务日志随根盘格式变化。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/inode/disk_filesystem.cpp",
+      "sha256": "42a235741ebebabbf52f209da1d7847c668b3fa40f05e5fb49591b956f6adc92",
+      "review": "单次读取超级块 magic 选择 xv6 或 ext3 后初始化；设备 attach 与缓存由服务层提供，不创建第二条 VFS 入口。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/procfs/provider_registry.cppm",
+      "sha256": "483f682bca0a658da96683303318aea01610d169c2c88e4540ec7025a2917919",
+      "review": "固定容量只读 provider 表，启动登记并 seal；校验名字、重复、保留命名和只读权限，运行期按稳定编号读取。注册表算法保留直接实现。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/procfs/system_providers.cpp",
+      "sha256": "b5cf8b664de6c479925b88de22af3e842560ef90d720d3d12790133f154cb97a",
+      "review": "注册系统和 PID 文本提供者；读取真实 CSR/分配器/计时器/登记设备/挂载发布快照，格式化结果写 PageBuffer。采样计数非全局原子；挂载快照不进入拓扑锁，argv/env 保留访问检查。遍历是信息聚合原语。",
+      "graph_entries": [],
+      "pending": []
     }
   ],
-  "graph_count": 71,
-  "original_entry_count": 69,
+  "graph_count": 74,
+  "original_entry_count": 72,
   "limitations": [
     "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
     "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."

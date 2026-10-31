@@ -1,4 +1,5 @@
 #include "kernel/support/types.h"
+#include "kernel/support/byte_fill.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/arch/riscv/riscv.h"
@@ -55,12 +56,7 @@ strlen(const char *s)
 void *
 memset(void *dst, int c, uint n)
 {
-  char *cdst = (char *)dst;
-  int i;
-  for (i = 0; i < n; i++) {
-    cdst[i] = c;
-  }
-  return dst;
+  return xv::support::byte_fill(dst, c, n);
 }
 
 char *

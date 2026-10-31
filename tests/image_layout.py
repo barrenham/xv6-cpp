@@ -81,7 +81,7 @@ def contracts(mkfs):
         text += f'file\t0644\t/bin/data\t{source}\nfile\t0755\t/bin/abcdefghijklmn\t{source}\n'
         text += ''.join(f'file\t0755\t/usr/tests/f{i}\t{source}\n' for i in range(80))
         manifest.write_text(text)
-        subprocess.run([mkfs, str(image), '--manifest', str(manifest)], check=True)
+        subprocess.run([mkfs, str(image), '--manifest', str(manifest), '--filesystem', 'xv6'], check=True)
         verify(image, manifest)
         original = image.read_bytes()
         invalid = [
@@ -98,7 +98,7 @@ def contracts(mkfs):
         invalid.append(''.join(f'dir\t0755\t/d{i}\n' for i in range(201)))
         for text in invalid:
             manifest.write_text(text)
-            result = subprocess.run([mkfs, str(image), '--manifest', str(manifest)], capture_output=True)
+            result = subprocess.run([mkfs, str(image), '--manifest', str(manifest), '--filesystem', 'xv6'], capture_output=True)
             assert result.returncode == 1 and b'mkfs:' in result.stderr, (text, result.stderr.decode())
             assert b'runtime error:' not in result.stderr and b'AddressSanitizer' not in result.stderr, result.stderr.decode()
             assert image.read_bytes() == original, 'failed build replaced the published image'

@@ -6,65 +6,13 @@ module;
 module xv.fs;
 import :procfs;
 import :platform;
+import :snapshot_text;
 
 namespace xv::fs
 {
 namespace
 {
-class Text final
-{
-public:
-
-  explicit Text(PageBuffer &buffer) : buffer_(buffer)
-  {
-  }
-
-  void append(const char *text)
-  {
-    unsigned count = 0;
-    while (text[count])
-    {
-      ++count;
-    }
-    if (!buffer_.append(text, count))
-    {
-      failed_ = true;
-    }
-  }
-
-  void number(unsigned long value)
-  {
-    char digits[24];
-    unsigned count = 0;
-    do
-    {
-      digits[count++] = '0' + value % 10;
-      value /= 10;
-    } while (value);
-    while (count)
-    {
-      char text[2] = {digits[--count], 0};
-      append(text);
-    }
-  }
-
-  void field(const char *name, unsigned long value, const char *unit = "\n")
-  {
-    append(name);
-    number(value);
-    append(unit);
-  }
-
-  bool good() const
-  {
-    return !failed_;
-  }
-
-private:
-
-  PageBuffer &buffer_;
-  bool failed_ = false;
-};
+using Text=SnapshotText;
 
 int component_number(const char *name, bool zero = false)
 {
@@ -138,7 +86,7 @@ struct ProcFileSystem::GetFlow
 
   static void find(Context &c) noexcept
   {
-    for (unsigned i = 3; i < NodeCount; ++i)
+    for (unsigned i = RootSlots; i < NodeCount; ++i)
     {
       auto &node = c.owner.nodes_[i];
       if (node.ref && node.addrs[0] == c.kind && node.addrs[1] == c.pid &&
@@ -163,24 +111,21 @@ struct ProcFileSystem::GetFlow
 
   static bool available(Context &c) noexcept
   {
-    return c.empty != nullptr;
+    return c.empty != nullptr && c.owner.next_inode_!=0;
   }
 
   static void initialize(Context &c) noexcept
   {
     auto *node = c.empty;
     node->dev = c.owner.device_;
-    node->inum = 16 + (c.pid * (NOFILE + 3) + (c.kind == 3   ? 0
-                                               : c.kind == 4 ? 1
-                                               : c.kind == 5 ? 2
-                                                             : 3 + c.descriptor)) %
-                          0xffffffe0U;
+    node->inum = c.owner.next_inode_++;
     node->uid_ = c.process.effective_uid;
     node->gid_ = c.process.effective_gid;
-    node->mode_ = c.kind == 5 ? 0500 : c.kind == 6 ? 0400 : c.kind == 3 ? 0555 : 0444;
+    node->mode_ = c.kind == 5 || c.kind==FdInfoDirectory ? 0500 : c.kind == 6 || c.kind==FdInfo ? 0400 : c.kind == 3 ? 0555 : 0444;
+    if(c.kind==ProcessFile)node->mode_=c.owner.process_providers_.at(c.descriptor).mode;
     node->ref = 1;
     node->valid = node->nlink = 1;
-    node->type = c.kind == 3 || c.kind == 5 ? T_DIR : T_FILE;
+    node->type = c.kind == 3 || c.kind == 5 || c.kind==FdInfoDirectory ? T_DIR : T_FILE;
     node->addrs[0] = c.kind;
     node->addrs[1] = c.pid;
     node->addrs[2] = c.descriptor;
@@ -228,7 +173,7 @@ struct ProcFileSystem::LookupFlow
 
   static void retain_parent(Context &c) noexcept
   {
-    c.result = c.kind == 5 ? c.owner.get(3, c.pid) : c.owner.root();
+    c.result = c.kind == 5 || c.kind==FdInfoDirectory ? c.owner.get(3, c.pid) : c.owner.root();
   }
 
   static bool root(Context &c) noexcept
@@ -236,24 +181,14 @@ struct ProcFileSystem::LookupFlow
     return c.kind == 0;
   }
 
-  static bool memory(Context &c) noexcept
+  static bool provider(Context &c) noexcept
   {
-    return detail::compare(c.name, "meminfo", DIRSIZ) == 0;
+    c.number=c.owner.providers_.find(c.name);return c.number>=0;
   }
 
-  static void retain_memory(Context &c) noexcept
+  static void retain_provider(Context &c) noexcept
   {
-    c.result = c.owner.retain(&c.owner.nodes_[1]);
-  }
-
-  static bool uptime(Context &c) noexcept
-  {
-    return detail::compare(c.name, "uptime", DIRSIZ) == 0;
-  }
-
-  static void retain_uptime(Context &c) noexcept
-  {
-    c.result = c.owner.retain(&c.owner.nodes_[2]);
+    c.result=c.owner.retain(&c.owner.nodes_[1+unsigned(c.number)]);
   }
 
   static void target(Context &c) noexcept
@@ -298,17 +233,22 @@ struct ProcFileSystem::LookupFlow
 
   static bool descriptor_name(Context &c) noexcept
   {
-    return detail::compare(c.name, "fd", DIRSIZ) == 0;
+    return detail::compare(c.name,"fd",DIRSIZ)==0 || detail::compare(c.name,"fdinfo",DIRSIZ)==0;
   }
 
   static void retain_descriptors(Context &c) noexcept
   {
-    c.result = c.owner.get(5, c.pid);
+    c.result = c.owner.get(detail::compare(c.name,"fdinfo",DIRSIZ)==0 ? FdInfoDirectory:5,c.pid);
+  }
+  static void process_provider(Context &c) noexcept
+  {
+    int index=c.owner.process_providers_.find(c.name);
+    if(index>=0)c.result=c.owner.get(ProcessFile,c.pid,unsigned(index));
   }
 
   static bool descriptors(Context &c) noexcept
   {
-    return c.kind == 5;
+    return c.kind == 5 || c.kind==FdInfoDirectory;
   }
 
   static void number(Context &c) noexcept
@@ -329,7 +269,7 @@ struct ProcFileSystem::LookupFlow
     {
       if (records[i].descriptor == c.number)
       {
-        c.result = c.owner.get(6, c.pid, c.number);
+        c.result = c.owner.get(c.kind==FdInfoDirectory ? FdInfo:6,c.pid,c.number);
         break;
       }
     }
@@ -339,10 +279,8 @@ struct ProcFileSystem::LookupFlow
   struct Parent;
   struct RetainParent;
   struct Root;
-  struct Memory;
-  struct RetainMemory;
-  struct Uptime;
-  struct RetainUptime;
+  struct Provider;
+  struct RetainProvider;
   struct Target;
   struct RetainProcess;
   struct Process;
@@ -351,6 +289,7 @@ struct ProcFileSystem::LookupFlow
   struct RetainStatus;
   struct DescriptorName;
   struct RetainDescriptors;
+  struct ProcessProvider;
   struct Descriptors;
   struct Number;
   struct RetainDescriptor;
@@ -366,16 +305,11 @@ struct ProcFileSystem::LookupFlow
                                   flow::go<Root>>>,
           flow::node<RetainParent, flow::action<&retain_parent>, flow::stop>,
           flow::node<Root, flow::noop,
-                     flow::branch<flow::condition<&root>, flow::go<Memory>,
+                     flow::branch<flow::condition<&root>, flow::go<Provider>,
                                   flow::go<Process>>>,
-          flow::node<Memory, flow::noop,
-                     flow::branch<flow::condition<&memory>, flow::go<RetainMemory>,
-                                  flow::go<Uptime>>>,
-          flow::node<RetainMemory, flow::action<&retain_memory>, flow::stop>,
-          flow::node<Uptime, flow::noop,
-                     flow::branch<flow::condition<&uptime>, flow::go<RetainUptime>,
-                                  flow::go<Target>>>,
-          flow::node<RetainUptime, flow::action<&retain_uptime>, flow::stop>,
+          flow::node<Provider, flow::noop,
+                     flow::branch<flow::condition<&provider>,flow::go<RetainProvider>,flow::go<Target>>>,
+          flow::node<RetainProvider,flow::action<&retain_provider>,flow::stop>,
           flow::node<Target, flow::action<&target>,
                      flow::branch<flow::condition<&target_exists>,
                                   flow::go<RetainProcess>, flow::stop>>,
@@ -392,7 +326,8 @@ struct ProcFileSystem::LookupFlow
           flow::node<RetainStatus, flow::action<&retain_status>, flow::stop>,
           flow::node<DescriptorName, flow::noop,
                      flow::branch<flow::condition<&descriptor_name>,
-                                  flow::go<RetainDescriptors>, flow::stop>>,
+                                  flow::go<RetainDescriptors>, flow::go<ProcessProvider>>>,
+          flow::node<ProcessProvider,flow::action<&process_provider>,flow::stop>,
           flow::node<RetainDescriptors, flow::action<&retain_descriptors>, flow::stop>,
           flow::node<Descriptors, flow::noop,
                      flow::branch<flow::condition<&descriptors>, flow::go<Number>,
@@ -415,38 +350,14 @@ struct ProcFileSystem::SnapshotFlow
     bool ready = false, result = false;
   };
 
-  static bool memory(Context &c) noexcept
+  static bool provider(Context &c) noexcept {return c.kind==RootFile;}
+  static void provider_text(Context &c) noexcept
   {
-    return c.kind == 1;
+    c.result=c.owner.providers_.at(c.node->addrs[1]).render(c.buffer);
   }
-
-  static void memory_text(Context &c) noexcept
-  {
-    unsigned long total, free;
-    detail::memory_info(total, free);
-    if (free > total)
-    {
-      free = total;
-    }
-    c.text.field("MemTotal: ", total, " kB\n");
-    c.text.field("MemFree: ", free, " kB\n");
-    c.text.field("MemAvailable: ", free, " kB\n");
-    c.text.field("MemUsed: ", total - free, " kB\n");
-  }
-
-  static bool uptime(Context &c) noexcept
-  {
-    return c.kind == 2;
-  }
-
-  static void uptime_text(Context &c) noexcept
-  {
-    unsigned long ticks = detail::uptime_ticks();
-    c.text.number(ticks / 10);
-    c.text.append(".");
-    c.text.number(ticks % 10);
-    c.text.append("0\n");
-  }
+  static bool process_provider(Context &c) noexcept {return c.kind==ProcessFile;}
+  static void process_text(Context &c) noexcept
+  {c.result=c.owner.process_providers_.at(c.node->addrs[2]).render(c.node->addrs[1],c.buffer);}
 
   static bool status(Context &c) noexcept
   {
@@ -482,7 +393,7 @@ struct ProcFileSystem::SnapshotFlow
 
   static bool descriptor(Context &c) noexcept
   {
-    return c.kind == 6;
+    return c.kind == 6 || c.kind==FdInfo;
   }
 
   static void descriptor_text(Context &c) noexcept
@@ -500,6 +411,11 @@ struct ProcFileSystem::SnapshotFlow
     if (!record)
     {
       return;
+    }
+    if(c.kind==FdInfo)
+    {
+      c.text.field("pos:\t",record->file.position);c.text.append("flags:\t0");c.text.number(record->file.flags,8);
+      c.text.append("\n");c.text.field("ino:\t",record->file.inode);c.ready=true;return;
     }
     c.text.field("Descriptor: ", record->descriptor);
     c.text.field("Identity: ", record->file.identity);
@@ -554,12 +470,15 @@ struct ProcFileSystem::SnapshotFlow
     {
       return false;
     }
-    return entry(c, "status", c.node->inum + 1) && entry(c, "fd", c.node->inum + 2);
+    if(!entry(c,"status",c.node->inum+1) || !entry(c,"fd",c.node->inum+2) || !entry(c,"fdinfo",c.node->inum+3))return false;
+    for(unsigned i=0;i<c.owner.process_providers_.count();++i)
+      if(!entry(c,c.owner.process_providers_.at(i).name,c.node->inum+4+i))return false;
+    return true;
   }
 
   static bool descriptors(Context &c) noexcept
   {
-    return c.kind == 5;
+    return c.kind == 5 || c.kind==FdInfoDirectory;
   }
 
   static bool descriptor_entries(Context &c) noexcept
@@ -584,10 +503,9 @@ struct ProcFileSystem::SnapshotFlow
 
   static bool root_entries(Context &c) noexcept
   {
-    if (!entry(c, "self", 4) || !entry(c, "meminfo", 2) || !entry(c, "uptime", 3))
-    {
-      return false;
-    }
+    if(!entry(c,"self",64))return false;
+    for(unsigned i=0;i<c.owner.providers_.count();++i)
+      if(!entry(c,c.owner.providers_.at(i).name,i+2))return false;
     int after = 0;
     detail::ProcessRecord record;
     while (detail::process_after(after, record))
@@ -607,10 +525,10 @@ struct ProcFileSystem::SnapshotFlow
   {
     c.result = true;
   }
-  struct Memory;
-  struct MemoryText;
-  struct Uptime;
-  struct UptimeText;
+  struct Provider;
+  struct ProviderText;
+  struct ProcessProvider;
+  struct ProcessText;
   struct Status;
   struct StatusText;
   struct Descriptor;
@@ -625,16 +543,13 @@ struct ProcFileSystem::SnapshotFlow
   struct RootEntries;
   struct Success;
   using Graph = flow::graph<
-      Memory,
+      Provider,
       flow::types<
-          flow::node<Memory, flow::noop,
-                     flow::branch<flow::condition<&memory>, flow::go<MemoryText>,
-                                  flow::go<Uptime>>>,
-          flow::node<MemoryText, flow::action<&memory_text>, flow::go<TextDone>>,
-          flow::node<Uptime, flow::noop,
-                     flow::branch<flow::condition<&uptime>, flow::go<UptimeText>,
-                                  flow::go<Status>>>,
-          flow::node<UptimeText, flow::action<&uptime_text>, flow::go<TextDone>>,
+          flow::node<Provider,flow::noop,
+                     flow::branch<flow::condition<&provider>,flow::go<ProviderText>,flow::go<ProcessProvider>>>,
+          flow::node<ProviderText,flow::action<&provider_text>,flow::stop>,
+          flow::node<ProcessProvider,flow::noop,flow::branch<flow::condition<&process_provider>,flow::go<ProcessText>,flow::go<Status>>>,
+          flow::node<ProcessText,flow::action<&process_text>,flow::stop>,
           flow::node<Status, flow::noop,
                      flow::branch<flow::condition<&status>, flow::go<StatusText>,
                                   flow::go<Descriptor>>>,
@@ -685,15 +600,17 @@ void ProcFileSystem::initialize_inodes()
 void ProcFileSystem::initialize(int device)
 {
   device_ = device;
-  for (unsigned i = 0; i < 3; ++i)
+  install_proc_providers(*this);providers_.seal();process_providers_.seal();
+  for (unsigned i = 0; i <= providers_.count(); ++i)
   {
     auto &node = nodes_[i];
     node.dev = device_;
     node.inum = i + 1;
     node.valid = node.nlink = 1;
     node.type = i == 0 ? T_DIR : T_FILE;
-    node.addrs[0] = i;
-    node.mode_ = i == 0 ? 0555 : 0444;
+    node.addrs[0] = i ? RootFile:0;
+    node.addrs[1] = i ? i-1:0;
+    node.mode_ = i == 0 ? 0555 : providers_.at(i-1).mode;
   }
 }
 

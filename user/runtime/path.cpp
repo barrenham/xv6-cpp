@@ -4,6 +4,7 @@
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
+#include "user/runtime/directory.h"
 
 static bool same_directory(const struct stat &left, const struct stat &right)
 {
@@ -16,7 +17,8 @@ extern "C" char *getcwd(char *output, unsigned capacity)
   {
     return nullptr;
   }
-  char ancestor[MAXPATH] = ".";
+  static char ancestor[MAXPATH] = ".";
+  ancestor[0]='.';ancestor[1]=0;
   unsigned length = 1, used = 0;
   output[0] = 0;
   struct stat current, root;
@@ -26,7 +28,7 @@ extern "C" char *getcwd(char *output, unsigned capacity)
   }
   while (!same_directory(current, root))
   {
-    if (length + 3 + 1 + DIRSIZ + 1 > sizeof(ancestor))
+    if (length + 3 + 1 > sizeof(ancestor))
     {
       return nullptr;
     }
@@ -44,20 +46,15 @@ extern "C" char *getcwd(char *output, unsigned capacity)
       return nullptr;
     }
     bool found = false;
-    struct dirent entry;
-    while (read(fd, &entry, sizeof(entry)) == sizeof(entry))
+    DirectoryReader reader(fd);const linux_dirent64 *entry;
+    while (reader.next(entry)==1)
     {
-      if (!entry.inum)
-      {
-        continue;
-      }
-      char name[DIRSIZ + 1];
-      memmove(name, entry.name, DIRSIZ);
-      name[DIRSIZ] = 0;
+      const char *name=entry->d_name;
       if (!strcmp(name, ".") || !strcmp(name, ".."))
       {
         continue;
       }
+      unsigned name_size=strlen(name);if(length+1+name_size+1>sizeof(ancestor))continue;
       ancestor[length] = '/';
       strcpy(ancestor + length + 1, name);
       struct stat candidate;

@@ -74,3 +74,12 @@
 @brief 声明 devfs 命名空间和元数据只读。
 @details 返回 true；权限检查对字符设备的数据写入保留例外，仍需满足节点的写权限位。
 ```
+<a id="fn-04da9c5163ed31aa"></a>
+
+## `xv::fs::DevFileSystem::next_directory`
+
+```doxygen
+@fn int xv::fs::DevFileSystem::next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+@brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

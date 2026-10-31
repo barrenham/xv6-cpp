@@ -1,5 +1,6 @@
 module;
 #include "kernel/support/types.h"
+#include "kernel/support/byte_fill.h"
 
 module xv.runtime;
 
@@ -8,13 +9,7 @@ namespace xv::runtime
 
 void *fill(void *dst, int c, unsigned long n)
 {
-  char *cdst = (char *)dst;
-  unsigned long i;
-  for (i = 0; i < n; i++)
-  {
-    cdst[i] = c;
-  }
-  return dst;
+  return xv::support::byte_fill(dst, c, n);
 }
 
 int compare_bytes(const void *v1, const void *v2, unsigned long n)

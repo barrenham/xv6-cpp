@@ -221,7 +221,7 @@
 ```doxygen
 @fn static void xv::drivers::ConsoleFlow::devices(Context &) noexcept
 @brief 按原顺序登记 console 与 ptmx。
-@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b54510fdb4f2206b"></a>
@@ -241,7 +241,7 @@
 ```doxygen
 @fn static void xv::drivers::ConsoleFlow::terminal(Context &) noexcept
 @brief 初始化板级 TTY 与 PTY 列表。
-@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-d29facf8ea670c0e"></a>
@@ -271,5 +271,25 @@
 ```doxygen
 @fn static void xv::drivers::InterruptsFlow::route(Context &) noexcept
 @brief 初始化原控制器与中断路由。
-@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-98149e18194be74a"></a>
+
+## `xv::drivers::realtime_seconds`
+
+```doxygen
+@fn unsigned long xv::drivers::realtime_seconds()
+@brief 读取Goldfish RTC实时时间。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-295e9f1fac671bce"></a>
+
+## `xv::drivers::boot_time_seconds`
+
+```doxygen
+@fn unsigned long xv::drivers::boot_time_seconds()
+@brief 返回已记录的启动epoch秒数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

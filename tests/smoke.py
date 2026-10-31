@@ -18,6 +18,7 @@ parser.add_argument('--kernel', required=True)
 parser.add_argument('--image', required=True)
 parser.add_argument('--regression', action='store_true')
 parser.add_argument('--devfs', action='store_true')
+parser.add_argument('--without-entropy',action='store_true')
 parser.add_argument('--named-pty', action='store_true')
 parser.add_argument('--procfs', action='store_true')
 parser.add_argument('--ramfs', action='store_true')
@@ -45,12 +46,28 @@ args = parser.parse_args()
 temporary = tempfile.TemporaryDirectory(prefix='xv-qemu-', dir=Path(args.image).parent)
 test_image = Path(temporary.name) / "fs.img"
 shutil.copyfile(args.image, test_image)
+truncate_fixture=False
+if args.devfs:
+    with test_image.open('rb') as image:
+        image.seek(1080);is_ext3=image.read(2)==b'\x53\xef'
+    if is_ext3:
+        # Only the isolated test copy is modified. A supported read-only inode
+        # flag forces resize to fail after open has bound its inode backend.
+        subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-w','-R',
+                        'set_inode_field /bin/echo flags 0x10',str(test_image)],
+                       check=True,capture_output=True)
+        for suffix in ('a','b'):
+            name='enum-'+'x'*249+suffix
+            subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-w','-R',f'mkdir /{name}',str(test_image)],check=True,capture_output=True)
+        truncate_fixture=True
 qemu_env = dict(os.environ, TMPDIR=temporary.name)
 command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel,
            '-m', f'{args.ram_mib}M', '-smp', str(args.cpus), '-nographic', '-snapshot',
            '-global', 'virtio-mmio.force-legacy=false',
            '-drive', f'file={test_image},if=none,format=raw,id=x0',
            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+if not args.without_entropy:
+    command += ['-object','rng-random,id=rng0,filename=/dev/urandom','-device','virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2']
 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT, bufsize=0, env=qemu_env)
 selector = selectors.DefaultSelector()
@@ -86,8 +103,9 @@ def expect(token, timeout=30):
                     raise RuntimeError('RAM filesystem contract failed')
                 if b'namedptytest: FAIL:' in transcript or b'procfstest: FAIL:' in transcript:
                     raise RuntimeError('named PTY or procfs contract failed')
-                if b'devfstest: FAIL:' in transcript:
-                    raise RuntimeError('devfs contract failed')
+                failure=transcript.find(b'devfstest: FAIL:')
+                if failure>=0 and b'\n' in transcript[failure:]:
+                    raise RuntimeError(transcript[failure:].split(b'\n',1)[0].decode(errors='replace'))
                 if b'jobtest: FAIL:' in transcript:
                     raise RuntimeError('job control contract failed')
                 if b'fgtest: FAIL:' in transcript:
@@ -623,7 +641,8 @@ try:
         checks = [(f'schedulercheck {max(3, 2 * args.cpus)}',
                    'schedulercheck: all workers made bounded progress')]
     if args.process_scaling:
-        checks = [('procext', 'procext: 96 concurrent children, wake/kill/reuse OK')]
+        checks = [('procext', 'procext: 96 concurrent children, wake/kill/reuse OK'),
+                  ('waiteventtest', 'waiteventtest: ALL PASSED')]
     if args.process_groups:
         checks = [('grouptest', 'grouptest: all tests succeeded')]
     if args.poll:
@@ -636,7 +655,8 @@ try:
         checks = []
     if args.devfs:
         checks = []
-        for cmd, token in [('devfstest', 'devfstest: all tests succeeded'),
+        device_command='devfstest'+(' noentropy' if args.without_entropy else '')+(' truncate-error wide-dir' if truncate_fixture else '')
+        for cmd, token in [(device_command, 'devfstest: all tests succeeded'),
                            ('ls /dev', 'zero'), ('cd /dev', None),
                            ('/bin/ls .', 'zero'), ('/bin/echo discarded > null', None),
                            ('cd ..', None), ('ls dev', 'console')]:
@@ -653,6 +673,13 @@ try:
                 raise RuntimeError(f'devfs shell command failed: {cmd}')
     if args.named_pty:
         checks = [('namedptytest', 'namedptytest: all tests succeeded')]
+    if args.devfs and truncate_fixture:
+        wide_name='enum-'+'x'*249+'a'
+        prompt=f'root:/{wide_name}$ '
+        process.stdin.write(b'ls /\n');process.stdin.flush();expect('ls /\n');expect(wide_name);expect('$ ')
+        process.stdin.write(b'cd /enum-\ta\t\n');process.stdin.flush();expect(prompt)
+        process.stdin.write(b'pwd\n');process.stdin.flush();expect('pwd\n');expect('/'+wide_name+'\n');expect(prompt)
+        process.stdin.write(b'cd ..\n');process.stdin.flush();expect('cd ..\n');expect('root:/$ ')
     if args.environment:
         for cmd, prompt in [('cd /', 'root:/$ '), ('cd /tmp', 'root:/tmp$ '),
                             ('mkdir promptdir', 'root:/tmp$ '),
@@ -682,7 +709,8 @@ try:
     if args.procfs:
         checks = [('procfstest', 'procfstest: all tests succeeded'),
                   ('ps', 'PID PPID PGID SID STATE KiB NAME'),
-                  ('free', 'Mem:'), ('cat /proc/uptime', '.')]
+                  ('free', 'Mem:'), ('cat /proc/uptime', '.'),
+                  ('cat /proc/cpuinfo', 'processor\t: 0'), ('cat /proc/stat', 'btime ')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
     for cmd, token in checks:
@@ -692,6 +720,16 @@ try:
         if token:
             expect(token, timeout=300 if args.regression else 45)
         expect('$ ')
+    if args.procfs:
+        processors=[int(value) for value in re.findall(rb'^processor\t: ([0-9]+)\r?$',transcript,re.MULTILINE)]
+        if processors!=list(range(args.cpus)):
+            raise RuntimeError(f'cpuinfo online hart list {processors} does not match {args.cpus} QEMU CPUs')
+        cpu_rows=[int(value) for value in re.findall(rb'^cpu([0-9]+) [0-9]+ 0 [0-9]+ [0-9]+\r?$',transcript,re.MULTILINE)]
+        if cpu_rows!=list(range(args.cpus)):
+            raise RuntimeError(f'CPU statistics list {cpu_rows} does not match online QEMU CPUs')
+        boot=re.findall(rb'^btime ([0-9]+)\r?$',transcript,re.MULTILINE)
+        if len(boot)!=1 or abs(int(boot[0])-time.time())>120:
+            raise RuntimeError(f'RTC boot epoch {boot} is inconsistent with host wall clock')
     if args.permissions:
         for cmd, token in [('su alice', None), ('id', 'uid=1000(alice)'),
                            ('echo "$HOME"', '/home/alice'),

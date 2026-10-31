@@ -6,6 +6,7 @@ target_sources(kernel PRIVATE
   buffer/page_buffer.cpp
   journal/journal.cpp
   inode/xv6_filesystem.cpp
+  inode/disk_filesystem.cpp
   path/path_operations.cpp
   file/open_file.cpp
   file/file_operations.cpp
@@ -15,7 +16,12 @@ target_sources(kernel PRIVATE
   vfs/vfs.cpp
   devfs/devfs.cpp
   procfs/procfs.cpp
+  procfs/system_providers.cpp
   ramfs/ramfs.cpp
   permissions.cpp
+  ext3/jbd.cpp
+  ext3/volume.cpp
+  ext3/mutate.cpp
+  ext3/ext3_filesystem.cpp
   service.cpp
 )

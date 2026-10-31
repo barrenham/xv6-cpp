@@ -106,6 +106,14 @@ uint64 sys_close(void)
   return xv::process::current()->files().close(descriptor) ? 0 : -1;
 }
 
+uint64 sys_getdents64()
+{
+  xv::fs::File *file;unsigned long destination;int count;
+  if(argfd(0,nullptr,&file)<0)return -1;
+  argument_address(1,&destination);argument_integer(2,&count);
+  return xv::fs::files().getdents64(file,destination,count);
+}
+
 uint64 sys_fstat(void)
 {
   xv::fs::File *f;
@@ -206,15 +214,17 @@ struct OpenFlow
   {
     return (c.mode & O_TRUNC) && c.inode->kind() == T_FILE;
   }
-  static void truncate(Context &c) noexcept
+  static bool truncate(Context &c) noexcept
   {
+    if(c.inode->owner().resize(c.inode,0)<0)return false;
     if (c.inode->mode() & 06000)
     {
       c.inode->owner().attributes(c.inode, c.inode->uid(), c.inode->gid(),
                                   c.inode->mode() & ~06000U);
     }
-    xv::fs::filesystem().truncate(c.inode);
+    return true;
   }
+  static void unlock_bound(Context &c) noexcept {xv::fs::filesystem().unlock(c.inode);}
   static void detach(Context &c) noexcept
   {
     xv::process::current()->files().take(c.descriptor);
@@ -240,6 +250,9 @@ struct OpenFlow
   struct Bind;
   struct Truncating;
   struct Truncate;
+  struct UnlockBound;
+  struct DetachBound;
+  struct ReleaseBound;
   struct Success;
   struct Detach;
   struct ReleaseFile;
@@ -277,7 +290,11 @@ struct OpenFlow
           flow::node<Truncating, flow::noop,
                      flow::branch<flow::condition<&truncating>, flow::go<Truncate>,
                                   flow::go<Success>>>,
-          flow::node<Truncate, flow::action<&truncate>, flow::go<Success>>,
+          flow::node<Truncate, flow::noop,
+                     flow::branch<flow::condition<&truncate>,flow::go<Success>,flow::go<UnlockBound>>>,
+          flow::node<UnlockBound,flow::action<&unlock_bound>,flow::go<DetachBound>>,
+          flow::node<DetachBound,flow::action<&detach>,flow::go<ReleaseBound>>,
+          flow::node<ReleaseBound,flow::action<&release_file>,flow::stop>,
           flow::node<Success, flow::action<&success>, flow::stop>,
           flow::node<Detach, flow::action<&detach>, flow::go<ReleaseFile>>,
           flow::node<ReleaseFile, flow::action<&release_file>, flow::go<ReleaseInode>>,
@@ -711,7 +728,7 @@ struct MountFlow
 
   static bool disk(Context &c) noexcept
   {
-    return !xv::runtime::compare_text(c.type, "xv6", 16);
+    return !xv::runtime::compare_text(c.type, "xv6", 16) || !xv::runtime::compare_text(c.type,"ext3",16);
   }
   static bool ram(Context &c) noexcept
   {
@@ -719,7 +736,7 @@ struct MountFlow
   }
   static void mount_disk(Context &c) noexcept
   {
-    c.result = xv::fs::filesystem().mount_disk(c.path);
+    c.result = xv::fs::filesystem().mount_disk(c.path,c.type);
   }
   static void mount_ram(Context &c) noexcept
   {
@@ -1171,9 +1188,9 @@ uint64 sys_rename()
       {
         component = 0;
       }
-      else if (++component > DIRSIZ)
+      else
       {
-        return -1;
+        ++component;
       }
     }
     if (!component)

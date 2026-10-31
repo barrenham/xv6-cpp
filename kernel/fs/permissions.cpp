@@ -8,7 +8,7 @@ namespace xv::fs::detail
 bool allowed(Inode *node, unsigned requested, bool real)
 {
   if (requested & ~7U) return false;
-  if ((requested & W_OK) && node->owner().read_only() && node->kind() != T_DEVICE) return false;
+  if ((requested & W_OK) && node->owner().read_only() && node->kind() != T_DEVICE && node->kind() != T_BLOCK) return false;
   auto who = identity(real);
   if (who.uid == 0)
     return !(requested & X_OK) || node->kind() == T_DIR || (node->mode() & 0111);

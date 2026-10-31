@@ -23,7 +23,7 @@
 ```doxygen
 @fn void xv::boot::run()
 @brief 完成各 hart 初始化后切换到独立调度栈。
-@details 主 hart 发布共享初始化，次 hart 等待并安装本地架构状态；每 hart 随后取得按需增长栈顶，经汇编切换 SP 后进入调度循环，不再在临时 4 KiB 启动栈上运行中断和网络定时器。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-c64bfe6e40c53cad"></a>

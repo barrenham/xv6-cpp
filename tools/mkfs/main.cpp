@@ -8,6 +8,9 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <sys/mman.h>
+#include <sys/wait.h>
+#include "ext3_image.h"
 
 #define stat xv6_stat // avoid clash with host struct stat
 #include "kernel/support/types.h"
@@ -79,9 +82,11 @@ struct ImageEntry
   ushort mode;
 };
 
+bool ext3_format = true;
+
 void validate_path(const std::string &path)
 {
-  if (path.size() < 2 || path.size() >= MAXPATH || path.front() != '/' || path.back() == '/')
+  if (path.size() < 2 || path.size() >= (ext3_format ? 4096:MAXPATH) || path.front() != '/' || path.back() == '/' || path.find('\0') != std::string::npos)
     error("image path must be a canonical absolute path");
   size_t start = 1;
   while (start < path.size())
@@ -89,7 +94,7 @@ void validate_path(const std::string &path)
     size_t end = path.find('/', start);
     if (end == std::string::npos) end = path.size();
     std::string component = path.substr(start, end - start);
-    if (component.empty() || component == "." || component == ".." || component.size() > DIRSIZ)
+    if (component.empty() || component == "." || component == ".." || component.size() > (ext3_format ? 255:DIRSIZ))
       error("invalid image path component");
     start = end + 1;
   }
@@ -142,12 +147,92 @@ void directory_entry(uint parent, const char *name, uint number)
   iappend(parent, &entry, sizeof(entry));
 }
 
+void ext3_command(const char *program, const char *first, const char *image)
+{
+  pid_t child = fork();
+  if (child < 0) die("fork formatter");
+  if (!child)
+  {
+    if (!strcmp(program, "mke2fs"))
+    {
+      execlp(program, program, first, "-F", "-t", "ext3", "-b", "1024", "-E", "root_owner=0:0", image, nullptr);
+      execl("/usr/sbin/mke2fs", program, first, "-F", "-t", "ext3", "-b", "1024", "-E", "root_owner=0:0", image, nullptr);
+    }
+    else
+    {
+      execlp(program, program, first, image, nullptr);
+      execl("/usr/sbin/e2fsck", program, first, image, nullptr);
+    }
+    _exit(127);
+  }
+  int status;
+  if (waitpid(child, &status, 0) != child || !WIFEXITED(status) || WEXITSTATUS(status))
+    error("ext3 formatter/checker failed; install e2fsprogs");
+}
+
+int make_ext3(const char *output, const std::vector<ImageEntry> &entries)
+{
+  constexpr uint64_t capacity = 64UL * 1024 * 1024;
+  if (ftruncate(fsfd, capacity) < 0 || close(fsfd) < 0) die("size ext3 image");
+  fsfd = -1;
+  ext3_command("mke2fs", "-q", temporary_image.c_str());
+  fsfd = open(temporary_image.c_str(), O_RDWR);
+  if (fsfd < 0) die("open ext3 image");
+  void *bytes = mmap(nullptr, capacity, PROT_READ | PROT_WRITE, MAP_SHARED, fsfd, 0);
+  if (bytes == MAP_FAILED) die("map ext3 image");
+  unsigned status = 0;
+  void *image = xv_ext3_open(bytes, capacity, &status);
+  if (!image) error("cannot mount formatted ext3 image");
+  std::map<std::string, uint> nodes{{"/", 2}};
+  for (const auto &entry : entries)
+  {
+    size_t slash = entry.path.rfind('/');
+    std::string parent = slash == 0 ? "/" : entry.path.substr(0, slash);
+    auto found = nodes.find(parent);
+    if (found == nodes.end()) error("parent directory must precede its children in manifest");
+    uint number = 0;
+    if (xv_ext3_create(image, found->second, entry.path.c_str() + slash + 1,
+                       entry.kind == "dir" ? T_DIR:T_FILE, 0, 0, entry.mode, &number) < 0)
+      error("ext3 inode creation failed");
+    nodes.emplace(entry.path, number);
+    if (entry.kind == "dir") continue;
+    int source = open(entry.source.c_str(), O_RDONLY);
+    if (source < 0) die(entry.source.c_str());
+    char buffer[65536];ssize_t count;uint64_t offset = 0;
+    while ((count = read(source, buffer, sizeof(buffer))) > 0)
+    {
+      if (xv_ext3_write(image, number, offset, buffer, uint64_t(count)) < 0) error("ext3 file write failed");
+      offset += uint64_t(count);
+    }
+    if (count < 0 || close(source) < 0) die("read/close host file");
+  }
+  xv_ext3_close(image);
+  if (msync(bytes, capacity, MS_SYNC) < 0 || munmap(bytes, capacity) < 0 || fsync(fsfd) < 0 || close(fsfd) < 0)
+    die("persist ext3 image");
+  fsfd = -1;
+  ext3_command("e2fsck", "-fn", temporary_image.c_str());
+  if (rename(temporary_image.c_str(), output) < 0) die("publish ext3 image");
+  temporary_image.clear();
+  printf("ext3: installed %zu entries\n", entries.size());
+  return 0;
+}
+
 int main(int argc, char *argv[])
 {
   static_assert(sizeof(int) == 4, "Integers must be 4 bytes!");
-  if (argc != 4 || strcmp(argv[2], "--manifest"))
-    error("usage: mkfs fs.img --manifest fs-manifest.tsv");
-  auto entries = read_manifest(argv[3]);
+  const char *manifest = nullptr;
+  for (int index = 2; index + 1 < argc; index += 2)
+  {
+    if (!strcmp(argv[index], "--manifest") && !manifest) manifest = argv[index + 1];
+    else if (!strcmp(argv[index], "--filesystem"))
+    {
+      if (strcmp(argv[index + 1], "ext3") && strcmp(argv[index + 1], "xv6")) error("filesystem must be ext3 or xv6");
+      ext3_format = !strcmp(argv[index + 1], "ext3");
+    }
+    else error("unknown or repeated mkfs option");
+  }
+  if (!manifest || argc % 2) error("usage: mkfs fs.img --manifest fs-manifest.tsv [--filesystem ext3|xv6]");
+  auto entries = read_manifest(manifest);
   assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
@@ -157,6 +242,7 @@ int main(int argc, char *argv[])
   fsfd = mkstemp(temporary.data());
   if (fsfd < 0) die(argv[1]);
   temporary_image = temporary.data();
+  if (ext3_format) return make_ext3(argv[1], entries);
 
   nmeta = 2 + nlog + ninodeblocks + nbitmap;
   nblocks = FSSIZE - nmeta;

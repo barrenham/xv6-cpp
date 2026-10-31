@@ -297,3 +297,72 @@
 @brief 复制当前进程的文件系统身份。
 @details real 参数选择真实或有效 uid/gid，附加组及 umask 从同一份凭据快照复制；不向文件系统暴露 Process 指针。
 ```
+<a id="fn-4f3b846dbcc5503d"></a>
+
+## `xv::fs::detail::cpu_record`
+
+```doxygen
+@fn bool xv::fs::detail::cpu_record(unsigned index,CpuRecord &record)
+@brief 读取已上线hart的真实硬件记录。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-39f5c3394ead374a"></a>
+
+## `xv::fs::detail::cpu_time`
+
+```doxygen
+@fn bool xv::fs::detail::cpu_time(unsigned index,CpuTime &record)
+@brief 读取指定CPU的采样时间和中断计数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-6abeacd13b8bf534"></a>
+
+## `xv::fs::detail::system_counts`
+
+```doxygen
+@fn SystemCounts xv::fs::detail::system_counts()
+@brief 复制系统调度次数和成功创建进程数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-cc3635c2aeecf0ac"></a>
+
+## `xv::fs::detail::epoch_seconds`
+
+```doxygen
+@fn unsigned long xv::fs::detail::epoch_seconds()
+@brief 返回RTC实时时间秒数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-a6f69cd59600e49a"></a>
+
+## `xv::fs::detail::boot_epoch_seconds`
+
+```doxygen
+@fn unsigned long xv::fs::detail::boot_epoch_seconds()
+@brief 返回启动时记录的RTC epoch秒数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-32ede710eaeec134"></a>
+
+## `xv::fs::detail::kernel_version`
+
+```doxygen
+@fn const char *xv::fs::detail::kernel_version()
+@brief 返回项目内核版本标识。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-1ef47a224b7a4a60"></a>
+
+## `xv::fs::detail::process_exec_text`
+
+```doxygen
+@fn bool xv::fs::detail::process_exec_text(unsigned pid,bool environment,PageBuffer &buffer)
+@brief 在权限检查后复制进程argv或环境快照。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

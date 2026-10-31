@@ -1,5 +1,6 @@
 module;
 #include "kernel/process/scheduler/policies/scheduling_policy.h"
+#include "kernel/process/exec/exec_snapshot.h"
 export module xv.process:process;
 
 export import :registers;
@@ -12,6 +13,7 @@ export import :credentials;
 
 export namespace xv::process
 {
+using ExecSnapshot=xv::exec::Snapshot;
 struct ProcessInfo
 {
   int pid = 0, parent = 0, group = 0, session = 0;
@@ -115,9 +117,10 @@ public:
   bool create_image(AddressSpace &image);
   void commit_image(AddressSpace &image, unsigned long entry, unsigned long stack,
                     unsigned long arguments, const char *path,
-                    unsigned long environment = 0);
+                    unsigned long environment = 0,ExecSnapshot *snapshot=nullptr);
 
 private:
+  ExecSnapshot exec_snapshot_;
 
   struct CommitFlow;
   struct FirstReturnFlow;
@@ -159,6 +162,7 @@ private:
   bool continued_event_ = false;
   bool continue_notification_ = false; // independent of waitpid event consumption
   int pid = 0;
+  void *storage_node_ = nullptr; // immutable registry owner, set before publication
   Process *parent = nullptr; // protected by the manager's family lock
   // Intrusive family links are protected by the same family lock, which pins
   // linked descriptors against reap; process locks protect their wait events.
@@ -166,6 +170,14 @@ private:
   Process *last_child_ = nullptr;
   Process *sibling_previous_ = nullptr;
   Process *sibling_next_ = nullptr;
+  // Queue membership is protected by the family lock. Each kind has separate
+  // links, while its pending state remains protected by the child process lock.
+  struct ChildEventLinks { Process *previous = nullptr, *next = nullptr; };
+  ChildEventLinks child_event_links_[3]{};
+  unsigned child_event_mask_ = 0;
+  Process *child_events_[3]{}, *child_event_tails_[3]{};
+  Process *continue_notify_previous_ = nullptr, *continue_notify_next_ = nullptr;
+  bool continue_notify_queued_ = false;
   ProcessMembership membership_{this}; // protected by ProcessGroups
   unsigned long kstack = 0;
   AddressSpace memory_;

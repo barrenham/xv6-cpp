@@ -211,3 +211,22 @@
 @brief 请求打开对象的持久化同步。
 @details 默认返回 -1，具体 inode 后端处理磁盘或 RAM 语义。
 ```
+<a id="fn-fbfbdd198b463c26"></a>
+
+## `xv::io::IoObject::getdents64`
+
+```doxygen
+@fn virtual int xv::io::IoObject::getdents64(Buffer,int)
+@brief 按完整Linux dirent64记录枚举目录，保留每次打开的cookie与编码模式。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-e1b0e8512f77d7f2"></a>
+
+## `xv::io::IoObject::position`
+
+```doxygen
+@fn virtual unsigned long xv::io::IoObject::position() const
+@brief 以原子观察读取共享文件偏移供fdinfo使用。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

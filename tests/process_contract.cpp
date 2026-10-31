@@ -25,7 +25,8 @@ static_assert(std::is_abstract_v<ExecutableLoader>);
 static_assert(!std::is_copy_constructible_v<Process>);
 static_assert(!std::is_copy_constructible_v<DescriptorTable>);
 static_assert(!std::is_copy_constructible_v<WorkingDirectory>);
-static_assert(std::is_trivially_destructible_v<Process>);
+// Process now owns a shared exec snapshot; recycling invokes its destructor.
+static_assert(!std::is_trivially_destructible_v<Process>);
 constinit DescriptorTable boot_table;
 constinit WorkingDirectory boot_directory;
 static bool transaction = false;

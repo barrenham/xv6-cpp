@@ -3,6 +3,8 @@
 #include "user/runtime/user.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/support/param.h"
+#include "user/runtime/directory.h"
 
 extern "C" {
 
@@ -11,7 +13,7 @@ static bool detailed = false;
 void show(char *path, const struct stat &entry)
 {
   if (!detailed) { printf("%s %d %d %d\n", fmtname(path), entry.type, entry.ino, (int)entry.size); return; }
-  char mode[11]; mode[0] = entry.type == T_DIR ? 'd' : entry.type == T_DEVICE ? 'c' : entry.type == T_SYMLINK ? 'l' : '-';
+  char mode[11]; mode[0] = entry.type == T_DIR ? 'd' : entry.type == T_DEVICE ? 'c' : entry.type == T_BLOCK ? 'b' : entry.type == T_SYMLINK ? 'l' : '-';
   const char bits[] = "rwx";
   for (unsigned i = 0; i < 9; ++i) mode[i + 1] = entry.mode & (1U << (8 - i)) ? bits[i % 3] : '-';
   if (entry.mode & 04000) mode[3] = mode[3] == 'x' ? 's' : 'S';
@@ -44,9 +46,9 @@ fmtname(char *path)
 void
 ls(char *path)
 {
-  char buf[512], *p;
+  static char buf[MAXPATH];char *p;
   int fd;
-  struct dirent de;
+  const linux_dirent64 *de;
   struct stat st;
 
   if (lstat(path, &st) == 0 && st.type == T_SYMLINK) { show(path, st); return; }
@@ -61,25 +63,26 @@ ls(char *path)
     return;
   }
 
+  DirectoryReader reader(fd);
   switch (st.type) {
+  case T_BLOCK:
   case T_DEVICE:
   case T_FILE:
     show(path, st);
     break;
 
   case T_DIR:
-    if (strlen(path) + 1 + DIRSIZ + 1 > sizeof buf) {
+    if (strlen(path) + 2 > sizeof buf) {
       printf("ls: path too long\n");
       break;
     }
     strcpy(buf, path);
     p = buf + strlen(buf);
     *p++ = '/';
-    while (read(fd, &de, sizeof(de)) == sizeof(de)) {
-      if (de.inum == 0)
-        continue;
-      memmove(p, de.name, DIRSIZ);
-      p[DIRSIZ] = 0;
+    while (reader.next(de)==1) {
+      unsigned length=strlen(de->d_name);
+      if(unsigned(p-buf)+length+1>sizeof(buf)){fprintf(2,"ls: path too long\n");continue;}
+      memmove(p,de->d_name,length+1);
       if (lstat(buf, &st) < 0) {
         printf("ls: cannot stat %s\n", buf);
         continue;

@@ -148,8 +148,8 @@
     },
     {
       "source": "kernel/memory/layout/memlayout.h",
-      "sha256": "b22567fb3f31dbfb106cb908d8d0043c3779dcd2714cc76c51f9884e8b1d0be1",
-      "review": "Hardware/virtual layout constants and address macros only.",
+      "sha256": "16d3372b75df18ca15cf4cdfeb893f4b3c9d72e55b84af65407a0d99ac33431b",
+      "review": "Hardware/virtual layout constants and address macros only. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -194,8 +194,8 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1",
-      "review": "KernelBuild and private KernelPageTable graphs own initial mapping, dynamic pool reservation, region registration, leaf preparation, initial commit, directory publication, rollback and reclamation. Running owners pin upper directories and leaves; empty upper directories are detached/fenced/reclaimed after their last child. First-directory RSW bit 9 preserves lock-free running-stack faults. Pool ownership queries are under the original stack lock; fault probes never inspect the mutable tree. SATP/fences, directory probes, scans and guarded delegations remain primitives.",
+      "sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26",
+      "review": "KernelBuild and private KernelPageTable graphs own initial mapping, dynamic pool reservation, region registration, leaf preparation, initial commit, directory publication, rollback and reclamation. Running owners pin upper directories and leaves; empty upper directories are detached/fenced/reclaimed after their last child. First-directory RSW bit 9 preserves lock-free running-stack faults. Pool ownership queries are under the original stack lock; fault probes never inspect the mutable tree. SATP/fences, directory probes, scans and guarded delegations remain primitives. RTC和VirtIO熵设备MMIO映射仍通过KernelBuildFlow登记设备区域。",
       "graph_entries": [
         {
           "qualified": "xv::memory::make_kernel_page_table",

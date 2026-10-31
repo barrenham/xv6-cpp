@@ -496,3 +496,42 @@
 @brief 取得持久后端的日志服务。
 @details 默认返回 nullptr；可选数据卷覆写以供 VFS 在恢复后发布第二日志，服务实例必须保持系统生命周期。
 ```
+<a id="fn-56bf199e7d54621d"></a>
+
+## `xv::fs::FileSystem::name_max`
+
+```doxygen
+@fn virtual unsigned xv::fs::FileSystem::name_max() const
+@brief 返回 `14`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-762a351c7c181688"></a>
+
+## `xv::fs::FileSystem::type_name`
+
+```doxygen
+@fn virtual const char *xv::fs::FileSystem::type_name() const
+@brief 返回 `name()`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-c9c3cbf1e3e7c7a6"></a>
+
+## `xv::fs::FileSystem::open_block_device`
+
+```doxygen
+@fn virtual xv::drivers::BlockDevice *xv::fs::FileSystem::open_block_device(Inode *, bool)
+@brief 返回 `nullptr`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-ad6546a1e147cbca"></a>
+
+## `xv::fs::FileSystem::next_directory`
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::next_directory(Inode *,unsigned long &,DirectoryRecord &)
+@brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

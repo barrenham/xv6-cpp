@@ -19,9 +19,7 @@
 ```doxygen
 @fn int xv::process::fork_process()
 @brief 通过公开进程服务入口创建当前进程的子进程。
-@return 父进程获得子 PID；失败为 -1，子进程的零返回值由复制 TrapFrame 安排。
-@details 转交全局 process_manager.fork_process；资源、父子关系和发布状态由管理器统一处理，服务层不重复获取生命周期锁。
-@see ProcessManager::fork_process
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="service-exit-process"></a>

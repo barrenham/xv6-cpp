@@ -154,7 +154,7 @@
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::AncestorFlow::remaining(Context &c) noexcept
 @brief 检查祖先搜索是否尚未达到一百二十八层。
-@details 每轮释放旧节点引用后推进到父目录；挂载根向挂载父目录跳转，一百二十八层耗尽时按原策略保守返回真。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-8247153198e9cff9"></a>
@@ -184,7 +184,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::CreateFlow::find_parent(Context &c) noexcept
 @brief 通过原公开入口取得父目录引用。
-@details 普通文件路径的 namespace ScopedLock 活在 open_regular 动作中，内部 RegularGraph 返回后解锁；成功保留结果 inode 锁。其他类型沿原 lookup_parent/create_at 锁范围执行。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-c86632b9ef7a2af1"></a>
@@ -234,7 +234,7 @@
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::CreateFlow::openable(Context &c) noexcept
 @brief 检查结果为普通文件或设备。
-@details 普通文件路径的 namespace ScopedLock 活在 open_regular 动作中，内部 RegularGraph 返回后解锁；成功保留结果 inode 锁。其他类型沿原 lookup_parent/create_at 锁范围执行。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-732e475a883c61d5"></a>
@@ -314,7 +314,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::LinkFlow::parent(Context &c) noexcept
 @brief 解析新目录项的父目录。
-@details Transaction 留在入口作用域；目标不跟随符号链接，父目录解析失败也必须归还已取得的目标引用。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-762ec9d33df971eb"></a>
@@ -384,7 +384,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::RenameFlow::parents(Context &c) noexcept
 @brief 按旧路径、新路径次序分别解析父目录。
-@details Transaction 与 namespace ScopedLock 留在入口；即使旧父目录解析失败也解析新父目录，完成后分别归还所有成功取得的引用。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b20119838e8e3064"></a>
@@ -484,7 +484,7 @@
 ```doxygen
 @fn static unsigned xv::fs::VirtualFileSystem::SymlinkFlow::measure(const char *target) noexcept
 @brief 有界测量非空链接目标长度，空串或达到一百二十八字节返回零。
-@details 目标长度检查在入口获取 Transaction 与 namespace 锁前完成；写入失败先解锁归还新节点，再撤销新目录项，最后归还父目录。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-17c8cd0f914b9f8d"></a>
@@ -614,7 +614,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::UnlinkFlow::parent(Context &c) noexcept
 @brief 解析待删除项的父目录。
-@details Transaction 留在入口作用域，成功取得的父目录在委托结束后统一归还。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-575db944fcafa026"></a>
@@ -683,8 +683,8 @@
 
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::WalkFlow::component(Context &c) noexcept
-@brief 截取 DIRSIZ 范围内的分量、推进路径并锁住当前节点。
-@details namespace 锁由调用者持有；当前目录引用在相对链接重写时保留，绝对链接重启才释放；失败路径分别处理锁住的当前节点和已释放的下一节点。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 复制至多255字节的组件并终止，超长则失败而不截断别名。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-e7482d5e5234464a"></a>
@@ -694,7 +694,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::WalkFlow::copy_path(Context &c) noexcept
 @brief 有界复制输入到待解析缓冲，记录尾斜线，过长路径保持失败状态。
-@details namespace 锁由调用者持有；当前目录引用在相对链接重写时保留，绝对链接重启才释放；失败路径分别处理锁住的当前节点和已释放的下一节点。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-d4aaf2fa5200aadd"></a>
@@ -774,7 +774,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::WalkFlow::read_target(Context &c) noexcept
 @brief 递增链接计数，检查长度与十六次上限并读取目标，随后解锁归还链接节点。
-@details namespace 锁由调用者持有；当前目录引用在相对链接重写时保留，绝对链接重启才释放；失败路径分别处理锁住的当前节点和已释放的下一节点。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-a92bfb799f45db2b"></a>
@@ -824,7 +824,7 @@
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::WalkFlow::searchable(Context &c) noexcept
 @brief 按原顺序检查目录类型、链接存活和搜索权限。
-@details namespace 锁由调用者持有；当前目录引用在相对链接重写时保留，绝对链接重启才释放；失败路径分别处理锁住的当前节点和已释放的下一节点。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-084383eddf2c0379"></a>

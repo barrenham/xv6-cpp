@@ -10,7 +10,7 @@ import :platform;
 
 namespace xv::fs
 {
-void Journal::initialize(int dev, const superblock *sb)
+void Xv6Journal::initialize(int dev, const superblock *sb)
 {
 
   lock_.init("log");
@@ -20,7 +20,7 @@ void Journal::initialize(int dev, const superblock *sb)
 }
 
 // Copy committed blocks from log to their home location
-void Journal::install(int recovering)
+void Xv6Journal::install(int recovering)
 {
   int tail;
 
@@ -44,7 +44,7 @@ void Journal::install(int recovering)
 }
 
 // Read the log header from disk into the in-memory log header
-void Journal::read_header(void)
+void Xv6Journal::read_header(void)
 {
   BlockHandle buf = cache_.read(device_, start_);
   Header *lh = (Header *)(buf->bytes());
@@ -60,7 +60,7 @@ void Journal::read_header(void)
 // Write in-memory log header to disk.
 // This is the true point at which the
 // current transaction commits.
-void Journal::write_header(void)
+void Xv6Journal::write_header(void)
 {
   BlockHandle buf = cache_.read(device_, start_);
   Header *hb = (Header *)(buf->bytes());
@@ -74,14 +74,14 @@ void Journal::write_header(void)
   buf.reset();
 }
 
-void Journal::recover(void)
+void Xv6Journal::recover(void)
 {
   RecoverFlow::Context context{*this};
   (void)RecoverFlow::Graph::run<0>(context);
 }
 
 // called at the start of each FS system call.
-void Journal::begin(void)
+void Xv6Journal::begin(void)
 {
   lock_.acquire();
   BeginFlow::Context context{*this};
@@ -90,7 +90,7 @@ void Journal::begin(void)
 
 // called at the end of each FS system call.
 // commits if this was the last outstanding operation.
-void Journal::end(void)
+void Xv6Journal::end(void)
 {
   lock_.acquire();
   EndFlow::Context context{*this};
@@ -98,7 +98,7 @@ void Journal::end(void)
 }
 
 // Copy modified blocks from cache to log.
-void Journal::write_log(void)
+void Xv6Journal::write_log(void)
 {
   int tail;
 
@@ -113,7 +113,7 @@ void Journal::write_log(void)
   }
 }
 
-void Journal::commit()
+void Xv6Journal::commit()
 {
   CommitFlow::Context context{*this};
   (void)CommitFlow::Graph::run<0>(context);
@@ -128,14 +128,14 @@ void Journal::commit()
 //   modify bp->bytes()[]
 //   record(bp)
 //   brelse(bp)
-void Journal::record(Buffer &buffer)
+void Xv6Journal::record(Buffer &buffer)
 {
   lock_.acquire();
   RecordFlow::Context context{{*this}, buffer};
   (void)RecordFlow::Graph::run<0>(context);
 }
 
-void Journal::sync(void)
+void Xv6Journal::sync(void)
 {
   lock_.acquire();
   SyncFlow::Context context{{*this}};

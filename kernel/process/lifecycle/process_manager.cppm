@@ -31,6 +31,7 @@ public:
   int set_signal_disposition(int signal, int action);
   void post_terminal_interrupt(void *terminal, int signal);
   void service_signal_notifications();
+  void *pin_controlling_terminal(void *(*pin)(void *));
   int claim_terminal(void *terminal);
   void detach_terminal(void *terminal);
   int terminal_foreground(void *terminal);
@@ -40,6 +41,7 @@ public:
   void dump();
   bool snapshot_after(int after, ProcessInfo &result);
   int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
+  bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result);
   int get_process_group();
   int set_process_group(int pid, int group);
   int get_session(int pid);
@@ -70,7 +72,8 @@ private:
   void post_child_signal(Process &child); // caller holds wait_lock_, no parent lock
   void notify_child_events();
   int wait_child(int pid, unsigned long address, int options, bool encoded);
-  int child_events_ = 0;
+  Process *child_notification_head_ = nullptr;
+  xv::sync::SpinLock child_notification_lock_;
   bool child_notifications_ = false;
   bool signal_notifications_ = false;
   Process *allocate();
@@ -79,6 +82,12 @@ private:
   void reparent(Process *parent);
   static void attach_child(Process &parent, Process &child);
   static void detach_child(Process &child);
+  static void update_child_event(Process &child, unsigned kind, bool pending);
+  static void refresh_child_events(Process &child);
+  static void remove_child_events(Process &child);
+  void queue_child_notification(Process &child);
+  void cancel_child_notification(Process &child);
+  void collect_child_notifications();
   ProcessStore &store_;
   Scheduler &scheduler_;
   WaitChannels &waits_;

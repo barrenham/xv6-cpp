@@ -95,6 +95,63 @@ void policy_queues()
   }
 }
 
+void pid_index()
+{
+  PagedProcessStore store;
+  store.initialize();
+  std::vector<Process *> processes;
+  for (int pid = 1; pid <= 256; ++pid)
+  {
+    auto *process = store.allocate(pid);
+    check(process && process->id() == pid, "PID set before registry publication");
+    processes.push_back(process);
+    Access::unlock(*process);
+  }
+  check(!store.find_pid(0) && !store.find_pid(-1) && !store.find_pid(257), "missing PID lookup");
+  const auto pages = xv_storage_live_pages();
+  check(!store.allocate(128) && !store.allocate(-1) && store.count() == 256 &&
+        xv_storage_live_pages() == pages, "duplicate and invalid PID roll back descriptor and stack");
+  // Reverse lookups plus alternating deletion exercise both tree and registry links.
+  for (int pid = 256; pid; --pid)
+  {
+    auto *process = store.find_pid(pid);
+    check(process == processes[pid-1], "indexed PID lookup returns locked stable descriptor");
+    Access::unlock(*process);
+  }
+  for (unsigned parity = 0; parity < 2; ++parity)
+    for (unsigned i = parity; i < processes.size(); i += 2)
+    {
+      auto *process = store.find_pid(int(i+1));
+      check(process == processes[i], "PID survives unrelated rotations and removals");
+      store.release(process);
+      check(!store.find_pid(int(i+1)), "retired PID absent before storage reuse");
+    }
+  check(!store.count() && !xv_storage_live_pages(), "PID tree fully reclaimed");
+  std::atomic<bool> stop{false};
+  std::thread observer([&] {
+    while (!stop.load())
+      for (int pid = 1; pid <= 4; ++pid)
+        if (auto *process = store.find_pid(pid))
+        { check(process->id() == pid, "concurrent indexed lookup pins identity"); Access::unlock(*process); }
+  });
+  std::vector<std::thread> writers;
+  for (int pid = 1; pid <= 4; ++pid)
+    writers.emplace_back([&,pid] {
+      for (unsigned i = 0; i < 200; ++i)
+      {
+        auto *process = store.allocate(pid);
+        check(process != nullptr, "PID can be reused only after retirement");
+        Access::unlock(*process);
+        process = store.find_pid(pid);
+        check(process != nullptr, "writer finds its PID");
+        store.release(process);
+      }
+    });
+  for (auto &writer : writers) writer.join();
+  stop.store(true); observer.join();
+  check(!store.count() && !xv_storage_live_pages(), "concurrent PID lookup/reuse/removal has no leaks");
+}
+
 void basic()
 {
   PagedProcessStore store;
@@ -189,6 +246,28 @@ void duplicate()
   check(waitpid(child, &status, 0) == child && WIFEXITED(status) &&
             WEXITSTATUS(status) == 99,
         "duplicate queue publication rejected");
+}
+
+void foreign_release()
+{
+  auto child = fork();
+  check(child >= 0,"fork foreign registry invariant check");
+  if (!child)
+  {
+    PagedProcessStore first,second;
+    first.initialize(); second.initialize();
+    auto *one=first.allocate(1); Access::unlock(*one);
+    auto *two=first.allocate(2);
+    // The older node has a previous link: reject before touching either tree,
+    // list or retirement state, rather than trusting those links as ownership.
+    Access::unlock(*two);
+    Access::lock(*one);
+    second.release(one);
+    std::_Exit(0);
+  }
+  int status=0;
+  check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==99,
+        "cross-registry release rejected before mutation");
 }
 
 class UnusedScheduler final : public Scheduler
@@ -500,6 +579,8 @@ extern "C" int run_process_storage_contracts()
 {
   xv::process::test::policy_queues();
   xv::process::test::basic();
+  xv::process::test::pid_index();
+  xv::process::test::foreign_release();
   xv::process::test::affinity();
   xv::process::test::duplicate();
   xv::process::test::channels();

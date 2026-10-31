@@ -157,10 +157,9 @@
 ## `xv::drivers::Pty::release`
 
 ```doxygen
-@fn void xv::drivers::Pty::release()
+@fn void Pty::xv::drivers::Pty::release()
 @brief 匿名伪终端对：释放当前引用或归还对象占用的资源。
-@return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
-@details 流程由 ReleaseFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```
 
 <a id="fn-5c7a739984ad05b7"></a>
@@ -335,7 +334,7 @@
 ```doxygen
 @fn bool xv::drivers::retain_named_pty(unsigned number)
 @brief 按已发布编号取得一个 PTY 节点固定引用。
-@details 在 PTY 注册锁内查找仍有主端的命名对并增加 references，失败返回 false。devfs 动态 inode 在首个引用时固定该编号，避免仍被旧节点引用的编号提前复用。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-46f405daa2728273"></a>
@@ -1027,7 +1026,7 @@
 ```doxygen
 @fn static void xv::drivers::OpenNamedPtyFlow::retain(Context &c) noexcept
 @brief 增加对引用与从文件计数。
-@details 原入口 ScopedLock 全程持全局 PTY 锁；只接管已发布且未锁定的匹配对，先取得引用和从文件计数，再激活从端并转移端点引用。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```
 
 <a id="fn-8f8757ac526b3c1e"></a>
@@ -1098,4 +1097,13 @@
 @fn static void xv::drivers::PtyMultiplexer::OpenFlow::rollback(Context &c) noexcept
 @brief 编号耗尽时解锁并仅销毁归还未发布候选。
 @details 保持原命名工厂和静态实例；候选构造并保存 UID/GID 后才持全局锁选编号，耗尽时解锁销毁候选，成功发布全部命名与引用状态后才返回主端。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+<a id="fn-780e044b64fd87b9"></a>
+
+## `xv::drivers::Pty::open_retained_terminal`
+
+```doxygen
+@fn CharacterDevice *Pty::xv::drivers::Pty::open_retained_terminal()
+@brief 消费已固定的终端引用，在group锁外完成slave登记和打开。
+@details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```

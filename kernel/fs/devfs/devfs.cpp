@@ -14,14 +14,14 @@ namespace
 class MemoryDevice final : public xv::drivers::CharacterDevice
 {
 public:
-
-  constexpr explicit MemoryDevice(bool zero) : zero_(zero)
+  enum class Kind {Null,Zero,Full};
+  constexpr explicit MemoryDevice(Kind kind) : kind_(kind)
   {
   }
 
   const char *name() const override
   {
-    return zero_ ? "zero" : "null";
+    return kind_==Kind::Null ? "null":kind_==Kind::Zero ? "zero":"full";
   }
 
   void initialize() override
@@ -38,7 +38,7 @@ public:
     {
       return -1;
     }
-    if (!zero_)
+    if (kind_==Kind::Null)
     {
       return 0;
     }
@@ -63,7 +63,7 @@ public:
 
   int write(xv::drivers::IoBuffer, int count) override
   {
-    return count < 0 ? -1 : count;
+    return count < 0 || (kind_==Kind::Full && count) ? -1 : count;
   }
 
   unsigned poll(xv::sync::PollTable *) override
@@ -73,11 +73,12 @@ public:
 
 private:
 
-  bool zero_;
+  Kind kind_;
 };
 
-constinit MemoryDevice null_device(false);
-constinit MemoryDevice zero_device(true);
+constinit MemoryDevice null_device(MemoryDevice::Kind::Null);
+constinit MemoryDevice zero_device(MemoryDevice::Kind::Zero);
+constinit MemoryDevice full_device(MemoryDevice::Kind::Full);
 } // namespace
 
 void DevFileSystem::initialize_inodes()
@@ -94,6 +95,7 @@ void DevFileSystem::initialize(int device)
 {
   devices().attach("null", 2, 0, null_device);
   devices().attach("zero", 3, 0, zero_device);
+  devices().attach("full", 2, 1, full_device);
   devices().seal();
   count_ = 0;
   for (unsigned i = 0; i < devices().count(); ++i)
@@ -107,9 +109,9 @@ void DevFileSystem::initialize(int device)
     auto &node = nodes_[count_];
     node.dev = device;
     node.inum = count_ + 1;
-    node.type = T_DEVICE;
+    node.type = record.block ? T_BLOCK : T_DEVICE;
     node.uid_ = node.gid_ = 0;
-    node.mode_ = detail::compare(record.name, "console", DIRSIZ) == 0 ? 0600 : 0666;
+    node.mode_ = record.mode;
     node.major = record.major;
     node.minor = record.minor;
     node.valid = 1;
@@ -142,6 +144,11 @@ void DevFileSystem::initialize(int device)
     node.minor = i;
     node.valid = node.nlink = 1;
   }
+}
+
+xv::drivers::BlockDevice *DevFileSystem::open_block_device(Inode *node,bool writable)
+{
+  return open_registered_block(node,writable);
 }
 
 Inode *DevFileSystem::retain(Inode *node)

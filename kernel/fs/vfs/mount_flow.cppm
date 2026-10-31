@@ -24,6 +24,7 @@ struct VirtualFileSystem::MountProtocol
 
   static bool capacity(Context &c) noexcept
   {
+    unsigned length=0;while(c.path[length]){if(length==127)return false;++length;}
     return c.owner.mount_count_ != 8;
   }
 
@@ -98,7 +99,7 @@ struct VirtualFileSystem::MountFlow : MountProtocol
 
   static void find_parent(Context &c) noexcept
   {
-    c.parent = c.owner.lookup_parent(c.path, c.name);
+    c.parent = c.owner.lookup_parent(c.path, c.name,256);
   }
 
   static void initialize(Context &c) noexcept

@@ -9,6 +9,7 @@ void prepare_interruptible_sleep(void *channel);
 void sleep_process();
 void wake_processes(void *channel);
 bool process_killed();
+void *pin_controlling_terminal(void *(*pin)(void *));
 int claim_terminal(void *terminal);
 int terminal_foreground(void *terminal);
 int set_terminal_foreground(void *terminal, int group);

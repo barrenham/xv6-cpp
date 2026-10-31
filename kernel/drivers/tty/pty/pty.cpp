@@ -512,13 +512,21 @@ void Pty::initialize()
 void Pty::release()
 {
   ptys_lock.acquire();
-  if (--references)
+  if (__atomic_sub_fetch(&references,1U,__ATOMIC_ACQ_REL))
   {
     ptys_lock.release();
     return;
   }
   ReleaseFlow::Context context{this};
   (void)ReleaseFlow::Graph::run<0>(context);
+}
+
+CharacterDevice *Pty::open_retained_terminal()
+{
+  xv::sync::ScopedLock guard(ptys_lock);
+  ++slave_files;
+  attach_slave();
+  return &slave_;
 }
 
 void Pty::attach_slave()
@@ -975,7 +983,7 @@ bool retain_named_pty(unsigned number)
   {
     if (p->named && p->number == number && p->published)
     {
-      ++p->references;
+      __atomic_add_fetch(&p->references,1U,__ATOMIC_RELAXED);
       return true;
     }
   }
@@ -1043,7 +1051,7 @@ struct OpenNamedPtyFlow
 
   static void retain(Context &c) noexcept
   {
-    ++c.pair->references;
+    __atomic_add_fetch(&c.pair->references,1U,__ATOMIC_RELAXED);
     ++c.pair->slave_files;
   }
 

@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-31",
+  "baseline_commit": "e71cbc8d84dca5e6e4a1039a77a3a44d24321d63",
+  "implementation": [
+    "Intrusive PID red-black tree with immutable key, locked lookup lifetime and duplicate-ID rollback",
+    "Doubly-linked process registry with constant-time known-node unlink and explicit owner validation",
+    "Per-parent exit/stop/continue queues, independent wait channels and deferred continuation notification queue",
+    "Copyout-before-consume, orphan event transfer and notification cancellation before reclamation"
+  ],
+  "validation": {
+    "profile": "dev, buddy physical allocator, fair scheduler",
+    "total_ctest_cases": 103,
+    "regular_cases": 99,
+    "isolated_large_ram_cases": 2,
+    "isolated_fork_cases": 2,
+    "all_final_cases_passed": true,
+    "large_ram_note": "A preliminary parallel run timed out before physical allocator initialization at 2048 MiB. Isolated 2048/2049 MiB tests on the final build both passed; no timeout threshold was changed.",
+    "native_pid_contracts": "256 keys, reverse lookup, alternating deletion, duplicate/negative PID rollback, foreign registry release rejection, concurrent readers and four writers with 800 reuse cycles",
+    "qemu_wait_contracts": {
+      "cpus": [
+        1,
+        5
+      ],
+      "simultaneously_live_children": 160,
+      "stop_continue_cycles": 8,
+      "pending_orphan_event_kinds": 3,
+      "checks": [
+        "empty WNOHANG",
+        "non-child PID rejection",
+        "targeted PID signal",
+        "failed exit status copy preserves event",
+        "any/group stop and continue event consumption",
+        "concurrent exit producers and complete reap",
+        "pending exit/stop/continue adoption by init"
+      ]
+    },
+    "documentation": {
+      "kernel_files": 374,
+      "default_unique_symbols": 4649,
+      "all_cpp_symbols": 4720,
+      "documentation_entries": 4723,
+      "indexable_entries": 4648,
+      "documentation_only": 75,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "flow_integrity": {
+      "source_files": 374,
+      "reviewed_non_network_non_boot": 251,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 217,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 216,
+      "internal_bindings": 1,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "native_hover": "212 changed-source and cross-check entries plus five cross-module checks passed"
+  },
+  "fork_performance": {
+    "1": {
+      "runs": 6,
+      "children_per_run": 1000,
+      "max_guest_seconds": 3.0838207,
+      "max_host_test_seconds": 3.109,
+      "max_standalone_total_seconds": 3.314,
+      "limit_seconds": 5,
+      "passed": true
+    },
+    "5": {
+      "runs": 6,
+      "children_per_run": 1000,
+      "max_guest_seconds": 3.0000974,
+      "max_host_test_seconds": 3.068,
+      "max_standalone_total_seconds": 3.181,
+      "limit_seconds": 5,
+      "passed": true
+    }
+  },
+  "boundaries": [
+    "Group-filtered wait may scan direct children to determine membership existence; not all selectors are O(1)",
+    "Global family lock retained; no lock-free lookup or reference-counted process handles introduced",
+    "Complete process enumeration and generic group/signal wake visitors retain existing scans",
+    "Pending states coalesce; no unbounded event history",
+    "Default dev configuration validated; no claim of complete LAB_LOCK build support"
+  ],
+  "source_sha256": {
+    "kernel/process/lifecycle/process_manager.cpp": "a489d4b15300e296a2b16dbe49909190aceffd4492d69aa4b1da76101e74f1a8",
+    "kernel/process/lifecycle/process_manager.cppm": "2c1de6b94eca7a0002c9c7249b544ef53e7260a7867db2f4f24b91d653c4ac77",
+    "kernel/process/process.cppm": "f4c560cc477f70089f4d717a9da46ca4e668446a5c04f5b9cdf6ee6768cab3c7",
+    "kernel/process/signals/signal_delivery.cpp": "f39bc35c993f43a736552d528e91e43be8ace5eb76d409c53399a443c6058d04",
+    "kernel/process/storage/paged_process_store.cpp": "5fd70429983c7a5eb03ff64431eb0f71c3605a15f98b7a0764ebae5cccbaabbc",
+    "kernel/process/storage/paged_process_store.cppm": "5b7c4c8a13778d946f5d45ac8ec4a7b92df802687a55435188324cff6c1590a1",
+    "kernel/process/storage/process_store.cpp": "db286caf0ddf82bcb304b7e1675ae0f3d0bcc0c0e71c4c54aab3f0cddad58efe",
+    "kernel/process/storage/process_store.cppm": "12aa5bc55e07c59665e928cd353dfef56881ed64ba3da16b3e1d4aab294e9cc7",
+    "kernel/process/wait/wait_child.cpp": "d325f51e401fa337dc0af6311ad97b93c967b97d7624bbefa60ec47e176ce56c",
+    "tests/process_storage_checks.cpp": "00eeb8b5f816f1de0629df00ce9be40bce4eaf48617c828c5903e1b0bb05ea4d",
+    "tests/smoke.py": "df62f881a493346a1a62e91c34b9a8b14a66bcee41962868bac4a1473a9949f0",
+    "user/CMakeLists.txt": "280a8ad9ad5a1e23fb85b2dcb77f6cbba347e6e726e68c0381b17ce3e821ade2",
+    "user/tests/waiteventtest.cpp": "23cf57db4cf304f45cd3fd8fcfc32efafb631fca670740682fe204de92271f84"
+  },
+  "artifacts": {
+    "directory": "build/docs/pid-wait-events-final/",
+    "kernel_sha256": "bdd7cd1507c41e33e827e0d507bcd1a8c00bc3d619b7c7f642b7d9ae86c52f8a",
+    "seed_sha256": "258a789b7c3c3d4ad6ae2c09e280a5bb26c16b401f1099a0f067fabacc6c7e2d"
+  }
+}

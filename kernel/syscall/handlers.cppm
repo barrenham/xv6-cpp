@@ -23,6 +23,7 @@ unsigned long sys_ftruncate();
 unsigned long sys_fsync();
 unsigned long sys_readlink();
 unsigned long sys_lstat();
+unsigned long sys_getdents64();
 unsigned long sys_symlink();
 unsigned long sys_clockticks();
 unsigned long sys_rename();

@@ -4,20 +4,20 @@
   "files": [
     {
       "source": "kernel/drivers/block/block_device.cppm",
-      "sha256": "177869ccda712fc12795a06866809e0960008e3cab28511a87c021de7346137f",
-      "review": "块设备虚接口与默认 flush 能力，无控制图注册或所有权转移。",
+      "sha256": "266765b1da8de42d454b16bea2e1512ae910c44a381181a927784d4ea735cb00",
+      "review": "块设备虚接口与默认 flush 能力，无控制图注册或所有权转移。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/drivers/block/virtio/protocol.cppm",
-      "sha256": "ee51531fd9c8425d2e7eb336cfa9d7561d1a3dc598d2ee0cf738a1b11f5c26a6",
-      "review": "VirtIO 固定描述符/环/请求布局和标志常量。",
+      "sha256": "00475059e59a10ea280c9a1c8231a6d0551d810efe9490ca63a341ac7bcd5d34",
+      "review": "VirtIO 固定描述符/环/请求布局和标志常量。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/drivers/block/virtio/virtio_block.cpp",
-      "sha256": "33e2f276e24f3acbe51953b9a4136d8ece86c405f80488574b65af81c3f646e6",
-      "review": "Initialize/Chain/Transfer/Interrupt 四图连接协商、三槽候选回滚、提交/等待/回收和 IRQ 完成；单槽清理/唤醒、固定三槽 free_chain 与访问器为业务原语。flush 仍分配三槽、在线两槽、回收三槽。",
+      "sha256": "717e205de2a049ae2ac67c70d4a1fbaaed54a5c7528965f79e466cde8f45f8f7",
+      "review": "Initialize/Chain/Transfer/Interrupt 四图连接协商、三槽候选回滚、提交/等待/回收和 IRQ 完成；单槽清理/唤醒、固定三槽 free_chain 与访问器为业务原语。flush 仍分配三槽、在线两槽、回收三槽。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::VirtioBlock::initialize",
@@ -59,14 +59,14 @@
     },
     {
       "source": "kernel/drivers/block/virtio/virtio_block.cppm",
-      "sha256": "a1d90091b9ef9102b8b0b7abe8225a4fcc5a87fa99cb634139060d87ed8c03a1",
-      "review": "设备布局和私有 Flow 声明，保留原块/中断接口。",
+      "sha256": "8d2d288acad885306c6d9c7608b72a00148929299b335ff1e07607962d535867",
+      "review": "设备布局和私有 Flow 声明，保留原块/中断接口。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/drivers/board/qemu_virt.cpp",
-      "sha256": "5cf235ab9fef20044d73ce6df6e3d6e30d69d97912110334994dd6dbacf72089",
-      "review": "Console/Interrupts 图连接终端/PTY/串口/设备和 PCI 发现/定位/路由；constinit 固定设备接线、固定 IRQ 枚举、带索引门槛的网络委托、定时器固定回调及 getter 保留原语。",
+      "sha256": "d7e861e8a0436ad7a5885c67c60b8605cc6f10e23ca148564205df0bd6e240c0",
+      "review": "Console/Interrupts 图连接终端/PTY/串口/设备和 PCI 发现/定位/路由；constinit 固定设备接线、固定 IRQ 枚举、带索引门槛的网络委托、定时器固定回调及 getter 保留原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::initialize_console",
@@ -108,8 +108,8 @@
     },
     {
       "source": "kernel/drivers/drivers.cppm",
-      "sha256": "fcbeef343ab5192821cc465cb34ee87d68d6dca24a6084b274eb886d7fa1ea70",
-      "review": "导出接口与板级、PTY、网络访问声明。",
+      "sha256": "9003879fabd8714ebe383180e030fc20762519321614efac30e61862c70a7059",
+      "review": "导出接口与板级、PTY、网络访问声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -237,14 +237,14 @@
     },
     {
       "source": "kernel/drivers/platform/kernel_platform.cpp",
-      "sha256": "3ce2617e50c2b2c265be651674a1f073d7181ed8d00f62f23fdf0765952a255b",
-      "review": "有效身份、复制、进程/终端信号、等待、内存、IRQ 屏障和 fatal 的固定平台适配；挂断后的通知服务顺序保留。",
+      "sha256": "6b8d79ece01a960e206238ebb0934506eb496765f454072c3a5c6f601e3905a4",
+      "review": "有效身份、复制、进程/终端信号、等待、内存、IRQ 屏障和 fatal 的固定平台适配；挂断后的通知服务顺序保留。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
       "source": "kernel/drivers/platform/platform.cppm",
-      "sha256": "299386ba5db6385d3106304ff4c9a18780d36beae5baa58dfc606c6af96079b7",
-      "review": "私有平台边界声明。",
+      "sha256": "bb4174bfe8bb449619f489f8592067c9fcf8339ca3de319ae227f886f5de1fd7",
+      "review": "私有平台边界声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -350,8 +350,8 @@
     },
     {
       "source": "kernel/drivers/tty/core/tty.cppm",
-      "sha256": "e74a23904d315ecbdbdfacd881e51898d0dd213f5667f71dbc54833cb271c365",
-      "review": "TTY 原状态、固定容量、接口与私有 Flow 声明。",
+      "sha256": "3765236f027a3b8db8d0a747ddfac9c6b456a8418d6ab4da1e4b7fbd7be7d6b6",
+      "review": "TTY 原状态、固定容量、接口与私有 Flow 声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
     },
     {
@@ -384,8 +384,8 @@
     },
     {
       "source": "kernel/drivers/tty/pty/pty.cpp",
-      "sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5",
-      "review": "十一图负责创建/释放、端点关闭、输出/排空、主端 I/O、端点 ioctl/poll 和命名创建/打开；ID 查找/位扫描、列表与引用字段操作、pin/权限查询和固定 tick 枚举为原语。",
+      "sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "review": "十一图负责创建/释放、端点关闭、输出/排空、主端 I/O、端点 ioctl/poll 和命名创建/打开；ID 查找/位扫描、列表与引用字段操作、pin/权限查询和固定 tick 枚举为原语。 PTY寿命使用原子引用。group锁内回调仅 retain_terminal；group锁释放后 open_retained_terminal 获取PTy锁并登记slave_files；关闭和打开竞态保持对象寿命，不形成group→PTY锁循环。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::create_pty",
@@ -409,7 +409,7 @@
           "qualified": "xv::drivers::Pty::release",
           "usr": "c:@N@xv@N@drivers@S@Pty@F@release#",
           "source": "kernel/drivers/tty/pty/pty.cpp",
-          "source_sha256": "cb37b85f7eba34e20e2869964e0c694d572bf5973f28f8de4144bb9d453e3e24",
+          "source_sha256": "dd8d087ee1ef9a5d2e3c56c2def594e44c8daa1bb667af6c4addbf6ae739617b",
           "graphs": [
             "ReleaseFlow::Graph"
           ]
@@ -490,13 +490,60 @@
     },
     {
       "source": "kernel/drivers/tty/pty/pty.cppm",
-      "sha256": "7d759ce0c86fa5f99d2845a4a445fb5d47cc0c21e85a0360a523fcd2149e366a",
-      "review": "端点/输出原接口、锁/引用/环字段与私有 Flow 声明。",
+      "sha256": "ff7f6b5a1b3820359158011aeab2953861b23f9720a07ccae493e02f300174fc",
+      "review": "端点/输出原接口、锁/引用/环字段与私有 Flow 声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": []
+    },
+    {
+      "source": "kernel/drivers/entropy/virtio_entropy.cpp",
+      "sha256": "e73839015fa8f9a0c16ea8bd85260f34fc5d7f9f11cc6e63622255cec8d49cfa",
+      "review": "InitializeFlow 管理硬件协商、四页 DMA 候选及失败回滚；ReadFlow 管理等待、nonblock、复制和消费。单描述符 request 与 IRQ used-ring 检查是硬件协议原语；拷贝失败不消费，离线唤醒并报告错误。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::VirtioEntropy::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioEntropy@F@initialize#",
+          "source": "kernel/drivers/entropy/virtio_entropy.cpp",
+          "source_sha256": "49981f06cd6f6805d6dd918167cc848f656fbc0b65e60818eb8b3b0cc329def0",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioEntropy::read",
+          "usr": "c:@N@xv@N@drivers@S@VirtioEntropy@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/entropy/virtio_entropy.cpp",
+          "source_sha256": "c1902f4db7ea2197e84ff72f4003123b7a1bb73cc086b191872d6a7ce2babf38",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/entropy/virtio_entropy.cppm",
+      "sha256": "ce9e97a0e37230e94368e00eb0de947bd382ce26a6279c332dd164fe6462c984",
+      "review": "内部 VirtIO 熵设备接口及 DMA 状态，声明初始化/读取图；单个 descriptor 在途，读最多256字节。无熵池、软件伪随机或随机强度承诺。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/rtc/goldfish.cppm",
+      "sha256": "ee1d442a3fc8bcfc40617fb22838464c266df7ed388e7f9af33d4618c83c0ac8",
+      "review": "固定 MMIO 原语：自旋锁序列化 low/high 锁存对并在每次访问间 barrier；转换纳秒/秒，不睡眠。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/tty/core/controlling.cppm",
+      "sha256": "8c38137d9e9ae1f1d5951896978556c3db64ae15dc291876933273ed4931cc05",
+      "review": "控制终端打开工厂：通过平台回调固定 session 终端寿命，再在 group 锁外完成 slave 打开；空终端拒绝。真正 I/O 委托所打开终端。",
+      "graph_entries": [],
+      "pending": []
     }
   ],
-  "graph_count": 31,
-  "original_entry_count": 31,
+  "graph_count": 33,
+  "original_entry_count": 33,
   "limitations": [
     "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
     "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."

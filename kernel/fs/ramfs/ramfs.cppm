@@ -54,6 +54,8 @@ public:
   {
   }
 
+  int next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+  {return legacy_next_directory(node,cookie,entry);}
   void truncate(Inode *node) override;
   int resize(Inode *node, unsigned size) override;
   int read(Inode *node, int user, unsigned long destination, unsigned offset,

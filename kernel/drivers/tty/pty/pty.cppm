@@ -5,7 +5,7 @@ import xv.sync;
 
 namespace xv::drivers
 {
-class Pty final
+class Pty final : public TerminalLifetime
 {
 public:
 
@@ -64,11 +64,13 @@ public:
   };
 
   constexpr Pty()
-      : output_(*this), terminal_(output_, discipline_), master_(*this, true),
+      : output_(*this), terminal_(output_, discipline_,this), master_(*this, true),
         slave_(*this, false)
   {
   }
 
+  void retain_terminal() override {__atomic_add_fetch(&references,1U,__ATOMIC_RELAXED);}
+  CharacterDevice *open_retained_terminal() override;
   void initialize();
   int read_master(IoBuffer destination, int count);
   int write_master(IoBuffer source, int count);

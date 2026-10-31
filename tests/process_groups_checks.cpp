@@ -160,7 +160,7 @@ void terminals()
   ProcessGroups groups;
   groups.initialize();
   ProcessMembership root, child, other, survivor;
-  int terminal, second_terminal;
+  int terminal=0, second_terminal=0;
   check(groups.create_initial(root, 1), "terminal initial session");
   groups.inherit(child, 2, root);
   groups.inherit(other, 3, root);
@@ -170,6 +170,10 @@ void terminals()
             groups.claim_terminal(root, &terminal) == 0 &&
             groups.claim_terminal(root, &second_terminal) == -1,
         "exclusive session binding");
+  auto pin=+[](void *terminal)->void *{++*static_cast<int *>(terminal);return terminal;};
+  check(groups.pin_terminal(child,pin)==&terminal && terminal==1,"terminal pin follows inherited session");
+  check(groups.pin_terminal(root,nullptr)==nullptr,"null terminal pin callback rejected");
+
   check(groups.set_group(root, 2, 0) == 0 &&
             groups.set_foreground(root, &terminal, 2) == 0,
         "handoff foreground group");
@@ -186,6 +190,7 @@ void terminals()
             groups.set_foreground(root, &terminal, 1) == 0,
         "empty foreground clears and reclaims");
   groups.exit_terminal(root);
+  check(!groups.pin_terminal(root,pin) && terminal==1,"detached session cannot pin stale terminal");
   check(groups.foreground(root, &terminal) == -1 &&
             groups.claim_terminal(other, &terminal) == 0,
         "leader exit releases terminal");

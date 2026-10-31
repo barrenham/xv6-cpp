@@ -34,22 +34,13 @@ struct ProcessManager::AllocateFlow
 
   static void descriptor(Context &c) noexcept
   {
-    c.process = c.owner.store_.allocate();
+    const auto pid = c.owner.allocate_pid();
+    c.process = pid ? c.owner.store_.allocate(pid) : nullptr;
   }
 
   static bool allocated(Context &c) noexcept
   {
     return c.process != nullptr;
-  }
-
-  static void identity(Context &c) noexcept
-  {
-    c.process->pid = c.owner.allocate_pid();
-  }
-
-  static bool identified(Context &c) noexcept
-  {
-    return c.process->pid != 0;
   }
 
   static void trapframe(Context &c) noexcept
@@ -107,7 +98,6 @@ struct ProcessManager::AllocateFlow
     c.owner.reap(c.process);
   }
   struct Descriptor;
-  struct Identity;
   struct Trapframe;
   struct UserSyscall;
   struct Image;
@@ -122,10 +112,7 @@ struct ProcessManager::AllocateFlow
       Descriptor,
       flow::types<flow::node<Descriptor, flow::action<&descriptor>,
                              flow::branch<flow::condition<&allocated>,
-                                          flow::go<Identity>, flow::stop>>,
-                  flow::node<Identity, flow::action<&identity>,
-                             flow::branch<flow::condition<&identified>,
-                                          flow::go<Trapframe>, flow::go<Rollback>>>,
+                                          flow::go<Trapframe>, flow::stop>>,
                   flow::node<Trapframe, flow::action<&trapframe>,
                              flow::branch<flow::condition<&has_trapframe>,
                                           AfterTrapframe, flow::go<Rollback>>>,
@@ -168,6 +155,7 @@ struct ProcessManager::ReapFlow
   {
     c.process->trapframe = nullptr;
     c.process->memory_.reset();
+    c.process->exec_snapshot_.reset();
   }
 #ifdef LAB_PGTBL
   static bool has_user_syscall(Context &c) noexcept
@@ -196,6 +184,7 @@ struct ProcessManager::ReapFlow
     c.process->interruptible_ = false;
     c.process->xstate = 0;
     c.process->exit_signal_ = c.process->stop_signal_ = 0;
+    c.owner.cancel_child_notification(*c.process);
     c.process->stop_event_ = c.process->continued_event_ =
         c.process->continue_notification_ = false;
   }
@@ -365,6 +354,7 @@ struct ProcessManager::ForkFlow
     c.child->descriptors_.inherit_from(c.parent.descriptors_);
     c.child->directory_.inherit_from(c.parent.directory_);
     c.child->credentials_.inherit(c.parent.credentials_);
+    c.child->exec_snapshot_.inherit(c.parent.exec_snapshot_);
     xv::runtime::copy_string(c.child->name, c.parent.name, sizeof(c.child->name));
     c.result = c.child->pid;
     c.child->lock.release();
@@ -423,6 +413,7 @@ struct ProcessManager::ReparentFlow
     c.owner.groups_.reparent(c.child->membership_, c.owner.initial_->pid);
     detach_child(*c.child);
     attach_child(*c.owner.initial_, *c.child);
+    refresh_child_events(*c.child);
   }
 
   static bool zombie(Context &c) noexcept
@@ -448,7 +439,7 @@ struct ProcessManager::ReparentFlow
 
   static void wake(Context &c) noexcept
   {
-    c.owner.wakeup(&c.owner.child_events_);
+    c.owner.wakeup(&c.owner.initial_->child_events_);
   }
   struct Adopt;
   struct Notify;
@@ -499,7 +490,7 @@ struct ProcessManager::ExitFlow
   {
     c.owner.wait_lock_.acquire();
     c.owner.reparent(&c.process);
-    c.owner.wakeup(&c.owner.child_events_);
+    if (c.process.parent) c.owner.wakeup(&c.process.parent->child_events_);
   }
 
   static void publish(Context &c) noexcept
@@ -541,14 +532,14 @@ struct ProcessManager::KillFlow
   struct Context
   {
     ProcessManager &owner;
-    ProcessPredicate &key;
+    int pid;
     Process *process = nullptr;
     int result = -1;
   };
 
   static void find(Context &c) noexcept
   {
-    c.process = c.owner.store_.find(c.key);
+    c.process = c.owner.store_.find_pid(c.pid);
   }
 
   static bool found(Context &c) noexcept
@@ -603,17 +594,19 @@ struct ProcessManager::InspectFlow
   struct Context
   {
     ProcessManager &owner;
-    ProcessPredicate &key;
+    int pid;
     xv::fs::FileInfo *entries;
     unsigned capacity;
     Process *process = nullptr;
     bool permitted = false;
     int result = -1;
+    xv::fs::PageBuffer *text=nullptr;
+    ExecSnapshot::Field field=ExecSnapshot::Field::CommandLine;
   };
 
   static void find(Context &c) noexcept
   {
-    c.process = c.owner.store_.find(c.key);
+    c.process = c.owner.store_.find_pid(c.pid);
   }
 
   static bool found(Context &c) noexcept
@@ -636,7 +629,13 @@ struct ProcessManager::InspectFlow
 
   static void inspect(Context &c) noexcept
   {
-    c.result = c.process->files().inspect(c.entries, c.capacity);
+    if(c.text)
+    {
+      bool success=c.process->state==ProcessState::Zombie || c.process->exec_snapshot_.copy(c.field,c.text,
+        +[](void *context,const void *bytes,unsigned count){return static_cast<xv::fs::PageBuffer *>(context)->append(bytes,count);});
+      c.result=success ? 0:-1;
+    }
+    else c.result = c.process->files().inspect(c.entries, c.capacity);
   }
 
   static void unlock(Context &c) noexcept
@@ -662,6 +661,7 @@ void ProcessManager::initialize()
 {
   pid_lock_.init("next pid");
   wait_lock_.init("process families");
+  child_notification_lock_.init("child notifications");
 }
 
 int ProcessManager::allocate_pid()
@@ -718,6 +718,7 @@ void ProcessManager::attach_child(Process &parent, Process &child)
 
 void ProcessManager::detach_child(Process &child)
 {
+  remove_child_events(child);
   auto *parent = child.parent;
   if (!parent)
   {
@@ -795,26 +796,7 @@ int ProcessManager::kill(int pid)
     return -1;
   }
 
-  class Pid final : public ProcessPredicate
-  {
-  public:
-
-    explicit Pid(int pid) : pid_(pid)
-    {
-    }
-
-    bool matches(Process &process) override
-    {
-      return process.state != ProcessState::Unused && process.pid == pid_;
-    }
-
-  private:
-
-    int pid_;
-  };
-
-  Pid key(pid);
-  KillFlow::Context context{*this, key};
+  KillFlow::Context context{*this, pid};
   (void)KillFlow::Graph::run<0>(context);
   return context.result;
 }
@@ -901,26 +883,15 @@ int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned c
     return -1;
   }
 
-  class Pid final : public ProcessPredicate
-  {
-  public:
-
-    explicit Pid(int pid) : pid_(pid)
-    {
-    }
-
-    bool matches(Process &process) override
-    {
-      return process.id() == pid_ && process.state != ProcessState::Unused;
-    }
-
-  private:
-
-    int pid_;
-  } predicate(pid);
-
-  InspectFlow::Context context{*this, predicate, entries, capacity};
+  InspectFlow::Context context{*this, pid, entries, capacity};
   (void)InspectFlow::Graph::run<0>(context);
   return context.result;
+}
+
+bool ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+{
+  if(pid<1)return false;
+  InspectFlow::Context context{*this,pid,nullptr,0};context.text=&result;context.field=field;
+  (void)InspectFlow::Graph::run<0>(context);return context.result==0;
 }
 } // namespace xv::process

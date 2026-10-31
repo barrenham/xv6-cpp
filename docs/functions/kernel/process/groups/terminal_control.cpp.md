@@ -235,3 +235,12 @@
 @brief 检查组号为正、调用者已登记且控制终端匹配。
 @details 入口 ScopedLock 持组锁，按原 ID、成员和控制终端约束验证，再在同一会话内选择组并发布前台组号。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
+<a id="fn-6d5a17358d9998ed"></a>
+
+## `xv::process::ProcessGroups::pin_terminal`
+
+```doxygen
+@fn void *ProcessGroups::xv::process::ProcessGroups::pin_terminal(const ProcessMembership &caller,void *(*pin)(void *))
+@brief 在group锁内固定控制终端的寿命，完成打开必须在锁外。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

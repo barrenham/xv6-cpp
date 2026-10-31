@@ -11,5 +11,5 @@
 #define LOGBLOCKS   (MAXOPBLOCKS * 3) // max data blocks in on-disk log
 #define NBUF        (MAXOPBLOCKS * 3) // size of disk block cache
 #define FSSIZE      16384              // size of file system in blocks
-#define MAXPATH     128               // maximum file path name
+#define MAXPATH     4096               // maximum file path including NUL
 #define USERSTACK   1                 // user stack pages

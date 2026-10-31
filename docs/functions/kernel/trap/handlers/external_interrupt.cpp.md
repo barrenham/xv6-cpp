@@ -30,8 +30,7 @@
 ## `xv::trap::ExternalInterruptHandler::handle`
 
 ```doxygen
-@fn TrapAction xv::trap::ExternalInterruptHandler::handle(const TrapEvent &)
+@fn TrapAction ExternalInterruptHandler::xv::trap::ExternalInterruptHandler::handle(const TrapEvent &)
 @brief 外部中断处理器：读取或计算 `TrapAction::Resume`，返回当前查询结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::dispatch_external_interrupt`。
-@return 各分支实际返回：`TrapAction::Resume`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

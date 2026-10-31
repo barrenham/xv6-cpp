@@ -61,9 +61,8 @@
 
 ```doxygen
 @fn int xv::process::ProcessManager::send_signal(int target, int signal)
-@brief 授权并向 PID 或进程组发送信号。
-@details 发送前保存调用者凭据，每个目标按真实/保存 UID 规则独立判断；信号 0 只探测权限。用户请求与内核终端产生的组通知分开，避免中断上下文依赖 current。
-@details 流程由 SendPidSignalFlow::Graph, SendGroupSignalFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 正 PID 使用红黑树定位，进程组目标继续走组成员访问；保留信号零探测、权限及停止/继续语义。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-f31a3cd50df7bcf4"></a>
@@ -151,12 +150,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessManager::post_child_signal(Process &child)
-@brief 进程生命周期管理器：向真实父进程登记子状态通知。
-@param child 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 始终按信号处置规则登记父进程的 SIGCHLD pending 状态；只有父进程存在可中断信号时才设置延迟全表唤醒标志。默认、忽略或被屏蔽的 SIGCHLD 不触发这次扫描；wait/waitpid 的家庭事件通知仍独立保留。
-@details 父指针由调用者持有的家庭锁稳定。处置与屏蔽字只能由运行中的父进程修改；再次登记可中断睡眠时会在父进程锁下重查 pending，避免跳过无效唤醒后丢失实际中断。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 调用方持 family 和子进程锁：先同步父进程事件队列，再原子发布 SIGCHLD；不获取父进程锁或等待桶锁。捕获信号的后续唤醒沿用原通知协议。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-8b264f5ebddc7cc5"></a>
@@ -227,8 +222,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::DeliverSignalFlow::prepare(Context &c) noexcept
-@brief 取消等待、获取家庭锁、唤醒父事件后获取子锁并取得停止信号。
-@details 保留终止、用户处理器、默认消费与停止优先次序；停止时先家庭锁后子锁，切换时持子锁，循环不递归。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 取消当前等待登记，取得 family 锁，在子进程锁之前只通知自己的父进程，然后锁住当前进程提取停止信号。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-c876d4c97652ad8f"></a>
@@ -327,8 +322,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::NotifyChildFlow::collect(Context &c) noexcept
-@brief 在家庭锁下收集继续通知、向父进程投递并唤醒家庭事件。
-@details 无通知快路径直接返回；每轮家庭锁保护 parent，访问器不获取父进程锁，家庭锁释放后才扫描唤醒。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 委托有界存储的侵入式延迟通知队列收集，仅处理已登记的继续状态变化，不扫描全体进程。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-b044ef981295a2f1"></a>
@@ -397,8 +392,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::SendPidSignalFlow::find(Context &c) noexcept
-@brief 按原谓词查找并取得持锁进程。
-@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 按指定 PID 查询红黑树，成功取得已锁定且存活的进程描述符，后续权限检查和操作沿用原协议。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-c612c08a5164604d"></a>
@@ -477,8 +472,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::WakeSignalFlow::continued(Context &c) noexcept
-@brief 设置继续事件并发布子进程通知。
-@details 调用者持进程锁；保留独立 pending 读取及停止、继续与可中断等待状态规则，共用最终 runnable 节点。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 清除停止事件，按是否致命设置继续事件和独立通知状态，并加入去重延迟通知队列；此处仅持子进程锁，不反向获取 family 锁。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-81ad5dd90ca9066d"></a>

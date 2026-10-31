@@ -85,6 +85,7 @@ int chdir(const char *);
 char *getcwd(char *buffer, unsigned capacity);
 long lseek(int fd, long offset, int origin);
 int ftruncate(int fd, long size);
+int getdents64(int fd, void *buffer, int count);
 int fsync(int fd);
 int symlink(const char *target, const char *path);
 int readlink(const char *path, char *buffer, int size);

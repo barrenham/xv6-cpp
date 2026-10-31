@@ -4,27 +4,28 @@
 
 | 子系统 | 文件数 | 函数/入口条目数 |
 | --- | ---: | ---: |
-| [arch](#arch) | 4 | 49 |
+| [arch](#arch) | 5 | 52 |
 | [boot](#boot) | 6 | 10 |
-| [drivers](#drivers) | 34 | 460 |
-| [fs](#fs) | 52 | 999 |
-| [io](#io) | 2 | 19 |
-| [memory](#memory) | 24 | 453 |
-| [net](#net) | 117 | 1388 |
-| [process](#process) | 60 | 661 |
-| [support](#support) | 11 | 69 |
+| [drivers](#drivers) | 38 | 507 |
+| [fs](#fs) | 66 | 1349 |
+| [io](#io) | 4 | 21 |
+| [memory](#memory) | 28 | 487 |
+| [net](#net) | 117 | 1394 |
+| [process](#process) | 67 | 742 |
+| [support](#support) | 18 | 134 |
 | [sync](#sync) | 13 | 52 |
-| [syscall](#syscall) | 12 | 259 |
-| [trap](#trap) | 23 | 149 |
+| [syscall](#syscall) | 12 | 261 |
+| [trap](#trap) | 23 | 152 |
 | [tty](#tty) | 1 | 0 |
 
-范围：359 个文件；默认 4494 个唯一 C++ 函数，连同条件接口与汇编入口共 4568 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：398 个文件；默认 5087 个唯一 C++ 函数，连同条件接口与汇编入口共 5161 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
 ## arch
 
 - [`kernel/arch/arch.cppm`](arch/arch.cppm.md)
+- [`kernel/arch/hardware.cpp`](arch/hardware.cpp.md)
 - [`kernel/arch/riscv/register_constants.h`](arch/riscv/register_constants.h.md)
 - [`kernel/arch/riscv/register_operations.inc`](arch/riscv/register_operations.inc.md)
 - [`kernel/arch/riscv/riscv.h`](arch/riscv/riscv.h.md)
@@ -53,6 +54,8 @@
 - [`kernel/drivers/device.cppm`](drivers/device.cppm.md)
 - [`kernel/drivers/device_numbers.h`](drivers/device_numbers.h.md)
 - [`kernel/drivers/drivers.cppm`](drivers/drivers.cppm.md)
+- [`kernel/drivers/entropy/virtio_entropy.cpp`](drivers/entropy/virtio_entropy.cpp.md)
+- [`kernel/drivers/entropy/virtio_entropy.cppm`](drivers/entropy/virtio_entropy.cppm.md)
 - [`kernel/drivers/interrupt/interrupt_controller.cppm`](drivers/interrupt/interrupt_controller.cppm.md)
 - [`kernel/drivers/interrupt/interrupt_router.cpp`](drivers/interrupt/interrupt_router.cpp.md)
 - [`kernel/drivers/interrupt/interrupt_router.cppm`](drivers/interrupt/interrupt_router.cppm.md)
@@ -66,10 +69,12 @@
 - [`kernel/drivers/pci/qemu_pci.cppm`](drivers/pci/qemu_pci.cppm.md)
 - [`kernel/drivers/platform/kernel_platform.cpp`](drivers/platform/kernel_platform.cpp.md)
 - [`kernel/drivers/platform/platform.cppm`](drivers/platform/platform.cppm.md)
+- [`kernel/drivers/rtc/goldfish.cppm`](drivers/rtc/goldfish.cppm.md)
 - [`kernel/drivers/serial/flow.cppm`](drivers/serial/flow.cppm.md)
 - [`kernel/drivers/serial/serial_port.cppm`](drivers/serial/serial_port.cppm.md)
 - [`kernel/drivers/serial/uart16550.cpp`](drivers/serial/uart16550.cpp.md)
 - [`kernel/drivers/serial/uart16550.cppm`](drivers/serial/uart16550.cppm.md)
+- [`kernel/drivers/tty/core/controlling.cppm`](drivers/tty/core/controlling.cppm.md)
 - [`kernel/drivers/tty/core/terminal_output.cppm`](drivers/tty/core/terminal_output.cppm.md)
 - [`kernel/drivers/tty/core/tty.cpp`](drivers/tty/core/tty.cpp.md)
 - [`kernel/drivers/tty/core/tty.cppm`](drivers/tty/core/tty.cppm.md)
@@ -86,6 +91,7 @@
 - [`kernel/fs/buffer/flow.cppm`](fs/buffer/flow.cppm.md)
 - [`kernel/fs/buffer/page_buffer.cpp`](fs/buffer/page_buffer.cpp.md)
 - [`kernel/fs/buffer/page_buffer.cppm`](fs/buffer/page_buffer.cppm.md)
+- [`kernel/fs/buffer/snapshot_text.cppm`](fs/buffer/snapshot_text.cppm.md)
 - [`kernel/fs/cache/block_cache.cppm`](fs/cache/block_cache.cppm.md)
 - [`kernel/fs/cache/flow.cppm`](fs/cache/flow.cppm.md)
 - [`kernel/fs/cache/lru_block_cache.cpp`](fs/cache/lru_block_cache.cpp.md)
@@ -93,6 +99,14 @@
 - [`kernel/fs/devfs/devfs.cpp`](fs/devfs/devfs.cpp.md)
 - [`kernel/fs/devfs/devfs.cppm`](fs/devfs/devfs.cppm.md)
 - [`kernel/fs/devfs/flow.cppm`](fs/devfs/flow.cppm.md)
+- [`kernel/fs/ext3/ext3_filesystem.cpp`](fs/ext3/ext3_filesystem.cpp.md)
+- [`kernel/fs/ext3/ext3_filesystem.cppm`](fs/ext3/ext3_filesystem.cppm.md)
+- [`kernel/fs/ext3/format.h`](fs/ext3/format.h.md)
+- [`kernel/fs/ext3/jbd.cpp`](fs/ext3/jbd.cpp.md)
+- [`kernel/fs/ext3/jbd.h`](fs/ext3/jbd.h.md)
+- [`kernel/fs/ext3/mutate.cpp`](fs/ext3/mutate.cpp.md)
+- [`kernel/fs/ext3/volume.cpp`](fs/ext3/volume.cpp.md)
+- [`kernel/fs/ext3/volume.h`](fs/ext3/volume.h.md)
 - [`kernel/fs/fcntl.h`](fs/fcntl.h.md)
 - [`kernel/fs/file/file_operations.cpp`](fs/file/file_operations.cpp.md)
 - [`kernel/fs/file/file_operations.cppm`](fs/file/file_operations.cppm.md)
@@ -103,6 +117,8 @@
 - [`kernel/fs/format/layout.h`](fs/format/layout.h.md)
 - [`kernel/fs/fs.cppm`](fs/fs.cppm.md)
 - [`kernel/fs/image_paths.h`](fs/image_paths.h.md)
+- [`kernel/fs/inode/disk_filesystem.cpp`](fs/inode/disk_filesystem.cpp.md)
+- [`kernel/fs/inode/disk_filesystem.cppm`](fs/inode/disk_filesystem.cppm.md)
 - [`kernel/fs/inode/filesystem.cppm`](fs/inode/filesystem.cppm.md)
 - [`kernel/fs/inode/flow.cppm`](fs/inode/flow.cppm.md)
 - [`kernel/fs/inode/inode.cppm`](fs/inode/inode.cppm.md)
@@ -112,6 +128,7 @@
 - [`kernel/fs/journal/flow.cppm`](fs/journal/flow.cppm.md)
 - [`kernel/fs/journal/journal.cpp`](fs/journal/journal.cpp.md)
 - [`kernel/fs/journal/journal.cppm`](fs/journal/journal.cppm.md)
+- [`kernel/fs/journal/xv6_journal.cppm`](fs/journal/xv6_journal.cppm.md)
 - [`kernel/fs/mount.h`](fs/mount.h.md)
 - [`kernel/fs/path/flow.cppm`](fs/path/flow.cppm.md)
 - [`kernel/fs/path/path_operations.cpp`](fs/path/path_operations.cpp.md)
@@ -125,6 +142,8 @@
 - [`kernel/fs/poll.h`](fs/poll.h.md)
 - [`kernel/fs/procfs/procfs.cpp`](fs/procfs/procfs.cpp.md)
 - [`kernel/fs/procfs/procfs.cppm`](fs/procfs/procfs.cppm.md)
+- [`kernel/fs/procfs/provider_registry.cppm`](fs/procfs/provider_registry.cppm.md)
+- [`kernel/fs/procfs/system_providers.cpp`](fs/procfs/system_providers.cpp.md)
 - [`kernel/fs/ramfs/flow.cppm`](fs/ramfs/flow.cppm.md)
 - [`kernel/fs/ramfs/ramfs.cpp`](fs/ramfs/ramfs.cpp.md)
 - [`kernel/fs/ramfs/ramfs.cppm`](fs/ramfs/ramfs.cppm.md)
@@ -140,6 +159,8 @@
 
 ## io
 
+- [`kernel/io/block.h`](io/block.h.md)
+- [`kernel/io/dirent.h`](io/dirent.h.md)
 - [`kernel/io/object.cppm`](io/object.cppm.md)
 - [`kernel/io/stat.h`](io/stat.h.md)
 
@@ -161,6 +182,9 @@
 - [`kernel/memory/boot/kalloc.cpp`](memory/boot/kalloc.cpp.md)
 - [`kernel/memory/layout/memlayout.h`](memory/layout/memlayout.h.md)
 - [`kernel/memory/layout/physical_memory_layout.cppm`](memory/layout/physical_memory_layout.cppm.md)
+- [`kernel/memory/layout/virtual_address_pool.cpp`](memory/layout/virtual_address_pool.cpp.md)
+- [`kernel/memory/layout/virtual_address_pool.cppm`](memory/layout/virtual_address_pool.cppm.md)
+- [`kernel/memory/layout/virtual_memory_types.cppm`](memory/layout/virtual_memory_types.cppm.md)
 - [`kernel/memory/memory.cppm`](memory/memory.cppm.md)
 - [`kernel/memory/paging/kernel_page_table.cpp`](memory/paging/kernel_page_table.cpp.md)
 - [`kernel/memory/paging/kernel_page_table.cppm`](memory/paging/kernel_page_table.cppm.md)
@@ -169,6 +193,9 @@
 - [`kernel/memory/paging/user_paging.cppm`](memory/paging/user_paging.cppm.md)
 - [`kernel/memory/paging/vm.cpp`](memory/paging/vm.cpp.md)
 - [`kernel/memory/paging/vm.h`](memory/paging/vm.h.md)
+- [`kernel/memory/slab/slab_cache.cpp`](memory/slab/slab_cache.cpp.md)
+- [`kernel/memory/slab/slab_cache.cppm`](memory/slab/slab_cache.cppm.md)
+- [`kernel/memory/slab/slab_service.cpp`](memory/slab/slab_service.cpp.md)
 
 <a id="net"></a>
 
@@ -305,6 +332,7 @@
 - [`kernel/process/exec/elf_format.cppm`](process/exec/elf_format.cppm.md)
 - [`kernel/process/exec/elf_loader.cpp`](process/exec/elf_loader.cpp.md)
 - [`kernel/process/exec/elf_loader.cppm`](process/exec/elf_loader.cppm.md)
+- [`kernel/process/exec/exec_snapshot.h`](process/exec/exec_snapshot.h.md)
 - [`kernel/process/exec/executable_loader.cppm`](process/exec/executable_loader.cppm.md)
 - [`kernel/process/groups/group_operations.cpp`](process/groups/group_operations.cpp.md)
 - [`kernel/process/groups/kernel_platform.cpp`](process/groups/kernel_platform.cpp.md)
@@ -327,14 +355,20 @@
 - [`kernel/process/resources/process_resources.cpp`](process/resources/process_resources.cpp.md)
 - [`kernel/process/resources/process_resources.cppm`](process/resources/process_resources.cppm.md)
 - [`kernel/process/resources/resource_platform.cppm`](process/resources/resource_platform.cppm.md)
-- [`kernel/process/scheduler/runtime/scheduler_runtime.cpp`](process/scheduler/runtime/scheduler_runtime.cpp.md)
-- [`kernel/process/scheduler/runtime/scheduler_runtime.cppm`](process/scheduler/runtime/scheduler_runtime.cppm.md)
+- [`kernel/process/scheduler/policies/fair.cppm`](process/scheduler/policies/fair.cppm.md)
+- [`kernel/process/scheduler/policies/mlfq.cppm`](process/scheduler/policies/mlfq.cppm.md)
+- [`kernel/process/scheduler/policies/round_robin.cppm`](process/scheduler/policies/round_robin.cppm.md)
+- [`kernel/process/scheduler/policies/scheduling_policy.h`](process/scheduler/policies/scheduling_policy.h.md)
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cpp`](process/scheduler/queues/fifo_ready_queue.cpp.md)
 - [`kernel/process/scheduler/queues/fifo_ready_queue.cppm`](process/scheduler/queues/fifo_ready_queue.cppm.md)
+- [`kernel/process/scheduler/queues/policy_ready_queue.cpp`](process/scheduler/queues/policy_ready_queue.cpp.md)
+- [`kernel/process/scheduler/queues/policy_ready_queue.cppm`](process/scheduler/queues/policy_ready_queue.cppm.md)
 - [`kernel/process/scheduler/queues/ready_queue.cpp`](process/scheduler/queues/ready_queue.cpp.md)
 - [`kernel/process/scheduler/queues/ready_queue.cppm`](process/scheduler/queues/ready_queue.cppm.md)
 - [`kernel/process/scheduler/runtime/scheduler_context.cpp`](process/scheduler/runtime/scheduler_context.cpp.md)
 - [`kernel/process/scheduler/runtime/scheduler_context.cppm`](process/scheduler/runtime/scheduler_context.cppm.md)
+- [`kernel/process/scheduler/runtime/scheduler_runtime.cpp`](process/scheduler/runtime/scheduler_runtime.cpp.md)
+- [`kernel/process/scheduler/runtime/scheduler_runtime.cppm`](process/scheduler/runtime/scheduler_runtime.cppm.md)
 - [`kernel/process/scheduler/scheduler.cppm`](process/scheduler/scheduler.cppm.md)
 - [`kernel/process/signals/pending_signals.cppm`](process/signals/pending_signals.cppm.md)
 - [`kernel/process/signals/process_signals.cpp`](process/signals/process_signals.cpp.md)
@@ -361,16 +395,23 @@
 
 ## support
 
+- [`kernel/support/bitmap.h`](support/bitmap.h.md)
+- [`kernel/support/byte_fill.h`](support/byte_fill.h.md)
 - [`kernel/support/compiler_memory.cpp`](support/compiler_memory.cpp.md)
 - [`kernel/support/cpp_runtime.cpp`](support/cpp_runtime.cpp.md)
 - [`kernel/support/flow.h`](support/flow.h.md)
+- [`kernel/support/hash_table.h`](support/hash_table.h.md)
+- [`kernel/support/intrusive_list.h`](support/intrusive_list.h.md)
 - [`kernel/support/param.h`](support/param.h.md)
 - [`kernel/support/placement_new.hpp`](support/placement_new.hpp.md)
 - [`kernel/support/print.cppm`](support/print.cppm.md)
 - [`kernel/support/printk.cpp`](support/printk.cpp.md)
+- [`kernel/support/rb_tree.h`](support/rb_tree.h.md)
+- [`kernel/support/ring_buffer.h`](support/ring_buffer.h.md)
 - [`kernel/support/runtime.cppm`](support/runtime.cppm.md)
 - [`kernel/support/stats.cpp`](support/stats.cpp.md)
 - [`kernel/support/string.cpp`](support/string.cpp.md)
+- [`kernel/support/system_accounting.h`](support/system_accounting.h.md)
 - [`kernel/support/types.h`](support/types.h.md)
 
 <a id="sync"></a>
@@ -441,7 +482,6 @@
 ## tty
 
 - [`kernel/tty/termios.h`](tty/termios.h.md)
-
 ## 动态内核虚拟地址池
 
 - [红黑树](support/rb_tree.h.md)

@@ -95,10 +95,9 @@
 ## `xv::drivers::Pty::Pty`
 
 ```doxygen
-@fn constexpr xv::drivers::Pty::Pty()
+@fn constexpr xv::drivers::Pty::Pty() : output_(*this), terminal_(output_, discipline_,this), master_(*this, true), slave_(*this, false)
 @brief 构造匿名伪终端对，建立本重载要求的成员初值和借用关系。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`output_` → `terminal_` → `master_` → `slave_`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```
 
 <a id="fn-472fec063d5d3e43"></a>
@@ -130,4 +129,13 @@
 @fn Endpoint &xv::drivers::Pty::slave()
 @brief 匿名伪终端对：读取或计算 `slave_`，返回当前查询结果。
 @return 各分支实际返回：`slave_`。应结合上面的条件检查区分正常值、空值和错误值。
+```
+<a id="fn-4b9299cf68804fb7"></a>
+
+## `xv::drivers::Pty::retain_terminal`
+
+```doxygen
+@fn void xv::drivers::Pty::retain_terminal() override
+@brief 原子增加终端对象寿命引用，不获取PTY锁。
+@details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```

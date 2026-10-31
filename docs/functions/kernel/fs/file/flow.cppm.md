@@ -75,7 +75,7 @@
 ```doxygen
 @fn static void xv::fs::DeviceRegistry::AttachFlow::publish(Context &c) noexcept
 @brief 追加名称、设备号和设备对象指针。
-@details 仅用于未封存的启动登记阶段；所有校验在发布记录前完成，保留原错误消息与顺序。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-91fa07ad05409b79"></a>
@@ -95,7 +95,7 @@
 ```doxygen
 @fn static bool xv::fs::DeviceRegistry::AttachFlow::unique(Context &c) noexcept
 @brief 直接扫描登记表并检查设备号和非空名称唯一性。
-@details 仅用于未封存的启动登记阶段；所有校验在发布记录前完成，保留原错误消息与顺序。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-40468c5a142b114d"></a>
@@ -105,7 +105,7 @@
 ```doxygen
 @fn static bool xv::fs::DeviceRegistry::AttachFlow::valid(Context &c) noexcept
 @brief 验证封存状态、设备号、容量和保留名称。
-@details 仅用于未封存的启动登记阶段；所有校验在发布记录前完成，保留原错误消息与顺序。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-0d4a9ed39296ce30"></a>
@@ -256,4 +256,23 @@
 @fn static void xv::fs::OpenFileTable::ReleaseFlow::unlock(Context &c) noexcept
 @brief 释放文件表锁。
 @details 入口已持文件表锁；最后引用先设 tombstone，锁外关闭后端完成后才归还槽位，允许 close 回调重入文件表。 下一节点由 Graph 类型策略声明，不由本阶段返回运行时目标。
+```
+<a id="fn-c1b3c7f132d65988"></a>
+
+## `xv::fs::OpenFileTable::BindInodeFlow::block`
+
+```doxygen
+@fn static bool xv::fs::OpenFileTable::BindInodeFlow::block(Context &c) noexcept
+@brief 流程动作或条件 block；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-dd39c1bdcd14398c"></a>
+
+## `xv::fs::OpenFileTable::BindInodeFlow::bind_block`
+
+```doxygen
+@fn static bool xv::fs::OpenFileTable::BindInodeFlow::bind_block(Context &c) noexcept
+@brief 流程动作或条件 bind_block；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

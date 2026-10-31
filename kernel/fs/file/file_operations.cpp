@@ -5,6 +5,8 @@ module;
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/stat.h"
+#include "kernel/io/block.h"
+#include "kernel/io/dirent.h"
 module xv.fs;
 import :inode_backend_flow;
 import :platform;
@@ -12,6 +14,40 @@ import :operations;
 
 namespace xv::fs
 {
+namespace
+{
+void legacy_record(const dirent &entry,DirectoryRecord &record)
+{
+  record={};record.inode=entry.inum;unsigned length=0;
+  while(length<DIRSIZ && entry.name[length])++length;
+  detail::move(record.name,entry.name,length);record.name[length]=0;
+}
+}
+int FileSystem::legacy_next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &record)
+{
+  if(node->kind()!=T_DIR)return -1;
+  unsigned long next=cookie;dirent entry{};
+  for(;;)
+  {
+    if(next>0xffffffffUL-sizeof(entry))return -1;
+    int count=read(node,0,reinterpret_cast<unsigned long>(&entry),next,sizeof(entry));
+    if(!count){cookie=next;return 0;}
+    if(count!=int(sizeof(entry)))return -1;
+    next+=sizeof(entry);if(!entry.inum)continue;
+    legacy_record(entry,record);cookie=next;return 1;
+  }
+}
+int InodeBackend::getdents64(xv::io::Buffer destination,int count)
+{
+  LockedInode guard(node_->owner(),*node_);
+  if(node_->kind()!=T_DIR || directory_mode_==1 || count<0)return -1;
+  if(!count)return 0;
+  if(count<24)return -1;
+  DirectoryFlow::Context context{*this,destination,count};
+  (void)DirectoryFlow::Graph::run<0>(context);
+  return context.done ? context.done:(context.result==0 ? 0:-1);
+}
+
 void InodeBackend::close()
 {
   {
@@ -24,8 +60,10 @@ void InodeBackend::close()
 int InodeBackend::read(xv::io::Buffer destination, int count)
 {
   LockedInode guard(node_->owner(), *node_);
+  if(node_->kind()==T_DIR && directory_mode_==2)return -1;
   ReadFlow::Context context{*this, destination, count};
   (void)ReadFlow::Graph::run<0>(context);
+  if(node_->kind()==T_DIR && context.result>0)directory_mode_=1;
   return context.result;
 }
 
@@ -74,6 +112,64 @@ int InodeBackend::stat(xv::io::Metadata &value)
 unsigned InodeBackend::poll(xv::sync::PollTable *)
 {
   return POLLIN | POLLOUT;
+}
+
+void BlockBackend::close()
+{
+  {Transaction transaction(node_->owner().persistent());filesystem().release(node_);}
+  this->~BlockBackend();
+}
+int BlockBackend::transfer(xv::io::Buffer buffer,int count,bool writing)
+{
+  if(count<0 || (writing && !writable_))return -1;
+  if(!count)return 0;
+  LockedInode guard(node_->owner(),*node_);
+  unsigned long capacity=disk_->capacity_sectors()*512,offset=position();
+  if(offset>=capacity)return writing ? -1:0;
+  if(unsigned(count)>capacity-offset)count=int(capacity-offset);
+  struct Scratch
+  {
+    void *page=detail::allocate_page();
+    ~Scratch(){if(page)detail::free_page(page);}
+  } scratch;
+  if(!scratch.page)return -1;
+  // The sector is the publication unit: never submit a partly copied user
+  // sector. Partial writes preserve both untouched edges with read/modify/write.
+  TransferFlow::Context context{*this,buffer,count,writing,offset,static_cast<unsigned char *>(scratch.page)};
+  (void)TransferFlow::Graph::run<0>(context);
+  return context.done ? context.done:-1;
+}
+int BlockBackend::read(xv::io::Buffer destination,int count){return transfer(destination,count,false);}
+int BlockBackend::write(xv::io::Buffer source,int count){return transfer(source,count,true);}
+long BlockBackend::seek(long delta,int origin)
+{
+  LockedInode guard(node_->owner(),*node_);
+  if(origin<SEEK_SET || origin>SEEK_END)return -1;
+  long capacity=disk_->capacity_sectors()*512;
+  long base=origin==SEEK_SET ? 0:origin==SEEK_CUR ? position():capacity;
+  if(delta < -base || delta>capacity-base)return -1;
+  auto result=base+delta;__atomic_store_n(&offset_,result,__ATOMIC_RELEASE);return result;
+}
+int BlockBackend::stat(xv::io::Metadata &value)
+{
+  LockedInode guard(node_->owner(),*node_);filesystem().stat(node_,&value);
+  value.size=disk_->capacity_sectors()*512;return 0;
+}
+int BlockBackend::sync()
+{
+  journal().sync();if(Transaction::secondary)Transaction::secondary->sync();disk_->flush();return 0;
+}
+unsigned BlockBackend::poll(xv::sync::PollTable *){return POLLIN | (writable_ ? POLLOUT:0);}
+int BlockBackend::ioctl(unsigned request,xv::io::Buffer argument)
+{
+  if(request==BLKGETSIZE64)
+  {unsigned long size=disk_->capacity_sectors()*512;return detail::copy_out(true,argument.address,&size,sizeof(size));}
+  int value;
+  if(request==BLKSSZGET)value=512;
+  else if(request==BLKROGET)
+  {auto *entry=devices().block(node_->device_major(),node_->device_minor());value=!entry || entry->read_only;}
+  else return -1;
+  return detail::copy_out(true,argument.address,&value,sizeof(value));
 }
 
 void DeviceBackend::close()

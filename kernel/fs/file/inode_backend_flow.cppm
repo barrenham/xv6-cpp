@@ -4,6 +4,7 @@ module;
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/io/dirent.h"
 module xv.fs:inode_backend_flow;
 import :operations;
 import :vfs;
@@ -12,6 +13,53 @@ import :platform;
 namespace xv::fs
 {
 namespace flow = xv::flow;
+
+struct BlockBackend::TransferFlow
+{
+  struct Context
+  {
+    BlockBackend &owner;
+    xv::io::Buffer buffer;
+    int count;
+    bool writing;
+    unsigned long offset;
+    unsigned char *bytes;
+    int done=0;
+    unsigned start=0,take=0;
+  };
+  static bool more(Context &c) noexcept {return c.done<c.count && !detail::killed();}
+  static void prepare(Context &c) noexcept
+  {
+    c.start=c.offset%512;c.take=512-c.start;
+    if(c.take>unsigned(c.count-c.done))c.take=c.count-c.done;
+  }
+  static bool needs_read(Context &c) noexcept {return !c.writing || c.start || c.take!=512;}
+  static void read_sector(Context &c) noexcept
+  {c.owner.disk_->transfer(xv::drivers::BlockOperation::Read,c.offset/512,c.bytes,512);}
+  static bool writing(Context &c) noexcept {return c.writing;}
+  static bool copy_in(Context &c) noexcept
+  {return detail::copy_in(c.bytes+c.start,true,c.buffer.address+c.done,c.take)>=0;}
+  static bool copy_out(Context &c) noexcept
+  {return detail::copy_out(true,c.buffer.address+c.done,c.bytes+c.start,c.take)>=0;}
+  static void write_sector(Context &c) noexcept
+  {c.owner.disk_->transfer(xv::drivers::BlockOperation::Write,c.offset/512,c.bytes,512);}
+  static void advance(Context &c) noexcept
+  {
+    c.done+=c.take;c.offset+=c.take;
+    __atomic_store_n(&c.owner.offset_,c.offset,__ATOMIC_RELEASE);
+  }
+  struct More;struct Prepare;struct Read;struct Direction;struct CopyIn;
+  struct CopyOut;struct Write;struct Advance;
+  using Graph=flow::graph<More,flow::types<
+    flow::node<More,flow::noop,flow::branch<flow::condition<&more>,flow::go<Prepare>,flow::stop>>,
+    flow::node<Prepare,flow::action<&prepare>,flow::branch<flow::condition<&needs_read>,flow::go<Read>,flow::go<Direction>>>,
+    flow::node<Read,flow::action<&read_sector>,flow::go<Direction>>,
+    flow::node<Direction,flow::noop,flow::branch<flow::condition<&writing>,flow::go<CopyIn>,flow::go<CopyOut>>>,
+    flow::node<CopyIn,flow::noop,flow::branch<flow::condition<&copy_in>,flow::go<Write>,flow::stop>>,
+    flow::node<CopyOut,flow::noop,flow::branch<flow::condition<&copy_out>,flow::go<Advance>,flow::stop>>,
+    flow::node<Write,flow::action<&write_sector>,flow::go<Advance>>,
+    flow::node<Advance,flow::action<&advance>,flow::go<More>>>>;
+};
 
 struct InodeBackend::MutationProtocol
 {
@@ -28,6 +76,65 @@ struct InodeBackend::MutationProtocol
       node->owner().attributes(node, node->uid(), node->gid(), node->mode() & ~06000U);
     }
   }
+};
+
+struct InodeBackend::DirectoryFlow
+{
+  struct Context
+  {
+    InodeBackend &owner;xv::io::Buffer destination;int count;
+    int done=0,result=-1;unsigned long next=0;unsigned length=0,size=0;
+    DirectoryRecord entry{};alignas(8) unsigned char bytes[DIRENT64_MAX_RECORD]{};
+  };
+  static bool more(Context &c) noexcept {return c.done<c.count;}
+  static void next(Context &c) noexcept
+  {
+    c.next=c.owner.offset_;
+    if(!c.owner.snapshot_){c.result=c.owner.node_->owner().next_directory(c.owner.node_,c.next,c.entry);return;}
+    dirent legacy{};
+    for(;;)
+    {
+      c.result=c.owner.contents_.read(c.next,false,reinterpret_cast<unsigned long>(&legacy),sizeof(legacy));
+      if(c.result!=sizeof(legacy)){if(c.result)c.result=-1;return;}
+      c.next+=sizeof(legacy);if(!legacy.inum)continue;
+      c.entry={};c.entry.inode=legacy.inum;unsigned length=0;
+      while(length<DIRSIZ && legacy.name[length])++length;
+      detail::move(c.entry.name,legacy.name,length);c.entry.name[length]=0;c.result=1;return;
+    }
+  }
+  static bool success(Context &c) noexcept {return c.result>=0;}
+  static bool eof(Context &c) noexcept {return c.result==0;}
+  static void finish(Context &c) noexcept
+  {c.owner.offset_=c.next;__atomic_store_n(&c.owner.observed_offset_,c.next,__ATOMIC_RELEASE);}
+  static void measure(Context &c) noexcept
+  {
+    c.length=0;while(c.length<sizeof(c.entry.name) && c.entry.name[c.length])++c.length;
+    c.size=(DIRENT64_NAME_OFFSET+c.length+1+7)&~7U;
+  }
+  static bool valid(Context &c) noexcept
+  {return c.entry.inode && c.length<sizeof(c.entry.name) && c.next>c.owner.offset_;}
+  static bool fits(Context &c) noexcept {return c.size<=unsigned(c.count-c.done);}
+  static void serialize(Context &c) noexcept
+  {
+    detail::fill(c.bytes,0,sizeof(c.bytes));
+    for(unsigned i=0;i<8;++i){c.bytes[i]=c.entry.inode>>(8*i);c.bytes[8+i]=c.next>>(8*i);}
+    c.bytes[16]=c.size;c.bytes[17]=c.size>>8;c.bytes[18]=c.entry.type;
+    detail::move(c.bytes+DIRENT64_NAME_OFFSET,c.entry.name,c.length+1);
+  }
+  static bool copy(Context &c) noexcept
+  {return detail::copy_out(true,c.destination.address+c.done,c.bytes,c.size)>=0;}
+  static void advance(Context &c) noexcept
+  {finish(c);c.owner.directory_mode_=2;c.done+=c.size;}
+  struct More;struct Next;struct Eof;struct Finish;struct Measure;struct Space;struct Serialize;struct Advance;
+  using Graph=flow::graph<More,flow::types<
+    flow::node<More,flow::noop,flow::branch<flow::condition<&more>,flow::go<Next>,flow::stop>>,
+    flow::node<Next,flow::action<&next>,flow::branch<flow::condition<&success>,flow::go<Eof>,flow::stop>>,
+    flow::node<Eof,flow::noop,flow::branch<flow::condition<&eof>,flow::go<Finish>,flow::go<Measure>>>,
+    flow::node<Finish,flow::action<&finish>,flow::stop>,
+    flow::node<Measure,flow::action<&measure>,flow::branch<flow::condition<&valid>,flow::go<Space>,flow::stop>>,
+    flow::node<Space,flow::noop,flow::branch<flow::condition<&fits>,flow::go<Serialize>,flow::stop>>,
+    flow::node<Serialize,flow::action<&serialize>,flow::branch<flow::condition<&copy>,flow::go<Advance>,flow::stop>>,
+    flow::node<Advance,flow::action<&advance>,flow::go<More>>>>;
 };
 
 struct InodeBackend::ReadFlow
@@ -62,6 +169,7 @@ struct InodeBackend::ReadFlow
     if (c.result > 0)
     {
       c.owner.offset_ += c.result;
+      __atomic_store_n(&c.owner.observed_offset_,c.owner.offset_,__ATOMIC_RELEASE);
     }
   }
   struct Snapshot;
@@ -123,6 +231,7 @@ struct InodeBackend::WriteFlow
     {
       c.owner.offset_ += c.result;
     }
+    __atomic_store_n(&c.owner.observed_offset_,c.owner.offset_,__ATOMIC_RELEASE);
   }
 
   static void progress(Context &c) noexcept
@@ -190,6 +299,7 @@ struct InodeBackend::SeekFlow
   static void commit(Context &c) noexcept
   {
     c.owner.offset_ = c.base + c.offset;
+    __atomic_store_n(&c.owner.observed_offset_,c.owner.offset_,__ATOMIC_RELEASE);
     c.result = c.owner.offset_;
   }
   struct Validate;

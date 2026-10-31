@@ -10,33 +10,27 @@
 - [`xv::fs::ProcFileSystem::LookupFlow::descriptor_name`](procfs.cpp.md#fn-820417cd18603c5e)
 - [`xv::fs::ProcFileSystem::LookupFlow::descriptors`](procfs.cpp.md#fn-8e3eba9b30f5a09c)
 - [`xv::fs::ProcFileSystem::LookupFlow::in_range`](procfs.cpp.md#fn-3ecba4244ca7888f)
-- [`xv::fs::ProcFileSystem::LookupFlow::memory`](procfs.cpp.md#fn-f244e993147df871)
 - [`xv::fs::ProcFileSystem::LookupFlow::number`](procfs.cpp.md#fn-9dcb3394a239d383)
 - [`xv::fs::ProcFileSystem::LookupFlow::parent`](procfs.cpp.md#fn-7e2180066d06b177)
 - [`xv::fs::ProcFileSystem::LookupFlow::process`](procfs.cpp.md#fn-40195f82f73be48e)
 - [`xv::fs::ProcFileSystem::LookupFlow::process_exists`](procfs.cpp.md#fn-cf33c4fee2f2b1ac)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_descriptor`](procfs.cpp.md#fn-910f3c61892014a6)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_descriptors`](procfs.cpp.md#fn-581effb0de423825)
-- [`xv::fs::ProcFileSystem::LookupFlow::retain_memory`](procfs.cpp.md#fn-a6f3263e79a69bbe)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_parent`](procfs.cpp.md#fn-b4c20f742b86a899)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_process`](procfs.cpp.md#fn-b8669dc0ad1d05b6)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_self`](procfs.cpp.md#fn-50cb5fb49c3d09ae)
 - [`xv::fs::ProcFileSystem::LookupFlow::retain_status`](procfs.cpp.md#fn-cac6bfba90fd0475)
-- [`xv::fs::ProcFileSystem::LookupFlow::retain_uptime`](procfs.cpp.md#fn-d418f7ddaaa652ee)
 - [`xv::fs::ProcFileSystem::LookupFlow::root`](procfs.cpp.md#fn-ec279f08166016cc)
 - [`xv::fs::ProcFileSystem::LookupFlow::self`](procfs.cpp.md#fn-c2a3a69eccc2eff1)
 - [`xv::fs::ProcFileSystem::LookupFlow::status`](procfs.cpp.md#fn-ed1ce003910dedbf)
 - [`xv::fs::ProcFileSystem::LookupFlow::target`](procfs.cpp.md#fn-19808b1a8a77242b)
 - [`xv::fs::ProcFileSystem::LookupFlow::target_exists`](procfs.cpp.md#fn-f5d9d9c7bc72b6f2)
-- [`xv::fs::ProcFileSystem::LookupFlow::uptime`](procfs.cpp.md#fn-d2c35d153ad04946)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::descriptor`](procfs.cpp.md#fn-bd89903bb2b48263)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::descriptor_entries`](procfs.cpp.md#fn-838ae2518c6c4e94)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::descriptor_text`](procfs.cpp.md#fn-9f3aea4728e4dc2a)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::descriptors`](procfs.cpp.md#fn-d35da00575e43299)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::entry`](procfs.cpp.md#fn-46877d9d1576b4d4)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::finish_text`](procfs.cpp.md#fn-6c7b3792d3fc8156)
-- [`xv::fs::ProcFileSystem::SnapshotFlow::memory`](procfs.cpp.md#fn-22eb58188ae94fa5)
-- [`xv::fs::ProcFileSystem::SnapshotFlow::memory_text`](procfs.cpp.md#fn-a3a0887aeae36389)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::parent_entry`](procfs.cpp.md#fn-943b58cbb632a1c4)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::process_directory`](procfs.cpp.md#fn-e049696d3d5aca5f)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::process_entries`](procfs.cpp.md#fn-db8faad7ed9a9c84)
@@ -46,8 +40,6 @@
 - [`xv::fs::ProcFileSystem::SnapshotFlow::status`](procfs.cpp.md#fn-b1abb168e976aca6)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::status_text`](procfs.cpp.md#fn-34e0a22dacfff108)
 - [`xv::fs::ProcFileSystem::SnapshotFlow::success`](procfs.cpp.md#fn-5c2afae3a3284db3)
-- [`xv::fs::ProcFileSystem::SnapshotFlow::uptime`](procfs.cpp.md#fn-da3779279c5703b5)
-- [`xv::fs::ProcFileSystem::SnapshotFlow::uptime_text`](procfs.cpp.md#fn-3a192771bea8e6ca)
 - [`xv::fs::ProcFileSystem::get`](procfs.cpp.md#fn-90753126637513eb)
 - [`xv::fs::ProcFileSystem::initialize`](procfs.cpp.md#fn-74b43972b16a8a28)
 - [`xv::fs::ProcFileSystem::initialize_inodes`](procfs.cpp.md#fn-731ba950b1042b0b)
@@ -62,44 +54,9 @@
 - [`xv::fs::ProcFileSystem::unlock`](procfs.cpp.md#fn-441bd17e918e61e8)
 - [`xv::fs::ProcFileSystem::unlock_release`](procfs.cpp.md#fn-df886b5ac3282c5b)
 - [`xv::fs::ProcFileSystem::update`](procfs.cpp.md#fn-0f8f2177ab9f8594)
-- [`xv::fs::Text::Text`](procfs.cpp.md#fn-0a0d9ec0c1338ec9)
-- [`xv::fs::Text::append`](procfs.cpp.md#fn-0f0c4ca26414028d)
-- [`xv::fs::Text::field`](procfs.cpp.md#fn-4ccdd58043fe99ba)
-- [`xv::fs::Text::good`](procfs.cpp.md#fn-35b1ca8866c82d1e)
-- [`xv::fs::Text::number`](procfs.cpp.md#fn-92a34cf2de670a84)
 - [`xv::fs::component_number`](procfs.cpp.md#fn-d517311402dd3534)
 - [`xv::fs::file_kind`](procfs.cpp.md#fn-ee0b4055ed93f099)
 - [`xv::fs::number_name`](procfs.cpp.md#fn-6a664ab5b71ab094)
-
-<a id="fn-0f0c4ca26414028d"></a>
-
-## `xv::fs::Text::append`
-
-```doxygen
-@fn void xv::fs::Text::append(const char *text)
-@brief 将文本追加到动态页链并累计失败状态。
-@details 计算零终止文本长度后追加，分配或复制失败时记录 failed_。生成方最终检查 good，不把已生成前缀当作完整内容发布。
-```
-
-<a id="fn-92a34cf2de670a84"></a>
-
-## `xv::fs::Text::number`
-
-```doxygen
-@fn void xv::fs::Text::number(unsigned long value)
-@brief 追加无符号十进制数字。
-@details 用固定反向数字缓冲处理包括零在内的 unsigned long，再通过 append 输出，溢出由共享失败标记记录。
-```
-
-<a id="fn-4ccdd58043fe99ba"></a>
-
-## `xv::fs::Text::field`
-
-```doxygen
-@fn void xv::fs::Text::field(const char *name, unsigned long value, const char *unit = "\n")
-@brief 追加字段名、十进制数值与单位或换行。
-@details 用于 meminfo 和 status 格式，调用 append/number 的顺序固定，共享容量限制。
-```
 
 <a id="fn-731ba950b1042b0b"></a>
 
@@ -116,9 +73,9 @@
 ## `xv::fs::ProcFileSystem::initialize`
 
 ```doxygen
-@fn void xv::fs::ProcFileSystem::initialize(int device)
+@fn void ProcFileSystem::xv::fs::ProcFileSystem::initialize(int device)
 @brief 初始化 procfs 的静态只读节点。
-@details 目录 0555、静态文件 0444，属主组均为 root；运行期进程节点在 get 中按目标凭据建立缓存身份。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-d20670821de275d2"></a>
@@ -222,26 +179,6 @@
 @details 使用局部 PageBuffer 生成后裁剪读取，离开作用域归还所有页。普通 File 读取其打开时快照，不会每次重新枚举。
 ```
 
-<a id="fn-0a0d9ec0c1338ec9"></a>
-
-## `xv::fs::Text::Text`
-
-```doxygen
-@fn explicit xv::fs::Text::Text(PageBuffer &buffer)
-@brief 借用动态页链生成 procfs 文本。
-@details 不再接收固定容量指针；内容通过 PageBuffer 按需分配，构造不分配页面。
-```
-
-<a id="fn-35b1ca8866c82d1e"></a>
-
-## `xv::fs::Text::good`
-
-```doxygen
-@fn bool xv::fs::Text::good() const
-@brief 检查整份文本是否完整生成。
-@details 任何一次追加失败都会返回 false，不以已生成长度掩盖分配错误。
-```
-
 <a id="fn-d517311402dd3534"></a>
 
 ## `xv::fs::component_number`
@@ -301,7 +238,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::GetFlow::available(Context &c) noexcept
 @brief 检查是否存在可初始化的空槽。
-@details 进程身份快照在取得引用锁前完成；锁内按种类、PID、描述符和有效所有者身份复用已有 inode，否则选择首个空槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-49f35f3a3bc4085b"></a>
@@ -310,8 +247,8 @@
 
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::GetFlow::find(Context &c) noexcept
-@brief 直接扫描活动 inode 并增加命中引用，同时保留首个空槽。
-@details 进程身份快照在取得引用锁前完成；锁内按种类、PID、描述符和有效所有者身份复用已有 inode，否则选择首个空槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 在只读provider表内按组件名字查找稳定索引。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-5c813ee116c47166"></a>
@@ -331,7 +268,7 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::GetFlow::initialize(Context &c) noexcept
 @brief 按原编号公式初始化 inode 身份、权限、种类和一个引用。
-@details 进程身份快照在取得引用锁前完成；锁内按种类、PID、描述符和有效所有者身份复用已有 inode，否则选择首个空槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-f9c58d7fe1b1fedc"></a>
@@ -351,7 +288,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::LookupFlow::descriptor_name(Context &c) noexcept
 @brief 检查名称是否为 fd。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-8e3eba9b30f5a09c"></a>
@@ -361,7 +298,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::LookupFlow::descriptors(Context &c) noexcept
 @brief 检查当前种类是否为描述符目录。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-3ecba4244ca7888f"></a>
@@ -371,16 +308,6 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::LookupFlow::in_range(Context &c) noexcept
 @brief 检查描述符号位于 NOFILE 范围内。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
-<a id="fn-f244e993147df871"></a>
-
-## `xv::fs::ProcFileSystem::LookupFlow::memory`
-
-```doxygen
-@fn static bool xv::fs::ProcFileSystem::LookupFlow::memory(Context &c) noexcept
-@brief 检查名称是否为 meminfo。
 @details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
 ```
 
@@ -431,7 +358,7 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::LookupFlow::retain_descriptor(Context &c) noexcept
 @brief 取得描述符快照并在命中后通过 get 取得描述符 inode。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-581effb0de423825"></a>
@@ -441,17 +368,7 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::LookupFlow::retain_descriptors(Context &c) noexcept
 @brief 通过 get 取得进程描述符目录。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
-<a id="fn-a6f3263e79a69bbe"></a>
-
-## `xv::fs::ProcFileSystem::LookupFlow::retain_memory`
-
-```doxygen
-@fn static void xv::fs::ProcFileSystem::LookupFlow::retain_memory(Context &c) noexcept
-@brief 保留固定内存信息 inode。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b4c20f742b86a899"></a>
@@ -461,7 +378,7 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::LookupFlow::retain_parent(Context &c) noexcept
 @brief 为 fd 目录取得 PID 父目录，否则取得 proc 根。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b8669dc0ad1d05b6"></a>
@@ -491,16 +408,6 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::LookupFlow::retain_status(Context &c) noexcept
 @brief 通过 get 取得进程状态 inode。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
-<a id="fn-d418f7ddaaa652ee"></a>
-
-## `xv::fs::ProcFileSystem::LookupFlow::retain_uptime`
-
-```doxygen
-@fn static void xv::fs::ProcFileSystem::LookupFlow::retain_uptime(Context &c) noexcept
-@brief 保留固定运行时间 inode。
 @details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
 ```
 
@@ -554,16 +461,6 @@
 @details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
 ```
 
-<a id="fn-d2c35d153ad04946"></a>
-
-## `xv::fs::ProcFileSystem::LookupFlow::uptime`
-
-```doxygen
-@fn static bool xv::fs::ProcFileSystem::LookupFlow::uptime(Context &c) noexcept
-@brief 检查名称是否为 uptime。
-@details 名称路由保留原进程存活复查；get 内部的第二次快照不会被合并，描述符数组仅在对应查询阶段使用栈存储。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
 <a id="fn-bd89903bb2b48263"></a>
 
 ## `xv::fs::ProcFileSystem::SnapshotFlow::descriptor`
@@ -571,7 +468,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::SnapshotFlow::descriptor(Context &c) noexcept
 @brief 检查快照种类是否为单个描述符。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-838ae2518c6c4e94"></a>
@@ -591,7 +488,7 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::SnapshotFlow::descriptor_text(Context &c) noexcept
 @brief 取得描述符快照并输出匹配记录的身份、标志与对象信息。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-d35da00575e43299"></a>
@@ -601,7 +498,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::SnapshotFlow::descriptors(Context &c) noexcept
 @brief 检查快照种类是否为描述符目录。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-46877d9d1576b4d4"></a>
@@ -621,26 +518,6 @@
 ```doxygen
 @fn static void xv::fs::ProcFileSystem::SnapshotFlow::finish_text(Context &c) noexcept
 @brief 将 Text 的分配失败状态转换为快照业务结果。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
-<a id="fn-22eb58188ae94fa5"></a>
-
-## `xv::fs::ProcFileSystem::SnapshotFlow::memory`
-
-```doxygen
-@fn static bool xv::fs::ProcFileSystem::SnapshotFlow::memory(Context &c) noexcept
-@brief 检查快照种类是否为内存信息。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
-```
-
-<a id="fn-a3a0887aeae36389"></a>
-
-## `xv::fs::ProcFileSystem::SnapshotFlow::memory_text`
-
-```doxygen
-@fn static void xv::fs::ProcFileSystem::SnapshotFlow::memory_text(Context &c) noexcept
-@brief 取得内存统计、裁剪空闲量并按原次序输出四个字段。
 @details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
 ```
 
@@ -671,7 +548,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::SnapshotFlow::process_entries(Context &c) noexcept
 @brief 复查进程仍存在，按短路顺序追加 status 和 fd 目录项。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-3c99045b32500fc1"></a>
@@ -691,7 +568,7 @@
 ```doxygen
 @fn static bool xv::fs::ProcFileSystem::SnapshotFlow::root_entries(Context &c) noexcept
 @brief 先追加固定名称，再按原顺序枚举进程并追加 PID 名称。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-bc88acaddc82c14f"></a>
@@ -734,22 +611,72 @@
 @details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
 ```
 
-<a id="fn-da3779279c5703b5"></a>
+<a id="fn-76896b6bae8dff92"></a>
 
-## `xv::fs::ProcFileSystem::SnapshotFlow::uptime`
+## `xv::fs::ProcFileSystem::LookupFlow::provider`
 
 ```doxygen
-@fn static bool xv::fs::ProcFileSystem::SnapshotFlow::uptime(Context &c) noexcept
-@brief 检查快照种类是否为运行时间。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@fn static bool xv::fs::ProcFileSystem::LookupFlow::provider(Context &c) noexcept
+@brief 流程动作或条件 provider；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
-<a id="fn-3a192771bea8e6ca"></a>
+<a id="fn-fe64b541975465bd"></a>
 
-## `xv::fs::ProcFileSystem::SnapshotFlow::uptime_text`
+## `xv::fs::ProcFileSystem::LookupFlow::retain_provider`
 
 ```doxygen
-@fn static void xv::fs::ProcFileSystem::SnapshotFlow::uptime_text(Context &c) noexcept
-@brief 按原十分之一秒格式输出运行时间。
-@details Text 与 PageBuffer 沿原调用作用域生存；文本格式顺序和目录追加短路顺序保留，失败留下的部分候选内容仍由调用者拥有。数字转换、格式输出和记录枚举使用直接循环。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@fn static void xv::fs::ProcFileSystem::LookupFlow::retain_provider(Context &c) noexcept
+@brief 流程动作或条件 retain_provider；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-50dd09774890ec5c"></a>
+
+## `xv::fs::ProcFileSystem::LookupFlow::process_provider`
+
+```doxygen
+@fn static void xv::fs::ProcFileSystem::LookupFlow::process_provider(Context &c) noexcept
+@brief 流程动作或条件 process_provider；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-9f58291ae548508c"></a>
+
+## `xv::fs::ProcFileSystem::SnapshotFlow::provider`
+
+```doxygen
+@fn static bool xv::fs::ProcFileSystem::SnapshotFlow::provider(Context &c) noexcept
+@brief 流程动作或条件 provider；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-9f02fad7d8b85d98"></a>
+
+## `xv::fs::ProcFileSystem::SnapshotFlow::provider_text`
+
+```doxygen
+@fn static void xv::fs::ProcFileSystem::SnapshotFlow::provider_text(Context &c) noexcept
+@brief 流程动作或条件 provider_text；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-dcb47e33ce2531a3"></a>
+
+## `xv::fs::ProcFileSystem::SnapshotFlow::process_provider`
+
+```doxygen
+@fn static bool xv::fs::ProcFileSystem::SnapshotFlow::process_provider(Context &c) noexcept
+@brief 流程动作或条件 process_provider；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-4e814f636e32f556"></a>
+
+## `xv::fs::ProcFileSystem::SnapshotFlow::process_text`
+
+```doxygen
+@fn static void xv::fs::ProcFileSystem::SnapshotFlow::process_text(Context &c) noexcept
+@brief 流程动作或条件 process_text；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

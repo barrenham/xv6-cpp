@@ -31,6 +31,8 @@
 - [`xv::process::ProcessVisitor::visit`](process_store.cppm.md#fn-6f41c8cf82144998)
 - [`xv::process::ProcessVisitor::~ProcessVisitor`](process_store.cppm.md#fn-0c2482dc309fe8ab)
 
+- [`xv::process::ProcessStore::find_pid`](process_store.cppm.md#fn-6610780fe8681ad3)
+
 <a id="fn-6f41c8cf82144998"></a>
 
 ## `xv::process::ProcessVisitor::visit`
@@ -104,10 +106,9 @@
 ## `xv::process::ProcessStore::allocate`
 
 ```doxygen
-@fn virtual Process *xv::process::ProcessStore::allocate()
-@brief 进程对象生命周期、组身份、调度、等待与信号：分配并取得对象或存储资源。
-@details 这是纯虚接口契约，当前类型不提供可执行函数体；具体语义由派生实现完成。应从实际注入的设备、调度器或存储对象继续跟踪调用，不应把接口声明当成同步实现。
-@return 返回类型为 `Process *()`；本条目没有可独立分析的普通函数体，具体返回约定见对应实现及调用方。
+@fn virtual Process *xv::process::ProcessStore::allocate(int pid = 0) = 0
+@brief 申请并交付已锁定的稳定描述符；正 PID 必须唯一并在发布前绑定，零仅供不需要身份索引的内部存储契约使用。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-9504cec31f53f5c2"></a>
@@ -177,4 +178,14 @@
 @brief 结束进程对象生命周期、组身份、调度、等待与信号的对象生命周期，并执行其显式清理或成员析构。
 @details 析构函数自身没有额外语句，成员对象仍按 C++ 析构顺序处理。对象存储的归还由拥有者或外层释放入口负责。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-6610780fe8681ad3"></a>
+
+## `xv::process::ProcessStore::find_pid`
+
+```doxygen
+@fn virtual Process *xv::process::ProcessStore::find_pid(int pid) = 0
+@brief 定义按正 PID 查询的存储契约：成功交付持有进程锁的稳定对象，调用者负责解锁或通过 release 消费。
+@note 详细锁协议见 docs/process-index-wait.md。
 ```

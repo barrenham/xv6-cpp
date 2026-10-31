@@ -3,9 +3,11 @@
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
 - [虚拟区域、缺页与 COW](virtual-memory.md)：区域归属、权限分类、持锁补页和 fork 共享。
+- [ext3 模块、格式选项及离线转换](ext3.md)，[本轮验收记录](ext3-dev-proc-acceptance.json)。
+- [目录枚举接口](directories.md)：getdents64 完整名称与兼容 read ABI。
 - [rootfs 创建与程序更新](rootfs-tools.md)：独立新建、原子升级、备份与账户保留。
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：288 个文件，1918 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：398 个文件，5161 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。
@@ -51,3 +53,7 @@
 - [动态 RAM 挂载与生命周期](mounting.md)。
 
 - [符号链接与路径展开](symbolic-links.md)。
+
+- [PID 索引与子进程事件等待](process-index-wait.md)：PID 红黑树、事件队列、生命周期与多核锁协议。
+
+- [fork 成本调研](fork-cost-investigation.md)：原版工作量对照、分阶段成本及内存填充实验。

@@ -36,6 +36,9 @@ void ProcessManager::detach_terminal(void *terminal)
   groups_.detach_terminal(terminal);
 }
 
+void *ProcessManager::pin_controlling_terminal(void *(*pin)(void *))
+{return groups_.pin_terminal(current()->membership_,pin);}
+
 int ProcessManager::claim_terminal(void *terminal)
 {
   return groups_.claim_terminal(current()->membership_, terminal);

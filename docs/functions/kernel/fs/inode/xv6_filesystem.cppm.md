@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::fs::Xv6FileSystem::Xv6FileSystem`](xv6_filesystem.cppm.md#fn-fbb2438a657db6f0)
 - [`xv::fs::Xv6FileSystem::allocate`](xv6_filesystem.cpp.md#fn-071e023c7d9e28d2)
 - [`xv::fs::Xv6FileSystem::allocate_block`](xv6_filesystem.cpp.md#fn-5a13ce655a471c2a)
 - [`xv::fs::Xv6FileSystem::busy`](xv6_filesystem.cpp.md#fn-2af87439a305e904)
@@ -47,19 +46,6 @@
 - [`xv::fs::Xv6FileSystem::update`](xv6_filesystem.cpp.md#fn-d23dade71242312c)
 - [`xv::fs::Xv6FileSystem::write`](xv6_filesystem.cpp.md#fn-b5be87921570227b)
 - [`xv::fs::Xv6FileSystem::zero_block`](xv6_filesystem.cpp.md#fn-e9142d5fbb52fb87)
-
-<a id="fn-fbb2438a657db6f0"></a>
-
-## `xv::fs::Xv6FileSystem::Xv6FileSystem`
-
-```doxygen
-@fn constexpr xv::fs::Xv6FileSystem::Xv6FileSystem(BlockCache &cache, Journal &journal)
-@brief 构造xv6 inode 文件系统，建立本重载要求的成员初值和借用关系。
-@param cache 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param journal 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_` → `journal_`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
 
 <a id="fn-76aed8d1c1501404"></a>
 
@@ -98,4 +84,33 @@
 @fn Journal *xv::fs::Xv6FileSystem::transaction_log() override
 @brief 借出所属后端的日志引用。
 @details 系统盘和数据盘各有自己的 Journal，返回指针不转移所有权。
+```
+<a id="fn-01c59232cfcec494"></a>
+
+## `xv::fs::Xv6FileSystem::Xv6FileSystem`
+
+```doxygen
+@fn constexpr xv::fs::Xv6FileSystem::Xv6FileSystem(BlockCache &cache, Xv6Journal &journal) : cache_(cache), journal_(journal)
+@brief 构造xv6 inode 文件系统，建立本重载要求的成员初值和借用关系。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-8442b9569e756559"></a>
+
+## `xv::fs::Xv6FileSystem::type_name`
+
+```doxygen
+@fn const char *xv::fs::Xv6FileSystem::type_name() const override
+@brief 返回 `"xv6"`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-e4acfd2b59a0d3b3"></a>
+
+## `xv::fs::Xv6FileSystem::next_directory`
+
+```doxygen
+@fn int xv::fs::Xv6FileSystem::next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+@brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

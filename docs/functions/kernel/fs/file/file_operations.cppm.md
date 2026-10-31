@@ -98,3 +98,42 @@
 @brief 接管 inode 引用和可选的动态页链快照。
 @details 构造将准备好的 PageBuffer 转移到内置后端，不另分配控制对象页；snapshot 标记区分内容快照与实际节点读取。dup/fork 共享后端和文件偏移。
 ```
+<a id="fn-1e03e53606cd49b0"></a>
+
+## `xv::fs::InodeBackend::position`
+
+```doxygen
+@fn unsigned long xv::fs::InodeBackend::position() const override
+@brief 以原子观察读取共享文件偏移供fdinfo使用。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-5d5a096dc1413fb1"></a>
+
+## `xv::fs::BlockBackend::BlockBackend`
+
+```doxygen
+@fn xv::fs::BlockBackend::BlockBackend(Inode &node,xv::drivers::BlockDevice &disk,bool writable) :node_(&node),disk_(&disk),writable_(writable)
+@brief 构造对象并建立成员初值及借用关系。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-1d30f626db6a5f04"></a>
+
+## `xv::fs::BlockBackend::position`
+
+```doxygen
+@fn unsigned long xv::fs::BlockBackend::position() const override
+@brief 以原子观察读取共享文件偏移供fdinfo使用。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```
+
+<a id="fn-73159294924a60fd"></a>
+
+## `xv::fs::BlockBackend::capability`
+
+```doxygen
+@fn xv::io::Capability *xv::fs::BlockBackend::capability(xv::io::CapabilityId id) override
+@brief 返回 `id==xv::io::DeviceControl::Id ? static_cast<xv::io::DeviceControl *>(this):nullptr`。
+@details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
+```

@@ -40,6 +40,8 @@ public:
 
   constexpr ProcessGroups() = default;
   void initialize();
+  // Callback runs under the group lock and may only acquire an atomic lifetime pin.
+  void *pin_terminal(const ProcessMembership &caller,void *(*pin)(void *));
   int claim_terminal(const ProcessMembership &caller, void *terminal);
   int foreground(const ProcessMembership &caller, void *terminal);
   int set_foreground(const ProcessMembership &caller, void *terminal, int group);

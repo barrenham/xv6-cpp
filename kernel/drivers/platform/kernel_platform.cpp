@@ -43,6 +43,9 @@ void wake_processes(void *channel)
   xv::process::wakeup(channel);
 }
 
+void *pin_controlling_terminal(void *(*pin)(void *))
+{return xv::process::pin_controlling_terminal(pin);}
+
 int claim_terminal(void *terminal)
 {
   return xv::process::claim_terminal(terminal);

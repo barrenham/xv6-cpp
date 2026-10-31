@@ -19,6 +19,9 @@ public:
   // exclusively owned until return; count must be a positive sector multiple.
   // Completion state belongs to the driver, independently of filesystem buffers.
   virtual void flush() {}
+  // Physical capacity in 512-byte sectors; zero means unavailable. Filesystem
+  // mount and block-device files use this rather than trusting on-disk sizes.
+  virtual unsigned long capacity_sectors() const { return 0; }
   virtual void transfer(BlockOperation operation, unsigned long sector, void *data,
                         unsigned count) = 0;
 

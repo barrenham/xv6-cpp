@@ -52,7 +52,7 @@
 ```doxygen
 @fn static bool xv::fs::DevFileSystem::CreateFlow::device(Context &c) noexcept
 @brief 检查结果类型为设备。
-@details 只允许以普通文件请求打开既有设备；查找时锁目录，查找完成后改锁目标，成功返回设备锁仍持有。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-c3f079d3f53f216f"></a>

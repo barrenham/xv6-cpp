@@ -28,6 +28,7 @@ public:
   void initialize() override;
   bool present() const;
   void flush() override;
+  unsigned long capacity_sectors() const override;
   void transfer(BlockOperation operation, unsigned long sector, void *data,
                 unsigned count) override;
   void handle_interrupt() override;

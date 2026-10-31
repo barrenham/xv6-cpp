@@ -26,6 +26,7 @@ struct FileInfo
   short type = 0;
   unsigned device = 0;
   unsigned inode = 0;
+  unsigned long position = 0;
 };
 
 class File final
@@ -70,6 +71,7 @@ public:
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
+  int getdents64(File *file,unsigned long address,int count);
   long seek(File *file, long offset, int origin);
   int resize(File *file, unsigned size);
   int sync(File *file);
@@ -96,6 +98,7 @@ class DeviceRegistry final
 public:
 
   constexpr DeviceRegistry() = default;
+  static constexpr unsigned Capacity = 32;
 
   struct Entry
   {
@@ -103,12 +106,18 @@ public:
     unsigned major = 0;
     unsigned minor = 0;
     xv::drivers::CharacterDevice *device = nullptr;
+    xv::drivers::BlockDevice *block = nullptr;
+    bool read_only = true;
+    unsigned mode = 0666;
   };
 
   void attach(unsigned major, xv::drivers::CharacterDevice &device);
   void attach(const char *name, unsigned major, unsigned minor,
-              xv::drivers::CharacterDevice &device);
+              xv::drivers::CharacterDevice &device, unsigned mode = 0666);
   xv::drivers::CharacterDevice *get(int major, int minor = 0) const;
+  void attach_block(const char *name, unsigned major, unsigned minor,
+                    xv::drivers::BlockDevice &device, bool read_only = true);
+  const Entry *block(int major, int minor) const;
 
   unsigned count() const
   {
@@ -129,12 +138,13 @@ private:
 
   struct AttachFlow;
 
-  Entry entries_[NDEV]{};
+  Entry entries_[Capacity]{};
   unsigned count_ = 0;
   bool sealed_ = false;
 };
 
 DeviceRegistry &devices();
 xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking);
+xv::drivers::BlockDevice *open_registered_block(Inode *node, bool writable);
 bool create_pipe(File **read_end, File **write_end);
 } // namespace xv::fs

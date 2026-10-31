@@ -25,6 +25,7 @@ struct Process::CommitFlow
     unsigned long entry, stack, arguments;
     const char *path;
     unsigned long environment;
+    ExecSnapshot *snapshot;
   };
 
   static void linearize(Context &c) noexcept
@@ -62,7 +63,9 @@ struct Process::CommitFlow
         last = p + 1;
       }
     }
-    c.owner.set_name(last);
+    xv::sync::ScopedLock guard(c.owner.lock);
+    xv::runtime::copy_string(c.owner.name,last,sizeof(c.owner.name));
+    if(c.snapshot)c.owner.exec_snapshot_.swap(*c.snapshot);
   }
   struct Linearize;
   struct Image;
@@ -91,9 +94,9 @@ bool Process::create_image(AddressSpace &image)
 
 void Process::commit_image(AddressSpace &image, unsigned long entry,
                            unsigned long stack, unsigned long arguments,
-                           const char *path, unsigned long environment)
+                           const char *path, unsigned long environment,ExecSnapshot *snapshot)
 {
-  CommitFlow::Context context{*this, image, entry, stack, arguments, path, environment};
+  CommitFlow::Context context{*this, image, entry, stack, arguments, path, environment,snapshot};
   (void)CommitFlow::Graph::run<0>(context);
 }
 } // namespace xv::process

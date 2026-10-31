@@ -23,11 +23,7 @@
 ```doxygen
 @fn void *xv::runtime::fill(void *dst, int c, unsigned long n)
 @brief freestanding 运行时、字节操作和诊断输出：把字节区域填充为指定值。
-@param dst 结果缓冲起点。
-@param c 本次操作使用的 c 值。
-@param n 本次处理的数量上限。
-@details 本函数可见的状态更新包括：`cdst[i] = c;`。局部临时变量与对象字段应按作用域区分。
-@return 各分支实际返回：`dst`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-da7e6b0b68e76d10"></a>

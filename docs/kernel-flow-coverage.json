@@ -200,13 +200,13 @@
           "qualified": "xv::process::ElfLoader::load",
           "usr": "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
           "source": "kernel/process/exec/elf_loader.cpp",
-          "source_sha256": "bea41b85f7ab256f7b65bd514ec9cfd43e4802494795633f5d8b2fdacb4e22ca",
+          "source_sha256": "647ed7890a6052fe4fb7a1b2e4d644a309904a4f2357107cb12958b897494e43",
           "graphs": [
             "LoadFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "73fc109a2f172675bd57d5e438cf9ac23e2406a24bdee6d960b04b2b02aee2f4"
+      "definition_sha256": "1ab74c31dad80a4eccd08cdd7e749f516bfc8cf9231c585fafbce7a9c07ba1f1"
     },
     {
       "module": "fs",
@@ -380,7 +380,7 @@
     },
     {
       "module": "fs",
-      "owner": "Journal",
+      "owner": "Xv6Journal",
       "methods": [
         "begin",
         "end",
@@ -400,61 +400,99 @@
       ],
       "bindings": [
         {
-          "qualified": "xv::fs::Journal::begin",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@begin#",
+          "qualified": "xv::fs::Xv6Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "09759a90f02846fe3242032c89ea158167ec846f6cbcc50ea926dbde7e74157c",
+          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
           "graphs": [
             "BeginFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::end",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@end#",
+          "qualified": "xv::fs::Xv6Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "4864ea1418f0c89fc6a8d55a8a59f91c2a3e7d15b95ab4bc8ccddccd2e2fa0d1",
+          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
           "graphs": [
             "EndFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::commit",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@commit#",
+          "qualified": "xv::fs::Xv6Journal::commit",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@commit#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "6e35587e7d794e5ba01c04dc54f06aa02e1b39a12b565f63dfb79ec49d4fab64",
+          "source_sha256": "7620435b7b5c58a8f641cfbfe0cda3354319be4eefdfca8c6939a2de7a93fbca",
           "graphs": [
             "CommitFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::recover",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@recover#",
+          "qualified": "xv::fs::Xv6Journal::recover",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@recover#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "a0dec2f295e640f4d3b22603194849533fec476805ec8ee2a885ca1b5a51846b",
+          "source_sha256": "eab985ef7139f9fe15d5f3e35b93fa06e7d5947ef1756f5348ae0c7a9f8ee316",
           "graphs": [
             "RecoverFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::record",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "qualified": "xv::fs::Xv6Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "d1a07e57fb95204fc13ee3de46c1dfa0f88dfa387a05f04e2d4aafd79e785278",
+          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
           "graphs": [
             "RecordFlow::Graph"
           ]
         },
         {
-          "qualified": "xv::fs::Journal::sync",
-          "usr": "c:@N@xv@N@fs@S@Journal@F@sync#",
+          "qualified": "xv::fs::Xv6Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
           "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "3b01d4e22b4a6253052fd738a4ca20fc5a2b649444b49b3971155770e70d84ae",
+          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
           "graphs": [
             "SyncFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "055320b1f0fb2e6d9387f612023601b4b56bc3522e190fa4e122e77a87332a8c"
+      "definition_sha256": "e5888348cc9324b4c9d34e1a63eb2ce46fdc138f99bcecc32d7a126cca4da283",
+      "internal_bindings": [
+        {
+          "qualified": "xv::fs::Xv6Journal::begin",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
+          "graphs": [
+            "BeginFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::end",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
+          "graphs": [
+            "EndFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::record",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
+          "graphs": [
+            "RecordFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::fs::Xv6Journal::sync",
+          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
+          "source": "kernel/fs/journal/journal.cpp",
+          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
+          "graphs": [
+            "SyncFlow::Graph"
+          ]
+        }
+      ]
     },
     {
       "module": "fs",
@@ -488,7 +526,7 @@
           ]
         }
       ],
-      "definition_sha256": "e1be0a25b82ca686beabd1e27dfa20314978e606c63bc473851540febb6b162d"
+      "definition_sha256": "c596104e277e45728464f2b20d1e70556594c5fd083788e318aa88ba7bd8c710"
     },
     {
       "module": "fs",
@@ -503,15 +541,26 @@
       "bindings": [
         {
           "qualified": "xv::fs::DeviceRegistry::attach",
-          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach#*1C#i#i#&$@N@xv@N@drivers@S@CharacterDevice#",
+          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach#*1C#i#i#&$@N@xv@N@drivers@S@CharacterDevice#i#",
           "source": "kernel/fs/file/open_file.cpp",
-          "source_sha256": "7b98c79136315b79a59b6e7f64d9d218f973c573302b75da2ca6f2f6908e8dae",
+          "source_sha256": "12ff13dd210e08f42eee1b4d886792b828c4f789bc9e4f503950e63523aee934",
           "graphs": [
             "AttachFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "e1be0a25b82ca686beabd1e27dfa20314978e606c63bc473851540febb6b162d"
+      "definition_sha256": "c596104e277e45728464f2b20d1e70556594c5fd083788e318aa88ba7bd8c710",
+      "internal_bindings": [
+        {
+          "qualified": "xv::fs::DeviceRegistry::attach_block",
+          "usr": "c:@N@xv@N@fs@S@DeviceRegistry@F@attach_block#*1C#i#i#&$@N@xv@N@drivers@S@BlockDevice#b#",
+          "source": "kernel/fs/file/open_file.cpp",
+          "source_sha256": "b4872b28282040f4be48bd2f5d4ec876125dbadbe8ee07428ed429087f419922",
+          "graphs": [
+            "AttachFlow::Graph"
+          ]
+        }
+      ]
     },
     {
       "module": "fs",
@@ -536,7 +585,7 @@
           "qualified": "xv::fs::InodeBackend::read",
           "usr": "c:@N@xv@N@fs@S@InodeBackend@F@read#$@N@xv@N@io@S@Buffer#I#",
           "source": "kernel/fs/file/file_operations.cpp",
-          "source_sha256": "25f54a5ccd90b21e578fc99be1c17ca1d721a75cfb80e8b810eb2977fa3c4911",
+          "source_sha256": "2caff0e1d7f9a7f03a52090263131937dfe9f93ee4a305837babbb26b701a913",
           "graphs": [
             "ReadFlow::Graph"
           ]
@@ -578,7 +627,7 @@
           ]
         }
       ],
-      "definition_sha256": "7c1f2364bbdb7ff04a0cac8a0cd309edb9db8967e9641d6621bc4f721668388f"
+      "definition_sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213"
     },
     {
       "module": "fs",
@@ -665,9 +714,9 @@
       "bindings": [
         {
           "qualified": "xv::fs::VirtualFileSystem::walk",
-          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#i#b#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "543ce3b769e8cdc92c41f7d156fd6a0fa7a6113a662d44bc83c5307fc36e25c0",
+          "source_sha256": "2dd51e64e06826b08eaa3a284ec953e61aa09d878657b46851dc8db48e8270a9",
           "graphs": [
             "WalkFlow::Graph"
           ]
@@ -685,7 +734,7 @@
           "qualified": "xv::fs::VirtualFileSystem::create",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@create#*C#S#S#S#b#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "2f592aa45fa5c590cb562fcc6e1d0e23896c66e1a4296092edade5f784118eea",
+          "source_sha256": "b1c046143ab5ee574c6d93a4035e86fc15f32b321c3582789d69a3bd83c0c14f",
           "graphs": [
             "CreateFlow::Graph"
           ]
@@ -694,7 +743,7 @@
           "qualified": "xv::fs::VirtualFileSystem::link",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@link#*C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "06eccc474e9280dbda963e5445404d6a4ddc626c9197131135b188a4b3a990e1",
+          "source_sha256": "bda3e16fb82aa6d300593aa18783988b2b00e95f63e8707e31d1372fe30deceb",
           "graphs": [
             "LinkFlow::Graph"
           ]
@@ -703,7 +752,7 @@
           "qualified": "xv::fs::VirtualFileSystem::unlink",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink#*C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b1f6df1b5366087865139ab26767fbb42f3bc83226c3679bbeb098281ecc615f",
+          "source_sha256": "af6491a70302f099b2d2fbc73aaddfcabd2b1881ca7ec8e8da7bd4f13075e727",
           "graphs": [
             "UnlinkFlow::Graph"
           ]
@@ -721,7 +770,7 @@
           "qualified": "xv::fs::VirtualFileSystem::rename",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@rename#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "07d41ae6db44244ebb4027fe305ccb14069d201548202f480a6314fa57d034b9",
+          "source_sha256": "a3a4ac829b77e2ece37e3f4f013c70937534cf4dde4de9007c487eaa9564a468",
           "graphs": [
             "RenameFlow::Graph"
           ]
@@ -730,7 +779,7 @@
           "qualified": "xv::fs::VirtualFileSystem::symlink",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "6910f88cdec3ea52ab65e963090cfba90d22583c09cc780e14cde274a38f361a",
+          "source_sha256": "752f06657ab80a9b29df7b6a9b96b40ac1c1faffa39d16cd28231c9bfaa6f928",
           "graphs": [
             "SymlinkFlow::Graph"
           ]
@@ -747,7 +796,7 @@
           ]
         }
       ],
-      "definition_sha256": "19105c932e5d255f1188a026383aba4b2a35cca9286c96ff2e1f770330c4f2ce"
+      "definition_sha256": "959dde8b1ae641c7876e3070a0b98bdc734dbe34008eb427263218f7cd2477e1"
     },
     {
       "module": "fs",
@@ -770,7 +819,7 @@
           "qualified": "xv::fs::VirtualFileSystem::mount",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount#*1C#&$@N@xv@N@fs@S@FileSystem#i#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b5cb93e918f44b1bffd78fff84dc7fece06aa070f90d896b9c60f0305a4fb974",
+          "source_sha256": "aad5e0fe4960254d67a597d2ade0ef90db63c2c7dbaa16472cabb8c484b68558",
           "graphs": [
             "MountFlow::Graph"
           ]
@@ -779,16 +828,16 @@
           "qualified": "xv::fs::VirtualFileSystem::mount_ram",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_ram#*1C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "3de9d08e42fc3afd5ab4c3ff0f428941ebedd75ff4b8ab407bd9824d80971a96",
+          "source_sha256": "5c42b611d96704180ccabe1e5a22826aa8968a61dc720a07141a7d5bb8311e88",
           "graphs": [
             "MountRamFlow::Graph"
           ]
         },
         {
           "qualified": "xv::fs::VirtualFileSystem::mount_disk",
-          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#",
+          "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@mount_disk#*1C#S0_#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b37b8d674a4406074bdf336706f879bdecaa5f3fc05d2a48832cf4ca8c341cbf",
+          "source_sha256": "b3a630862f8857c1c6c81bae1d0f2f3839ee5bfb5d79cf10175edd16c12262dc",
           "graphs": [
             "MountDiskFlow::Graph"
           ]
@@ -797,13 +846,13 @@
           "qualified": "xv::fs::VirtualFileSystem::unmount",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@unmount#*1C#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "b8d17fb822d18acf54fdb671dd98b9a11b98dfdc4f87a45559ab8ac6d894e1ab",
+          "source_sha256": "aa455a9d5169f676483c5247074f6cedb7f744f4daf665e0ba445a97ef57e1a1",
           "graphs": [
             "UnmountFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "0aada67908fc0d99ad648c9e4791c44f0517490b0b4d38c6f7a73010e2ad0c1c"
+      "definition_sha256": "25e9b69aed3156e39972d59a4805370a5bbd381be82527c88d83f0ca815e9d8c"
     },
     {
       "module": "fs",
@@ -832,14 +881,14 @@
           "qualified": "xv::fs::VirtualFileSystem::initialize",
           "usr": "c:@N@xv@N@fs@S@VirtualFileSystem@F@initialize#I#",
           "source": "kernel/fs/vfs/vfs.cpp",
-          "source_sha256": "045077b7996e0d9240f99c7e4ec51e54c6c26762e1ce32b925b1a393408a0b36",
+          "source_sha256": "899b50f4f2e34378565bd56efecfbd72d3de574a37a686f81dec6bec11dd88ba",
           "graphs": [
             "InitializeFlow::BackendsGraph",
             "InitializeFlow::MountsGraph"
           ]
         }
       ],
-      "definition_sha256": "fb37036dbfe85812484fc322742c5e7f005ce49719ae1fbf6cf0cd4ec75a00c3"
+      "definition_sha256": "860633bb8e1bae800ac3d7bc505d7039b8a085537518945d781689f5a7a97642"
     },
     {
       "module": "fs",
@@ -1006,7 +1055,7 @@
           ]
         }
       ],
-      "definition_sha256": "1d0961a4eaf1261d89132dfb4ffe4a67eb90638e2b33c2537cda49e4e81f164b"
+      "definition_sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36"
     },
     {
       "module": "fs",
@@ -1051,7 +1100,7 @@
           ]
         }
       ],
-      "definition_sha256": "209a8f335413c2ce2d55e4b1ada4c5e2c60048df55c6fdeba68c4d4eaa2bca94"
+      "definition_sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091"
     },
     {
       "module": "fs",
@@ -1336,7 +1385,7 @@
           "qualified": "xv::process::ProcessManager::kill",
           "usr": "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "8c4531277093d72777145e947144bf4333ca08db4b9c1822b7df881371a2ab52",
+          "source_sha256": "9e0cc1321002f048bf19ab7b7c28ad3d6600dad3584ffdb81a7b9005344fdbe4",
           "graphs": [
             "KillFlow::Graph"
           ]
@@ -1345,13 +1394,24 @@
           "qualified": "xv::process::ProcessManager::inspect_files",
           "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "88238962feb66ca9451124659faf7a3122a45427214d64d18cfd403a7351ada4",
+          "source_sha256": "77ba03127404f0661df4b61ae8fc849b2dfd2b3f73ed0f37a11110d3a058f6f7",
           "graphs": [
             "InspectFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "2f145f1e1f4ea3d2b2cf780a4fdd199a37591cec4a96646faf38b36791d1d6f3"
+      "definition_sha256": "d1807a62004ba308b0a12c7f6c12a2ee90112d7a62a057c8e8a3f13b387e7616",
+      "internal_bindings": [
+        {
+          "qualified": "xv::process::ProcessManager::inspect_exec",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "28d63e6dcba7082d38aece99bd19e30b9cfc0f008048362cd68bba6bd65274c9",
+          "graphs": [
+            "InspectFlow::Graph"
+          ]
+        }
+      ]
     },
     {
       "module": "process",
@@ -1374,7 +1434,7 @@
           ]
         }
       ],
-      "definition_sha256": "e76a3b98fa15034b73de100a124137e84027147b99113197a77e72da3eed9b49"
+      "definition_sha256": "d325f51e401fa337dc0af6311ad97b93c967b97d7624bbefa60ec47e176ce56c"
     },
     {
       "module": "process",
@@ -1464,7 +1524,7 @@
           ]
         }
       ],
-      "definition_sha256": "031b892d4da722f080cccce9e2cd238110f72c9914a7b429426302fb162cd087"
+      "definition_sha256": "4cbeff7918839e8fa192593cd8e0471c7c384650950786b213e02e4f9800ca44"
     },
     {
       "module": "process",
@@ -1564,7 +1624,7 @@
           "qualified": "xv::process::ProcessManager::send_signal",
           "usr": "c:@N@xv@N@process@S@ProcessManager@F@send_signal#I#I#",
           "source": "kernel/process/signals/signal_delivery.cpp",
-          "source_sha256": "1494d63c75b5b7190bc874779f2c40296c5b656c21a3c5178d1866251cb338a0",
+          "source_sha256": "10bd46ccd637d743ab7450c23e5f69edb57c77d2b2ccb667ad150163d7d6746b",
           "graphs": [
             "SendPidSignalFlow::Graph",
             "SendGroupSignalFlow::Graph"
@@ -1589,7 +1649,7 @@
           ]
         }
       ],
-      "definition_sha256": "f6a46cb74d6287a62ff37f7180d6171264a52393ad57149bd438fa7b80387bbb"
+      "definition_sha256": "f39bc35c993f43a736552d528e91e43be8ace5eb76d409c53399a443c6058d04"
     },
     {
       "module": "process",
@@ -1657,7 +1717,7 @@
           ]
         }
       ],
-      "definition_sha256": "3c3f9f1dabbd48396fbca44536d41d438b7e8c4152371ac500f60513bec75164"
+      "definition_sha256": "e2e6bf00af2d338f8c1bcd86f74e1705fa771ab9e6a561fe9621ef9cc5b5690c"
     },
     {
       "module": "process",
@@ -1787,9 +1847,9 @@
       "bindings": [
         {
           "qualified": "xv::process::PagedProcessStore::allocate",
-          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#",
+          "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@allocate#I#",
           "source": "kernel/process/storage/paged_process_store.cpp",
-          "source_sha256": "ac243bae83982596659d4782bbb7e626d28219ce175c146afaa3e3a2bcf57e73",
+          "source_sha256": "49eb9cd4346e6405c9f5aca31b1a62032cc9a100749c4270a266fc2de3edf19f",
           "graphs": [
             "AllocateFlow::Graph"
           ]
@@ -1798,13 +1858,13 @@
           "qualified": "xv::process::PagedProcessStore::release",
           "usr": "c:@N@xv@N@process@S@PagedProcessStore@F@release#*$@N@xv@N@process@S@Process#",
           "source": "kernel/process/storage/paged_process_store.cpp",
-          "source_sha256": "1ad1562c19a5b29c6f4f79e0b9f0d05aa105275c01e55f58ea7ae76cf8d41454",
+          "source_sha256": "c1a46e05fed6a64179cf81a75003ea325fd0a6cb0580d0f1e4705595dcbf40da",
           "graphs": [
             "ReleaseFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "26a98ec69b507346eb62bd2b21fe8b4f4b66eac07ef98622f1814634d6bb0979"
+      "definition_sha256": "5fd70429983c7a5eb03ff64431eb0f71c3605a15f98b7a0764ebae5cccbaabbc"
     },
     {
       "module": "process",
@@ -1842,15 +1902,15 @@
       "bindings": [
         {
           "qualified": "xv::process::Process::commit_image",
-          "usr": "c:@N@xv@N@process@S@Process@F@commit_image#&$@N@xv@N@process@S@AddressSpace#l#l#l#*1C#l#",
+          "usr": "c:@N@xv@N@process@S@Process@F@commit_image#&$@N@xv@N@process@S@AddressSpace#l#l#l#*1C#l#*$@N@xv@N@exec@S@Snapshot#",
           "source": "kernel/process/lifecycle/process.cpp",
-          "source_sha256": "1a8abf4300ab15923ec6008e4be95cb913edbb0151710bb5ac247cd125f05df6",
+          "source_sha256": "ddf452d848e42048a260e4fae0ec4b0ab410197898ce2559709b6f3ee4ac5b60",
           "graphs": [
             "CommitFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "e12b586f54fd86d40f408cb4728cdaa4033652bc409492baf512dbf2af28b6af"
+      "definition_sha256": "3073bdbe6ab65dacaf809eb8248f027a73a5ef401bebbe5e6ec4a5c3821d5725"
     },
     {
       "module": "process",
@@ -1896,7 +1956,7 @@
           ]
         }
       ],
-      "definition_sha256": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1"
+      "definition_sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26"
     },
     {
       "module": "memory",
@@ -1974,7 +2034,7 @@
           ]
         }
       ],
-      "definition_sha256": "01b7ece1bd69e20d0d223f8cc3dc78065941bce2ad48ead2d49d8d87871a01d1"
+      "definition_sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26"
     },
     {
       "module": "memory",
@@ -2440,7 +2500,7 @@
           ]
         }
       ],
-      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
     },
     {
       "module": "drivers",
@@ -2463,7 +2523,7 @@
           "qualified": "xv::drivers::Pty::release",
           "usr": "c:@N@xv@N@drivers@S@Pty@F@release#",
           "source": "kernel/drivers/tty/pty/pty.cpp",
-          "source_sha256": "cb37b85f7eba34e20e2869964e0c694d572bf5973f28f8de4144bb9d453e3e24",
+          "source_sha256": "dd8d087ee1ef9a5d2e3c56c2def594e44c8daa1bb667af6c4addbf6ae739617b",
           "graphs": [
             "ReleaseFlow::Graph"
           ]
@@ -2496,7 +2556,7 @@
           ]
         }
       ],
-      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
     },
     {
       "module": "drivers",
@@ -2530,7 +2590,7 @@
           ]
         }
       ],
-      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
     },
     {
       "module": "drivers",
@@ -2564,7 +2624,7 @@
           ]
         }
       ],
-      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
     },
     {
       "module": "drivers",
@@ -2587,7 +2647,7 @@
           ]
         }
       ],
-      "definition_sha256": "1c146113ac0a800af9e4d1fba5a8c593945641465ad96640f853b48e627295e5"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
     },
     {
       "module": "drivers",
@@ -2643,7 +2703,7 @@
           ]
         }
       ],
-      "definition_sha256": "33e2f276e24f3acbe51953b9a4136d8ece86c405f80488574b65af81c3f646e6"
+      "definition_sha256": "717e205de2a049ae2ac67c70d4a1fbaaed54a5c7528965f79e466cde8f45f8f7"
     },
     {
       "module": "drivers",
@@ -2779,7 +2839,7 @@
           ]
         }
       ],
-      "definition_sha256": "5cf235ab9fef20044d73ce6df6e3d6e30d69d97912110334994dd6dbacf72089"
+      "definition_sha256": "d7e861e8a0436ad7a5885c67c60b8605cc6f10e23ca148564205df0bd6e240c0"
     },
     {
       "module": "syscall",
@@ -2873,7 +2933,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -2906,7 +2966,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -2929,7 +2989,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -2952,7 +3012,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -2975,7 +3035,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -2998,7 +3058,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3021,7 +3081,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3054,7 +3114,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3077,7 +3137,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3100,7 +3160,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3123,7 +3183,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3146,7 +3206,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3169,7 +3229,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3192,7 +3252,7 @@
           ]
         }
       ],
-      "definition_sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c"
+      "definition_sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056"
     },
     {
       "module": "syscall",
@@ -3399,7 +3459,7 @@
           ]
         }
       ],
-      "definition_sha256": "9ca98f922f18fa342efa96012135ed16ff6a4cae141f4515272d2a75bd479959"
+      "definition_sha256": "72e96567dec9dce1c5c7f60e0c1013adbdde4e82f227ee10c6104b57c356324f"
     },
     {
       "module": "syscall",
@@ -3467,7 +3527,7 @@
           ]
         }
       ],
-      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
+      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
     },
     {
       "module": "trap",
@@ -3491,7 +3551,7 @@
           ]
         }
       ],
-      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
+      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
     },
     {
       "module": "trap",
@@ -3514,7 +3574,7 @@
           ]
         }
       ],
-      "definition_sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515"
+      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
     },
     {
       "module": "support",
@@ -3541,6 +3601,121 @@
         }
       ],
       "definition_sha256": "fa23d4903a724a1f135042fadf351a8c2433f9d58207500f479a54c8fccd0c8f"
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioEntropy",
+      "methods": [
+        "initialize"
+      ],
+      "definition": "kernel/drivers/entropy/virtio_entropy.cpp",
+      "definition_sha256": "e73839015fa8f9a0c16ea8bd85260f34fc5d7f9f11cc6e63622255cec8d49cfa",
+      "graphs": [
+        "InitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioEntropy::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioEntropy@F@initialize#",
+          "source": "kernel/drivers/entropy/virtio_entropy.cpp",
+          "source_sha256": "49981f06cd6f6805d6dd918167cc848f656fbc0b65e60818eb8b3b0cc329def0",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioEntropy",
+      "methods": [
+        "read"
+      ],
+      "definition": "kernel/drivers/entropy/virtio_entropy.cpp",
+      "definition_sha256": "e73839015fa8f9a0c16ea8bd85260f34fc5d7f9f11cc6e63622255cec8d49cfa",
+      "graphs": [
+        "ReadFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioEntropy::read",
+          "usr": "c:@N@xv@N@drivers@S@VirtioEntropy@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/entropy/virtio_entropy.cpp",
+          "source_sha256": "c1902f4db7ea2197e84ff72f4003123b7a1bb73cc086b191872d6a7ce2babf38",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "fs",
+      "owner": "Ext3FileSystem",
+      "methods": [
+        "collect_orphans"
+      ],
+      "definition": "kernel/fs/ext3/ext3_filesystem.cpp",
+      "definition_sha256": "bdf957d94ee9b0486b50115503bb1bf130072165d9e85ca59882e2d99a75775a",
+      "graphs": [
+        "CollectFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::Ext3FileSystem::collect_orphans",
+          "usr": "c:@N@xv@N@fs@S@Ext3FileSystem@F@collect_orphans#",
+          "source": "kernel/fs/ext3/ext3_filesystem.cpp",
+          "source_sha256": "5db48ae0994a64b0a0ec437c3b3c10cfb0a60be5b9e50ad4e8b2e5ae96237562",
+          "graphs": [
+            "CollectFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "fs",
+      "owner": "InodeBackend",
+      "methods": [
+        "getdents64"
+      ],
+      "definition": "kernel/fs/file/inode_backend_flow.cppm",
+      "definition_sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213",
+      "graphs": [
+        "DirectoryFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::InodeBackend::getdents64",
+          "usr": "c:@N@xv@N@fs@S@InodeBackend@F@getdents64#$@N@xv@N@io@S@Buffer#I#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "a9258ced49f9b67b7455c4d73f19a0f976d19a357d5c142cb153058ba647c483",
+          "graphs": [
+            "DirectoryFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "fs",
+      "owner": "BlockBackend",
+      "methods": [
+        "transfer"
+      ],
+      "definition": "kernel/fs/file/inode_backend_flow.cppm",
+      "definition_sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213",
+      "graphs": [
+        "TransferFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::fs::BlockBackend::transfer",
+          "usr": "c:@N@xv@N@fs@S@BlockBackend@F@transfer#$@N@xv@N@io@S@Buffer#I#b#",
+          "source": "kernel/fs/file/file_operations.cpp",
+          "source_sha256": "e4913465c42b8be5865a65f43a82d573f0ae09e7c6592f21ad5a7c5220afa3b0",
+          "graphs": [
+            "TransferFlow::Graph"
+          ]
+        }
+      ]
     }
   ],
   "reviewed_primitives": [

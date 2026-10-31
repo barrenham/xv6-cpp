@@ -10,7 +10,6 @@
 
 ## 函数导航
 
-- [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-3619f8a51976d854)
 - [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-bda8b34bb94e637a)
 - [`xv::fs::DeviceRegistry::get`](open_file.cpp.md#fn-ad2454960d73ee76)
 - [`xv::fs::File::nonblocking`](open_file.cpp.md#fn-6ae1d9a30631a953)
@@ -215,26 +214,16 @@
 @brief 返回 File 所持有的统一 IoObject 借用指针，空 File 指针或尚未绑定时返回 nullptr。
 @details 返回 File 所持有的统一 IoObject 借用指针，空 File 指针或尚未绑定时返回 nullptr。调用者必须保持有效 File 引用，不因查询而增加拥有权。
 ```
-<a id="fn-3619f8a51976d854"></a>
-
-## `xv::fs::DeviceRegistry::attach`
-
-```doxygen
-@fn void xv::fs::DeviceRegistry::attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device)
-@brief 在启动阶段登记一个静态字符设备及其名称和设备号。
-@details 旧形式登记未命名的 minor=0 设备；命名形式复制最多 13 字节名称，拒绝斜杠、点目录、重复名称、重复 major/minor、容量超限及封存后的修改。设备实例必须保持系统级生命周期，注册阶段不允许并发使用。
-@details 流程由 AttachFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
-```
-
 <a id="fn-ad2454960d73ee76"></a>
 
 ## `xv::fs::DeviceRegistry::get`
 
 ```doxygen
-@fn xv::drivers::CharacterDevice *xv::fs::DeviceRegistry::get(int major, int minor) const
-@brief 按 major 和 minor 精确查询字符设备。
-@details 负值或未登记的组合返回 nullptr；minor 缺省为零。封存后注册表只读，I/O 路径无需注册锁；返回的指针只借用静态设备。
+@fn xv::drivers::CharacterDevice *DeviceRegistry::xv::fs::DeviceRegistry::get(int major, int minor) const
+@brief 按inode号复用或取得受引用锁保护的缓存槽。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
 <a id="fn-9dc9a9219a36d4e9"></a>
 
 ## `xv::fs::open_registered_device`
@@ -259,9 +248,9 @@
 ## `xv::fs::OpenFileTable::describe`
 
 ```doxygen
-@fn bool xv::fs::OpenFileTable::describe(File *file, FileInfo &result) const
+@fn bool OpenFileTable::xv::fs::OpenFileTable::describe(File *file, FileInfo &result) const
 @brief 复制已发布 File 的不可变身份与当前共享标志。
-@details 调用者持有 File 引用，或持描述符表锁阻止本槽被取走。acquire 检查 ready_ 后复制 identity/kind/type/device/inode，原子读取 flags；不加节点锁、不调用后端、不分配和不睡眠。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-d97473d82762fb27"></a>
@@ -292,4 +281,53 @@
 @fn int xv::fs::OpenFileTable::sync(File *file)
 @brief 转发文件同步请求。
 @details 缺少后端时返回 -1，实际持久化能力由对象契约决定。
+```
+<a id="fn-9a9273ba721f4c1c"></a>
+
+## `xv::fs::open_registered_block`
+
+```doxygen
+@fn xv::drivers::BlockDevice *xv::fs::open_registered_block(Inode *node,bool writable)
+@brief 按inode主次号查询块设备，已挂载设备拒绝可写打开。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-a53ec5994c9eddf1"></a>
+
+## `xv::fs::DeviceRegistry::attach`
+
+```doxygen
+@fn void DeviceRegistry::xv::fs::DeviceRegistry::attach(const char *name, unsigned major, unsigned minor, xv::drivers::CharacterDevice &device,unsigned mode)
+@brief 在启动阶段登记一个静态字符设备及其名称和设备号。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-24c33d00d3aee9ba"></a>
+
+## `xv::fs::DeviceRegistry::attach_block`
+
+```doxygen
+@fn void DeviceRegistry::xv::fs::DeviceRegistry::attach_block(const char *name,unsigned major,unsigned minor, xv::drivers::BlockDevice &device,bool read_only)
+@brief 登记独立块设备编号、名字与权限，通过AttachFlow统一校验。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-ea2cf7655166476a"></a>
+
+## `xv::fs::DeviceRegistry::block`
+
+```doxygen
+@fn const DeviceRegistry::Entry *DeviceRegistry::xv::fs::DeviceRegistry::block(int major,int minor) const
+@brief 实现 xv::fs::DeviceRegistry::block 的模块操作，按声明参数读写其封装状态。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-86a5102557e07ad5"></a>
+
+## `xv::fs::OpenFileTable::getdents64`
+
+```doxygen
+@fn int OpenFileTable::xv::fs::OpenFileTable::getdents64(File *file,unsigned long address,int count)
+@brief 按完整Linux dirent64记录枚举目录，保留每次打开的cookie与编码模式。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

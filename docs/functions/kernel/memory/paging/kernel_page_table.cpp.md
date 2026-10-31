@@ -643,7 +643,7 @@
 ```doxygen
 @fn static void xv::memory::KernelBuildFlow::devices_text(Context &c) noexcept
 @brief 按原实验条件映射设备、PLIC 与只读可执行内核文本。
-@details LargestPagePolicy 与 OwnedSv39PageTable 保持在原构建函数的词法作用域；按原设备、文本、RAM、trampoline 顺序映射与自检，成功最后 release 整棵树。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-0478db392b7e5ee1"></a>

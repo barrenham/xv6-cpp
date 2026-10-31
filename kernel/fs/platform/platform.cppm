@@ -14,6 +14,15 @@ struct ProcessRecord
   char name[16]{};
 };
 struct DescriptorRecord { int descriptor = -1; FileInfo file; };
+struct CpuRecord {unsigned hart=0;unsigned long isa=0,vendor=0,architecture=0,implementation=0;};
+struct CpuTime {unsigned long user=0,system=0,idle=0,interrupts=0;};
+struct SystemCounts {unsigned long switches=0,processes=0;};
+bool cpu_time(unsigned index,CpuTime &record);
+SystemCounts system_counts();
+struct FileSystemType {const char *name=nullptr;bool nodev=false;};
+bool cpu_record(unsigned index,CpuRecord &record);
+bool registered_filesystem(unsigned index,FileSystemType &record);
+const char *kernel_version();
 struct Identity
 {
   unsigned uid = 0, gid = 0;
@@ -27,7 +36,10 @@ bool may_remove(Inode *directory, Inode *target);
 bool process_after(int after, ProcessRecord &result);
 int current_pid();
 int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity);
+bool process_exec_text(unsigned pid,bool environment,PageBuffer &buffer);
 unsigned long uptime_ticks();
+unsigned long epoch_seconds();
+unsigned long boot_epoch_seconds();
 void memory_info(unsigned long &total_kib, unsigned long &free_kib);
 void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);

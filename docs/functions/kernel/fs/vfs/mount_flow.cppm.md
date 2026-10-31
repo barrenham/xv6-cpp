@@ -87,7 +87,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::MountFlow::find_parent(Context &c) noexcept
 @brief 通过公开 lookup_parent 取得父目录引用。
-@details 用于启动挂载，按 lookup、必要时创建目录、检查父目录、初始化后端、发布记录的顺序执行；公共失败节点只归还已取得的被覆盖节点。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-320a2c146fd111a2"></a>
@@ -126,8 +126,8 @@
 
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::MountProtocol::capacity(Context &c) noexcept
-@brief 检查挂载表尚未达到八项容量。
-@details 共用挂载检查和引用回收操作；启动挂载使用公开 lookup，运行期挂载在调用者 namespace 锁内使用 walk，失败不转移引用到挂载表。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 查询可安全暂存的日志块容量。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-1ab2eb52e62deac5"></a>

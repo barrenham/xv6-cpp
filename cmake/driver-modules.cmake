@@ -32,11 +32,14 @@ function(xv_add_driver_modules target)
       "${module_root}/serial/flow.cppm"
       "${module_root}/tty/ldisc/n_tty.cppm"
       "${module_root}/tty/core/tty.cppm"
+      "${module_root}/tty/core/controlling.cppm"
       "${module_root}/block/virtio/virtio_block.cppm"
       "${module_root}/block/virtio/protocol.cppm"
       "${module_root}/interrupt/plic.cppm"
       "${module_root}/platform/platform.cppm"
       "${module_root}/mmio.cppm"
+      "${module_root}/rtc/goldfish.cppm"
+      "${module_root}/entropy/virtio_entropy.cppm"
   )
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
 endfunction()

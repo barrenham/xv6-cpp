@@ -24,8 +24,13 @@ function(xv_add_fs_internals target)
     FILES
       "${module_root}/cache/lru_block_cache.cppm"
       "${module_root}/inode/xv6_filesystem.cppm"
+      "${module_root}/journal/xv6_journal.cppm"
+      "${module_root}/ext3/ext3_filesystem.cppm"
+      "${module_root}/inode/disk_filesystem.cppm"
       "${module_root}/devfs/devfs.cppm"
       "${module_root}/procfs/procfs.cppm"
+      "${module_root}/procfs/provider_registry.cppm"
+      "${module_root}/buffer/snapshot_text.cppm"
       "${module_root}/ramfs/ramfs.cppm"
       "${module_root}/file/file_operations.cppm"
       "${module_root}/buffer/flow.cppm"

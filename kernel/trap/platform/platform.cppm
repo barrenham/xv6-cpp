@@ -29,6 +29,8 @@ int hart_id();
 Word time();
 void arm_timer(Word deadline);
 void service_timer_devices();
+void account_timer(bool from_user);
+void account_external_interrupt();
 void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
 void sleep();

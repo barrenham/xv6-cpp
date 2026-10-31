@@ -18,15 +18,15 @@
     },
     {
       "source": "kernel/syscall/handlers.cppm",
-      "sha256": "832d538d7351847d35df797b52cce010c2296085d0fb50be2d87857773b92534",
-      "review": "私有系统调用函数及实验条件声明，无执行编排。",
+      "sha256": "7cfc5910499b9d0764b431754610caa22173f7494f97bca5f5a15ff5e4f46941",
+      "review": "私有系统调用函数及实验条件声明，无执行编排。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/syscall/syscall.cpp",
-      "sha256": "9ca98f922f18fa342efa96012135ed16ff6a4cae141f4515272d2a75bd479959",
-      "review": "固定 ABI switch 查找保留直接执行；DispatchFlow 连接已知/未知处理、一次 begin/handler/finish、完整失败时重启与结果发布，部分传输不重放。",
+      "sha256": "72e96567dec9dce1c5c7f60e0c1013adbdde4e82f227ee10c6104b57c356324f",
+      "review": "固定 ABI switch 查找保留直接执行；DispatchFlow 连接已知/未知处理、一次 begin/handler/finish、完整失败时重启与结果发布，部分传输不重放。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::dispatch",
@@ -49,15 +49,15 @@
     },
     {
       "source": "kernel/syscall/syscall.h",
-      "sha256": "26075366a7321d2705eda72e4516f5817a9782952003aa4c0d52222445712540",
-      "review": "固定用户 ABI 号常量，无运行注册。",
+      "sha256": "fb42e7e55b1c33877aab7c45d0e62ebc51b6bc44ce7e370bdf74812a4dd2a76c",
+      "review": "固定用户 ABI 号常量，无运行注册。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "50a98a09e3722db53dae730c71d0ab3e05cee102d8e0af5bcff986eefa1ebc4c",
-      "review": "十四张图负责打开、创建节点、chdir、参数向量、exec、pipe/PTY、属性、access、共享 stat/lstat、mount/unmount/info/readlink；Transaction 与 ArgumentVector 析构保留。其余参数门槛/单次委托、固定目录分量扫描和日志能力查询保留业务原语。",
+      "sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056",
+      "review": "十四张图负责打开、创建节点、chdir、参数向量、exec、pipe/PTY、属性、access、共享 stat/lstat、mount/unmount/info/readlink；Transaction 与 ArgumentVector 析构保留。其余参数门槛/单次委托、固定目录分量扫描和日志能力查询保留业务原语。 O_TRUNC 检查 resize 错误；已绑定失败先unlock再take_fd/release，避免重复inode释放。getdents64 只转交文件表；长路径和rename组件限制由VFS/后端统一验证。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::sys_open",

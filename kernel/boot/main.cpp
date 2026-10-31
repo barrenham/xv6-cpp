@@ -7,6 +7,7 @@ import xv.fs;
 import xv.process;
 import xv.drivers;
 import xv.memory;
+import xv.arch;
 import xv.net;
 
 extern "C" [[noreturn]] void enter_scheduler_stack(unsigned long top);
@@ -89,6 +90,7 @@ void initialize_secondary_hart()
     initialize_secondary_hart();
   }
 
+  xv::arch::mark_cpu_online(unsigned(xv::process::cpu_id()));
   enter_scheduler_stack(xv::trap::scheduler_stack_top());
 }
 } // namespace xv::boot

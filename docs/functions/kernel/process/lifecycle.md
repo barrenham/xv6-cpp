@@ -8,10 +8,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessManager::initialize()
-@brief 初始化 PID 分配与父子关系所需的管理锁。
-@return 无返回值。
-@pre 启动阶段调用；进程存储、等待通道和调度器由上层初始化流程分别初始化。
-@details pid_lock_ 保护 next_pid_，wait_lock_ 保护父子关系、子状态查找和父进程等待登记。它不创建初始进程，也不启动调度器。
+@brief 初始化 PID 序号、亲属关系及延迟子进程通知队列的锁。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="lifecycle-processmanager-allocate-pid"></a>

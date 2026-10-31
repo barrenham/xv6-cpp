@@ -34,6 +34,7 @@ public:
     return retain(&nodes_[0]);
   }
 
+  xv::drivers::BlockDevice *open_block_device(Inode *node, bool writable) override;
   xv::drivers::CharacterDevice *open_device(Inode *node, bool nonblocking) override;
   Inode *allocate(unsigned device, short type) override;
   Inode *retain(Inode *node) override;
@@ -42,6 +43,8 @@ public:
   void unlock(Inode *node) override;
   void unlock_release(Inode *node) override;
   void update(Inode *node) override;
+  int next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+  {return legacy_next_directory(node,cookie,entry);}
   void truncate(Inode *node) override;
   int read(Inode *node, int user, unsigned long destination, unsigned offset,
            unsigned count) override;
@@ -61,10 +64,10 @@ private:
   struct ReadFlow;
   struct CreateFlow;
   xv::sync::SpinLock references_;
-  static constexpr unsigned PtsRoot = NDEV + 1;
-  static constexpr unsigned PtsStart = NDEV + 2;
+  static constexpr unsigned PtsRoot = DeviceRegistry::Capacity + 1;
+  static constexpr unsigned PtsStart = DeviceRegistry::Capacity + 2;
   Inode nodes_[PtsStart + xv::drivers::MaxNamedPtys]{};
-  unsigned records_[NDEV]{};
+  unsigned records_[DeviceRegistry::Capacity]{};
   unsigned count_ = 0;
 };
 } // namespace xv::fs

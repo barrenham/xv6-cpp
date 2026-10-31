@@ -15,11 +15,8 @@
 - [`xv::fs::VirtualFileSystem::lock`](vfs.cpp.md#fn-5967b2c0b5f42168)
 - [`xv::fs::VirtualFileSystem::lookup`](vfs.cpp.md#fn-f4cf807217fcb7f0)
 - [`xv::fs::VirtualFileSystem::lookup_entry`](vfs.cpp.md#fn-5d4339ff52e6c374)
-- [`xv::fs::VirtualFileSystem::lookup_parent`](vfs.cpp.md#fn-8bfb0d7b5ac233f1)
 - [`xv::fs::VirtualFileSystem::mount`](vfs.cpp.md#fn-fd77401a8aa09874)
-- [`xv::fs::VirtualFileSystem::mount_disk`](vfs.cpp.md#fn-410eacc267e87225)
 - [`xv::fs::VirtualFileSystem::mount_ram`](vfs.cpp.md#fn-09eb092ae4d24474)
-- [`xv::fs::VirtualFileSystem::mounts`](vfs.cpp.md#fn-0747d0fa1f7514e8)
 - [`xv::fs::VirtualFileSystem::read`](vfs.cpp.md#fn-a35df3a283d2bfaf)
 - [`xv::fs::VirtualFileSystem::release`](vfs.cpp.md#fn-e5559898f89824ab)
 - [`xv::fs::VirtualFileSystem::rename`](vfs.cpp.md#fn-3ce7ce542ff58054)
@@ -34,7 +31,6 @@
 - [`xv::fs::VirtualFileSystem::unlock_release`](vfs.cpp.md#fn-ad637485c5f0cda9)
 - [`xv::fs::VirtualFileSystem::unmount`](vfs.cpp.md#fn-5396bbf57ffd12ef)
 - [`xv::fs::VirtualFileSystem::update`](vfs.cpp.md#fn-39fbbef1274fce08)
-- [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-81e896ba99fe170a)
 - [`xv::fs::VirtualFileSystem::write`](vfs.cpp.md#fn-80c4191a47122858)
 
 <a id="fn-3975fe035d893dce"></a>
@@ -53,10 +49,9 @@
 ## `xv::fs::VirtualFileSystem::initialize`
 
 ```doxygen
-@fn void xv::fs::VirtualFileSystem::initialize(int device)
+@fn void VirtualFileSystem::xv::fs::VirtualFileSystem::initialize(int device)
 @brief 恢复根卷并建立三个系统挂载。
-@details 第一个 VirtIO 块设备提供根文件系统，默认由持久 rootfs 镜像承载；初始化可选辅助卷并发布第二日志，但不自动挂载 /data。在事务内挂载 dev/proc/tmp，辅助盘只通过显式 mount_disk 挂载。
-@details 流程由 InitializeFlow::BackendsGraph, InitializeFlow::MountsGraph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-7cbd893bc133ef55"></a>
@@ -79,26 +74,14 @@
 @details 遍历启动后只读的挂载记录，以 owner/device/inode 身份匹配；命中时释放覆盖引用并取得根引用，否则原样返回。
 ```
 
-<a id="fn-8bfb0d7b5ac233f1"></a>
-
-## `xv::fs::VirtualFileSystem::lookup_parent`
-
-```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::lookup_parent(const char *path, char *name)
-@brief 在命名空间锁内查找路径父目录。
-@details walk 保留最终父节点引用，并在 name 写入固定 DIRSIZ 末组件。返回后释放 namespace_，后续目录修改仍须通过受同一锁保护的 VFS 包装。
-@return 未锁定父节点引用，失败返回 nullptr。
-```
-
 <a id="fn-6591de3da7091bf9"></a>
 
 ## `xv::fs::VirtualFileSystem::create`
 
 ```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)
+@fn Inode *VirtualFileSystem::xv::fs::VirtualFileSystem::create(char *path, short type, short major, short minor, bool follow)
 @brief 按节点类型创建或取得文件。
-@details 普通文件在同一命名空间锁内跟随链接或按 NOFOLLOW 拒绝，支持悬空链接目标的最终创建；其他类型沿父节点调用后端。成功返回已锁定引用。
-@details 流程由 CreateFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-365a4e7acb8561db"></a>
@@ -106,10 +89,9 @@
 ## `xv::fs::VirtualFileSystem::link`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::link(char *old_path, char *new_path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::link(char *old_path, char *new_path)
 @brief 为最终节点本身建立同后端硬链接。
-@details 源路径不跟随最终符号链接；仍以事务固定源和目标父目录，禁止跨后端硬链接并释放所有临时引用。
-@details 流程由 LinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-5b042e585b21f4bf"></a>
@@ -117,10 +99,9 @@
 ## `xv::fs::VirtualFileSystem::unlink`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::unlink(char *path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::unlink(char *path)
 @brief 在事务内解析父路径并请求删除名称。
-@details 委托 unlink_at 保护挂载覆盖节点与设备根，再调用实际文件系统删除。释放父引用，返回 0 或 -1。
-@details 流程由 UnlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b14436f73059aab1"></a>
@@ -282,20 +263,9 @@
 ## `xv::fs::VirtualFileSystem::mount`
 
 ```doxygen
-@fn bool xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
+@fn bool VirtualFileSystem::xv::fs::VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
 @brief 装配系统生命周期的启动后端。
-@details 容量上限扩为八条记录；只供启动阶段串行调用，保留覆盖节点、根、父节点和路径，运行期分别走 RAM/磁盘挂载入口。
-@details 流程由 MountFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
-```
-<a id="fn-81e896ba99fe170a"></a>
-
-## `xv::fs::VirtualFileSystem::walk`
-
-```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating)
-@brief 在稳定命名空间中解析路径与符号链接。
-@details 相对链接保留所在父目录，绝对链接从根开始，拼接剩余路径并限制 16 次展开和 MAXPATH。链接目标末尾的斜杠也要求最终结果为目录。可禁止跟随最终链接，也可为 O_CREATE 建立悬空链接的最终目标；普通组件保留 xv6 的 DIRSIZ 截断规则。
-@details 流程由 WalkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-f4cf807217fcb7f0"></a>
@@ -303,9 +273,9 @@
 ## `xv::fs::VirtualFileSystem::lookup`
 
 ```doxygen
-@fn Inode *xv::fs::VirtualFileSystem::lookup(const char *path, bool real, bool follow)
+@fn Inode *VirtualFileSystem::xv::fs::VirtualFileSystem::lookup(const char *path, bool real, bool follow)
 @brief 按跟随策略取得稳定节点引用。
-@details namespace 睡眠锁内调用 walk，real 控制路径授权使用真实身份，follow 控制最终符号链接；返回后引用固定所属后端。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-abf62fef3e7f21c5"></a>
@@ -335,10 +305,9 @@
 ## `xv::fs::VirtualFileSystem::mount_ram`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::mount_ram(const char *path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::mount_ram(const char *path)
 @brief 发布独立动态 RAM 实例。
-@details 总表上限八项，动态 RAM 池仍四槽；保留规范路径、覆盖目录、OOM 回滚和新根 0755 的约束。
-@details 流程由 MountRamFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-5396bbf57ffd12ef"></a>
@@ -346,20 +315,9 @@
 ## `xv::fs::VirtualFileSystem::unmount`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::unmount(const char *path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::unmount(const char *path)
 @brief 安全撤销 RAM 或持久卷挂载。
-@details 保护三个系统挂载，按后端 busy 检查引用。RAM 销毁全部页面，磁盘仅 flush 并释放根引用，不销毁持久内容；移除记录与入口受命名空间锁保护。
-@details 流程由 UnmountFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
-```
-
-<a id="fn-0747d0fa1f7514e8"></a>
-
-## `xv::fs::VirtualFileSystem::mounts`
-
-```doxygen
-@fn int xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type)
-@brief 枚举根卷及后续挂载记录。
-@details 命名空间锁内让索引零返回 / 和根后端类型，其他索引减一后复制挂载路径和类型；返回 1 表示记录，0 表示结束。多次查询不是整表快照，卸载可能改变后续记录顺序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-3ce7ce542ff58054"></a>
@@ -367,11 +325,9 @@
 ## `xv::fs::VirtualFileSystem::rename`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::rename(const char *old_path, const char *new_path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::rename(const char *old_path, const char *new_path)
 @brief 在稳定挂载拓扑下校验并转发原子重命名。
-@details 事务与命名空间锁内查找两端父目录，拒绝跨后端、点目录、目录环、挂载点及含挂载的祖先。临时取得源/目标引用供检查，调用所属后端 rename_at 后按所有分支释放引用。
-@return 0 表示后端重命名成功，-1 表示校验或后端失败。
-@details 流程由 RenameFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-67eba603f2e485ac"></a>
@@ -379,19 +335,67 @@
 ## `xv::fs::VirtualFileSystem::symlink`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::symlink(const char *target, const char *path)
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::symlink(const char *target, const char *path)
 @brief 原子创建保存目标字节的链接节点。
-@details 限制非空目标小于 MAXPATH，事务及命名空间锁内建立新节点并写入目标；失败移除新目录项，不要求目标已经存在。
-@details 流程由 SymlinkFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
-<a id="fn-410eacc267e87225"></a>
+<a id="fn-f77a31b05fc26086"></a>
+
+## `xv::fs::VirtualFileSystem::walk`
+
+```doxygen
+@fn Inode *VirtualFileSystem::xv::fs::VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real, bool follow, bool creating,unsigned capacity,bool exact_names)
+@brief 按后端名称上限解析路径和符号链接，保持节点引用交接。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-6d0bcfd9ae87ee67"></a>
+
+## `xv::fs::VirtualFileSystem::lookup_parent`
+
+```doxygen
+@fn Inode *VirtualFileSystem::xv::fs::VirtualFileSystem::lookup_parent(const char *path, char *name,unsigned capacity)
+@brief 解析父目录并按显式缓冲容量交付末级名字，旧默认14字节ABI保留。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-4b81eaa3029bfdad"></a>
+
+## `xv::fs::VirtualFileSystem::publish_mount_snapshot`
+
+```doxygen
+@fn void VirtualFileSystem::xv::fs::VirtualFileSystem::publish_mount_snapshot()
+@brief 在挂载变更后通过独立锁发布只读挂载信息。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-49863f7ed2744744"></a>
+
+## `xv::fs::VirtualFileSystem::snapshot_mounts`
+
+```doxygen
+@fn unsigned VirtualFileSystem::xv::fs::VirtualFileSystem::snapshot_mounts(MountSnapshot *records,unsigned capacity) const
+@brief 从已发布快照复制挂载信息，不取得VFS拓扑锁。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-5c98bc2f3956ca9e"></a>
+
+## `xv::fs::VirtualFileSystem::mounts`
+
+```doxygen
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
+@brief 输出独立发布的挂载快照，避免与VFS拓扑锁递归。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-d081694eae1d34f0"></a>
 
 ## `xv::fs::VirtualFileSystem::mount_disk`
 
 ```doxygen
-@fn int xv::fs::VirtualFileSystem::mount_disk(const char *path)
-@brief 把已连接的数据卷挂到一个已有目录。
-@details 事务及命名空间锁内拒绝容量不足、重复挂载、无效目录和覆盖已有挂载根；保留数据卷根并登记特殊磁盘槽，不重新格式化介质。
-@details 流程由 MountDiskFlow::Graph 的编译期策略连接；具名阶段保留原返回值、锁范围和引用转移次序。
+@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::mount_disk(const char *path,const char *type)
+@brief 使用MountDiskFlow挂载已选择磁盘后端，保留事务和失败回滚。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

@@ -18,18 +18,18 @@
 - [`xv::process::ProcessStore::set_stack`](process_store.cpp.md#fn-2f63d3d9cb1d8f33)
 - [`xv::process::ProcessStore::unlock`](process_store.cpp.md#fn-ac479e8051ca7abb)
 
+- [`xv::process::ProcessStore::storage_node`](process_store.cpp.md#fn-523816f8354db82c)
+
+- [`xv::process::ProcessStore::has_pid`](process_store.cpp.md#fn-8bc24c83f3b7435b)
+
 <a id="fn-8a84fd244ecbdafa"></a>
 
 ## `xv::process::ProcessStore::construct`
 
 ```doxygen
-@fn Process *xv::process::ProcessStore::construct(void *storage)
-@brief 进程对象生命周期、组身份、调度、等待与信号：在预分配存储上原位构造对象。
-@param storage 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`new` → `process->lock.init` → `process->lock.acquire`。
-@details 本函数可见的状态更新包括：`process->state = ProcessState::Used;`。局部临时变量与对象字段应按作用域区分。
-@note 源码中出现的锁操作：`process->lock.acquire`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 各分支实际返回：`process`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn Process *xv::process::ProcessStore::construct(void *storage, int pid, void *owner)
+@brief 在调用者提供的存储中构造并锁住 Used 描述符，写入 PID 和存储归属；身份在注册表发布前确定。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-2b83f7e54a6d1383"></a>
@@ -76,8 +76,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessStore::retire(Process &process)
-@brief 验证进程不再被等待、组或调度结构持有，再退休其描述符。
-@details 调用方持进程锁，且状态不能是 Running、Runnable、Sleeping 或 Stopped。等待登记、组登记、旧 queued 标志及策略实体的 queued/running 必须都已清除。成功后设置 Unused 并释放锁；物理页和栈由外层回收流程处理。
+@brief 拒绝仍拥有亲属、事件、延迟通知、等待登记、组成员或调度所有权的描述符；要求持进程锁，标记 Unused 并交出锁，随后存储摘除索引并等待借用者完成。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-24f4b1215767875b"></a>
@@ -104,4 +104,24 @@
 @param address 地址参数；用户地址必须通过内存复制/映射校验路径访问。
 @details 本函数可见的状态更新包括：`process.kstack = address;`。局部临时变量与对象字段应按作用域区分。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+```
+
+<a id="fn-523816f8354db82c"></a>
+
+## `xv::process::ProcessStore::storage_node`
+
+```doxygen
+@fn void *xv::process::ProcessStore::storage_node(const Process &process)
+@brief 取得构造时写入且发布后不变的存储归属指针，避免对继承红黑树链接的非标准布局节点使用 offsetof。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-8bc24c83f3b7435b"></a>
+
+## `xv::process::ProcessStore::has_pid`
+
+```doxygen
+@fn bool xv::process::ProcessStore::has_pid(const Process &process, int pid)
+@brief 调用方已持进程锁时，核对描述符尚未退役且 PID 与查询键相同。
+@note 详细锁协议见 docs/process-index-wait.md。
 ```

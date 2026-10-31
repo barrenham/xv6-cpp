@@ -684,3 +684,22 @@
 @brief 在硬件定时器和设备服务之后调用当前调度器的抢占判定。
 @details 遵守原进程锁、就绪队列锁、Runnable 生命周期和上下文交接约定；详见可选时钟调度设计。
 ```
+<a id="fn-bfddc64950495613"></a>
+
+## `xv::trap::detail::account_timer`
+
+```doxygen
+@fn void xv::trap::detail::account_timer(bool user)
+@brief 按用户态/内核忙碌/空闲分类累计一个定时采样。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-51ab51edcccc117b"></a>
+
+## `xv::trap::detail::account_external_interrupt`
+
+```doxygen
+@fn void xv::trap::detail::account_external_interrupt()
+@brief 累计当前hart的外部中断。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

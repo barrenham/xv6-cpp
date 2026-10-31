@@ -481,3 +481,9 @@ lstat:
  li a7, SYS_lstat
  ecall
  ret
+
+.global getdents64
+getdents64:
+ li a7, SYS_getdents64
+ ecall
+ ret

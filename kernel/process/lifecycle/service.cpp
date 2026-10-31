@@ -1,5 +1,7 @@
 module;
 #include "kernel/support/types.h"
+#include "kernel/support/param.h"
+#include "kernel/support/system_accounting.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/process/scheduler/policies/scheduling_policy.h"
 
@@ -19,6 +21,7 @@ namespace xv::process
 {
 namespace
 {
+constinit xv::stats::Accounting<NCPU> accounting;
 constinit PagedProcessStore store;
 constinit RoundRobinPolicy round_robin_ready;
 constinit FairPolicy fair_ready;
@@ -31,6 +34,12 @@ constinit ProcessGroups groups;
 } // namespace
 
 constinit ProcessManager process_manager(store, active_scheduler, waits, groups);
+
+bool cpu_statistics(unsigned cpu,CpuStatistics &result){return accounting.cpu(cpu,result);}
+SystemStatistics system_statistics(){return accounting.system();}
+void account_timer(bool user){accounting.timer(cpu_id(),user,current_cpu()->current!=nullptr);}
+void account_external_interrupt(){accounting.external(cpu_id());}
+void account_dispatch(){accounting.dispatch();}
 
 WaitChannels &wait_channels()
 {
@@ -83,11 +92,14 @@ void initialize()
 void create_initial_process()
 {
   process_manager.create_initial_process();
+  accounting.created();
 }
 
 int fork_process()
 {
-  return process_manager.fork_process();
+  int pid=process_manager.fork_process();
+  if(pid>0)accounting.created();
+  return pid;
 }
 
 [[noreturn]] void exit_process(int status)
@@ -139,6 +151,9 @@ void detach_terminal(void *terminal)
 {
   process_manager.detach_terminal(terminal);
 }
+
+void *pin_controlling_terminal(void *(*pin)(void *))
+{return process_manager.pin_controlling_terminal(pin);}
 
 int claim_terminal(void *terminal)
 {
@@ -224,6 +239,8 @@ bool snapshot_after(int after, ProcessInfo &result)
 {
   return process_manager.snapshot_after(after, result);
 }
+bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+{return process_manager.inspect_exec(pid,field,result);}
 int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
 { return process_manager.inspect_files(pid, entries, capacity); }
 } // namespace xv::process

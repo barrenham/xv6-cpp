@@ -12,7 +12,7 @@
 ```doxygen
 @fn bool xv::fs::detail::allowed(Inode *node, unsigned requested, bool real)
 @brief 按当前身份判断节点的请求权限。
-@details requested 仅允许 R/W/X。通常用有效 uid/gid，real 模式供 access 使用真实身份；依次选择 owner/group/other 并检查附加组。只读后端拒绝非设备写；root 绕过普通位，但普通文件执行仍要求至少一个执行位。调用者持节点锁。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b05fe3cdae315db8"></a>

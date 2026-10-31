@@ -63,11 +63,13 @@ struct KernelBuildFlow
 
   static void devices_text(Context &c) noexcept
   {
+    map_initial_range(c.regions, c.table, RTC0, RTC0, PGSIZE, PTE_R | PTE_W);
+
     // uart registers
     map_initial_range(c.regions, c.table, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
     // virtio mmio disk interface
-    map_initial_range(c.regions, c.table, VIRTIO0, VIRTIO0, 2 * PGSIZE, PTE_R | PTE_W);
+    map_initial_range(c.regions, c.table, VIRTIO0, VIRTIO0, 3 * PGSIZE, PTE_R | PTE_W);
 
 #ifdef LAB_NET
     // PCI-E ECAM (configuration space), for pci.c

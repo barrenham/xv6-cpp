@@ -98,6 +98,7 @@ set(programs
   tests/grouptest.cpp
   tests/signaltest.cpp
   tests/fgtest.cpp
+  tests/waiteventtest.cpp
   tests/jobtest.cpp
   tests/ttytest.cpp
   tests/pgtblext.cpp

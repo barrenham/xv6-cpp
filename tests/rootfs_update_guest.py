@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory(prefix='rootfs-update-guest-', dir=a.image.pare
         guest.run('sync')
     finally: guest.close()
     image = Image(disk)
-    top = image.entries(1); binary = top[b'bin']; etc = top[b'etc']
+    top = image.entries(image.root); binary = top[b'bin']; etc = top[b'etc']
     shadow = image.read(image.entries(etc)[b'shadow'])
     image.unlink_file(binary, b'echo')
     stale = image.create(binary, b'echo', FILE, (0, 0, 0o755)); image.append(stale, b'OBSOLETE_PROGRAM\n')
@@ -126,7 +126,7 @@ with tempfile.TemporaryDirectory(prefix='rootfs-update-guest-', dir=a.image.pare
     # Another recipient gets no accounts or files from the first owner's disk.
     other = root / 'another-owner.img'
     subprocess.run([sys.executable, str(ROOT / 'tools/create_rootfs.py'), '--seed', str(seed), '--output', str(other), '--fresh'], check=True)
-    clean = Image(other); entries = clean.entries(1)
+    clean = Image(other); entries = clean.entries(clean.root)
     assert not {b'passwd', b'shadow', b'group'}.intersection(clean.entries(entries[b'etc']))
     assert set(clean.entries(entries[b'root'])) == {b'.', b'..'}
     guest = Guest(other, 'independent')

@@ -21,6 +21,8 @@ import xv.syscall;
 
 namespace xv::trap::detail
 {
+void account_timer(bool user){xv::process::account_timer(user);}
+void account_external_interrupt(){xv::process::account_external_interrupt();}
 alignas(4096) unsigned char entry_stacks[NCPU][16384]{};
 unsigned long scheduler_stacks[NCPU]{};
 constexpr unsigned StackReservePages = 64;

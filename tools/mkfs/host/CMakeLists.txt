@@ -80,6 +80,7 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/drivers/net/e1000/e1000.cpp"
   "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cpp"
   "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
+  "${XV_ROOT}/kernel/drivers/entropy/virtio_entropy.cpp"
   "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")
@@ -120,9 +121,15 @@ xv_add_fs_interfaces(process_contract)
 add_executable(fs_contract
   "${XV_ROOT}/tests/fs_contract.cpp"
   "${XV_ROOT}/tests/fs_test_platform.cpp"
+  "${XV_ROOT}/kernel/fs/ext3/ext3_filesystem.cpp"
+  "${XV_ROOT}/kernel/fs/ext3/volume.cpp"
+  "${XV_ROOT}/kernel/fs/ext3/mutate.cpp"
+  "${XV_ROOT}/kernel/fs/ext3/jbd.cpp"
+  "${XV_ROOT}/kernel/fs/inode/disk_filesystem.cpp"
   "${XV_ROOT}/kernel/fs/buffer/page_buffer.cpp"
   "${XV_ROOT}/tests/fs_driver_platform.cpp"
   "${XV_ROOT}/kernel/fs/procfs/procfs.cpp"
+  "${XV_ROOT}/kernel/fs/procfs/system_providers.cpp"
   "${XV_ROOT}/kernel/fs/ramfs/ramfs.cpp"
   "${XV_ROOT}/kernel/fs/permissions.cpp"
   "${XV_ROOT}/kernel/fs/vfs/vfs.cpp"
@@ -380,3 +387,37 @@ target_link_libraries(slab_contract PRIVATE Threads::Threads)
 set_target_properties(slab_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 
 target_compile_definitions(slab_contract PRIVATE XV_DEFAULT_SLAB_BITMAP=$<STREQUAL:${XV_SLAB_ALLOCATOR},bitmap>)
+
+add_executable(ext3_jbd_contract "${XV_ROOT}/tests/ext3_jbd_contract.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+target_include_directories(ext3_jbd_contract PRIVATE "${XV_ROOT}")
+target_compile_features(ext3_jbd_contract PRIVATE cxx_std_20)
+target_compile_options(ext3_jbd_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(ext3_jbd_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(ext3_volume_contract "${XV_ROOT}/tests/ext3_volume_contract.cpp" "${XV_ROOT}/kernel/fs/ext3/volume.cpp" "${XV_ROOT}/kernel/fs/ext3/mutate.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+target_include_directories(ext3_volume_contract PRIVATE "${XV_ROOT}")
+target_compile_features(ext3_volume_contract PRIVATE cxx_std_20)
+target_compile_options(ext3_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(ext3_volume_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_library(ext3_image SHARED "${XV_ROOT}/tools/mkfs/ext3_image.cpp"
+  "${XV_ROOT}/kernel/fs/ext3/volume.cpp" "${XV_ROOT}/kernel/fs/ext3/mutate.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+target_include_directories(ext3_image PRIVATE "${XV_ROOT}")
+target_compile_features(ext3_image PRIVATE cxx_std_20)
+target_compile_options(ext3_image PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
+set_target_properties(ext3_image PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+add_executable(exec_snapshot_contract "${XV_ROOT}/tests/exec_snapshot_contract.cpp")
+target_include_directories(exec_snapshot_contract PRIVATE "${XV_ROOT}")
+target_compile_features(exec_snapshot_contract PRIVATE cxx_std_20)
+target_compile_options(exec_snapshot_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+target_link_libraries(exec_snapshot_contract PRIVATE Threads::Threads)
+set_target_properties(exec_snapshot_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+target_link_libraries(mkfs PRIVATE ext3_image)
+set_target_properties(mkfs PROPERTIES BUILD_RPATH "$ORIGIN")
+
+add_executable(system_accounting_contract "${XV_ROOT}/tests/system_accounting_contract.cpp")
+target_include_directories(system_accounting_contract PRIVATE "${XV_ROOT}")
+target_compile_features(system_accounting_contract PRIVATE cxx_std_20)
+target_compile_options(system_accounting_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+target_link_libraries(system_accounting_contract PRIVATE Threads::Threads)
+set_target_properties(system_accounting_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

@@ -30,7 +30,7 @@
 ## `xv::trap::TimerInterruptHandler::handle`
 
 ```doxygen
-@fn TrapAction xv::trap::TimerInterruptHandler::handle(const TrapEvent &)
+@fn TrapAction TimerInterruptHandler::xv::trap::TimerInterruptHandler::handle(const TrapEvent &event)
 @brief 先服务时钟和设备，再由所选调度策略决定抢占。
-@details 按原顺序执行 clock.interrupt 与 service_timer_devices；scheduler_timer_tick 为 true 返回 Yield，否则返回 Resume。继续运行不会跳过硬件定时器重设、用户返回或内核 CSR 恢复，uptime/pause 单位不变。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

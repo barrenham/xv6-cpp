@@ -10,20 +10,12 @@
 
 ## 函数导航
 
-- [`xv::fs::Journal::Journal`](journal.cppm.md#fn-17149b6d55129134)
 - [`xv::fs::Journal::Journal`](journal.cppm.md#fn-6cb3a5a184fdb474)
 - [`xv::fs::Journal::begin`](journal.cpp.md#fn-68275ab1a63eaf6b)
-- [`xv::fs::Journal::commit`](journal.cpp.md#fn-61fed5e757572a19)
 - [`xv::fs::Journal::end`](journal.cpp.md#fn-9a8ba69510b2c5fb)
-- [`xv::fs::Journal::initialize`](journal.cpp.md#fn-632dbb783eedc4e0)
-- [`xv::fs::Journal::install`](journal.cpp.md#fn-a2705e4cf85be2f4)
 - [`xv::fs::Journal::operator=`](journal.cppm.md#fn-cab0262ff7930705)
-- [`xv::fs::Journal::read_header`](journal.cpp.md#fn-d538c5309149d8cd)
 - [`xv::fs::Journal::record`](journal.cpp.md#fn-2bff0beebb0a1b13)
-- [`xv::fs::Journal::recover`](journal.cpp.md#fn-a46bb87dec6e1fcb)
 - [`xv::fs::Journal::sync`](journal.cpp.md#fn-5798daa238e10eb6)
-- [`xv::fs::Journal::write_header`](journal.cpp.md#fn-95f9d303c4dca3ed)
-- [`xv::fs::Journal::write_log`](journal.cpp.md#fn-0cdba2dc483b4403)
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-e26e176641d6293e)
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-1065f6193f43c5ac)
 - [`xv::fs::Transaction::Transaction`](journal.cppm.md#fn-b65a1bef83b0fe63)
@@ -33,27 +25,14 @@
 - [`xv::fs::Transaction::~Transaction`](journal.cppm.md#fn-b41989f478512a14)
 - [`xv::fs::journal`](../service.cpp.md#fn-fde437052d31cdd9)
 
-<a id="fn-17149b6d55129134"></a>
-
-## `xv::fs::Journal::Journal`
-
-```doxygen
-@fn constexpr explicit xv::fs::Journal::Journal(BlockCache &cache)
-@brief 构造文件系统重做日志，建立本重载要求的成员初值和借用关系。
-@param cache 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`cache_`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
-
 <a id="fn-6cb3a5a184fdb474"></a>
 
 ## `xv::fs::Journal::Journal`
 
 ```doxygen
-@fn xv::fs::Journal::Journal(const Journal &)
-@brief 文件系统重做日志的禁用操作：在编译期拒绝此种复制或赋值。
-@details 该成员显式声明为 deleted，不存在可在运行期调用的实现。它阻止绕开对象的引用/锁/所有权规则创建第二个拥有者。
-@return 无运行期返回路径；使用该操作会导致编译失败。
+@fn xv::fs::Journal::Journal(const Journal &)=delete
+@brief 声明与具体磁盘格式无关的事务协议；由xv6或ext3后端实现。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-cab0262ff7930705"></a>
@@ -61,10 +40,9 @@
 ## `xv::fs::Journal::operator=`
 
 ```doxygen
-@fn Journal &xv::fs::Journal::operator=(const Journal &)
-@brief 文件系统重做日志的禁用操作：在编译期拒绝此种复制或赋值。
-@details 该成员显式声明为 deleted，不存在可在运行期调用的实现。它阻止绕开对象的引用/锁/所有权规则创建第二个拥有者。
-@return 无运行期返回路径；使用该操作会导致编译失败。
+@fn Journal &xv::fs::Journal::operator=(const Journal &)=delete
+@brief 声明与具体磁盘格式无关的事务协议；由xv6或ext3后端实现。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-1065f6193f43c5ac"></a>
@@ -139,4 +117,23 @@
 @fn inline explicit xv::fs::Transaction::Transaction(bool persistent)
 @brief 按固定顺序预留所需日志事务。
 @details 显式 Journal 构造只保留指定日志；persistent 构造在需要时先系统盘再数据盘，默认构造选择持久事务。第二日志仅在启动恢复后发布。
+```
+<a id="fn-77b0a063f8d44c98"></a>
+
+## `xv::fs::Journal::Journal`
+
+```doxygen
+@fn constexpr xv::fs::Journal::Journal()=default
+@brief 声明与具体磁盘格式无关的事务协议；由xv6或ext3后端实现。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-fcb025f12f6226d1"></a>
+
+## `xv::fs::Journal::~Journal`
+
+```doxygen
+@fn xv::fs::Journal::~Journal()=default
+@brief 声明与具体磁盘格式无关的事务协议；由xv6或ext3后端实现。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

@@ -5,6 +5,7 @@
 #include "kernel/fs/format/layout.h"
 #include "user/runtime/user.h"
 #include "editor.h"
+#include "user/runtime/directory.h"
 
 namespace shell
 {
@@ -12,13 +13,13 @@ namespace
 {
 char history[32][512];
 int history_count = 0;
-char matches[128][MAXPATH];
+char matches[128][257];
 unsigned match_count;
 
 void add_match(const char *name, const char *prefix)
 {
   unsigned size = strlen(prefix);
-  if (strlen(name) >= MAXPATH || strlen(name) < size || memcmp(name, prefix, size))
+  if (strlen(name) >= sizeof(matches[0]) || strlen(name) < size || memcmp(name, prefix, size))
   {
     return;
   }
@@ -42,16 +43,10 @@ void scan(const char *directory, const char *prefix, bool command)
   {
     return;
   }
-  dirent entry;
-  while (read(fd, &entry, sizeof(entry)) == sizeof(entry))
+  DirectoryReader reader(fd);const linux_dirent64 *entry;
+  while (reader.next(entry)==1)
   {
-    if (!entry.inum)
-    {
-      continue;
-    }
-    char name[DIRSIZ + 2];
-    memmove(name, entry.name, DIRSIZ);
-    name[DIRSIZ] = 0;
+    char name[257];strcpy(name,entry->d_name);
     if (!strcmp(name, ".") || !strcmp(name, "..") ||
         (name[0] == '.' && prefix[0] != '.'))
     {
@@ -69,7 +64,7 @@ void scan(const char *directory, const char *prefix, bool command)
     {
       continue;
     }
-    char path[MAXPATH];
+    static char path[MAXPATH];
     unsigned size = strlen(directory);
     if (size + strlen(name) + 2 > sizeof(path))
     {
@@ -168,7 +163,7 @@ void Editor::complete(int &used)
       return;
     }
   }
-  char token[MAXPATH];
+  static char token[MAXPATH];
   int size = cursor_ - start;
   if (size >= MAXPATH)
   {
@@ -195,7 +190,7 @@ void Editor::complete(int &used)
   match_count = 0;
   if (base != token)
   {
-    char directory[MAXPATH];
+    static char directory[MAXPATH];
     unsigned length = base - token;
     memmove(directory, token, length);
     directory[length] = 0;
@@ -219,7 +214,7 @@ void Editor::complete(int &used)
     }
     for (;;)
     {
-      char directory[MAXPATH];
+      static char directory[MAXPATH];
       unsigned length = 0;
       while (path[length] && path[length] != ':')
       {

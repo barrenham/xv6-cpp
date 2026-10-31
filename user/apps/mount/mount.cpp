@@ -16,7 +16,7 @@ extern "C" int main(int argc, char **argv)
   }
   if (argc != 4 || strcmp(argv[1], "-t"))
   {
-    fprintf(2, "usage: mount [-t ramfs|xv6 /directory]\n");
+    fprintf(2, "usage: mount [-t ramfs|ext3|xv6 /directory]\n");
     exit(1);
   }
   if (mount(argv[2], argv[3]) < 0)

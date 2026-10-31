@@ -225,10 +225,9 @@
 ## `xv::process::ElfLoader::load`
 
 ```doxygen
-@fn int xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
+@fn int ElfLoader::xv::process::ElfLoader::load(Process &process, const char *path, char *const *arguments, char *const *environment)
 @brief 准备带区域登记的候选镜像后提交执行状态。
-@details 候选中登记镜像及用户栈，保护页登记失败也回滚；参数和环境 copyout 使用区域权限。所有准备成功后交换地址空间及其区域表，再应用捕获的 setid 凭据。
-@details 编排由 LoadFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-51cf014f3d7bbc3b"></a>
@@ -337,8 +336,8 @@
 
 ```doxygen
 @fn static void xv::process::ElfLoader::LoadFlow::commit(Context &c) noexcept
-@brief 提交候选映像、应用 exec 凭据并记录参数数量。
-@details 候选映像和可执行文件保留在 load 的词法作用域中；失败释放候选，成功交换后才回收旧映像。四个入栈调用共用 PushBounds 子流程，return_ 返回调用位置，失败 stop 结束整次装载。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
+@brief 提交暂存事务，提交记录落盘后再checkpoint并清理日志。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-39751e338956f60d"></a>
@@ -549,4 +548,13 @@
 @fn static bool xv::process::ElfLoader::LoadFlow::valid_segment(Context &c) noexcept
 @brief 验证内存大小、虚拟页对齐和段末地址未溢出。
 @details 候选映像和可执行文件保留在 load 的词法作用域中；失败释放候选，成功交换后才回收旧映像。四个入栈调用共用 PushBounds 子流程，return_ 返回调用位置，失败 stop 结束整次装载。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
+```
+<a id="fn-aab803e89745a022"></a>
+
+## `xv::process::ElfLoader::LoadFlow::snapshot`
+
+```doxygen
+@fn static bool xv::process::ElfLoader::LoadFlow::snapshot(Context &c) noexcept
+@brief 流程动作或条件 snapshot；作用于当前Context，转移关系由所属图声明。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

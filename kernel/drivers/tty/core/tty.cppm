@@ -8,12 +8,23 @@ import xv.sync;
 
 namespace xv::drivers
 {
+// Session lookup only calls retain() under its spinlock. Completion happens
+// after that lock is released, so PTY/TTY locks cannot invert the group lock.
+class TerminalLifetime
+{
+public:
+  virtual void retain_terminal()=0;
+  virtual CharacterDevice *open_retained_terminal()=0;
+protected:
+  constexpr TerminalLifetime()=default;
+  ~TerminalLifetime()=default;
+};
 class Tty final : public CharacterDevice, public InputReceiver
 {
 public:
 
-  constexpr Tty(TerminalOutput &output, LineDiscipline &discipline)
-      : output_(output), discipline_(discipline)
+  constexpr Tty(TerminalOutput &output, LineDiscipline &discipline,TerminalLifetime *lifetime=nullptr)
+      : output_(output), discipline_(discipline), lifetime_(lifetime)
   {
   }
 
@@ -22,6 +33,10 @@ public:
     return "ttyS0";
   }
 
+  Tty *pin_terminal()
+  {if(lifetime_)lifetime_->retain_terminal();return this;}
+  CharacterDevice *open_pinned_terminal()
+  {return lifetime_ ? lifetime_->open_retained_terminal():this;}
   void initialize() override;
   int read(IoBuffer destination, int count) override;
   int write(IoBuffer source, int count) override;
@@ -46,6 +61,7 @@ private:
 
   TerminalOutput &output_;
   LineDiscipline &discipline_;
+  TerminalLifetime *lifetime_;
   xv::sync::SpinLock lock_;
   xv::sync::SleepLock read_lock_;
   xv::sync::SleepLock write_lock_;

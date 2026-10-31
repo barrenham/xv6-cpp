@@ -382,3 +382,12 @@
 @brief 取得当前进程有效 GID。
 @details 只在进程上下文调用，返回快照中的有效组，供 PTY 节点记录所属组。
 ```
+<a id="fn-fa841fa451524ec7"></a>
+
+## `xv::drivers::detail::pin_controlling_terminal`
+
+```doxygen
+@fn void *xv::drivers::detail::pin_controlling_terminal(void *(*pin)(void *))
+@brief 在进程组锁内查找并固定当前session的控制终端。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

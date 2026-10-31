@@ -5,7 +5,7 @@ export import xv.sync;
 export namespace xv::io
 {
 using Metadata = ::stat;
-enum class MetadataKind : short { Directory = T_DIR, Regular = T_FILE, Device = T_DEVICE, Socket = T_SOCKET };
+enum class MetadataKind : short { Directory = T_DIR, Regular = T_FILE, Device = T_DEVICE, Socket = T_SOCKET, Block = T_BLOCK };
 enum class CapabilityId { DeviceControl, Socket };
 struct Buffer { unsigned long address; bool nonblocking = false; bool append = false; };
 class Capability
@@ -31,7 +31,10 @@ public:
   virtual int read(Buffer destination, int count) = 0;
   virtual int write(Buffer source, int count) = 0;
   virtual unsigned poll(xv::sync::PollTable *table) = 0;
+  virtual int getdents64(Buffer,int) {return -1;}
   virtual long seek(long, int) { return -1; }
+  // Lock-free observation only; descriptor inspection must not acquire I/O locks.
+  virtual unsigned long position() const {return 0;}
   virtual int resize(unsigned) { return -1; }
   virtual int sync() { return -1; }
   virtual int stat(Metadata &) { return -1; }

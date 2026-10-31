@@ -61,3 +61,12 @@
 @brief 提交设备的持久化屏障。
 @details 默认不执行操作；支持持久写缓存的驱动须覆写，调用者不能把默认实现视为硬件落盘保证。
 ```
+<a id="fn-bda7dac14ba4c3cb"></a>
+
+## `xv::drivers::BlockDevice::capacity_sectors`
+
+```doxygen
+@fn virtual unsigned long xv::drivers::BlockDevice::capacity_sectors() const
+@brief 返回设备真实的64位512字节扇区数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

@@ -20,6 +20,8 @@ inline constexpr unsigned VIRTIO_MMIO_DEVICE_ID =
 inline constexpr unsigned VIRTIO_MMIO_VENDOR_ID = 0x00c; // 0x554d4551
 inline constexpr unsigned VIRTIO_MMIO_DEVICE_FEATURES = 0x010;
 inline constexpr unsigned VIRTIO_MMIO_DRIVER_FEATURES = 0x020;
+inline constexpr unsigned VIRTIO_MMIO_DEVICE_FEATURES_SEL = 0x014;
+inline constexpr unsigned VIRTIO_MMIO_DRIVER_FEATURES_SEL = 0x024;
 inline constexpr unsigned VIRTIO_MMIO_QUEUE_SEL = 0x030; // select queue, write-only
 inline constexpr unsigned VIRTIO_MMIO_QUEUE_NUM_MAX =
     0x034; // max size of current queue, read-only
@@ -39,6 +41,8 @@ inline constexpr unsigned VIRTIO_MMIO_DRIVER_DESC_HIGH = 0x094;
 inline constexpr unsigned VIRTIO_MMIO_DEVICE_DESC_LOW =
     0x0a0; // physical address for used ring, write-only
 inline constexpr unsigned VIRTIO_MMIO_DEVICE_DESC_HIGH = 0x0a4;
+inline constexpr unsigned VIRTIO_MMIO_CONFIG_GENERATION = 0x0fc;
+inline constexpr unsigned VIRTIO_MMIO_CONFIG = 0x100;
 
 // status register bits, from qemu virtio_config.h
 inline constexpr unsigned VIRTIO_CONFIG_S_ACKNOWLEDGE = 1;

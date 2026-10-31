@@ -4,17 +4,18 @@ module;
 #include "kernel/fs/format/layout.h"
 module xv.fs:journal_flow;
 import :journal;
+import :xv6_journal;
 import :platform;
 
 namespace xv::fs
 {
 namespace flow = xv::flow;
 
-struct Journal::WaitProtocol
+struct Xv6Journal::WaitProtocol
 {
   struct Context
   {
-    Journal &owner;
+    Xv6Journal &owner;
   };
 
   static void wait(Context &c) noexcept
@@ -31,7 +32,7 @@ struct Journal::WaitProtocol
   }
 };
 
-struct Journal::BeginFlow
+struct Xv6Journal::BeginFlow
 {
   using Context = WaitProtocol::Context;
 
@@ -68,7 +69,7 @@ struct Journal::BeginFlow
           flow::node<Unlock, flow::action<&WaitProtocol::unlock>, flow::stop>>>;
 };
 
-struct Journal::CommitFlow
+struct Xv6Journal::CommitFlow
 {
   using Context = WaitProtocol::Context;
 
@@ -117,7 +118,7 @@ struct Journal::CommitFlow
           flow::node<ClearHeader, flow::action<&persist_header>, flow::stop>>>;
 };
 
-struct Journal::RecoverFlow
+struct Xv6Journal::RecoverFlow
 {
   using Context = WaitProtocol::Context;
 
@@ -149,7 +150,7 @@ struct Journal::RecoverFlow
           flow::node<Persist, flow::action<&CommitFlow::persist_header>, flow::stop>>>;
 };
 
-struct Journal::EndFlow
+struct Xv6Journal::EndFlow
 {
   using Context = WaitProtocol::Context;
 
@@ -224,7 +225,7 @@ struct Journal::EndFlow
           flow::node<OtherUnlock, flow::action<&WaitProtocol::unlock>, flow::stop>>>;
 };
 
-struct Journal::RecordFlow
+struct Xv6Journal::RecordFlow
 {
   struct Context : WaitProtocol::Context
   {
@@ -304,7 +305,7 @@ struct Journal::RecordFlow
                   flow::node<Unlock, flow::action<&WaitProtocol::unlock>, flow::stop>>>;
 };
 
-struct Journal::SyncFlow
+struct Xv6Journal::SyncFlow
 {
   struct Context : WaitProtocol::Context
   {

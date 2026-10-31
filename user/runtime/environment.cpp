@@ -77,7 +77,7 @@ int execvp(const char *file, char *const *arguments)
     unsigned prefix = end - search, name = strlen(file);
     if (prefix + name + 2 <= MAXPATH)
     {
-      char path[MAXPATH]; unsigned used = 0;
+      static char path[MAXPATH]; unsigned used = 0;
       for (; used < prefix; ++used) path[used] = search[used];
       if (used) path[used++] = '/';
       strcpy(path + used, file); execv(path, arguments);

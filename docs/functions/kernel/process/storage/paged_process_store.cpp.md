@@ -31,6 +31,12 @@
 - [`xv::process::PagedProcessStore::release`](paged_process_store.cpp.md#fn-b890f202b0802620)
 - [`xv::process::PagedProcessStore::visit`](paged_process_store.cpp.md#fn-6cb9aa1e15885253)
 
+- [`xv::process::PagedProcessStore::AllocateFlow::published`](paged_process_store.cpp.md#fn-3fcf4fdd6acd7cdf)
+
+- [`xv::process::PagedProcessStore::AllocateFlow::discard`](paged_process_store.cpp.md#fn-e05c51cba3e813ed)
+
+- [`xv::process::PagedProcessStore::find_pid`](paged_process_store.cpp.md#fn-6dab1bac2166ed48)
+
 <a id="fn-06625233c22e977d"></a>
 
 ## `xv::process::PagedProcessStore::initialize`
@@ -59,10 +65,8 @@
 
 ```doxygen
 @fn PagedProcessStore::Node *xv::process::PagedProcessStore::node_at(Process &process)
-@brief 稳定的分页进程登记：node定位。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`__builtin_offsetof`。
-@return 各分支实际返回：`reinterpret_cast<Node *>(reinterpret_cast<unsigned char *>(&process) - __builtin_offsetof(Node, storage))`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 通过进程中不变的存储归属指针找回节点，不依赖非标准布局的成员偏移。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-8add4ef4af29f162"></a>
@@ -70,9 +74,9 @@
 ## `xv::process::PagedProcessStore::allocate`
 
 ```doxygen
-@fn Process *xv::process::PagedProcessStore::allocate()
-@brief 锁内选取非满页，必要时申请并初始化一页；通过策略虚方法取得槽位，更新活跃位、计数与链表。
-@details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
+@fn Process *xv::process::PagedProcessStore::allocate(int pid)
+@brief 通过 AllocateFlow 取得 slab 描述符和按需内核栈，在登记锁内共同发布 PID 树与双向登记链。负 PID 拒绝；重复正 PID 完整回滚；零表示内部未索引测试对象。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-b890f202b0802620"></a>
@@ -81,10 +85,8 @@
 
 ```doxygen
 @fn void xv::process::PagedProcessStore::release(Process *process)
-@brief 稳定的分页进程登记：释放当前引用或归还对象占用的资源。
-@param process 被操作的稳定进程对象，存活期必须覆盖本次访问。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 流程由 ReleaseFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 先核对不可变节点归属，拒绝跨注册表释放；随后消费持有的进程锁，通过 ReleaseFlow 退役、摘除登记链与 PID 树并完整回收。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-bffa9ef733537f45"></a>
@@ -129,8 +131,8 @@
 
 ```doxygen
 @fn static void xv::process::PagedProcessStore::AllocateFlow::construct(Context &c) noexcept
-@brief 原位构造节点与持锁进程并设置栈地址。
-@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 构造尚未公开的节点和描述符，在发布前写入 PID、存储归属与内核栈地址。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-8cc0bf2c16fb13e4"></a>
@@ -169,8 +171,8 @@
 
 ```doxygen
 @fn static void xv::process::PagedProcessStore::AllocateFlow::publish(Context &c) noexcept
-@brief 在注册表锁下接入全局节点链并增加计数。
-@details 按原顺序取得描述符页与内核栈，栈失败只归还候选页；构造并持锁初始化后才在注册表锁内发布。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 候选尚未公开且持有自身进程锁，在登记锁内插入唯一 PID 树和双向链表；重复 PID 不改变登记结构并交给 discard 回滚。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-3728d96b78ab4760"></a>
@@ -229,8 +231,8 @@
 
 ```doxygen
 @fn static void xv::process::PagedProcessStore::ReleaseFlow::remove(Context &c) noexcept
-@brief 在注册表锁内摘除节点并重新取得进程锁以排空已有读者。
-@details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 进程先退役并释放原进程锁；随后在登记锁内 O(1) 摘除双向登记链、O(log N) 删除 PID 索引，再等待此前借出的进程锁，阻止析构与查询竞争。
+@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
 ```
 
 <a id="fn-3c4deec9c966df92"></a>
@@ -241,4 +243,34 @@
 @fn static void xv::process::PagedProcessStore::ReleaseFlow::retire(Context &c) noexcept
 @brief 验证进程已脱离运行资源并标记退役、释放进程锁。
 @details 保存节点与栈后先 retire 释放进程锁，再取注册表锁摘链并等待读者释放进程锁；销毁后不读取进程，最后释放栈和节点页。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-3fcf4fdd6acd7cdf"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::published`
+
+```doxygen
+@fn static bool xv::process::PagedProcessStore::AllocateFlow::published(Context &c) noexcept
+@brief 判断 PID 索引和登记链是否已共同发布，重复 PID 时进入完整回滚。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-e05c51cba3e813ed"></a>
+
+## `xv::process::PagedProcessStore::AllocateFlow::discard`
+
+```doxygen
+@fn static void xv::process::PagedProcessStore::AllocateFlow::discard(Context &c) noexcept
+@brief 回滚未发布的重复 PID 候选：退役并析构描述符，归还内核栈与 slab 存储，结果清空；注册表和原 PID 不受影响。
+@note 详细锁协议见 docs/process-index-wait.md。
+```
+
+<a id="fn-6dab1bac2166ed48"></a>
+
+## `xv::process::PagedProcessStore::find_pid`
+
+```doxygen
+@fn Process *xv::process::PagedProcessStore::find_pid(int pid)
+@brief 在登记锁内查询 PID 红黑树，再取得目标进程锁并复核身份；成功返回已锁定的稳定对象，失败返回空。删除沿用退役后摘除、等待借用锁归还的生命周期协议，查询为 O(log N)。
+@note 详细锁协议见 docs/process-index-wait.md。
 ```

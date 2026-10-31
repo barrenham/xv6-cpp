@@ -26,7 +26,7 @@
 ```doxygen
 @fn static SyscallHandler xv::syscall::lookup_syscall(int number)
 @brief 把共享 ABI 调用号映射到处理函数。
-@details 加入原保留号 symlink 与 lseek/ftruncate/fsync/readlink/lstat，其余条件实验和未知号行为保持不变。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>

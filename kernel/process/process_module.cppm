@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/system_accounting.h"
 export module xv.process;
 
 export import :registers;
@@ -10,6 +12,13 @@ export import :poll;
 
 export namespace xv::process
 {
+using CpuStatistics=xv::stats::Cpu;
+using SystemStatistics=xv::stats::System;
+bool cpu_statistics(unsigned cpu,CpuStatistics &result);
+SystemStatistics system_statistics();
+void account_timer(bool from_user);
+void account_external_interrupt();
+void account_dispatch();
 void initialize();
 // Boot-only policy selection; false leaves an invalid/repeated attempt unchanged.
 bool initialize(SchedulerKind kind);
@@ -24,6 +33,7 @@ void deliver_signals();
 int set_signal_disposition(int signal, int action);
 void post_terminal_interrupt(void *terminal, int signal);
 void service_signal_notifications();
+void *pin_controlling_terminal(void *(*pin)(void *));
 int claim_terminal(void *terminal);
 void detach_terminal(void *terminal);
 int terminal_foreground(void *terminal);
@@ -42,6 +52,7 @@ void poll_timer_tick(unsigned long milliseconds);
 void dump();
 bool snapshot_after(int after, ProcessInfo &result);
 int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
+bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result);
 int copy_in(void *destination, bool user, unsigned long source, unsigned long count);
 int copy_out(bool user, unsigned long destination, const void *source,
              unsigned long count);

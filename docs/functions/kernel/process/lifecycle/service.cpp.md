@@ -71,8 +71,7 @@
 ```doxygen
 @fn void xv::process::create_initial_process()
 @brief 进程对象生命周期、组身份、调度、等待与信号：创建initial进程。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`process_manager.create_initial_process`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-42491b6e530470a7"></a>
@@ -363,3 +362,72 @@
 ```
 
 启动选择与全局对象初始化见 [可选调度策略](../../../../scheduling.md)。
+<a id="fn-0f9629832bbc85a8"></a>
+
+## `xv::process::cpu_statistics`
+
+```doxygen
+@fn bool xv::process::cpu_statistics(unsigned cpu,CpuStatistics &result)
+@brief 读取一个hart的采样计数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-6da719ed0fea92a2"></a>
+
+## `xv::process::system_statistics`
+
+```doxygen
+@fn SystemStatistics xv::process::system_statistics()
+@brief 读取系统累计调度和成功创建计数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-c8afa39d3fd38a5f"></a>
+
+## `xv::process::account_timer`
+
+```doxygen
+@fn void xv::process::account_timer(bool user)
+@brief 按用户态/内核忙碌/空闲分类累计一个定时采样。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-9cf7888dc70699df"></a>
+
+## `xv::process::account_external_interrupt`
+
+```doxygen
+@fn void xv::process::account_external_interrupt()
+@brief 累计当前hart的外部中断。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-f5316ba7fe99bd3c"></a>
+
+## `xv::process::account_dispatch`
+
+```doxygen
+@fn void xv::process::account_dispatch()
+@brief 累计一次实际调度进入。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-a80386bf7a0d6e46"></a>
+
+## `xv::process::pin_controlling_terminal`
+
+```doxygen
+@fn void *xv::process::pin_controlling_terminal(void *(*pin)(void *))
+@brief 在进程组锁内查找并固定当前session的控制终端。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-fdec1bd9dc3e9eaa"></a>
+
+## `xv::process::inspect_exec`
+
+```doxygen
+@fn bool xv::process::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+@brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

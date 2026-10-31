@@ -22,6 +22,9 @@
 #define UART0     0x10000000L
 #define UART0_IRQ 10
 
+// QEMU virt Goldfish real-time clock (read-only wall clock service).
+#define RTC0 0x00101000L
+
 // virtio mmio interface
 #define VIRTIO0     0x10001000
 #define VIRTIO0_IRQ 1

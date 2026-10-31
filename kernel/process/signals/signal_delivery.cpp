@@ -32,7 +32,7 @@ struct ProcessManager::WakeSignalFlow
     c.process.stop_event_ = false;
     c.process.continued_event_ = !c.fatal;
     c.process.continue_notification_ = c.process.continue_notification_ || !c.fatal;
-    __atomic_store_n(&c.owner.child_notifications_, true, __ATOMIC_RELEASE);
+    c.owner.queue_child_notification(c.process);
   }
 
   static bool interrupt(Context &c) noexcept
@@ -81,7 +81,7 @@ struct ProcessManager::SendPidSignalFlow
   struct Context
   {
     ProcessManager &owner;
-    ProcessPredicate &key;
+    int pid;
     int signal;
     Process *process = nullptr;
     int result = -1;
@@ -89,7 +89,7 @@ struct ProcessManager::SendPidSignalFlow
 
   static void find(Context &c) noexcept
   {
-    c.process = c.owner.store_.find(c.key);
+    c.process = c.owner.store_.find_pid(c.pid);
   }
 
   static bool found(Context &c) noexcept
@@ -207,34 +207,7 @@ struct ProcessManager::NotifyChildFlow
 
   static void collect(Context &c) noexcept
   {
-    xv::sync::ScopedLock family(c.owner.wait_lock_);
-
-    class Continued final : public ProcessVisitor
-    {
-    public:
-
-      explicit Continued(ProcessManager &manager) : manager_(manager)
-      {
-      }
-
-      void visit(Process &child) override
-      {
-        if (!child.continue_notification_)
-        {
-          return;
-        }
-        child.continue_notification_ = false;
-        manager_.post_child_signal(child);
-      }
-
-    private:
-
-      ProcessManager &manager_;
-    } continued(c.owner);
-
-    // The family lock pins parent pointers through posting, without a parent lock.
-    c.owner.store_.visit(continued);
-    c.owner.wakeup(&c.owner.child_events_);
+    c.owner.collect_child_notifications();
   }
 
   static void wake(Context &c) noexcept
@@ -324,7 +297,7 @@ struct ProcessManager::DeliverSignalFlow
     c.owner.waits_.cancel(c.process);
     c.owner.wait_lock_.acquire();
     // Notify before taking the child lock, closing the parent's check-to-sleep window.
-    c.owner.wakeup(&c.owner.child_events_);
+    if (c.process.parent) c.owner.wakeup(&c.process.parent->child_events_);
     c.process.lock.acquire();
     c.signal = c.process.pending_signals_.take_stop();
   }
@@ -407,25 +380,7 @@ int ProcessManager::send_signal(int target, int signal)
   }
   if (target > 0)
   {
-    class Pid final : public ProcessPredicate
-    {
-    public:
-
-      explicit Pid(int id) : id_(id)
-      {
-      }
-
-      bool matches(Process &process) override
-      {
-        return process.state != ProcessState::Unused && process.pid == id_;
-      }
-
-    private:
-
-      int id_;
-    } key(target);
-
-    SendPidSignalFlow::Context context{*this, key, signal};
+    SendPidSignalFlow::Context context{*this, target, signal};
     (void)SendPidSignalFlow::Graph::run<0>(context);
     return context.result;
   }
@@ -558,6 +513,7 @@ void ProcessManager::post_child_signal(Process &child)
 {
   // wait_lock_ pins the parent across posting/reparent/reap. The child lock may
   // be held: do not acquire the parent lock or scan the registry here.
+  refresh_child_events(child);
   if (child.parent)
   {
     child.parent->pending_signals_.post(SIGCHLD);

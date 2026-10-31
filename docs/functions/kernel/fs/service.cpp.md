@@ -34,7 +34,7 @@
 ```doxygen
 @fn void xv::fs::initialize_cache()
 @brief 装配系统缓存和可选数据盘缓存。
-@details 探测第二块盘后初始化其队列和独立缓存，再向 VFS 借出持久文件系统实例；此阶段不执行需要进程上下文的文件系统恢复。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-f6456e38e2f03d00"></a>
@@ -74,5 +74,15 @@
 ```doxygen
 @fn Journal &xv::fs::journal()
 @brief 文件描述、inode、路径、块缓存与日志事务：读取或计算 `system_journal`，返回当前查询结果。
-@return 各分支实际返回：`system_journal`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-2764ac52db897bd0"></a>
+
+## `xv::fs::detail::registered_filesystem`
+
+```doxygen
+@fn bool detail::xv::fs::detail::registered_filesystem(unsigned index,detail::FileSystemType &record)
+@brief 按索引读取已注册文件系统类型及nodev属性。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

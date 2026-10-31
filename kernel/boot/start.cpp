@@ -35,6 +35,7 @@ unsigned long device_tree()
 
 [[noreturn]] void enter(unsigned long hart_id, unsigned long device_tree)
 {
+  xv::arch::record_cpu_hardware(unsigned(hart_id));
   if (hart_id == 0)
   {
     firmware_device_tree = device_tree;

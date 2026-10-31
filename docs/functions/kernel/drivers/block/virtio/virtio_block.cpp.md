@@ -398,3 +398,12 @@
 @brief 在设备锁内登记槽位等待后解锁睡眠并复取。
 @details 入口持设备锁并保留原未初始化索引数组的调用帧；等待在条件锁内登记后解锁睡眠。提交中的屏障保持相邻，调用者 DMA 缓冲活到完成，flush 仍归还全部三个槽。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
+<a id="fn-bf8018e059e14ed7"></a>
+
+## `xv::drivers::VirtioBlock::capacity_sectors`
+
+```doxygen
+@fn unsigned long VirtioBlock::xv::drivers::VirtioBlock::capacity_sectors() const
+@brief 返回设备真实的64位512字节扇区数。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

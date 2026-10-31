@@ -2,6 +2,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/support/param.h"
 module xv.fs:vfs_path_flow;
 import :vfs;
 import :platform;
@@ -20,6 +21,8 @@ struct VirtualFileSystem::WalkFlow
     char *name;
     bool real, follow, creating;
     char *pending, *target;
+    unsigned name_capacity=256;
+    bool exact_names=false;
     Inode *node = nullptr, *next = nullptr, *result = nullptr;
     unsigned links = 0, size = 0, rest = 0;
     bool valid = false, trailing = false;
@@ -30,7 +33,7 @@ struct VirtualFileSystem::WalkFlow
     unsigned length = 0;
     while (c.path[length])
     {
-      if (length == 127)
+      if (length == MAXPATH-1)
       {
         return;
       }
@@ -73,26 +76,25 @@ struct VirtualFileSystem::WalkFlow
 
   static void component(Context &c) noexcept
   {
-    unsigned length = 0;
-    while (*c.path && *c.path != '/')
+    unsigned length=0,limit=c.node->owner().name_max();
+    if(limit>255)limit=255;
+    while(*c.path && *c.path!='/')
     {
-      if (length < DIRSIZ)
-      {
-        c.name[length++] = *c.path;
-      }
-      ++c.path;
+      if(length<limit && length<c.name_capacity)c.name[length]=*c.path;
+      ++length;++c.path;
     }
-    if (length < DIRSIZ)
-    {
-      c.name[length] = 0;
-    }
+    // The xv6 backend keeps its historical truncation aliases. Native ext3
+    // names are exact and reject oversized components rather than aliasing.
+    if(limit==14 && length>limit && !c.exact_names)length=limit;
+    c.valid=length<=limit && length<=c.name_capacity;
+    if(length<c.name_capacity)c.name[length]=0;
     skip_slashes(c);
     c.owner.lock(c.node);
   }
 
   static bool searchable(Context &c) noexcept
   {
-    return c.node->kind() == T_DIR && c.node->linked() &&
+    return c.valid && c.node->kind() == T_DIR && c.node->linked() &&
            detail::allowed(c.node, 1, c.real);
   }
 
@@ -176,7 +178,7 @@ struct VirtualFileSystem::WalkFlow
     {
       ++c.rest;
     }
-    c.valid = ++c.links <= 16 && c.size && c.size + (c.rest ? 1 : 0) + c.rest < 128 &&
+    c.valid = ++c.links <= 16 && c.size && c.size + (c.rest ? 1 : 0) + c.rest < MAXPATH &&
               c.next->owner().read(c.next, 0, reinterpret_cast<unsigned long>(c.target),
                                    0, c.size) == static_cast<int>(c.size);
     c.owner.unlock_release(c.next);
@@ -330,7 +332,7 @@ struct VirtualFileSystem::AncestorFlow
 
   static bool remaining(Context &c) noexcept
   {
-    return c.depth < 128;
+    return c.depth < MAXPATH;
   }
 
   static bool matches(Context &c) noexcept
@@ -440,7 +442,7 @@ struct VirtualFileSystem::CreateFlow
 
   static bool openable(Context &c) noexcept
   {
-    return c.result->kind() == T_FILE || c.result->kind() == T_DEVICE;
+    return c.result->kind() == T_FILE || c.result->kind() == T_DEVICE || c.result->kind() == T_BLOCK;
   }
 
   static void reject(Context &c) noexcept
@@ -469,7 +471,7 @@ struct VirtualFileSystem::CreateFlow
 
   static void find_parent(Context &c) noexcept
   {
-    c.parent = c.owner.lookup_parent(c.path, c.name);
+    c.parent = c.owner.lookup_parent(c.path, c.name,256);
   }
 
   static bool parent_found(Context &c) noexcept
@@ -526,7 +528,7 @@ struct VirtualFileSystem::LinkFlow
 
   static void parent(Context &c) noexcept
   {
-    c.parent = c.owner.lookup_parent(c.new_path, c.name);
+    c.parent = c.owner.lookup_parent(c.new_path, c.name,256);
   }
 
   static bool parent_found(Context &c) noexcept
@@ -580,7 +582,7 @@ struct VirtualFileSystem::UnlinkFlow
 
   static void parent(Context &c) noexcept
   {
-    c.parent = c.owner.lookup_parent(c.path, c.name);
+    c.parent = c.owner.lookup_parent(c.path, c.name,256);
   }
 
   static bool found(Context &c) noexcept
@@ -688,8 +690,8 @@ struct VirtualFileSystem::RenameFlow
 
   static void parents(Context &c) noexcept
   {
-    c.from = c.owner.walk(c.old_path, true, c.old_name);
-    c.to = c.owner.walk(c.new_path, true, c.new_name);
+    c.from = c.owner.walk(c.old_path, true, c.old_name,false,true,false,256,true);
+    c.to = c.owner.walk(c.new_path, true, c.new_name,false,true,false,256,true);
   }
 
   static bool dot(const char *name) noexcept
@@ -817,7 +819,7 @@ struct VirtualFileSystem::SymlinkFlow
     unsigned size = 0;
     while (target[size])
     {
-      if (++size >= 128)
+      if (++size >= MAXPATH)
       {
         return 0;
       }

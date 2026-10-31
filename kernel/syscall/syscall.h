@@ -117,3 +117,5 @@
 #define SYS_readlink 91
 
 #define SYS_lstat 92
+
+#define SYS_getdents64 93

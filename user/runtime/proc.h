@@ -24,8 +24,11 @@ inline char *field(char *text, const char *name)
   {
     unsigned equal = 0;
     while (equal < length && line[equal] && line[equal] == name[equal]) ++equal;
-    if (equal == length && line[length] == ':')
-    { char *value = line + length + 1; while (*value == ' ') ++value; return value; }
+    if (equal == length)
+    {
+      char *colon=line+length;while(*colon==' ' || *colon=='\t')++colon;
+      if(*colon==':'){char *value=colon+1;while(*value==' ' || *value=='\t')++value;return value;}
+    }
     char *next = strchr(line, '\n'); line = next ? next + 1 : nullptr;
   }
   return nullptr;

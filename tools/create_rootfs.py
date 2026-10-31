@@ -14,10 +14,14 @@ import tempfile
 BLOCK = 1024
 INODE = 128
 DIRECT = 12
-DIRECTORY, FILE, DEVICE, SYMLINK = 1, 2, 3, 5
+DIRECTORY, FILE, DEVICE, SYMLINK, BLOCK_DEVICE = 1, 2, 3, 5, 6
 
 
-class Image:
+class LegacyImage:
+    root=1
+    filesystem="xv6"
+    name_max=14
+
     def __init__(self, path):
         with Path(path).open('r+b') as source:
             # No content writes: O_RDWR is needed only for an exclusive
@@ -248,54 +252,85 @@ class Image:
             struct.pack_into('<H', self.data, offset, links + 1)
         return number
 
+    def size(self, number):
+        return struct.unpack_from('<I', self.data, self.inode(number) + 8)[0]
+
+    def device_numbers(self, number):
+        return struct.unpack_from('<HH', self.data, self.inode(number) + 2)
+
+    def set_device_numbers(self, number, values):
+        if any(not 0 <= value <= 32767 for value in values):
+            raise ValueError('device number exceeds xv6 ABI')
+        struct.pack_into('<HH', self.data, self.inode(number) + 2, *values)
+
     def import_volume(self, source):
-        copied, directories = {}, set()
+        import_tree(self, source, rewrite_legacy_home=True)
 
-        def visit(old, new, prefix):
-            if old in directories:
-                raise ValueError('directory cycle in import volume')
-            directories.add(old)
-            for name, number in source.entries(old).items():
-                if name in (b'.', b'..'):
-                    continue
-                path = prefix + b'/' + name
-                kind = source.kind(number)
-                attributes = source.attributes(number)
-                existing = self.entries(new).get(name)
-                if kind == DIRECTORY:
-                    if existing is not None and self.kind(existing) != DIRECTORY:
-                        raise ValueError('import conflicts with rootfs: ' + repr(path))
-                    child = existing if existing is not None else self.create(new, name, kind, attributes)
-                    self.set_attributes(child, attributes)
-                    visit(number, child, path)
-                    continue
-                if kind not in (FILE, DEVICE, SYMLINK) or existing is not None:
-                    raise ValueError('unsupported or conflicting import: ' + repr(path))
-                if number in copied:
-                    self.link(new, name, copied[number])
-                    continue
-                child = self.create(new, name, kind, attributes)
-                copied[number] = child
-                if kind == DEVICE:
-                    self.data[self.inode(child) + 2:self.inode(child) + 6] = source.data[source.inode(number) + 2:source.inode(number) + 6]
-                content = source.read(number)
-                if path == b'/etc/passwd':
-                    lines = []
-                    for line in content.splitlines(keepends=True):
-                        fields = line.split(b':')
-                        if len(fields) != 7:
-                            raise ValueError('invalid imported passwd record')
-                        if fields[5] in (b'/data/root', b'/data/home') or fields[5].startswith(b'/data/home/'):
-                            fields[5] = fields[5][5:]
-                        lines.append(b':'.join(fields))
-                    content = b''.join(lines)
-                self.append(child, content)
 
-        visit(1, 1, b'')
+class Image:
+    """Read either format without holding a second descriptor on a locked image."""
+    def __new__(cls, path):
+        with Path(path).open('r+b') as source:
+            fcntl.lockf(source, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            content = source.read()
+        return cls.from_bytes(content)
+
+    @classmethod
+    def from_bytes(cls, content):
+        if len(content) >= 2048 and content[1080:1082] == b'\x53\xef':
+            from ext3_image import Ext3Image
+            return Ext3Image.from_bytes(content)
+        return LegacyImage.from_bytes(content)
+
+
+def import_tree(image, source, rewrite_legacy_home=False):
+    copied, directories = {}, set()
+
+    def visit(old, new, prefix):
+        if old in directories:
+            raise ValueError('directory cycle in import volume')
+        directories.add(old)
+        for name, number in source.entries(old).items():
+            if name in (b'.', b'..'):
+                continue
+            path = prefix + b'/' + name
+            kind = source.kind(number)
+            attributes = source.attributes(number)
+            existing = image.entries(new).get(name)
+            if kind == DIRECTORY:
+                if existing is not None and image.kind(existing) != DIRECTORY:
+                    raise ValueError('import conflicts with rootfs: ' + repr(path))
+                child = existing if existing is not None else image.create(new, name, kind, attributes)
+                image.set_attributes(child, attributes)
+                visit(number, child, path)
+                continue
+            if kind not in (FILE, DEVICE, SYMLINK, BLOCK_DEVICE) or existing is not None:
+                raise ValueError('unsupported or conflicting import: ' + repr(path))
+            if number in copied:
+                image.link(new, name, copied[number])
+                continue
+            child = image.create(new, name, kind, attributes)
+            copied[number] = child
+            if kind in (DEVICE, BLOCK_DEVICE):
+                image.set_device_numbers(child, source.device_numbers(number))
+            content = source.read(number)
+            if rewrite_legacy_home and path == b'/etc/passwd':
+                lines = []
+                for line in content.splitlines(keepends=True):
+                    fields = line.split(b':')
+                    if len(fields) != 7:
+                        raise ValueError('invalid imported passwd record')
+                    if fields[5] in (b'/data/root', b'/data/home') or fields[5].startswith(b'/data/home/'):
+                        fields[5] = fields[5][5:]
+                    lines.append(b':'.join(fields))
+                content = b''.join(lines)
+            image.append(child, content)
+
+    visit(source.root, image.root, b'')
 
 
 def clean_seed(image):
-    root = image.entries(1)
+    root = image.entries(image.root)
     for directory in (b'root', b'home', b'data'):
         if directory in root and set(image.entries(root[directory])) - {b'.', b'..'}:
             raise ValueError('installation seed contains private home/data files')
@@ -320,7 +355,7 @@ def main():
         return
     image = Image(args.seed)
     # Validate the seed contains the essential init image before publishing.
-    binary = image.entries(1).get(b'sbin')
+    binary = image.entries(image.root).get(b'sbin')
     if binary is None or b'init' not in image.entries(binary):
         raise ValueError('seed does not contain /sbin/init')
     clean_seed(image)
@@ -328,6 +363,7 @@ def main():
     if args.import_data and args.import_data.exists():
         image.import_volume(Image(args.import_data))
         print('imported existing data volume:', args.import_data)
+        image.validate_allocations()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.rootfs-', dir=args.output.parent) as temporary:
         candidate = Path(temporary) / 'rootfs.img'

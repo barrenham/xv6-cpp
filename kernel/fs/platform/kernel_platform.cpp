@@ -11,9 +11,26 @@ import :platform;
 import xv.process;
 import xv.memory;
 import xv.trap;
+import xv.arch;
 
 namespace xv::fs::detail
 {
+bool cpu_record(unsigned index,CpuRecord &record)
+{
+  xv::arch::CpuHardware hardware;if(!xv::arch::cpu_hardware(index,hardware))return false;
+  record={hardware.hart,hardware.isa,hardware.vendor,hardware.architecture,hardware.implementation};return true;
+}
+bool cpu_time(unsigned index,CpuTime &record)
+{
+  xv::process::CpuStatistics source;if(!xv::process::cpu_statistics(index,source))return false;
+  record={source.user,source.system,source.idle,source.interrupts};return true;
+}
+SystemCounts system_counts()
+{auto source=xv::process::system_statistics();return {source.switches,source.processes};}
+unsigned long epoch_seconds(){return xv::drivers::realtime_seconds();}
+unsigned long boot_epoch_seconds(){return xv::drivers::boot_time_seconds();}
+const char *kernel_version()
+{return "xv6-cpp version " XV_KERNEL_VERSION " (" XV_KERNEL_COMPILER ")\n";}
 Identity identity(bool real)
 {
   auto credentials = xv::process::current()->credentials().snapshot();
@@ -38,6 +55,8 @@ bool process_after(int after, ProcessRecord &result)
   return true;
 }
 int current_pid() { return xv::process::current()->id(); }
+bool process_exec_text(unsigned pid,bool environment,PageBuffer &buffer)
+{return xv::process::inspect_exec(int(pid),environment ? xv::process::ExecSnapshot::Field::Environment:xv::process::ExecSnapshot::Field::CommandLine,buffer);}
 int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity)
 {
   FileInfo entries[xv::process::DescriptorTable::Capacity]{};

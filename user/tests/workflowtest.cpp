@@ -74,7 +74,7 @@ extern "C" int main(int argc, char **argv)
   check(chdir("from/child") == 0, "cwd follows rename");
   check(rename("/tmp/workflow/from/child", "/tmp/workflow/to/child") == 0,
         "move directory");
-  char path[MAXPATH];
+  static char path[MAXPATH];
   check(getcwd(path, sizeof(path)) && !strcmp(path, "/tmp/workflow/to/child"),
         "cwd renamed path");
   check(chdir("/tmp/workflow") == 0, "restore cwd");

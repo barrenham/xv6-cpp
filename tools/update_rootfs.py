@@ -18,7 +18,7 @@ import uuid
 from create_rootfs import BLOCK, DIRECTORY, FILE, SYMLINK, Image, clean_seed
 
 
-def manifest_files(path):
+def manifest_files(path, name_max=255):
     files, directories, names = [], {}, set()
     for line in path.read_text().splitlines():
         if not line or line.startswith('#'):
@@ -31,8 +31,8 @@ def manifest_files(path):
             raise ValueError('invalid installation manifest field count')
         guest = PurePosixPath(name)
         parts = name.split('/')[1:]
-        if (not name.startswith('/') or not parts or len(name.encode()) >= 128 or
-                any(not part or '\0' in part or part in ('.', '..') or len(part.encode()) > 14 for part in parts) or
+        if (not name.startswith('/') or not parts or len(name.encode()) >= 4096 or
+                any(not part or '\0' in part or part in ('.', '..') or len(part.encode()) > name_max for part in parts) or
                 str(guest) != name or name in names):
             raise ValueError('invalid or duplicate installation path')
         if not mode or len(mode) > 5 or any(digit not in '01234567' for digit in mode):
@@ -53,7 +53,7 @@ def manifest_files(path):
 
 
 def lookup(image, parts):
-    number = 1
+    number = image.root
     for part in parts:
         entry = image.entries(number).get(part.encode())
         if entry is None:
@@ -70,7 +70,7 @@ def install(image, seed, files, directories):
         if seed.kind(source) != FILE or seed.attributes(source) != (0, 0, mode):
             raise ValueError('seed type/ownership/mode differs from manifest: ' + str(path))
         content = seed.read(source)
-        parent = 1
+        parent = image.root
         for index, part in enumerate(path.parts[1:-1], 2):
             name = part.encode()
             entry = image.entries(parent).get(name)
@@ -116,8 +116,8 @@ def same_inode(path, descriptor):
 
 
 def update(seed_path, image_path, manifest, dry_run=False):
-    files, directories = manifest_files(manifest)
     seed = Image(seed_path)
+    files, directories = manifest_files(manifest, seed.name_max)
     clean_seed(seed)
     seed.validate_allocations()
     path = image_path.resolve(strict=True)

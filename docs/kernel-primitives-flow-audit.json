@@ -22,8 +22,8 @@
         },
         {
           "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-          "sha256": "367b9dace95e39d375dec35ce724dbc37a3969e0494349c9c5d251d720f67515",
-          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock.",
+          "sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003",
+          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [
             {
               "qualified": "xv::trap::detail::refill_stack_reserve",
@@ -189,8 +189,8 @@
         },
         {
           "source": "kernel/trap/handlers/external_interrupt.cpp",
-          "sha256": "224d36c6916e15df41d66c1e2e791e88877252cdb98888e897f25ddab1a04177",
-          "review": "事件类型谓词及原一次外部中断路由委托；设备 claim/complete 协议由 drivers 图负责。",
+          "sha256": "106d0a6cb609163cb6a42e7bf7c7e8a5547c661592438523ca453febf8b876ca",
+          "review": "事件类型谓词及原一次外部中断路由委托；设备 claim/complete 协议由 drivers 图负责。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
@@ -217,15 +217,15 @@
         },
         {
           "source": "kernel/trap/handlers/timer_interrupt.cpp",
-          "sha256": "9342dd4ce34b5a38019cb6931a3377257e24ba44788d180a3ed914f3e1c46b19",
-          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。 Follow-up: timer accounting/rearm and device service still occur first; scheduler_timer_tick chooses Yield versus Resume without changing uptime units or timer cadence.",
+          "sha256": "343e5c2a491719b6a9e2e52a2d72ed8cb49e072fe0e79a73d62f26a2dadb5212",
+          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。 Follow-up: timer accounting/rearm and device service still occur first; scheduler_timer_tick chooses Yield versus Resume without changing uptime units or timer cadence. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/trap/platform/platform.cppm",
-          "sha256": "a77dac162ae6cebbf18b19aabd9444e6fd73d4d53f65fcd31f1c225a8eee800a",
-          "review": "架构平台边界函数声明。",
+          "sha256": "050c5fa259f127baefa140da4766f265ac216b00e6efe26c93c6e211cd48b9f3",
+          "review": "架构平台边界函数声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
@@ -367,8 +367,8 @@
       "files": [
         {
           "source": "kernel/arch/arch.cppm",
-          "sha256": "88331e4d2bbc0755f26a766ede5e280f2f6f55ac927f08e30a9bb5cd90b77d06",
-          "review": "命名空间内重用寄存器指令定义，保持原导出 ABI。",
+          "sha256": "fda97a58237aedf4aeed011a05f325f98b5c64c3b2e585aea0db9e13bc895576",
+          "review": "命名空间内重用寄存器指令定义，保持原导出 ABI。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
@@ -392,6 +392,13 @@
           "review": "用户兼容头，仅复用常量与非汇编指令声明。",
           "graph_entries": [],
           "pending": []
+        },
+        {
+          "source": "kernel/arch/hardware.cpp",
+          "sha256": "e3f4924c772f937827174092295c09548b31a54263c1b278690187354b99d2da",
+          "review": "启动阶段记录各 hart 的机器 CSR，在线位以 release/acquire 发布；查询是原子快照，不分配内存或获取进程锁。",
+          "graph_entries": [],
+          "pending": []
         }
       ]
     },
@@ -401,15 +408,29 @@
       "files": [
         {
           "source": "kernel/io/object.cppm",
-          "sha256": "6a05ee3359f2dab837e17f1b02a3ca0a4de037e930d37c3b5f61ade2ad96c352",
-          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。",
+          "sha256": "e097548a1944c20ec0fba42490f78c1a55aa85eb2dec8a0405baf7ea48c61054",
+          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/io/stat.h",
-          "sha256": "08b47cd32e508525178ebf499ef94f74ad53cc8aa73e2bf91d6d508e31b0ac5e",
-          "review": "共享元数据布局和节点类型 ABI 常量。",
+          "sha256": "662120dae2be473b1ccc0d3dc8bdc90786dd662fb3cefdddc23c3dd5a806989c",
+          "review": "共享元数据布局和节点类型 ABI 常量。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/block.h",
+          "sha256": "4ab33fb24afe21da089095cd92106ce1bd374269148c36396b28cbdaaaca89dc",
+          "review": "RV64 Linux块设备 ioctl 编号，纯用户ABI常量。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/dirent.h",
+          "sha256": "330b814dde3b1a64ee65ae63c5c8eaf3aa315184ac78ecdb336f84a0de84c5e2",
+          "review": "Linux RV64 dirent64字段及偏移/最大记录常量，编译期布局断言；记录生命周期在DirectoryFlow。",
           "graph_entries": [],
           "pending": []
         }
@@ -455,15 +476,15 @@
         },
         {
           "source": "kernel/support/param.h",
-          "sha256": "a130a29d49d9b55128967252ab26e6f29bce87360249e7ed2189689b26b58a5e",
-          "review": "固定内核容量常量。",
+          "sha256": "6b1f8976781ea508f34339ef2cae7a063f09c6e6f6ff39cb333a43f81479fb20",
+          "review": "固定内核容量常量。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/support/placement_new.hpp",
-          "sha256": "f04d13385881eb3bd0fa4c661cd559f99b26719450f17f732fbe4ea086075f05",
-          "review": "只返回已有存储地址的 placement new，不分配堆或引入 hosted new。",
+          "sha256": "58b47ef9291faaa0971787dc47c5dd72ac33b4c22c65d66ea86212af628b1b9c",
+          "review": "只返回已有存储地址的 placement new，不分配堆或引入 hosted new。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
           "graph_entries": [],
           "pending": []
         },
@@ -517,8 +538,8 @@
         },
         {
           "source": "kernel/support/string.cpp",
-          "sha256": "283b736b766a43eae176a57bc6f181bc25abcd1273ff0e0af0ec42ba5bdc42d1",
-          "review": "逐字节 fill/move/compare/copy/length，包含重叠方向和 NUL 策略，为紧凑数据原语，不能按字节增加图分派。",
+          "sha256": "9a7a3252ae591ee35414ec80535b9a44c4b29321e093325259c47ee0cff5cc78",
+          "review": "逐字节 fill/move/compare/copy/length，包含重叠方向和 NUL 策略，为紧凑数据原语，不能按字节增加图分派。 fill委托对齐机器字byte_fill，保留原字节语义。",
           "graph_entries": [],
           "pending": []
         },
@@ -558,6 +579,20 @@
           "sha256": "1a55c33462ea58fc4d1d79ba2a596ecc6225967654ea9e174011ff0d1ee6526d",
           "review": "Non-owning externally serialized 64-bit bitmap primitives. Bounds precede memory access; zero candidates never reach ctz; tail padding is never returned as an allocatable bit.",
           "graph_entries": []
+        },
+        {
+          "source": "kernel/support/system_accounting.h",
+          "sha256": "d85deeaa215cbde83c57ab628f425f5c6f9143650fde4dbf028e2435a8c1963a",
+          "review": "每 hart 松弛原子累计 user/system/idle/interrupts，系统累计 dispatch 与成功创建；查询逐项读取，明确不是全局原子时刻；模板参数限制 CPU 索引。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/byte_fill.h",
+          "sha256": "0ea4e49be39dfa88326124c63b1c92b0735f3f79ee6d9275d3ed368af903d6b5",
+          "review": "有界字节算法：逐字节对齐后使用 may_alias 机器字写入，尾部逐字节处理；不越界，不引入动态内存、锁或业务生命周期。",
+          "graph_entries": [],
+          "pending": []
         }
       ]
     }

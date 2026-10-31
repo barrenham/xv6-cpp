@@ -141,3 +141,12 @@
 @details 需要特别跟踪的条件：`groups_.may_read_terminal(process->membership_, terminal)`。这些条件决定检查、重试或提前返回路径。
 @return 各分支实际返回：`true`；`false`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+<a id="fn-6d7c7b69f9c072ca"></a>
+
+## `xv::process::ProcessManager::pin_controlling_terminal`
+
+```doxygen
+@fn void *ProcessManager::xv::process::ProcessManager::pin_controlling_terminal(void *(*pin)(void *))
+@brief 在进程组锁内查找并固定当前session的控制终端。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

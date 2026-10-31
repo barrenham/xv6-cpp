@@ -133,6 +133,13 @@ struct ProcessGroups::ForegroundFlow
           flow::node<Publish, flow::action<&publish>, flow::stop>>>;
 };
 
+void *ProcessGroups::pin_terminal(const ProcessMembership &caller,void *(*pin)(void *))
+{
+  xv::sync::ScopedLock guard(lock_);
+  if(!pin || !caller.group_ || !caller.group_->session->terminal)return nullptr;
+  return pin(caller.group_->session->terminal);
+}
+
 int ProcessGroups::claim_terminal(const ProcessMembership &caller, void *terminal)
 {
   xv::sync::ScopedLock guard(lock_);

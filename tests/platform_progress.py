@@ -4,6 +4,8 @@ import argparse, hashlib, os, selectors, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--qemu',required=True);p.add_argument('--kernel',required=True);p.add_argument('--image',required=True);p.add_argument('--mkfs',required=True);p.add_argument('--cpus',type=int,default=5);p.add_argument('--persistent',action='store_true');a=p.parse_args()
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'tools'))
+from create_rootfs import Image
 PASSWORD='root-progress-42'; USERPASS='alice-progress-42'; NEWPASS='alice-new-secret-42'
 class Guest:
     def __init__(self, image, data=None):
@@ -51,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent)
         home='/root'
         g.run('pwd',home+'\n')
         if a.persistent:
-            g.run('mount','xv6 disk filesystem on /\n')
+            g.run('mount',('ext3' if Image(seed).filesystem=='ext3' else 'xv6 disk filesystem')+' on /\n')
             g.run('echo $HOME','/root\n')
             g.run('echo PERSISTENT_CONTENT > /root/retained')
             g.run('useradd alice','uid=1000');g.password('alice',USERPASS)
@@ -99,16 +101,16 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent)
             g.run('su alice id','groups=1000,1001');g.run('su alice pwd','/home/alice\n')
             g.run('umount / || echo ROOT_PROTECTED','ROOT_PROTECTED\n')
             # Optional secondary disks mount explicitly and never relocate HOME/accounts.
-            g.run('mount -t xv6 /data');g.run('echo AUXILIARY > /data/retained')
+            g.run('mount -t ext3 /data');g.run('echo AUXILIARY > /data/retained')
             g.run('echo $HOME','/root\n');g.run('su alice id','groups=1000,1001')
-            g.run('umount /data');g.run('mount -t xv6 /data');g.run('cat /data/retained','AUXILIARY\n')
+            g.run('umount /data');g.run('mount -t ext3 /data');g.run('cat /data/retained','AUXILIARY\n')
         finally:g.close('persistent-reboot')
 
         # Import a private legacy /data volume: credentials, ownership, links and large files.
         sys.path.insert(0,str(ROOT/'tools'))
         from create_rootfs import Image, DIRECTORY, FILE, SYMLINK
-        legacy=root/'legacy.img';subprocess.run(['python3',str(ROOT/'tools/create_data_image.py'),'--mkfs',a.mkfs,'--output',str(legacy)],check=True)
-        volume=Image(legacy);entries=volume.entries(1);etc=entries[b'etc'];home=entries[b'home'];rhome=entries[b'root']
+        legacy=root/'legacy.img';subprocess.run(['python3',str(ROOT/'tools/create_data_image.py'),'--mkfs',a.mkfs,'--output',str(legacy),'--filesystem','xv6'],check=True)
+        volume=Image(legacy);entries=volume.entries(volume.root);etc=entries[b'etc'];home=entries[b'home'];rhome=entries[b'root']
         def add(parent,name,content,attributes=(0,0,0o644),kind=FILE):
             inode=volume.create(parent,name,kind,attributes);volume.append(inode,content);return inode
         add(etc,b'passwd',b'root:!:0:0:root:/data/root:/bin/sh\nalice:!:1000:1000:alice:/data/home/alice:/bin/sh\n')
@@ -122,10 +124,10 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent)
         legacy.write_bytes(volume.data);old=legacy.read_bytes();migrated=root/'migrated.img'
         subprocess.run(['python3',str(ROOT/'tools/create_rootfs.py'),'--seed',str(seed),'--output',str(migrated),'--import-data',str(legacy)],check=True)
         assert legacy.read_bytes()==old,'migration modified the original data disk'
-        imported=Image(migrated);newhome=imported.entries(imported.entries(1)[b'home'])[b'alice'];names=imported.entries(newhome)
+        imported=Image(migrated);newhome=imported.entries(imported.entries(imported.root)[b'home'])[b'alice'];names=imported.entries(newhome)
         assert names[b'note']==names[b'alias'] and imported.attributes(names[b'note'])==(1000,1000,0o640)
         assert imported.kind(names[b'link'])==SYMLINK and imported.read(names[b'link'])==b'note'
-        assert imported.read(imported.entries(imported.entries(1)[b'root'])[b'big'])==b'X'*20480
+        assert imported.read(imported.entries(imported.entries(imported.root)[b'root'])[b'big'])==b'X'*20480
         g=Guest(migrated)
         try:
             g.login();assert b'First boot:' not in g.text

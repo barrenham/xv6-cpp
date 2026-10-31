@@ -137,3 +137,42 @@
 @brief 拒绝修改 procfs 名称或内容。
 @details procfs 由内核状态生成，只读操作之外的创建、链接、删除、分配和写入返回 nullptr 或 -1；不写磁盘，不改变进程状态。
 ```
+<a id="fn-8fb48da6050690a4"></a>
+
+## `xv::fs::ProcFileSystem::type_name`
+
+```doxygen
+@fn const char *xv::fs::ProcFileSystem::type_name() const override
+@brief 返回 `"proc"`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-4e69ad943bac3786"></a>
+
+## `xv::fs::ProcFileSystem::register_file`
+
+```doxygen
+@fn bool xv::fs::ProcFileSystem::register_file(const char *name,ProcProviderRegistry::Render render,unsigned mode=0444)
+@brief 把只读系统文本回调加入provider表。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-ab8b1f597dba2470"></a>
+
+## `xv::fs::ProcFileSystem::register_process_file`
+
+```doxygen
+@fn bool xv::fs::ProcFileSystem::register_process_file(const char *name,ProcProcessRegistry::Render render,unsigned mode=0400)
+@brief 把带PID上下文的文本回调加入provider表。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-540f6e7cf60ba3f6"></a>
+
+## `xv::fs::ProcFileSystem::next_directory`
+
+```doxygen
+@fn int xv::fs::ProcFileSystem::next_directory(Inode *node,unsigned long &cookie,DirectoryRecord &entry) override
+@brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```

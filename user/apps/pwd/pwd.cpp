@@ -4,7 +4,7 @@
 
 extern "C" int main()
 {
-  char path[MAXPATH];
+  static char path[MAXPATH];
   if (!getcwd(path, sizeof(path)))
   {
     fprintf(2, "pwd: cannot resolve current directory\n");

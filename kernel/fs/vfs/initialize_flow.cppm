@@ -19,6 +19,7 @@ struct VirtualFileSystem::InitializeFlow
   static void initialize_namespace(Context &c) noexcept
   {
     c.owner.namespace_.init("vfs namespace");
+    c.owner.mount_snapshot_lock_.init("mount snapshot");
     if (c.owner.dynamic_)
     {
       for (unsigned i = 0; i < 4; ++i)

@@ -5,6 +5,7 @@ module;
 #include "kernel/tty/termios.h"
 #include "kernel/fs/io_status.h"
 #include "kernel/fs/poll.h"
+#include "kernel/fs/io_status.h"
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -18,8 +19,11 @@ module xv.drivers;
 
 import :platform;
 import :tty;
+import :controlling;
 import :n_tty;
 import :uart;
+import :rtc;
+import :entropy;
 import :plic;
 import :virtio;
 import :protocol;
@@ -70,7 +74,9 @@ unsigned dumps = 0;
 unsigned interrupts = 0;
 std::vector<void *> dma_pages;
 bool fail_dma = false;
+int dma_budget=-1;
 unsigned hangups = 0, signal_services = 0;
+Tty *controlling_tty=nullptr;
 
 class FakeSerial final : public SerialPort
 {
@@ -127,6 +133,26 @@ public:
     output.push_back(character);
   }
 };
+
+void rtc_contract()
+{
+  alignas(8) unsigned registers[2]={0xf1234567U,0x12345678U};
+  GoldfishRtc rtc(reinterpret_cast<unsigned long>(registers));rtc.initialize();
+  check(rtc.nanoseconds()==0x12345678f1234567UL,"RTC combines all 64 timestamp bits");
+  check(rtc.seconds()==0x12345678f1234567UL/1000000000UL,"RTC converts nanoseconds to epoch seconds");
+  registers[0]=1;registers[1]=0;check(rtc.nanoseconds()==1,"RTC reads fresh device values");
+}
+
+void controlling_contract()
+{
+  FakeSerial serial;NttyDiscipline discipline;Tty tty(serial,discipline);tty.initialize();
+  ControllingTerminal device;
+  check(!device.open(false),"controlling tty requires a session binding");
+  controlling_tty=&tty;auto *session=device.open(false);
+  check(session==&tty,"console controlling tty resolves actual session");
+  char value='Q';check(session->write({AddressSpace::Kernel,reinterpret_cast<unsigned long>(&value)},1)==1 && serial.output=="Q","controlling tty forwards to its open session");
+  session->close();controlling_tty=nullptr;
+}
 
 void console_contract()
 {
@@ -748,17 +774,68 @@ void complete_transfer()
   ++transfer_count;
 }
 
+void entropy_contract()
+{
+  unsigned registers[0x108/4]{};
+  VirtioEntropy missing(reinterpret_cast<unsigned long>(registers),3);missing.initialize();
+  char bytes[600]{};IoBuffer kernel{AddressSpace::Kernel,reinterpret_cast<unsigned long>(bytes),true};
+  check(missing.read(kernel,1)==-1 && missing.read(kernel,0)==0 && missing.poll()==POLLERR,"missing entropy never fabricates bytes or readiness");
+  auto setup=[&]{std::memset(registers,0,sizeof(registers));
+    registers[VIRTIO_MMIO_MAGIC_VALUE/4]=0x74726976;registers[VIRTIO_MMIO_VERSION/4]=2;
+    registers[VIRTIO_MMIO_DEVICE_ID/4]=4;registers[VIRTIO_MMIO_DEVICE_FEATURES/4]=1;
+    registers[VIRTIO_MMIO_QUEUE_NUM_MAX/4]=QueueSize;};
+  unsigned baseline=dma_pages.size();
+  for(int budget=0;budget<4;++budget)
+  {
+    setup();dma_budget=budget;VirtioEntropy failed(reinterpret_cast<unsigned long>(registers),3);failed.initialize();dma_budget=-1;
+    check(dma_pages.size()==baseline && failed.poll()==POLLERR && (registers[VIRTIO_MMIO_STATUS/4]&128),"entropy initialization rolls back each DMA allocation failure");
+  }
+  setup();VirtioEntropy rng(reinterpret_cast<unsigned long>(registers),3);rng.initialize();
+  auto address=[&](unsigned low){return registers[low/4]|(static_cast<unsigned long>(registers[(low+4)/4])<<32);};
+  auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
+  auto *avail=reinterpret_cast<virtq_avail *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
+  auto *used=reinterpret_cast<virtq_used *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
+  check(avail->idx==1 && desc[0].flags==VRING_DESC_F_WRITE && desc[0].len==4096,"entropy submits only writable buffers after modern feature negotiation");
+  auto complete=[&](unsigned length,unsigned id=0,unsigned char fill=0x5a){
+    std::memset(reinterpret_cast<void *>(desc[0].addr),fill,length<=4096 ? length:0);
+    used->ring[used->idx%QueueSize]={id,length};++used->idx;
+    registers[VIRTIO_MMIO_INTERRUPT_STATUS/4]=1;rng.handle_interrupt();};
+  class Watch final:public xv::sync::PollTable
+  {public:void *channel=nullptr;void watch(void *value) override {channel=value;}} watch;
+  check(rng.poll(&watch)==0 && watch.channel && rng.read(kernel,1)==-EAGAIN,"entropy poll registration precedes nonblocking empty read");
+  unsigned woke=wakeups;complete(17);
+  check(wakeups>woke && rng.poll()==POLLIN,"entropy completion wakes readers and poll waiters");
+  fail_copy=true;check(rng.read(kernel,17)==-1,"entropy copy failure");fail_copy=false;
+  check(rng.read(kernel,600)==17 && bytes[0]==0x5a && bytes[16]==0x5a && avail->idx==2,"entropy honors short used length and preserves bytes after copy failure");
+  expect_panic([&]{complete(0);});expect_panic([&]{complete(4097);});expect_panic([&]{complete(1,7);});
+  kernel.nonblocking=false;on_sleep=[&]{complete(4096,0,0x33);};
+  check(rng.read(kernel,600)==256 && bytes[255]==0x33,"blocking entropy read wakes and bounds interrupt-disabled copy");
+  kernel.nonblocking=true;unsigned total=256;
+  for(int result;(result=rng.read(kernel,sizeof(bytes)))>0;)total+=result;
+  check(total==4096 && rng.read(kernel,1)==-EAGAIN,"entropy consumes completed buffer once and requests a refill");
+  on_sleep=nullptr;
+  for(unsigned i=0;i<65537;++i)
+  {complete(1,0,static_cast<unsigned char>(i));check(rng.read(kernel,1)==1 && static_cast<unsigned char>(bytes[0])==static_cast<unsigned char>(i),"entropy ring indexes wrap without replay");}
+  check(rng.write(kernel,1)==-1 && rng.write(kernel,0)==0,"host entropy source cannot be overwritten through its device");
+  registers[VIRTIO_MMIO_STATUS/4]=0;
+  while(dma_pages.size()>baseline)detail::free_dma_page(dma_pages.back());
+}
+
 void block_contract()
 {
-  unsigned registers[0x100 / 4]{};
+  unsigned registers[0x108 / 4]{};
   registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
   registers[VIRTIO_MMIO_VERSION / 4] = 2;
   registers[VIRTIO_MMIO_DEVICE_ID / 4] = 2;
   registers[VIRTIO_MMIO_VENDOR_ID / 4] = 0x554d4551;
   registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = QueueSize;
   registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1U << VIRTIO_BLK_F_FLUSH;
+  registers[VIRTIO_MMIO_CONFIG / 4] = 0x89abcdefU;
+  registers[(VIRTIO_MMIO_CONFIG + 4) / 4] = 0x12345678U;
   VirtioBlock disk(reinterpret_cast<unsigned long>(registers), 1);
   disk.initialize();
+  check(disk.capacity_sectors() == 0x1234567889abcdefUL,
+        "VirtIO capacity preserves both halves of the 64-bit sector count");
   check(registers[VIRTIO_MMIO_QUEUE_READY / 4] == 1, "VirtIO queue ready");
   check((registers[VIRTIO_MMIO_STATUS / 4] & VIRTIO_CONFIG_S_DRIVER_OK) != 0,
         "VirtIO driver ready");
@@ -860,6 +937,9 @@ void wake_processes(void *)
   ++test::wakeups;
 }
 
+void *pin_controlling_terminal(void *(*pin)(void *))
+{return test::controlling_tty ? pin(test::controlling_tty):nullptr;}
+
 int claim_terminal(void *)
 {
   return 0;
@@ -944,7 +1024,8 @@ void io_barrier()
 
 void *allocate_dma_page()
 {
-  if (test::fail_dma) return nullptr;
+  if (test::fail_dma || test::dma_budget==0) return nullptr;
+  if(test::dma_budget>0)--test::dma_budget;
   void *page = std::aligned_alloc(4096, 4096);
   test::check(page != nullptr, "DMA page allocation");
   test::dma_pages.push_back(page);
@@ -965,12 +1046,15 @@ void zero_page(void *page)
 
 extern "C" int run_driver_contracts()
 {
+  xv::drivers::test::rtc_contract();
+  xv::drivers::test::controlling_contract();
   xv::drivers::test::console_contract();
   xv::drivers::test::pty_contract();
   xv::drivers::test::pci_contract();
   xv::drivers::test::interrupt_contract();
   xv::drivers::test::uart_contract();
   xv::drivers::test::block_contract();
+  xv::drivers::test::entropy_contract();
   std::puts("driver contracts: passed");
   return 0;
 }

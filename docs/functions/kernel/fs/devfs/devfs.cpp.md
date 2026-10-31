@@ -20,23 +20,12 @@
 - [`xv::fs::DevFileSystem::unlock_release`](devfs.cpp.md#fn-24503ee0dd07bbe5)
 - [`xv::fs::DevFileSystem::update`](devfs.cpp.md#fn-8ac05bd9ae1dd23c)
 - [`xv::fs::DevFileSystem::write`](devfs.cpp.md#fn-35d09c6791808ad8)
-- [`xv::fs::MemoryDevice::MemoryDevice`](devfs.cpp.md#fn-565299482e62a153)
 - [`xv::fs::MemoryDevice::initialize`](devfs.cpp.md#fn-7ea96491bdf7a542)
 - [`xv::fs::MemoryDevice::name`](devfs.cpp.md#fn-807dbcfa2dee03aa)
 - [`xv::fs::MemoryDevice::poll`](devfs.cpp.md#fn-1ee610cc543a4533)
 - [`xv::fs::MemoryDevice::put_sync`](devfs.cpp.md#fn-2b92efdd15790e32)
 - [`xv::fs::MemoryDevice::read`](devfs.cpp.md#fn-78dcb885ab7432e2)
 - [`xv::fs::MemoryDevice::write`](devfs.cpp.md#fn-eecfc6d4b67d727b)
-
-<a id="fn-565299482e62a153"></a>
-
-## `xv::fs::MemoryDevice::MemoryDevice`
-
-```doxygen
-@fn constexpr explicit xv::fs::MemoryDevice::MemoryDevice(bool zero)
-@brief 选择 null 或 zero 的静态设备行为。
-@details 只保存 zero 标志，不分配页面或登记设备；两个实例在 devfs 初始化时发布，生命周期覆盖系统运行。
-```
 
 <a id="fn-807dbcfa2dee03aa"></a>
 
@@ -45,7 +34,7 @@
 ```doxygen
 @fn const char *xv::fs::MemoryDevice::name() const override
 @brief 取得内置虚拟设备名称。
-@details zero 模式返回 zero，另一模式返回 null；返回静态字符串，不转移所有权。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-7ea96491bdf7a542"></a>
@@ -75,7 +64,7 @@
 ```doxygen
 @fn int xv::fs::MemoryDevice::read(xv::drivers::IoBuffer destination, int count) override
 @brief 按设备类型返回 EOF 或向目标复制零字节。
-@details 负长度失败，null 立即返回 0。zero 用 128 字节零缓冲分批 copy_out，区分内核和用户地址；复制失败返回此前完成量或 -1，零长度不访问目标地址。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-eecfc6d4b67d727b"></a>
@@ -85,7 +74,7 @@
 ```doxygen
 @fn int xv::fs::MemoryDevice::write(xv::drivers::IoBuffer, int count) override
 @brief 丢弃写入并返回消费的字节数。
-@details 负长度返回 -1，其他长度原样返回；不读取源缓冲，不保存数据。null 与 zero 的写入行为相同。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-1ee610cc543a4533"></a>
@@ -113,9 +102,9 @@
 ## `xv::fs::DevFileSystem::initialize`
 
 ```doxygen
-@fn void xv::fs::DevFileSystem::initialize(int device)
+@fn void DevFileSystem::xv::fs::DevFileSystem::initialize(int device)
 @brief 初始化只读设备命名空间及节点权限。
-@details 根与 pts 目录为 root 的 0555，console 为 0600，其余静态字符设备为 0666。设备读写与目录/元数据只读分别判断。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-e24bb911f90a0865"></a>
@@ -280,4 +269,23 @@
 @fn xv::drivers::CharacterDevice *xv::fs::DevFileSystem::open_device(Inode *node, bool nonblocking)
 @brief 为静态设备或动态 PTY 从端取得会话。
 @details 动态从端节点已经固定其 PTY 编号，委托驱动验证主端仍存在且从端已解锁；静态条目按 major/minor 查询设备工厂并调用 open。失败返回 nullptr，不转移节点引用。
+```
+<a id="fn-d216c823111a921f"></a>
+
+## `xv::fs::MemoryDevice::MemoryDevice`
+
+```doxygen
+@fn constexpr explicit xv::fs::MemoryDevice::MemoryDevice(Kind kind) : kind_(kind)
+@brief 选择 null 或 zero 的静态设备行为。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-01655ad066617f5c"></a>
+
+## `xv::fs::DevFileSystem::open_block_device`
+
+```doxygen
+@fn xv::drivers::BlockDevice *DevFileSystem::xv::fs::DevFileSystem::open_block_device(Inode *node,bool writable)
+@brief 返回 `open_registered_block(node,writable)`。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```

@@ -21,12 +21,7 @@
 ```doxygen
 @fn void xv::boot::enter(unsigned long hart_id, unsigned long device_tree)
 @brief 启动、每 hart 初始化和进入内核的交接：进入。
-@param hart_id 当前启动 hart 的编号。
-@param device_tree 固件传入的设备树物理地址。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::r_mstatus` → `xv::arch::w_mstatus` → `xv::arch::w_mepc` → `xv::arch::w_satp` → `xv::arch::w_medeleg` → `xv::arch::w_mideleg` → `xv::arch::w_sie` → `xv::arch::r_sie` → `xv::arch::w_pmpaddr0` → `xv::arch::w_pmpcfg0` → `xv::arch::w_menvcfg` → `xv::arch::r_menvcfg`。
-@details 需要特别跟踪的条件：`hart_id == 0`。这些条件决定检查、重试或提前返回路径。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
 
 <a id="fn-b0eb3ac8b28cbcdd"></a>

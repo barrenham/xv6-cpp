@@ -1,6 +1,7 @@
 module;
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/support/param.h"
 module xv.fs;
 import :vfs_initialize_flow;
 import :vfs_mount_flow;
@@ -22,13 +23,15 @@ void VirtualFileSystem::initialize(int device)
   (void)InitializeFlow::BackendsGraph::run<0>(context);
   Transaction transaction;
   (void)InitializeFlow::MountsGraph::run<0>(context);
+  publish_mount_snapshot();
 }
 
 bool VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
 {
-  char name[DIRSIZ];
+  char name[256];
   MountFlow::Context context{{*this, path, name}, backend, device};
   (void)MountFlow::Graph::run<0>(context);
+  if(context.result==0)publish_mount_snapshot();
   return context.result == 0;
 }
 
@@ -52,11 +55,11 @@ Inode *VirtualFileSystem::enter_mount(Inode *node)
 }
 
 Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real,
-                               bool follow, bool creating)
+                               bool follow, bool creating,unsigned capacity,bool exact_names)
 {
-  char pending[128], target[128];
+  char pending[MAXPATH], target[MAXPATH];
   WalkFlow::Context context{*this,  path,     parent,  name,  real,
-                            follow, creating, pending, target};
+                            follow, creating, pending, target,capacity,exact_names};
   (void)WalkFlow::Graph::run<0>(context);
   return context.result;
 }
@@ -64,20 +67,20 @@ Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool r
 Inode *VirtualFileSystem::lookup(const char *path, bool real, bool follow)
 {
   xv::sync::ScopedLock guard(namespace_);
-  char name[DIRSIZ];
+  char name[256];
   return walk(path, false, name, real, follow);
 }
 
-Inode *VirtualFileSystem::lookup_parent(const char *path, char *name)
+Inode *VirtualFileSystem::lookup_parent(const char *path, char *name,unsigned capacity)
 {
   xv::sync::ScopedLock guard(namespace_);
-  return walk(path, true, name);
+  return walk(path, true, name,false,true,false,capacity);
 }
 
 Inode *VirtualFileSystem::create(char *path, short type, short major, short minor,
                                  bool follow)
 {
-  char name[DIRSIZ];
+  char name[256];
   CreateFlow::Context context{*this, path, type, major, minor, follow, name};
   (void)CreateFlow::Graph::run<0>(context);
   return context.result;
@@ -86,7 +89,7 @@ Inode *VirtualFileSystem::create(char *path, short type, short major, short mino
 int VirtualFileSystem::link(char *old_path, char *new_path)
 {
   Transaction transaction;
-  char name[DIRSIZ];
+  char name[256];
   LinkFlow::Context context{*this, old_path, new_path, name};
   (void)LinkFlow::Graph::run<0>(context);
   return context.result;
@@ -95,7 +98,7 @@ int VirtualFileSystem::link(char *old_path, char *new_path)
 int VirtualFileSystem::unlink(char *path)
 {
   Transaction transaction;
-  char name[DIRSIZ];
+  char name[256];
   UnlinkFlow::Context context{*this, path, name};
   (void)UnlinkFlow::Graph::run<0>(context);
   return context.result;
@@ -205,9 +208,10 @@ int VirtualFileSystem::mount_ram(const char *path)
 {
   Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
-  char name[DIRSIZ];
+  char name[256];
   MountRamFlow::Context context{{*this, path, name}};
   (void)MountRamFlow::Graph::run<0>(context);
+  if(context.result==0)publish_mount_snapshot();
   return context.result;
 }
 
@@ -215,19 +219,45 @@ int VirtualFileSystem::unmount(const char *path)
 {
   Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
-  char name[DIRSIZ];
+  char name[256];
   UnmountFlow::Context context{*this, path, name};
   (void)UnmountFlow::Graph::run<0>(context);
+  if(context.result==0)publish_mount_snapshot();
   return context.result;
 }
 
-int VirtualFileSystem::mounts(unsigned index, char *path, char *type)
+void VirtualFileSystem::publish_mount_snapshot()
+{
+  // Called during boot publication or with namespace_ held. Build metadata
+  // before taking the snapshot spinlock; readers never acquire namespace_.
+  MountSnapshot records[9]{};
+  detail::copy_fixed(records[0].path,"/",128);
+  detail::copy_fixed(records[0].type,disk_.type_name(),32);
+  records[0].readonly=disk_.read_only();records[0].nodev=!disk_.persistent();
+  for(unsigned i=0;i<mount_count_;++i)
+  {
+    auto &backend=mounts_[i].root->owner();auto &record=records[i+1];
+    detail::copy_fixed(record.path,mounts_[i].path,128);detail::copy_fixed(record.type,backend.type_name(),32);
+    record.readonly=backend.read_only();record.nodev=!backend.persistent();
+  }
+  xv::sync::ScopedLock guard(mount_snapshot_lock_);snapshot_count_=mount_count_+1;
+  for(unsigned i=0;i<snapshot_count_;++i)mount_snapshots_[i]=records[i];
+}
+
+unsigned VirtualFileSystem::snapshot_mounts(MountSnapshot *records,unsigned capacity) const
+{
+  xv::sync::ScopedLock guard(mount_snapshot_lock_);unsigned count=snapshot_count_<capacity ? snapshot_count_:capacity;
+  for(unsigned i=0;i<count;++i)records[i]=mount_snapshots_[i];return count;
+}
+
+int VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
 {
   xv::sync::ScopedLock guard(namespace_);
   if (!index)
   {
     detail::copy_fixed(path, "/", 128);
-    detail::copy_fixed(type, disk_.name(), 32);
+    detail::copy_fixed(type, canonical ? disk_.type_name():disk_.name(), 32);
+    if(readonly)*readonly=disk_.read_only();
     return 1;
   }
   --index;
@@ -236,7 +266,9 @@ int VirtualFileSystem::mounts(unsigned index, char *path, char *type)
     return 0;
   }
   detail::copy_fixed(path, mounts_[index].path, 128);
-  detail::copy_fixed(type, mounts_[index].root->owner().name(), 32);
+  auto &backend=mounts_[index].root->owner();
+  detail::copy_fixed(type, canonical ? backend.type_name():backend.name(), 32);
+  if(readonly)*readonly=backend.read_only();
   return 1;
 }
 
@@ -244,7 +276,7 @@ int VirtualFileSystem::rename(const char *old_path, const char *new_path)
 {
   Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
-  char old_name[DIRSIZ]{}, new_name[DIRSIZ]{};
+  char old_name[256]{}, new_name[256]{};
   RenameFlow::Context context{*this, old_path, new_path, old_name, new_name};
   (void)RenameFlow::Graph::run<0>(context);
   return context.result;
@@ -259,23 +291,25 @@ int VirtualFileSystem::symlink(const char *target, const char *path)
   }
   Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
-  char name[DIRSIZ];
+  char name[256];
   SymlinkFlow::Context context{*this, target, path, size, name};
   (void)SymlinkFlow::Graph::run<0>(context);
   return context.result;
 }
 
-int VirtualFileSystem::mount_disk(const char *path)
+int VirtualFileSystem::mount_disk(const char *path,const char *type)
 {
   if (!MountDiskFlow::ready(*this, path))
   {
     return -1;
   }
+  if(type && detail::compare(type,storage_->type_name(),16))return -1;
   Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
-  char name[DIRSIZ];
+  char name[256];
   MountDiskFlow::Context context{*this, path, name};
   (void)MountDiskFlow::Graph::run<0>(context);
+  if(context.result==0)publish_mount_snapshot();
   return context.result;
 }
 

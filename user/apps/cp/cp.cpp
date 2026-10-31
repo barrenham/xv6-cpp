@@ -5,7 +5,7 @@
 
 extern "C" int main(int argc, char **argv)
 {
-  char target[MAXPATH];
+  static char target[MAXPATH];
   if (argc != 3)
   {
     fprintf(2, "usage: cp source destination\n");

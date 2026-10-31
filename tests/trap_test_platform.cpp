@@ -61,6 +61,8 @@ struct State
   int installs = 0;
   int syscalls = 0;
   int external = 0;
+  int accounted_external = 0, accounted_timer = 0;
+  bool accounted_user = false;
   int faults = 0;
   int yields = 0;
   int reports = 0;
@@ -272,12 +274,12 @@ void interrupt_contract()
 {
   reset(TrapCause::InterruptBit | 9);
   ::usertrap();
-  check(state.external == 1 && state.yields == 0 && state.syscalls == 0,
+  check(state.external == 1 && state.accounted_external == 1 && state.yields == 0 && state.syscalls == 0,
         "external user interrupt dispatches without a forced yield");
   reset(TrapCause::InterruptBit | 5);
   const auto before = clock().uptime();
   ::usertrap();
-  check(clock().uptime() == before + 1 && state.yields == 1 &&
+  check(clock().uptime() == before + 1 && state.accounted_timer==1 && state.accounted_user && state.yields == 1 &&
             state.deadline == current_time + TimerInterval,
         "timer interrupt counts, rearms and requests preemption");
   check(state.prepared_pc == 0x1000,
@@ -305,7 +307,7 @@ void interrupt_contract()
   reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
   state.has_process = false;
   ::kerneltrap();
-  check(state.yields == 0 && state.restores == 1,
+  check(state.yields == 0 && state.restores == 1 && state.accounted_timer==1 && !state.accounted_user,
         "idle hart handles a timer without yielding a process");
   reset(TrapCause::InterruptBit | 9, TrapEvent::SupervisorPrevious);
   ::kerneltrap();
@@ -448,6 +450,8 @@ void request_kill()
   std::_Exit(42);
 }
 
+void account_timer(bool user) {++test::state.accounted_timer;test::state.accounted_user=user;}
+void account_external_interrupt() {++test::state.accounted_external;}
 bool scheduler_timer_tick() { return xv::trap::test::state.preempt; }
 
 void yield_current()
