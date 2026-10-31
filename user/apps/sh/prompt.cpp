@@ -2,11 +2,12 @@
 #include "kernel/support/param.h"
 #include "user/runtime/user.h"
 #include "user/runtime/accounts.h"
+#include "editor.h"
 
 namespace shell
 {
 
-void prompt()
+const char *prompt_text()
 {
   static char output[MAXPATH + 32], path[MAXPATH];
   account::User user{};
@@ -40,6 +41,13 @@ void prompt()
   used += strlen(path);
   strcpy(output + used, "$ ");
   used += 2;
-  write(2, output, used);
+  return output;
+}
+
+void prompt()
+{
+  const char *text = prompt_text();
+  unsigned length = strlen(text);
+  write(2, text, length);
 }
 } // namespace shell

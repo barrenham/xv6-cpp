@@ -1,5 +1,5 @@
 {
-  "scope": "Every kernel source; boot excluded from graph conversion. ext3/dev/proc integration adds startup hardware capture/online publication in main/start. Network baseline unchanged.",
+  "scope": "Every kernel source; boot excluded from graph conversion. ext3/dev/proc startup hooks reviewed; GPU adds initialization/draw flows and one MMIO page. Network baseline unchanged. Keyboard adds initialization/read/interrupt graphs, kbd0, and slot4 MMIO; GPU style reviewed without ABI changes. GPU boot resolution defaults to 1280x800 and supports up to 1920x1080; 16-entry GPU-only rings and derived scatter request pages reviewed.",
   "files": [
     {
       "source": "kernel/arch/arch.cppm",
@@ -93,7 +93,7 @@
     },
     {
       "source": "kernel/drivers/board/qemu_virt.cpp",
-      "sha256": "d7e861e8a0436ad7a5885c67c60b8605cc6f10e23ca148564205df0bd6e240c0",
+      "sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json"
     },
@@ -116,6 +116,18 @@
       "review": "docs/drivers-flow-audit.json"
     },
     {
+      "source": "kernel/drivers/display/virtio_gpu.cpp",
+      "sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/drivers-flow-audit.json"
+    },
+    {
+      "source": "kernel/drivers/display/virtio_gpu.cppm",
+      "sha256": "223502c704a98cecbe3757d954bd36a66093a806cc64890d897df2fea4d6e2eb",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/drivers-flow-audit.json"
+    },
+    {
       "source": "kernel/drivers/drivers.cppm",
       "sha256": "9003879fabd8714ebe383180e030fc20762519321614efac30e61862c70a7059",
       "classification": "reviewed_workflow_or_primitive",
@@ -130,6 +142,18 @@
     {
       "source": "kernel/drivers/entropy/virtio_entropy.cppm",
       "sha256": "ce9e97a0e37230e94368e00eb0de947bd382ce26a6279c332dd164fe6462c984",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/drivers-flow-audit.json"
+    },
+    {
+      "source": "kernel/drivers/input/virtio_keyboard.cpp",
+      "sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/drivers-flow-audit.json"
+    },
+    {
+      "source": "kernel/drivers/input/virtio_keyboard.cppm",
+      "sha256": "041ee27eba421d727adf63207876aada7a73b6b2ce5096ce7629edaf0938de71",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json"
     },
@@ -255,9 +279,9 @@
     },
     {
       "source": "kernel/drivers/tty/core/tty.cpp",
-      "sha256": "940c8fcc69cdcd48f3618c5299811033b410433da34de632df98d45ea1b1d09c",
+      "sha256": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json WriteFlow非阻塞输出以32源字节批量尝试；EAGAIN经Retry/Shrink节点缩小源前缀并重新Transform，后端完整块接受契约保持，CRLF不拆分，部分返回计源字节；重试有界至1字节。 接受显式XV_PROXY私有代理声明位，保持其他未知位拒绝及ABI布局；字符处理不读取该位，退出键归属由用户态代理通过子PTY查询。"
     },
     {
       "source": "kernel/drivers/tty/core/tty.cppm",
@@ -704,6 +728,18 @@
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
+      "source": "kernel/io/framebuffer.h",
+      "sha256": "3e781f6cdc1d98c391b5a7fdbcc8d9fe5a0d899742b708badb412301d1fd616c",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
+      "source": "kernel/io/keyboard.h",
+      "sha256": "3d2f1afd3750019ea43ebf479e283d9b2bec4137582376ce8ffd5b638d2ad814",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
       "source": "kernel/io/object.cppm",
       "sha256": "e097548a1944c20ec0fba42490f78c1a55aa85eb2dec8a0405baf7ea48c61054",
       "classification": "reviewed_workflow_or_primitive",
@@ -825,7 +861,7 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26",
+      "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -2385,9 +2421,9 @@
     },
     {
       "source": "kernel/tty/termios.h",
-      "sha256": "a9442c3c113f74a719e56b47b581b89da74a8751705800b948744c190b9b248a",
+      "sha256": "7bd432b1c32ceb1c67a59dc8a43a101bf83490ee3e2ace2832d004eb1fb31c8d",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/kernel-primitives-flow-audit.json"
+      "review": "docs/kernel-primitives-flow-audit.json 接受显式XV_PROXY私有代理声明位，保持其他未知位拒绝及ABI布局；字符处理不读取该位，退出键归属由用户态代理通过子PTY查询。"
     }
   ],
   "preserved_subtrees": {

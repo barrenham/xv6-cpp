@@ -20,7 +20,7 @@ bool valid(const termios &value)
   return !(value.c_iflag & ~(IGNCR | ICRNL | INLCR | ISTRIP)) &&
          !(value.c_oflag & ~(OPOST | ONLCR)) &&
          !(value.c_lflag & ~(ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHONL | ECHOCTL |
-                             ECHOKE | IEXTEN)) &&
+                             ECHOKE | IEXTEN | XV_PROXY)) &&
          value.c_cflag == FixedControl && value.c_line == 0;
 }
 } // namespace
@@ -386,10 +386,6 @@ struct Tty::WriteFlow
     {
       c.part = 32;
     }
-    if (c.source.nonblocking)
-    {
-      c.part = 1;
-    }
     c.ok = detail::copy_in(c.input, c.source.space == AddressSpace::User,
                            c.source.address + c.done, c.part) >= 0;
   }
@@ -422,6 +418,18 @@ struct Tty::WriteFlow
     return c.sent == c.used;
   }
 
+  static bool retry(Context &c) noexcept
+  {
+    return c.source.nonblocking && c.sent == -EAGAIN && c.part > 1;
+  }
+
+  static void shrink(Context &c) noexcept
+  {
+    // TerminalOutput accepts whole transformed chunks. Retry a smaller source
+    // prefix without splitting CRLF or counting transformed bytes as input.
+    c.part = (c.part + 1) / 2;
+  }
+
   static void short_write(Context &c) noexcept
   {
     c.result = c.done ? c.done : c.sent;
@@ -442,6 +450,8 @@ struct Tty::WriteFlow
   struct Read;
   struct Transform;
   struct Transmit;
+  struct Retry;
+  struct Shrink;
   struct ShortWrite;
   struct Advance;
   struct Success;
@@ -460,7 +470,11 @@ struct Tty::WriteFlow
                   flow::node<Transform, flow::action<&transform>, flow::go<Transmit>>,
                   flow::node<Transmit, flow::action<&transmit>,
                              flow::branch<flow::condition<&sent>, flow::go<Advance>,
+                                          flow::go<Retry>>>,
+                  flow::node<Retry, flow::noop,
+                             flow::branch<flow::condition<&retry>, flow::go<Shrink>,
                                           flow::go<ShortWrite>>>,
+                  flow::node<Shrink, flow::action<&shrink>, flow::go<Transform>>,
                   flow::node<ShortWrite, flow::action<&short_write>, flow::stop>,
                   flow::node<Advance, flow::action<&advance>, flow::go<Remaining>>,
                   flow::node<Success, flow::action<&success>, flow::stop>>>;

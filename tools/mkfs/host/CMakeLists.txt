@@ -14,6 +14,11 @@ set_target_properties(mkfs PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}
 # Native contract tests use the same allocator/service sources as the kernel.
 find_package(Threads REQUIRED)
 set(XV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+add_executable(fbterm_contract "${XV_ROOT}/tests/fbterm_contract.cpp")
+target_include_directories(fbterm_contract PRIVATE "${XV_ROOT}")
+target_compile_features(fbterm_contract PRIVATE cxx_std_20)
+target_compile_options(fbterm_contract PRIVATE -O1 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(fbterm_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 add_executable(allocator_contract
   "${XV_ROOT}/tests/allocator_contract.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
@@ -81,10 +86,15 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cpp"
   "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
   "${XV_ROOT}/kernel/drivers/entropy/virtio_entropy.cpp"
+  "${XV_ROOT}/kernel/drivers/display/virtio_gpu.cpp"
+  "${XV_ROOT}/kernel/drivers/input/virtio_keyboard.cpp"
   "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")
 target_include_directories(driver_contract PRIVATE "${XV_ROOT}")
+set(XV_DISPLAY_WIDTH 1280 CACHE STRING "Framebuffer width for GPU contracts")
+set(XV_DISPLAY_HEIGHT 800 CACHE STRING "Framebuffer height for GPU contracts")
+target_compile_definitions(driver_contract PRIVATE XV_DISPLAY_WIDTH=${XV_DISPLAY_WIDTH} XV_DISPLAY_HEIGHT=${XV_DISPLAY_HEIGHT})
 target_compile_features(driver_contract PRIVATE cxx_std_20)
 target_compile_options(driver_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)
 target_link_libraries(driver_contract PRIVATE Threads::Threads)

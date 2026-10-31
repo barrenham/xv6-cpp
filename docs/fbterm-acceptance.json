@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-31",
+  "implementation": "user/apps/fbterm; existing GPU and PTY ABI; no kernel source changes in this task",
+  "features": [
+    "original ASCII bitmap; 80x30 cells; wrap and scroll; cursor; ANSI subset",
+    "PTY shell and optional command; serial input and mirrored output; batched dirty rows",
+    "raw serial state and fd flags restored; EOF and Ctrl-] detach"
+  ],
+  "passed_checks": [
+    "fbterm_contract",
+    "fbterm_1cpu",
+    "fbterm_5cpu",
+    "fbterm_absent_1cpu",
+    "gpu_1cpu",
+    "gpu_5cpu",
+    "gpu_absent_1cpu",
+    "gpu_vnc_5cpu",
+    "pty_1cpu",
+    "pty_5cpu",
+    "user_regression"
+  ],
+  "sanitizers": "actual terminal model: ASan and UBSan passed, including 200000 deterministic random input bytes",
+  "pixel_evidence": "real QMP 640x480 scanout decoded into ASCII; demo scroll positions, SGR green, ls/ps/free, clear and editing verified",
+  "pty_evidence": "complete bulk fixture, cat echo and output, Ctrl-C, Ctrl-D, raw job Ctrl-] detach, shared fd flags and serial termios restoration, exec failure",
+  "screenshots": [
+    "build/docs/fbterm/demo.png",
+    "build/docs/fbterm/shell.png",
+    "build/docs/fbterm/edited.png"
+  ],
+  "logs": "build/dev/fbterm-*.log",
+  "rootfs_installation": "installed only /bin/fbterm with backup; compiled binary matched; protected /etc /home /root /data content and ownership/modes unchanged",
+  "rootfs_record": "build/docs/fbterm/rootfs-update.json",
+  "limits": [
+    "ASCII only; UTF-8 unsupported characters replaced by ?",
+    "serial keyboard; VNC input not implemented",
+    "limited terminal sequences; no scrollback, mouse, dynamic resolution or concurrent display ownership"
+  ],
+  "scope_note": "Historical fbterm stage-1/2 acceptance before VirtIO keyboard integration; current keyboard and refreshed fbterm verification is in docs/keyboard-acceptance.json.",
+  "status": "passed",
+  "ctest_count": 11,
+  "user_regression_seconds": 199.16
+}

@@ -19,7 +19,8 @@ unsigned match_count;
 void add_match(const char *name, const char *prefix)
 {
   unsigned size = strlen(prefix);
-  if (strlen(name) >= sizeof(matches[0]) || strlen(name) < size || memcmp(name, prefix, size))
+  if (strlen(name) >= sizeof(matches[0]) || strlen(name) < size ||
+      memcmp(name, prefix, size))
   {
     return;
   }
@@ -43,10 +44,12 @@ void scan(const char *directory, const char *prefix, bool command)
   {
     return;
   }
-  DirectoryReader reader(fd);const linux_dirent64 *entry;
-  while (reader.next(entry)==1)
+  DirectoryReader reader(fd);
+  const linux_dirent64 *entry;
+  while (reader.next(entry) == 1)
   {
-    char name[257];strcpy(name,entry->d_name);
+    char name[257];
+    strcpy(name, entry->d_name);
     if (!strcmp(name, ".") || !strcmp(name, "..") ||
         (name[0] == '.' && prefix[0] != '.'))
     {
@@ -103,6 +106,13 @@ Editor::Editor(char *line, int capacity, bool interactive)
   {
     return;
   }
+  winsize size{};
+  if (ioctl(0, TIOCGWINSZ, reinterpret_cast<unsigned long>(&size)) == 0 && size.ws_col)
+  {
+    columns_ = size.ws_col;
+  }
+  prefix_ = strlen(prompt_text());
+  displayed_row_ = prefix_ ? (prefix_ - 1) / columns_ : 0;
   termios settings = saved_;
   settings.c_lflag &= ~(ICANON | ECHO | ECHONL | ISIG | IEXTEN);
   settings.c_cc[VMIN] = 1;
@@ -118,18 +128,72 @@ Editor::~Editor()
   }
 }
 
-void Editor::redraw(int used)
+namespace
 {
-  write(2, "\r\033[2K", 5);
-  prompt();
-  if (used)
+char repaint[MAXPATH + 1024];
+
+void append(unsigned &length, const char *text)
+{
+  while (*text)
   {
-    write(2, line_, used);
+    repaint[length++] = *text++;
   }
-  for (int i = cursor_; i < used; ++i)
+}
+
+void move(unsigned &length, unsigned count, char direction)
+{
+  if (!count)
   {
-    write(2, "\b", 1);
+    return;
   }
+  append(length, "\033[");
+  char digits[12];
+  unsigned used = 0;
+  do
+  {
+    digits[used++] = '0' + count % 10;
+    count /= 10;
+  } while (count);
+  while (used)
+  {
+    repaint[length++] = digits[--used];
+  }
+  repaint[length++] = direction;
+}
+} // namespace
+
+void Editor::redraw(int used, bool fresh_line)
+{
+  unsigned length = 0;
+  append(length, "\r");
+  if (!fresh_line)
+  {
+    move(length, displayed_row_, 'A');
+  }
+  append(length, "\033[J");
+  const char *text = prompt_text();
+  prefix_ = strlen(text);
+  append(length, text);
+  for (int i = 0; i < used; ++i)
+  {
+    repaint[length++] = line_[i];
+  }
+  unsigned end = prefix_ + used;
+  unsigned end_row = end ? (end - 1) / columns_ : 0;
+  // Keep the terminal's normal pending-wrap state when the cursor is at the end.
+  if (cursor_ != used)
+  {
+    unsigned target = prefix_ + cursor_;
+    append(length, "\r");
+    move(length, end_row - target / columns_, 'A');
+    move(length, target % columns_, 'C');
+    displayed_row_ = target / columns_;
+  }
+  else
+  {
+    displayed_row_ = end_row;
+  }
+  write(2, repaint, length);
 }
 
 void Editor::remember(int used)
@@ -268,7 +332,8 @@ void Editor::complete(int &used)
     }
     used += extra + space;
   }
-  if (match_count > 1 && !extra)
+  bool listed = match_count > 1 && !extra;
+  if (listed)
   {
     write(2, "\n", 1);
     for (unsigned i = 0; i < match_count; ++i)
@@ -278,7 +343,7 @@ void Editor::complete(int &used)
     }
     write(2, "\n", 1);
   }
-  redraw(used);
+  redraw(used, listed);
 }
 
 int Editor::input(char value, int &used)
@@ -348,6 +413,11 @@ int Editor::input(char value, int &used)
   }
   if (value == '\n' || value == '\r')
   {
+    if (cursor_ != used)
+    {
+      cursor_ = used;
+      redraw(used);
+    }
     remember(used);
     line_[used++] = '\n';
     line_[used] = 0;
@@ -360,11 +430,14 @@ int Editor::input(char value, int &used)
   }
   if (value == 3)
   {
+    cursor_ = used;
+    redraw(used);
     used = cursor_ = 0;
     line_[0] = 0;
     history_ = history_count;
     write(2, "^C\n", 3);
     prompt();
+    displayed_row_ = prefix_ ? (prefix_ - 1) / columns_ : 0;
     return 0;
   }
   if (value == 4 && !used)
@@ -424,6 +497,7 @@ int Editor::input(char value, int &used)
   if (append)
   {
     write(2, &value, 1);
+    displayed_row_ = (prefix_ + cursor_ - 1) / columns_;
   }
   else
   {

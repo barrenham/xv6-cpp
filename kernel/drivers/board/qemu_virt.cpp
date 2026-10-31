@@ -18,6 +18,8 @@ import :n_tty;
 import :tty;
 import :controlling;
 import :entropy;
+import :gpu;
+import :keyboard;
 import :plic;
 import :virtio;
 import :e1000;
@@ -27,6 +29,8 @@ namespace xv::drivers
 {
 namespace
 {
+constinit VirtioGpu gpu(VIRTIO0+0x3000,VIRTIO0_IRQ+3);
+constinit VirtioKeyboard keyboard(VIRTIO0 + 0x4000, VIRTIO0_IRQ + 4);
 constinit ControllingTerminal controlling;
 constinit VirtioEntropy entropy(VIRTIO0+0x2000,VIRTIO0_IRQ+2);
 constinit GoldfishRtc rtc(RTC0);
@@ -82,10 +86,10 @@ private:
 constinit PciNetworkInterrupt pci_lines[] = {
     PciNetworkInterrupt(32), PciNetworkInterrupt(33), PciNetworkInterrupt(34),
     PciNetworkInterrupt(35)};
-constinit InterruptDevice *sources[] = {&uart,         &disk,         &data_disk, &entropy,
+constinit InterruptDevice *sources[] = {&uart,         &disk,         &data_disk, &entropy, &gpu, &keyboard,
                                         &pci_lines[0], &pci_lines[1], &pci_lines[2],
                                         &pci_lines[3]};
-constinit InterruptRouter router(plic, sources, 8);
+constinit InterruptRouter router(plic, sources, 10);
 
 namespace flow = xv::flow;
 
@@ -114,6 +118,8 @@ struct ConsoleFlow
     xv::fs::devices().attach("console", CONSOLE, 0, xv::drivers::terminal,0600);
     xv::fs::devices().attach("ptmx", 4, 0, ptmx());
     xv::fs::devices().attach("tty",6,0,controlling);
+    xv::fs::devices().attach("fb0",29,0,gpu,0600);
+    xv::fs::devices().attach("kbd0", 30, 0, keyboard, 0600);
     xv::fs::devices().attach("random",7,0,entropy,0444);
     xv::fs::devices().attach("urandom",7,1,entropy,0444);
   }
@@ -150,6 +156,8 @@ struct InterruptsFlow
   static void route(Context &) noexcept
   {
     entropy.initialize();
+    gpu.initialize();
+    keyboard.initialize();
     router.initialize();
   }
   struct Discover;

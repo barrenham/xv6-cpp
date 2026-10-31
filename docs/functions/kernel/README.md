@@ -6,9 +6,9 @@
 | --- | ---: | ---: |
 | [arch](#arch) | 5 | 52 |
 | [boot](#boot) | 6 | 10 |
-| [drivers](#drivers) | 38 | 507 |
+| [drivers](#drivers) | 42 | 576 |
 | [fs](#fs) | 66 | 1349 |
-| [io](#io) | 4 | 21 |
+| [io](#io) | 6 | 21 |
 | [memory](#memory) | 28 | 487 |
 | [net](#net) | 117 | 1394 |
 | [process](#process) | 67 | 742 |
@@ -18,7 +18,7 @@
 | [trap](#trap) | 23 | 152 |
 | [tty](#tty) | 1 | 0 |
 
-范围：398 个文件；默认 5087 个唯一 C++ 函数，连同条件接口与汇编入口共 5161 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：404 个文件；默认 5156 个唯一 C++ 函数，连同条件接口与汇编入口共 5230 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -53,6 +53,8 @@
 - [`kernel/drivers/console/character_device.cppm`](drivers/console/character_device.cppm.md)
 - [`kernel/drivers/device.cppm`](drivers/device.cppm.md)
 - [`kernel/drivers/device_numbers.h`](drivers/device_numbers.h.md)
+- [`kernel/drivers/display/virtio_gpu.cpp`](drivers/display/virtio_gpu.cpp.md)
+- [`kernel/drivers/display/virtio_gpu.cppm`](drivers/display/virtio_gpu.cppm.md)
 - [`kernel/drivers/drivers.cppm`](drivers/drivers.cppm.md)
 - [`kernel/drivers/entropy/virtio_entropy.cpp`](drivers/entropy/virtio_entropy.cpp.md)
 - [`kernel/drivers/entropy/virtio_entropy.cppm`](drivers/entropy/virtio_entropy.cppm.md)
@@ -161,6 +163,7 @@
 
 - [`kernel/io/block.h`](io/block.h.md)
 - [`kernel/io/dirent.h`](io/dirent.h.md)
+- [`kernel/io/framebuffer.h`](io/framebuffer.h.md)
 - [`kernel/io/object.cppm`](io/object.cppm.md)
 - [`kernel/io/stat.h`](io/stat.h.md)
 
@@ -511,3 +514,9 @@
 - [`kernel/memory/slab/slab_cache.cppm`](memory/slab/slab_cache.cppm.md)
 - [`kernel/memory/slab/slab_cache.cpp`](memory/slab/slab_cache.cpp.md)
 - [`kernel/memory/slab/slab_service.cpp`](memory/slab/slab_service.cpp.md)
+
+- [`kernel/drivers/input/virtio_keyboard.cpp`](drivers/input/virtio_keyboard.cpp.md)
+
+- [`kernel/drivers/input/virtio_keyboard.cppm`](drivers/input/virtio_keyboard.cppm.md)
+
+- [`kernel/io/keyboard.h`](io/keyboard.h.md)

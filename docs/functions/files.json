@@ -5218,8 +5218,10 @@
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@ok#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@read#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@remaining#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@retry#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@sent#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@short_write#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@shrink#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@success#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@transform#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@transmit#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
@@ -8798,5 +8800,118 @@
       "c:@N@xv@N@stats@ST>1#Ni@Accounting@F@system#1",
       "c:@N@xv@N@stats@ST>1#Ni@Accounting@F@timer#i#b#b#"
     ]
+  },
+  {
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@allocate#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@copy_pixels#&1$@S@FramebufferUpdate#$@N@xv@N@drivers@S@IoBuffer#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@handle_interrupt#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@initialize#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@negotiate#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@offline#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@open#b#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@packet#i#*1v#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@present#i#i#i#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@setup#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@submit#i#i#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@F@copy#&$@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@F@okay#&$@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@F@present#&$@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@F@read#&$@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@F@valid#&$@N@xv@N@drivers@S@VirtioGpu@S@DrawFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@allocate#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@fail#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@found#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@negotiate#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@okay#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@ready#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@F@setup#&$@N@xv@N@drivers@S@VirtioGpu@S@InitializeFlow@S@Context#S"
+    ]
+  },
+  {
+    "source": "kernel/drivers/display/virtio_gpu.cppm",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@VirtioGpu#l#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@allocate#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@copy_pixels#&1$@S@FramebufferUpdate#$@N@xv@N@drivers@S@IoBuffer#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@handle_interrupt#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@initialize#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@irq#1",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@name#1",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@negotiate#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@offline#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@open#b#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@packet#i#*1v#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@present#i#i#i#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@put_sync#I#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@setup#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@submit#i#i#i#",
+      "c:@N@xv@N@drivers@S@VirtioGpu@F@write#$@N@xv@N@drivers@S@IoBuffer#I#"
+    ]
+  },
+  {
+    "source": "kernel/io/framebuffer.h",
+    "document": "docs/functions/kernel/io/framebuffer.h.md",
+    "function_usrs": []
+  },
+  {
+    "source": "kernel/drivers/input/virtio_keyboard.cpp",
+    "document": "docs/functions/kernel/drivers/input/virtio_keyboard.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@allocate#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@close#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@disable#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@drain#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@enqueue#&1$@S@KeyboardEvent#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@handle_interrupt#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@identify#1",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@negotiate#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@open#b#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@publish#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@rollback#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@allocate#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@fail#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@found#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@negotiate#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@okay#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@F@publish#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InitializeFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@acknowledge#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@drain#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@fail#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@okay#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@ready#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@F@wake#&$@N@xv@N@drivers@S@VirtioKeyboard@S@InterruptFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@again#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@available#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@copy#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@nonblocking#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@sleep#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@F@stopped#&$@N@xv@N@drivers@S@VirtioKeyboard@S@ReadFlow@S@Context#S"
+    ]
+  },
+  {
+    "source": "kernel/drivers/input/virtio_keyboard.cppm",
+    "document": "docs/functions/kernel/drivers/input/virtio_keyboard.cppm.md",
+    "function_usrs": [
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@VirtioKeyboard#l#i#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@irq#1",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@name#1",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@put_sync#I#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@write#$@N@xv@N@drivers@S@IoBuffer#I#"
+    ]
+  },
+  {
+    "source": "kernel/io/keyboard.h",
+    "document": "docs/functions/kernel/io/keyboard.h.md",
+    "function_usrs": []
   }
 ]

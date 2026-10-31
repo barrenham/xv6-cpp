@@ -1,0 +1,902 @@
+{
+  "date": "2026-11-01",
+  "status": "passed",
+  "host_architecture": "x86_64",
+  "qemu_version": "QEMU emulator version 9.2.1 (Debian 1:9.2.1+ds-1ubuntu5.2)",
+  "sources_and_binaries": {
+    "user/apps/fbterm/fbterm.cpp": "34f5126e90dadb691764ebe5d29d43b12ffa7a5fa699e2afa437d27fc846ec55",
+    "tools/profile_fbterm.py": "d76ffaefe2ed1074e3d9ab5c220e47f7c80d89cda2f56ead87958409dc0f8b9d",
+    "build/dev/user/_fbterm": "542d606b366752436a236b0933a18f1d0c55dbf6f98e35079a08155d5f613681",
+    "build/dev/kernel.elf": "458bfa8d109f8c16ca15a586a9e0bbc7f3023f68cf51eb6b9d4279cb68095d25"
+  },
+  "experiments": {
+    "1cpu": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "normal",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 10.173438887984958,
+          "qemu_cpu_s": 8.750000000000002,
+          "ticks": {
+            "elapsed": 81336468,
+            "poll": 4399298,
+            "read": 1310126,
+            "feed": 1332226,
+            "raster": 8253100,
+            "draw": 16542805,
+            "mirror": 48877741,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 123648000,
+            "polls": 84,
+            "reads": 41,
+            "writes": 40,
+            "frames": 16,
+            "draws": 16,
+            "maxdraw": 1416525
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-mirror",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 2.2247081649838947,
+          "qemu_cpu_s": 1.7799999999999976,
+          "ticks": {
+            "elapsed": 11793938,
+            "poll": 1702118,
+            "read": 1043609,
+            "feed": 1092991,
+            "raster": 5124829,
+            "draw": 2506122,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23961600,
+            "polls": 44,
+            "reads": 44,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 924172
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-present",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 7.130032429005951,
+          "qemu_cpu_s": 5.98,
+          "ticks": {
+            "elapsed": 53349722,
+            "poll": 3023284,
+            "read": 1237425,
+            "feed": 1260448,
+            "raster": 8343674,
+            "draw": 0,
+            "mirror": 38836985,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 90,
+            "reads": 43,
+            "writes": 42,
+            "frames": 20,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-paint",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 4.274992413003929,
+          "qemu_cpu_s": 4.0,
+          "ticks": {
+            "elapsed": 35115544,
+            "poll": 3124552,
+            "read": 1066038,
+            "feed": 1099607,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 29253977,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 92,
+            "reads": 42,
+            "writes": 41,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "parse-only",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 2.50166430498939,
+          "qemu_cpu_s": 1.1900000000000013,
+          "ticks": {
+            "elapsed": 9580484,
+            "poll": 6734052,
+            "read": 1240029,
+            "feed": 1214225,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 0,
+            "polls": 44,
+            "reads": 44,
+            "writes": 0,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "parse-only",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 2.462605619977694,
+          "qemu_cpu_s": 1.120000000000001,
+          "ticks": {
+            "elapsed": 7917989,
+            "poll": 5018751,
+            "read": 1267104,
+            "feed": 1244728,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 0,
+            "polls": 42,
+            "reads": 42,
+            "writes": 0,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-paint",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 4.916549676971044,
+          "qemu_cpu_s": 3.6900000000000013,
+          "ticks": {
+            "elapsed": 31098215,
+            "poll": 2002882,
+            "read": 984187,
+            "feed": 1147866,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 26414114,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 99,
+            "reads": 43,
+            "writes": 42,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-present",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 6.744996174995322,
+          "qemu_cpu_s": 5.140000000000001,
+          "ticks": {
+            "elapsed": 47673072,
+            "poll": 5906448,
+            "read": 1193288,
+            "feed": 1256597,
+            "raster": 7929998,
+            "draw": 0,
+            "mirror": 30700001,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 98,
+            "reads": 44,
+            "writes": 43,
+            "frames": 19,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-mirror",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 3.9995667440234683,
+          "qemu_cpu_s": 2.200000000000003,
+          "ticks": {
+            "elapsed": 13051193,
+            "poll": 2166209,
+            "read": 1387924,
+            "feed": 1323871,
+            "raster": 4263439,
+            "draw": 3481543,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23808000,
+            "polls": 42,
+            "reads": 42,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1214071
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "normal",
+          "cpus": 1,
+          "vnc_client": false,
+          "host_wall_s": 6.5792625159956515,
+          "qemu_cpu_s": 6.07,
+          "ticks": {
+            "elapsed": 54438055,
+            "poll": 4669037,
+            "read": 1199027,
+            "feed": 1292006,
+            "raster": 6235907,
+            "draw": 11749141,
+            "mirror": 28658691,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 86630400,
+            "polls": 83,
+            "reads": 39,
+            "writes": 38,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1506055
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        }
+      ]
+    },
+    "5cpu": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 23.798683754052036,
+          "qemu_cpu_s": 37.73,
+          "ticks": {
+            "elapsed": 225011264,
+            "poll": 595883,
+            "read": 1059902,
+            "feed": 976504,
+            "raster": 6573725,
+            "draw": 12303748,
+            "mirror": 203077139,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 90163200,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1423928
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 2.677914351981599,
+          "qemu_cpu_s": 3.520000000000003,
+          "ticks": {
+            "elapsed": 13496738,
+            "poll": 1817803,
+            "read": 1540421,
+            "feed": 1483978,
+            "raster": 4882954,
+            "draw": 3268118,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 21504000,
+            "polls": 29,
+            "reads": 29,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1232479
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-present",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 18.41412804002175,
+          "qemu_cpu_s": 29.619999999999997,
+          "ticks": {
+            "elapsed": 173001939,
+            "poll": 620474,
+            "read": 818408,
+            "feed": 943471,
+            "raster": 4897984,
+            "draw": 0,
+            "mirror": 165392017,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-paint",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 17.77433662203839,
+          "qemu_cpu_s": 28.919999999999987,
+          "ticks": {
+            "elapsed": 167355829,
+            "poll": 467621,
+            "read": 1057150,
+            "feed": 974376,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 164507677,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "parse-only",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 1.2600558679550886,
+          "qemu_cpu_s": 1.8700000000000045,
+          "ticks": {
+            "elapsed": 3354074,
+            "poll": 792329,
+            "read": 1111434,
+            "feed": 1111871,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 0,
+            "polls": 30,
+            "reads": 30,
+            "writes": 0,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "parse-only",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 1.471136626030784,
+          "qemu_cpu_s": 2.269999999999996,
+          "ticks": {
+            "elapsed": 4675500,
+            "poll": 1115309,
+            "read": 1456898,
+            "feed": 1582545,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 0,
+            "polls": 32,
+            "reads": 32,
+            "writes": 0,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-paint",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 16.561801547009964,
+          "qemu_cpu_s": 26.78,
+          "ticks": {
+            "elapsed": 155737553,
+            "poll": 369517,
+            "read": 962235,
+            "feed": 916232,
+            "raster": 0,
+            "draw": 0,
+            "mirror": 153193671,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 0,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-present",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 22.719439020962454,
+          "qemu_cpu_s": 37.21000000000001,
+          "ticks": {
+            "elapsed": 216631398,
+            "poll": 480851,
+            "read": 995743,
+            "feed": 974008,
+            "raster": 6246687,
+            "draw": 0,
+            "mirror": 207569290,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 0,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 0,
+            "maxdraw": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 2.6626129550277255,
+          "qemu_cpu_s": 3.5600000000000023,
+          "ticks": {
+            "elapsed": 12932201,
+            "poll": 918627,
+            "read": 1389965,
+            "feed": 1616381,
+            "raster": 4937835,
+            "draw": 3562861,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23961600,
+            "polls": 27,
+            "reads": 27,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1341433
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": false,
+          "host_wall_s": 23.83485899301013,
+          "qemu_cpu_s": 38.5,
+          "ticks": {
+            "elapsed": 226633703,
+            "poll": 704884,
+            "read": 957504,
+            "feed": 1029714,
+            "raster": 6028604,
+            "draw": 12338903,
+            "mirror": 205069862,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 90163200,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1317906
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        }
+      ]
+    },
+    "5cpu-vnc": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": "raw",
+      "results": [
+        {
+          "round": 1,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": true,
+          "host_wall_s": 23.746960240008775,
+          "qemu_cpu_s": 37.67,
+          "ticks": {
+            "elapsed": 224401036,
+            "poll": 1074422,
+            "read": 959417,
+            "feed": 1047816,
+            "raster": 6242946,
+            "draw": 12139773,
+            "mirror": 202441637,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 90163200,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1441311
+          },
+          "vnc_bytes": 18592380,
+          "vnc_updates": 13
+        },
+        {
+          "round": 1,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": true,
+          "host_wall_s": 2.465085365984123,
+          "qemu_cpu_s": 3.280000000000001,
+          "ticks": {
+            "elapsed": 11732741,
+            "poll": 967903,
+            "read": 1288963,
+            "feed": 1294688,
+            "raster": 4731469,
+            "draw": 3090263,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23654400,
+            "polls": 29,
+            "reads": 29,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1191352
+          },
+          "vnc_bytes": 2272400,
+          "vnc_updates": 4
+        },
+        {
+          "round": 2,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": true,
+          "host_wall_s": 2.508060921973083,
+          "qemu_cpu_s": 3.3599999999999994,
+          "ticks": {
+            "elapsed": 11961187,
+            "poll": 932061,
+            "read": 1207606,
+            "feed": 1341664,
+            "raster": 4563215,
+            "draw": 3552608,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23961600,
+            "polls": 29,
+            "reads": 29,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1199574
+          },
+          "vnc_bytes": 2113904,
+          "vnc_updates": 3
+        },
+        {
+          "round": 2,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": true,
+          "host_wall_s": 22.35279547801474,
+          "qemu_cpu_s": 35.36,
+          "ticks": {
+            "elapsed": 209659373,
+            "poll": 595231,
+            "read": 1033895,
+            "feed": 1024972,
+            "raster": 4958413,
+            "draw": 11799176,
+            "mirror": 189859069,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 90163200,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1321568
+          },
+          "vnc_bytes": 3004576,
+          "vnc_updates": 12
+        }
+      ]
+    }
+  },
+  "medians": {
+    "1cpu": {
+      "normal": {
+        "transfer_seconds": 6.78872615,
+        "host_command_seconds": 8.376350701990305,
+        "qemu_cpu_seconds": 7.410000000000001,
+        "stage_fraction": {
+          "poll": 0.0699277664202079,
+          "read": 0.019066507755116584,
+          "feed": 0.02005635217207173,
+          "raster": 0.1080095704751869,
+          "draw": 0.2096065911918994,
+          "mirror": 0.5636892870130678
+        }
+      },
+      "no-mirror": {
+        "transfer_seconds": 1.24225655,
+        "host_command_seconds": 3.1121374545036815,
+        "qemu_cpu_seconds": 1.9900000000000002,
+        "stage_fraction": {
+          "poll": 0.15514964186576957,
+          "read": 0.09741575333903718,
+          "feed": 0.09705537287436723,
+          "raster": 0.3806006082145164,
+          "draw": 0.2396264507004634,
+          "mirror": 0.0
+        }
+      },
+      "no-present": {
+        "transfer_seconds": 5.0511397,
+        "host_command_seconds": 6.937514302000636,
+        "qemu_cpu_seconds": 5.5600000000000005,
+        "stage_fraction": {
+          "poll": 0.09028200454176392,
+          "read": 0.024112620884368035,
+          "feed": 0.024992386398639085,
+          "raster": 0.1613685354408501,
+          "draw": 0.0,
+          "mirror": 0.6859696013462717
+        }
+      },
+      "no-paint": {
+        "transfer_seconds": 3.31068795,
+        "host_command_seconds": 4.595771044987487,
+        "qemu_cpu_seconds": 3.8450000000000006,
+        "stage_fraction": {
+          "poll": 0.07669210910172072,
+          "read": 0.031002854828687663,
+          "feed": 0.03411248026075711,
+          "raster": 0.0,
+          "draw": 0.0,
+          "mirror": 0.8412274427034008
+        }
+      },
+      "parse-only": {
+        "transfer_seconds": 0.8749236499999999,
+        "host_command_seconds": 2.482134962483542,
+        "qemu_cpu_seconds": 1.1550000000000011,
+        "stage_fraction": {
+          "poll": 0.6683671476989861,
+          "read": 0.1447306629571043,
+          "feed": 0.14197098186340806,
+          "raster": 0.0,
+          "draw": 0.0,
+          "mirror": 0.0
+        }
+      }
+    },
+    "5cpu": {
+      "normal": {
+        "transfer_seconds": 22.58224835,
+        "host_command_seconds": 23.816771373531083,
+        "qemu_cpu_seconds": 38.114999999999995,
+        "stage_fraction": {
+          "poll": 0.0028792354901298204,
+          "read": 0.004467668255727383,
+          "feed": 0.004441658577171484,
+          "raster": 0.027907871906951924,
+          "draw": 0.054562420746645024,
+          "mirror": 0.9036857250920514
+        }
+      },
+      "no-mirror": {
+        "transfer_seconds": 1.32144695,
+        "host_command_seconds": 2.670263653504662,
+        "qemu_cpu_seconds": 3.5400000000000027,
+        "stage_fraction": {
+          "poll": 0.10285934891834822,
+          "read": 0.11080688393733763,
+          "feed": 0.11746985951073305,
+          "raster": 0.37180625512926113,
+          "draw": 0.25882219367567466,
+          "mirror": 0.0
+        }
+      },
+      "no-present": {
+        "transfer_seconds": 19.48166685,
+        "host_command_seconds": 20.566783530492103,
+        "qemu_cpu_seconds": 33.415000000000006,
+        "stage_fraction": {
+          "poll": 0.0029030941690279524,
+          "read": 0.004663557095726006,
+          "feed": 0.004974840943560788,
+          "raster": 0.02857364290340436,
+          "draw": 0.0,
+          "mirror": 0.957090290697179
+        }
+      },
+      "no-paint": {
+        "transfer_seconds": 16.1546691,
+        "host_command_seconds": 17.168069084524177,
+        "qemu_cpu_seconds": 27.849999999999994,
+        "stage_fraction": {
+          "poll": 0.002583431295241381,
+          "read": 0.006247673941882555,
+          "feed": 0.005852680532391314,
+          "raster": 0.0,
+          "draw": 0.0,
+          "mirror": 0.9833235215396544
+        }
+      },
+      "parse-only": {
+        "transfer_seconds": 0.4014787,
+        "host_command_seconds": 1.3655962469929364,
+        "qemu_cpu_seconds": 2.0700000000000003,
+        "stage_fraction": {
+          "poll": 0.23738604716823697,
+          "read": 0.321485484569149,
+          "feed": 0.3349873739592484,
+          "raster": 0.0,
+          "draw": 0.0,
+          "mirror": 0.0
+        }
+      }
+    },
+    "5cpu-vnc": {
+      "normal": {
+        "transfer_seconds": 21.70302045,
+        "host_command_seconds": 23.049877859011758,
+        "qemu_cpu_seconds": 36.515,
+        "stage_fraction": {
+          "poll": 0.0038134965352227233,
+          "read": 0.004603382679276962,
+          "feed": 0.004779069484169692,
+          "raster": 0.025735168928117506,
+          "draw": 0.05518819865446564,
+          "mirror": 0.903850910087951
+        }
+      },
+      "no-mirror": {
+        "transfer_seconds": 1.1846964,
+        "host_command_seconds": 2.486573143978603,
+        "qemu_cpu_seconds": 3.3200000000000003,
+        "stage_fraction": {
+          "poll": 0.08020984279491315,
+          "read": 0.10541036424223732,
+          "feed": 0.11125821489458072,
+          "raster": 0.3923862048849892,
+          "draw": 0.28019965457510776,
+          "mirror": 0.0
+        }
+      }
+    }
+  },
+  "fork_gate": "skipped per user request",
+  "persistent_rootfs_updated": false,
+  "limitations": [
+    "Stage clocks are elapsed times, not pure CPU time.",
+    "Draw includes kernel copy plus device transfer/flush; not separately measured.",
+    "Two repeats per mode; local Raw VNC client, not remote MobaXterm.",
+    "Modes alter output throughput and frame counts; timing differences are not independent component costs."
+  ],
+  "regression": {
+    "checks": [
+      "fbterm_contract",
+      "fbterm_1cpu"
+    ],
+    "passed": true,
+    "log": "build/docs/display-profile/regression.log"
+  }
+}

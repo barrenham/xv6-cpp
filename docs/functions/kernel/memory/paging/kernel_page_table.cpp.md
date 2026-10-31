@@ -643,7 +643,7 @@
 ```doxygen
 @fn static void xv::memory::KernelBuildFlow::devices_text(Context &c) noexcept
 @brief 按原实验条件映射设备、PLIC 与只读可执行内核文本。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮VirtIO MMIO范围扩为5页，覆盖键盘0x10005000，其余映射与权限不变。
 ```
 
 <a id="fn-0478db392b7e5ee1"></a>

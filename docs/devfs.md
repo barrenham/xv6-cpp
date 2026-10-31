@@ -123,3 +123,7 @@ QEMU 单核/五核 `devfstest` 验证用户指针错误、设备内容、poll/io
 设备节点权限：console 为 root:root 0600，null/zero/full/ptmx/tty 为 0666，random/urandom 为 0444，命名 pts 为创建者有效 uid/gid 的 0600。目录与元数据只读，字符设备数据按节点权限授权；su 继续使用继承的标准终端 fd。
 
 完整规则见 [用户、组与权限](users-permissions.md)。
+
+`/dev/fb0`（字符 29:0，0600）连接可选 VirtIO-GPU；缺少显卡时打开失败，不影响串口。像素格式、ioctl 与运行方式见 [图形说明](graphics.md)。
+
+`/dev/kbd0`（30:0，0600）提供8字节键盘事件、独占打开和poll；有效UID检查与溢出语义见 [键盘说明](keyboard.md)。

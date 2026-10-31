@@ -56,3 +56,9 @@ PTY 列表锁保护编号、发布状态、会话计数和计时遍历，输出�
 运行 `namedptytest`，或使用 `ctest --test-dir build/dev -R 'named-pty_[15]cpu' --output-on-failure`。测试覆盖初始锁、非法 ioctl 指针、多次从端打开、重新打开、dup、主端关闭撤名、旧引用固定编号、最终编号复用、fd 耗尽回滚和多进程并发创建。
 
 现有单核/五核 PTY 测试继续验证嵌套 shell、终端信号、前后台切换及批量转发。
+
+## 代理嵌套
+
+pty继承父TTY的输出处理设置，并通过私有XV_PROXY模式位协作分配Ctrl-]：
+有内层代理时向内转发，没有时退出当前层。fbterm和串口键盘保持相同规则，
+详见[嵌套PTY的换行和逐层退出](nested-pty.md)。

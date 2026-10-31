@@ -15,6 +15,14 @@ if(NOT XV_KERNEL_STACK_MIB MATCHES "^(2|4|8|16|32|64)$")
 endif()
 set(XV_CPUS 5 CACHE STRING "Number of QEMU harts")
 set(XV_GDB_PORT 26000 CACHE STRING "QEMU GDB port")
+set(XV_DISPLAY_WIDTH 1280 CACHE STRING "Framebuffer width (640..1920)")
+set(XV_DISPLAY_HEIGHT 800 CACHE STRING "Framebuffer height (480..1080)")
+if(NOT XV_DISPLAY_WIDTH MATCHES "^[1-9][0-9]*$" OR
+   XV_DISPLAY_WIDTH LESS 640 OR XV_DISPLAY_WIDTH GREATER 1920 OR
+   NOT XV_DISPLAY_HEIGHT MATCHES "^[1-9][0-9]*$" OR
+   XV_DISPLAY_HEIGHT LESS 480 OR XV_DISPLAY_HEIGHT GREATER 1080)
+  message(FATAL_ERROR "Display dimensions must be within 640x480..1920x1080")
+endif()
 find_program(XV_LLD ld.lld HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 find_program(XV_HOST_CLANG clang++ HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 find_program(XV_QEMU qemu-system-riscv64 HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
@@ -32,6 +40,9 @@ target_compile_options(xv_options INTERFACE
 set(CMAKE_CXX_LINK_EXECUTABLE "${XV_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 option(XV_NET_DHCP "Acquire network addresses with DHCP at boot" ON)
 add_subdirectory(kernel)
+set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/drivers/display/virtio_gpu.cppm"
+  TARGET_DIRECTORY kernel PROPERTIES
+  COMPILE_DEFINITIONS "XV_DISPLAY_WIDTH=${XV_DISPLAY_WIDTH};XV_DISPLAY_HEIGHT=${XV_DISPLAY_HEIGHT}")
 target_compile_definitions(kernel PRIVATE XV_KERNEL_VERSION="${PROJECT_VERSION}" XV_KERNEL_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}>)
 add_subdirectory(user)
@@ -51,19 +62,19 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fs-manifest.tsv"
   CONTENT "${XV_FS_DIRECTORIES}file\t0644\t/usr/share/doc/xv6/README\t${PROJECT_BINARY_DIR}/README\n${XV_FS_ENTRIES}")
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs.img"
   COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem "${XV_FILESYSTEM}"
-  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs.img")
 # Keep test enrollment independent of the disk used by interactive QEMU sessions.
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem "${XV_FILESYSTEM}"
-  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
 # Keep explicit coverage of the retained xv6 disk layout and recovery protocol.
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
   COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem xv6
-  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES}
+  DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(legacy-test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
 set(XV_ROOTFS_IMAGE "${PROJECT_SOURCE_DIR}/data/rootfs.img" CACHE FILEPATH "Persistent root filesystem; initialized once from the build image")
@@ -99,6 +110,22 @@ list(APPEND XV_QEMU_OPTIONS -object rng-random,id=rng0,filename=/dev/urandom -de
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
+add_custom_target(qemu-graphics COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
+  -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT}
+  -device virtio-keyboard-device,bus=virtio-mmio-bus.4 -display gtk
+  DEPENDS kernel rootfs-image USES_TERMINAL)
+set(XV_VNC_DISPLAY "1" CACHE STRING "VNC display number (TCP port 5900 + display)")
+if(NOT XV_VNC_DISPLAY MATCHES "^(0|[1-9][0-9]*)$" OR XV_VNC_DISPLAY GREATER 59635)
+  message(FATAL_ERROR "XV_VNC_DISPLAY must be an integer from 0 to 59635")
+endif()
+math(EXPR XV_VNC_PORT "5900 + ${XV_VNC_DISPLAY}")
+add_custom_target(qemu-vnc
+  COMMAND "${CMAKE_COMMAND}" -E echo "VNC: 0.0.0.0:${XV_VNC_PORT}, ${XV_DISPLAY_WIDTH}x${XV_DISPLAY_HEIGHT} (connect to this server's IP from your VNC client)"
+  COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
+    -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT} -display none
+    -device virtio-keyboard-device,bus=virtio-mmio-bus.4
+    -vnc "0.0.0.0:${XV_VNC_DISPLAY}"
+  DEPENDS kernel rootfs-image USES_TERMINAL VERBATIM)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel rootfs-image USES_TERMINAL)
 enable_testing()
 foreach(cpus IN ITEMS 1 5)
@@ -413,3 +440,39 @@ set_tests_properties(devfs_no_entropy_1cpu PROPERTIES TIMEOUT 120 LABELS "fs;dri
 get_property(XV_CONFIGURED_TESTS DIRECTORY PROPERTY TESTS)
 set_property(TEST ${XV_CONFIGURED_TESTS} APPEND PROPERTY ENVIRONMENT_MODIFICATION
   "XV_EXT3_LIBRARY=set:${PROJECT_BINARY_DIR}/libext3_image.so")
+
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME gpu_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT})
+  set_tests_properties(gpu_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS "drivers;graphics")
+endforeach()
+add_test(NAME gpu_absent_1cpu COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"
+  --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus 1 --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --without-gpu)
+set_tests_properties(gpu_absent_1cpu PROPERTIES TIMEOUT 90 LABELS "drivers;graphics")
+add_test(NAME gpu_vnc_5cpu COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"
+  --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus 5 --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --vnc)
+set_tests_properties(gpu_vnc_5cpu PROPERTIES TIMEOUT 120 LABELS "drivers;graphics")
+
+add_test(NAME fbterm_contract COMMAND "${PROJECT_BINARY_DIR}/fbterm_contract")
+set_tests_properties(fbterm_contract PROPERTIES TIMEOUT 30 LABELS "tty;graphics")
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME fbterm_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fbterm.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT})
+  set_tests_properties(fbterm_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "tty;graphics")
+endforeach()
+add_test(NAME fbterm_absent_1cpu COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/fbterm.py" --qemu "${XV_QEMU}"
+  --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus 1 --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --without-gpu)
+set_tests_properties(fbterm_absent_1cpu PROPERTIES TIMEOUT 90 LABELS "tty;graphics")
+
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME keyboard_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fbterm.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --keyboard)
+  set_tests_properties(keyboard_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "tty;graphics;input")
+endforeach()

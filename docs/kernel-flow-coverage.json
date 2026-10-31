@@ -1956,7 +1956,7 @@
           ]
         }
       ],
-      "definition_sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26"
+      "definition_sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
     },
     {
       "module": "memory",
@@ -2034,7 +2034,7 @@
           ]
         }
       ],
-      "definition_sha256": "a10ced8c86d18e3ba62cbe1c1082d8f1557ad518bc9f8a729c83bbb10621fb26"
+      "definition_sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
     },
     {
       "module": "memory",
@@ -2443,7 +2443,7 @@
           ]
         }
       ],
-      "definition_sha256": "940c8fcc69cdcd48f3618c5299811033b410433da34de632df98d45ea1b1d09c"
+      "definition_sha256": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931"
     },
     {
       "module": "drivers",
@@ -2839,7 +2839,7 @@
           ]
         }
       ],
-      "definition_sha256": "d7e861e8a0436ad7a5885c67c60b8605cc6f10e23ca148564205df0bd6e240c0"
+      "definition_sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff"
     },
     {
       "module": "syscall",
@@ -3713,6 +3713,121 @@
           "source_sha256": "e4913465c42b8be5865a65f43a82d573f0ae09e7c6592f21ad5a7c5220afa3b0",
           "graphs": [
             "TransferFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioGpu",
+      "methods": [
+        "initialize"
+      ],
+      "definition": "kernel/drivers/display/virtio_gpu.cpp",
+      "definition_sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "graphs": [
+        "InitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioGpu::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@initialize#",
+          "source": "kernel/drivers/display/virtio_gpu.cpp",
+          "source_sha256": "7c5668bace257500705fe5dda68391f59f7d8a0b1175bf32938bda84e614095f",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioGpu",
+      "methods": [
+        "ioctl"
+      ],
+      "definition": "kernel/drivers/display/virtio_gpu.cpp",
+      "definition_sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "graphs": [
+        "DrawFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioGpu::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/display/virtio_gpu.cpp",
+          "source_sha256": "5b0c1a3447448bfe54f8ae6b358bdfa116b41aec33771a3650bacadcb74e71d4",
+          "graphs": [
+            "DrawFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioKeyboard",
+      "methods": [
+        "initialize"
+      ],
+      "definition": "kernel/drivers/input/virtio_keyboard.cpp",
+      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "graphs": [
+        "InitializeFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "181ef2fe6933d5038c18fa56e968514d29a18ca26e6700f804aa97d7f8147f74",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioKeyboard",
+      "methods": [
+        "read"
+      ],
+      "definition": "kernel/drivers/input/virtio_keyboard.cpp",
+      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "graphs": [
+        "ReadFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::read",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "19a65f6d04ede4fd063ce24a767a5b96e495a81033b8caa08adcbb87fbf8ba03",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "owner": "VirtioKeyboard",
+      "methods": [
+        "handle_interrupt"
+      ],
+      "definition": "kernel/drivers/input/virtio_keyboard.cpp",
+      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "graphs": [
+        "InterruptFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@handle_interrupt#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "5315a489de7b47f5102e8290af9049146fee0d8d41096165510514b4b7e20daf",
+          "graphs": [
+            "InterruptFlow::Graph"
           ]
         }
       ]

@@ -27,6 +27,8 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/fbterm/fbterm.cpp
+  apps/fbdemo/fbdemo.cpp
   apps/userdel/userdel.cpp
   apps/groupadd/groupadd.cpp
   apps/groupdel/groupdel.cpp
@@ -113,7 +115,9 @@ foreach(source IN LISTS programs)
   xv_add_program("${source}")
 endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
+string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/fbfont.txt\t${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt\n")
 set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
+set(XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt" PARENT_SCOPE)
 
 target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp apps/sh/editor.cpp)
 

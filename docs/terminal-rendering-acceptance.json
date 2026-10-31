@@ -1,0 +1,70 @@
+{
+  "status": "passed",
+  "date": "2026-10-31",
+  "screen": [
+    1920,
+    1080
+  ],
+  "grid": [
+    192,
+    54
+  ],
+  "font": {
+    "name": "XV Mono",
+    "source": "DejaVu Sans Mono 16px",
+    "cell": [
+      10,
+      20
+    ],
+    "coverage_levels": 16,
+    "asset_sha256": "88cd8c8591a531c0b434273c94abaffdbddea80eb75f21a37aeb0f7cf3d51ee1",
+    "generator": "tools/generate_fbterm_font.py",
+    "license": "user/apps/fbterm/FONT-LICENSE.txt",
+    "installed_license": "/usr/share/doc/xv6/fbfont.txt",
+    "reproduced_from_local_source": true
+  },
+  "fixes": [
+    "Replaced vertically stretched 5x7 raster with proportional grayscale monospace glyphs",
+    "One draw call for the entire dirty-row bounding rectangle, including full scrolls",
+    "Output updates coalesced using the project QEMU timebase; blank-cell fast path",
+    "Clear pending-wrap after the first automatic wrap; consecutive characters continue horizontally",
+    "Shell editor tracks actual visual cursor rows and repaints wrapped input; pending-wrap preserved",
+    "Asynchronous job notifications and completion lists redraw from a fresh line"
+  ],
+  "checks": [
+    "environment_1cpu",
+    "environment_5cpu",
+    "fbterm_1cpu",
+    "fbterm_5cpu",
+    "fbterm_absent_1cpu",
+    "fbterm_contract",
+    "image_layout",
+    "jobs_1cpu",
+    "jobs_5cpu",
+    "keyboard_1cpu",
+    "keyboard_5cpu",
+    "pty_1cpu",
+    "pty_5cpu"
+  ],
+  "check_count": 13,
+  "raster_evidence": "Paint callback count is exactly one for a full scroll; clean frame submits none; failure retains dirty flags; optimized raster matches every pixel of reference at 1366x768 with colored backgrounds, inverse, cursor and edge padding.",
+  "qemu_evidence": "Single/five CPU, real VNC key events and QMP font decoding; long key input, wrapped editing, Ctrl-A/Ctrl-E, backspace, job control, PTY and environment regression passed.",
+  "sanitizers": "Actual terminal/keymap/render code passed ASan/UBSan and leak checking",
+  "installation": "Updated fbterm, sh and font license on unused actual rootfs; backups made; all protected account/user contents and attributes unchanged.",
+  "install_records": [
+    "build/docs/terminal-fix/rootfs-update.json",
+    "build/docs/terminal-fix/rootfs-license-update.json"
+  ],
+  "screenshots": [
+    "build/docs/terminal-fix/free.png",
+    "build/docs/terminal-fix/long-input.png",
+    "build/docs/terminal-fix/long-edit.png"
+  ],
+  "fork_gate": "Skipped at user request; unchanged settings and workload.",
+  "limits": [
+    "Printable ASCII only; no Unicode/CJK atlas",
+    "No hardware vsync or fixed frame-rate guarantee",
+    "Full-screen pixel storage is about 7.91 MiB at 1920x1080"
+  ],
+  "superseded_by": "docs/terminal-output-acceptance.json"
+}

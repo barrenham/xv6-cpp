@@ -40,6 +40,8 @@ function(xv_add_driver_modules target)
       "${module_root}/mmio.cppm"
       "${module_root}/rtc/goldfish.cppm"
       "${module_root}/entropy/virtio_entropy.cppm"
+      "${module_root}/display/virtio_gpu.cppm"
+      "${module_root}/input/virtio_keyboard.cppm"
   )
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
 endfunction()

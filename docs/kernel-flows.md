@@ -15,7 +15,7 @@
 | process | AddressSpace 创建、增长、缩小、克隆、保护页；ELF 装载；分配、fork/exit/reap、收养、wait、kill 和文件表查询；ProcessGroups 成员/会话/终端管理；用户信号帧与信号递送；调度与等待/poll 生命周期；描述符分配/回收与 exec 提交 | 本轮识别的复杂路径已接入，剩余原语见逐文件审查，最终联合回归通过 |
 | memory | 统一 VirtualAddressPool 的区间与属性管理；内核初始映射、栈分配/回收/故障；Sv39 叶与范围映射；用户增长/解除/克隆与 COW/按需故障；物理分配、布局与 FDT 发现 | 本轮识别的复杂路径已接入，原语见逐文件审查，最终联合回归通过 |
 | fs | 管道创建/读写、PageBuffer、日志事务、LRU 获取/释放、文件引用回收/绑定、设备登记、inode 后端 I/O；VFS 路径与挂载、RAMFS、DevFS、ProcFS；Xv6 inode、块 I/O 与目录修改 | 本轮识别的复杂路径已接入，原语范围已登记，最终联合回归通过 |
-| drivers | UART 的发送与排空；TTY 读写/注入/ioctl/poll 与行规程接收；PTY 生命周期/命名节点/阻塞 I/O；VirtIO 请求与中断路由；E1000 收发与初始化、PCI 配置、板级控制台/中断启动 | 34 文件逐项审查与最终联合回归通过 |
+| drivers | UART 的发送与排空；TTY 读写/注入/ioctl/poll 与行规程接收；PTY 生命周期/命名节点/阻塞 I/O；VirtIO 请求与中断路由；E1000 收发与初始化、PCI 配置、板级控制台/中断启动 | 驱动文件逐项审查；新增 GPU 的验证见图形说明 |
 | syscall | poll、网络管理、页表、文件/socket、exec 参数；一次 handler 分派/重放和补充组复制/提交 | 已识别复杂路径完成，范围见逐文件审查，最终联合验证通过 |
 | support | printk 的格式匹配、输出与游标推进；字节运行时和 ABI 原语已审查 | 条件 StatsReadFlow 已接入并通过实际源夹具；原完整 LAB_LOCK 仍缺 STATS 与实验服务 |
 | net | 见独立网络覆盖清单 | 此前 110 张图保留，最终联合回归通过 |
@@ -24,7 +24,7 @@
 | tty | 共享 termios ABI 头已审查；执行流程已接入 drivers/tty | ABI 常量保留原语，最终联合验证通过 |
 | boot | 排除 `kernel/boot` 的图转换 | 本次为 CPU 信息捕获和上线发布增加启动钩子，其余协议保持 |
 
-当前共登记 222 个图身份（含条件统计读取），有 221 个原入口绑定及 7 个内部绑定；其中两个 SleepLock 入口、目录/设备节点创建入口和 stat/lstat 分别共用图，初始化方法可使用多个独立图；普通文件创建在局部 namespace 锁作用域中运行内部 RegularGraph。
+当前共登记 224 个图身份（含条件统计读取），有 223 个原入口绑定及 7 个内部绑定；其中两个 SleepLock 入口、目录/设备节点创建入口和 stat/lstat 分别共用图，初始化方法可使用多个独立图；普通文件创建在局部 namespace 锁作用域中运行内部 RegularGraph。
 这不包括网络模块此前的 110 张图。`memory/boot` 属于内存模块，未因目录中含 boot 字样而自动排除。
 具体入口与图定义登记在 [覆盖清单](kernel-flow-coverage.json)，每个入口还绑定当前 clangd USR、实现路径、函数体指纹与实际调用的图。
 
@@ -1062,3 +1062,7 @@ VirtualAddressPool 现在统一维护空闲区间、已占用区间及区域属�
 memory 新增空闲链表与位图两种多态 slab，算法作为分配容器原语保留直接实现。
 会话、进程组、精确尺寸进程描述符和共享虚拟区间节点改用 slab；原跨资源生命周期及失败回滚仍由已有图执行。
 当前源范围为 374 个文件，原 217 个非网络图身份和 110 个网络图不变。实现、配置和性能门禁见 [slab](slab.md)。
+
+VirtIO-GPU 使用 InitializeFlow 和 DrawFlow 接入可选显示设备；DMA复位所有权、轮询等待与项目ioctl边界见 [图形说明](graphics.md)。
+
+VirtIO 键盘通过 InitializeFlow、ReadFlow 和 InterruptFlow 接入；当前核对404个源文件、227个非网络图身份及保留的110个网络图。设备和DMA错误路径见 [键盘说明](keyboard.md)。

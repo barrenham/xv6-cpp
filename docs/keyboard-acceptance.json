@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-31",
+  "status": "passed",
+  "style_review": "Expanded display driver declarations, protocol structs, branches, loops and flow graphs; named command/status/fence constants; original GPU ABI and ownership semantics retained.",
+  "keyboard": {
+    "device": "/dev/kbd0",
+    "major": 30,
+    "minor": 0,
+    "mode": "0600",
+    "exclusive": true,
+    "mmio": "0x10005000",
+    "irq": 5,
+    "dma_pages": 7,
+    "queue_entries": 64,
+    "buffered_events": 256,
+    "abi_bytes": 8
+  },
+  "vnc_evidence": "Actual RFB 3.8 KeyEvent messages via loopback TCP to QEMU; guest VirtIO IRQ path, Shift/Caps Lock, backspace, history, cat input, Ctrl-C; real QMP scanout text verified.",
+  "passed_checks": [
+    "fbterm_1cpu",
+    "fbterm_5cpu",
+    "gpu_1cpu",
+    "gpu_vnc_5cpu",
+    "gpu_5cpu",
+    "fbterm_absent_1cpu",
+    "gpu_absent_1cpu",
+    "devfs_5cpu",
+    "procfs_5cpu",
+    "procfs_1cpu",
+    "pty_1cpu",
+    "devfs_1cpu",
+    "fbterm_contract",
+    "pty_5cpu",
+    "driver_contract",
+    "user_regression",
+    "keyboard_1cpu",
+    "keyboard_5cpu",
+    "fork_progress_1cpu",
+    "fork_progress_5cpu"
+  ],
+  "sanitizers": "Actual driver_contract and fbterm_contract passed ASan/UBSan and leak checking; all allocation failure points, malformed completions and ring wrap included.",
+  "documentation": {
+    "kernel_sources": 404,
+    "function_entries": 5228,
+    "non_network_graphs": 227,
+    "network_graphs_preserved": 110,
+    "missing_functions": 0,
+    "unregistered_runners": 0,
+    "hover": "4561 external Doxygen; 10 source precedence; 568 native index limits; 89 docs only; 5 cross-module probes passed"
+  },
+  "installed_rootfs": "Only /bin/fbterm updated after confirming actual disk unused; exact backup made; /etc /home /root /data contents and ownership/modes unchanged.",
+  "rootfs_record": "build/docs/keyboard/rootfs-update.json",
+  "screenshot": "build/docs/keyboard/vnc-input.png",
+  "logs": "build/docs/keyboard and build/dev/fbterm-*-keyboard.log",
+  "limitations": [
+    "US main keyboard layout; initial serial login and fbterm launch still required",
+    "No mouse, full international layout/IME, function keys, keypad digits or LED feedback",
+    "Overflow reports SYN_DROPPED and resets user modifiers; input can be lost under overload",
+    "Runtime protocol error retains DMA pages and leaves device offline; no hotplug or reinitialization"
+  ],
+  "ctest_count": 20,
+  "fork_gate": {
+    "samples": 12,
+    "children_per_sample": 1000,
+    "max_seconds": 5,
+    "worst_guest_seconds": 2.922758,
+    "worst_independent_test_seconds": 2.951,
+    "conditions": "serial, no other QEMU/build/indexing; clangd temporarily stopped and restored in finally"
+  },
+  "final_formatting": {
+    "style": "existing repository .clang-format; 88 columns, Allman, explicit braces",
+    "compiled_text_rodata_data_identical": true,
+    "runtime_sections_sha256": "7e3616b2e985ab6c0599d03674db48c2ab9b7b6b4c613450f937efe95d0604f2",
+    "documentation": "Final compiler inventory, bindings and generated index refreshed; full hover verification before final whitespace-only pass.",
+    "additional_current_checks": [
+      "keyboard_5cpu",
+      "driver_contract"
+    ]
+  },
+  "superseded_by": "docs/display-resolution-acceptance.json"
+}

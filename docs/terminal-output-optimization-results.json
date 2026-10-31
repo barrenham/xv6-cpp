@@ -1,0 +1,279 @@
+{
+  "status": "passed",
+  "date": "2026-11-01",
+  "distinct_checks_passed": 9,
+  "checks": {
+    "nonblock_1cpu": "build/docs/display-opt/tests.log",
+    "nonblock_5cpu": "build/docs/display-opt/tests.log",
+    "pty_1cpu": "build/docs/display-opt/tests.log",
+    "pty_5cpu": "build/docs/display-opt/tests.log",
+    "fbterm_contract": "build/docs/display-opt/tests.log",
+    "fbterm_1cpu": "build/docs/display-opt/graphics-final.log",
+    "fbterm_5cpu": "build/docs/display-opt/graphics-final.log",
+    "keyboard_5cpu": "build/docs/display-opt/graphics-final.log",
+    "keyboard_1cpu": "build/docs/display-opt/keyboard-1cpu-final.log"
+  },
+  "experiments": {
+    "5cpu": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 6.4642101540230215,
+          "qemu_cpu_s": 9.490000000000002,
+          "ticks": {
+            "elapsed": 52103765,
+            "poll": 541997,
+            "read": 970083,
+            "feed": 1059535,
+            "raster": 6943971,
+            "draw": 12581421,
+            "mirror": 29579857,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 90163200,
+            "polls": 45,
+            "reads": 23,
+            "writes": 22,
+            "frames": 11,
+            "draws": 11,
+            "maxdraw": 1387382
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 1,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 2.3143192380084656,
+          "qemu_cpu_s": 3.120000000000001,
+          "ticks": {
+            "elapsed": 10465112,
+            "poll": 870984,
+            "read": 1225695,
+            "feed": 1224421,
+            "raster": 3769318,
+            "draw": 3045099,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 23961600,
+            "polls": 33,
+            "reads": 33,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1128356
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "no-mirror",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 2.5570008780341595,
+          "qemu_cpu_s": 3.5,
+          "ticks": {
+            "elapsed": 10716202,
+            "poll": 1172610,
+            "read": 1234709,
+            "feed": 1209177,
+            "raster": 4493626,
+            "draw": 2243281,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 16588800,
+            "polls": 32,
+            "reads": 32,
+            "writes": 0,
+            "frames": 2,
+            "draws": 2,
+            "maxdraw": 1261158
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        },
+        {
+          "round": 2,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 4.456331944966223,
+          "qemu_cpu_s": 6.41,
+          "ticks": {
+            "elapsed": 32125523,
+            "poll": 589590,
+            "read": 837268,
+            "feed": 941482,
+            "raster": 5040523,
+            "draw": 7743067,
+            "mirror": 16565713,
+            "bytes": 22013,
+            "mirrored": 22013,
+            "pixels": 56985600,
+            "polls": 47,
+            "reads": 24,
+            "writes": 23,
+            "frames": 7,
+            "draws": 7,
+            "maxdraw": 1388608
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0
+        }
+      ]
+    },
+    "5cpu-vnc-no-mirror": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": "raw",
+      "results": [
+        {
+          "round": 1,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": true,
+          "serial_mirror": false,
+          "host_wall_s": 2.8689447249635123,
+          "qemu_cpu_s": 3.91,
+          "ticks": {
+            "elapsed": 12978641,
+            "poll": 1585497,
+            "read": 1521299,
+            "feed": 1393075,
+            "raster": 4518456,
+            "draw": 3544107,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 24883200,
+            "polls": 31,
+            "reads": 31,
+            "writes": 0,
+            "frames": 3,
+            "draws": 3,
+            "maxdraw": 1352952
+          },
+          "vnc_bytes": 17839820,
+          "vnc_updates": 5
+        },
+        {
+          "round": 2,
+          "mode": "normal",
+          "cpus": 5,
+          "vnc_client": true,
+          "serial_mirror": false,
+          "host_wall_s": 2.4324119919911027,
+          "qemu_cpu_s": 3.289999999999999,
+          "ticks": {
+            "elapsed": 10082642,
+            "poll": 845542,
+            "read": 990063,
+            "feed": 956437,
+            "raster": 4845122,
+            "draw": 2034412,
+            "mirror": 0,
+            "bytes": 22013,
+            "mirrored": 0,
+            "pixels": 16588800,
+            "polls": 34,
+            "reads": 34,
+            "writes": 0,
+            "frames": 2,
+            "draws": 2,
+            "maxdraw": 1309077
+          },
+          "vnc_bytes": 2183596,
+          "vnc_updates": 3
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "baseline": "docs/display-performance-results.json",
+    "baseline_loop_s": 22.58224835,
+    "optimized_loop_s": 4.2114644,
+    "speedup": 5.36208933643129,
+    "optimized_no_mirror_loop_s": 1.0590657,
+    "cli_no_mirror_vnc_loop_s": 1.15306415
+  },
+  "rootfs_install": {
+    "installed": [
+      "/bin/fbterm",
+      "/usr/tests/ptytest"
+    ],
+    "protected_contents_and_attributes_unchanged": true,
+    "protected_entries": 7,
+    "update_output": "prepared: /bin/fbterm\nprepared: /usr/tests/ptytest\nrootfs updated: 2 files, 0 system directories\nbackup: /home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261031T160330Z-23bb9239.img\n"
+  },
+  "kernel_flow_integrity": {
+    "source_files": 404,
+    "reviewed_non_network_non_boot": 281,
+    "preserved_network_source_files": 117,
+    "excluded_boot_source_files": 6,
+    "graphs": 227,
+    "additional_conditional_graph_definitions": 3,
+    "original_entries": 226,
+    "internal_bindings": 7,
+    "prior_network_graphs": 110,
+    "preserved_subtree_files": {
+      "kernel/boot/": 8,
+      "kernel/net/": 118
+    },
+    "pending_sources": 0,
+    "unregistered_runners": 0,
+    "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+  },
+  "function_documentation": {
+    "kernel_files": 404,
+    "default_unique_symbols": 5156,
+    "all_cpp_symbols": 5227,
+    "documentation_entries": 5230,
+    "indexable_entries": 5141,
+    "documentation_only": 89,
+    "missing_files": 0,
+    "missing_function_symbols": 0
+  },
+  "fork_gate": "skipped per user request; unchanged",
+  "prior_failed_attempts": "Fixed-time screenshot assertions raced asynchronous rendering. Final tests await the same screen conditions with bounded retries; all bytes and 2000 lines retained. Prior logs preserved.",
+  "limitations": [
+    "Two repeats per profiling mode; elapsed time includes scheduling.",
+    "Local Raw VNC client does not model remote MobaXterm network.",
+    "Default mirror retains backpressure; explicit switch disables mirror without disabling serial input.",
+    "Refresh pacing and GPU copy/polling implementation unchanged."
+  ],
+  "sha256": {
+    "kernel/drivers/tty/core/tty.cpp": "f3c54ead97af6016b3054f0dddfd59a9150419034ece34a53196fc9267dcab96",
+    "user/apps/fbterm/fbterm.cpp": "9830d69981842a10f83acf411f04cbc75513a6e33b8ad40729f23a3de65d0f0f",
+    "user/tests/nonblock_checks.cpp": "f128bafd000136138e41c167913736664f96c4eff961118b6ad0cf63e8600b47",
+    "tests/fbterm.py": "1e56fb0993980f3b1f656619f19a259bcb7ac10e77f2be49f4326cf16c2abf89",
+    "tools/profile_fbterm.py": "377dd03cf10da69a2cfb86bf8199028152da3e473cb735fd707bc534f0ebd335",
+    "build/dev/kernel.elf": "efa48626a733be1d2277d4344b6856ea0c52bdf382ee9d1d05a2779e5b20689b",
+    "build/dev/user/_fbterm": "9209141e1169fcad740f60f3d03f0e37735dbede36a5e8252e2cf650a35742e0",
+    "build/dev/user/_ptytest": "da72909ca6bf8a6227f0682f1c77ac0161a06974261e56a860b9d1b58e421471"
+  }
+}

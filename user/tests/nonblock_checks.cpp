@@ -152,6 +152,49 @@ void terminals()
         "partial result counts original source bytes");
   check(write(fds[1], "\nZ", 2) == 2 && read(fds[0], copy, sizeof(copy)) == 3 &&
         memcmp(copy, "\r\nZ", 3) == 0, "retry emits exactly one complete CRLF");
+  // Batch retries must preserve source-byte counts and whole CRLF pairs even
+  // when only a small, non-power-of-two window remains in the output queue.
+  const unsigned windows[] = {1, 2, 3, 7, 15, 31, 32, 33, 63, 64};
+  char pattern[64], transformed[128];
+  for (unsigned i = 0; i < sizeof(pattern); ++i)
+  {
+    pattern[i] = i % 5 == 1 ? '\n' : 'A' + i % 26;
+  }
+  for (unsigned window : windows)
+  {
+    memset(copy, 'x', 1024 - window);
+    check(write(fds[1], copy, 1024 - window) == 1024 - window,
+          "batch fill partial window");
+    int n = write(fds[1], pattern, sizeof(pattern));
+    check(n > 0 && n <= sizeof(pattern), "batch makes partial progress");
+    unsigned translated = 0;
+    for (int i = 0; i < n; ++i)
+    {
+      if (pattern[i] == '\n')
+      {
+        transformed[translated++] = '\r';
+      }
+      transformed[translated++] = pattern[i];
+    }
+    check(translated <= window &&
+              read(fds[0], copy, sizeof(copy)) == 1024 - window + translated &&
+              memcmp(copy + 1024 - window, transformed, translated) == 0,
+          "batch prefix has no split or duplicate CRLF");
+    check(write(fds[1], pattern + n, sizeof(pattern) - n) == sizeof(pattern) - n,
+          "batch retry remaining source");
+    translated = 0;
+    for (unsigned i = n; i < sizeof(pattern); ++i)
+    {
+      if (pattern[i] == '\n')
+      {
+        transformed[translated++] = '\r';
+      }
+      transformed[translated++] = pattern[i];
+    }
+    check(read(fds[0], copy, sizeof(copy)) == translated &&
+              memcmp(copy, transformed, translated) == 0,
+          "batch retry exactly matches remaining transformed bytes");
+  }
   close(fds[0]);
   check(read(fds[1], copy, 1) == 0 && write(fds[1], data, 1) == -1,
         "slave hangup distinguished from EAGAIN"); close(fds[1]);
@@ -164,6 +207,9 @@ extern "C" void check_terminal_flags()
 {
   check(!(fcntl(0, F_GETFL) & O_NONBLOCK), "shell input flag restored");
   check(!(fcntl(1, F_GETFL) & O_NONBLOCK), "shell output flag restored");
+  termios settings;
+  check(tcgetattr(0, &settings) == 0 && !(settings.c_lflag & XV_PROXY),
+        "proxy ownership flag restored");
   printf("ptytest: terminal flags restored\n");
 }
 extern "C" void nonblock_terminal_mode(bool terminate)

@@ -65,8 +65,8 @@
     },
     {
       "source": "kernel/drivers/board/qemu_virt.cpp",
-      "sha256": "d7e861e8a0436ad7a5885c67c60b8605cc6f10e23ca148564205df0bd6e240c0",
-      "review": "Console/Interrupts 图连接终端/PTY/串口/设备和 PCI 发现/定位/路由；constinit 固定设备接线、固定 IRQ 枚举、带索引门槛的网络委托、定时器固定回调及 getter 保留原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff",
+      "review": "ConsoleFlow增加kbd0(30:0)0600；InterruptsFlow在IRQ启用前初始化keyboard。slot4/IRQ5加入路由，路由源数9改10；现有GPU/熵/磁盘/网络/串口装配与启动顺序保持。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::initialize_console",
@@ -75,7 +75,9 @@
           "source_sha256": "3d33edec138d3484d2e0f60ee7e71a20ae66d94402a2d3ea744307d826450e6c",
           "graphs": [
             "ConsoleFlow::Graph"
-          ]
+          ],
+          "review": "ConsoleFlow增加kbd0(30:0)0600；InterruptsFlow在IRQ启用前初始化keyboard。slot4/IRQ5加入路由，路由源数9改10；现有GPU/熵/磁盘/网络/串口装配与启动顺序保持。",
+          "sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff"
         },
         {
           "qualified": "xv::drivers::initialize_interrupts",
@@ -84,7 +86,9 @@
           "source_sha256": "58fd83afb93463cc3b4b2238816a8a3bcb579108763daa43cba8f784314760ef",
           "graphs": [
             "InterruptsFlow::Graph"
-          ]
+          ],
+          "review": "ConsoleFlow增加kbd0(30:0)0600；InterruptsFlow在IRQ启用前初始化keyboard。slot4/IRQ5加入路由，路由源数9改10；现有GPU/熵/磁盘/网络/串口装配与启动顺序保持。",
+          "sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff"
         }
       ]
     },
@@ -298,8 +302,8 @@
     },
     {
       "source": "kernel/drivers/tty/core/tty.cpp",
-      "sha256": "940c8fcc69cdcd48f3618c5299811033b410433da34de632df98d45ea1b1d09c",
-      "review": "Inject/Poll/Read/Write/Ioctl 六图负责多阶段操作；初始化为固定 termios/锁赋值，receive 为锁内行规程与固定通知，计时/刷新和原单一状态快照保持原语。",
+      "sha256": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931",
+      "review": "Inject/Poll/Read/Write/Ioctl 六图负责多阶段操作；初始化为固定 termios/锁赋值，receive 为锁内行规程与固定通知，计时/刷新和原单一状态快照保持原语。 WriteFlow非阻塞输出以32源字节批量尝试；EAGAIN经Retry/Shrink节点缩小源前缀并重新Transform，后端完整块接受契约保持，CRLF不拆分，部分返回计源字节；重试有界至1字节。 接受显式XV_PROXY私有代理声明位，保持其他未知位拒绝及ABI布局；字符处理不读取该位，退出键归属由用户态代理通过子PTY查询。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::Tty::inject",
@@ -540,10 +544,89 @@
       "review": "控制终端打开工厂：通过平台回调固定 session 终端寿命，再在 group 锁外完成 slave 打开；空终端拒绝。真正 I/O 委托所打开终端。",
       "graph_entries": [],
       "pending": []
+    },
+    {
+      "source": "kernel/drivers/display/virtio_gpu.cppm",
+      "sha256": "223502c704a98cecbe3757d954bd36a66093a806cc64890d897df2fea4d6e2eb",
+      "review": "GPU尺寸由编译期配置限定640..1920×480..1080，默认1280×800。仅GPU采用16槽描述符和独立ring布局；FramePages按像素字节向上取整，RequestPages按32+FramePages*16向上取整，ResponsePage紧随请求，ControlPages=RequestPages+4。静态断言保证最大8请求页加1响应描述符不超过16槽；原设备接口和ABI保持。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/display/virtio_gpu.cpp",
+      "sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "review": "InitializeFlow按配置分配所有显存/请求/响应页；submit使用GPU专用16槽环，长度上界为RequestPages*4096，响应地址由ResponsePage计算，scatter条目不会覆盖响应。DrawFlow校验当前Width/Height及stride/用户地址边界；copy_pixels与present使用配置Stride。原FENCE/完成索引/类型/长度检查、500ms期限、sleep锁及reset确认后回收DMA保持；无GPU零DMA。640×480、1280×800、1920×1080实际运行和全部分配失败点均核对。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::VirtioGpu::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@initialize#",
+          "source": "kernel/drivers/display/virtio_gpu.cpp",
+          "source_sha256": "7c5668bace257500705fe5dda68391f59f7d8a0b1175bf32938bda84e614095f",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ],
+          "review": "本轮展开单行函数、条件/循环及协议结构，命令/状态/fence/resource常量具名化；InitializeFlow/DrawFlow、306页分配、两页请求、500ms有界等待、used/id/长度/fence校验、reset后释放及错误时保留DMA语义逐项保留。通过实际GPU契约和QMP像素回归核对。",
+          "sha256": "249102e4d4fe75b45033a3a9660de5b256e28cea383f8bf81f6e87ef15f25bd2"
+        },
+        {
+          "qualified": "xv::drivers::VirtioGpu::ioctl",
+          "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
+          "source": "kernel/drivers/display/virtio_gpu.cpp",
+          "source_sha256": "5b0c1a3447448bfe54f8ae6b358bdfa116b41aec33771a3650bacadcb74e71d4",
+          "graphs": [
+            "DrawFlow::Graph"
+          ],
+          "review": "本轮展开单行函数、条件/循环及协议结构，命令/状态/fence/resource常量具名化；InitializeFlow/DrawFlow、306页分配、两页请求、500ms有界等待、used/id/长度/fence校验、reset后释放及错误时保留DMA语义逐项保留。通过实际GPU契约和QMP像素回归核对。",
+          "sha256": "249102e4d4fe75b45033a3a9660de5b256e28cea383f8bf81f6e87ef15f25bd2"
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/input/virtio_keyboard.cpp",
+      "sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "review": "InitializeFlow验证modern输入设备、VERSION_1与A/Enter能力，分配7个DMA页，配置64槽eventq和空statusq；失败先reset，确认后释放，超时保留。InterruptFlow在spin锁下ACK，验证used增量、ID、长度与批内唯一性，缓存已验证ID后有界复制/回填；异常离线并保留DMA，IRQ不轮询复位。ReadFlow在锁内登记睡眠或返回EAGAIN，最多复制32个完整事件，复制失败不消费。256事件软件队列溢出插入SYN_DROPPED。open/close为单锁独占状态转换，read/poll重查有效UID；无设备不分配。 最终使用仓库已有.clang-format（88列/Allman）排版；重编译.text/.rodata/.data与运行验证版本逐字节一致。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::initialize",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "181ef2fe6933d5038c18fa56e968514d29a18ca26e6700f804aa97d7f8147f74",
+          "graphs": [
+            "InitializeFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::read",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "19a65f6d04ede4fd063ce24a767a5b96e495a81033b8caa08adcbb87fbf8ba03",
+          "graphs": [
+            "ReadFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::drivers::VirtioKeyboard::handle_interrupt",
+          "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@handle_interrupt#",
+          "source": "kernel/drivers/input/virtio_keyboard.cpp",
+          "source_sha256": "5315a489de7b47f5102e8290af9049146fee0d8d41096165510514b4b7e20daf",
+          "graphs": [
+            "InterruptFlow::Graph"
+          ]
+        }
+      ],
+      "pending": []
+    },
+    {
+      "source": "kernel/drivers/input/virtio_keyboard.cppm",
+      "sha256": "041ee27eba421d727adf63207876aada7a73b6b2ce5096ce7629edaf0938de71",
+      "review": "内部键盘设备复用CharacterDevice/InterruptDevice；64槽双队列、7页DMA、256事件缓冲，状态由spin锁保护，设备读事件而不暴露DMA地址。标量访问器、空输出及固定布局为直接原语。 最终使用仓库已有.clang-format（88列/Allman）排版；重编译.text/.rodata/.data与运行验证版本逐字节一致。",
+      "graph_entries": [],
+      "pending": []
     }
   ],
-  "graph_count": 33,
-  "original_entry_count": 33,
+  "graph_count": 38,
+  "original_entry_count": 38,
   "limitations": [
     "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
     "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."

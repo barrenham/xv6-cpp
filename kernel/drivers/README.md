@@ -39,6 +39,8 @@ classDiagram
 | `tty/` | TTY 状态、读写等待、ioctl 和可替换的 N_TTY 风格行规程 |
 | `block/` | 与文件系统无关的 `BlockDevice` 接口 |
 | `rtc/` | Goldfish RTC 的串行低/高位读取及 epoch 时钟 |
+| `input/` | VirtIO 键盘事件队列、独占设备读取与 poll |
+| `display/` | VirtIO-GPU 2D 帧缓冲与有界 FENCE 提交 |
 | `entropy/` | VirtIO entropy 的现代特性协商、DMA 所有权、补充队列及可中断等待 |
 | `block/virtio/` | VirtIO MMIO 块设备、私有协议常量和队列布局 |
 | `interrupt/` | 中断控制器接口、PLIC 实现和固定设备表路由 |
@@ -139,3 +141,9 @@ console 不需要动态寿命引用。详细协议和字符/块设备注册权�
 默认 QEMU 使用第三个 VirtIO MMIO 槽提供宿主 `/dev/urandom`，对应 IRQ 3；
 设备缺失时 entropy 驱动不分配队列，也不产生替代数据。板级初始化在分配器
 和内核映射就绪后初始化队列，然后装配中断路由。槽 0、1 继续供块设备使用。
+
+## GPU 显示
+
+内部 `xv.drivers:gpu` 为 VirtIO-GPU 2D 后端，复用字符设备、IRQ 和板级装配接口。散页显存、fence 校验和复位回滚由后端封装；`/dev/fb0` 暴露项目帧缓冲 ioctl。运行与边界见 [图形说明](../../docs/graphics.md)。
+
+[VirtIO 键盘与 VNC 输入](../../docs/keyboard.md) 使用 slot4/IRQ5 与 `/dev/kbd0`，由 fbterm 转换事件并注入 PTY。

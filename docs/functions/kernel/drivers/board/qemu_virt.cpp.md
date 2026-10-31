@@ -42,8 +42,8 @@
 ```doxygen
 @fn void xv::drivers::initialize_console()
 @brief 初始化板级终端并登记 console 与 ptmx。
-@details 在启动阶段初始化 TTY、PTY 注册锁及 UART，登记静态控制台 1/0 和 PTY 多路复用工厂 4/0；devfs 发布目录前封存注册表。实际 PTY 会话只在打开 ptmx 时分配。
-@details 流程由 ConsoleFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@details 在启动阶段初始化 TTY、PTY 注册锁及 UART，登记静态控制台 1/0 和 PTY 多路复用工厂 4/0；devfs 发布目录前封存注册表。实际 PTY 会话只在打开 ptmx 时分配。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
+@details 流程由 ConsoleFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-ea116721d09e5c14"></a>
@@ -53,7 +53,7 @@
 ```doxygen
 @fn void xv::drivers::initialize_interrupts()
 @brief 启动期扫描最多四个 E1000，设置插槽及共享 IRQ，然后初始化统一中断路由。
-@details 流程由 InterruptsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@details 流程由 InterruptsFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-bea9233c904d33be"></a>
@@ -64,7 +64,7 @@
 @fn void xv::drivers::initialize_hart(int hart)
 @brief 设备对象、MMIO、设备中断与终端数据流：建立当前 hart 的局部运行状态。
 @param hart 本次操作针对的 hart 编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`router.initialize_hart`。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`router.initialize_hart`。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
@@ -76,8 +76,8 @@
 @fn void xv::drivers::handle_external_interrupt(int hart)
 @brief 设备对象、MMIO、设备中断与终端数据流：handle外部中断。
 @param hart 本次操作针对的 hart 编号。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`router.dispatch` → `xv::print::printk`。
-@details 需要特别跟踪的条件：`unknown`。这些条件决定检查、重试或提前返回路径。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`router.dispatch` → `xv::print::printk`。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
+@details 需要特别跟踪的条件：`unknown`。这些条件决定检查、重试或提前返回路径。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
@@ -98,7 +98,7 @@
 ```doxygen
 @fn void xv::drivers::terminal_timer_tick()
 @brief 设备对象、MMIO、设备中断与终端数据流：终端定时器tick。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`terminal.timer_tick` → `pty_timer_tick`。
+@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`terminal.timer_tick` → `pty_timer_tick`。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
@@ -137,7 +137,7 @@
 ## `xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt`
 
 ```doxygen
-@fn constexpr explicit xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt(unsigned irq)
+@fn constexpr explicit xv::drivers::PciNetworkInterrupt::PciNetworkInterrupt(unsigned irq) : irq_(irq)
 @brief 构造对象并保存稳定身份或借用的层间依赖，初始化空状态；不执行网络 I/O，依赖与名称须比对象存活更久。
 ```
 
@@ -211,7 +211,7 @@
 ```doxygen
 @fn BlockDevice *xv::drivers::data_device()
 @brief 取得已连接的第二个 VirtIO 块设备。
-@details 板级静态实例位于根盘之后的 MMIO 页和 IRQ；未发现设备时返回 nullptr。
+@details 板级静态实例位于根盘之后的 MMIO 页和 IRQ；未发现设备时返回 nullptr。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-f0e4ac986e868925"></a>
@@ -221,7 +221,7 @@
 ```doxygen
 @fn static void xv::drivers::ConsoleFlow::devices(Context &) noexcept
 @brief 按原顺序登记 console 与 ptmx。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-b54510fdb4f2206b"></a>
@@ -231,7 +231,7 @@
 ```doxygen
 @fn static void xv::drivers::ConsoleFlow::serial(Context &) noexcept
 @brief 连接原终端并初始化 UART。
-@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 固定板级实例仍静态构造；图只连接原终端/PTY、UART 和设备登记顺序，不改变 kernel/boot。 下一节点由图策略声明，业务结果与控制信号分离。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-0e7177c0981f3b7a"></a>
@@ -241,7 +241,7 @@
 ```doxygen
 @fn static void xv::drivers::ConsoleFlow::terminal(Context &) noexcept
 @brief 初始化板级 TTY 与 PTY 列表。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-d29facf8ea670c0e"></a>
@@ -251,7 +251,7 @@
 ```doxygen
 @fn static void xv::drivers::InterruptsFlow::discover(Context &c) noexcept
 @brief 按原四设备容量扫描 PCI 并保存网卡数。
-@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-bbee61fe23e23e4a"></a>
@@ -261,7 +261,7 @@
 ```doxygen
 @fn static void xv::drivers::InterruptsFlow::locate(Context &c) noexcept
 @brief 将发现插槽绑定到对应固定网卡及 INTx 编号。
-@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 调用帧保持原固定未初始化插槽数组；发现数量先发布，再定位固定网卡实例，最后验证并初始化原路由。 下一节点由图策略声明，业务结果与控制信号分离。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-807dc2b114e2fef1"></a>
@@ -271,7 +271,7 @@
 ```doxygen
 @fn static void xv::drivers::InterruptsFlow::route(Context &) noexcept
 @brief 初始化原控制器与中断路由。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-98149e18194be74a"></a>
@@ -281,7 +281,7 @@
 ```doxygen
 @fn unsigned long xv::drivers::realtime_seconds()
 @brief 读取Goldfish RTC实时时间。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
 
 <a id="fn-295e9f1fac671bce"></a>
@@ -291,5 +291,5 @@
 ```doxygen
 @fn unsigned long xv::drivers::boot_time_seconds()
 @brief 返回已记录的启动epoch秒数。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```

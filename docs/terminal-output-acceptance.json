@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "date": "2026-11-01",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "policy": {
+    "interactive_ms": 16,
+    "bulk_bytes": 4096,
+    "bulk_window_ms": 100,
+    "quiet_ms": 20,
+    "bulk_min_gap_ms": 100,
+    "render_cost_gap_multiplier": 3,
+    "render_cost_gap_cap_ms": 250,
+    "eof_flush_immediate": true
+  },
+  "cached_default_glyph_bytes": 76000,
+  "deterministic_clock_test": {
+    "packets": 1000,
+    "bytes_per_packet": 1024,
+    "period_ms": 1,
+    "intermediate_paints": 9,
+    "tail_flush_verified": true
+  },
+  "qemu_burst": {
+    "lines": 2000,
+    "complete_serial_bytes_checked": true,
+    "final_gpu_rows_checked": [
+      "row-01999:",
+      "BURST_END"
+    ],
+    "network_dependency": false
+  },
+  "checks": [
+    "fbterm_contract",
+    "fbterm_1cpu",
+    "fbterm_5cpu",
+    "fbterm_absent_1cpu",
+    "keyboard_1cpu",
+    "keyboard_5cpu"
+  ],
+  "sanitizers": [
+    "ASan",
+    "UBSan",
+    "leak detection"
+  ],
+  "fork_gate": "skipped per user instruction; unchanged",
+  "sources": {
+    "user/apps/fbterm/fbterm.cpp": "acd07c0d269446d2f282d57e77c5aab8bcd3948a73a28701587050db12fcad58",
+    "user/apps/fbterm/pacing.h": "d40dec5a283d9b35a6bddcc03904672128aadf4d1284915f8622397a008d3f9d",
+    "user/apps/fbterm/render.h": "c42a162efda2aca7684dbca11b16b42464728983135fd1704f4d0d4a9103ff1a",
+    "user/apps/fbterm/terminal.h": "81b5789d20c2b7409339f1a5532efbd7f7d3199f6cd2bcfad7e84aa6f2b4f794",
+    "tests/fbterm.py": "4591122dccac8e594b93f116f5d5d63c4fc4e5b3b071a26ab065cf82ab862d81",
+    "tests/fbterm_contract.cpp": "1882e130cda7812d1a5dbc08173bc8ddef4e1a76aa752b98fb39ba659f911c18"
+  },
+  "logs": [
+    "build/docs/terminal-burst/contract.log",
+    "build/docs/terminal-burst/sanitize-final.log",
+    "build/docs/terminal-burst/qemu-final.log"
+  ],
+  "rootfs_install": {
+    "installed": [
+      "/bin/fbterm"
+    ],
+    "sha256": "b868af6e54221c325dcbc71f2a519bb93c2119deaa6eec15ec1984531686b01f",
+    "protected_contents_and_attributes_unchanged": true,
+    "protected_entries": 7,
+    "update_output": "prepared: /bin/fbterm\nrootfs updated: 1 files, 0 system directories\nbackup: /home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261031T153030Z-1870c1a2.img\n"
+  },
+  "notes": [
+    "Initial five-CPU 2000-line test exceeded the default 45-second expectation timeout; the new burst case now uses 120 seconds, retaining all 2000 lines and exact-byte checks. Existing case timeouts and fork workload were not changed.",
+    "No hardware vsync or fixed CPU utilization guarantee."
+  ],
+  "distinct_ctest_checks_passed": 6,
+  "qemu_test_seconds": {
+    "fbterm_1cpu": 48.05,
+    "fbterm_5cpu": 90.65,
+    "fbterm_absent_1cpu": 10.32,
+    "keyboard_1cpu": 72.2,
+    "keyboard_5cpu": 77.48
+  }
+}

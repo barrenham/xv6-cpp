@@ -433,6 +433,19 @@
           "review": "Linux RV64 dirent64字段及偏移/最大记录常量，编译期布局断言；记录生命周期在DirectoryFlow。",
           "graph_entries": [],
           "pending": []
+        },
+        {
+          "source": "kernel/io/framebuffer.h",
+          "sha256": "3e781f6cdc1d98c391b5a7fdbcc8d9fe5a0d899742b708badb412301d1fd616c",
+          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/keyboard.h",
+          "sha256": "3d2f1afd3750019ea43ebf479e283d9b2bec4137582376ce8ffd5b638d2ad814",
+          "review": "项目8字节键盘事件ABI与SYN/KEY/SYN_DROPPED常量；只含固定宽度布局，无可调用函数或流程图。",
+          "graph_entries": []
         }
       ]
     },
@@ -442,8 +455,8 @@
       "files": [
         {
           "source": "kernel/tty/termios.h",
-          "sha256": "a9442c3c113f74a719e56b47b581b89da74a8751705800b948744c190b9b248a",
-          "review": "共享内核/用户 termios/winsize 布局和固定 ioctl/标志 ABI；TTY 执行流程在 drivers/tty，不能为常量头制造空图。",
+          "sha256": "7bd432b1c32ceb1c67a59dc8a43a101bf83490ee3e2ace2832d004eb1fb31c8d",
+          "review": "共享内核/用户 termios/winsize 布局和固定 ioctl/标志 ABI；TTY 执行流程在 drivers/tty，不能为常量头制造空图。 接受显式XV_PROXY私有代理声明位，保持其他未知位拒绝及ABI布局；字符处理不读取该位，退出键归属由用户态代理通过子PTY查询。",
           "graph_entries": [],
           "pending": []
         }

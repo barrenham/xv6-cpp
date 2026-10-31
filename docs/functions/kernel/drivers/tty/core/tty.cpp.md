@@ -83,15 +83,20 @@
 - [`xv::drivers::Tty::write`](tty.cpp.md#fn-7a0276d465b23c53)
 - [`xv::drivers::valid`](tty.cpp.md#fn-e69f7ea6763472d1)
 
+- [`xv::drivers::Tty::WriteFlow::retry`](tty.cpp.md#fn-205cdd66dd1702c0)
+
+- [`xv::drivers::Tty::WriteFlow::shrink`](tty.cpp.md#fn-0365b3b870b056cb)
+
 <a id="fn-e69f7ea6763472d1"></a>
 
 ## `xv::drivers::valid`
 
 ```doxygen
 @fn bool xv::drivers::valid(const termios &value)
-@brief 设备对象、MMIO、设备中断与终端数据流：有效性。
+@brief 验证TTY支持的输入、输出、本地模式及固定控制配置。
 @param value 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@return 返回类型为 `bool (const termios &)`；本条目没有可独立分析的普通函数体，具体返回约定见对应实现及调用方。
+@details 支持常规行规程标志及私有XV_PROXY代理声明位。XV_PROXY只保存/恢复，不改变字符处理；外层用户态代理通过子PTY的TCGETS查询退出键归属。其余未知位仍拒绝。
+@return 所有标志均受支持、c_cflag等于FixedControl且c_line为0时返回true，否则false。
 ```
 
 <a id="fn-2a48d8f477ebb1b7"></a>
@@ -775,7 +780,7 @@
 
 ```doxygen
 @fn static void xv::drivers::Tty::WriteFlow::read(Context &c) noexcept
-@brief 选择原块大小，非阻塞限一字符，并复制源数据。
+@brief 选择至多32个源字节并复制；非阻塞输出也先尝试批量发送。
 @details 写者 SleepLock 和未初始化的固定缓冲由原调用帧持有；输出标志按原规则只快照一次。每块先检查中断、复制和转换，再发送；返回值按原源字节与部分成功规则计算。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
@@ -837,4 +842,24 @@
 @fn static void xv::drivers::Tty::WriteFlow::transmit(Context &c) noexcept
 @brief 向原后端提交完整变换块。
 @details 写者 SleepLock 和未初始化的固定缓冲由原调用帧持有；输出标志按原规则只快照一次。每块先检查中断、复制和转换，再发送；返回值按原源字节与部分成功规则计算。 下一节点由图策略声明，业务结果与控制信号分离。
+```
+
+<a id="fn-205cdd66dd1702c0"></a>
+
+## `xv::drivers::Tty::WriteFlow::retry`
+
+```doxygen
+@fn static bool xv::drivers::Tty::WriteFlow::retry(Context &c) noexcept
+@brief 判断是否因非阻塞队列空间不足而重试更小的源前缀。
+@details 仅对nonblocking、EAGAIN及part大于1重试；其他错误或最小前缀失败保留已有源字节计数后返回。
+```
+
+<a id="fn-0365b3b870b056cb"></a>
+
+## `xv::drivers::Tty::WriteFlow::shrink`
+
+```doxygen
+@fn static void xv::drivers::Tty::WriteFlow::shrink(Context &c) noexcept
+@brief 将待发送源前缀向上取半，保持进度不变。
+@details 失败块未被TerminalOutput消费；保留input缓冲，返回Transform重新展开ONLCR。每次减小part，最迟缩至1个源字节；完整CRLF不会拆分或重复。
 ```

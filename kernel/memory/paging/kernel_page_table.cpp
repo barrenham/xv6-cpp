@@ -68,8 +68,8 @@ struct KernelBuildFlow
     // uart registers
     map_initial_range(c.regions, c.table, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
-    // virtio mmio disk interface
-    map_initial_range(c.regions, c.table, VIRTIO0, VIRTIO0, 3 * PGSIZE, PTE_R | PTE_W);
+    // VirtIO MMIO: two disks, entropy, GPU, and keyboard.
+    map_initial_range(c.regions, c.table, VIRTIO0, VIRTIO0, 5 * PGSIZE, PTE_R | PTE_W);
 
 #ifdef LAB_NET
     // PCI-E ECAM (configuration space), for pci.c

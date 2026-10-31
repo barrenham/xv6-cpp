@@ -68,8 +68,16 @@ extern "C" int main(int argc, char **argv)
   raw.c_cc[VMIN] = 0;
   check(tcsetattr(0, TCSANOW, &raw) == 0, "nonblocking raw mode");
   check(read(0, input, sizeof(input)) == 0, "read after killed reader");
-  raw.c_lflag |= 0x80000000U;
-  check(tcsetattr(0, TCSANOW, &raw) == -1, "unsupported unsupported flags rejected");
+  raw.c_lflag |= XV_PROXY;
+  termios observed;
+  check(tcsetattr(0, TCSANOW, &raw) == 0 && tcgetattr(0, &observed) == 0 &&
+            (observed.c_lflag & XV_PROXY), "proxy ownership round trip");
+  check(read(0, input, sizeof(input)) == 0, "proxy flag preserves raw read mode");
+  static_assert(!(XV_PROXY & 0x20000000U));
+  raw.c_lflag |= 0x20000000U;
+  check(tcsetattr(0, TCSANOW, &raw) == -1, "unsupported flags rejected");
+  check(tcgetattr(0, &observed) == 0 && !(observed.c_lflag & 0x20000000U) &&
+            (observed.c_lflag & XV_PROXY), "rejected flags leave modes unchanged");
   check(tcsetattr(0, TCSAFLUSH, &saved) == 0, "restore");
   check(tcflush(0, TCIFLUSH) == 0, "flush");
   if (argc > 1 && strcmp(argv[1], "interactive") == 0)

@@ -57,6 +57,9 @@ struct winsize
 #define ECHOCTL 0x0200
 #define ECHOKE 0x0800
 #define IEXTEN 0x8000
+// xv6 advisory flag: this terminal is being forwarded by a foreground proxy.
+// Saved/restored with termios; outer proxies pass their detach key inward.
+#define XV_PROXY 0x80000000U
 #define TCGETS 0x5401
 #define TCSETS 0x5402
 #define TCSETSW 0x5403

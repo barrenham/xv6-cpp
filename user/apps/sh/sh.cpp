@@ -424,7 +424,7 @@ extern "C"
     {
       if (service_children(true))
       {
-        if (editor.active()) editor.redraw(used);
+        if (editor.active()) editor.redraw(used, true);
         else { shell::prompt(); if (used) write(2, buf, used); }
       }
       pollfd events[] = {{input_fd, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};

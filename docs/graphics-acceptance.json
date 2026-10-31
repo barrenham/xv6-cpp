@@ -1,0 +1,142 @@
+{
+  "status": "completed",
+  "date": "2026-10-31",
+  "pushed_baseline": "587885376095fef4cec6d4b6b6c191ae5f93eb8c",
+  "gpu_delivery": "working tree; not committed or pushed",
+  "driver": "xv.drivers:gpu",
+  "hardware": "VirtIO-GPU modern MMIO slot 3, IRQ 4",
+  "user_device": "/dev/fb0 char 29:0 root:root 0600",
+  "display": {
+    "width": 640,
+    "height": 480,
+    "pixel_format": "B8G8R8X8_UNORM",
+    "framebuffer_pages": 300,
+    "control_pages": 6,
+    "total_bytes": 1253376
+  },
+  "tests": {
+    "distinct_current_tests": 15,
+    "results": {
+      "procfs_5cpu": "Passed",
+      "devfs_5cpu": "Passed",
+      "procfs_1cpu": "Passed",
+      "boot_smoke": "Passed",
+      "vm_buddy_contract": "Passed",
+      "driver_contract": "Passed",
+      "devfs_1cpu": "Passed",
+      "gpu_1cpu": "Passed",
+      "gpu_absent_1cpu": "Passed",
+      "gpu_5cpu": "Passed",
+      "network_5cpu": "Passed",
+      "network_1cpu": "Passed",
+      "user_regression": "Passed",
+      "fork_progress_1cpu": "Passed",
+      "fork_progress_5cpu": "Passed"
+    },
+    "prior_full_suite": "109 passing results recorded before GPU implementation; not counted as rerun for GPU",
+    "qemu": "1 CPU and 5 CPU actual 640x480 scanout RGB pixels checked through QMP; absence checked separately",
+    "native": "actual GPU module; all 306 allocation failure points, cross-page attach, bounds/UID/ABI checks, bad fence and timeout reset",
+    "sanitizers": "ASan/UBSan/leak checks passed for actual driver contracts"
+  },
+  "fork": {
+    "samples": 12,
+    "cpus": [
+      1,
+      5
+    ],
+    "rounds_each": 3,
+    "modes": [
+      "forktest",
+      "usertests forktest"
+    ],
+    "children_each": 1000,
+    "limit_seconds": 5,
+    "max_guest_seconds": 2.6723026,
+    "max_host_test_seconds": 2.704,
+    "max_standalone_roundtrip_seconds": 2.868,
+    "all_passed": true,
+    "configuration": "default headless tests with GPU absent; separate GPU-present tests verify display"
+  },
+  "rootfs_update": {
+    "status": "passed",
+    "program": "/bin/fbdemo",
+    "unmanaged_paths_verified": 12,
+    "before_sha256": "7566082e1a3445a5625fde5649746f173ba316911339cb900ec73e29fab0670f",
+    "after_sha256": "211af063478d8eb30e42b8371339bcad07c48f124bce1cb1107349799895f6a5",
+    "backup": "data/rootfs.img.before-update-20261031T120853Z-d0533065.img",
+    "allocation_check": "e2fsck -fn passed",
+    "account_and_user_data": "unchanged"
+  },
+  "flows": {
+    "source_files": 401,
+    "reviewed_non_network_non_boot": 278,
+    "preserved_network_source_files": 117,
+    "excluded_boot_source_files": 6,
+    "graphs": 224,
+    "additional_conditional_graph_definitions": 3,
+    "original_entries": 223,
+    "internal_bindings": 7,
+    "prior_network_graphs": 110,
+    "preserved_subtree_files": {
+      "kernel/boot/": 8,
+      "kernel/net/": 118
+    },
+    "pending_sources": 0,
+    "unregistered_runners": 0,
+    "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+  },
+  "function_coverage": {
+    "kernel_files": 401,
+    "default_unique_symbols": 5117,
+    "all_cpp_symbols": 5188,
+    "documentation_entries": 5191,
+    "indexable_entries": 5102,
+    "documentation_only": 89,
+    "missing_files": 0,
+    "missing_function_symbols": 0
+  },
+  "native_hover": {
+    "external_doxygen": 4524,
+    "source_comment_precedence": 10,
+    "native_priority_or_index_limits": 568,
+    "documentation_only": 89,
+    "cross_module_probes": 5
+  },
+  "kernel_size_bytes": {
+    "text_and_readonly": 454024,
+    "data": 305992,
+    "bss": 176296
+  },
+  "limits": [
+    "2D fixed 640x480, one scanout, no mode setting or hotplug.",
+    "No mmap, 3D/VirGL, display terminal or keyboard/mouse driver.",
+    "Control requests use bounded 500 ms polling under a sleep lock.",
+    "Failed source copy may change backing prefix without submitting display transfer.",
+    "DMA pages retained if reset acknowledgement times out, to prevent late DMA into freed memory."
+  ],
+  "logs": "build/docs/gpu",
+  "screenshot": "build/docs/gpu/rgb-bars.png",
+  "remote_display": {
+    "scope_note": "Historical runtime verification below used loopback. qemu-vnc now binds 0.0.0.0:5901 at user request; regenerated dev target arguments and shell syntax verified, without restarting the running guest. gpu_vnc_5cpu continues to use an isolated loopback listener.",
+    "status": "passed",
+    "target": "qemu-vnc",
+    "listen": "127.0.0.1:5901",
+    "display_cache_option": "XV_VNC_DISPLAY=1",
+    "local_forward_example": "127.0.0.1:15901 -> server 127.0.0.1:5901",
+    "test": "gpu_vnc_5cpu",
+    "verification": "Actual TCP RFB 3.8 handshake and every one of 307200 RGB pixels match QMP scanout; loopback binding checked via QMP; no GTK/X11",
+    "additional_current_checks": [
+      "gpu_5cpu",
+      "gpu_vnc_5cpu"
+    ],
+    "ssh_tunnel": "documented OpenSSH local forwarding; external client SSH connection not exercised by the local test",
+    "launcher_validation": {
+      "status": "passed",
+      "fix": "qemu-vnc uses VERBATIM so the echo argument containing parentheses is quoted for the shell",
+      "before": "Actual generated command reproduced /bin/sh syntax error with exit 2",
+      "after": "Actual CMake-generated shell command passed syntax check, boot, login, fbdemo and VNC listener check using private disk and port",
+      "log": "build/docs/gpu/launcher-check.log"
+    }
+  },
+  "superseded_by": "docs/display-resolution-acceptance.json"
+}

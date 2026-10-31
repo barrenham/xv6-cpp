@@ -1,0 +1,108 @@
+{
+  "status": "passed",
+  "date": "2026-11-01",
+  "screen": [
+    1920,
+    1080
+  ],
+  "checks": [
+    "nonblock_1cpu",
+    "nonblock_5cpu",
+    "pty_1cpu",
+    "pty_5cpu",
+    "fbterm_contract",
+    "fbterm_1cpu",
+    "fbterm_5cpu",
+    "keyboard_1cpu",
+    "keyboard_5cpu",
+    "tty_1cpu",
+    "tty_5cpu",
+    "driver_contract",
+    "image_layout"
+  ],
+  "distinct_checks_passed": 13,
+  "nested_depth": 2,
+  "verified": [
+    "inherited output conversion; command output at column zero",
+    "serial and VNC Ctrl-] each detach exactly one inner proxy",
+    "outer fbterm remains alive and accepts commands",
+    "proxy ownership, termios and open-file flags restored",
+    "existing foreground raw-program detach semantics retained",
+    "unknown termios flag rejection preserves settings"
+  ],
+  "private_abi": {
+    "name": "XV_PROXY",
+    "value": "0x80000000",
+    "advisory_only": true,
+    "standard_posix": false
+  },
+  "kernel_flows": {
+    "source_files": 404,
+    "reviewed_non_network_non_boot": 281,
+    "preserved_network_source_files": 117,
+    "excluded_boot_source_files": 6,
+    "graphs": 227,
+    "additional_conditional_graph_definitions": 3,
+    "original_entries": 226,
+    "internal_bindings": 7,
+    "prior_network_graphs": 110,
+    "preserved_subtree_files": {
+      "kernel/boot/": 8,
+      "kernel/net/": 118
+    },
+    "pending_sources": 0,
+    "unregistered_runners": 0,
+    "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+  },
+  "documentation": {
+    "kernel_files": 404,
+    "default_unique_symbols": 5156,
+    "all_cpp_symbols": 5227,
+    "documentation_entries": 5230,
+    "indexable_entries": 5141,
+    "documentation_only": 89,
+    "missing_files": 0,
+    "missing_function_symbols": 0
+  },
+  "rootfs_install": {
+    "installed": [
+      "/bin/fbterm",
+      "/bin/pty",
+      "/usr/tests/ptytest",
+      "/usr/tests/ttytest"
+    ],
+    "protected_contents_and_attributes_unchanged": true,
+    "protected_entries": 7,
+    "update_output": "prepared: /bin/fbterm\nprepared: /bin/pty\nprepared: /usr/tests/ptytest\nprepared: /usr/tests/ttytest\nrootfs updated: 4 files, 0 system directories\nbackup: /home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261031T162702Z-e63f3e83.img\n",
+    "selected_manifest": true
+  },
+  "fork_gate": "skipped per user request; unchanged",
+  "logs": [
+    "build/docs/nested-pty/tests.log",
+    "build/docs/nested-pty/tty-contracts.log",
+    "build/docs/nested-pty/native-final.log",
+    "build/docs/nested-pty/flows.log",
+    "build/docs/nested-pty/coverage.log",
+    "build/docs/nested-pty/image-final.log"
+  ],
+  "prior_failure": "Native contract used bit31 as an unknown flag. That bit is now allocated to XV_PROXY; assertions now require successful proxy round-trip and reject unknown bit29 while preserving settings. Native final rerun passed.",
+  "screenshot": "build/docs/nested-pty/nested-pty.png",
+  "sha256": {
+    "kernel/tty/termios.h": "7bd432b1c32ceb1c67a59dc8a43a101bf83490ee3e2ace2832d004eb1fb31c8d",
+    "kernel/drivers/tty/core/tty.cpp": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931",
+    "user/runtime/terminal_proxy.h": "ee8d238b523a99022bbd450419754115fc7203ffd3b23d4203f41c2cca94b7e3",
+    "user/apps/pty/pty.cpp": "8e2e4bf72af693b40bbe37263308dc5d76d558ac97575aa254eb7a1b348c6a27",
+    "user/apps/fbterm/fbterm.cpp": "f1a39f9fc965642ad6e8457c96ea80585f4cbfdc8b24a330123ff7f84b760285",
+    "user/tests/nonblock_checks.cpp": "7f20a0553941d54439562c771d6bd92d4ed4d52027ff0564472f97d2171b6ece",
+    "user/tests/ttytest.cpp": "5bec0550ccb3b38e224d6a77c7664b316b519febc33e4730d3e75a4afe6ab285",
+    "tests/driver_test_platform.cpp": "83bc1e3331a4d03240eea99646e36878e4419c98bffa63407a7850bc259887d4",
+    "tests/fbterm.py": "7028b3f1e8fa0b9f6f2a94a8cfbce4dc341aed20ef96263d99ff4b4cebccaef6",
+    "build/dev/kernel.elf": "a36a75a9000745155da043002c87f91c749b8abf270d0cc2f16ef1fada38a97d",
+    "build/dev/user/_pty": "6f7797efa08226048c51b0a7f78d257d9065f017993d11361b0a41d489a5f762",
+    "build/dev/user/_fbterm": "0d82926f80e9a3b654e2df112d7c9dbc94aa10a7d2cc11aceb5056074000cb74",
+    "CMakeLists.txt": "db3685aa96db0f425a48ec61f088d8bc044e59ed0aee6c18f3eacdaca06dc662",
+    "user/CMakeLists.txt": "942871aa8961f5fed550badfd85205a3b9ab2936c70d0ce88596f9c504767995",
+    "user/apps/fbterm/FONT-LICENSE.txt": "7236415a6a0dcff685e983f289528fe3a0a8e84eb4a3452cb484d872cdf8e923"
+  },
+  "static_assets_dependency": "Filesystem images depend on FONT-LICENSE.txt; asset edits trigger rebuild."
+}

@@ -1,6 +1,8 @@
 module;
 
 #include <cstdio>
+#include "kernel/io/framebuffer.h"
+#include "kernel/io/keyboard.h"
 #include <functional>
 #include "kernel/tty/termios.h"
 #include "kernel/fs/io_status.h"
@@ -24,6 +26,8 @@ import :n_tty;
 import :uart;
 import :rtc;
 import :entropy;
+import :gpu;
+import :keyboard;
 import :plic;
 import :virtio;
 import :protocol;
@@ -66,6 +70,9 @@ template <class Operation> void expect_panic(Operation operation)
 
 std::function<void()> on_sleep;
 unsigned long milliseconds = 0;
+std::function<void()> gpu_barrier;
+bool gpu_clock=false;
+unsigned effective_user=1000;
 bool killed = false;
 bool fail_copy = false;
 bool copied_user = false;
@@ -339,8 +346,17 @@ void console_contract()
   check(console.read(destination, 1) == -1, "read copy failure");
   fail_copy = false;
   check(console.read(destination, 1) == 1 && input[0] == 'z', "fault retains byte");
-  settings.c_lflag |= 0x80000000U;
+  settings.c_lflag |= XV_PROXY;
+  termios proxy_settings{};
+  check(console.ioctl(TCSETS, buffer(&settings)) == 0 &&
+            console.ioctl(TCGETS, buffer(&proxy_settings)) == 0 &&
+            (proxy_settings.c_lflag & XV_PROXY), "proxy ownership flag round trip");
+  static_assert(!(XV_PROXY & 0x20000000U));
+  settings.c_lflag |= 0x20000000U;
   check(console.ioctl(TCSETS, buffer(&settings)) == -1, "unsupported flags rejected");
+  check(console.ioctl(TCGETS, buffer(&proxy_settings)) == 0 &&
+            !(proxy_settings.c_lflag & 0x20000000U) &&
+            (proxy_settings.c_lflag & XV_PROXY), "invalid setter preserves proxy ownership");
   settings = defaults;
   check(console.ioctl(TCSETSF, buffer(&settings)) == 0 && serial.drains == 1,
         "flush setter drains");
@@ -774,6 +790,232 @@ void complete_transfer()
   ++transfer_count;
 }
 
+void gpu_contract()
+{
+  constexpr unsigned width = XV_DISPLAY_WIDTH, height = XV_DISPLAY_HEIGHT;
+  constexpr unsigned frame_pages = (width * height * 4 + 4095) / 4096;
+  constexpr unsigned request_pages = (32 + frame_pages * 16 + 4095) / 4096;
+  constexpr unsigned dma_count = frame_pages + request_pages + 4;
+  alignas(4096) unsigned registers[1024]{};
+  const auto baseline=dma_pages.size();gpu_clock=true;
+  auto setup=[&]
+  {std::memset(registers,0,sizeof(registers));registers[VIRTIO_MMIO_MAGIC_VALUE/4]=0x74726976;registers[VIRTIO_MMIO_VERSION/4]=2;registers[VIRTIO_MMIO_DEVICE_ID/4]=16;registers[VIRTIO_MMIO_DEVICE_FEATURES/4]=1;registers[VIRTIO_MMIO_QUEUE_NUM_MAX/4]=GpuQueueEntries;};
+  VirtioGpu absent(reinterpret_cast<unsigned long>(registers),4);absent.initialize();
+  check(!absent.open(false) && dma_pages.size()==baseline,"absent GPU is nonfatal and allocates nothing");
+  for(int budget=0;budget<int(dma_count);++budget)
+  {
+    setup();dma_budget=budget;VirtioGpu failed(reinterpret_cast<unsigned long>(registers),4);failed.initialize();dma_budget=-1;
+    check(!failed.open(false) && dma_pages.size()==baseline,"GPU rolls back every DMA allocation failure");
+  }
+  unsigned short consumed=0;unsigned commands=0,transfers=0;bool corrupt=false;
+  auto address=[&](unsigned low)
+  {return static_cast<unsigned long>(registers[low/4])|(static_cast<unsigned long>(registers[(low+4)/4])<<32);};
+  gpu_barrier=[&]
+  {
+    if(!registers[VIRTIO_MMIO_QUEUE_READY/4] || !registers[VIRTIO_MMIO_STATUS/4])return;
+    auto *available=reinterpret_cast<GpuAvailableRing *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
+    if(available->idx==consumed)return;
+    auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
+    alignas(8) unsigned char request[32768]{};unsigned count=0,index=available->ring[consumed%GpuQueueEntries];
+    for(unsigned step=0;;++step)
+    {
+      check(index<GpuQueueEntries && step<GpuQueueEntries,"GPU descriptor chain bounded");
+      auto &d=desc[index];
+      if(d.flags&VRING_DESC_F_WRITE)break;
+      check(d.flags==VRING_DESC_F_NEXT && d.len && d.len<=4096 && count+d.len<=sizeof(request),"GPU read-only bounded request descriptors");
+      std::memcpy(request+count,reinterpret_cast<void *>(d.addr),d.len);count+=d.len;index=d.next;
+    }
+    check(desc[index].flags==VRING_DESC_F_WRITE && desc[index].len==4096,"GPU response is device-writable only");
+    auto *response=reinterpret_cast<unsigned char *>(desc[index].addr);std::memcpy(response,request,24);
+    auto type=*reinterpret_cast<unsigned *>(request);*reinterpret_cast<unsigned *>(response)=type==0x100 ? 0x1101:0x1100;
+    unsigned length=24;
+    if(type==0x100){*reinterpret_cast<unsigned *>(response+40)=1;length=408;}
+    if(type==0x106)
+    {
+      check(count==32+frame_pages*16 && *reinterpret_cast<unsigned *>(request+28)==frame_pages,"GPU scatter backing spans all required request pages");
+      for(unsigned i=0;i<frame_pages;++i)check(*reinterpret_cast<unsigned *>(request+32+i*16+8)==4096,"GPU backing entry size");
+    }
+    if(type==0x105)++transfers;
+    check(*reinterpret_cast<unsigned *>(request+4)==1,"GPU commands require completion fences");
+    if(corrupt)*reinterpret_cast<unsigned long *>(response+8)^=1;
+    auto *used=reinterpret_cast<GpuUsedRing *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
+    used->ring[consumed%GpuQueueEntries]={0,length};used->idx=++consumed;++commands;
+  };
+  setup();VirtioGpu gpu(reinterpret_cast<unsigned long>(registers),4);gpu.initialize();
+  check(gpu.open(false)==&gpu && commands==6 && dma_pages.size()==baseline+dma_count,"GPU initializes fenced 2D resource and scanout");
+  FramebufferInfo info{};IoBuffer buffer{AddressSpace::Kernel,reinterpret_cast<unsigned long>(&info)};
+  check(gpu.ioctl(XV_FB_GET_INFO,buffer)==0 && info.width==width && info.height==height && info.stride==width*4 && info.format==2,"GPU info ABI");
+  alignas(8) unsigned pixels[16];for(auto &pixel:pixels)pixel=0x00ff0000;
+  FramebufferUpdate update{width-1,height-1,1,1,4,0,reinterpret_cast<unsigned long>(pixels)};buffer.address=reinterpret_cast<unsigned long>(&update);
+  check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU draw requires root");effective_user=0;
+  check(gpu.ioctl(XV_FB_DRAW,buffer)==0 && transfers==2,"GPU bottom right pixel update transfer and flush");
+  update.width=2;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects rectangle overrun");update.width=1;
+  update.pixels=~0UL-1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects source address wrap");update.pixels=reinterpret_cast<unsigned long>(pixels);
+  update.reserved=1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU validates reserved ABI fields");update.reserved=0;
+  fail_copy=true;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU request copy failure");fail_copy=false;
+  check(gpu.ioctl(0,buffer)==-1,"GPU rejects unknown ioctl");
+  corrupt=true;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1 && !gpu.open(false) && dma_pages.size()==baseline,"GPU bad completion fence resets before releasing DMA");
+  gpu_barrier=nullptr;setup();VirtioGpu stalled(reinterpret_cast<unsigned long>(registers),4);stalled.initialize();
+  check(!stalled.open(false) && dma_pages.size()==baseline,"GPU timeout resets and frees safely");
+  gpu_clock=false;effective_user=1000;
+}
+
+void keyboard_contract()
+{
+  alignas(4096) unsigned registers[1024]{};
+  constexpr unsigned queue_size = 64;
+  struct Available
+  {
+    unsigned short flags, index, entries[queue_size], unused;
+  };
+  struct Used
+  {
+    unsigned short flags, index;
+    virtq_used_elem entries[queue_size];
+  };
+  auto baseline = dma_pages.size();
+  gpu_clock = true;
+  VirtioKeyboard absent(reinterpret_cast<unsigned long>(registers), 5);
+  absent.initialize();
+  check(!absent.open(false) && dma_pages.size() == baseline, "absent keyboard allocates nothing");
+  auto setup = [&]
+  {
+    std::memset(registers, 0, sizeof(registers));
+    registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
+    registers[VIRTIO_MMIO_VERSION / 4] = 2;
+    registers[VIRTIO_MMIO_DEVICE_ID / 4] = 18;
+    registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1;
+    registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = queue_size;
+    auto *config = reinterpret_cast<unsigned char *>(registers) + VIRTIO_MMIO_CONFIG;
+    config[2] = 4;
+    config[8 + 3] = (1U << (28 % 8)) | (1U << (30 % 8));
+  };
+  for (int budget = 0; budget < 7; ++budget)
+  {
+    setup(); dma_budget = budget;
+    VirtioKeyboard failed(reinterpret_cast<unsigned long>(registers), 5);
+    failed.initialize(); dma_budget = -1;
+    check(!failed.open(false) && dma_pages.size() == baseline, "keyboard DMA failure rolls back every partial allocation");
+  }
+  setup();
+  registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 0;
+  VirtioKeyboard legacy(reinterpret_cast<unsigned long>(registers), 5); legacy.initialize();
+  check(!legacy.open(false) && dma_pages.size() == baseline, "keyboard requires VERSION_1");
+  setup(); reinterpret_cast<unsigned char *>(registers)[VIRTIO_MMIO_CONFIG + 2] = 0;
+  VirtioKeyboard other(reinterpret_cast<unsigned long>(registers), 5); other.initialize();
+  check(!other.open(false), "keyboard rejects non-keyboard input capabilities");
+
+  setup();
+  unsigned selected = 0;
+  virtq_desc *descriptors = nullptr;
+  Available *available = nullptr;
+  Used *used = nullptr;
+  auto address = [&](unsigned low)
+  {
+    return static_cast<unsigned long>(registers[low / 4]) |
+           (static_cast<unsigned long>(registers[(low + 4) / 4]) << 32);
+  };
+  auto emulate_queues = [&]
+  {
+    unsigned queue = registers[VIRTIO_MMIO_QUEUE_SEL / 4];
+    if (queue != selected)
+    {
+      selected = queue;
+      registers[VIRTIO_MMIO_QUEUE_READY / 4] = 0;
+    }
+    if (queue == 0 && address(VIRTIO_MMIO_QUEUE_DESC_LOW))
+    {
+      descriptors = reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
+      available = reinterpret_cast<Available *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
+      used = reinterpret_cast<Used *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
+    }
+  };
+  gpu_barrier = emulate_queues;
+  VirtioKeyboard keyboard(reinterpret_cast<unsigned long>(registers), 5);
+  keyboard.initialize(); gpu_barrier = nullptr;
+  check(descriptors && available && used && available->index == queue_size && dma_pages.size() == baseline + 7,
+        "keyboard publishes 64 device-writable event buffers and both queues");
+  check(!keyboard.open(false), "keyboard open requires root");
+  effective_user = 0;
+  check(keyboard.open(true) == &keyboard && !keyboard.open(false), "nonblocking keyboard open is exclusive");
+  KeyboardEvent output[32]{};
+  IoBuffer buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(output), true};
+  class KeyboardWatch final : public xv::sync::PollTable
+  {
+  public:
+    void *channel = nullptr;
+    void watch(void *value) override { channel = value; }
+  } watch;
+  check(keyboard.poll(&watch) == 0 && watch.channel && keyboard.read(buffer, 8) == -EAGAIN,
+        "keyboard registers poll before an empty nonblocking read");
+  check(keyboard.read(buffer, 1) == -1 && keyboard.read(buffer, 0) == 0, "keyboard only reads whole ABI events");
+  unsigned short consumed = 0;
+  auto event = [&](KeyboardEvent value)
+  {
+    unsigned id = available->entries[consumed % queue_size];
+    check(descriptors[id].len == 8 && descriptors[id].flags == VRING_DESC_F_WRITE,
+          "keyboard DMA never targets user memory");
+    *reinterpret_cast<KeyboardEvent *>(descriptors[id].addr) = value;
+    used->entries[consumed % queue_size] = {id, 8};
+    used->index = ++consumed;
+    keyboard.handle_interrupt();
+  };
+  event({1, 30, 1});
+  check(keyboard.poll() == POLLIN, "keyboard IRQ wakes poll readers");
+  fail_copy = true;
+  check(keyboard.read(buffer, 8) == -1, "keyboard rejects inaccessible user output without consuming event");
+  fail_copy = false;
+  check(keyboard.read(buffer, 8) == 8 && output[0].code == 30 && output[0].value == 1,
+        "keyboard event survives failed copy");
+  effective_user = 1000;
+  check(keyboard.read(buffer, 8) == -1 && keyboard.poll() == POLLERR, "inherited keyboard fd rechecks effective uid");
+  effective_user = 0;
+  on_sleep = [&] { on_sleep = nullptr; event({1, 30, 0}); };
+  IoBuffer blocking = buffer; blocking.nonblocking = false;
+  check(keyboard.read(blocking, 8) == 8 && output[0].value == 0, "blocking keyboard read wakes on release event");
+  for (unsigned i = 0; i < 260; ++i) event({1, 31, 1});
+  check(keyboard.read(buffer, sizeof(output)) >= 8 && output[0].type == XV_KEY_SYN && output[0].code == XV_KEY_SYN_DROPPED,
+        "keyboard overflow reports synchronization loss for modifier reset");
+  keyboard.close();
+  event({1, 30, 1});
+  check(keyboard.open(false) == &keyboard && keyboard.read(buffer, 8) == -EAGAIN,
+        "keyboard reopen discards stale and unowned input");
+  // Cross the 16-bit used/available wrap boundary with a drained software ring.
+  for (unsigned i = 0; i < 65540; ++i)
+  {
+    event({1, 30, i & 1});
+    check(keyboard.read(buffer, 8) == 8, "keyboard ring index wraps without losing ownership");
+  }
+  used->entries[consumed % queue_size] = {queue_size, 8};
+  used->index = ++consumed;
+  keyboard.handle_interrupt();
+  check(keyboard.poll() == POLLERR && !keyboard.open(false) && dma_pages.size() == baseline + 7,
+        "malformed keyboard completion takes device offline and retains DMA in IRQ context");
+  keyboard.close();
+  while (dma_pages.size() > baseline) detail::free_dma_page(dma_pages.back());
+  for (unsigned error = 0; error < 4; ++error)
+  {
+    setup(); selected = 0;
+    gpu_barrier = emulate_queues;
+    VirtioKeyboard malformed(reinterpret_cast<unsigned long>(registers), 5);
+    malformed.initialize(); gpu_barrier = nullptr;
+    check(malformed.open(false) == &malformed, "fresh keyboard for completion validation");
+    used->entries[0] = {0, 8}; used->index = 1;
+    if (error == 0) used->entries[0].id = queue_size;
+    if (error == 1) used->entries[0].len = 7;
+    if (error == 2) used->index = queue_size + 1;
+    if (error == 3) { used->entries[1] = {0, 8}; used->index = 2; }
+    malformed.handle_interrupt();
+    check(malformed.poll() == POLLERR, "keyboard rejects invalid id, length, delta and duplicate completion");
+    malformed.close();
+    while (dma_pages.size() > baseline) detail::free_dma_page(dma_pages.back());
+  }
+  setup(); registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = 8;
+  VirtioKeyboard small(reinterpret_cast<unsigned long>(registers), 5); small.initialize();
+  check(!small.open(false) && dma_pages.size() == baseline, "keyboard rejects undersized queues and rolls back DMA");
+  gpu_clock = false; effective_user = 1000;
+}
+
 void entropy_contract()
 {
   unsigned registers[0x108/4]{};
@@ -899,7 +1141,7 @@ void block_contract()
 
 namespace detail
 {
-unsigned effective_uid() { return 1000; }
+unsigned effective_uid() { return test::effective_user; }
 unsigned effective_gid() { return 100; }
 void hangup_terminal(void *) { ++test::hangups; }
 void service_terminal_signals() { ++test::signal_services; }
@@ -915,7 +1157,7 @@ void free_dma_page(void *page) { free_terminal_page(page); }
 
 unsigned long terminal_milliseconds()
 {
-  return test::milliseconds;
+  return test::gpu_clock ? ++test::milliseconds:test::milliseconds;
 }
 
 void prepare_interruptible_sleep(void *)
@@ -1020,6 +1262,7 @@ bool panicked()
 void io_barrier()
 {
   __atomic_thread_fence(__ATOMIC_SEQ_CST);
+  if(test::gpu_barrier)test::gpu_barrier();
 }
 
 void *allocate_dma_page()
@@ -1055,6 +1298,8 @@ extern "C" int run_driver_contracts()
   xv::drivers::test::uart_contract();
   xv::drivers::test::block_contract();
   xv::drivers::test::entropy_contract();
+  xv::drivers::test::gpu_contract();
+  xv::drivers::test::keyboard_contract();
   std::puts("driver contracts: passed");
   return 0;
 }

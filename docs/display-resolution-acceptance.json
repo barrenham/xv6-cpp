@@ -1,0 +1,64 @@
+{
+  "status": "passed_with_user_requested_fork_gate_skip",
+  "default_resolution": [
+    1280,
+    800
+  ],
+  "default_grid": [
+    160,
+    50
+  ],
+  "boot_config_options": [
+    "XV_DISPLAY_WIDTH",
+    "XV_DISPLAY_HEIGHT"
+  ],
+  "limits": {
+    "width": [
+      640,
+      1920
+    ],
+    "height": [
+      480,
+      1080
+    ]
+  },
+  "verified_modes": {
+    "1280x800": "14 targeted checks passed, including complete user_regression",
+    "1920x1080": "GPU RFB full pixel check, real VNC keyboard, GPU/terminal contracts passed",
+    "640x480": "GPU scanout, terminal interaction and contracts passed"
+  },
+  "allocation": {
+    "640x480": {
+      "frame": 300,
+      "control": 6
+    },
+    "1280x800": {
+      "frame": 1000,
+      "control": 8
+    },
+    "1920x1080": {
+      "frame": 2025,
+      "control": 12
+    }
+  },
+  "guarantees": [
+    "GPU-only 16-entry rings; other VirtIO queue layouts unchanged",
+    "Derived request and response pages; all actual DMA allocation failure points checked",
+    "Terminal grid and PTY winsize/environment adapt; partial cell edges are background",
+    "Dirty bands bounded to four character rows; 600KiB pixel scratch",
+    "Original root, FENCE, timeout and reset/DMA ownership checks preserved"
+  ],
+  "sanitizers": "Actual GPU driver and terminal contracts passed ASan/UBSan and leak checks at default resolution",
+  "invalid_configuration": "Out-of-range width and zero height rejected in independent build directories",
+  "screenshots": "build/docs/resolution/{640x480,1280x800,1920x1080}",
+  "rootfs_record": "build/docs/resolution/rootfs-update.json",
+  "limitations": [
+    "Boot-time mode selection; rebuild/restart required",
+    "ASCII bitmap font retained; no runtime mode switch, Chinese font or font antialiasing"
+  ],
+  "default_resolution_regression": "14 targeted CTest checks passed, including complete user_regression, PTY, GPU, keyboard and missing-device cases",
+  "installation": "Updated only /bin/fbterm and /bin/fbdemo with backup; protected account/user contents and metadata unchanged",
+  "fork_gate": "Not run in this iteration at user request. Existing workload, CPU/repeat settings and 5-second limits unchanged.",
+  "documentation": "Current compiler inventory, semantic flow bindings and function coverage passed; generated index refreshed.",
+  "superseded_by": "docs/terminal-rendering-acceptance.json"
+}

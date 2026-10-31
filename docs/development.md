@@ -32,6 +32,8 @@ GDB 加载 `build/dev/kernel.elf`，通过 `target remote :26000` 连接。QEMU 
 | 选项 | 默认值 | 作用 |
 | --- | --- | --- |
 | `XV_RAM_MB` | `128` | QEMU 内存容量，单位 MiB |
+| `XV_DISPLAY_WIDTH` | `1280` | 图形宽度，640..1920 |
+| `XV_DISPLAY_HEIGHT` | `800` | 图形高度，480..1080 |
 | `XV_CPUS` | `5` | CPU 数量 |
 | `XV_GDB_PORT` | `26000` | GDB 端口 |
 | `XV_QEMU` | 自动查找 | QEMU 可执行文件路径 |
