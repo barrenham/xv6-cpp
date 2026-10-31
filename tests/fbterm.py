@@ -68,7 +68,8 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
     if not args.without_gpu:
         command += ['-device', f'virtio-gpu-device,bus=virtio-mmio-bus.3,xres={args.width},yres={args.height}']
     if args.keyboard:
-        command += ['-device', 'virtio-keyboard-device,bus=virtio-mmio-bus.4']
+        command += ['-device', 'virtio-keyboard-device,bus=virtio-mmio-bus.4',
+                    '-device', 'virtio-mouse-device,bus=virtio-mmio-bus.5']
         with socket.socket() as reservation:
             reservation.bind(('127.0.0.1', 0))
             vnc_port = reservation.getsockname()[1]
@@ -251,8 +252,13 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
             send('clear\n'); expect('\x1b[3J'); expect('root:/$ ')
             long_text = 'a' * (columns + 29)
             command = 'echo ' + long_text + 'TAIL'
+            # The UART input ring is bounded; pace by real echo rather than
+            # host sleep durations while a synchronous framebuffer draw runs.
             for start in range(0,len(command),16):
-                send(command[start:start+16]); time.sleep(.02)
+                chunk = command[start:start+16]
+                send(chunk)
+                if start + 16 < len(command):
+                    expect(chunk)
             expect('TAIL')
             lines, _ = screenshot('long-input')
             joined = ''.join(line.rstrip() for line in lines[:3])
@@ -275,6 +281,59 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
                     break
             assert any(line.startswith('BURST_END') for line in lines), lines
             assert any(line.startswith('row-01999:') for line in lines), lines
+            # Serial page keys use the same local viewport as VNC keys.
+            send(b'\x1b[5~')
+            for attempt in range(10):
+                serial_history, _ = screenshot('serial-history')
+                if not any(line.startswith('BURST_END') for line in serial_history):
+                    break
+            assert not any(line.startswith('BURST_END') for line in serial_history)
+            send(b'\x1b[6~')
+            for attempt in range(10):
+                serial_live, _ = screenshot('serial-live')
+                if any(line.startswith('BURST_END') for line in serial_live):
+                    break
+            assert any(line.startswith('BURST_END') for line in serial_live), serial_live
+            if args.keyboard:
+                # History is terminal-local: page keys and wheel must not reach sh.
+                with vnc_connect() as remote:
+                    press(remote, 0xff55)  # PageUp
+                    for attempt in range(10):
+                        page_one, _ = screenshot('history-page-up')
+                        if not any(line.startswith('BURST_END') for line in page_one):
+                            break
+                    assert not any(line.startswith('BURST_END') for line in page_one)
+                    assert page_one[0].startswith('row-'), page_one
+                    press(remote, 0xff55)
+                    time.sleep(.1)
+                    press(remote, 0xff56)  # PageDown returns to the first page.
+                    for attempt in range(10):
+                        returned, _ = screenshot('history-page-down')
+                        if returned == page_one:
+                            break
+                    assert returned == page_one, returned
+                    remote.sendall(struct.pack('!BBHH', 5, 8, 20, 20))  # wheel up
+                    remote.sendall(struct.pack('!BBHH', 5, 0, 20, 20))
+                    for attempt in range(10):
+                        wheel_up, _ = screenshot('history-wheel-up')
+                        if wheel_up != page_one:
+                            break
+                    assert wheel_up != page_one and wheel_up[0].startswith('row-'), wheel_up
+                    assert int(wheel_up[0][4:9]) < int(page_one[0][4:9])
+                    remote.sendall(struct.pack('!BBHH', 5, 16, 20, 20))  # wheel down
+                    remote.sendall(struct.pack('!BBHH', 5, 0, 20, 20))
+                    for attempt in range(10):
+                        returned, _ = screenshot('history-wheel-down')
+                        if returned == page_one:
+                            break
+                    assert returned == page_one, returned
+                    press(remote, 0xff57)  # End/ordinary input returns to live.
+                    for attempt in range(10):
+                        live, _ = screenshot('history-live')
+                        if any(line.startswith('BURST_END') for line in live):
+                            break
+                    assert any(line.startswith('BURST_END') for line in live), live
+                    run('echo HISTORY_INPUT_OK', 'HISTORY_INPUT_OK\r\n')
             # Nested proxies own only their own escape. Each child inherits the
             # graphical output conversion, even while its parent forwards raw.
             send('clear\n'); expect('\x1b[3J'); expect('root:/$ ')

@@ -212,11 +212,24 @@ bool VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum)
   ++available->idx;
   detail::io_barrier();
   registers_.write32(VIRTIO_MMIO_QUEUE_NOTIFY, 0);
-  // Bounded polling also works during boot before IRQ routing and scheduling.
-  // Runtime callers hold a sleep lock, never a spinlock or interrupt mask.
+  // Runtime waits register before checking completion, with a 500ms deadline.
+  // Boot has no current process/IRQ route yet and retains bounded polling.
   auto begin = detail::terminal_milliseconds();
   while (used->idx == used_index_)
   {
+    int waited =
+        detail::wait_device_completion(this, &used->idx, used_index_, begin + 500);
+    if (waited < 0)
+    {
+      ++failed_waits_;
+      return false;
+    }
+    if (waited > 0)
+    {
+      ++runtime_waits_;
+      break;
+    }
+    ++boot_polls_;
     if (detail::terminal_milliseconds() - begin >= 500)
     {
       return false;
@@ -518,6 +531,13 @@ int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
     return detail::copy_out(argument.space == AddressSpace::User, argument.address,
                             &info, sizeof(info));
   }
+  if (request == XV_FB_GET_STATS && detail::effective_uid() == 0)
+  {
+    FramebufferStats stats{__atomic_load_n(&interrupts_, __ATOMIC_RELAXED),
+                           runtime_waits_, boot_polls_, failed_waits_};
+    return detail::copy_out(argument.space == AddressSpace::User, argument.address,
+                            &stats, sizeof(stats));
+  }
   if (request != XV_FB_DRAW || detail::effective_uid() != 0)
   {
     return -1;
@@ -537,5 +557,10 @@ void VirtioGpu::handle_interrupt()
   }
   registers_.write32(VIRTIO_MMIO_INTERRUPT_ACK, status);
   detail::io_barrier();
+  if (status)
+  {
+    __atomic_fetch_add(&interrupts_, 1UL, __ATOMIC_RELAXED);
+    detail::wake_processes(this);
+  }
 }
 } // namespace xv::drivers

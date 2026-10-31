@@ -101,6 +101,7 @@ private:
   unsigned scanout_ = 0;
   unsigned long fence_ = 0;
   bool ready_ = false;
+  unsigned long interrupts_ = 0, runtime_waits_ = 0, boot_polls_ = 0, failed_waits_ = 0;
   bool negotiate();
   bool allocate();
   bool setup();

@@ -40,6 +40,12 @@
 - [`xv::drivers::detail::wake_processes`](kernel_platform.cpp.md#fn-63de6592afe7b624)
 - [`xv::drivers::detail::zero_page`](kernel_platform.cpp.md#fn-20570dfe40006a2d)
 
+- [`xv::drivers::detail::DeviceWaitFlow::attempt`](kernel_platform.cpp.md#fn-4d332331ebb612e8)
+
+- [`xv::drivers::detail::DeviceWaitFlow::finished`](kernel_platform.cpp.md#fn-f402e325486a5e8c)
+
+- [`xv::drivers::detail::wait_device_completion`](kernel_platform.cpp.md#fn-26beb0af2cb78450)
+
 <a id="fn-1412ba43bdcc972f"></a>
 
 ## `xv::drivers::detail::prepare_interruptible_sleep`
@@ -390,4 +396,34 @@
 @fn void *xv::drivers::detail::pin_controlling_terminal(void *(*pin)(void *))
 @brief 在进程组锁内查找并固定当前session的控制终端。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+```
+
+<a id="fn-4d332331ebb612e8"></a>
+
+## `xv::drivers::detail::DeviceWaitFlow::attempt`
+
+```doxygen
+@fn static void xv::drivers::detail::DeviceWaitFlow::attempt(Context &c) noexcept
+@brief 注册本次完成通知和定时器，重查队列后决定完成、失败或睡眠。
+@details PollWait先订阅通道，再检查设备可见used索引以避免漏唤醒；每次返回均释放订阅和定时器；绝对截止时间不随重试延长。等待期间可持有SleepLock，不持有SpinLock。
+```
+
+<a id="fn-f402e325486a5e8c"></a>
+
+## `xv::drivers::detail::DeviceWaitFlow::finished`
+
+```doxygen
+@fn static bool xv::drivers::detail::DeviceWaitFlow::finished(Context &c) noexcept
+@brief 检查设备等待已完成或失败。
+@details result非零停止DeviceWaitFlow，零值重新注册并检查同一截止时间。
+```
+
+<a id="fn-26beb0af2cb78450"></a>
+
+## `xv::drivers::detail::wait_device_completion`
+
+```doxygen
+@fn int xv::drivers::detail::wait_device_completion(void *channel, volatile unsigned short *index, unsigned short expected, unsigned long deadline)
+@brief 以完成通知和绝对截止时间等待设备队列推进。
+@details 启动期无当前进程时返回0供调用者有界轮询；运行期DeviceWaitFlow注册完成通道和定时器，注册后重查used索引，完成返回1，信号、分配失败或到期返回-1。
 ```

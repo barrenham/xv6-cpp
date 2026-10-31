@@ -1956,7 +1956,7 @@
           ]
         }
       ],
-      "definition_sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+      "definition_sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
     },
     {
       "module": "memory",
@@ -2034,7 +2034,7 @@
           ]
         }
       ],
-      "definition_sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+      "definition_sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
     },
     {
       "module": "memory",
@@ -2839,7 +2839,7 @@
           ]
         }
       ],
-      "definition_sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff"
+      "definition_sha256": "644a16dd9e0664b82b0338b58e3fc4322d1bda514c6cf71f225b4f96dfa9bce5"
     },
     {
       "module": "syscall",
@@ -3724,7 +3724,7 @@
         "initialize"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "definition_sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
       "graphs": [
         "InitializeFlow::Graph"
       ],
@@ -3747,7 +3747,7 @@
         "ioctl"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "definition_sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
       "graphs": [
         "DrawFlow::Graph"
       ],
@@ -3756,7 +3756,7 @@
           "qualified": "xv::drivers::VirtioGpu::ioctl",
           "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
           "source": "kernel/drivers/display/virtio_gpu.cpp",
-          "source_sha256": "5b0c1a3447448bfe54f8ae6b358bdfa116b41aec33771a3650bacadcb74e71d4",
+          "source_sha256": "a7537da13f3ad995977da4cf32936d244a2c39bc8878e7ae2a00047073853af9",
           "graphs": [
             "DrawFlow::Graph"
           ]
@@ -3770,7 +3770,7 @@
         "initialize"
       ],
       "definition": "kernel/drivers/input/virtio_keyboard.cpp",
-      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "definition_sha256": "30f8f8877b628e8339396908aa9e6a4a5bc39a358e16ab986a655ac018a172ba",
       "graphs": [
         "InitializeFlow::Graph"
       ],
@@ -3793,7 +3793,7 @@
         "read"
       ],
       "definition": "kernel/drivers/input/virtio_keyboard.cpp",
-      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "definition_sha256": "30f8f8877b628e8339396908aa9e6a4a5bc39a358e16ab986a655ac018a172ba",
       "graphs": [
         "ReadFlow::Graph"
       ],
@@ -3816,7 +3816,7 @@
         "handle_interrupt"
       ],
       "definition": "kernel/drivers/input/virtio_keyboard.cpp",
-      "definition_sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "definition_sha256": "30f8f8877b628e8339396908aa9e6a4a5bc39a358e16ab986a655ac018a172ba",
       "graphs": [
         "InterruptFlow::Graph"
       ],
@@ -3828,6 +3828,30 @@
           "source_sha256": "5315a489de7b47f5102e8290af9049146fee0d8d41096165510514b4b7e20daf",
           "graphs": [
             "InterruptFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "drivers",
+      "namespace": "xv::drivers::detail",
+      "owner": "",
+      "methods": [
+        "wait_device_completion"
+      ],
+      "definition": "kernel/drivers/platform/kernel_platform.cpp",
+      "definition_sha256": "ca437c528353d03d6ca671e586f8c4f33ac090fa75d45c3b908111ef932f8a47",
+      "graphs": [
+        "DeviceWaitFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::drivers::detail::wait_device_completion",
+          "usr": "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
+          "source": "kernel/drivers/platform/kernel_platform.cpp",
+          "source_sha256": "6633ca8d6294749b92ce54dcf6c5f69b75b8bc2b3ddaa0fd9f06fa5151c54215",
+          "graphs": [
+            "DeviceWaitFlow::Graph"
           ]
         }
       ]

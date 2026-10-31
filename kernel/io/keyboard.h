@@ -12,4 +12,6 @@ struct KeyboardEvent
 inline constexpr unsigned short XV_KEY_SYN = 0;
 inline constexpr unsigned short XV_KEY_EVENT = 1;
 inline constexpr unsigned short XV_KEY_SYN_DROPPED = 3;
+inline constexpr unsigned short XV_INPUT_REL = 2;
+inline constexpr unsigned short XV_REL_WHEEL = 8;
 static_assert(sizeof(KeyboardEvent) == 8);

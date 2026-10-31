@@ -30,12 +30,17 @@ def main():
     parser.add_argument('--rounds', type=int, default=2)
     parser.add_argument('--vnc-client', action='store_true')
     parser.add_argument('--no-serial-mirror', action='store_true')
-    parser.add_argument('--modes', nargs='+', default=[
-        'normal', 'no-mirror', 'no-present', 'no-paint', 'parse-only'])
+    parser.add_argument('--benchmark-scroll', action='store_true')
+    parser.add_argument('--raster', choices=('cached','full'), default='cached')
+    parser.add_argument('--modes', nargs='+')
     args = parser.parse_args()
+    args.modes = args.modes or (['frames'] if args.benchmark_scroll else [
+        'normal', 'no-mirror', 'no-present', 'no-paint', 'parse-only'])
+    if args.benchmark_scroll and args.modes != ['frames']:
+        parser.error('--benchmark-scroll requires --modes frames')
     if not 1 <= args.lines <= 2000 or not 1 <= args.rounds <= 10:
         parser.error('lines must be 1..2000 and rounds 1..10')
-    if any(mode not in ('normal', 'no-mirror', 'no-present', 'no-paint', 'parse-only')
+    if any(mode not in ('normal', 'frames', 'no-mirror', 'no-present', 'no-paint', 'parse-only')
            for mode in args.modes):
         parser.error('unsupported diagnostic mode')
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -162,10 +167,11 @@ def main():
                     start = time.monotonic()
                     start_traffic = traffic.copy()
                     option = '--no-serial-mirror ' if args.no_serial_mirror else ''
-                    guest.stdin.write(f'env FBTERM_PROFILE={mode} fbterm {option}cat /burst.txt\n'.encode())
+                    task = '--benchmark-scroll' if args.benchmark_scroll else option + 'cat /burst.txt'
+                    guest.stdin.write(f'env FBTERM_PROFILE={mode} FBTERM_RASTER={args.raster} fbterm {task}\n'.encode())
                     guest.stdin.flush()
-                    expect('fbterm: connected')
-                    expect('fbterm: disconnected')
+                    expect('fbterm: benchmark start' if args.benchmark_scroll else 'fbterm: connected')
+                    expect('fbterm: benchmark complete' if args.benchmark_scroll else 'fbterm: disconnected')
                     elapsed = time.monotonic() - start
                     cpu = cpu_seconds() - start_cpu
                     expect('root:/$ ')
@@ -175,8 +181,8 @@ def main():
                     stats = {key: int(value) for key, value in
                              re.findall(r'(\w+)=(\d+)', match[2].decode())}
                     expected = payload.replace('\n', '\r\n').encode()
-                    assert stats['bytes'] == len(expected), stats
-                    if not args.no_serial_mirror and mode not in ('no-mirror', 'parse-only'):
+                    assert stats['bytes'] == (0 if args.benchmark_scroll else len(expected)), stats
+                    if not args.benchmark_scroll and not args.no_serial_mirror and mode not in ('no-mirror', 'parse-only'):
                         assert expected in segment, 'serial byte loss'
                         assert stats['mirrored'] == len(expected), stats
                     else:
@@ -189,6 +195,16 @@ def main():
                                   qemu_cpu_s=cpu, ticks=stats,
                                   vnc_bytes=traffic['bytes']-start_traffic['bytes'],
                                   vnc_updates=traffic['updates']-start_traffic['updates'])
+                    gpu = re.search(rb'GPUSTATS ([^\r\n]+)', segment)
+                    result['gpu'] = {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', gpu[1].decode())} if gpu else {}
+                    result['raster'] = args.raster
+                    result['benchmark_scroll'] = args.benchmark_scroll
+                    result['frame_samples'] = [
+                        {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', line.decode())}
+                        for line in re.findall(rb'FBFRAME [^\r\n]+', segment)]
+                    if args.benchmark_scroll:
+                        assert stats['frames'] == 60 and len(result['frame_samples']) == 60, stats
+                        assert result['gpu']['failed'] == 0 and result['gpu']['waits'] > 0 and result['gpu']['interrupts'] > 0, result
                     results.append(result)
                     print(json.dumps(result), flush=True)
                     args.output.write_text(json.dumps(dict(status='running', results=results), indent=2)+'\n')

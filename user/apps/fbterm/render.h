@@ -62,9 +62,8 @@ bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels
   {
     for (unsigned column = 0; column < terminal.columns; ++column)
     {
-      const Cell &cell = terminal.cells[row][column];
-      bool cursor =
-          terminal.cursor_visible && row == terminal.y && column == terminal.x;
+      const Cell &cell = terminal.display_cell(row, column);
+      bool cursor = terminal.display_cursor(row, column);
       if (cell.character == ' ' && cell.background == 0 && !cursor)
       {
         continue;
@@ -95,4 +94,140 @@ bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels
   terminal.scrolled = false;
   return true;
 }
+
+// Owns row snapshots, while the caller owns the persistent full-screen pixels.
+// Matching old rows move as pixels; only changed/new rows need rasterization.
+class Renderer
+{
+public:
+
+  unsigned long long raster_rows = 0, reused_rows = 0;
+
+  template <class Submit>
+  bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels,
+             Submit submit)
+  {
+    bool valid = valid_ && width == width_ && height == height_ &&
+                 terminal.generation == generation_;
+    long long origin =
+        static_cast<long long>(terminal.scroll_position) - terminal.view_offset;
+    long long delta = valid ? origin - origin_ : 0;
+    unsigned first = terminal.rows, end = 0;
+    for (unsigned step = 0; step < terminal.rows; ++step)
+    {
+      unsigned row = delta < 0 ? terminal.rows - 1 - step : step;
+      long long old = static_cast<long long>(row) + delta;
+      bool match = valid && old >= 0 && old < terminal.rows;
+      int cursor = !terminal.view_offset && terminal.cursor_visible && row == terminal.y
+                       ? static_cast<int>(terminal.x)
+                       : -1;
+      if (match)
+      {
+        match = cursor == cursor_[old];
+        for (unsigned column = 0; match && column < terminal.columns; ++column)
+        {
+          const auto &a = terminal.display_cell(row, column);
+          const auto &b = previous_[old][column];
+          match = a.character == b.character && a.foreground == b.foreground &&
+                  a.background == b.background;
+        }
+      }
+      if (match && !delta)
+      {
+        continue;
+      }
+      if (row < first)
+      {
+        first = row;
+      }
+      if (row + 1 > end)
+      {
+        end = row + 1;
+      }
+      unsigned *destination = pixels + row * cell_height * width;
+      if (match)
+      {
+        const unsigned *source = pixels + old * cell_height * width;
+        // Different character rows do not overlap; row order protects later sources.
+        for (unsigned i = 0; i < cell_height * width; ++i)
+        {
+          destination[i] = source[i];
+        }
+        ++reused_rows;
+        continue;
+      }
+      ++raster_rows;
+      for (unsigned i = 0; i < cell_height * width; ++i)
+      {
+        destination[i] = palette[0];
+      }
+      for (unsigned column = 0; column < terminal.columns; ++column)
+      {
+        const Cell &cell = terminal.display_cell(row, column);
+        bool underlined = cursor == static_cast<int>(column);
+        if (cell.character == ' ' && cell.background == 0 && !underlined)
+        {
+          continue;
+        }
+        const unsigned *glyph = cell.foreground == 7 && cell.background == 0
+                                    ? default_glyph(cell.character)
+                                    : nullptr;
+        for (unsigned gy = 0; gy < cell_height; ++gy)
+        {
+          for (unsigned gx = 0; gx < cell_width; ++gx)
+          {
+            destination[gy * width + column * cell_width + gx] =
+                glyph && !(underlined && gy >= cell_height - 2)
+                    ? glyph[gy * cell_width + gx]
+                    : Terminal::cell_pixel(cell, gx, gy, underlined);
+          }
+        }
+      }
+    }
+    if (!valid)
+    {
+      for (unsigned i = terminal.rows * cell_height * width; i < width * height; ++i)
+      {
+        pixels[i] = palette[0];
+      }
+    }
+    if (first != terminal.rows &&
+        !submit(first * cell_height,
+                end == terminal.rows ? height - first * cell_height
+                                     : (end - first) * cell_height,
+                pixels + first * cell_height * width))
+    {
+      valid_ = false;
+      return false;
+    }
+    for (unsigned row = 0; row < terminal.rows; ++row)
+    {
+      for (unsigned column = 0; column < terminal.columns; ++column)
+      {
+        previous_[row][column] = terminal.display_cell(row, column);
+      }
+      cursor_[row] =
+          !terminal.view_offset && terminal.cursor_visible && row == terminal.y
+              ? static_cast<int>(terminal.x)
+              : -1;
+      terminal.dirty[row] = false;
+    }
+    terminal.scrolled = false;
+    width_ = width;
+    height_ = height;
+    generation_ = terminal.generation;
+    origin_ = origin;
+    valid_ = true;
+    return true;
+  }
+
+private:
+
+  Cell previous_[max_rows][max_columns]{};
+  int cursor_[max_rows]{};
+  unsigned width_ = 0, height_ = 0;
+  unsigned long long generation_ = 0;
+  long long origin_ = 0;
+  bool valid_ = false;
+};
 } // namespace fbterm

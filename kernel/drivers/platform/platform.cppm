@@ -2,6 +2,9 @@ module xv.drivers:platform;
 
 namespace xv::drivers::detail
 {
+// 0: early boot (caller polls); 1: completed; -1: deadline/signal/allocation failure.
+int wait_device_completion(void *channel, volatile unsigned short *index,
+                           unsigned short expected, unsigned long deadline);
 unsigned effective_uid();
 unsigned effective_gid();
 void prepare_sleep(void *channel);

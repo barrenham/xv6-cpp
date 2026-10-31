@@ -4546,6 +4546,7 @@
       "c:@N@xv@N@drivers@N@detail@F@sleep_process#",
       "c:@N@xv@N@drivers@N@detail@F@terminal_foreground#*v#",
       "c:@N@xv@N@drivers@N@detail@F@terminal_milliseconds#",
+      "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
       "c:@N@xv@N@drivers@N@detail@F@wake_processes#*v#",
       "c:@N@xv@N@drivers@N@detail@F@zero_page#*v#"
     ]
@@ -4582,8 +4583,11 @@
       "c:@N@xv@N@drivers@N@detail@F@sleep_process#",
       "c:@N@xv@N@drivers@N@detail@F@terminal_foreground#*v#",
       "c:@N@xv@N@drivers@N@detail@F@terminal_milliseconds#",
+      "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
       "c:@N@xv@N@drivers@N@detail@F@wake_processes#*v#",
-      "c:@N@xv@N@drivers@N@detail@F@zero_page#*v#"
+      "c:@N@xv@N@drivers@N@detail@F@zero_page#*v#",
+      "c:@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@F@attempt#&$@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@S@Context#S",
+      "c:@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@F@finished#&$@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@S@Context#S"
     ]
   },
   {
@@ -8872,6 +8876,7 @@
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@handle_interrupt#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@identify#1",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize_wheel#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@negotiate#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@open#b#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@poll#*$@N@xv@N@sync@S@PollTable#",
@@ -8903,9 +8908,24 @@
     "document": "docs/functions/kernel/drivers/input/virtio_keyboard.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@VirtioKeyboard#l#i#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@allocate#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@close#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@disable#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@drain#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@enqueue#&1$@S@KeyboardEvent#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@handle_interrupt#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@identify#1",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize_wheel#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@irq#1",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@name#1",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@negotiate#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@open#b#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@publish#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@put_sync#I#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+      "c:@N@xv@N@drivers@S@VirtioKeyboard@F@rollback#",
       "c:@N@xv@N@drivers@S@VirtioKeyboard@F@write#$@N@xv@N@drivers@S@IoBuffer#I#"
     ]
   },

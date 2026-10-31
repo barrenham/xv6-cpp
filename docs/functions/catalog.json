@@ -50923,7 +50923,7 @@
     "kind": "StaticMethod",
     "usr": "c:kernel_page_table.cpp@N@xv@N@memory@aN@S@KernelBuildFlow@F@devices_text#&$@N@xv@N@memory@aN@S@KernelBuildFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "a937c911d1f678c4def0a0227a9226df36547dacc28ee2f6682f44a4b721a9a5"
+    "source_sha256": "c5132518f5cc26babde7883da7103c92c6a385d8add89efc018dd81e62deb09d"
   },
   {
     "anchor": "fn-0478db392b7e5ee1",
@@ -55668,7 +55668,7 @@
     "kind": "StaticMethod",
     "usr": "c:qemu_virt.cpp@N@xv@N@drivers@aN@S@ConsoleFlow@F@devices#&$@N@xv@N@drivers@aN@S@ConsoleFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "7352557b39f03933234215a020f17937069bf417b564691bae722143dcc1b47f"
+    "source_sha256": "58a39345c857ab58c8f0bbb2365188e83dd97bedef977052f70a40076f2f14e5"
   },
   {
     "anchor": "fn-b54510fdb4f2206b",
@@ -55733,7 +55733,7 @@
     "kind": "StaticMethod",
     "usr": "c:qemu_virt.cpp@N@xv@N@drivers@aN@S@InterruptsFlow@F@route#&$@N@xv@N@drivers@aN@S@InterruptsFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "063c2ba6b39aa72e4d266e65b0bfe0a0fb6c0f23228aadd41ea0862baebc66d9"
+    "source_sha256": "5ff91c4b8c278501758e3a3f6b548088dbf1f6af6c775e0d2a4c6ae73dd1d91f"
   },
   {
     "anchor": "fn-d3f9d5d8d6c4c212",
@@ -67299,7 +67299,7 @@
     "signature": "bool VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum)",
     "spelling": "submit",
     "fn": "bool xv::drivers::VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum)",
-    "source_sha256": "ff8d8e9142c6396f2defa49ebc8461d1fe225d9864d49ed8e689d1d2b74cba90"
+    "source_sha256": "7787b056dc9ab9890710d3bd27baaae9ce0e5ce8efe312f8081b02b06d3c68d3"
   },
   {
     "anchor": "fn-c8cefba6a339c3f6",
@@ -67546,7 +67546,7 @@
     "signature": "int VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
     "spelling": "ioctl",
     "fn": "int xv::drivers::VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
-    "source_sha256": "5b0c1a3447448bfe54f8ae6b358bdfa116b41aec33771a3650bacadcb74e71d4"
+    "source_sha256": "a7537da13f3ad995977da4cf32936d244a2c39bc8878e7ae2a00047073853af9"
   },
   {
     "anchor": "fn-46afcdf81348cbc3",
@@ -67559,7 +67559,7 @@
     "signature": "void VirtioGpu::handle_interrupt()",
     "spelling": "handle_interrupt",
     "fn": "void xv::drivers::VirtioGpu::handle_interrupt()",
-    "source_sha256": "0bef3fdf66a90db2c18bd0d2bc771e46ff059b512b473b8cd46dff182088c17c"
+    "source_sha256": "a41e6ebaef8bc07840c335c2a0e9fbe089038090fa06a56530a8453322916cc7"
   },
   {
     "anchor": "fn-368b4ac766cd532a",
@@ -67663,7 +67663,7 @@
     "kind": "InstanceMethod",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@negotiate#",
-    "source_sha256": "011fa592b9cf4107177b663d6cef71e4ecc58acfe1aa72585c21a82ea80bf933"
+    "source_sha256": "ca89ba45a4468cf93cdd4d4eeaf91ace2a760e4b7076ed29db53b09f39e3d6a6"
   },
   {
     "anchor": "fn-73b833e10fb4ab7f",
@@ -67845,7 +67845,7 @@
     "kind": "InstanceMethod",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@drain#",
-    "source_sha256": "76b6358bf54c0d66736371848f833367a7693d3092f95efc09f111bf75456869"
+    "source_sha256": "85184258cefed8cd07ed8f9fb97dc82e1adaa354e442d076aa280a7c238060fd"
   },
   {
     "anchor": "fn-9b6ea0d81d296171",
@@ -68079,7 +68079,7 @@
     "kind": "InstanceMethod",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@name#1",
-    "source_sha256": "7661957332d99eaad3d4768f562f9ae1331aea9bcc09549925d99e72d189de7a"
+    "source_sha256": "344709665ec56edb3f0517c855162ae870dbd74f96502d31e95199d246ee45e0"
   },
   {
     "anchor": "fn-5e201b7c6d1f4568",
@@ -68145,5 +68145,57 @@
     "usr": "c:@N@xv@N@drivers@S@Tty@S@WriteFlow@F@shrink#&$@N@xv@N@drivers@S@Tty@S@WriteFlow@S@Context#S",
     "hover_expectation": "observe",
     "source_sha256": "089bab0e2aa546d3a9760d133e4d529d9b5adbd16506119dc3a07c834da1f9e6"
+  },
+  {
+    "anchor": "fn-567537edde1d045a",
+    "document": "docs/functions/kernel/drivers/input/virtio_keyboard.cpp.md",
+    "source": "kernel/drivers/input/virtio_keyboard.cpp",
+    "spelling": "VirtioKeyboard::initialize_wheel",
+    "qualified": "xv::drivers::VirtioKeyboard::initialize_wheel",
+    "signature": "void VirtioKeyboard::initialize_wheel()",
+    "fn": "void xv::drivers::VirtioKeyboard::initialize_wheel()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioKeyboard@F@initialize_wheel#",
+    "hover_expectation": "observe",
+    "source_sha256": "22cf1ea10befa6e9bd75560bac9a35319d3508aa2ca4ab31a3d649e5f289c5fc"
+  },
+  {
+    "anchor": "fn-4d332331ebb612e8",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "attempt",
+    "qualified": "xv::drivers::detail::DeviceWaitFlow::attempt",
+    "signature": "static void attempt(Context &c) noexcept",
+    "fn": "static void xv::drivers::detail::DeviceWaitFlow::attempt(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@F@attempt#&$@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "4e2a537d0c58f0517af1a86e7d42bf9542e9c241de83db8b14e8701b224b407a"
+  },
+  {
+    "anchor": "fn-f402e325486a5e8c",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "finished",
+    "qualified": "xv::drivers::detail::DeviceWaitFlow::finished",
+    "signature": "static bool finished(Context &c) noexcept",
+    "fn": "static bool xv::drivers::detail::DeviceWaitFlow::finished(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@F@finished#&$@N@xv@N@drivers@N@detail@S@DeviceWaitFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "bf676ec5a0f7b54aa5c041a18b2b8a81c425b6f60d72ca657bc7a6340f0862ff"
+  },
+  {
+    "anchor": "fn-26beb0af2cb78450",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "wait_device_completion",
+    "qualified": "xv::drivers::detail::wait_device_completion",
+    "signature": "int wait_device_completion(void *channel, volatile unsigned short *index, unsigned short expected, unsigned long deadline)",
+    "fn": "int xv::drivers::detail::wait_device_completion(void *channel, volatile unsigned short *index, unsigned short expected, unsigned long deadline)",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
+    "hover_expectation": "observe",
+    "source_sha256": "6633ca8d6294749b92ce54dcf6c5f69b75b8bc2b3ddaa0fd9f06fa5151c54215"
   }
 ]

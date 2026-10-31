@@ -112,7 +112,8 @@ list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
 add_custom_target(qemu-graphics COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
   -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT}
-  -device virtio-keyboard-device,bus=virtio-mmio-bus.4 -display gtk
+  -device virtio-keyboard-device,bus=virtio-mmio-bus.4
+  -device virtio-mouse-device,bus=virtio-mmio-bus.5 -display gtk
   DEPENDS kernel rootfs-image USES_TERMINAL)
 set(XV_VNC_DISPLAY "1" CACHE STRING "VNC display number (TCP port 5900 + display)")
 if(NOT XV_VNC_DISPLAY MATCHES "^(0|[1-9][0-9]*)$" OR XV_VNC_DISPLAY GREATER 59635)
@@ -124,6 +125,7 @@ add_custom_target(qemu-vnc
   COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
     -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT} -display none
     -device virtio-keyboard-device,bus=virtio-mmio-bus.4
+    -device virtio-mouse-device,bus=virtio-mmio-bus.5
     -vnc "0.0.0.0:${XV_VNC_DISPLAY}"
   DEPENDS kernel rootfs-image USES_TERMINAL VERBATIM)
 add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel rootfs-image USES_TERMINAL)

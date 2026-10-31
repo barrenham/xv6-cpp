@@ -109,3 +109,9 @@ raw 任务的主动断开、原串口模式与文件标志恢复、exec 失败�
 
 本地截图和串口日志写入 `build/dev/fbterm-*.ppm`/`fbterm-*.log`。
 验收范围见 [fbterm 验收记录](fbterm-acceptance.json)。
+
+## 滚动历史与像素缓存
+
+PageUp/PageDown或VNC滚轮可查看最多1024行离屏历史；输入或End返回实时。
+鼠标缺失时仍可用键盘和串口翻页。已加入滚屏像素复用、GPU完成中断等待与
+逐帧测量，操作、边界及实测数据见[滚动历史说明](scrollback.md)。

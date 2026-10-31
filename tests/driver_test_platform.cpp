@@ -807,12 +807,12 @@ void gpu_contract()
     setup();dma_budget=budget;VirtioGpu failed(reinterpret_cast<unsigned long>(registers),4);failed.initialize();dma_budget=-1;
     check(!failed.open(false) && dma_pages.size()==baseline,"GPU rolls back every DMA allocation failure");
   }
-  unsigned short consumed=0;unsigned commands=0,transfers=0;bool corrupt=false;
+  unsigned short consumed=0;unsigned commands=0,transfers=0;bool corrupt=false, deferred=false;
   auto address=[&](unsigned low)
   {return static_cast<unsigned long>(registers[low/4])|(static_cast<unsigned long>(registers[(low+4)/4])<<32);};
   gpu_barrier=[&]
   {
-    if(!registers[VIRTIO_MMIO_QUEUE_READY/4] || !registers[VIRTIO_MMIO_STATUS/4])return;
+    if(deferred || !registers[VIRTIO_MMIO_QUEUE_READY/4] || !registers[VIRTIO_MMIO_STATUS/4])return;
     auto *available=reinterpret_cast<GpuAvailableRing *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
     if(available->idx==consumed)return;
     auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
@@ -849,6 +849,29 @@ void gpu_contract()
   FramebufferUpdate update{width-1,height-1,1,1,4,0,reinterpret_cast<unsigned long>(pixels)};buffer.address=reinterpret_cast<unsigned long>(&update);
   check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU draw requires root");effective_user=0;
   check(gpu.ioctl(XV_FB_DRAW,buffer)==0 && transfers==2,"GPU bottom right pixel update transfer and flush");
+  deferred = true;
+  unsigned waited = 0;
+  on_sleep = [&]
+  {
+    ++waited;
+    deferred = false;
+    gpu_barrier();
+    registers[VIRTIO_MMIO_INTERRUPT_STATUS / 4] = 1;
+    gpu.handle_interrupt();
+    deferred = true;
+  };
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == 0 && waited == 2,
+        "GPU transfer and flush wait for deferred IRQ completions");
+  deferred = false;
+  on_sleep = nullptr;
+  FramebufferStats stats{};
+  IoBuffer stats_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&stats)};
+  check(gpu.ioctl(XV_FB_GET_STATS, stats_buffer) == 0 && stats.runtime_waits == 2 &&
+            stats.interrupts == 2 && stats.failed_waits == 0,
+        "GPU completion diagnostics count IRQs and runtime waits");
+  effective_user = 1000;
+  check(gpu.ioctl(XV_FB_GET_STATS, stats_buffer) == -1, "GPU stats recheck root");
+  effective_user = 0;
   update.width=2;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects rectangle overrun");update.width=1;
   update.pixels=~0UL-1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects source address wrap");update.pixels=reinterpret_cast<unsigned long>(pixels);
   update.reserved=1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU validates reserved ABI fields");update.reserved=0;
@@ -1158,6 +1181,17 @@ void free_dma_page(void *page) { free_terminal_page(page); }
 unsigned long terminal_milliseconds()
 {
   return test::gpu_clock ? ++test::milliseconds:test::milliseconds;
+}
+
+int wait_device_completion(void *, volatile unsigned short *index,
+                           unsigned short expected, unsigned long)
+{
+  if (!test::on_sleep)
+  {
+    return 0;
+  }
+  test::on_sleep();
+  return *index != expected ? 1 : -1;
 }
 
 void prepare_interruptible_sleep(void *)

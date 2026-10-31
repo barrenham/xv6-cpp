@@ -9,13 +9,14 @@
 - [图形终端性能排查](display-performance.md)：分阶段计时、串口背压与VNC对照。
 - [串口镜像与批量输出优化](terminal-output-optimization.md)：批量短写、镜像开关和前后对照。
 - [嵌套PTY的换行和逐层退出](nested-pty.md)：修正提示符偏移及Ctrl-]穿透。
+- [像素复用、GPU中断与滚动历史](scrollback.md)：行缓存、帧耗时、翻页与鼠标滚轮。
 - [fbterm 用户态图形终端](fbterm.md)：自适应字符网格、滚屏、PTY shell 与 VNC/串口输入。
 - [VirtIO 键盘](keyboard.md)：VNC 直接输入、事件 ABI、队列及验证。
 - [ext3 模块、格式选项及离线转换](ext3.md)，[本轮验收记录](ext3-dev-proc-acceptance.json)。
 - [目录枚举接口](directories.md)：getdents64 完整名称与兼容 read ABI。
 - [rootfs 创建与程序更新](rootfs-tools.md)：独立新建、原子升级、备份与账户保留。
 - [开发指南](development.md)：构建、运行、调试与编辑器配置。
-- [kernel 全量函数导航](functions/kernel/README.md)：404 个文件，5230 个函数/入口条目。
+- [kernel 全量函数导航](functions/kernel/README.md)：404 个文件，5234 个函数/入口条目。
 - [Doxygen 原生 hover 的生成、检查和限制](functions/README.md)。
 - [等待通道详解](functions/kernel/process/wait-channels.md)。
 - [进程睡眠详解](functions/kernel/process/sleep.md)。

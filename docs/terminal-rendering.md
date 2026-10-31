@@ -13,7 +13,8 @@ fbterm使用 **XV Mono 10×20** 等宽灰度字形，源自DejaVu Sans Mono的16
 
 ## 滚屏提交
 
-`user/apps/fbterm/render.h` 计算全部脏行的包围矩形，为整块像素准备完毕后，
+`user/apps/fbterm/render.h` 的Renderer复用匹配的旧像素行，并计算变化行的
+包围矩形，为整块像素准备完毕后，
 只调用一次XV_FB_DRAW。驱动仍先复制完整矩形，再transfer/flush；不再把
 同一次滚屏拆成多个各自flush的条带。缓冲按实际屏幕申请，1920×1080约
 7.91 MiB；分配失败会报告并退出，缓冲不使用用户栈。
@@ -86,3 +87,5 @@ shell作业控制及环境变量的完整回归见上轮验收。单核/五核�
 
 [连续输出验收记录](terminal-output-acceptance.json)；
 [字形与跨行编辑的上轮验收](terminal-rendering-acceptance.json)。
+
+像素缓存、1024行历史、键盘/滚轮及逐帧数据见[滚动历史说明](scrollback.md)。

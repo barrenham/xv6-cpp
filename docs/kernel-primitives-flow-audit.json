@@ -436,15 +436,15 @@
         },
         {
           "source": "kernel/io/framebuffer.h",
-          "sha256": "3e781f6cdc1d98c391b5a7fdbcc8d9fe5a0d899742b708badb412301d1fd616c",
-          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。",
+          "sha256": "cb43a37bfaa4faa6a1bc9a33e23cbe6b9bd9467d24826307e01fc61aea640b3f",
+          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/io/keyboard.h",
-          "sha256": "3d2f1afd3750019ea43ebf479e283d9b2bec4137582376ce8ffd5b638d2ad814",
-          "review": "项目8字节键盘事件ABI与SYN/KEY/SYN_DROPPED常量；只含固定宽度布局，无可调用函数或流程图。",
+          "sha256": "a84b725d807ebea7948becfbf765c157d0902e30c02c8dcc09128b20a696f861",
+          "review": "项目8字节键盘事件ABI与SYN/KEY/SYN_DROPPED常量；只含固定宽度布局，无可调用函数或流程图。 保留8字节事件布局，增加EV_REL/REL_WHEEL常量供独立鼠标实例使用。",
           "graph_entries": []
         }
       ]

@@ -194,8 +194,8 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24",
-      "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
+      "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15",
+      "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
       "graph_entries": [
         {
           "qualified": "xv::memory::make_kernel_page_table",
@@ -205,8 +205,8 @@
           "graphs": [
             "KernelBuildFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::initialize",
@@ -216,8 +216,8 @@
           "graphs": [
             "InitializeFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::commit_stack",
@@ -227,8 +227,8 @@
           "graphs": [
             "CommitFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::release_stack",
@@ -238,8 +238,8 @@
           "graphs": [
             "ReleaseFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
@@ -249,8 +249,8 @@
           "graphs": [
             "AllocateFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::free_process_stack",
@@ -260,8 +260,8 @@
           "graphs": [
             "FreeFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         },
         {
           "qualified": "xv::memory::KernelPageTable::handle_stack_fault",
@@ -271,8 +271,8 @@
           "graphs": [
             "FaultFlow::Graph"
           ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。",
-          "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24"
+          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
         }
       ]
     },

@@ -16,7 +16,7 @@
 
 ```doxygen
 @fn const char *xv::drivers::VirtioKeyboard::name() const override
-@brief 返回键盘设备名称。
+@brief 按实例能力返回键盘或鼠标滚轮的设备名称。
 @details 7页DMA由设备持有，运行期队列及独占状态受spin锁保护；eventq描述符只指向内核DMA事件槽。无设备不分配，初始化回滚须先确认reset；IRQ错误保留DMA。用户ABI为8字节type/code/value，256事件软件队列溢出显式报告SYN_DROPPED，消费者应清除修饰键状态。
 ```
 
@@ -26,7 +26,7 @@
 
 ```doxygen
 @fn unsigned xv::drivers::VirtioKeyboard::irq() const override
-@brief 返回板级键盘IRQ编号。
+@brief 返回该输入实例的板级IRQ编号。
 @details 7页DMA由设备持有，运行期队列及独占状态受spin锁保护；eventq描述符只指向内核DMA事件槽。无设备不分配，初始化回滚须先确认reset；IRQ错误保留DMA。用户ABI为8字节type/code/value，256事件软件队列溢出显式报告SYN_DROPPED，消费者应清除修饰键状态。
 ```
 
@@ -49,3 +49,5 @@
 @brief 无输出操作，输入设备不提供字符发送能力。
 @details 7页DMA由设备持有，运行期队列及独占状态受spin锁保护；eventq描述符只指向内核DMA事件槽。无设备不分配，初始化回滚须先确认reset；IRQ错误保留DMA。用户ABI为8字节type/code/value，256事件软件队列溢出显式报告SYN_DROPPED，消费者应清除修饰键状态。
 ```
+
+- [`xv::drivers::VirtioKeyboard::initialize_wheel`](virtio_keyboard.cpp.md#fn-567537edde1d045a)

@@ -22,7 +22,7 @@ public:
 
   const char *name() const override
   {
-    return "VirtIO keyboard";
+    return wheel_ ? "VirtIO mouse wheel" : "VirtIO keyboard";
   }
 
   unsigned irq() const override
@@ -31,6 +31,7 @@ public:
   }
 
   void initialize() override;
+  void initialize_wheel();
   CharacterDevice *open(bool nonblocking) override;
   void close() override;
   int read(IoBuffer destination, int count) override;
@@ -80,6 +81,7 @@ private:
   unsigned head_ = 0;
   unsigned size_ = 0;
   unsigned short used_index_ = 0;
+  bool wheel_ = false;
   bool ready_ = false;
   bool opened_ = false;
 

@@ -1,5 +1,6 @@
 module;
 #include "kernel/process/signals/signal.h"
+#include "kernel/support/flow.h"
 
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
@@ -21,6 +22,64 @@ import xv.memory;
 
 namespace xv::drivers::detail
 {
+struct DeviceWaitFlow
+{
+  struct Context
+  {
+    void *channel;
+    volatile unsigned short *index;
+    unsigned short expected;
+    unsigned long deadline;
+    int result = 0;
+  };
+
+  static void attempt(Context &c) noexcept
+  {
+    // Recheck completion after subscribing. Each retry releases its channel
+    // and timer registrations, then checks the same absolute deadline.
+    auto wait = xv::process::make_poll_wait();
+    wait.watch(c.channel);
+    wait.set_deadline(c.deadline);
+    io_barrier();
+    if (*c.index != c.expected)
+    {
+      c.result = 1;
+    }
+    else if (wait.failed() || xv::process::current()->is_killed() ||
+             terminal_milliseconds() >= c.deadline)
+    {
+      c.result = -1;
+    }
+    else
+    {
+      wait.sleep();
+    }
+  }
+
+  static bool finished(Context &c) noexcept
+  {
+    return c.result != 0;
+  }
+  struct Wait;
+  using Graph = xv::flow::graph<
+      Wait, xv::flow::types<xv::flow::node<
+                Wait, xv::flow::action<&attempt>,
+                xv::flow::branch<xv::flow::condition<&finished>, xv::flow::stop,
+                                 xv::flow::go<Wait>>>>>;
+};
+
+int wait_device_completion(void *channel, volatile unsigned short *index,
+                           unsigned short expected, unsigned long deadline)
+{
+  if (!xv::process::current())
+  {
+    return 0;
+  }
+  DeviceWaitFlow::Context context{channel, index, expected, deadline};
+  (void)DeviceWaitFlow::Graph::run<0>(context);
+  return context.result;
+}
+
 unsigned effective_uid() { return xv::process::current()->credentials().snapshot().effective_uid; }
 unsigned effective_gid() { return xv::process::current()->credentials().snapshot().effective_gid; }
 void prepare_interruptible_sleep(void *channel)

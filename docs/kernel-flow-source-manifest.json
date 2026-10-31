@@ -93,9 +93,9 @@
     },
     {
       "source": "kernel/drivers/board/qemu_virt.cpp",
-      "sha256": "eff0b97e26238b2fd98c16ef70e14872cdf647ebd39cd619574b55caede9baff",
+      "sha256": "644a16dd9e0664b82b0338b58e3fc4322d1bda514c6cf71f225b4f96dfa9bce5",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json 第6个MMIO槽/IRQ6加入独立滚轮实例mouse0(30:1,root 0600)，原设备槽位保持。"
     },
     {
       "source": "kernel/drivers/console/character_device.cppm",
@@ -117,15 +117,15 @@
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cpp",
-      "sha256": "72a66f79f2b08e8ffd81e4f24340b30f01aa6826254e1040f804e3c3b3c4c29a",
+      "sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。"
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cppm",
-      "sha256": "223502c704a98cecbe3757d954bd36a66093a806cc64890d897df2fea4d6e2eb",
+      "sha256": "8ec2263d8c4b96a60716faa5b5911fa5761f3db6fd5807d5b70237782294a298",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json 增加IRQ/运行等待/启动轮询/失败计数，单个持锁请求与DMA布局保持。"
     },
     {
       "source": "kernel/drivers/drivers.cppm",
@@ -147,15 +147,15 @@
     },
     {
       "source": "kernel/drivers/input/virtio_keyboard.cpp",
-      "sha256": "99406c63fb607cad8fd0904534bb9e67d921c0a72572a20ff26e5428f5697ba7",
+      "sha256": "30f8f8877b628e8339396908aa9e6a4a5bc39a358e16ab986a655ac018a172ba",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json 滚轮实例协商EV_REL/REL_WHEEL，复用既有初始化/读取/中断图；有符号轮值按固定事件ABI转发。"
     },
     {
       "source": "kernel/drivers/input/virtio_keyboard.cppm",
-      "sha256": "041ee27eba421d727adf63207876aada7a73b6b2ce5096ce7629edaf0938de71",
+      "sha256": "620f807d82c661028d8d574dc1d16530b39b1b223c63f93204e5f6addd8267bb",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json 增加启动前选择滚轮能力的入口；每实例保留独立队列、锁、root独占打开及DMA所有权。"
     },
     {
       "source": "kernel/drivers/interrupt/interrupt_controller.cppm",
@@ -225,15 +225,26 @@
     },
     {
       "source": "kernel/drivers/platform/kernel_platform.cpp",
-      "sha256": "6b8d79ece01a960e206238ebb0934506eb496765f454072c3a5c6f601e3905a4",
+      "sha256": "ca437c528353d03d6ca671e586f8c4f33ac090fa75d45c3b908111ef932f8a47",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json DeviceWaitFlow通过定时PollWait先注册完成通道再检查队列，运行期睡眠等待IRQ或绝对截止时间；无当前进程返回0保留启动有界轮询。",
+      "graph_entries": [
+        {
+          "qualified": "xv::drivers::detail::wait_device_completion",
+          "usr": "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
+          "source": "kernel/drivers/platform/kernel_platform.cpp",
+          "source_sha256": "6633ca8d6294749b92ce54dcf6c5f69b75b8bc2b3ddaa0fd9f06fa5151c54215",
+          "graphs": [
+            "DeviceWaitFlow::Graph"
+          ]
+        }
+      ]
     },
     {
       "source": "kernel/drivers/platform/platform.cppm",
-      "sha256": "bb4174bfe8bb449619f489f8592067c9fcf8339ca3de319ae227f886f5de1fd7",
+      "sha256": "241308cc32b7adf24adb5016a10bfd0b8c2298104f04babd51b32e95d6c51387",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/drivers-flow-audit.json"
+      "review": "docs/drivers-flow-audit.json 导出设备完成等待桥接，0表示早期启动回退、1完成、-1失败。"
     },
     {
       "source": "kernel/drivers/rtc/goldfish.cppm",
@@ -729,15 +740,15 @@
     },
     {
       "source": "kernel/io/framebuffer.h",
-      "sha256": "3e781f6cdc1d98c391b5a7fdbcc8d9fe5a0d899742b708badb412301d1fd616c",
+      "sha256": "cb43a37bfaa4faa6a1bc9a33e23cbe6b9bd9467d24826307e01fc61aea640b3f",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/kernel-primitives-flow-audit.json"
+      "review": "docs/kernel-primitives-flow-audit.json 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。"
     },
     {
       "source": "kernel/io/keyboard.h",
-      "sha256": "3d2f1afd3750019ea43ebf479e283d9b2bec4137582376ce8ffd5b638d2ad814",
+      "sha256": "a84b725d807ebea7948becfbf765c157d0902e30c02c8dcc09128b20a696f861",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/kernel-primitives-flow-audit.json"
+      "review": "docs/kernel-primitives-flow-audit.json 保留8字节事件布局，增加EV_REL/REL_WHEEL常量供独立鼠标实例使用。"
     },
     {
       "source": "kernel/io/object.cppm",
@@ -861,9 +872,9 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "d42d278cc25d341fc6d13216ef20dfdc6e5288516eb10554d7bb716808e12e24",
+      "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15",
       "classification": "reviewed_workflow_or_primitive",
-      "review": "docs/memory-flow-audit.json"
+      "review": "docs/memory-flow-audit.json VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。"
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cppm",

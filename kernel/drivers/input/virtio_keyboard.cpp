@@ -59,9 +59,15 @@ bool VirtioKeyboard::negotiate()
 
   // Distinguish a keyboard from other VirtIO input devices in this board slot.
   registers_.write8(VIRTIO_MMIO_CONFIG, ConfigEventBits);
-  registers_.write8(VIRTIO_MMIO_CONFIG + 1, XV_KEY_EVENT);
+  registers_.write8(VIRTIO_MMIO_CONFIG + 1, wheel_ ? XV_INPUT_REL : XV_KEY_EVENT);
   detail::io_barrier();
   unsigned bytes = registers_.read8(VIRTIO_MMIO_CONFIG + 2);
+  if (wheel_)
+  {
+    return bytes > XV_REL_WHEEL / 8 && bytes <= 128 &&
+           (registers_.read8(VIRTIO_MMIO_CONFIG + 8 + XV_REL_WHEEL / 8) &
+            (1U << (XV_REL_WHEEL % 8)));
+  }
   if (bytes <= KeyA / 8 || bytes > 128)
   {
     return false;
@@ -216,6 +222,12 @@ struct VirtioKeyboard::InitializeFlow
           flow::node<Fail, flow::action<&fail>, flow::stop>>>;
 };
 
+void VirtioKeyboard::initialize_wheel()
+{
+  wheel_ = true;
+  initialize();
+}
+
 void VirtioKeyboard::initialize()
 {
   lock_.init("virtio keyboard");
@@ -289,7 +301,8 @@ bool VirtioKeyboard::drain()
   {
     unsigned id = ids[i];
     KeyboardEvent event{events[id].type, events[id].code, events[id].value};
-    if (event.type == XV_KEY_SYN || (event.type == XV_KEY_EVENT && event.value <= 2))
+    if (event.type == XV_KEY_SYN || (event.type == XV_KEY_EVENT && event.value <= 2) ||
+        (wheel_ && event.type == XV_INPUT_REL && event.code == XV_REL_WHEEL))
     {
       enqueue(event);
     }

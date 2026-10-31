@@ -1,5 +1,7 @@
 # `kernel/drivers/input/virtio_keyboard.cpp`
 
+- [`xv::drivers::VirtioKeyboard::initialize_wheel`](virtio_keyboard.cpp.md#fn-567537edde1d045a)
+
 <a id="fn-ab277fa7bf126252"></a>
 
 ## `xv::drivers::VirtioKeyboard::identify`
@@ -318,4 +320,14 @@
 @fn unsigned xv::drivers::VirtioKeyboard::poll(xv::sync::PollTable *table)
 @brief 先登记等待通道，再在锁内报告可读事件或离线/权限错误。
 @details 7页DMA由设备持有，运行期队列及独占状态受spin锁保护；eventq描述符只指向内核DMA事件槽。无设备不分配，初始化回滚须先确认reset；IRQ错误保留DMA。用户ABI为8字节type/code/value，256事件软件队列溢出显式报告SYN_DROPPED，消费者应清除修饰键状态。
+```
+
+<a id="fn-567537edde1d045a"></a>
+
+## `xv::drivers::VirtioKeyboard::initialize_wheel`
+
+```doxygen
+@fn void xv::drivers::VirtioKeyboard::initialize_wheel()
+@brief 选择滚轮设备能力并复用现有VirtIO输入初始化流程。
+@details 只在设备发布前调用；协商EV_REL/REL_WHEEL而非字母键能力，独立事件队列、root权限和DMA回收规则保持。
 ```

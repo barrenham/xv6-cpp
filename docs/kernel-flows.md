@@ -1066,3 +1066,7 @@ memory 新增空闲链表与位图两种多态 slab，算法作为分配容器�
 VirtIO-GPU 使用 InitializeFlow 和 DrawFlow 接入可选显示设备；DMA复位所有权、轮询等待与项目ioctl边界见 [图形说明](graphics.md)。
 
 VirtIO 键盘通过 InitializeFlow、ReadFlow 和 InterruptFlow 接入；当前核对404个源文件、227个非网络图身份及保留的110个网络图。设备和DMA错误路径见 [键盘说明](keyboard.md)。
+
+本轮新增驱动平台DeviceWaitFlow，先订阅完成通道再检查队列，以绝对期限
+等待GPU IRQ；当前228个非网络图身份。滚轮实例复用既有输入图，见
+[像素复用与滚动历史](scrollback.md)。

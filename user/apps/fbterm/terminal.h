@@ -26,6 +26,46 @@ public:
   unsigned x = 0, y = 0;
   bool cursor_visible = true;
   bool scrolled = false;
+  static constexpr unsigned history_capacity = 1024;
+  unsigned history_count = 0, view_offset = 0;
+  unsigned long long scroll_position = 0, generation = 0;
+
+  void set_history(Cell (*storage)[max_columns])
+  {
+    history_ = storage;
+    reset();
+  }
+
+  const Cell &display_cell(unsigned row, unsigned column) const
+  {
+    unsigned line = history_count + row - view_offset;
+    return line < history_count
+               ? history_[(history_head_ + line) % history_capacity][column]
+               : cells[line - history_count][column];
+  }
+
+  bool display_cursor(unsigned row, unsigned column) const
+  {
+    return !view_offset && cursor_visible && row == y && column == x;
+  }
+
+  void scroll_history(int lines)
+  {
+    long long next = static_cast<long long>(view_offset) + lines;
+    view_offset = next < 0 ? 0 : next > history_count ? history_count : next;
+    for (auto &row : dirty)
+    {
+      row = true;
+    }
+  }
+
+  void live()
+  {
+    if (view_offset)
+    {
+      scroll_history(-static_cast<int>(view_offset));
+    }
+  }
 
   bool configure(unsigned width, unsigned height)
   {
@@ -47,6 +87,9 @@ public:
     bold = inverse = wrap = false;
     cursor_visible = true;
     scrolled = false;
+    history_count = history_head_ = view_offset = 0;
+    scroll_position = 0;
+    ++generation;
     state = Normal;
     for (auto &row : cells)
     {
@@ -77,8 +120,8 @@ public:
     {
       return palette[0];
     }
-    const Cell &cell = cells[py / cell_height][px / cell_width];
-    bool cursor = cursor_visible && px / cell_width == x && py / cell_height == y;
+    const Cell &cell = display_cell(py / cell_height, px / cell_width);
+    bool cursor = display_cursor(py / cell_height, px / cell_width);
     return cell_pixel(cell, px % cell_width, py % cell_height, cursor);
   }
 
@@ -111,6 +154,9 @@ public:
   }
 
 private:
+
+  Cell (*history_)[max_columns] = nullptr;
+  unsigned history_head_ = 0;
 
   enum State
   {
@@ -152,6 +198,27 @@ private:
     {
       y = rows - 1;
       scrolled = true;
+      if (history_)
+      {
+        unsigned slot = (history_head_ + history_count) % history_capacity;
+        if (history_count == history_capacity)
+        {
+          history_head_ = (history_head_ + 1) % history_capacity;
+        }
+        else
+        {
+          ++history_count;
+        }
+        for (unsigned column = 0; column < columns; ++column)
+        {
+          history_[slot][column] = cells[0][column];
+        }
+      }
+      ++scroll_position;
+      if (view_offset)
+      {
+        view_offset = minimum(view_offset + 1, history_count);
+      }
       for (unsigned r = 1; r < rows; ++r)
       {
         for (unsigned c = 0; c < columns; ++c)
@@ -209,6 +276,15 @@ private:
       x = minimum(columns, argument(1)) - 1;
       break;
     case 'J':
+      if (parameters[0] == 3)
+      {
+        history_count = history_head_ = view_offset = 0;
+        ++generation;
+        for (auto &row : dirty)
+        {
+          row = true;
+        }
+      }
       if (parameters[0] == 0)
       {
         clear(y * columns + x, rows * columns);

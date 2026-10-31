@@ -2,6 +2,7 @@
 #include "user/apps/fbterm/keyboard.h"
 #include "user/apps/fbterm/render.h"
 #include "user/apps/fbterm/pacing.h"
+#include "user/apps/fbterm/navigation.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -73,6 +74,22 @@ int main()
   // Saturation remains safe even for extremely large read sizes.
   volume.output(2 * ms, ~0u, false);
   assert(volume.timeout(2 * ms) == 20);
+  fbterm::Navigation navigation;
+  char forwarded[4];
+  int page = 0;
+  assert(navigation.feed(27, 0, forwarded, page) == 0);
+  assert(navigation.timeout(0) == 30);
+  assert(navigation.feed('[', 1, forwarded, page) == 0);
+  assert(navigation.feed('5', 2, forwarded, page) == 0);
+  assert(navigation.feed('~', 3, forwarded, page) == 0 && page == 1);
+  assert(navigation.timeout(4) == -1);
+  assert(navigation.feed(27, 5, forwarded, page) == 0);
+  assert(navigation.feed('[', 6, forwarded, page) == 0);
+  assert(navigation.feed('A', 7, forwarded, page) == 3 && !page);
+  assert(!std::memcmp(forwarded, "\033[A", 3));
+  navigation.feed(27, 0, forwarded, page);
+  assert(navigation.timeout(300000) == 0);
+  assert(navigation.flush(forwarded) == 1 && forwarded[0] == 27);
   fbterm::Keyboard keyboard{};
   char converted[8];
   auto key = [&](unsigned short code, unsigned value)
@@ -309,6 +326,76 @@ int main()
       assert(frame[y * 1366 + x] == terminal.pixel(x, y));
     }
   }
+  // A persistent raster must match the per-pixel reference after scrolling,
+  // viewport moves in both directions, edits, cursor motion and a failed draw.
+  static fbterm::Cell history[fbterm::Terminal::history_capacity][fbterm::max_columns];
+  static fbterm::Renderer cached;
+  terminal.set_history(history);
+  assert(terminal.configure(1366, 768));
+  unsigned submissions = 0;
+  auto cached_submit = [&](unsigned top, unsigned height, unsigned *data)
+  {
+    assert(top < 768 && height && top + height <= 768);
+    assert(data == frame + top * 1366);
+    ++submissions;
+    return true;
+  };
+  auto compare = [&]
+  {
+    assert(cached.paint(terminal, 1366, 768, frame, cached_submit));
+    for (unsigned y = 0; y < 768; ++y)
+    {
+      for (unsigned x = 0; x < 1366; ++x)
+      {
+        assert(frame[y * 1366 + x] == terminal.pixel(x, y));
+      }
+    }
+  };
+  for (unsigned i = 0; i < 60; ++i)
+  {
+    char line[64];
+    std::snprintf(line, sizeof(line), "row-%03u: shaded text\r\n", i);
+    feed(line);
+  }
+  compare();
+  auto rows_before = cached.raster_rows;
+  auto reused_before = cached.reused_rows;
+  feed("next row\r\n");
+  compare();
+  assert(cached.raster_rows - rows_before <= 2);
+  assert(cached.reused_rows - reused_before >= terminal.rows - 2);
+  terminal.scroll_history(15);
+  compare();
+  auto presentations = submissions;
+  feed("output while reading history\r\n");
+  compare();
+  assert(submissions == presentations); // Frozen history needs no redraw.
+  terminal.scroll_history(-7);
+  compare();
+  terminal.live();
+  compare();
+  feed("\033[2;3H\033[44mcolored edit\033[0m");
+  compare();
+  feed("retry");
+  assert(!cached.paint(terminal, 1366, 768, frame,
+                       [](unsigned, unsigned, unsigned *) { return false; }));
+  compare();
+  assert(terminal.configure(640, 480));
+  for (unsigned i = 0; i < 1200; ++i)
+  {
+    char line[] = "A\r\n";
+    line[0] += i % 26;
+    feed(line);
+  }
+  assert(terminal.history_count == fbterm::Terminal::history_capacity);
+  terminal.scroll_history(99999);
+  assert(terminal.view_offset == terminal.history_count);
+  assert(terminal.display_cell(0, 0).character ==
+         'A' + (terminal.scroll_position - terminal.history_count) % 26);
+  terminal.scroll_history(-99999);
+  assert(terminal.view_offset == 0);
+  feed("\033[3J");
+  assert(terminal.history_count == 0 && terminal.view_offset == 0);
   std::puts(
       "fbterm contract: text, raster, scrolling, editor, ANSI and adversarial input passed");
 }
