@@ -83,3 +83,7 @@
 @brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::DevFileSystem::next_directory`](devfs.cppm.md#fn-04da9c5163ed31aa)
+
+- [`xv::fs::DevFileSystem::open_block_device`](devfs.cpp.md#fn-01655ad066617f5c)

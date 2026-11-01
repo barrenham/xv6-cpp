@@ -137,3 +137,7 @@
 @brief 声明与具体磁盘格式无关的事务协议；由xv6或ext3后端实现。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::Journal::Journal`](journal.cppm.md#fn-77b0a063f8d44c98)
+
+- [`xv::fs::Journal::~Journal`](journal.cppm.md#fn-fcb025f12f6226d1)

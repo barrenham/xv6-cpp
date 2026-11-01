@@ -105,11 +105,31 @@ struct Peer
 void basic_send()
 {
   {
+    Peer output_failure;
+    net_test_fail_after(0);
+    check(output_failure.socket->write({address("retry"),true},5)==5,
+          "local output allocation failure retains application data");
+    check(xv::net::next_timer_deadline() == clock_ms + 100,
+          "unsent local failure publishes explicit output retry deadline");
+    net_test_fail_after(-1);
+    net_test_clear_frames();
+    advance(100);
+    check(!frames().empty(), "deadline retries retained unsent data");
+    output_failure.drain(5);
+    output_failure.reset();
     Peer timing;
+    check(xv::net::next_timer_deadline() == ~0UL,
+          "established idle TCP does not schedule a periodic sweep");
     check(timing.socket->write({address("clock"),true},5)==5,"queue stale timer fixture");
+    check(xv::net::next_timer_deadline() > clock_ms &&
+          xv::net::next_timer_deadline() <= clock_ms + 1000,
+          "outstanding data publishes its RTO deadline");
     tcp_test_tick(timing.socket,clock_ms-1);
     check(!(timing.socket->poll(nullptr)&8),"stale timer snapshot cannot underflow elapsed time");
-    timing.drain(5); timing.reset();
+    timing.drain(5);
+    check(xv::net::next_timer_deadline() == ~0UL,
+          "ACK removes obsolete RTO without polling");
+    timing.reset();
   }
   Peer peer;
   unsigned char data[1024]; for (unsigned i=0;i<sizeof(data);++i) data[i]=i*13;
@@ -179,6 +199,8 @@ void persist_and_window()
   Peer peer(true,8000,0);
   check(peer.socket->write({address("abc"),true},3)==3,"zero peer window still admits application queue");
   check(frames().empty(),"zero window stops ordinary send");
+  check(xv::net::next_timer_deadline() <= clock_ms,
+        "new zero-window data schedules initial persist work");
   advance(1000); auto probe=frames(); check(!probe.empty() && probe.back().data_size()==1 && probe.back().seq()==peer.base,"zero window data probe");
   peer.sent(); net_test_clear_frames(); peer.ack(peer.base,0); advance(1000);
   probe=frames(); check(!probe.empty() && probe.back().seq()==peer.base,"persist repeats earliest unacknowledged byte");

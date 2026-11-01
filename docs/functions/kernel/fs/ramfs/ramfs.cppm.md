@@ -124,3 +124,5 @@
 @brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::RamFileSystem::next_directory`](ramfs.cppm.md#fn-82c0f2f405325553)

@@ -370,3 +370,15 @@
 @brief 请求缓存所属设备完成持久化。
 @details 默认空实现用于无持久介质的契约后端；真实块缓存将请求转交设备。
 ```
+
+<a id="fn-e84aea2c0996db00"></a>
+
+## `xv::fs::BlockCache::statistics`
+
+```doxygen
+@fn virtual CacheStatistics xv::fs::BlockCache::statistics() const
+@brief 缓存键为设备号与块号；固定地址 Buffer 在借用/pin 期间不得迁移身份。CacheStatistics 提供按实例的累计计数，statistics 默认返回零供替代后端使用，快照不是全系统原子瞬间。
+@details 缓存键为设备号与块号；固定地址 Buffer 在借用/pin 期间不得迁移身份。CacheStatistics 提供按实例的累计计数，statistics 默认返回零供替代后端使用，快照不是全系统原子瞬间。
+```
+
+- [`xv::fs::BlockCache::statistics`](block_cache.cppm.md#fn-e84aea2c0996db00)

@@ -79,6 +79,7 @@ bool Ipv4Layer::output_allowed(const Packet &packet, const NetworkInterface &int
 int Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol,
                     unsigned source, const NetworkInterface *via)
 {
+  detail::TimerChange changed;
   SendFlow::Context ctx{*this, packet, destination, protocol, source, via};
   (void)SendFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -86,6 +87,7 @@ int Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol,
 
 void Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)
 {
+  detail::TimerChange changed;
   ReceiveFlow::Context ctx{*this, interface, packet};
   (void)ReceiveFlow::Graph::run<0>(ctx);
 }
@@ -98,8 +100,17 @@ void Ipv4Layer::tick(unsigned long now)
 int Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet,
                               unsigned source)
 {
+  detail::TimerChange changed;
   SendFlow::Context ctx{*this, packet, 0xffffffff, 17, source, nullptr, &interface};
   (void)SendFlow::BootstrapGraph::run<0>(ctx);
   return ctx.result;
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long Ipv4Layer::next_deadline()
+{
+  return reassembly_.next_deadline();
 }
 } // namespace xv::net

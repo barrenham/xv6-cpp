@@ -21,6 +21,7 @@ public:
   bool receive_bootstrap(NetworkInterface &interface, Packet &packet,
                          const IpDatagram &datagram) override;
   void tick(unsigned long now);
+  unsigned long next_deadline();
 
 private:
 

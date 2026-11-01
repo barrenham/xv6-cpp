@@ -105,3 +105,5 @@
 @fn bool xv::net::Ipv4Layer::local(unsigned address) const
 @brief 查询已启用接口注册表的地址拥有关系，支持多个物理地址及回环前缀。
 ```
+
+- [`xv::net::Ipv4Layer::next_deadline`](ipv4.cpp.md#fn-11b147b885cba8ca)

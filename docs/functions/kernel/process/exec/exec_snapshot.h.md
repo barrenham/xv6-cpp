@@ -109,3 +109,25 @@
 @brief 把一个含NUL字符串追加到候选页链，受总字节额度约束。
 @details 不可变exec快照容器。prepare先构建候选，失败保留旧状态；fork只增加原子引用，最后引用释放整条页链。argv/env保留NUL分隔，Executable不包含终止NUL。
 ```
+
+- [`xv::exec::Snapshot::Snapshot`](exec_snapshot.h.md#fn-ec4050aaaf979421)
+
+- [`xv::exec::Snapshot::Snapshot`](exec_snapshot.h.md#fn-612ed250f894cdb0)
+
+- [`xv::exec::Snapshot::copy`](exec_snapshot.h.md#fn-395c2fe534f4bfb0)
+
+- [`xv::exec::Snapshot::inherit`](exec_snapshot.h.md#fn-1ffaf96b2e3b5a9c)
+
+- [`xv::exec::Snapshot::operator=`](exec_snapshot.h.md#fn-3656a974c726b6b8)
+
+- [`xv::exec::Snapshot::prepare`](exec_snapshot.h.md#fn-92c5bbf0b8875eff)
+
+- [`xv::exec::Snapshot::reset`](exec_snapshot.h.md#fn-c8596197ca0c30e1)
+
+- [`xv::exec::Snapshot::string`](exec_snapshot.h.md#fn-2bacd3bbcd62f879)
+
+- [`xv::exec::Snapshot::swap`](exec_snapshot.h.md#fn-0ad9f0c7ca1e290b)
+
+- [`xv::exec::Snapshot::~Snapshot`](exec_snapshot.h.md#fn-9812b15b7cfc1941)
+
+- [`xv::exec::Snapshot::Page::Page`](exec_snapshot.h.md#fn-498ac6413d490d30)

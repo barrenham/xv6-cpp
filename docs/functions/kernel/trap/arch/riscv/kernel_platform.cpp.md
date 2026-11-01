@@ -94,7 +94,7 @@
 ## `xv::trap::detail::has_process`
 
 ```doxygen
-@fn bool xv::trap::detail::has_process() { return xv::process::current() != nullptr; }
+@fn bool xv::trap::detail::has_process()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::process::current() != nullptr`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current`。
 @return 各分支实际返回：`xv::process::current() != nullptr`。应结合上面的条件检查区分正常值、空值和错误值。
@@ -105,7 +105,7 @@
 ## `xv::trap::detail::deliver_signals`
 
 ```doxygen
-@fn void xv::trap::detail::deliver_signals() { xv::process::deliver_signals(); }
+@fn void xv::trap::detail::deliver_signals()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：在安全返回边界执行默认动作或建立用户信号帧。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::deliver_signals`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -116,7 +116,7 @@
 ## `xv::trap::detail::interrupted`
 
 ```doxygen
-@fn bool xv::trap::detail::interrupted() { return xv::process::current()->is_killed(); }
+@fn bool xv::trap::detail::interrupted()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::process::current()->is_killed()`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `is_killed`。
 @return 各分支实际返回：`xv::process::current()->is_killed()`。应结合上面的条件检查区分正常值、空值和错误值。
@@ -127,7 +127,7 @@
 ## `xv::trap::detail::killed`
 
 ```doxygen
-@fn bool xv::trap::detail::killed() { return xv::process::current()->termination_status() != 0; }
+@fn bool xv::trap::detail::killed()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::process::current()->termination_status() != 0`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `termination_status`。
 @return 各分支实际返回：`xv::process::current()->termination_status() != 0`。应结合上面的条件检查区分正常值、空值和错误值。
@@ -138,7 +138,7 @@
 ## `xv::trap::detail::request_kill`
 
 ```doxygen
-@fn void xv::trap::detail::request_kill() { xv::process::current()->request_kill(); }
+@fn void xv::trap::detail::request_kill()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：请求终止请求。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `request_kill`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -149,7 +149,7 @@
 ## `xv::trap::detail::exit_current`
 
 ```doxygen
-@fn void xv::trap::detail::exit_current(int status) { xv::process::exit_process(status); }
+@fn void xv::trap::detail::exit_current(int status)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：退出当前。
 @param status 退出状态或状态结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::exit_process`。
@@ -161,7 +161,7 @@
 ## `xv::trap::detail::yield_current`
 
 ```doxygen
-@fn void xv::trap::detail::yield_current() { xv::process::scheduler().yield(); }
+@fn void xv::trap::detail::yield_current()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：yield当前。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::scheduler` → `yield`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -172,7 +172,7 @@
 ## `xv::trap::detail::save_user_pc`
 
 ```doxygen
-@fn void xv::trap::detail::save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }
+@fn void xv::trap::detail::save_user_pc(Word pc)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：保存用户pc。
 @param pc 本次操作使用的 pc 值。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `registers`。
@@ -184,7 +184,7 @@
 ## `xv::trap::detail::advance_user_pc`
 
 ```doxygen
-@fn void xv::trap::detail::advance_user_pc(Word bytes) { xv::process::current()->registers()->epc += bytes; }
+@fn void xv::trap::detail::advance_user_pc(Word bytes)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：把用户返回 PC 推进到系统调用之后。
 @param bytes 本次操作使用的 字节区域 值。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::current` → `registers`。
@@ -196,7 +196,7 @@
 ## `xv::trap::detail::enable_interrupts`
 
 ```doxygen
-@fn void xv::trap::detail::enable_interrupts() { xv::arch::intr_on(); }
+@fn void xv::trap::detail::enable_interrupts()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：开启interrupts。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::intr_on`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -207,7 +207,7 @@
 ## `xv::trap::detail::dispatch_system_call`
 
 ```doxygen
-@fn void xv::trap::detail::dispatch_system_call() { xv::syscall::dispatch(); }
+@fn void xv::trap::detail::dispatch_system_call()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：分派系统调用。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::syscall::dispatch`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -310,7 +310,7 @@
 ## `xv::trap::detail::hart_id`
 
 ```doxygen
-@fn int xv::trap::detail::hart_id() { return xv::process::cpu_id(); }
+@fn int xv::trap::detail::hart_id()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::process::cpu_id()`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::cpu_id`。
 @return 各分支实际返回：`xv::process::cpu_id()`。应结合上面的条件检查区分正常值、空值和错误值。
@@ -321,7 +321,7 @@
 ## `xv::trap::detail::time`
 
 ```doxygen
-@fn Word xv::trap::detail::time() { return xv::arch::r_time(); }
+@fn Word xv::trap::detail::time()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：读取或计算 `xv::arch::r_time()`，返回当前查询结果。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::r_time`。
 @return 各分支实际返回：`xv::arch::r_time()`。应结合上面的条件检查区分正常值、空值和错误值。
@@ -332,7 +332,7 @@
 ## `xv::trap::detail::arm_timer`
 
 ```doxygen
-@fn void xv::trap::detail::arm_timer(Word deadline) { xv::arch::w_stimecmp(deadline); }
+@fn void xv::trap::detail::arm_timer(Word deadline)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：设置下一次本 hart 的硬件定时截止值。
 @param deadline 本次操作使用的 deadline 值。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::w_stimecmp`。
@@ -357,7 +357,7 @@
 ## `xv::trap::detail::prepare_sleep`
 
 ```doxygen
-@fn void xv::trap::detail::prepare_sleep(void *channel) { xv::process::prepare_sleep(channel); }
+@fn void xv::trap::detail::prepare_sleep(void *channel)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：登记不可中断的睡眠意图。
 @param channel 等待条件或通知对象的地址键；不能在未结束登记时销毁对应对象。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::prepare_sleep`。
@@ -370,7 +370,7 @@
 ## `xv::trap::detail::sleep`
 
 ```doxygen
-@fn void xv::trap::detail::sleep() { xv::process::sleep(); }
+@fn void xv::trap::detail::sleep()
 @brief 陷阱快照、事件分派、设备服务及特权级返回：在已登记的等待条件下挂起当前进程。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::sleep`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
@@ -381,7 +381,7 @@
 ## `xv::trap::detail::wakeup`
 
 ```doxygen
-@fn void xv::trap::detail::wakeup(void *channel) { xv::process::wakeup(channel); }
+@fn void xv::trap::detail::wakeup(void *channel)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：把通道唤醒请求交给进程等待服务。
 @param channel 等待条件或通知对象的地址键；不能在未结束登记时销毁对应对象。
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::process::wakeup`。
@@ -393,12 +393,11 @@
 ## `xv::trap::detail::service_timer_devices`
 
 ```doxygen
-@fn void xv::trap::detail::service_timer_devices()
+@fn void xv::trap::detail::service_timer_devices(bool periodic)
 @brief 陷阱快照、事件分派、设备服务及特权级返回：处理定时器devices。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`hart_id` → `xv::process::poll_timer_tick` → `xv::arch::r_time` → `xv::drivers::terminal_timer_tick`。
-@details 需要特别跟踪的条件：`hart_id() == 0`。这些条件决定检查、重试或提前返回路径。
+@details 在本 hart 投递到期等待通知；只有 hart 0 的周期事件服务 TTY。取统一队列的缓存截止时间与周期比较值的较早者，已到期请求至少间隔 1ms。网络协议工作由独立内核任务运行。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 只在 hart 0 调用网络 timer_tick，处理 ARP 请求重试、IPv4 分片超时与回环队列、TCP 重传及关闭状态回收；不会在计时器中执行用户地址复制。
+@param periodic 本 hart 是否跨过 100ms 周期边界。
 ```
 
 <a id="fn-5c3f11ead232f9df"></a>
@@ -469,7 +468,7 @@
 ## `xv::trap::detail::KernelStackPrepareFlow::handled`
 
 ```doxygen
-@fn static void xv::trap::detail::KernelStackPrepareFlow::handled(Context &c) noexcept { c.result = 1; }
+@fn static void xv::trap::detail::KernelStackPrepareFlow::handled(Context &c) noexcept
 @brief 记录直接重执行被中断指令的控制结果。
 @details 保留原 no-base 快速返回、栈区间与故障分类、持锁紧急页路径和 mapped-margin 快速路径；解析成功直接返回一，不额外补储备。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -540,7 +539,7 @@
 ## `xv::trap::detail::KernelStackPrepareFlow::unlocked`
 
 ```doxygen
-@fn static bool xv::trap::detail::KernelStackPrepareFlow::unlocked(Context &) noexcept { return !xv::process::current_cpu()->noff; }
+@fn static bool xv::trap::detail::KernelStackPrepareFlow::unlocked(Context &) noexcept
 @brief 检查当前 hart 中断嵌套是否允许常规储备补充。
 @details 保留原 no-base 快速返回、栈区间与故障分类、持锁紧急页路径和 mapped-margin 快速路径；解析成功直接返回一，不额外补储备。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -580,7 +579,7 @@
 ## `xv::trap::detail::RefillReserveFlow::space`
 
 ```doxygen
-@fn static bool xv::trap::detail::RefillReserveFlow::space(Context &c) noexcept { return c.reserve.count < StackReservePages; }
+@fn static bool xv::trap::detail::RefillReserveFlow::space(Context &c) noexcept
 @brief 检查当前 hart 紧急页储备是否还有空槽。
 @details 原入口在 noff 非零时直接返回；循环每次独立分配一页并按原顺序发布，失败保留已补充页，不能改为批量预占。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -610,7 +609,7 @@
 ## `xv::trap::detail::SchedulerStackFlow::exists`
 
 ```doxygen
-@fn static bool xv::trap::detail::SchedulerStackFlow::exists(Context &c) noexcept { return c.base != 0; }
+@fn static bool xv::trap::detail::SchedulerStackFlow::exists(Context &c) noexcept
 @brief 检查当前 hart 调度栈是否已初始化。
 @details 保留重复初始化诊断、先补储备再分配永久调度栈、分配失败诊断与原栈顶计算；不引入失败回滚。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -630,7 +629,7 @@
 ## `xv::trap::detail::SchedulerStackFlow::refill`
 
 ```doxygen
-@fn static void xv::trap::detail::SchedulerStackFlow::refill(Context &) noexcept { refill_stack_reserve(); }
+@fn static void xv::trap::detail::SchedulerStackFlow::refill(Context &) noexcept
 @brief 在分配调度栈前补充原紧急页储备。
 @details 保留重复初始化诊断、先补储备再分配永久调度栈、分配失败诊断与原栈顶计算；不引入失败回滚。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -660,7 +659,7 @@
 ## `xv::trap::detail::UserReturnFlow::mask`
 
 ```doxygen
-@fn static void xv::trap::detail::UserReturnFlow::mask(Context &) noexcept { xv::arch::intr_off(); }
+@fn static void xv::trap::detail::UserReturnFlow::mask(Context &) noexcept
 @brief 按原位置关闭中断。
 @details 自检仍在原入口，随后保持关中断、切换向量、准备内核帧和提交用户状态/PC 的原顺序；不更改汇编入口。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
@@ -703,3 +702,19 @@
 @brief 累计当前hart的外部中断。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+<a id="fn-4d7de92d7fc9cdc5"></a>
+
+## `xv::trap::detail::account_deadline_interrupt`
+
+```doxygen
+@fn void xv::trap::detail::account_deadline_interrupt()
+@brief 把短定时事件计入总中断，保持 100ms CPU 时间采样语义。
+@details 到期通知由统一等待队列处理，按周期边界与最早截止时间的较小值装载硬件比较寄存器。TTY 仍由 hart 0 按 100ms 周期服务；网络超时已移交 net-timers 任务，短截止时间中断不推进 CPU 时间采样。
+```
+
+- [`xv::trap::detail::account_deadline_interrupt`](kernel_platform.cpp.md#fn-4d7de92d7fc9cdc5)
+
+- [`xv::trap::detail::account_external_interrupt`](kernel_platform.cpp.md#fn-51ab51edcccc117b)
+
+- [`xv::trap::detail::account_timer`](kernel_platform.cpp.md#fn-bfddc64950495613)

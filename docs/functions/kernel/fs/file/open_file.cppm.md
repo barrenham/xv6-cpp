@@ -129,3 +129,13 @@
 @brief 封存启动注册表。
 @details 由 devfs 在发布设备目录之前调用；之后所有 attach 都触发内核错误。封存不是热插拔协议，启动同步完成后其他 CPU 才可使用设备表。
 ```
+
+- [`xv::fs::open_registered_block`](open_file.cpp.md#fn-9a9273ba721f4c1c)
+
+- [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-a53ec5994c9eddf1)
+
+- [`xv::fs::DeviceRegistry::attach_block`](open_file.cpp.md#fn-24c33d00d3aee9ba)
+
+- [`xv::fs::DeviceRegistry::block`](open_file.cpp.md#fn-ea2cf7655166476a)
+
+- [`xv::fs::OpenFileTable::getdents64`](open_file.cpp.md#fn-86a5102557e07ad5)

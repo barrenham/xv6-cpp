@@ -334,3 +334,69 @@
 @brief 在状态锁外刷新块缓存。
 @details 原xv6日志实现移到内部模块分区；Begin/End/Commit/Recover/Record/Sync流程图、pin与持久化顺序保持。
 ```
+
+- [`xv::fs::Xv6Journal::BeginFlow::committing`](flow.cppm.md#fn-403050d70396cbcb)
+
+- [`xv::fs::Xv6Journal::BeginFlow::reserve`](flow.cppm.md#fn-9d0f7f7cea24ae89)
+
+- [`xv::fs::Xv6Journal::BeginFlow::space_needed`](flow.cppm.md#fn-ae0359d07d125cd7)
+
+- [`xv::fs::Xv6Journal::CommitFlow::clear`](flow.cppm.md#fn-40f0fac783421100)
+
+- [`xv::fs::Xv6Journal::CommitFlow::dirty`](flow.cppm.md#fn-977b30c1c1f2fa0f)
+
+- [`xv::fs::Xv6Journal::CommitFlow::install`](flow.cppm.md#fn-f3afa5f02046f84a)
+
+- [`xv::fs::Xv6Journal::CommitFlow::persist_header`](flow.cppm.md#fn-359f0462d75e6c73)
+
+- [`xv::fs::Xv6Journal::CommitFlow::write_log`](flow.cppm.md#fn-9e59ba5bb2a7b967)
+
+- [`xv::fs::Xv6Journal::EndFlow::commit`](flow.cppm.md#fn-a2e7f3db6ba0d79c)
+
+- [`xv::fs::Xv6Journal::EndFlow::committing`](flow.cppm.md#fn-e11f01f6f4895f8a)
+
+- [`xv::fs::Xv6Journal::EndFlow::finish_commit`](flow.cppm.md#fn-0471cc7476c10e8c)
+
+- [`xv::fs::Xv6Journal::EndFlow::finish_operation`](flow.cppm.md#fn-a2c5096ac72881d8)
+
+- [`xv::fs::Xv6Journal::EndFlow::invalid`](flow.cppm.md#fn-1768f61358a8efa6)
+
+- [`xv::fs::Xv6Journal::EndFlow::last`](flow.cppm.md#fn-ba21117c75dded39)
+
+- [`xv::fs::Xv6Journal::EndFlow::mark_commit`](flow.cppm.md#fn-e3f618a3e92e1202)
+
+- [`xv::fs::Xv6Journal::EndFlow::notify`](flow.cppm.md#fn-d2c1ba1a7994a9da)
+
+- [`xv::fs::Xv6Journal::RecordFlow::active`](flow.cppm.md#fn-166e9fc57ce14465)
+
+- [`xv::fs::Xv6Journal::RecordFlow::fresh`](flow.cppm.md#fn-894a39bf895d8bd8)
+
+- [`xv::fs::Xv6Journal::RecordFlow::full`](flow.cppm.md#fn-3e4230072ef45644)
+
+- [`xv::fs::Xv6Journal::RecordFlow::outside`](flow.cppm.md#fn-090240ed44c10ca3)
+
+- [`xv::fs::Xv6Journal::RecordFlow::pin`](flow.cppm.md#fn-8ecf48e18cfcb3a7)
+
+- [`xv::fs::Xv6Journal::RecordFlow::record`](flow.cppm.md#fn-255870cc8bf6584b)
+
+- [`xv::fs::Xv6Journal::RecordFlow::scan`](flow.cppm.md#fn-25e09a56fa876aea)
+
+- [`xv::fs::Xv6Journal::RecordFlow::too_big`](flow.cppm.md#fn-aa1cb338dc5db552)
+
+- [`xv::fs::Xv6Journal::RecoverFlow::clear`](flow.cppm.md#fn-724c6580e5085080)
+
+- [`xv::fs::Xv6Journal::RecoverFlow::install`](flow.cppm.md#fn-f5dd676433ad6840)
+
+- [`xv::fs::Xv6Journal::RecoverFlow::read_header`](flow.cppm.md#fn-9788719ceaebad0c)
+
+- [`xv::fs::Xv6Journal::SyncFlow::active`](flow.cppm.md#fn-b731c44216c9927c)
+
+- [`xv::fs::Xv6Journal::SyncFlow::flush`](flow.cppm.md#fn-a7aa29fcf3a6c05a)
+
+- [`xv::fs::Xv6Journal::SyncFlow::target`](flow.cppm.md#fn-c256cec8a4535957)
+
+- [`xv::fs::Xv6Journal::SyncFlow::waiting`](flow.cppm.md#fn-1734111a31b651e8)
+
+- [`xv::fs::Xv6Journal::WaitProtocol::unlock`](flow.cppm.md#fn-ac27f877d0d9c219)
+
+- [`xv::fs::Xv6Journal::WaitProtocol::wait`](flow.cppm.md#fn-53df8f2cbecf5834)

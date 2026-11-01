@@ -39,3 +39,11 @@
 - [`xv::trap::detail::user_page_table_token`](../arch/riscv/kernel_platform.cpp.md#fn-fb9cf283bc7dc87e)
 - [`xv::trap::detail::wakeup`](../arch/riscv/kernel_platform.cpp.md#fn-372407f34cc73123)
 - [`xv::trap::detail::yield_current`](../arch/riscv/kernel_platform.cpp.md#fn-b99841e868c4b5b2)
+
+- [`xv::trap::detail::account_deadline_interrupt`](../arch/riscv/kernel_platform.cpp.md#fn-4d7de92d7fc9cdc5)
+
+- [`xv::trap::detail::account_external_interrupt`](../arch/riscv/kernel_platform.cpp.md#fn-51ab51edcccc117b)
+
+- [`xv::trap::detail::account_timer`](../arch/riscv/kernel_platform.cpp.md#fn-bfddc64950495613)
+
+- [`xv::trap::detail::scheduler_timer_tick`](../arch/riscv/kernel_platform.cpp.md#fn-685675b5ef873350)

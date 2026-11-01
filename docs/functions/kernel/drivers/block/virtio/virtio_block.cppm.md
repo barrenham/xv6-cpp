@@ -55,3 +55,5 @@
 @brief VirtIO 块设备：读取或计算 `irq_`，返回当前查询结果。
 @return 各分支实际返回：`irq_`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+- [`xv::drivers::VirtioBlock::capacity_sectors`](virtio_block.cpp.md#fn-bf8018e059e14ed7)

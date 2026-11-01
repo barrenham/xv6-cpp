@@ -399,3 +399,15 @@
 @brief 使用MountDiskFlow挂载已选择磁盘后端，保留事务和失败回滚。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::VirtualFileSystem::lookup_parent`](vfs.cpp.md#fn-6d0bcfd9ae87ee67)
+
+- [`xv::fs::VirtualFileSystem::mount_disk`](vfs.cpp.md#fn-d081694eae1d34f0)
+
+- [`xv::fs::VirtualFileSystem::mounts`](vfs.cpp.md#fn-5c98bc2f3956ca9e)
+
+- [`xv::fs::VirtualFileSystem::publish_mount_snapshot`](vfs.cpp.md#fn-4b81eaa3029bfdad)
+
+- [`xv::fs::VirtualFileSystem::snapshot_mounts`](vfs.cpp.md#fn-49863f7ed2744744)
+
+- [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-f77a31b05fc26086)

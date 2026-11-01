@@ -194,49 +194,6 @@ struct PollWait::SleepFlow
                   flow::node<Finish, flow::action<&finish>, flow::stop>>>;
 };
 
-struct WaitChannels::ExpireFlow
-{
-  struct Context
-  {
-    PollWait **link;
-    unsigned long milliseconds;
-    PollWait *wait = nullptr;
-  };
-
-  static void scan(Context &c) noexcept
-  {
-    while (*c.link)
-    {
-      c.wait = *c.link;
-      if (c.milliseconds >= c.wait->deadline_)
-      {
-        return;
-      }
-      c.link = &c.wait->timer_next_;
-    }
-    c.wait = nullptr;
-  }
-
-  static bool expired(Context &c) noexcept
-  {
-    return c.wait != nullptr;
-  }
-
-  static void notify(Context &c) noexcept
-  {
-    *c.link = c.wait->timer_next_;
-    c.wait->timer_linked_ = false;
-    c.wait->notify();
-  }
-  struct Scan;
-  struct Notify;
-  using Graph = flow::graph<
-      Scan, flow::types<flow::node<Scan, flow::action<&scan>,
-                                   flow::branch<flow::condition<&expired>,
-                                                flow::go<Notify>, flow::stop>>,
-                        flow::node<Notify, flow::action<&notify>, flow::go<Scan>>>>;
-};
-
 PollWait::Page *PollWait::allocate_page()
 {
   static_assert(sizeof(Page) <= 4096);
@@ -304,6 +261,11 @@ void PollWait::set_deadline(unsigned long milliseconds)
   channels_.arm_timer(*this, milliseconds);
 }
 
+void PollWait::cancel_deadline()
+{
+  channels_.remove_timer(*this);
+}
+
 void PollWait::sleep()
 {
   SleepFlow::Context context{*this};
@@ -338,40 +300,46 @@ void WaitChannels::unsubscribe(PollEntry &entry)
 void WaitChannels::arm_timer(PollWait &wait, unsigned long deadline)
 {
   xv::sync::ScopedLock guard(timer_lock_);
-  if (wait.timer_linked_)
+  if (!timers_.empty())
   {
-    detail::storage_fail("poll: duplicate timer");
+    detail::synchronize_kernel_mappings();
   }
-  wait.deadline_ = deadline;
-  wait.timer_next_ = timers_;
-  wait.timer_linked_ = true;
-  timers_ = &wait;
+  timers_.reset(
+      wait.timer_, deadline,
+      [](void *owner) { static_cast<PollWait *>(owner)->notify(); }, &wait);
+  next_deadline_ = timers_.next();
+  detail::arm_deadline_timer(next_deadline_);
 }
 
 void WaitChannels::remove_timer(PollWait &wait)
 {
   xv::sync::ScopedLock guard(timer_lock_);
-  if (!wait.timer_linked_)
+  if (!timers_.empty())
   {
-    return;
+    detail::synchronize_kernel_mappings();
   }
-  auto **link = &timers_;
-  while (*link && *link != &wait)
-  {
-    link = &(*link)->timer_next_;
-  }
-  if (!*link)
-  {
-    detail::storage_fail("poll: missing timer");
-  }
-  *link = wait.timer_next_;
-  wait.timer_linked_ = false;
+  timers_.cancel(wait.timer_);
+  next_deadline_ = timers_.next();
 }
 
 void WaitChannels::expire_timers(unsigned long milliseconds)
 {
   xv::sync::ScopedLock guard(timer_lock_);
-  ExpireFlow::Context context{&timers_, milliseconds};
-  (void)ExpireFlow::Graph::run<0>(context);
+  if (next_deadline_ > milliseconds)
+  {
+    return;
+  }
+  if (!timers_.empty())
+  {
+    detail::synchronize_kernel_mappings();
+  }
+  timers_.expire(milliseconds);
+  next_deadline_ = timers_.next();
+}
+
+unsigned long WaitChannels::next_timer()
+{
+  xv::sync::ScopedLock guard(timer_lock_);
+  return next_deadline_;
 }
 } // namespace xv::process

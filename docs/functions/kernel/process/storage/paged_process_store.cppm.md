@@ -53,3 +53,5 @@
 @brief 按节点中发布后保持不变的 indexed_pid 排序；不使用回收期间会被清零的 Process::pid 作为树键。
 @note 详细锁协议见 docs/process-index-wait.md。
 ```
+
+- [`xv::process::PagedProcessStore::find_pid`](paged_process_store.cpp.md#fn-6dab1bac2166ed48)

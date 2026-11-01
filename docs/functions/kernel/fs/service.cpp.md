@@ -86,3 +86,5 @@
 @brief 按索引读取已注册文件系统类型及nodev属性。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::detail::registered_filesystem`](service.cpp.md#fn-2764ac52db897bd0)

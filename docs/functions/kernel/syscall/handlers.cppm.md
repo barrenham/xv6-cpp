@@ -115,3 +115,5 @@
 @note 配置范围：LAB_LOCK/LAB_NET。此条目只覆盖独立文档，不向默认 dev 的原生索引发布未经该配置完整构建验证的符号。
 @note 系统调用处理函数使用内核 64 位返回通道；负错误值经无符号类型传回时保持位模式，由用户 ABI 按相应整型解释。
 ```
+
+- [`xv::syscall::sys_getdents64`](sysfile.cpp.md#fn-fb210246732bc020)

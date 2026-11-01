@@ -29,3 +29,9 @@
 @brief 以acquire确认hart上线后复制硬件信息。
 @details 在机器态捕获CPU硬件CSR，online位通过release/acquire发布；proc查询仅返回已上线hart。
 ```
+
+- [`xv::arch::cpu_hardware`](hardware.cpp.md#fn-37618c73149703fe)
+
+- [`xv::arch::mark_cpu_online`](hardware.cpp.md#fn-f55a5e3eaaf9d02c)
+
+- [`xv::arch::record_cpu_hardware`](hardware.cpp.md#fn-19c4b5a6805f3a9f)

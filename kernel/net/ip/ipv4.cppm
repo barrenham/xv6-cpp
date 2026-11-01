@@ -73,6 +73,7 @@ public:
 
   void receive(NetworkInterface &interface, Packet &packet) override;
   void tick(unsigned long now);
+  unsigned long next_deadline();
 
 private:
 

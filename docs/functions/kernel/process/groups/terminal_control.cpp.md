@@ -244,3 +244,5 @@
 @brief 在group锁内固定控制终端的寿命，完成打开必须在锁外。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::process::ProcessGroups::pin_terminal`](terminal_control.cpp.md#fn-6d5a17358d9998ed)

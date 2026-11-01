@@ -62,6 +62,7 @@ struct State
   int syscalls = 0;
   int external = 0;
   int accounted_external = 0, accounted_timer = 0;
+  int accounted_deadline = 0, scheduler_ticks = 0;
   bool accounted_user = false;
   int faults = 0;
   int yields = 0;
@@ -274,30 +275,37 @@ void interrupt_contract()
 {
   reset(TrapCause::InterruptBit | 9);
   ::usertrap();
-  check(state.external == 1 && state.accounted_external == 1 && state.yields == 0 && state.syscalls == 0,
+  check(state.external == 1 && state.accounted_external == 1 && state.yields == 0 &&
+            state.syscalls == 0,
         "external user interrupt dispatches without a forced yield");
   reset(TrapCause::InterruptBit | 5);
+  current_time = TimerInterval;
   const auto before = clock().uptime();
   ::usertrap();
-  check(clock().uptime() == before + 1 && state.accounted_timer==1 && state.accounted_user && state.yields == 1 &&
+  check(clock().uptime() == before + 1 && state.accounted_timer == 1 &&
+            state.accounted_user && state.yields == 1 &&
             state.deadline == current_time + TimerInterval,
         "timer interrupt counts, rearms and requests preemption");
   check(state.prepared_pc == 0x1000,
         "timer preemption preserves the interrupted user PC");
 
   reset(TrapCause::InterruptBit | 5);
+  current_time = 2 * TimerInterval;
   state.preempt = false;
   ::usertrap();
-  check(state.yields == 0 && state.preparations == 1 && state.deadline == current_time + TimerInterval,
+  check(state.yields == 0 && state.preparations == 1 &&
+            state.deadline == current_time + TimerInterval,
         "scheduler may resume without losing timer rearm or user return");
 
   reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
+  current_time = 3 * TimerInterval;
   state.preempt = false;
   ::kerneltrap();
   check(state.yields == 0 && state.restores == 1,
         "kernel timer resumes when its scheduling quantum is not exhausted");
 
   reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
+  current_time = 4 * TimerInterval;
   const auto original = state.event;
   ::kerneltrap();
   check(state.yields == 1 && state.restores == 1 && state.event.pc == original.pc &&
@@ -306,8 +314,10 @@ void interrupt_contract()
   check(position("yield") < position("restore"), "restore follows scheduling");
   reset(TrapCause::InterruptBit | 5, TrapEvent::SupervisorPrevious);
   state.has_process = false;
+  current_time = 5 * TimerInterval;
   ::kerneltrap();
-  check(state.yields == 0 && state.restores == 1 && state.accounted_timer==1 && !state.accounted_user,
+  check(state.yields == 0 && state.restores == 1 && state.accounted_timer == 1 &&
+            !state.accounted_user,
         "idle hart handles a timer without yielding a process");
   reset(TrapCause::InterruptBit | 9, TrapEvent::SupervisorPrevious);
   ::kerneltrap();
@@ -354,12 +364,26 @@ void return_contract()
   expect_exit(43, [] { return_to_user(); });
 }
 
+void deadline_interrupt_contract()
+{
+  const auto before = clock().uptime();
+  reset(TrapCause::InterruptBit | 5);
+  current_time = 5 * TimerInterval + 10000;
+  state.preempt = false;
+  ::usertrap();
+  check(clock().uptime() == before && state.accounted_timer == 0 &&
+            state.accounted_deadline == 1 && state.scheduler_ticks == 0 &&
+            state.yields == 1 && state.deadline == 6 * TimerInterval,
+        "deadline IRQ wakes promptly without advancing uptime or policy tick");
+}
+
 void clock_contract()
 {
   reset();
   TickClock local(17);
   local.initialize();
   current_hart = 1;
+  current_time = TimerInterval;
   local.interrupt();
   check(local.uptime() == 17 && wakeups == 0 &&
             state.deadline == current_time + TimerInterval,
@@ -373,6 +397,7 @@ void clock_contract()
         "pause handles killed, zero, and negative intervals");
   killed_flag = false;
 
+  current_time = 0;
   TickClock wrapped(~0U - 1);
   wrapped.initialize();
   registrations = 0;
@@ -384,7 +409,7 @@ void clock_contract()
     {
       std::this_thread::yield();
     }
-    ++current_time;
+    current_time = tick * TimerInterval;
     wrapped.interrupt();
   }
   sleeper.join();
@@ -450,9 +475,27 @@ void request_kill()
   std::_Exit(42);
 }
 
-void account_timer(bool user) {++test::state.accounted_timer;test::state.accounted_user=user;}
-void account_external_interrupt() {++test::state.accounted_external;}
-bool scheduler_timer_tick() { return xv::trap::test::state.preempt; }
+void account_deadline_interrupt()
+{
+  ++test::state.accounted_deadline;
+}
+
+void account_timer(bool user)
+{
+  ++test::state.accounted_timer;
+  test::state.accounted_user = user;
+}
+
+void account_external_interrupt()
+{
+  ++test::state.accounted_external;
+}
+
+bool scheduler_timer_tick()
+{
+  ++test::state.scheduler_ticks;
+  return xv::trap::test::state.preempt;
+}
 
 void yield_current()
 {
@@ -569,7 +612,7 @@ Word time()
   return test::current_time.load();
 }
 
-void service_timer_devices()
+void service_timer_devices(bool)
 {
 }
 
@@ -611,6 +654,7 @@ extern "C" int run_trap_contracts()
   test::signal_contract();
   test::fault_contract();
   test::interrupt_contract();
+  test::deadline_interrupt_contract();
   test::privilege_contract();
   test::return_contract();
   test::clock_contract();

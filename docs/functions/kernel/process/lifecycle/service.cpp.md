@@ -367,7 +367,7 @@
 ## `xv::process::cpu_statistics`
 
 ```doxygen
-@fn bool xv::process::cpu_statistics(unsigned cpu,CpuStatistics &result)
+@fn bool xv::process::cpu_statistics(unsigned cpu, CpuStatistics &result)
 @brief 读取一个hart的采样计数。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
@@ -427,7 +427,45 @@
 ## `xv::process::inspect_exec`
 
 ```doxygen
-@fn bool xv::process::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+@fn bool xv::process::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
 @brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+<a id="fn-88c6c45fee594eeb"></a>
+
+## `xv::process::create_kernel_task`
+
+```doxygen
+@fn void xv::process::create_kernel_task(const char *name, void (*entry)())
+@brief 创建永久内核任务并计入进程创建统计。
+@details 新增截止时间查询与启动期内核任务创建委托；任务计入进程创建统计，定时器通知仍经统一 WaitChannels。
+```
+
+<a id="fn-04ead5ec062a0bf2"></a>
+
+## `xv::process::next_timer_deadline`
+
+```doxygen
+@fn unsigned long xv::process::next_timer_deadline()
+@brief 查询统一等待队列的最早绝对毫秒时间。
+@details 新增截止时间查询与启动期内核任务创建委托；任务计入进程创建统计，定时器通知仍经统一 WaitChannels。
+```
+
+- [`xv::process::account_dispatch`](service.cpp.md#fn-f5316ba7fe99bd3c)
+
+- [`xv::process::account_external_interrupt`](service.cpp.md#fn-9cf7888dc70699df)
+
+- [`xv::process::account_timer`](service.cpp.md#fn-c8afa39d3fd38a5f)
+
+- [`xv::process::cpu_statistics`](service.cpp.md#fn-0f9629832bbc85a8)
+
+- [`xv::process::create_kernel_task`](service.cpp.md#fn-88c6c45fee594eeb)
+
+- [`xv::process::inspect_exec`](service.cpp.md#fn-fdec1bd9dc3e9eaa)
+
+- [`xv::process::next_timer_deadline`](service.cpp.md#fn-04ead5ec062a0bf2)
+
+- [`xv::process::pin_controlling_terminal`](service.cpp.md#fn-a80386bf7a0d6e46)
+
+- [`xv::process::system_statistics`](service.cpp.md#fn-6da719ed0fea92a2)

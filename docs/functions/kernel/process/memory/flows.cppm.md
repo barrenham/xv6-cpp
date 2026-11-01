@@ -333,3 +333,5 @@
 @brief 原子修改保护页区域属性，失败时保留原记录，随后才撤销页表用户访问权限。
 @details 统一地址池记录地址占用及区域属性；修改由调用者串行，映射与物理页由页表及分配器负责。
 ```
+
+- [`xv::process::AddressSpace::GuardFlow::describe`](flows.cppm.md#fn-5fec7d89314b86e0)

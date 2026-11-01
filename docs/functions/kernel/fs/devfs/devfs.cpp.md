@@ -289,3 +289,7 @@
 @brief 返回 `open_registered_block(node,writable)`。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::DevFileSystem::open_block_device`](devfs.cpp.md#fn-01655ad066617f5c)
+
+- [`xv::fs::MemoryDevice::MemoryDevice`](devfs.cpp.md#fn-d216c823111a921f)

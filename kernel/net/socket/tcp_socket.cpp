@@ -54,6 +54,7 @@ bool TcpSocket::listening(Endpoint local) const
 
 int TcpSocket::connect(Endpoint peer, bool nonblocking)
 {
+  detail::TimerChange changed;
   ConnectFlow::Context ctx{*this, peer, nonblocking};
   (void)ConnectFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -84,6 +85,7 @@ Socket *TcpSocket::accept(bool nonblocking, int &error)
 
 int TcpSocket::read(xv::io::Buffer destination, int count)
 {
+  detail::TimerChange changed;
   ReadFlow::Context ctx{*this, destination, count};
   (void)ReadFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -91,6 +93,7 @@ int TcpSocket::read(xv::io::Buffer destination, int count)
 
 int TcpSocket::write(xv::io::Buffer source, int count)
 {
+  detail::TimerChange changed;
   WriteFlow::Context ctx{*this, source, count};
   (void)WriteFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -121,6 +124,7 @@ unsigned TcpSocket::poll(xv::sync::PollTable *table)
 
 int TcpSocket::shutdown(int how)
 {
+  detail::TimerChange changed;
   ShutdownFlow::Context ctx{*this, how};
   (void)ShutdownFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -128,6 +132,7 @@ int TcpSocket::shutdown(int how)
 
 void TcpSocket::close()
 {
+  detail::TimerChange changed;
   xv::sync::ScopedLock guard(registry_.lock());
   CloseFlow::Context ctx{*this};
   (void)CloseFlow::Graph::run<0>(ctx);
@@ -145,5 +150,46 @@ void TcpSocket::tick(unsigned long now)
 {
   TickFlow::Context ctx{*this, now};
   (void)TickFlow::Graph::run<0>(ctx);
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long TcpSocket::next_deadline() const
+{
+  unsigned long next = ~0UL;
+  auto include = [&](unsigned long at)
+  {
+    if (at < next)
+    {
+      next = at;
+    }
+  };
+  if (send_next_ != send_unacknowledged_ && (peer_window_ || syn_pending_))
+  {
+    include(retransmission_.deadline());
+  }
+  if (state_ == TcpState::TimeWait || state_ == TcpState::FinWait2)
+  {
+    include(idle_deadline_);
+  }
+  if (state_ == TcpState::Established || state_ == TcpState::CloseWait ||
+      state_ == TcpState::FinWait1 || state_ == TcpState::LastAck)
+  {
+    include(output_retry_);
+    if (transmit_.size() || (write_shutdown_ && !fin_acked_))
+    {
+      include(last_activity_ + 120000);
+      if (!peer_window_ && !syn_pending_)
+      {
+        include(persist_deadline_);
+      }
+    }
+  }
+  if (!owned_ && state_ == TcpState::Closed)
+  {
+    include(0);
+  }
+  return next;
 }
 } // namespace xv::net

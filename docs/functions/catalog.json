@@ -268,11 +268,12 @@
     "source": "kernel/trap/clock/tick_clock.cpp",
     "spelling": "TickClock::interrupt",
     "qualified": "xv::trap::TickClock::interrupt",
-    "signature": "void TickClock::interrupt()",
+    "signature": "bool TickClock::interrupt()",
     "kind": "InstanceMethod",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@trap@S@TickClock@F@interrupt#",
-    "source_sha256": "6d31f7b584bace4568ceaabcd3aa1de9b0b4834360c494df81a51d36dc426035"
+    "source_sha256": "67915e89284a5315c50a99446a34509c0bcb36df9859e0812e45e732b6b8429f",
+    "fn": "bool xv::trap::TickClock::interrupt()"
   },
   {
     "anchor": "clock-tickclock-uptime",
@@ -309,7 +310,8 @@
     "kind": "Function",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@process@F@initialize#",
-    "source_sha256": "b3eac753e2fa1847edd762358200165eef3c7895644d7439c9788dce8a5703a1"
+    "source_sha256": "0ea32de1a39a90b2c51686d308b626fe6d791bb9a7c8494b948f56a4fe7cfe49",
+    "fn": "void xv::process::initialize()"
   },
   {
     "anchor": "service-fork-process",
@@ -321,7 +323,7 @@
     "kind": "Function",
     "hover_expectation": "external",
     "usr": "c:@N@xv@N@process@F@fork_process#",
-    "source_sha256": "cc8b5f684a091f9dcff678ffd13260c6d17a596737ef6332cb411ce731f64590",
+    "source_sha256": "4f540416fc59ea8cb666771ec85e3cb95619cb8048d0eba3d8f91f55e994c2c8",
     "fn": "int xv::process::fork_process()"
   },
   {
@@ -422,7 +424,7 @@
     "kind": "Function",
     "usr": "c:main.cpp@N@xv@N@boot@aN@F@initialize_bootstrap_hart#",
     "hover_expectation": "observe",
-    "source_sha256": "2eb3e56dfa6b92ef83929e9438d5b280e2bd1ed34038cf2086dd94486387d04d"
+    "source_sha256": "d3bf1df4e78f5a952f739b6d1651387b4c5fa765b2c3be73f97fc0976429f42c"
   },
   {
     "anchor": "fn-c64bfe6e40c53cad",
@@ -3262,14 +3264,14 @@
     "anchor": "fn-3cd05c2218bac5b8",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "source": "kernel/fs/cache/lru_block_cache.cpp",
-    "spelling": "initialize",
+    "spelling": "LruBlockCache::initialize",
     "qualified": "xv::fs::LruBlockCache::initialize",
     "signature": "void LruBlockCache::initialize()",
     "fn": "void xv::fs::LruBlockCache::initialize()",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@initialize#",
     "hover_expectation": "observe",
-    "source_sha256": "ad0c2aef29ed199731e86ff8652f34a70c7a7281a0214e6188104226dd605f05"
+    "source_sha256": "3022f424e91ec02135ef0b5d7d99b2a0cbc35a0e1a43f8b8e23388d43f797ba2"
   },
   {
     "anchor": "fn-af4d8f5d14b2fff0",
@@ -3277,38 +3279,38 @@
     "source": "kernel/fs/cache/lru_block_cache.cpp",
     "spelling": "LruBlockCache::get",
     "qualified": "xv::fs::LruBlockCache::get",
-    "signature": "Buffer *LruBlockCache::get(unsigned dev, unsigned blockno)",
-    "fn": "Buffer *xv::fs::LruBlockCache::get(unsigned dev, unsigned blockno)",
+    "signature": "Buffer *LruBlockCache::get(unsigned device, unsigned block)",
+    "fn": "Buffer *xv::fs::LruBlockCache::get(unsigned device, unsigned block)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
     "hover_expectation": "observe",
-    "source_sha256": "b03a608b6363fa991c485e724f2b1c8737d890df09436675d43700413614b92a"
+    "source_sha256": "064ea97835c3abccb6951da34d039d1395fed52e2097f33c58932a7c920710e4"
   },
   {
     "anchor": "fn-6f7b9e574580bc22",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "source": "kernel/fs/cache/lru_block_cache.cpp",
-    "spelling": "read",
+    "spelling": "LruBlockCache::read",
     "qualified": "xv::fs::LruBlockCache::read",
     "signature": "BlockHandle LruBlockCache::read(unsigned dev, unsigned blockno)",
     "fn": "BlockHandle xv::fs::LruBlockCache::read(unsigned dev, unsigned blockno)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@read#i#i#",
     "hover_expectation": "observe",
-    "source_sha256": "ca87938038f6d66f128b39caba6818f4f476a2cfd25ee074a1b744e6f26dd72e"
+    "source_sha256": "998d2179e374fed704024d629e41b4879b828e2e38ca20f85b8cd9bc93ed3e6d"
   },
   {
     "anchor": "fn-82145096d9d76c5e",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "source": "kernel/fs/cache/lru_block_cache.cpp",
-    "spelling": "write",
+    "spelling": "LruBlockCache::write",
     "qualified": "xv::fs::LruBlockCache::write",
     "signature": "void LruBlockCache::write(Buffer &buffer)",
     "fn": "void xv::fs::LruBlockCache::write(Buffer &buffer)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@write#&$@N@xv@N@fs@S@Buffer#",
     "hover_expectation": "observe",
-    "source_sha256": "40b21780e2a29b1507a2518ad44d71ab8a7be728fa7d8507f7e716e88dcb3a68"
+    "source_sha256": "c1e2211e63f16004f47eb05b5af3467baa331796e92e52c0a7396094a2501ebd"
   },
   {
     "anchor": "fn-c5ecc882a204c8ff",
@@ -3327,27 +3329,27 @@
     "anchor": "fn-752c3a0a65094c6c",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "source": "kernel/fs/cache/lru_block_cache.cpp",
-    "spelling": "pin",
+    "spelling": "LruBlockCache::pin",
     "qualified": "xv::fs::LruBlockCache::pin",
     "signature": "void LruBlockCache::pin(Buffer &buffer)",
     "fn": "void xv::fs::LruBlockCache::pin(Buffer &buffer)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@pin#&$@N@xv@N@fs@S@Buffer#",
     "hover_expectation": "observe",
-    "source_sha256": "592a2fa9c6d30e8b58aad683481e18d7b6230f6f220be75452b399a2efe75c21"
+    "source_sha256": "4e5e08df803823c10de4b505c2b97607de17c63bed31ea2259c973e07033abc6"
   },
   {
     "anchor": "fn-1bfa0103c3bfaf36",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "source": "kernel/fs/cache/lru_block_cache.cpp",
-    "spelling": "unpin",
+    "spelling": "LruBlockCache::unpin",
     "qualified": "xv::fs::LruBlockCache::unpin",
     "signature": "void LruBlockCache::unpin(Buffer &buffer)",
     "fn": "void xv::fs::LruBlockCache::unpin(Buffer &buffer)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@unpin#&$@N@xv@N@fs@S@Buffer#",
     "hover_expectation": "observe",
-    "source_sha256": "aca01e2cd31fb40165a41673dbe6755c230aa1e22cd450d2713884b05b1e70a0"
+    "source_sha256": "d58f8f72849d3384c3dae54efe8b06cc5fb0723defd8ce8d2caad4bacf05f7b6"
   },
   {
     "anchor": "fn-855477984d714ddb",
@@ -3373,7 +3375,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@name#1",
     "hover_expectation": "observe",
-    "source_sha256": "a0a739c69fb8c9a18439417e81eb5f928d9581dde8cf057f9bacd56a0b3cb101"
+    "source_sha256": "deed0533c95c72e132d49dfabeca6b29dbbdfd12ee1f924960d293e380c75d63"
   },
   {
     "anchor": "fn-5c62e7d3411efdaf",
@@ -8067,7 +8069,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@F@send_signal#I#I#",
     "hover_expectation": "observe",
-    "source_sha256": "10bd46ccd637d743ab7450c23e5f69edb57c77d2b2ccb667ad150163d7d6746b"
+    "source_sha256": "06a644cf214fa98462ee1ce1aa10df7e5a71fff9eb4f221479d088db8c72e42a"
   },
   {
     "anchor": "fn-f31a3cd50df7bcf4",
@@ -10758,7 +10760,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@WaitChannels@F@arm_timer#&$@N@xv@N@process@S@PollWait#l#",
     "hover_expectation": "observe",
-    "source_sha256": "9d329a8583fc82b1a40929f5198e95092b0632a848e8e0ef34e8b89121f8d2c4"
+    "source_sha256": "83767c2172998e82b2275144fa9a315c60aad9039bb76afb3b83484e7c250d6b"
   },
   {
     "anchor": "fn-e197f48a1ef8cac7",
@@ -10771,7 +10773,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@WaitChannels@F@remove_timer#&$@N@xv@N@process@S@PollWait#",
     "hover_expectation": "observe",
-    "source_sha256": "a73a97439b84a3261208ea92fc42083ec8921aa8f298225502b3b10d4bf54ba6"
+    "source_sha256": "c5a52f3172403bcb779454b9c4b1d9ced6c78a7f6fd39c417f4c841c5d1a7ce0"
   },
   {
     "anchor": "fn-de20066532420bb1",
@@ -10784,7 +10786,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
     "hover_expectation": "observe",
-    "source_sha256": "118785a5fbd9ce6bdd45a5d604a0ee0fd3a95e973fede5b996c0c617f64a0fee"
+    "source_sha256": "d1fbdf686c85c230a4586335548ffb9e2e36f334ac4eb9a66b78d28fa422f00e"
   },
   {
     "anchor": "fn-6125f315d5c17491",
@@ -11902,7 +11904,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@syscall@F@sys_poll#",
     "hover_expectation": "observe",
-    "source_sha256": "61dc84ebf4b87c7ab72bc867a4e9389f41a1f5be771ab967d08961787ce6c516"
+    "source_sha256": "d4b711064196d872a37fcbda9cdfa95f415a7b60db663eb969f10522c1dcc967"
   },
   {
     "anchor": "fn-2940e0efab81491b",
@@ -12496,12 +12498,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "has_process",
     "qualified": "xv::trap::detail::has_process",
-    "signature": "bool has_process() { return xv::process::current() != nullptr; }",
-    "fn": "bool xv::trap::detail::has_process() { return xv::process::current() != nullptr; }",
+    "signature": "bool has_process()",
+    "fn": "bool xv::trap::detail::has_process()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@has_process#",
     "hover_expectation": "observe",
-    "source_sha256": "971a74a230545d8f4ee41161ee56295decb3b5c6fbafafdaa577f6f358b541da"
+    "source_sha256": "83bdb214e9a7a72cd8dbfa8403949221a74632635b6357cb2350878fbe859854"
   },
   {
     "anchor": "fn-4f041a4936f5176b",
@@ -12509,12 +12511,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "deliver_signals",
     "qualified": "xv::trap::detail::deliver_signals",
-    "signature": "void deliver_signals() { xv::process::deliver_signals(); }",
-    "fn": "void xv::trap::detail::deliver_signals() { xv::process::deliver_signals(); }",
+    "signature": "void deliver_signals()",
+    "fn": "void xv::trap::detail::deliver_signals()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@deliver_signals#",
     "hover_expectation": "observe",
-    "source_sha256": "4b00c2d5688d7ccc9443aa5a7cee4b7ba04ed3f81a4d1508a3434c260cb0301e"
+    "source_sha256": "e76711f355c9f59b457bb6ee91fb79f32460f4458ac15f6ff237aede649da367"
   },
   {
     "anchor": "fn-1841e13c7500b772",
@@ -12522,12 +12524,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "interrupted",
     "qualified": "xv::trap::detail::interrupted",
-    "signature": "bool interrupted() { return xv::process::current()->is_killed(); }",
-    "fn": "bool xv::trap::detail::interrupted() { return xv::process::current()->is_killed(); }",
+    "signature": "bool interrupted()",
+    "fn": "bool xv::trap::detail::interrupted()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@interrupted#",
     "hover_expectation": "observe",
-    "source_sha256": "78684b6a3e0ef36ee276b356892a9f4dda7db8d4ace899d409759785650f84be"
+    "source_sha256": "9e70eb37c77d622ea9b374a5408db2594c0de6eaf8637b303a6e1bd0e321bff7"
   },
   {
     "anchor": "fn-d6ca1daf3715bdb9",
@@ -12535,12 +12537,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "killed",
     "qualified": "xv::trap::detail::killed",
-    "signature": "bool killed() { return xv::process::current()->termination_status() != 0; }",
-    "fn": "bool xv::trap::detail::killed() { return xv::process::current()->termination_status() != 0; }",
+    "signature": "bool killed()",
+    "fn": "bool xv::trap::detail::killed()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@killed#",
     "hover_expectation": "observe",
-    "source_sha256": "41bafdb6a23ae914c74387dd1fe9a815d6945c2c731f04e214a8263caf529322"
+    "source_sha256": "0d46fdfe1e4261f789b47cd26738d8f335ada4ada670b5134a45ead829186337"
   },
   {
     "anchor": "fn-de1ad36dd5d6359e",
@@ -12548,12 +12550,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "request_kill",
     "qualified": "xv::trap::detail::request_kill",
-    "signature": "void request_kill() { xv::process::current()->request_kill(); }",
-    "fn": "void xv::trap::detail::request_kill() { xv::process::current()->request_kill(); }",
+    "signature": "void request_kill()",
+    "fn": "void xv::trap::detail::request_kill()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@request_kill#",
     "hover_expectation": "observe",
-    "source_sha256": "e183382979f73869237a86f9cd331ee32001a04261b78c41a8de0eedce3e1bab"
+    "source_sha256": "134cff931c8b9b072ae007e92e0f9ba63734049d71a6e4f56c516cdba4428ff5"
   },
   {
     "anchor": "fn-f003afe98a9ac7f7",
@@ -12561,12 +12563,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "exit_current",
     "qualified": "xv::trap::detail::exit_current",
-    "signature": "void exit_current(int status) { xv::process::exit_process(status); }",
-    "fn": "void xv::trap::detail::exit_current(int status) { xv::process::exit_process(status); }",
+    "signature": "void exit_current(int status)",
+    "fn": "void xv::trap::detail::exit_current(int status)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@exit_current#I#",
     "hover_expectation": "observe",
-    "source_sha256": "e9d0a1825a76f27797c7a79da721f4c2b5fc5ebb8718d3f90ddca0630d3821cc"
+    "source_sha256": "0a705ed6315c4706050c05a0a0d91fe622683cb0e161340c1c1c7267be585f5d"
   },
   {
     "anchor": "fn-b99841e868c4b5b2",
@@ -12574,12 +12576,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "yield_current",
     "qualified": "xv::trap::detail::yield_current",
-    "signature": "void yield_current() { xv::process::scheduler().yield(); }",
-    "fn": "void xv::trap::detail::yield_current() { xv::process::scheduler().yield(); }",
+    "signature": "void yield_current()",
+    "fn": "void xv::trap::detail::yield_current()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@yield_current#",
     "hover_expectation": "observe",
-    "source_sha256": "94da42a3c5c553790116796715cf7f6ff39a4548af90c8c5e20e7e084ab0f2aa"
+    "source_sha256": "16d58698b026810a5525976d065467179646c9daf431d1b6b3990ee9a4aa0551"
   },
   {
     "anchor": "fn-72d8410c76641146",
@@ -12587,12 +12589,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "save_user_pc",
     "qualified": "xv::trap::detail::save_user_pc",
-    "signature": "void save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }",
-    "fn": "void xv::trap::detail::save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }",
+    "signature": "void save_user_pc(Word pc)",
+    "fn": "void xv::trap::detail::save_user_pc(Word pc)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
     "hover_expectation": "observe",
-    "source_sha256": "1aaf6b0e44a00082b2618792ee9014194aab8cb0bc658cb3f1433d2ab85c6c45"
+    "source_sha256": "ac3a1736281611fbcc5010d035e62b22d72b2886ffee968b0820cb96ec681c25"
   },
   {
     "anchor": "fn-b6c74a0b72429492",
@@ -12600,12 +12602,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "advance_user_pc",
     "qualified": "xv::trap::detail::advance_user_pc",
-    "signature": "void advance_user_pc(Word bytes) { xv::process::current()->registers()->epc += bytes; }",
-    "fn": "void xv::trap::detail::advance_user_pc(Word bytes) { xv::process::current()->registers()->epc += bytes; }",
+    "signature": "void advance_user_pc(Word bytes)",
+    "fn": "void xv::trap::detail::advance_user_pc(Word bytes)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@advance_user_pc#l#",
     "hover_expectation": "observe",
-    "source_sha256": "f96a00104fdac61b0d28477d2430e069b0e653cd31d7510a120b1f13a1f81470"
+    "source_sha256": "eaf2ae40d3317af15c604105f5d16e22708bf42d57358b0aade27537933ce80f"
   },
   {
     "anchor": "fn-111982e6acd2b642",
@@ -12613,12 +12615,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "enable_interrupts",
     "qualified": "xv::trap::detail::enable_interrupts",
-    "signature": "void enable_interrupts() { xv::arch::intr_on(); }",
-    "fn": "void xv::trap::detail::enable_interrupts() { xv::arch::intr_on(); }",
+    "signature": "void enable_interrupts()",
+    "fn": "void xv::trap::detail::enable_interrupts()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@enable_interrupts#",
     "hover_expectation": "observe",
-    "source_sha256": "96f654afdf8fb35ff9a7f2b377e5f6747968fe2f7ba60cba043743bd9847538a"
+    "source_sha256": "ea3bd432c09653584cb12000c18ecaaefab1f18f5d4da2015cd063b124288de5"
   },
   {
     "anchor": "fn-4786b99366f6d39f",
@@ -12626,12 +12628,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "dispatch_system_call",
     "qualified": "xv::trap::detail::dispatch_system_call",
-    "signature": "void dispatch_system_call() { xv::syscall::dispatch(); }",
-    "fn": "void xv::trap::detail::dispatch_system_call() { xv::syscall::dispatch(); }",
+    "signature": "void dispatch_system_call()",
+    "fn": "void xv::trap::detail::dispatch_system_call()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@dispatch_system_call#",
     "hover_expectation": "observe",
-    "source_sha256": "054d13c3a7d5a0aac22d6fc5da9c1625cf685587169ea281a2ce49871e52c276"
+    "source_sha256": "16d8c3ce6147f3873afecb1d0dc6da13e321d81b3893b019658954b1e61a1ca9"
   },
   {
     "anchor": "fn-c6137e39ef8b7fbc",
@@ -12743,12 +12745,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "hart_id",
     "qualified": "xv::trap::detail::hart_id",
-    "signature": "int hart_id() { return xv::process::cpu_id(); }",
-    "fn": "int xv::trap::detail::hart_id() { return xv::process::cpu_id(); }",
+    "signature": "int hart_id()",
+    "fn": "int xv::trap::detail::hart_id()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@hart_id#",
     "hover_expectation": "observe",
-    "source_sha256": "85a4fb870f31adc890976099fccbc2c3255d7286400b21a0e0c0d900d2f4779b"
+    "source_sha256": "d70d65aa39067433cb6661d9b3f2f62645cb34d5eeafd90193653cfb7e93bc53"
   },
   {
     "anchor": "fn-21bfc0d68188d860",
@@ -12756,12 +12758,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "time",
     "qualified": "xv::trap::detail::time",
-    "signature": "Word time() { return xv::arch::r_time(); }",
-    "fn": "Word xv::trap::detail::time() { return xv::arch::r_time(); }",
+    "signature": "Word time()",
+    "fn": "Word xv::trap::detail::time()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@time#",
     "hover_expectation": "observe",
-    "source_sha256": "b719ba17e9ae36009861b51233c3134649cf68896f9c743e746391c2a7d2b899"
+    "source_sha256": "79eaadbbb491148f17964db5db67045080686be2d1433002ed55940feb577cdb"
   },
   {
     "anchor": "fn-6d371a07cbcfe6cf",
@@ -12769,12 +12771,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "arm_timer",
     "qualified": "xv::trap::detail::arm_timer",
-    "signature": "void arm_timer(Word deadline) { xv::arch::w_stimecmp(deadline); }",
-    "fn": "void xv::trap::detail::arm_timer(Word deadline) { xv::arch::w_stimecmp(deadline); }",
+    "signature": "void arm_timer(Word deadline)",
+    "fn": "void xv::trap::detail::arm_timer(Word deadline)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@arm_timer#l#",
     "hover_expectation": "observe",
-    "source_sha256": "b49fb2a4c722700eb941f0915277f11522558ce0a0462eb0eca7d91190156edb"
+    "source_sha256": "d4d495a89d8cf7ed42ab7abdefb2f98cc22ecdd7f73b0a3d37a205530c5ef21c"
   },
   {
     "anchor": "fn-8bf053cbd79e3fd0",
@@ -12782,12 +12784,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "service_timer_devices",
     "qualified": "xv::trap::detail::service_timer_devices",
-    "signature": "void service_timer_devices()",
-    "fn": "void xv::trap::detail::service_timer_devices()",
+    "signature": "void service_timer_devices(bool periodic)",
+    "fn": "void xv::trap::detail::service_timer_devices(bool periodic)",
     "kind": "Function",
-    "usr": "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
+    "usr": "c:@N@xv@N@trap@N@detail@F@service_timer_devices#b#",
     "hover_expectation": "observe",
-    "source_sha256": "a75056ef9d20e94b9c1dd1007b4bbb332ef30a4947dbab09e0d4e28f3b987f4e"
+    "source_sha256": "a3fe100ecc750541e98243cba36e2d1c5f4cdde4a17fc9018b9948cfbfef3eca"
   },
   {
     "anchor": "fn-a4eda3906392ae77",
@@ -12808,12 +12810,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "prepare_sleep",
     "qualified": "xv::trap::detail::prepare_sleep",
-    "signature": "void prepare_sleep(void *channel) { xv::process::prepare_sleep(channel); }",
-    "fn": "void xv::trap::detail::prepare_sleep(void *channel) { xv::process::prepare_sleep(channel); }",
+    "signature": "void prepare_sleep(void *channel)",
+    "fn": "void xv::trap::detail::prepare_sleep(void *channel)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@prepare_sleep#*v#",
     "hover_expectation": "observe",
-    "source_sha256": "5ef39527f14798ef1635f0dc3ba928c8a6521415e5eac928acb7d112cf27512b"
+    "source_sha256": "e23d33b7e7ba0e8a7f3b4e7027968b6d609d06d6efd539691a1a6172c29ff44e"
   },
   {
     "anchor": "fn-8655e02476dd6fd7",
@@ -12821,12 +12823,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "sleep",
     "qualified": "xv::trap::detail::sleep",
-    "signature": "void sleep() { xv::process::sleep(); }",
-    "fn": "void xv::trap::detail::sleep() { xv::process::sleep(); }",
+    "signature": "void sleep()",
+    "fn": "void xv::trap::detail::sleep()",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@sleep#",
     "hover_expectation": "observe",
-    "source_sha256": "478e3a7d258833076655fdd515169c7bcb6d344be329aa45df6cdc54054b7f81"
+    "source_sha256": "449cfc579cad3b2b2f7117ed609138cc94dae6b74ef18e7ca8fd32ceeb8cd4ae"
   },
   {
     "anchor": "fn-372407f34cc73123",
@@ -12834,12 +12836,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "wakeup",
     "qualified": "xv::trap::detail::wakeup",
-    "signature": "void wakeup(void *channel) { xv::process::wakeup(channel); }",
-    "fn": "void xv::trap::detail::wakeup(void *channel) { xv::process::wakeup(channel); }",
+    "signature": "void wakeup(void *channel)",
+    "fn": "void xv::trap::detail::wakeup(void *channel)",
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@wakeup#*v#",
     "hover_expectation": "observe",
-    "source_sha256": "50f7f6b6b7b37fcacd25cef940821355eb2523570fa7296f54cc06cee4d25283"
+    "source_sha256": "e259956869634f429e2d45dce50a95c96280b77ac9d08b6f5975644857d96461"
   },
   {
     "anchor": "fn-5207fdf0bf983785",
@@ -13391,14 +13393,14 @@
     "anchor": "fn-aead5b95281b47a7",
     "document": "docs/functions/kernel/trap/handlers/timer_interrupt.cpp.md",
     "source": "kernel/trap/handlers/timer_interrupt.cpp",
-    "spelling": "handle",
+    "spelling": "TimerInterruptHandler::handle",
     "qualified": "xv::trap::TimerInterruptHandler::handle",
     "signature": "TrapAction TimerInterruptHandler::handle(const TrapEvent &event)",
-    "fn": "TrapAction TimerInterruptHandler::xv::trap::TimerInterruptHandler::handle(const TrapEvent &event)",
+    "fn": "TrapAction xv::trap::TimerInterruptHandler::handle(const TrapEvent &event)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@trap@S@TimerInterruptHandler@F@handle#&1$@N@xv@N@trap@S@TrapEvent#",
     "hover_expectation": "observe",
-    "source_sha256": "9927ad68887a538941d682510fd6de4f566f7fc2969b33bfffde1f2884eb1f19"
+    "source_sha256": "536dc63a4373004d1590d528f56140893b8a13f6db2cccc0070932f0607ebdc9"
   },
   {
     "anchor": "fn-1e8a3601d8a9081f",
@@ -17911,7 +17913,7 @@
     "source": "kernel/process/lifecycle/service.cpp",
     "document": "docs/functions/kernel/process/lifecycle/service.cpp.md",
     "usr": "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
-    "source_sha256": "890beea6bb4ad1735246e06be3706f6232921f8acd998570e80fd849523137df",
+    "source_sha256": "e22a6cc4c5533ccc3f809fee1c5d803af23fdf9f4e34fd296767fcbb2707cc2c",
     "qualified": "xv::process::inspect_files",
     "spelling": "inspect_files",
     "signature": "int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)",
@@ -18873,7 +18875,7 @@
     "document": "docs/functions/kernel/fs/cache/block_cache.cppm.md",
     "source": "kernel/fs/cache/block_cache.cppm",
     "usr": "c:@N@xv@N@fs@S@BlockCache@F@flush#",
-    "source_sha256": "9f2d1739e58b2dd41c83a2e81c47267eba827536539a880e9987f3f035b0a7b5",
+    "source_sha256": "cfb0f75f69fc465f3f41f0317ee0a43bd0bf99b836a9b84e7ed88ac3789be22e",
     "qualified": "xv::fs::BlockCache::flush",
     "signature": "virtual void flush()",
     "spelling": "flush",
@@ -19580,7 +19582,7 @@
     "fn": "void xv::net::BridgeInterface::ingress(Layer2Port &port, unsigned epoch, Packet &frame)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@BridgeInterface@F@ingress#&$@N@xv@N@net@S@Layer2Port#i#&$@N@xv@N@net@S@Packet#",
-    "source_sha256": "1b1304bc0ea66ed1fba44a68999908f1a93c7ae78f0ecabad1930a443dd82863"
+    "source_sha256": "0082a65d178c13cb08079b75538ad89b1c6a095b1422dac3ddc726fa751b702f"
   },
   {
     "anchor": "fn-26b371580e62fdc8",
@@ -20152,7 +20154,7 @@
     "fn": "int xv::net::control(unsigned operation, netctl_request &request)",
     "kind": "Function",
     "usr": "c:@N@xv@N@net@F@control#i#&$@S@netctl_request#",
-    "source_sha256": "7f8310e6a094247bcafacb1d4cab6c600a4e322792f12bf8b40192cfcddddf5f"
+    "source_sha256": "69bce19fd9b00000e1be8993eabfa5292f6fc33f88f2e016aa95a4e2ed9c061f"
   },
   {
     "anchor": "fn-850f3daf0de0f624",
@@ -20386,7 +20388,7 @@
     "signature": "int DhcpManager::execute(unsigned operation, netctl_request &request)",
     "fn": "int xv::net::DhcpManager::execute(unsigned operation, netctl_request &request)",
     "usr": "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
-    "source_sha256": "3166878fdfdfb5acafb8b1aac549a9f1889e86dacb3fdc24bf1c92418c5744b3"
+    "source_sha256": "8515071409a94fa11b9573c83a43e1bacd1b2bed4de246eb522cdc988bd24ee7"
   },
   {
     "anchor": "fn-f736e585f22f8be7",
@@ -20412,7 +20414,7 @@
     "signature": "bool DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &d)",
     "fn": "bool xv::net::DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &d)",
     "usr": "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
-    "source_sha256": "5dba0eaadef8d9e96948d29830202a0dcc306a590dc9effb7b4dc47f8c703573"
+    "source_sha256": "2ee04bc570e6830e916db6d3e1f3b2f5093d1857b483965427d4b741df5765bc"
   },
   {
     "anchor": "fn-40a1e0ee6745de59",
@@ -21868,7 +21870,7 @@
     "fn": "int xv::net::LoopbackInterface::transmit(Packet &packet, unsigned)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@LoopbackInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#",
-    "source_sha256": "b42c4e5dff759d9fd27abaf9c1ef228493df6b3c216b29cff2594b306e47f8ce"
+    "source_sha256": "489fe1b6213d7010767c804a539a905a077b32fde86abc0157f23a7f3e50209b"
   },
   {
     "anchor": "fn-49f2bb3530d94f42",
@@ -22193,7 +22195,7 @@
     "fn": "int xv::net::Ipv4Layer::send(Packet &packet, unsigned destination, unsigned protocol, unsigned source, const NetworkInterface *via)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@send#&$@N@xv@N@net@S@Packet#i#i#i#*1$@N@xv@N@net@S@NetworkInterface#",
-    "source_sha256": "b202b0378452bf668d8d7e4e7533ecf8393fbd77cd07ee9a35d51d290aa01f01"
+    "source_sha256": "dc26e2c65c8b69e2dccf95212e2135fd8af8f497ec2608154c4766491af12c29"
   },
   {
     "anchor": "fn-0a3554f93eae9eb7",
@@ -22206,7 +22208,7 @@
     "fn": "void xv::net::Ipv4Layer::receive(NetworkInterface &interface, Packet &packet)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
-    "source_sha256": "cb8c226411e4d6419a02d66420ee2b6afea4c58e57f44aafc65480cbdbbe5523"
+    "source_sha256": "e546e922f481c98183521825ed3b25df21a8f404adf4ff8cb391ca8cd7a5f56f"
   },
   {
     "anchor": "fn-a0dc11b7e7393d13",
@@ -22232,7 +22234,7 @@
     "signature": "int Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source)",
     "fn": "int xv::net::Ipv4Layer::send_bootstrap(NetworkInterface &interface, Packet &packet, unsigned source)",
     "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@send_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#i#",
-    "source_sha256": "0f280e655b4a1bc5eebbaf254afa606d1e6222971f549151177077b87351811a"
+    "source_sha256": "d510707c422513a5e99c41ce4648e01a2fc48a68f55954ee8df6b984f8ed37a3"
   },
   {
     "anchor": "fn-3bebdee13a445ad8",
@@ -22712,7 +22714,7 @@
     "fn": "int xv::net::ArpCache::send(Packet &packet, unsigned next_hop)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@ArpCache@F@send#&$@N@xv@N@net@S@Packet#i#",
-    "source_sha256": "ac4b7361cfe3bee1a80abb402c1a41258d3de9e98bfb7cd0952ce2a9cde8341c",
+    "source_sha256": "548db22572e0fe32f7d00ceb779889a0fa2fb733fd1d22acef668cdb8631b2e5",
     "hover_expectation": "observe"
   },
   {
@@ -22725,7 +22727,7 @@
     "fn": "void xv::net::ArpCache::receive(Packet &packet)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@ArpCache@F@receive#&$@N@xv@N@net@S@Packet#",
-    "source_sha256": "e0f73118fdfa1b7a0290d3b2df7c65271421712e6614a5a78719e2f5bb0e9fc6",
+    "source_sha256": "5a06975dbff8eb7f4d6f668d4376cd3eeba06caca06c1de2cead25f41fe202dd",
     "hover_expectation": "observe"
   },
   {
@@ -22765,7 +22767,7 @@
     "fn": "void xv::net::ArpCache::clear()",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@ArpCache@F@clear#",
-    "source_sha256": "ae94e4c6cac9c26c71ac311b5eb900917b74bf9922ba185e4e6bee0c0a3ff14d"
+    "source_sha256": "923b85aa32139bb7f38a459370111e55e357c43a7a03c442bfeafb04145a7e69"
   },
   {
     "anchor": "fn-1deae4753a85af91",
@@ -23492,7 +23494,7 @@
     "fn": "bool xv::net::SocketRegistry::deliver(Packet &packet, Endpoint source, Endpoint destination, unsigned offset, unsigned length)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@deliver#&$@N@xv@N@net@S@Packet#$@N@xv@N@net@S@Endpoint#S2_#i#i#",
-    "source_sha256": "27e7e977e84323585510a352b1cc1bebc8f3fd7fa4574e2773f0e7c03f089c92",
+    "source_sha256": "f639248f1f8398473bcbe598286fc7f253740ddd2b890ace0771e1c55dcc8264",
     "hover_expectation": "observe"
   },
   {
@@ -23583,7 +23585,7 @@
     "fn": "void xv::net::SocketRegistry::tick(unsigned long now)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@tick#l#",
-    "source_sha256": "fd69a935a40e1ee5ff85b2d3f7aca9929ba024565a1d7c4a840858b633d0659e",
+    "source_sha256": "3f6e01f7cb1ccd36acce87bb162177dd0d72555441cd07c14d351cdf61510616",
     "hover_expectation": "observe"
   },
   {
@@ -23605,11 +23607,11 @@
     "source": "kernel/net/socket/registry.cppm",
     "spelling": "SocketRegistry",
     "qualified": "xv::net::SocketRegistry::SocketRegistry",
-    "signature": "constexpr SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr) : ip_(ip), udp_(udp), tcp_(tcp), icmp_(icmp)",
-    "fn": "constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr) : ip_(ip), udp_(udp), tcp_(tcp), icmp_(icmp)",
+    "signature": "constexpr SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr)",
+    "fn": "constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr)",
     "kind": "Constructor",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@SocketRegistry#&$@N@xv@N@net@S@Ipv4Layer#&$@N@xv@N@net@S@UdpProtocol#&$@N@xv@N@net@S@TcpProtocol#*$@N@xv@N@net@S@IcmpProtocol#",
-    "source_sha256": "d5ce17184fbb615f5019d49adf9a8854ddaa6161ab63027478cde677486b0c84",
+    "source_sha256": "e0e2ab507f55d53f1c591b43a7ba8ce0dbff13ce066e660c9daed1f17994bfd3",
     "hover_expectation": "observe"
   },
   {
@@ -24012,7 +24014,7 @@
     "fn": "void xv::net::TcpSocket::incoming(Endpoint, Endpoint, const unsigned char *p, unsigned length)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@incoming#$@N@xv@N@net@S@Endpoint#S0_#*1c#i#",
-    "source_sha256": "cd93fc72be50049ecaadc15919476f2fc0c923e5fe9ad3db3be331b29c9505be",
+    "source_sha256": "c3087f5ab1bc0bed7c8f19597c397bc1f8b66cb0e2513a148012de0fade7f066",
     "hover_expectation": "observe"
   },
   {
@@ -24073,7 +24075,7 @@
     "source": "kernel/net/socket/tcp_sender.cpp",
     "document": "docs/functions/kernel/net/socket/tcp_sender.cpp.md",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@pump#",
-    "source_sha256": "c0e42fefe3c7e73275a127b2c16d7dbb744d0514471f099471a22a187f0ed7e5",
+    "source_sha256": "b70ac36b4234d07432ba751339a2c03ecdb7bfce60694ca097b027e2ac033ab6",
     "qualified": "xv::net::TcpSocket::pump",
     "spelling": "TcpSocket::pump",
     "signature": "void TcpSocket::pump()",
@@ -24233,7 +24235,7 @@
     "fn": "int xv::net::TcpSocket::connect(Endpoint peer, bool nonblocking)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@connect#$@N@xv@N@net@S@Endpoint#b#",
-    "source_sha256": "b28d24413760d4bdea6b1b23daed7a4f40385546be47a7b7527808ceb4d2cb9d",
+    "source_sha256": "2878ea76ffa64b4bd1d814fecc5c1037f175a6ea94262f877c199fe260cc6c49",
     "hover_expectation": "observe"
   },
   {
@@ -24285,7 +24287,7 @@
     "fn": "int xv::net::TcpSocket::read(xv::io::Buffer destination, int count)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@read#$@N@xv@N@io@S@Buffer#I#",
-    "source_sha256": "de137fd4da4ff3a16a5d6abece9e299125e1544f42a4f5ae1be19e4b951e5f7c",
+    "source_sha256": "7a5708e10dc97a97421f114d5a629d893ee8e6325205cd2a00a5ef2c7f24186d",
     "hover_expectation": "observe"
   },
   {
@@ -24298,7 +24300,7 @@
     "fn": "int xv::net::TcpSocket::write(xv::io::Buffer source, int count)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@write#$@N@xv@N@io@S@Buffer#I#",
-    "source_sha256": "bdc04b5b0c64b707871d45d062077b3df26a7c6d55c445be6943435cd59efef7",
+    "source_sha256": "b751f462bd4d2fe4fcd7d3533740a9aebe95e0517d21203c2d20d4fd1e42da7d",
     "hover_expectation": "observe"
   },
   {
@@ -24350,7 +24352,7 @@
     "fn": "int xv::net::TcpSocket::shutdown(int how)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@shutdown#I#",
-    "source_sha256": "b4a8849a652c357221d33cd13961c7bd49c65524dd11aed5034382091ab9bda5",
+    "source_sha256": "41e3d9cfd326fcff77e6444698004e02aaafe5f3a675a18d78ff80b0ec5f93aa",
     "hover_expectation": "observe"
   },
   {
@@ -24363,7 +24365,7 @@
     "fn": "void xv::net::TcpSocket::close()",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@TcpSocket@F@close#",
-    "source_sha256": "b7d102c0c2880cee0f5a1a798f4e1830dff13c334f1662e0ccd198291025c3fa",
+    "source_sha256": "794cf6edc1f3d3b9239d874ab630d199d1baf3ee88b86f2c9f473e13115d9cb9",
     "hover_expectation": "observe"
   },
   {
@@ -39613,7 +39615,7 @@
     "kind": "StaticMethod",
     "usr": "c:syspoll.cpp@N@xv@N@syscall@aN@S@PollFlow@F@complete#&$@N@xv@N@syscall@aN@S@PollFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "566fe304c54beac7c92833e8789b19778852c366db80ef5b05da63150b946dbb"
+    "source_sha256": "c4491c0b62825c887eda7063f287dc90acbb1bb426a81f11be422783bdecdb1b"
   },
   {
     "anchor": "fn-f37c560b975a24bb",
@@ -40146,7 +40148,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@assign#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "adf8a6761367dbe81f718de7b4c5d909fae663701daaf5dac1e1e66a5fabc701"
+    "source_sha256": "c9e3fe9d44d484a05b71f5e158c3ed10f70f4fc6512113dc6040f058b8e5a0f4"
   },
   {
     "anchor": "fn-aef0663a46b9a706",
@@ -40159,7 +40161,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@find_cached#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "e04ab355d8b393904b50c26207933a3b1a81d6877d1623cddbebd501ad82ed76"
+    "source_sha256": "903fde6c09663a2b31546cf8f7709e341895ef925d71726d8812e943f1849e84"
   },
   {
     "anchor": "fn-9a908b7f24ac34c4",
@@ -40172,7 +40174,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@find_unused#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "3a94da9385296ffece33762fea4dd2f1108b9cf2879a4f6adae2c7f599a8046d"
+    "source_sha256": "72629f486db63f48beea460a9628f5744f0c18cab2ffb09bb940ce628624f9c5"
   },
   {
     "anchor": "fn-e16bec18fd5129a4",
@@ -40206,12 +40208,12 @@
     "source": "kernel/fs/cache/flow.cppm",
     "spelling": "missing",
     "qualified": "xv::fs::LruBlockCache::GetFlow::missing",
-    "signature": "static void missing(Context &) noexcept",
-    "fn": "static void xv::fs::LruBlockCache::GetFlow::missing(Context &) noexcept",
+    "signature": "static void missing(Context &c) noexcept",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::missing(Context &c) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@missing#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "262a5c96faff184ae9027a355687f9b74b28c8490cd6d71e17e4cd7679739c79"
+    "source_sha256": "30b8e3bc3f4fbc790a6007d8f45362a20101191d957fceb65cccb94806741867"
   },
   {
     "anchor": "fn-e4f9ebd802ac274d",
@@ -40224,7 +40226,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@retain#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "8a9bb9bcdfa2d1cd976646eb3a72c03f3d43883f8b09c2f7c1ebbfb69d6cf201"
+    "source_sha256": "a4dbbd1f99634e6c5e0a13f117df186e63d73bb92bd1e3dae44453eae0a7728f"
   },
   {
     "anchor": "fn-cb38bac0ddefb71a",
@@ -40237,7 +40239,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unlock_registry#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "8fa21a331e87ac65fcbadf7dde386a356e11ea1869df658eddc174100d55d0b7"
+    "source_sha256": "e91c3b85557cce85984ae7d384448e50c055e977201cdf1e21598f172ae07c18"
   },
   {
     "anchor": "fn-3eddfdb897b66873",
@@ -40250,7 +40252,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@drop#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "0f269cff80a3f4cf26ff35cd5bb747d317019525ed165247f9a93769d9b24c5a"
+    "source_sha256": "71cbd700ac7f5c04f4cec84f8f9f9a87376c6130ba3411075632cd38092852da"
   },
   {
     "anchor": "fn-12b469235df9ae8b",
@@ -40279,19 +40281,6 @@
     "source_sha256": "83f9fd10c9f994325adb217ca0b62fe42d3747735b6cba3bbd908391a973b50c"
   },
   {
-    "anchor": "fn-ebeaca335eefb03c",
-    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
-    "source": "kernel/fs/cache/flow.cppm",
-    "spelling": "move_front",
-    "qualified": "xv::fs::LruBlockCache::ReleaseFlow::move_front",
-    "signature": "static void move_front(Context &c) noexcept",
-    "fn": "static void xv::fs::LruBlockCache::ReleaseFlow::move_front(Context &c) noexcept",
-    "kind": "StaticMethod",
-    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@move_front#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
-    "hover_expectation": "observe",
-    "source_sha256": "58c232b4c8db36acbc2e9525a931dd7f83279387f5694c886a8caaa4c4a27229"
-  },
-  {
     "anchor": "fn-cf6ba582715e3f19",
     "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
     "source": "kernel/fs/cache/flow.cppm",
@@ -40315,7 +40304,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@unlock_registry#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "8fa21a331e87ac65fcbadf7dde386a356e11ea1869df658eddc174100d55d0b7"
+    "source_sha256": "a785f64227653f565f4ca21e675b629171b621e079a46c6c8eb371783193e7c5"
   },
   {
     "anchor": "fn-dcd1734401a1fbac",
@@ -40328,7 +40317,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@unused#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "ab4861622c1fe389b623181bfedfbf595887131d97ded3fa6887160c5fb2a68c"
+    "source_sha256": "8ce5bd4078a7e9645ecc289b218ebc855950737be3781bdb530e1a1f7daf6661"
   },
   {
     "anchor": "fn-0d4a9ed39296ce30",
@@ -46932,7 +46921,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@S@ExitFlow@F@family#&$@N@xv@N@process@S@ProcessManager@S@ExitFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "d2875abe15f6126199934b0db3ce0538b90660e37be021c8d5c832bc19e529a4"
+    "source_sha256": "1fcc999473985b1594d35f53df4ced5d470f286050d639ce2a04cd0ff1aa3833"
   },
   {
     "anchor": "fn-b4a8db086931ec68",
@@ -47257,7 +47246,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@S@InspectFlow@F@inspect#&$@N@xv@N@process@S@ProcessManager@S@InspectFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "4134375b4b1932bbf20906f36cbd5a76d38837408285bb18038ca55e5cfee261"
+    "source_sha256": "4a301f4c1871ed75ba96f5066f58f9bbd3c36645844ccf2008ae5bae21f922fb"
   },
   {
     "anchor": "fn-1012f4475c3bf528",
@@ -47348,7 +47337,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@S@KillFlow@F@permitted#&$@N@xv@N@process@S@ProcessManager@S@KillFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "eb7be5abe487defed580687ff014758d94940056c05534032859b05eb6e3d3c8"
+    "source_sha256": "eac71c3b75a34500df60c4b685e7b35ab1fb4fc7271611961e1b61f3393d7974"
   },
   {
     "anchor": "fn-8fae86f2accfe852",
@@ -48739,7 +48728,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@S@DeliverSignalFlow@F@prepare#&$@N@xv@N@process@S@ProcessManager@S@DeliverSignalFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "3867bab3735fe4b8dd7466ce8c96356c824b9aad3d0154c8f62f614eb30bb240"
+    "source_sha256": "7b8eff0c35f7a8ef17ef8bb74fd2f42670b3e871ad75a66fd8a287f55ef62d51"
   },
   {
     "anchor": "fn-c876d4c97652ad8f",
@@ -48999,7 +48988,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@S@SendPidSignalFlow@F@permitted#&$@N@xv@N@process@S@ProcessManager@S@SendPidSignalFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "f55f27ab5d0720163b9056924ab28c2e1e826364ce8b00501f53fa122308a091"
+    "source_sha256": "f1ab7b9387599aa65a55557be94e9e83796a351590b199f9fcfda1619d07f778"
   },
   {
     "anchor": "fn-5d0b53ba75d5ff99",
@@ -49496,45 +49485,6 @@
     "source_sha256": "7e6c3690180496d0de7ab47f1f70f7ea4103f439160d24decbe76462605308e2"
   },
   {
-    "anchor": "fn-e67797e43f68331e",
-    "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
-    "source": "kernel/process/wait/poll_wait.cpp",
-    "spelling": "expired",
-    "qualified": "xv::process::WaitChannels::ExpireFlow::expired",
-    "signature": "static bool expired(Context &c) noexcept",
-    "fn": "static bool xv::process::WaitChannels::ExpireFlow::expired(Context &c) noexcept",
-    "kind": "StaticMethod",
-    "usr": "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@expired#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S",
-    "hover_expectation": "observe",
-    "source_sha256": "310f39acd6f8d095a1ef5129e158d968a75d667580e3aee2d821546c43644dc0"
-  },
-  {
-    "anchor": "fn-de9f36dff4a301e5",
-    "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
-    "source": "kernel/process/wait/poll_wait.cpp",
-    "spelling": "notify",
-    "qualified": "xv::process::WaitChannels::ExpireFlow::notify",
-    "signature": "static void notify(Context &c) noexcept",
-    "fn": "static void xv::process::WaitChannels::ExpireFlow::notify(Context &c) noexcept",
-    "kind": "StaticMethod",
-    "usr": "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@notify#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S",
-    "hover_expectation": "observe",
-    "source_sha256": "a312cc1dbaa58470d79fb3984c068506125dd00072e083e7b90fd6d403b4a704"
-  },
-  {
-    "anchor": "fn-7d94406323895bb7",
-    "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
-    "source": "kernel/process/wait/poll_wait.cpp",
-    "spelling": "scan",
-    "qualified": "xv::process::WaitChannels::ExpireFlow::scan",
-    "signature": "static void scan(Context &c) noexcept",
-    "fn": "static void xv::process::WaitChannels::ExpireFlow::scan(Context &c) noexcept",
-    "kind": "StaticMethod",
-    "usr": "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@scan#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S",
-    "hover_expectation": "observe",
-    "source_sha256": "10ab5dd5089a549ac44db759bfc4941cf6a181f9ff52af6e9daccc8b1e89bd24"
-  },
-  {
     "anchor": "fn-50f5b6aba04e58ef",
     "document": "docs/functions/kernel/process/wait/wait_channels.cpp.md",
     "source": "kernel/process/wait/wait_channels.cpp",
@@ -49597,7 +49547,7 @@
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@process@S@WaitChannels@S@WakeFlow@F@pollers#&$@N@xv@N@process@S@WaitChannels@S@WakeFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "f74e979aeb2a0e4a64119052737a7b19a8bec61b51565cd2fdb845b6518d8725"
+    "source_sha256": "ec42d81d07c18d478db7f4ffe91dc520b91a7174e091c806d0a9c65088c3ab02"
   },
   {
     "anchor": "fn-04d2dcc8eadcf2da",
@@ -57548,12 +57498,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "handled",
     "qualified": "xv::trap::detail::KernelStackPrepareFlow::handled",
-    "signature": "static void handled(Context &c) noexcept { c.result = 1; }",
-    "fn": "static void xv::trap::detail::KernelStackPrepareFlow::handled(Context &c) noexcept { c.result = 1; }",
+    "signature": "static void handled(Context &c) noexcept",
+    "fn": "static void xv::trap::detail::KernelStackPrepareFlow::handled(Context &c) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@KernelStackPrepareFlow@F@handled#&$@N@xv@N@trap@N@detail@S@KernelStackPrepareFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "026a77120adb66f10e7e9fef208ad2b4d81058391da21a587bd76237a2092b01"
+    "source_sha256": "0cb4081f9f630d64996e095580e5161b7891825f3bd5ed6d537aeec6f22085d5"
   },
   {
     "anchor": "fn-b50dd7197213a582",
@@ -57639,12 +57589,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "unlocked",
     "qualified": "xv::trap::detail::KernelStackPrepareFlow::unlocked",
-    "signature": "static bool unlocked(Context &) noexcept { return !xv::process::current_cpu()->noff; }",
-    "fn": "static bool xv::trap::detail::KernelStackPrepareFlow::unlocked(Context &) noexcept { return !xv::process::current_cpu()->noff; }",
+    "signature": "static bool unlocked(Context &) noexcept",
+    "fn": "static bool xv::trap::detail::KernelStackPrepareFlow::unlocked(Context &) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@KernelStackPrepareFlow@F@unlocked#&$@N@xv@N@trap@N@detail@S@KernelStackPrepareFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "8ca14e110aee30009f99bcce59e41e90704f6925d605176ee060da8d72948182"
+    "source_sha256": "731b5248a6a51610daff97f72fc7d513c543b8dabb23e769cf6ac146693c0d8c"
   },
   {
     "anchor": "fn-a48c4ce3213c5c53",
@@ -57691,12 +57641,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "space",
     "qualified": "xv::trap::detail::RefillReserveFlow::space",
-    "signature": "static bool space(Context &c) noexcept { return c.reserve.count < StackReservePages; }",
-    "fn": "static bool xv::trap::detail::RefillReserveFlow::space(Context &c) noexcept { return c.reserve.count < StackReservePages; }",
+    "signature": "static bool space(Context &c) noexcept",
+    "fn": "static bool xv::trap::detail::RefillReserveFlow::space(Context &c) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@RefillReserveFlow@F@space#&$@N@xv@N@trap@N@detail@S@RefillReserveFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "49a371bcf9249cf99befddba1573bcce8e3d3d4018d67285d65b9c30d4bed8b3"
+    "source_sha256": "e6e157ba323e92bbd821aff52db1ff3df59fa07d002857bdcd537078e14ce260"
   },
   {
     "anchor": "fn-094a84f1f1e09728",
@@ -57730,12 +57680,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "exists",
     "qualified": "xv::trap::detail::SchedulerStackFlow::exists",
-    "signature": "static bool exists(Context &c) noexcept { return c.base != 0; }",
-    "fn": "static bool xv::trap::detail::SchedulerStackFlow::exists(Context &c) noexcept { return c.base != 0; }",
+    "signature": "static bool exists(Context &c) noexcept",
+    "fn": "static bool xv::trap::detail::SchedulerStackFlow::exists(Context &c) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@SchedulerStackFlow@F@exists#&$@N@xv@N@trap@N@detail@S@SchedulerStackFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "62bfa8fbf33a95ce32da92cdc6baa8b492c7bdf7bc393a219d091651b6352989"
+    "source_sha256": "27229369a69f33514fe962c00ac25a69b488ddc66d88c380bf2d2f5b81aa7fab"
   },
   {
     "anchor": "fn-ecee314aeadf994d",
@@ -57756,12 +57706,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "refill",
     "qualified": "xv::trap::detail::SchedulerStackFlow::refill",
-    "signature": "static void refill(Context &) noexcept { refill_stack_reserve(); }",
-    "fn": "static void xv::trap::detail::SchedulerStackFlow::refill(Context &) noexcept { refill_stack_reserve(); }",
+    "signature": "static void refill(Context &) noexcept",
+    "fn": "static void xv::trap::detail::SchedulerStackFlow::refill(Context &) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@SchedulerStackFlow@F@refill#&$@N@xv@N@trap@N@detail@S@SchedulerStackFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "58f7b816cb0fdf3f2fd3fc340bc978ff591157e6b182ab76e5986a5eaf64f335"
+    "source_sha256": "3883437ef3788e99fa7ae2ef82136b03f6669b371f2a2a91b02f07c6239dbc7c"
   },
   {
     "anchor": "fn-448d44a675f4aef1",
@@ -57795,12 +57745,12 @@
     "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
     "spelling": "mask",
     "qualified": "xv::trap::detail::UserReturnFlow::mask",
-    "signature": "static void mask(Context &) noexcept { xv::arch::intr_off(); }",
-    "fn": "static void xv::trap::detail::UserReturnFlow::mask(Context &) noexcept { xv::arch::intr_off(); }",
+    "signature": "static void mask(Context &) noexcept",
+    "fn": "static void xv::trap::detail::UserReturnFlow::mask(Context &) noexcept",
     "kind": "StaticMethod",
     "usr": "c:@N@xv@N@trap@N@detail@S@UserReturnFlow@F@mask#&$@N@xv@N@trap@N@detail@S@UserReturnFlow@S@Context#S",
     "hover_expectation": "observe",
-    "source_sha256": "f80c6dc9db794add3d6a772ec8847bc824e515c58f5a2f2d291a41afc82e4a83"
+    "source_sha256": "4c6f32eedc7459218e4cfb6e7457ef68481016c7a1d976e39ac6e2c57a1c3b23"
   },
   {
     "anchor": "fn-915b47969452a327",
@@ -58663,7 +58613,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@F@configured_scheduler_kind#",
     "hover_expectation": "observe",
-    "source_sha256": "1d29f9ee42d5e09318ff1ad5455183602efeec07c2bcec2042886caf78a3588c"
+    "source_sha256": "6b841c6687035ec48eb15fb24a6ddde3d4e9a98c11a179503bd0b8fb53dddd7d"
   },
   {
     "anchor": "fn-fb111739818ea246",
@@ -58676,7 +58626,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@F@initialize#$@N@xv@N@scheduling@E@Kind#",
     "hover_expectation": "observe",
-    "source_sha256": "56aa99987fd6db6d48553fac089e7c3dfc9a0c9ae2949c06ea4e24398503d06a"
+    "source_sha256": "a46cdb200d74a69a299f3d9356261ee2047a173b0c2fa34e1e7bfd4f1a0eddad"
   },
   {
     "anchor": "fn-9e017e77aabcb69f",
@@ -58884,7 +58834,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@N@detail@F@scheduling_time#",
     "hover_expectation": "observe",
-    "source_sha256": "3b3124e05b666f96e813708de4d502e35e7d218a6d273f6eec89c770ad1ad95c"
+    "source_sha256": "3312a51bd78e494949d16d2b108ed99870d1ce5afa5dd3f53ee39c826086d047"
   },
   {
     "anchor": "fn-e18dfebc00a3eda4",
@@ -59326,7 +59276,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@trap@N@detail@F@scheduler_timer_tick#",
     "hover_expectation": "observe",
-    "source_sha256": "c9cc90909ea64bc5dd6c07b29e2e8fdd9fc1c49d4e36d22b36235617332bb8bc"
+    "source_sha256": "e673c9ea7f6ca419fbe19cafb9ac8934fe4956f1e3397998974dcd13cd09a6f6"
   },
   {
     "anchor": "fn-93875b1406a5b311",
@@ -60429,7 +60379,7 @@
     "fn": "void xv::process::detail::initialize_process_objects(unsigned long bytes, unsigned long alignment)",
     "source": "kernel/process/storage/kernel_platform.cpp",
     "usr": "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
-    "source_sha256": "c00ed62304b225317764c0203092507ed86c58c19ee146b3b546183aadaa5c78",
+    "source_sha256": "9bc5d77acd8af8dfa53df778c615a00ce08e3db55c966d30ca328fdc998a23ed",
     "anchor": "fn-7d233fbcfe20643c",
     "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
     "hover_expectation": "observe",
@@ -60442,7 +60392,7 @@
     "fn": "void *xv::process::detail::allocate_process_object()",
     "source": "kernel/process/storage/kernel_platform.cpp",
     "usr": "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
-    "source_sha256": "9981935aa73331a086dd5d0db99b3ec0041250e877e3b0b719815399aae15c66",
+    "source_sha256": "fbd6a296a2ac7411d6717d4ae6f3e25733c83944678c99eb2d980e5dbf6db69c",
     "anchor": "fn-caa4a1fb931599c7",
     "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
     "hover_expectation": "observe",
@@ -60455,7 +60405,7 @@
     "fn": "void xv::process::detail::free_process_object(void *object)",
     "source": "kernel/process/storage/kernel_platform.cpp",
     "usr": "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
-    "source_sha256": "d818041a0acb419e72fd8f39402ba4528d343768b8e4bbd65fdb9fd1b931d1eb",
+    "source_sha256": "81669ae85ac54b30ef16c4322b5115490fafce2f8bcde2980260e136ebb638b4",
     "anchor": "fn-9ac05fbc453dc8b6",
     "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
     "hover_expectation": "observe",
@@ -60523,7 +60473,7 @@
     "fn": "bool xv::net::SocketRegistry::deliver_echo(Packet &packet, const IpDatagram &d)",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@deliver_echo#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
-    "source_sha256": "37f7cf248868e4fb2b0029b8bf4f55d40a4c463235abf4b9cf0bb8a85913ee62",
+    "source_sha256": "532325ccc72916bc14e3ddcacf8a430ef0b92b3c74812c4c3735268769ccb20f",
     "hover_expectation": "observe"
   },
   {
@@ -60536,7 +60486,7 @@
     "fn": "IcmpProtocol &xv::net::SocketRegistry::icmp()",
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@net@S@SocketRegistry@F@icmp#",
-    "source_sha256": "8b9e7a0d5c3c57814d7b8d81b3b86b6d1bda8b8f647195d1f495e11eb8a0cb96",
+    "source_sha256": "60a55454a50f50818a4e669f01a3e7a50aaed02ca42d42e83d56e592447501bf",
     "hover_expectation": "observe"
   },
   {
@@ -66374,7 +66324,7 @@
     "signature": "void install_proc_providers(ProcFileSystem &filesystem)",
     "spelling": "install_proc_providers",
     "fn": "void xv::fs::install_proc_providers(ProcFileSystem &filesystem)",
-    "source_sha256": "4a2546a5371902652c19749f0fd06079a238a93139481dbf4596c1a4e284ed3f"
+    "source_sha256": "3183d666c39325387224100f4d65c23569748a94c835aac7f6c69a8595925895"
   },
   {
     "anchor": "fn-cb80a780d0d6b5d6",
@@ -66953,10 +66903,10 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
     "hover_expectation": "observe",
-    "signature": "bool ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)",
-    "spelling": "inspect_exec",
-    "fn": "bool ProcessManager::xv::process::ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)",
-    "source_sha256": "28d63e6dcba7082d38aece99bd19e30b9cfc0f008048362cd68bba6bd65274c9"
+    "signature": "bool ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)",
+    "spelling": "ProcessManager::inspect_exec",
+    "fn": "bool xv::process::ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)",
+    "source_sha256": "af17727feae3180f4091c52053fc37825ff1138c896a1a755d32cbd16b15a1b1"
   },
   {
     "anchor": "fn-0f9629832bbc85a8",
@@ -66966,10 +66916,10 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@F@cpu_statistics#i#&$@N@xv@N@stats@S@Cpu#",
     "hover_expectation": "observe",
-    "signature": "bool cpu_statistics(unsigned cpu,CpuStatistics &result)",
+    "signature": "bool cpu_statistics(unsigned cpu, CpuStatistics &result)",
     "spelling": "cpu_statistics",
-    "fn": "bool xv::process::cpu_statistics(unsigned cpu,CpuStatistics &result)",
-    "source_sha256": "94740e0b1d82e27c7d06c6888be7eb29f333e2a6034db0ca26ea609c78946bbe"
+    "fn": "bool xv::process::cpu_statistics(unsigned cpu, CpuStatistics &result)",
+    "source_sha256": "0eb160aa438a26b807dbb56ed0fadaa306252016dd7aa213eae169d5e2d043d5"
   },
   {
     "anchor": "fn-6da719ed0fea92a2",
@@ -66982,7 +66932,7 @@
     "signature": "SystemStatistics system_statistics()",
     "spelling": "system_statistics",
     "fn": "SystemStatistics xv::process::system_statistics()",
-    "source_sha256": "114b11b9078eb3defa0e491c3ab4185eab31a22365bd59e3b552e9b38e7dd955"
+    "source_sha256": "3b79cb841922a81bdfd258f73b1ec8feee186045765dd65a37f40379634f883a"
   },
   {
     "anchor": "fn-c8afa39d3fd38a5f",
@@ -66995,7 +66945,7 @@
     "signature": "void account_timer(bool user)",
     "spelling": "account_timer",
     "fn": "void xv::process::account_timer(bool user)",
-    "source_sha256": "dcffee5ea852562755cf0e1530fe6f3b9d6904dcd3df181dd5a73df2d930eede"
+    "source_sha256": "32664c94a3b5ada513376833b340c802276249e15c6563b3100dfbec7eb21f7f"
   },
   {
     "anchor": "fn-9cf7888dc70699df",
@@ -67008,7 +66958,7 @@
     "signature": "void account_external_interrupt()",
     "spelling": "account_external_interrupt",
     "fn": "void xv::process::account_external_interrupt()",
-    "source_sha256": "4bf9ce0ff50f9e288390fd0d665c87e839b87b5af4bd4514be5123b36fec8a3a"
+    "source_sha256": "02ab5c8201f0ae655891164733e1be5096f970892cb23bbacf21176407d03928"
   },
   {
     "anchor": "fn-f5316ba7fe99bd3c",
@@ -67021,7 +66971,7 @@
     "signature": "void account_dispatch()",
     "spelling": "account_dispatch",
     "fn": "void xv::process::account_dispatch()",
-    "source_sha256": "5ccb7195139025c82f8d0ffcd579f8a88bd4e37a552cc257d12034b9203d1512"
+    "source_sha256": "3ca506314e00c6703848ecadf7fea26fa58449ac32fc0424b7d643e23d01360c"
   },
   {
     "anchor": "fn-a80386bf7a0d6e46",
@@ -67034,7 +66984,7 @@
     "signature": "void *pin_controlling_terminal(void *(*pin)(void *))",
     "spelling": "pin_controlling_terminal",
     "fn": "void *xv::process::pin_controlling_terminal(void *(*pin)(void *))",
-    "source_sha256": "e5429b7fbe3cb6a53680d8fe2f95d34f66f3653260abb0192cd709fa5c17f881"
+    "source_sha256": "0c4b931c84a81ff9a6b10cea9e38cc87fbf1eabc0f6b7fe0de8fefe732b13482"
   },
   {
     "anchor": "fn-fdec1bd9dc3e9eaa",
@@ -67044,10 +66994,10 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@process@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
     "hover_expectation": "observe",
-    "signature": "bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)",
+    "signature": "bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)",
     "spelling": "inspect_exec",
-    "fn": "bool xv::process::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)",
-    "source_sha256": "910649559ff653f9b2dfc5e56bebb2bb8a3122b5a6a8e090d4f55563b43c596e"
+    "fn": "bool xv::process::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)",
+    "source_sha256": "8bcf671be398f3dcccf135234fbfe12bdf04007b926ba5aa6c6f37b887d9e2d6"
   },
   {
     "anchor": "fn-cfdae64c12d3d113",
@@ -67234,7 +67184,7 @@
     "signature": "void account_timer(bool user)",
     "spelling": "account_timer",
     "fn": "void xv::trap::detail::account_timer(bool user)",
-    "source_sha256": "56a941f73596f002860136b215f281a65cc0984551e4ce4eed1dbeaf1a126636"
+    "source_sha256": "a63c9f46a5540c674d2294abac0556ccdb852d903a2cef0c165571e030685be3"
   },
   {
     "anchor": "fn-51ab51edcccc117b",
@@ -67247,7 +67197,7 @@
     "signature": "void account_external_interrupt()",
     "spelling": "account_external_interrupt",
     "fn": "void xv::trap::detail::account_external_interrupt()",
-    "source_sha256": "3846cf15e5b14bde2fb57b41ac8c3ce695d2b9fe420ad4caa5afa57597168a6d"
+    "source_sha256": "ce7ed2bd4d390c5af6c1e642451281d344c792ba796302540ab36d7ba4dfbecf"
   },
   {
     "anchor": "fn-3b4ed7f29ddf56dc",
@@ -68535,5 +68485,668 @@
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@map_device#*1*v#i#*1$@N@xv@N@process@S@AddressSpace#",
     "hover_expectation": "observe",
     "source_sha256": "3394b18fb2a2cbf03fbaf201eb8301e1bcda410187b7500d3d4740865f1bb62a"
+  },
+  {
+    "anchor": "fn-d19f233ae3a4cce9",
+    "document": "docs/functions/kernel/net/core/service.cpp.md",
+    "source": "kernel/net/core/service.cpp",
+    "qualified": "xv::net::next_timer_deadline",
+    "signature": "unsigned long next_timer_deadline()",
+    "spelling": "next_timer_deadline",
+    "fn": "unsigned long xv::net::next_timer_deadline()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@net@F@next_timer_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "d00747823b0b6e604575b844fa4d32e50705e1936ead6add5bce7060b21511f2"
+  },
+  {
+    "anchor": "fn-2beb5ecbf5b62349",
+    "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
+    "source": "kernel/net/platform/kernel_platform.cpp",
+    "qualified": "xv::net::start_timer_worker",
+    "signature": "void start_timer_worker()",
+    "spelling": "start_timer_worker",
+    "fn": "void xv::net::start_timer_worker()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@net@F@start_timer_worker#",
+    "hover_expectation": "observe",
+    "source_sha256": "fcb86793fff61143d67496dcc0e02642d731607d8ebdf979142f6b0540f6f247"
+  },
+  {
+    "anchor": "fn-3918e1d92132206c",
+    "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
+    "source": "kernel/net/platform/kernel_platform.cpp",
+    "qualified": "xv::net::detail::timers_changed",
+    "signature": "void timers_changed()",
+    "spelling": "timers_changed",
+    "fn": "void xv::net::detail::timers_changed()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@net@N@detail@F@timers_changed#",
+    "hover_expectation": "observe",
+    "source_sha256": "a8f2c4947b59131c070ecdac37111a180b24cfe942f75d4ba2b86c60e130e13c"
+  },
+  {
+    "anchor": "fn-a7467d39781652f2",
+    "document": "docs/functions/kernel/net/platform/platform.cppm.md",
+    "source": "kernel/net/platform/platform.cppm",
+    "qualified": "xv::net::detail::TimerChange::~TimerChange",
+    "signature": "~TimerChange()",
+    "spelling": "~TimerChange",
+    "fn": "xv::net::detail::TimerChange::~TimerChange()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@net@N@detail@S@TimerChange@F@~TimerChange#",
+    "hover_expectation": "observe",
+    "source_sha256": "ad2bae798a72c11b30d0691fd04a88bd3fa6d1700b0d3063dec703f6dbc2f446"
+  },
+  {
+    "anchor": "fn-31d8638427697b99",
+    "document": "docs/functions/kernel/net/link/arp.cpp.md",
+    "source": "kernel/net/link/arp.cpp",
+    "qualified": "xv::net::ArpCache::next_deadline",
+    "signature": "unsigned long ArpCache::next_deadline()",
+    "spelling": "ArpCache::next_deadline",
+    "fn": "unsigned long xv::net::ArpCache::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@ArpCache@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "c54bf8c539cfb7242b25959bbd122dc77fbcdce752d61ce481b37a7b08af816c"
+  },
+  {
+    "anchor": "fn-11f0d193b659a9cf",
+    "document": "docs/functions/kernel/net/bridge/bridge.cpp.md",
+    "source": "kernel/net/bridge/bridge.cpp",
+    "qualified": "xv::net::BridgeInterface::next_deadline",
+    "signature": "unsigned long BridgeInterface::next_deadline()",
+    "spelling": "BridgeInterface::next_deadline",
+    "fn": "unsigned long xv::net::BridgeInterface::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@BridgeInterface@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "f11f242bd08daac5b2e39da6012fe5f470a2645e7b163a2b13fdd9cd6747f70c"
+  },
+  {
+    "anchor": "fn-4958d65fcbceb71a",
+    "document": "docs/functions/kernel/net/dhcp/client.cpp.md",
+    "source": "kernel/net/dhcp/client.cpp",
+    "qualified": "xv::net::DhcpManager::next_deadline",
+    "signature": "unsigned long DhcpManager::next_deadline()",
+    "spelling": "DhcpManager::next_deadline",
+    "fn": "unsigned long xv::net::DhcpManager::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@DhcpManager@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "8969a6b443f1a3054283f3ec41ae4e0c3d258809e8c6c4ce3a35a1dab0ef0fd3"
+  },
+  {
+    "anchor": "fn-1b9e3ef59e8c9528",
+    "document": "docs/functions/kernel/net/interface/ethernet_interface.cppm.md",
+    "source": "kernel/net/interface/ethernet_interface.cppm",
+    "qualified": "xv::net::EthernetInterface::next_deadline",
+    "signature": "unsigned long next_deadline() override",
+    "spelling": "next_deadline",
+    "fn": "unsigned long xv::net::EthernetInterface::next_deadline() override",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@EthernetInterface@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "d070973f4fca1eeb113205e2aca078a257589c66303639380c4abb4073f2e4d4"
+  },
+  {
+    "anchor": "fn-528f930e95cd9717",
+    "document": "docs/functions/kernel/net/interface/interface.cpp.md",
+    "source": "kernel/net/interface/interface.cpp",
+    "qualified": "xv::net::InterfaceRegistry::next_deadline",
+    "signature": "unsigned long InterfaceRegistry::next_deadline()",
+    "spelling": "InterfaceRegistry::next_deadline",
+    "fn": "unsigned long xv::net::InterfaceRegistry::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@InterfaceRegistry@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "a9c69b2cd7f1312a07c37b416de4c1697229923bcaad962522f8fcf889a9045a"
+  },
+  {
+    "anchor": "fn-11b147b885cba8ca",
+    "document": "docs/functions/kernel/net/ip/ipv4.cpp.md",
+    "source": "kernel/net/ip/ipv4.cpp",
+    "qualified": "xv::net::Ipv4Layer::next_deadline",
+    "signature": "unsigned long Ipv4Layer::next_deadline()",
+    "spelling": "Ipv4Layer::next_deadline",
+    "fn": "unsigned long xv::net::Ipv4Layer::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@Ipv4Layer@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "ec81b12e7857a2ce8f0c646d5029d060caced1f78ca3fa8b62281dcdd8a12dd4"
+  },
+  {
+    "anchor": "fn-e10297cece18a0e6",
+    "document": "docs/functions/kernel/net/ip/reassembly.cpp.md",
+    "source": "kernel/net/ip/reassembly.cpp",
+    "qualified": "xv::net::Ipv4Reassembly::next_deadline",
+    "signature": "unsigned long Ipv4Reassembly::next_deadline()",
+    "spelling": "Ipv4Reassembly::next_deadline",
+    "fn": "unsigned long xv::net::Ipv4Reassembly::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@Ipv4Reassembly@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "5f2fce2ace436d3c12ccc4e6524781e1315ba3f65ca8f2e8efdc2a1aed0a3736"
+  },
+  {
+    "anchor": "fn-c26504ba748ea3dd",
+    "document": "docs/functions/kernel/net/interface/loopback.cpp.md",
+    "source": "kernel/net/interface/loopback.cpp",
+    "qualified": "xv::net::LoopbackInterface::next_deadline",
+    "signature": "unsigned long LoopbackInterface::next_deadline()",
+    "spelling": "LoopbackInterface::next_deadline",
+    "fn": "unsigned long xv::net::LoopbackInterface::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@LoopbackInterface@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "513e9b1f1e6209172e766c963078cd06e0d590e391a52a637a9a6ac07a137891"
+  },
+  {
+    "anchor": "fn-23fdd79f66589b42",
+    "document": "docs/functions/kernel/net/interface/interface.cppm.md",
+    "source": "kernel/net/interface/interface.cppm",
+    "qualified": "xv::net::NetworkInterface::next_deadline",
+    "signature": "virtual unsigned long next_deadline()",
+    "spelling": "next_deadline",
+    "fn": "virtual unsigned long xv::net::NetworkInterface::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@NetworkInterface@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "c4eb0daaac6f47567bf10bdce89cb377556cdcec20a2d2dd238246cab1603464"
+  },
+  {
+    "anchor": "fn-5bedfc231e07e127",
+    "document": "docs/functions/kernel/net/transport/retransmission_timer.cppm.md",
+    "source": "kernel/net/transport/retransmission_timer.cppm",
+    "qualified": "xv::net::RetransmissionTimer::deadline",
+    "signature": "unsigned long deadline() const",
+    "spelling": "deadline",
+    "fn": "unsigned long xv::net::RetransmissionTimer::deadline() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@RetransmissionTimer@F@deadline#1",
+    "hover_expectation": "observe",
+    "source_sha256": "dbc3ed5ad2997136e8e2c79c98126a8c572ab1ce1efa9136697a2db94afa7cd1"
+  },
+  {
+    "anchor": "fn-cb1a23d131c796cc",
+    "document": "docs/functions/kernel/net/socket/registry.cpp.md",
+    "source": "kernel/net/socket/registry.cpp",
+    "qualified": "xv::net::SocketRegistry::next_deadline",
+    "signature": "unsigned long SocketRegistry::next_deadline()",
+    "spelling": "SocketRegistry::next_deadline",
+    "fn": "unsigned long xv::net::SocketRegistry::next_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@SocketRegistry@F@next_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "52104da4b1595fe7d8430aacc831a940bceaf3c8f74515c28f06a1ec3a58f028"
+  },
+  {
+    "anchor": "fn-f99807ccfab21d02",
+    "document": "docs/functions/kernel/net/socket/tcp_socket.cpp.md",
+    "source": "kernel/net/socket/tcp_socket.cpp",
+    "qualified": "xv::net::TcpSocket::next_deadline",
+    "signature": "unsigned long TcpSocket::next_deadline() const",
+    "spelling": "TcpSocket::next_deadline",
+    "fn": "unsigned long xv::net::TcpSocket::next_deadline() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@net@S@TcpSocket@F@next_deadline#1",
+    "hover_expectation": "observe",
+    "source_sha256": "1735969e8375ce69d5015b708607289025598670a07c037c6c153e3d527ece14"
+  },
+  {
+    "anchor": "fn-88c6c45fee594eeb",
+    "document": "docs/functions/kernel/process/lifecycle/service.cpp.md",
+    "source": "kernel/process/lifecycle/service.cpp",
+    "qualified": "xv::process::create_kernel_task",
+    "signature": "void create_kernel_task(const char *name, void (*entry)())",
+    "spelling": "create_kernel_task",
+    "fn": "void xv::process::create_kernel_task(const char *name, void (*entry)())",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@process@F@create_kernel_task#*1C#*Fv()#",
+    "hover_expectation": "observe",
+    "source_sha256": "3efcbf41d9f311bc4f8bef2cdaa4a003bc02e856e7301916a4817843b06acb3b"
+  },
+  {
+    "anchor": "fn-04ead5ec062a0bf2",
+    "document": "docs/functions/kernel/process/lifecycle/service.cpp.md",
+    "source": "kernel/process/lifecycle/service.cpp",
+    "qualified": "xv::process::next_timer_deadline",
+    "signature": "unsigned long next_timer_deadline()",
+    "spelling": "next_timer_deadline",
+    "fn": "unsigned long xv::process::next_timer_deadline()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@process@F@next_timer_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "c04b12f5d230ad2ff294dcbc436fd78e5443eb35677ddb2c91d6fbd4eb79eda4"
+  },
+  {
+    "anchor": "fn-ab4e82d5ecac01d7",
+    "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
+    "source": "kernel/process/storage/kernel_platform.cpp",
+    "qualified": "xv::process::detail::arm_deadline_timer",
+    "signature": "void arm_deadline_timer(unsigned long milliseconds)",
+    "spelling": "arm_deadline_timer",
+    "fn": "void xv::process::detail::arm_deadline_timer(unsigned long milliseconds)",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@process@N@detail@F@arm_deadline_timer#l#",
+    "hover_expectation": "observe",
+    "source_sha256": "e560795daf2d70a5d5669b5e33b240cf68b8458f3b55664d2c29d90413cd57af"
+  },
+  {
+    "anchor": "fn-41b310a196e93085",
+    "document": "docs/functions/kernel/process/storage/kernel_platform.cpp.md",
+    "source": "kernel/process/storage/kernel_platform.cpp",
+    "qualified": "xv::process::detail::synchronize_kernel_mappings",
+    "signature": "void synchronize_kernel_mappings()",
+    "spelling": "synchronize_kernel_mappings",
+    "fn": "void xv::process::detail::synchronize_kernel_mappings()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@process@N@detail@F@synchronize_kernel_mappings#",
+    "hover_expectation": "observe",
+    "source_sha256": "e7f8573afab3dc47ef0b2f23cfc3912e68712974e6241fde96e151d069981278"
+  },
+  {
+    "anchor": "fn-9002ff18c51bbfce",
+    "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
+    "source": "kernel/process/wait/poll_wait.cpp",
+    "qualified": "xv::process::PollWait::cancel_deadline",
+    "signature": "void PollWait::cancel_deadline()",
+    "spelling": "PollWait::cancel_deadline",
+    "fn": "void xv::process::PollWait::cancel_deadline()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@PollWait@F@cancel_deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "4a1484d964ab4f4d1ef3d82f4ee2998e3cb20c909ede49c721e41a167cc999ac"
+  },
+  {
+    "anchor": "fn-ba62a68053e8bff4",
+    "document": "docs/functions/kernel/process/lifecycle/process_manager.cpp.md",
+    "source": "kernel/process/lifecycle/process_manager.cpp",
+    "qualified": "xv::process::ProcessManager::create_kernel_task",
+    "signature": "void ProcessManager::create_kernel_task(const char *name, void (*entry)())",
+    "spelling": "ProcessManager::create_kernel_task",
+    "fn": "void xv::process::ProcessManager::create_kernel_task(const char *name, void (*entry)())",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@ProcessManager@F@create_kernel_task#*1C#*Fv()#",
+    "hover_expectation": "observe",
+    "source_sha256": "b349f48ae6f777f2587cb0c2441129978de70e737f9ae6a879e07276c12b6a01"
+  },
+  {
+    "anchor": "fn-515405cb03cd091d",
+    "document": "docs/functions/kernel/process/lifecycle/process_manager.cpp.md",
+    "source": "kernel/process/lifecycle/process_manager.cpp",
+    "qualified": "xv::process::ProcessManager::kernel_task_return",
+    "signature": "void ProcessManager::kernel_task_return()",
+    "spelling": "ProcessManager::kernel_task_return",
+    "fn": "void xv::process::ProcessManager::kernel_task_return()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@ProcessManager@F@kernel_task_return#S",
+    "hover_expectation": "observe",
+    "source_sha256": "d9efe6b5882be3aa7d73d95d64bebdd9cf66bb6b2678f1dce416f71848b3bf70"
+  },
+  {
+    "anchor": "fn-315f7e5b92c30289",
+    "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
+    "source": "kernel/process/wait/poll_wait.cpp",
+    "qualified": "xv::process::WaitChannels::next_timer",
+    "signature": "unsigned long WaitChannels::next_timer()",
+    "spelling": "WaitChannels::next_timer",
+    "fn": "unsigned long xv::process::WaitChannels::next_timer()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@WaitChannels@F@next_timer#",
+    "hover_expectation": "observe",
+    "source_sha256": "af02cd9d062fb899f49e2e64d5ff16fe47d68d0e33255908a50a661f7aec03da"
+  },
+  {
+    "anchor": "fn-74f5c0466039541b",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::DeadlineQueue::cancel",
+    "signature": "void cancel(Deadline &node)",
+    "spelling": "cancel",
+    "fn": "void xv::time::DeadlineQueue::cancel(Deadline &node)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@DeadlineQueue@F@cancel#&$@N@xv@N@time@S@Deadline#",
+    "hover_expectation": "observe",
+    "source_sha256": "7c553c0a044206791a4d6bc8d8425a7aa4cce74bc309dee46e00330fdd12a418"
+  },
+  {
+    "anchor": "fn-19d4a9600de079af",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::DeadlineQueue::empty",
+    "signature": "bool empty() const",
+    "spelling": "empty",
+    "fn": "bool xv::time::DeadlineQueue::empty() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@DeadlineQueue@F@empty#1",
+    "hover_expectation": "observe",
+    "source_sha256": "7fd334a57e725d49fb31b8d7cec9c279f6380b2f6fc889a7c07353c9af2410ca"
+  },
+  {
+    "anchor": "fn-fe52b600db5c1c90",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::DeadlineQueue::expire",
+    "signature": "unsigned expire(unsigned long now, unsigned budget = 64)",
+    "spelling": "expire",
+    "fn": "unsigned xv::time::DeadlineQueue::expire(unsigned long now, unsigned budget = 64)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@DeadlineQueue@F@expire#l#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "aa35e584e0f1b443a607caf2cf96f6696eea878beaaf5e1ebd218b0f3c144d9f"
+  },
+  {
+    "anchor": "fn-6589a3fb75875e5e",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::DeadlineQueue::next",
+    "signature": "unsigned long next() const",
+    "spelling": "next",
+    "fn": "unsigned long xv::time::DeadlineQueue::next() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@DeadlineQueue@F@next#1",
+    "hover_expectation": "observe",
+    "source_sha256": "4e66bce3e1cec8c0603dcceb05a413147bcfdfb1a9dfbc020b63d129a049a994"
+  },
+  {
+    "anchor": "fn-ba6c468d266a666e",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::DeadlineQueue::reset",
+    "signature": "void reset(Deadline &node, unsigned long at, void (*notify)(void *), void *owner)",
+    "spelling": "reset",
+    "fn": "void xv::time::DeadlineQueue::reset(Deadline &node, unsigned long at, void (*notify)(void *), void *owner)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@DeadlineQueue@F@reset#&$@N@xv@N@time@S@Deadline#l#*Fv(#*v)#S4_#",
+    "hover_expectation": "observe",
+    "source_sha256": "6dfaa6eb5c76924b28312ccf892b67581feaa65f4b32add1979c605743158c59"
+  },
+  {
+    "anchor": "fn-14c2f7cc3dd55d4d",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "source": "kernel/support/deadline_queue.h",
+    "qualified": "xv::time::Earlier::operator()",
+    "signature": "bool operator()(const Deadline &a, const Deadline &b) const",
+    "spelling": "operator()",
+    "fn": "bool xv::time::Earlier::operator()(const Deadline &a, const Deadline &b) const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@time@S@Earlier@F@operator()#&1$@N@xv@N@time@S@Deadline#S0_#1",
+    "hover_expectation": "observe",
+    "source_sha256": "87e0699b401dd85b452387110e1b2f61a15559ccf9c8673fb0a863b7012a32a5"
+  },
+  {
+    "anchor": "fn-4d7de92d7fc9cdc5",
+    "document": "docs/functions/kernel/trap/arch/riscv/kernel_platform.cpp.md",
+    "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
+    "qualified": "xv::trap::detail::account_deadline_interrupt",
+    "signature": "void account_deadline_interrupt()",
+    "spelling": "account_deadline_interrupt",
+    "fn": "void xv::trap::detail::account_deadline_interrupt()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@trap@N@detail@F@account_deadline_interrupt#",
+    "hover_expectation": "observe",
+    "source_sha256": "0527eb27da1209e506e8e36e2f764d2fe9b48ee1709189bcb1cad050026b542f"
+  },
+  {
+    "anchor": "fn-7b6e723ece0b17bd",
+    "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
+    "source": "kernel/net/platform/kernel_platform.cpp",
+    "qualified": "xv::net::timer_worker",
+    "signature": "void timer_worker()",
+    "spelling": "timer_worker",
+    "fn": "void xv::net::timer_worker()",
+    "kind": "Function",
+    "usr": "c:kernel_platform.cpp@N@xv@N@net@aN@F@timer_worker#",
+    "hover_expectation": "observe",
+    "source_sha256": "2db8be6314492683ecdcc4f88c98fe84fdf89fc6e35a59ba7cad3f32f1754f41"
+  },
+  {
+    "anchor": "fn-60ae58748deef7d6",
+    "document": "docs/functions/kernel/fs/platform/kernel_platform.cpp.md",
+    "source": "kernel/fs/platform/kernel_platform.cpp",
+    "qualified": "xv::fs::detail::cache_ticks",
+    "signature": "unsigned long cache_ticks() { return xv::arch::r_time(); }",
+    "spelling": "cache_ticks",
+    "fn": "unsigned long xv::fs::detail::cache_ticks() { return xv::arch::r_time(); }",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@fs@N@detail@F@cache_ticks#",
+    "hover_expectation": "observe",
+    "source_sha256": "5d09f4baf2bdae06e39b10a21ccfbc49e5c1857eba699e3b3dfa730f9064deb4"
+  },
+  {
+    "anchor": "fn-e84aea2c0996db00",
+    "document": "docs/functions/kernel/fs/cache/block_cache.cppm.md",
+    "source": "kernel/fs/cache/block_cache.cppm",
+    "qualified": "xv::fs::BlockCache::statistics",
+    "signature": "virtual CacheStatistics statistics() const",
+    "spelling": "statistics",
+    "fn": "virtual CacheStatistics xv::fs::BlockCache::statistics() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@BlockCache@F@statistics#1",
+    "hover_expectation": "observe",
+    "source_sha256": "9b034abb44dbfe092dfff66fcd6541314ef3066433080751bb68331721a0e21d"
+  },
+  {
+    "anchor": "fn-53ecf27400f3e0ad",
+    "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
+    "source": "kernel/fs/cache/lru_block_cache.cpp",
+    "qualified": "xv::fs::LruBlockCache::acquire",
+    "signature": "void LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics)",
+    "spelling": "LruBlockCache::acquire",
+    "fn": "void xv::fs::LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@acquire#&$@N@xv@N@sync@S@SpinLock#&$@N@xv@N@fs@S@CacheStatistics#",
+    "hover_expectation": "observe",
+    "source_sha256": "f1f88ef0977726ea388292ad160309426a18ed12a5204c9e61a19a95083ab82a"
+  },
+  {
+    "anchor": "fn-292e243da5098174",
+    "document": "docs/functions/kernel/fs/cache/lru_block_cache.cppm.md",
+    "source": "kernel/fs/cache/lru_block_cache.cppm",
+    "qualified": "xv::fs::LruBlockCache::increment",
+    "signature": "static void increment(unsigned long &value, unsigned long amount = 1)",
+    "spelling": "increment",
+    "fn": "static void xv::fs::LruBlockCache::increment(unsigned long &value, unsigned long amount = 1)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@increment#&l#l#S",
+    "hover_expectation": "observe",
+    "source_sha256": "f05e90c144d4e91ff25ebc6d84a668111a73f028b76c2c4d76dbef2f51b0b872"
+  },
+  {
+    "anchor": "fn-b66ee46e7c766761",
+    "document": "docs/functions/kernel/fs/cache/lru_block_cache.cppm.md",
+    "source": "kernel/fs/cache/lru_block_cache.cppm",
+    "qualified": "xv::fs::LruBlockCache::index",
+    "signature": "static unsigned index(unsigned device, unsigned block)",
+    "spelling": "index",
+    "fn": "static unsigned xv::fs::LruBlockCache::index(unsigned device, unsigned block)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@index#i#i#S",
+    "hover_expectation": "observe",
+    "source_sha256": "00ad92119546cfd23bc5e984495cf375a66a49dbee39a13a8877f01278520d1d"
+  },
+  {
+    "anchor": "fn-5694eb576f5299cc",
+    "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
+    "source": "kernel/fs/cache/lru_block_cache.cpp",
+    "qualified": "xv::fs::LruBlockCache::statistics",
+    "signature": "CacheStatistics LruBlockCache::statistics() const",
+    "spelling": "LruBlockCache::statistics",
+    "fn": "CacheStatistics xv::fs::LruBlockCache::statistics() const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@statistics#1",
+    "hover_expectation": "observe",
+    "source_sha256": "6da8a5e8b18153f3a319fcc14bb23914895cd64753155e50387028f856217b51"
+  },
+  {
+    "anchor": "fn-585f62105a41c254",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::lock_victim",
+    "signature": "static void lock_victim(Context &c) noexcept",
+    "spelling": "lock_victim",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::lock_victim(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@lock_victim#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "fd8db9afa6a4cc155cb99b111f4c6cf22b3841820b85ecee8526c0480a549858"
+  },
+  {
+    "anchor": "fn-1efba38a56221817",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::lookup",
+    "signature": "static void lookup(Context &c) noexcept",
+    "spelling": "lookup",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::lookup(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@lookup#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "3adc31a9bfd89b48063ef49e5b452c3be8577425be0cb005cd9cb47bc222ada6"
+  },
+  {
+    "anchor": "fn-1ff00c73b2766d83",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::miss",
+    "signature": "static void miss(Context &c) noexcept",
+    "spelling": "miss",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::miss(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@miss#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "2d9e91cf19991cec1aba283b7fda14e879066bd53a4d6d8b73d4b4dc2af9a958"
+  },
+  {
+    "anchor": "fn-647bf56813a080ef",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::recheck",
+    "signature": "static void recheck(Context &c) noexcept",
+    "spelling": "recheck",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::recheck(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@recheck#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "a3758e394d027e4fd10279d5da1ae2bb94f529469e8a5c29d843543bebc5cf35"
+  },
+  {
+    "anchor": "fn-ef9b4a64cf65fcf4",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::reference",
+    "signature": "static void reference(Context &c) noexcept",
+    "spelling": "reference",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::reference(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@reference#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "9ad48bb5caa6cae14ac33092a3e813af9efc781898e6dcdab1864a3b738fe7bb"
+  },
+  {
+    "anchor": "fn-9fb0efe57e164b9e",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::retry",
+    "signature": "static void retry(Context &c) noexcept",
+    "spelling": "retry",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::retry(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@retry#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "b0b7a0c005dcb1726223117ae152347d4cc0169284d21b4dbdc7b45d8120b7ec"
+  },
+  {
+    "anchor": "fn-45024515386c6560",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::select",
+    "signature": "static void select(Context &c) noexcept",
+    "spelling": "select",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::select(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@select#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "2b71f9611361a917a517f9231f3ffa63e86c42d06638a6a6df0639323c9bfdec"
+  },
+  {
+    "anchor": "fn-85e3c9514f5469bc",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::unlock_eviction",
+    "signature": "static void unlock_eviction(Context &c) noexcept",
+    "spelling": "unlock_eviction",
+    "fn": "static void xv::fs::LruBlockCache::GetFlow::unlock_eviction(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unlock_eviction#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "ab5ad2583d9073ce7f0f0f73376df4cdeaf37cc202f397c22f142dcc030a277a"
+  },
+  {
+    "anchor": "fn-ab7dfc3f63b66782",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::GetFlow::unused",
+    "signature": "static bool unused(Context &c) noexcept",
+    "spelling": "unused",
+    "fn": "static bool xv::fs::LruBlockCache::GetFlow::unused(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unused#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "64bbeac964274751fb5dd66d9776201676ae8722c75fb62a3dd20bd30cc0c1c9"
+  },
+  {
+    "anchor": "fn-a5e6392e37b35cb8",
+    "document": "docs/functions/kernel/fs/cache/flow.cppm.md",
+    "source": "kernel/fs/cache/flow.cppm",
+    "qualified": "xv::fs::LruBlockCache::ReleaseFlow::stamp",
+    "signature": "static void stamp(Context &c) noexcept",
+    "spelling": "stamp",
+    "fn": "static void xv::fs::LruBlockCache::ReleaseFlow::stamp(Context &c) noexcept",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@stamp#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "c91c9494774609aff39978e90dbcc35efa07d76a178706d2a36c0f81c8351995"
+  },
+  {
+    "anchor": "fn-ddedf097009cd32c",
+    "document": "docs/functions/kernel/sync/spin/spinlock.cpp.md",
+    "source": "kernel/sync/spin/spinlock.cpp",
+    "qualified": "xv::sync::SpinLock::acquire_spins",
+    "signature": "unsigned long SpinLock::acquire_spins()",
+    "spelling": "SpinLock::acquire_spins",
+    "fn": "unsigned long xv::sync::SpinLock::acquire_spins()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@sync@S@SpinLock@F@acquire_spins#",
+    "hover_expectation": "observe",
+    "source_sha256": "04c2462b897d101480da4a525c8be9797d971dbbc4d6dc13e17c39ecc8706c22"
+  },
+  {
+    "anchor": "fn-1ed9206d4f9fc80e",
+    "document": "docs/functions/kernel/sync/spin/spinlock.cpp.md",
+    "source": "kernel/sync/spin/spinlock.cpp",
+    "qualified": "xv::sync::SpinLock::try_acquire",
+    "signature": "bool SpinLock::try_acquire()",
+    "spelling": "SpinLock::try_acquire",
+    "fn": "bool xv::sync::SpinLock::try_acquire()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@sync@S@SpinLock@F@try_acquire#",
+    "hover_expectation": "observe",
+    "source_sha256": "138928e5aef7d1c2b3dff7c43676158819e1e71316feef51e8e0abf81ddc755c"
+  },
+  {
+    "anchor": "fn-3b55e24fadddceba",
+    "document": "docs/functions/kernel/fs/procfs/system_providers.cpp.md",
+    "source": "kernel/fs/procfs/system_providers.cpp",
+    "qualified": "xv::fs::block_cache_statistics",
+    "signature": "bool block_cache_statistics(PageBuffer &buffer)",
+    "spelling": "block_cache_statistics",
+    "fn": "bool xv::fs::block_cache_statistics(PageBuffer &buffer)",
+    "kind": "Function",
+    "usr": "c:system_providers.cpp@N@xv@N@fs@aN@F@block_cache_statistics#&$@N@xv@N@fs@S@PageBuffer#",
+    "hover_expectation": "observe",
+    "source_sha256": "0045bb4908055fb3fd5abdd7aca9641b83910cd06d7ae4d700cd6102b286e3da"
   }
 ]

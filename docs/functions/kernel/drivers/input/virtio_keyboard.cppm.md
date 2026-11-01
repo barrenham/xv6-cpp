@@ -51,3 +51,41 @@
 ```
 
 - [`xv::drivers::VirtioKeyboard::initialize_wheel`](virtio_keyboard.cpp.md#fn-567537edde1d045a)
+
+- [`xv::drivers::VirtioKeyboard::VirtioKeyboard`](virtio_keyboard.cppm.md#fn-eb99a3764a571999)
+
+- [`xv::drivers::VirtioKeyboard::allocate`](virtio_keyboard.cpp.md#fn-73b833e10fb4ab7f)
+
+- [`xv::drivers::VirtioKeyboard::close`](virtio_keyboard.cpp.md#fn-9a985696697d3148)
+
+- [`xv::drivers::VirtioKeyboard::disable`](virtio_keyboard.cpp.md#fn-9b6ea0d81d296171)
+
+- [`xv::drivers::VirtioKeyboard::drain`](virtio_keyboard.cpp.md#fn-ab9498cbf73790d0)
+
+- [`xv::drivers::VirtioKeyboard::enqueue`](virtio_keyboard.cpp.md#fn-4037f84d6005e2a0)
+
+- [`xv::drivers::VirtioKeyboard::handle_interrupt`](virtio_keyboard.cpp.md#fn-28da51adebb88eb3)
+
+- [`xv::drivers::VirtioKeyboard::identify`](virtio_keyboard.cpp.md#fn-ab277fa7bf126252)
+
+- [`xv::drivers::VirtioKeyboard::initialize`](virtio_keyboard.cpp.md#fn-d3fd356e92516882)
+
+- [`xv::drivers::VirtioKeyboard::irq`](virtio_keyboard.cppm.md#fn-5e201b7c6d1f4568)
+
+- [`xv::drivers::VirtioKeyboard::name`](virtio_keyboard.cppm.md#fn-887414e90a6beb63)
+
+- [`xv::drivers::VirtioKeyboard::negotiate`](virtio_keyboard.cpp.md#fn-b66af90a2a625682)
+
+- [`xv::drivers::VirtioKeyboard::open`](virtio_keyboard.cpp.md#fn-294a49f5f12d6658)
+
+- [`xv::drivers::VirtioKeyboard::poll`](virtio_keyboard.cpp.md#fn-1c07778e5175b796)
+
+- [`xv::drivers::VirtioKeyboard::publish`](virtio_keyboard.cpp.md#fn-08afe6ccb6f0785a)
+
+- [`xv::drivers::VirtioKeyboard::put_sync`](virtio_keyboard.cppm.md#fn-0cdfbc6b56ddeb58)
+
+- [`xv::drivers::VirtioKeyboard::read`](virtio_keyboard.cpp.md#fn-922d28769507196c)
+
+- [`xv::drivers::VirtioKeyboard::rollback`](virtio_keyboard.cpp.md#fn-f901e356d0436d0e)
+
+- [`xv::drivers::VirtioKeyboard::write`](virtio_keyboard.cppm.md#fn-5c28f6022d558625)

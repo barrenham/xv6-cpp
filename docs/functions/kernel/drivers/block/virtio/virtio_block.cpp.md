@@ -407,3 +407,5 @@
 @brief 返回设备真实的64位512字节扇区数。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::drivers::VirtioBlock::capacity_sectors`](virtio_block.cpp.md#fn-bf8018e059e14ed7)

@@ -52,3 +52,5 @@
 @brief 启动期间绑定长期存活的 Echo Reply 接收端。
 @pre 协议接收尚未开始，sink 的生命周期覆盖协议服务。
 ```
+
+- [`xv::net::IcmpProtocol::send_echo`](icmp.cpp.md#fn-c471b5b630c269e3)

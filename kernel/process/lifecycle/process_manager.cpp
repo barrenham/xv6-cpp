@@ -490,7 +490,10 @@ struct ProcessManager::ExitFlow
   {
     c.owner.wait_lock_.acquire();
     c.owner.reparent(&c.process);
-    if (c.process.parent) c.owner.wakeup(&c.process.parent->child_events_);
+    if (c.process.parent)
+    {
+      c.owner.wakeup(&c.process.parent->child_events_);
+    }
   }
 
   static void publish(Context &c) noexcept
@@ -549,7 +552,7 @@ struct ProcessManager::KillFlow
 
   static bool permitted(Context &c) noexcept
   {
-    return c.process != c.owner.initial_ &&
+    return !c.process->kernel_entry_ && c.process != c.owner.initial_ &&
            Credentials::may_signal(current()->credentials().snapshot(),
                                    c.process->credentials().snapshot());
   }
@@ -600,8 +603,8 @@ struct ProcessManager::InspectFlow
     Process *process = nullptr;
     bool permitted = false;
     int result = -1;
-    xv::fs::PageBuffer *text=nullptr;
-    ExecSnapshot::Field field=ExecSnapshot::Field::CommandLine;
+    xv::fs::PageBuffer *text = nullptr;
+    ExecSnapshot::Field field = ExecSnapshot::Field::CommandLine;
   };
 
   static void find(Context &c) noexcept
@@ -629,13 +632,22 @@ struct ProcessManager::InspectFlow
 
   static void inspect(Context &c) noexcept
   {
-    if(c.text)
+    if (c.text)
     {
-      bool success=c.process->state==ProcessState::Zombie || c.process->exec_snapshot_.copy(c.field,c.text,
-        +[](void *context,const void *bytes,unsigned count){return static_cast<xv::fs::PageBuffer *>(context)->append(bytes,count);});
-      c.result=success ? 0:-1;
+      bool success =
+          c.process->state == ProcessState::Zombie ||
+          c.process->exec_snapshot_.copy(
+              c.field, c.text,
+              +[](void *context, const void *bytes, unsigned count)
+              {
+                return static_cast<xv::fs::PageBuffer *>(context)->append(bytes, count);
+              });
+      c.result = success ? 0 : -1;
     }
-    else c.result = c.process->files().inspect(c.entries, c.capacity);
+    else
+    {
+      c.result = c.process->files().inspect(c.entries, c.capacity);
+    }
   }
 
   static void unlock(Context &c) noexcept
@@ -692,6 +704,31 @@ void ProcessManager::reap(Process *p)
 }
 
 // Set up first user process.
+void ProcessManager::kernel_task_return()
+{
+  auto *process = current();
+  auto entry = process->kernel_entry_;
+  process->lock.release();
+  // A first kernel dispatch must enable interrupts just like first_return.
+  // Entry is permanent; returning is a kernel programming error.
+  entry();
+  xv::print::panic("kernel task returned");
+}
+
+void ProcessManager::create_kernel_task(const char *name, void (*entry)())
+{
+  auto *process = allocate();
+  if (!process)
+  {
+    xv::print::panic("kernel task allocation");
+  }
+  process->kernel_entry_ = entry;
+  xv::runtime::copy_string(process->name, name, sizeof(process->name));
+  process->context.ra = reinterpret_cast<uint64>(kernel_task_return);
+  scheduler_.make_runnable(*process);
+  process->lock.release();
+}
+
 void ProcessManager::create_initial_process(void)
 {
   InitialFlow::Context context{*this};
@@ -888,10 +925,17 @@ int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned c
   return context.result;
 }
 
-bool ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+bool ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field,
+                                  xv::fs::PageBuffer &result)
 {
-  if(pid<1)return false;
-  InspectFlow::Context context{*this,pid,nullptr,0};context.text=&result;context.field=field;
-  (void)InspectFlow::Graph::run<0>(context);return context.result==0;
+  if (pid < 1)
+  {
+    return false;
+  }
+  InspectFlow::Context context{*this, pid, nullptr, 0};
+  context.text = &result;
+  context.field = field;
+  (void)InspectFlow::Graph::run<0>(context);
+  return context.result == 0;
 }
 } // namespace xv::process

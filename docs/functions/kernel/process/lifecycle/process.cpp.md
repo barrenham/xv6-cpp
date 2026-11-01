@@ -98,3 +98,5 @@
 @brief 提交候选地址空间与用户入口寄存器。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::process::Process::commit_image`](process.cpp.md#fn-5df6784f15391ad8)

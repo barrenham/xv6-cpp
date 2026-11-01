@@ -87,3 +87,15 @@
 @details 平滑 RTT 和变化量按既有权重计算，RTO 限制在一至六十秒。Karn 歧义期不采样；所有在途数据完成后允许下一次全新测量。 实现通过 AcknowledgeFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 对象由所属连接串行访问；在线连接使用注册锁保护。
 ```
+
+<a id="fn-5bedfc231e07e127"></a>
+
+## `xv::net::RetransmissionTimer::deadline`
+
+```doxygen
+@fn unsigned long xv::net::RetransmissionTimer::deadline() const
+@brief 读取当前 RTO 的绝对毫秒截止时间。
+@details 读取当前绝对 RTO 截止时间供网络任务调度；不改变 RTT 估计、Karn 采样或重传退避算法。
+```
+
+- [`xv::net::RetransmissionTimer::deadline`](retransmission_timer.cppm.md#fn-5bedfc231e07e127)

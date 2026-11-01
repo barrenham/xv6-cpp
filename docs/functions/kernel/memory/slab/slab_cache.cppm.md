@@ -132,3 +132,43 @@
 @brief 返回具体 slab 策略的稳定名称。
 @details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
+
+- [`xv::memory::allocate_object`](slab_service.cpp.md#fn-8c9c7394dfc70a4f)
+
+- [`xv::memory::configured_slab_kind`](slab_service.cpp.md#fn-426c49f6ae22702c)
+
+- [`xv::memory::deallocate_object`](slab_service.cpp.md#fn-b3ffd68f7c669dcc)
+
+- [`xv::memory::trim_object_caches`](slab_service.cpp.md#fn-62cad3f2729a908b)
+
+- [`xv::memory::BitmapSlabCache::prepare_page`](slab_cache.cpp.md#fn-d1ade02bcba292a6)
+
+- [`xv::memory::BitmapSlabCache::return_slot`](slab_cache.cpp.md#fn-f2d27006b444c953)
+
+- [`xv::memory::BitmapSlabCache::take_slot`](slab_cache.cpp.md#fn-7675ee16018ca775)
+
+- [`xv::memory::FreeListSlabCache::prepare_page`](slab_cache.cpp.md#fn-10b848041e2743c4)
+
+- [`xv::memory::FreeListSlabCache::return_slot`](slab_cache.cpp.md#fn-3c2cbdb56af3999a)
+
+- [`xv::memory::FreeListSlabCache::take_slot`](slab_cache.cpp.md#fn-354b953875e14a3c)
+
+- [`xv::memory::SlabCache::allocate`](slab_cache.cpp.md#fn-48e214e4c232ec57)
+
+- [`xv::memory::SlabCache::deallocate`](slab_cache.cpp.md#fn-116cd4cb490e600a)
+
+- [`xv::memory::SlabCache::initialize`](slab_cache.cpp.md#fn-cdeed7dab456794b)
+
+- [`xv::memory::SlabCache::link_available`](slab_cache.cpp.md#fn-35b94690adfd82cc)
+
+- [`xv::memory::SlabCache::owner_of`](slab_cache.cpp.md#fn-0f4890c255694b3a)
+
+- [`xv::memory::SlabCache::slot_address`](slab_cache.cpp.md#fn-5eab8b2fbd20d3cf)
+
+- [`xv::memory::SlabCache::statistics`](slab_cache.cpp.md#fn-80e1643f01271a2f)
+
+- [`xv::memory::SlabCache::trim`](slab_cache.cpp.md#fn-f536c841ff918335)
+
+- [`xv::memory::SlabCache::unlink_available`](slab_cache.cpp.md#fn-25336609199f53f0)
+
+- [`xv::memory::SlabCache::unlink_empty`](slab_cache.cpp.md#fn-49dbe6b89fb3307f)

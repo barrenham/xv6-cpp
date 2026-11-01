@@ -13,6 +13,10 @@ public:
 
   void init(const char *label) override;
   void acquire() override;
+  // Acquire and report failed exchanges, for opt-in contention measurement.
+  unsigned long acquire_spins();
+  // Success retains interrupt exclusion; failure restores the caller state.
+  bool try_acquire();
   void release() override;
   bool holding() const override;
 

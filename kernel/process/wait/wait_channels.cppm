@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/deadline_queue.h"
 module xv.process:wait_channels;
 
 import :process;
@@ -25,17 +27,19 @@ public:
   void arm_timer(PollWait &wait, unsigned long deadline);
   void remove_timer(PollWait &wait);
   void expire_timers(unsigned long milliseconds);
+  unsigned long next_timer();
 
 private:
 
   struct CancelFlow;
   struct PrepareFlow;
   struct WakeFlow;
-  struct ExpireFlow;
 
   friend class PollWait;
   xv::sync::SpinLock timer_lock_;
-  PollWait *timers_ = nullptr;
+  xv::time::DeadlineQueue timers_;
+  unsigned long next_deadline_ =
+      ~0UL; // Numeric cache, safe without foreign stack reads.
   static constexpr unsigned BucketCount = 128;
 
   struct Bucket

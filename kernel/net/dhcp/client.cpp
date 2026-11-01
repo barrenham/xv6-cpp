@@ -43,6 +43,7 @@ void DhcpManager::select(Client &client, unsigned long now, unsigned delay)
 
 int DhcpManager::execute(unsigned operation, netctl_request &request)
 {
+  detail::TimerChange changed;
   CommandFlow::Context ctx{*this, operation, request};
   (void)CommandFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -58,6 +59,7 @@ int DhcpManager::transmit(const Client &c, unsigned type)
 bool DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet,
                                     const IpDatagram &d)
 {
+  detail::TimerChange changed;
   ReceiveFlow::Context ctx{*this, interface, packet, d};
   (void)ReceiveFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -67,5 +69,47 @@ void DhcpManager::tick(unsigned long now)
 {
   TickFlow::Context ctx{*this, now};
   (void)TickFlow::Graph::run<0>(ctx);
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long DhcpManager::next_deadline()
+{
+  ConfigurationGuard guard;
+  unsigned long next = ~0UL;
+  auto include = [&](unsigned long at)
+  {
+    if (at < next)
+    {
+      next = at;
+    }
+  };
+  for (const auto &s : clients_)
+  {
+    if (!s.interface || s.state == DHCP_OFF || s.state == DHCP_STOPPING)
+    {
+      continue;
+    }
+    if (s.state == DHCP_BOUND || s.state == DHCP_RENEWING || s.state == DHCP_REBINDING)
+    {
+      include(s.expires);
+    }
+    if (s.state == DHCP_BOUND)
+    {
+      include(s.renewal);
+    }
+    if (s.state == DHCP_RENEWING)
+    {
+      include(s.rebinding);
+    }
+    // Disconnected interfaces must not repeatedly schedule an already-due send.
+    if (s.state == DHCP_FAILED || (s.state != DHCP_BOUND && s.interface->up() &&
+                                   s.interface->carrier() && !s.interface->master()))
+    {
+      include(s.next);
+    }
+  }
+  return next;
 }
 } // namespace xv::net

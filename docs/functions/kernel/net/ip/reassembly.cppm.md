@@ -10,3 +10,5 @@
 - [`xv::net::Ipv4Reassembly::initialize`](reassembly.cpp.md#fn-2c790a6a9a38aa96)
 - [`xv::net::Ipv4Reassembly::insert`](reassembly.cpp.md#fn-bad135e7b04f07ab)
 - [`xv::net::Ipv4Reassembly::tick`](reassembly.cpp.md#fn-aa40441828278e4f)
+
+- [`xv::net::Ipv4Reassembly::next_deadline`](reassembly.cpp.md#fn-e10297cece18a0e6)

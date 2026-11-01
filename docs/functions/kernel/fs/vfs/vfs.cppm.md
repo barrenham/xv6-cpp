@@ -66,3 +66,15 @@
 @brief 在启动时借用可选数据卷实例。
 @details 在 initialize_inodes 之前由板级探测后的缓存装配调用，不转移所有权，不做运行期热插拔。
 ```
+
+- [`xv::fs::VirtualFileSystem::lookup_parent`](vfs.cpp.md#fn-6d0bcfd9ae87ee67)
+
+- [`xv::fs::VirtualFileSystem::mount_disk`](vfs.cpp.md#fn-d081694eae1d34f0)
+
+- [`xv::fs::VirtualFileSystem::mounts`](vfs.cpp.md#fn-5c98bc2f3956ca9e)
+
+- [`xv::fs::VirtualFileSystem::publish_mount_snapshot`](vfs.cpp.md#fn-4b81eaa3029bfdad)
+
+- [`xv::fs::VirtualFileSystem::snapshot_mounts`](vfs.cpp.md#fn-49863f7ed2744744)
+
+- [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-f77a31b05fc26086)

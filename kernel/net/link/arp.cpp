@@ -22,6 +22,7 @@ void ArpCache::request(unsigned address)
 
 int ArpCache::send(Packet &packet, unsigned next_hop)
 {
+  detail::TimerChange changed;
   SendFlow::Context ctx{*this, packet, next_hop};
   (void)SendFlow::Graph::run<0>(ctx);
   return ctx.result;
@@ -29,6 +30,7 @@ int ArpCache::send(Packet &packet, unsigned next_hop)
 
 void ArpCache::receive(Packet &packet)
 {
+  detail::TimerChange changed;
   ReceiveFlow::Context ctx{*this, packet};
   (void)ReceiveFlow::Graph::run<0>(ctx);
 }
@@ -68,6 +70,7 @@ bool ArpCache::neighbor(unsigned index, NeighborInfo &result)
 
 void ArpCache::clear()
 {
+  detail::TimerChange changed;
   xv::sync::ScopedLock guard(lock_);
   for (auto &entry : entries_)
   {
@@ -78,5 +81,22 @@ void ArpCache::clear()
     Packet discarded(pending.page, pending.length);
     pending = {};
   }
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long ArpCache::next_deadline()
+{
+  xv::sync::ScopedLock guard(lock_);
+  unsigned long next = ~0UL;
+  for (const auto &pending : pending_)
+  {
+    if (pending.page && pending.deadline < next)
+    {
+      next = pending.deadline;
+    }
+  }
+  return next;
 }
 } // namespace xv::net

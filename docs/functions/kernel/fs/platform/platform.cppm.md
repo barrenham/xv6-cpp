@@ -26,3 +26,21 @@
 - [`xv::fs::detail::sleep`](kernel_platform.cpp.md#fn-cc457fade9ae62c6)
 - [`xv::fs::detail::uptime_ticks`](kernel_platform.cpp.md#fn-0d0decfcd0e63551)
 - [`xv::fs::detail::wakeup`](kernel_platform.cpp.md#fn-aec05456dbae85c7)
+
+- [`xv::fs::detail::boot_epoch_seconds`](kernel_platform.cpp.md#fn-a6f69cd59600e49a)
+
+- [`xv::fs::detail::cpu_record`](kernel_platform.cpp.md#fn-4f3b846dbcc5503d)
+
+- [`xv::fs::detail::cpu_time`](kernel_platform.cpp.md#fn-39f5c3394ead374a)
+
+- [`xv::fs::detail::epoch_seconds`](kernel_platform.cpp.md#fn-cc3635c2aeecf0ac)
+
+- [`xv::fs::detail::kernel_version`](kernel_platform.cpp.md#fn-32ede710eaeec134)
+
+- [`xv::fs::detail::process_exec_text`](kernel_platform.cpp.md#fn-1ef47a224b7a4a60)
+
+- [`xv::fs::detail::registered_filesystem`](../service.cpp.md#fn-2764ac52db897bd0)
+
+- [`xv::fs::detail::system_counts`](kernel_platform.cpp.md#fn-6abeacd13b8bf534)
+
+- [`xv::fs::detail::cache_ticks`](kernel_platform.cpp.md#fn-60ae58748deef7d6)

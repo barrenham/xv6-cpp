@@ -10,3 +10,7 @@
 - [`xv::net::interfaces`](core/service.cpp.md#fn-850f3daf0de0f624)
 - [`xv::net::routing_table`](core/service.cpp.md#fn-d6092edb2c0b1b23)
 - [`xv::net::timer_tick`](core/service.cpp.md#fn-cbf196a5e94594a2)
+
+- [`xv::net::next_timer_deadline`](core/service.cpp.md#fn-d19f233ae3a4cce9)
+
+- [`xv::net::start_timer_worker`](platform/kernel_platform.cpp.md#fn-2beb5ecbf5b62349)

@@ -64,8 +64,8 @@ struct PollFlow
   static bool complete(Context &c) noexcept
   {
     return c.ready || c.timeout == 0 ||
-           (c.timeout > 0 &&
-            xv::arch::r_time() / 10000 - c.start >= static_cast<unsigned>(c.timeout));
+           (c.timeout > 0 && xv::arch::r_time() - c.start >=
+                                 static_cast<unsigned long>(c.timeout) * 10000);
   }
 
   static bool copy_results(Context &c) noexcept
@@ -162,10 +162,11 @@ unsigned long sys_poll()
     }
   }
   auto wait = xv::process::make_poll_wait();
-  const auto start = xv::arch::r_time() / 10000;
+  const auto start = xv::arch::r_time();
   if (timeout > 0)
   {
-    wait.set_deadline(start + static_cast<unsigned>(timeout));
+    wait.set_deadline(start / 10000 + static_cast<unsigned>(timeout) +
+                      (start % 10000 != 0));
   }
   bool registering = timeout != 0;
   auto *table = registering && count ? wait.table() : nullptr;

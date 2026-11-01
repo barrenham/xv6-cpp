@@ -12,9 +12,9 @@ export import :poll;
 
 export namespace xv::process
 {
-using CpuStatistics=xv::stats::Cpu;
-using SystemStatistics=xv::stats::System;
-bool cpu_statistics(unsigned cpu,CpuStatistics &result);
+using CpuStatistics = xv::stats::Cpu;
+using SystemStatistics = xv::stats::System;
+bool cpu_statistics(unsigned cpu, CpuStatistics &result);
 SystemStatistics system_statistics();
 void account_timer(bool from_user);
 void account_external_interrupt();
@@ -49,10 +49,13 @@ void sleep();
 void wakeup(void *channel);
 PollWait make_poll_wait();
 void poll_timer_tick(unsigned long milliseconds);
+unsigned long next_timer_deadline();
+// Boot-only, permanent kernel task. It never enters user mode or accepts signals.
+void create_kernel_task(const char *name, void (*entry)());
 void dump();
 bool snapshot_after(int after, ProcessInfo &result);
 int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
-bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result);
+bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result);
 int copy_in(void *destination, bool user, unsigned long source, unsigned long count);
 int copy_out(bool user, unsigned long destination, const void *source,
              unsigned long count);

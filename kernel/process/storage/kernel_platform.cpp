@@ -7,7 +7,38 @@ import xv.print;
 
 namespace xv::process::detail
 {
-unsigned long scheduling_time() { return xv::arch::r_time(); }
+unsigned long scheduling_time()
+{
+  return xv::arch::r_time();
+}
+
+// A bucket/timer lock pins a foreign stack object, but does not invalidate a
+// cached translation from an earlier owner of the same recyclable stack VA.
+// Scheduler fences protect dispatch, not an idle hart following such pointers.
+void synchronize_kernel_mappings()
+{
+  xv::arch::sfence_vma();
+}
+
+void arm_deadline_timer(unsigned long milliseconds)
+{
+  if (milliseconds == ~0UL)
+  {
+    return;
+  }
+  auto now = xv::arch::r_time();
+  auto deadline = milliseconds > (~0UL / 10000) ? ~0UL : milliseconds * 10000;
+  // One millisecond minimum spacing prevents an already-due queue from causing
+  // an interrupt storm. The registering hart arms itself, also on SMP.
+  if (deadline < now + 10000)
+  {
+    deadline = now + 10000;
+  }
+  if (deadline < xv::arch::r_stimecmp())
+  {
+    xv::arch::w_stimecmp(deadline);
+  }
+}
 
 namespace
 {
@@ -18,27 +49,45 @@ constinit xv::memory::FreeListSlabCache descriptors;
 #endif
 int descriptors_ready = 0;
 unsigned long descriptor_bytes = 0, descriptor_alignment = 0;
-}
+} // namespace
+
 void initialize_process_objects(unsigned long bytes, unsigned long alignment)
 {
   int expected = 0;
   if (__atomic_compare_exchange_n(&descriptors_ready, &expected, 1, false,
-                                   __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+                                  __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
   {
     if (!descriptors.initialize(xv::memory::allocator(), bytes, alignment, 0))
+    {
       xv::print::panic("process descriptors: invalid slab layout");
+    }
     descriptor_bytes = bytes;
     descriptor_alignment = alignment;
     __atomic_store_n(&descriptors_ready, 2, __ATOMIC_RELEASE);
   }
-  else while (__atomic_load_n(&descriptors_ready, __ATOMIC_ACQUIRE) != 2) {}
+  else
+  {
+    while (__atomic_load_n(&descriptors_ready, __ATOMIC_ACQUIRE) != 2)
+    {
+    }
+  }
   if (descriptor_bytes != bytes || descriptor_alignment != alignment)
+  {
     xv::print::panic("process descriptors: inconsistent slab layout");
+  }
 }
-void *allocate_process_object() { return descriptors.allocate(); }
+
+void *allocate_process_object()
+{
+  return descriptors.allocate();
+}
+
 void free_process_object(void *object)
 {
-  if (!descriptors.deallocate(object)) xv::print::panic("process descriptors: invalid free");
+  if (!descriptors.deallocate(object))
+  {
+    xv::print::panic("process descriptors: invalid free");
+  }
 }
 
 void *allocate_process_page()
@@ -55,6 +104,7 @@ unsigned long allocate_kernel_stack()
 {
   return xv::memory::kernel_page_table().allocate_process_stack();
 }
+
 void free_kernel_stack(unsigned long address)
 {
   xv::memory::kernel_page_table().free_process_stack(address);

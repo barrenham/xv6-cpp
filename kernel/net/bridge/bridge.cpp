@@ -56,6 +56,7 @@ void BridgeInterface::tick(unsigned long now)
 
 void BridgeInterface::ingress(Layer2Port &port, unsigned epoch, Packet &frame)
 {
+  detail::TimerChange changed;
   forward(&port, epoch, frame);
 }
 
@@ -75,5 +76,22 @@ bool BridgeInterface::forward(Layer2Port *ingress, unsigned epoch, Packet &frame
   ForwardFlow::Context ctx{*this, ingress, epoch, frame};
   (void)ForwardFlow::Graph::run<0>(ctx);
   return ctx.result;
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long BridgeInterface::next_deadline()
+{
+  unsigned long next = EthernetInterface::next_deadline();
+  ConfigurationGuard guard;
+  for (const auto &entry : fdb_)
+  {
+    if (entry.member.port && entry.expires < next)
+    {
+      next = entry.expires;
+    }
+  }
+  return next;
 }
 } // namespace xv::net

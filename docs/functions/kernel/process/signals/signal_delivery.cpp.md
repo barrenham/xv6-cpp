@@ -62,7 +62,7 @@
 ```doxygen
 @fn int xv::process::ProcessManager::send_signal(int target, int signal)
 @brief 正 PID 使用红黑树定位，进程组目标继续走组成员访问；保留信号零探测、权限及停止/继续语义。
-@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
+@details 永久内核任务不接受非零用户信号；普通 PID、用户进程组、权限与 SIGCHLD 递送协议保留。
 ```
 
 <a id="fn-f31a3cd50df7bcf4"></a>
@@ -423,7 +423,7 @@
 ```doxygen
 @fn static bool xv::process::ProcessManager::SendPidSignalFlow::permitted(Context &c) noexcept
 @brief 检查初始进程限制与发送方目标方凭据权限。
-@details 查找返回持锁进程；按原顺序验证初始进程限制与凭据，信号零只探测，解锁后才处理家庭事件。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 永久内核任务不接受非零用户信号；普通 PID、用户进程组、权限与 SIGCHLD 递送协议保留。
 ```
 
 <a id="fn-5d0b53ba75d5ff99"></a>

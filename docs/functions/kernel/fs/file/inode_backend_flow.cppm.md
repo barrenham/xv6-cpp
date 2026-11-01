@@ -468,3 +468,43 @@
 @brief 流程动作或条件 advance；作用于当前Context，转移关系由所属图声明。
 @details getdents64只发布完整、8字节对齐且padding清零的记录；失败记录不推进cookie，dup/fork共享模式与位置。
 ```
+
+- [`xv::fs::BlockBackend::TransferFlow::advance`](inode_backend_flow.cppm.md#fn-b7499d4af3366dd9)
+
+- [`xv::fs::BlockBackend::TransferFlow::copy_in`](inode_backend_flow.cppm.md#fn-813d1f93bdb17f32)
+
+- [`xv::fs::BlockBackend::TransferFlow::copy_out`](inode_backend_flow.cppm.md#fn-61b0595ac55a03e8)
+
+- [`xv::fs::BlockBackend::TransferFlow::more`](inode_backend_flow.cppm.md#fn-b0087906ea23e5d6)
+
+- [`xv::fs::BlockBackend::TransferFlow::needs_read`](inode_backend_flow.cppm.md#fn-129a51f327a2b167)
+
+- [`xv::fs::BlockBackend::TransferFlow::prepare`](inode_backend_flow.cppm.md#fn-4793e740b6138c2e)
+
+- [`xv::fs::BlockBackend::TransferFlow::read_sector`](inode_backend_flow.cppm.md#fn-b3eca81ede39c31c)
+
+- [`xv::fs::BlockBackend::TransferFlow::write_sector`](inode_backend_flow.cppm.md#fn-f9772d9e264d35cf)
+
+- [`xv::fs::BlockBackend::TransferFlow::writing`](inode_backend_flow.cppm.md#fn-918b10c1019089a8)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::advance`](inode_backend_flow.cppm.md#fn-a30b845c8de6aae7)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::copy`](inode_backend_flow.cppm.md#fn-27a232234067f3ad)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::eof`](inode_backend_flow.cppm.md#fn-fcb35e42067c6b8b)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::finish`](inode_backend_flow.cppm.md#fn-6787842e5df03a69)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::fits`](inode_backend_flow.cppm.md#fn-c37c951846378fa2)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::measure`](inode_backend_flow.cppm.md#fn-1419d4badf7cd9eb)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::more`](inode_backend_flow.cppm.md#fn-9e07a0e8da78b2d8)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::next`](inode_backend_flow.cppm.md#fn-55cbfc37b55b1c45)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::serialize`](inode_backend_flow.cppm.md#fn-1a9375193a3cccdb)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::success`](inode_backend_flow.cppm.md#fn-bb246eeef9552be8)
+
+- [`xv::fs::InodeBackend::DirectoryFlow::valid`](inode_backend_flow.cppm.md#fn-aaa0d174a5e59f6a)

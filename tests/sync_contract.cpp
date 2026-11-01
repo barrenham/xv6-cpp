@@ -110,8 +110,29 @@ static void contract(Lock &lock, LockKind kind)
       });
 }
 
+static void try_lock_contract()
+{
+  SpinLock lock;
+  lock.init("try-lock");
+  int depth = xv_test_interrupt_depth();
+  check(lock.try_acquire() && lock.holding(), "try acquire publishes ownership");
+  check(xv_test_interrupt_depth() == depth + 1, "try success retains interrupt exclusion");
+  std::thread contender([&]
+  {
+    int before = xv_test_interrupt_depth();
+    check(!lock.try_acquire(), "try acquire reports contention without waiting");
+    check(xv_test_interrupt_depth() == before, "try failure restores interrupt state");
+  });
+  contender.join();
+  lock.release();
+  check(xv_test_interrupt_depth() == depth, "try lock releases normally");
+  check(lock.acquire_spins() == 0 && lock.holding(), "uncontended profiled acquisition");
+  lock.release();
+}
+
 int main()
 {
+  try_lock_contract();
   contract(static_spin, LockKind::Spin);
   contract(static_sleep, LockKind::Sleep);
 

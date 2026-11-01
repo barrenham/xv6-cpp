@@ -176,3 +176,13 @@
 @brief 读取一条完整目录记录并推进后端cookie，EOF返回0，错误返回-1。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::install_proc_providers`](system_providers.cpp.md#fn-5d218d64f2782b2e)
+
+- [`xv::fs::ProcFileSystem::next_directory`](procfs.cppm.md#fn-540f6e7cf60ba3f6)
+
+- [`xv::fs::ProcFileSystem::register_file`](procfs.cppm.md#fn-4e69ad943bac3786)
+
+- [`xv::fs::ProcFileSystem::register_process_file`](procfs.cppm.md#fn-ab8b1f597dba2470)
+
+- [`xv::fs::ProcFileSystem::type_name`](procfs.cppm.md#fn-8fb48da6050690a4)

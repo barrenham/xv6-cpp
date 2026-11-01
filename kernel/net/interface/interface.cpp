@@ -234,3 +234,30 @@ int NetworkInterface::account_send(unsigned length, int result)
   return result;
 }
 } // namespace xv::net
+
+namespace xv::net
+{
+unsigned long InterfaceRegistry::next_deadline()
+{
+  NetworkInterface *snapshot[Capacity];
+  unsigned count;
+  {
+    ConfigurationGuard guard;
+    count = count_;
+    for (unsigned i = 0; i < count; ++i)
+    {
+      snapshot[i] = interfaces_[i];
+    }
+  }
+  unsigned long next = ~0UL;
+  for (unsigned i = 0; i < count; ++i)
+  {
+    auto at = snapshot[i]->next_deadline();
+    if (at < next)
+    {
+      next = at;
+    }
+  }
+  return next;
+}
+} // namespace xv::net

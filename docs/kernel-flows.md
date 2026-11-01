@@ -24,7 +24,7 @@
 | tty | 共享 termios ABI 头已审查；执行流程已接入 drivers/tty | ABI 常量保留原语，最终联合验证通过 |
 | boot | 排除 `kernel/boot` 的图转换 | 本次为 CPU 信息捕获和上线发布增加启动钩子，其余协议保持 |
 
-当前共登记 224 个图身份（含条件统计读取），有 223 个原入口绑定及 7 个内部绑定；其中两个 SleepLock 入口、目录/设备节点创建入口和 stat/lstat 分别共用图，初始化方法可使用多个独立图；普通文件创建在局部 namespace 锁作用域中运行内部 RegularGraph。
+当前共登记 230 个图身份（含条件统计读取），有 227 个原入口绑定及 7 个内部绑定；其中两个 SleepLock 入口、目录/设备节点创建入口和 stat/lstat 分别共用图，初始化方法可使用多个独立图；普通文件创建在局部 namespace 锁作用域中运行内部 RegularGraph。
 这不包括网络模块此前的 110 张图。`memory/boot` 属于内存模块，未因目录中含 boot 字样而自动排除。
 具体入口与图定义登记在 [覆盖清单](kernel-flow-coverage.json)，每个入口还绑定当前 clangd USR、实现路径、函数体指纹与实际调用的图。
 
@@ -1074,3 +1074,5 @@ VirtIO 键盘通过 InitializeFlow、ReadFlow 和 InterruptFlow 接入；当前�
 共享显存更新新增AddressSpace::DeviceMapFlow、VirtioGpu::MapFlow和
 MappedPresentFlow，设备页映射/保留/回滚及呈现失败生命周期显式接图。
 当前非网络图身份231个，保留3个条件替代及110个网络图身份。
+
+本轮截止时间改动保留 110 张网络协议图，将原 WaitChannels::ExpireFlow 的链表扫描替换为红黑树的有界到期原语；当前非网络图身份为 230，另有 3 个条件定义。新增内核任务入口与 deadline 容器的直接实现理由、跨 CPU 栈映射同步及验收见 [截止时间队列](deadline-timers.md)。

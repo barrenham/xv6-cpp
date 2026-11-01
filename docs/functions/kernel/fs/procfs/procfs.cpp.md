@@ -680,3 +680,17 @@
 @brief 流程动作或条件 process_text；作用于当前Context，转移关系由所属图声明。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::ProcFileSystem::LookupFlow::process_provider`](procfs.cpp.md#fn-50dd09774890ec5c)
+
+- [`xv::fs::ProcFileSystem::LookupFlow::provider`](procfs.cpp.md#fn-76896b6bae8dff92)
+
+- [`xv::fs::ProcFileSystem::LookupFlow::retain_provider`](procfs.cpp.md#fn-fe64b541975465bd)
+
+- [`xv::fs::ProcFileSystem::SnapshotFlow::process_provider`](procfs.cpp.md#fn-dcb47e33ce2531a3)
+
+- [`xv::fs::ProcFileSystem::SnapshotFlow::process_text`](procfs.cpp.md#fn-4e814f636e32f556)
+
+- [`xv::fs::ProcFileSystem::SnapshotFlow::provider`](procfs.cpp.md#fn-9f58291ae548508c)
+
+- [`xv::fs::ProcFileSystem::SnapshotFlow::provider_text`](procfs.cpp.md#fn-9f02fad7d8b85d98)

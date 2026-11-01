@@ -289,3 +289,63 @@
 @brief 磁盘格式路由：open_device 委托已选择的后端，inode所有权保留在具体后端。
 @details 内部磁盘格式选择器：读取超级块magic后委托xv6或ext3。返回inode仍归属具体后端，公共VFS无需判断格式。
 ```
+
+- [`xv::fs::DiskFileSystem::DiskFileSystem`](disk_filesystem.cppm.md#fn-13dd63566efb0eec)
+
+- [`xv::fs::DiskFileSystem::allocate`](disk_filesystem.cppm.md#fn-cbc39a9de8c578f8)
+
+- [`xv::fs::DiskFileSystem::busy`](disk_filesystem.cppm.md#fn-c5784a0c776c3d1d)
+
+- [`xv::fs::DiskFileSystem::create_at`](disk_filesystem.cppm.md#fn-fddc8db9188743d6)
+
+- [`xv::fs::DiskFileSystem::flush`](disk_filesystem.cppm.md#fn-f7d668e61a50c2b6)
+
+- [`xv::fs::DiskFileSystem::initialize`](disk_filesystem.cpp.md#fn-c1721da8654614a2)
+
+- [`xv::fs::DiskFileSystem::initialize_inodes`](disk_filesystem.cppm.md#fn-4179a1eb483ab615)
+
+- [`xv::fs::DiskFileSystem::link_at`](disk_filesystem.cppm.md#fn-f5a902a649a5ef11)
+
+- [`xv::fs::DiskFileSystem::lock`](disk_filesystem.cppm.md#fn-3bb0592df199b4b6)
+
+- [`xv::fs::DiskFileSystem::lookup_entry`](disk_filesystem.cppm.md#fn-af16af5162689d8d)
+
+- [`xv::fs::DiskFileSystem::name`](disk_filesystem.cppm.md#fn-507a905aead5d92e)
+
+- [`xv::fs::DiskFileSystem::name_max`](disk_filesystem.cppm.md#fn-a2c2f42548bf2294)
+
+- [`xv::fs::DiskFileSystem::next_directory`](disk_filesystem.cppm.md#fn-19f5e0196d7f8e30)
+
+- [`xv::fs::DiskFileSystem::open_device`](disk_filesystem.cppm.md#fn-1566ee10aabe56b1)
+
+- [`xv::fs::DiskFileSystem::read`](disk_filesystem.cppm.md#fn-dbf7c3fba94f9ae1)
+
+- [`xv::fs::DiskFileSystem::release`](disk_filesystem.cppm.md#fn-d0b7382a10a3783d)
+
+- [`xv::fs::DiskFileSystem::rename_at`](disk_filesystem.cppm.md#fn-3aa7e804e57277f8)
+
+- [`xv::fs::DiskFileSystem::resize`](disk_filesystem.cppm.md#fn-20568617c60e8c9a)
+
+- [`xv::fs::DiskFileSystem::retain`](disk_filesystem.cppm.md#fn-7364ee959e448480)
+
+- [`xv::fs::DiskFileSystem::root`](disk_filesystem.cppm.md#fn-b57a2302745f0331)
+
+- [`xv::fs::DiskFileSystem::shutdown`](disk_filesystem.cppm.md#fn-f257be5848e1f8b0)
+
+- [`xv::fs::DiskFileSystem::stat`](disk_filesystem.cppm.md#fn-10ae192b0a002230)
+
+- [`xv::fs::DiskFileSystem::transaction_log`](disk_filesystem.cppm.md#fn-fead50c6a5eecbd1)
+
+- [`xv::fs::DiskFileSystem::truncate`](disk_filesystem.cppm.md#fn-4a76d72f85e318f5)
+
+- [`xv::fs::DiskFileSystem::type_name`](disk_filesystem.cppm.md#fn-151077a6cbad7e21)
+
+- [`xv::fs::DiskFileSystem::unlink_at`](disk_filesystem.cppm.md#fn-55f4910026c31999)
+
+- [`xv::fs::DiskFileSystem::unlock`](disk_filesystem.cppm.md#fn-b2ba4713191e6369)
+
+- [`xv::fs::DiskFileSystem::unlock_release`](disk_filesystem.cppm.md#fn-5cc837448f5d11e8)
+
+- [`xv::fs::DiskFileSystem::update`](disk_filesystem.cppm.md#fn-12448c3daff8d33d)
+
+- [`xv::fs::DiskFileSystem::write`](disk_filesystem.cppm.md#fn-3013e9fe4615eb37)

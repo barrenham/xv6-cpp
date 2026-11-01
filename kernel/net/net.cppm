@@ -19,4 +19,6 @@ int control(unsigned operation, netctl_request &request);
 const InterfaceRegistry &interfaces();
 const RoutingTable &routing_table();
 void timer_tick();
+unsigned long next_timer_deadline();
+void start_timer_worker();
 } // namespace xv::net

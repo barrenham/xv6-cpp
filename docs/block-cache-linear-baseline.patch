@@ -1,0 +1,571 @@
+--- a/kernel/fs/cache/block_cache.cppm
++++ b/kernel/fs/cache/block_cache.cppm
+@@ -51,11 +51,8 @@
+   unsigned blockno = 0;
+   xv::sync::SleepLock lock;
+   unsigned refcnt = 0;
+-  // Identity and links belong to bucket_; replacement alone changes bucket_.
+-  unsigned bucket_ = 0;
++  Buffer *prev = nullptr;
+   Buffer *next = nullptr;
+-  // Atomic hints permit victim selection without locking every bucket.
+-  unsigned long last_use_ = 0;
+   alignas(unsigned long) unsigned char data[BlockSize]{};
+ };
+ 
+--- a/kernel/fs/cache/lru_block_cache.cppm
++++ b/kernel/fs/cache/lru_block_cache.cppm
+@@ -18,7 +18,7 @@
+ 
+   const char *name() const override
+   {
+-    return "hashed LRU block cache";
++    return "LRU block cache";
+   }
+ 
+   void attach(xv::drivers::BlockDevice &device)
+@@ -46,42 +46,13 @@
+   struct ReleaseFlow;
+ 
+   static void increment(unsigned long &value, unsigned long amount = 1)
+-  {
+-    __atomic_fetch_add(&value, amount, __ATOMIC_RELAXED);
+-  }
+-
++  { __atomic_fetch_add(&value, amount, __ATOMIC_RELAXED); }
+   void acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics);
+   Buffer *get(unsigned device, unsigned block);
+-  static constexpr unsigned BucketCount = 31;
+-
+-  static unsigned index(unsigned device, unsigned block)
+-  {
+-    // Include both halves of the cache identity, including device zero.
+-    return (block * 2654435761U ^ device * 2246822519U) % BucketCount;
+-  }
+-
+-  struct alignas(64) Bucket
+-  {
+-    xv::sync::SpinLock lock;
+-    Buffer *head = nullptr;
+-    CacheStatistics statistics;
+-  };
+-
+-  Bucket buckets_[BucketCount]{};
+-  xv::sync::SpinLock eviction_lock_;
+-  CacheStatistics eviction_statistics_;
+-
+-  // Replacement snapshots are private to eviction_lock_. A candidate is
+-  // revalidated under its current bucket lock before its identity is changed.
+-  struct Candidate
+-  {
+-    Buffer *buffer = nullptr;
+-    unsigned long stamp = 0;
+-  };
+-
+-  Candidate candidates_[NBUF]{};
+-  unsigned candidate_count_ = 0;
++  CacheStatistics statistics_;
+   xv::drivers::BlockDevice *device_;
++  xv::sync::SpinLock lock_;
+   Buffer buffers_[NBUF]{};
++  Buffer head_{};
+ };
+ } // namespace xv::fs
+--- a/kernel/fs/cache/lru_block_cache.cpp
++++ b/kernel/fs/cache/lru_block_cache.cpp
+@@ -17,32 +17,32 @@
+   {
+     detail::fail("cache: missing block device");
+   }
+-  eviction_lock_.init("cache eviction");
+-  eviction_statistics_ = {};
+-  candidate_count_ = 0;
+-  for (auto &bucket : buckets_)
++  Buffer *b;
++
++  lock_.init("bcache");
++  statistics_ = {};
++
++  // Create linked list of buffers
++  head_.prev = &head_;
++  head_.next = &head_;
++  for (b = buffers_; b < buffers_ + NBUF; b++)
+   {
+-    bucket.lock.init("cache bucket");
+-    bucket.head = nullptr;
+-    bucket.statistics = {};
+-  }
+-  for (unsigned i = 0; i < NBUF; ++i)
+-  {
+-    auto &buffer = buffers_[i];
+-    buffer.assigned_ = false;
+-    buffer.valid = 0;
+-    buffer.dev = buffer.blockno = 0;
+-    __atomic_store_n(&buffer.refcnt, 0U, __ATOMIC_RELAXED);
+-    __atomic_store_n(&buffer.last_use_, 0UL, __ATOMIC_RELAXED);
+-    buffer.bucket_ = i % BucketCount;
+-    buffer.next = nullptr;
+-    buffer.lock.init("buffer");
++    b->assigned_ = false; b->valid = 0; b->refcnt = 0;
++    b->next = head_.next;
++    b->prev = &head_;
++    b->lock.init("buffer");
++    head_.next->prev = b;
++    head_.next = b;
+   }
+ }
+ 
+-Buffer *LruBlockCache::get(unsigned device, unsigned block)
++// Look through buffer cache for block on device dev.
++// If not found, allocate a buffer.
++// In either case, return locked buffer.
++Buffer *LruBlockCache::get(unsigned dev, unsigned blockno)
+ {
+-  GetFlow::Context context{*this, device, block};
++  acquire(lock_, statistics_);
++  GetFlow::Context context{*this, dev, blockno};
+   (void)GetFlow::Graph::run<0>(context);
+   return context.result;
+ }
+@@ -60,7 +60,7 @@
+                           (BSIZE / xv::drivers::BlockDevice::SectorSize),
+                       b->data, BSIZE);
+     b->valid = 1;
+-    increment(buckets_[b->bucket_].statistics.reads);
++    increment(statistics_.reads);
+   }
+   return BlockHandle(*this, *b);
+ }
+@@ -74,7 +74,7 @@
+   {
+     detail::fail("bwrite");
+   }
+-  increment(buckets_[b->bucket_].statistics.writes);
++  increment(statistics_.writes);
+   device_->transfer(xv::drivers::BlockOperation::Write,
+                     static_cast<unsigned long>(b->blockno) *
+                         (BSIZE / xv::drivers::BlockDevice::SectorSize),
+@@ -91,33 +91,18 @@
+ 
+ void LruBlockCache::pin(Buffer &buffer)
+ {
+-  // The caller owns an existing handle/pin, so identity cannot be replaced.
+-  auto &bucket = buckets_[buffer.bucket_];
+-  acquire(bucket.lock, bucket.statistics);
+-  auto refs = __atomic_load_n(&buffer.refcnt, __ATOMIC_RELAXED);
+-  if (!refs)
+-  {
+-    detail::fail("cache: pin without reference");
+-  }
+-  __atomic_store_n(&buffer.refcnt, refs + 1, __ATOMIC_RELAXED);
+-  bucket.lock.release();
++  auto *b = &buffer;
++  acquire(lock_, statistics_);
++  b->refcnt++;
++  lock_.release();
+ }
+ 
+ void LruBlockCache::unpin(Buffer &buffer)
+ {
+-  auto &bucket = buckets_[buffer.bucket_];
+-  acquire(bucket.lock, bucket.statistics);
+-  auto refs = __atomic_load_n(&buffer.refcnt, __ATOMIC_RELAXED);
+-  if (!refs)
+-  {
+-    detail::fail("cache: unpin without reference");
+-  }
+-  if (refs == 1)
+-  {
+-    __atomic_store_n(&buffer.last_use_, detail::cache_ticks(), __ATOMIC_RELAXED);
+-  }
+-  __atomic_store_n(&buffer.refcnt, refs - 1, __ATOMIC_RELAXED);
+-  bucket.lock.release();
++  auto *b = &buffer;
++  acquire(lock_, statistics_);
++  b->refcnt--;
++  lock_.release();
+ }
+ 
+ } // namespace xv::fs
+@@ -144,27 +129,11 @@
+ CacheStatistics LruBlockCache::statistics() const
+ {
+   CacheStatistics result;
+-  auto accumulate = [&](const CacheStatistics &statistics)
+-  {
+-#define ADD(field) result.field += __atomic_load_n(&statistics.field, __ATOMIC_RELAXED)
+-    ADD(hits);
+-    ADD(misses);
+-    ADD(evictions);
+-    ADD(lookup_steps);
+-    ADD(reads);
+-    ADD(writes);
+-    ADD(eviction_steps);
+-    ADD(locks);
+-    ADD(contentions);
+-    ADD(spins);
+-    ADD(wait_ticks);
+-#undef ADD
+-  };
+-  accumulate(eviction_statistics_);
+-  for (const auto &bucket : buckets_)
+-  {
+-    accumulate(bucket.statistics);
+-  }
++#define COPY(field) result.field = __atomic_load_n(&statistics_.field, __ATOMIC_RELAXED)
++  COPY(hits); COPY(misses); COPY(evictions); COPY(lookup_steps);
++  COPY(reads); COPY(writes); COPY(eviction_steps);
++  COPY(locks); COPY(contentions); COPY(spins); COPY(wait_ticks);
++#undef COPY
+   return result;
+ }
+-} // namespace xv::fs
++}
+--- a/kernel/fs/cache/flow.cppm
++++ b/kernel/fs/cache/flow.cppm
+@@ -15,31 +15,22 @@
+     LruBlockCache &owner;
+     unsigned device, block;
+     Buffer *result = nullptr;
+-    Bucket *target = nullptr, *old = nullptr;
+-    unsigned long stamp = 0;
+   };
+ 
+   static void find_cached(Context &c) noexcept
+   {
+-    c.target = &c.owner.buckets_[index(c.device, c.block)];
+-    c.owner.acquire(c.target->lock, c.target->statistics);
+-    lookup(c);
+-  }
+-
+-  static void lookup(Context &c) noexcept
+-  {
+-    c.result = nullptr;
+     unsigned steps = 0;
+-    for (auto *buffer = c.target->head; buffer; buffer = buffer->next)
++    for (auto *buffer = c.owner.head_.next; buffer != &c.owner.head_;
++         buffer = buffer->next)
+     {
+       ++steps;
+-      if (buffer->dev == c.device && buffer->blockno == c.block)
++      if (buffer->assigned_ && buffer->dev == c.device && buffer->blockno == c.block)
+       {
+         c.result = buffer;
+         break;
+       }
+     }
+-    increment(c.target->statistics.lookup_steps, steps);
++    c.owner.increment(c.owner.statistics_.lookup_steps, steps);
+   }
+ 
+   static bool found(Context &c) noexcept
+@@ -47,159 +38,47 @@
+     return c.result != nullptr;
+   }
+ 
+-  static void reference(Context &c) noexcept
++  static void retain(Context &c) noexcept
+   {
+-    auto refs = __atomic_load_n(&c.result->refcnt, __ATOMIC_RELAXED);
+-    __atomic_store_n(&c.result->refcnt, refs + 1, __ATOMIC_RELAXED);
++    c.owner.increment(c.owner.statistics_.hits);
++    ++c.result->refcnt;
+   }
+ 
+-  static void retain(Context &c) noexcept
++  static void find_unused(Context &c) noexcept
+   {
+-    increment(c.target->statistics.hits);
+-    reference(c);
++    c.owner.increment(c.owner.statistics_.misses);
++    unsigned steps = 0;
++    for (auto *buffer = c.owner.head_.prev; buffer != &c.owner.head_;
++         buffer = buffer->prev)
++    {
++      ++steps;
++      if (buffer->refcnt == 0)
++      {
++        c.result = buffer;
++        break;
++      }
++    }
++    c.owner.increment(c.owner.statistics_.eviction_steps, steps);
+   }
+ 
+-  static void miss(Context &c) noexcept
++  static void assign(Context &c) noexcept
+   {
+-    increment(c.target->statistics.misses);
+-    c.target->lock.release();
+-    c.owner.acquire(c.owner.eviction_lock_, c.owner.eviction_statistics_);
++    if (c.result->assigned_) c.owner.increment(c.owner.statistics_.evictions);
++    c.result->assigned_ = true;
++    c.result->dev = c.device;
++    c.result->blockno = c.block;
++    c.result->valid = 0;
++    c.result->refcnt = 1;
+   }
+ 
+-  static void recheck(Context &c) noexcept
++  static void missing(Context &) noexcept
+   {
+-    // Recheck after obtaining replacement ownership: concurrent misses for the
+-    // same key must share the first published buffer, including in-flight I/O.
+-    c.owner.acquire(c.target->lock, c.target->statistics);
+-    lookup(c);
++    detail::fail("bget: no buffers");
+   }
+ 
+   static void unlock_registry(Context &c) noexcept
+   {
+-    c.target->lock.release();
+-  }
+-
+-  static void unlock_eviction(Context &c) noexcept
+-  {
+-    c.owner.eviction_lock_.release();
+-  }
+-
+-  static void find_unused(Context &c) noexcept
+-  {
+-    select(c);
+-  }
+-
+-  static void select(Context &c) noexcept
+-  {
+-    c.result = nullptr;
+-    unsigned steps = 0;
+-    while (!c.result)
+-    {
+-      if (!c.owner.candidate_count_)
+-      {
+-        // Batch the ordering work instead of rescanning NBUF for each miss.
+-        // Concurrent hits may invalidate entries; bucket-locked revalidation
+-        // below prevents reuse of a busy or newly referenced buffer.
+-        for (auto &buffer : c.owner.buffers_)
+-        {
+-          ++steps;
+-          if (__atomic_load_n(&buffer.refcnt, __ATOMIC_RELAXED))
+-          {
+-            continue;
+-          }
+-          Candidate candidate{&buffer,
+-                              __atomic_load_n(&buffer.last_use_, __ATOMIC_RELAXED)};
+-          unsigned position = c.owner.candidate_count_++;
+-          while (position && candidate.stamp > c.owner.candidates_[position - 1].stamp)
+-          {
+-            c.owner.candidates_[position] = c.owner.candidates_[position - 1];
+-            --position;
+-          }
+-          c.owner.candidates_[position] = candidate;
+-        }
+-        if (!c.owner.candidate_count_)
+-        {
+-          break;
+-        }
+-      }
+-      auto candidate = c.owner.candidates_[--c.owner.candidate_count_];
+-      ++steps;
+-      if (__atomic_load_n(&candidate.buffer->refcnt, __ATOMIC_RELAXED) ||
+-          __atomic_load_n(&candidate.buffer->last_use_, __ATOMIC_RELAXED) !=
+-              candidate.stamp)
+-      {
+-        continue;
+-      }
+-      c.result = candidate.buffer;
+-      c.stamp = candidate.stamp;
+-    }
+-    increment(c.owner.eviction_statistics_.eviction_steps, steps);
+-  }
+-
+-  static void lock_victim(Context &c) noexcept
+-  {
+-    // Other replacements are excluded; owner bucket is stable. Ordinary hits
+-    // can race with selection, so the reference count must be rechecked.
+-    c.old = &c.owner.buckets_[c.result->bucket_];
+-    if (c.old != c.target)
+-    {
+-      c.owner.acquire(c.old->lock, c.old->statistics);
+-    }
+-  }
+-
+-  static bool unused(Context &c) noexcept
+-  {
+-    return !__atomic_load_n(&c.result->refcnt, __ATOMIC_RELAXED) &&
+-           __atomic_load_n(&c.result->last_use_, __ATOMIC_RELAXED) == c.stamp;
+-  }
+-
+-  static void retry(Context &c) noexcept
+-  {
+-    if (c.old != c.target)
+-    {
+-      c.old->lock.release();
+-    }
+-    select(c);
+-  }
+-
+-  static void assign(Context &c) noexcept
+-  {
+-    // Only the eviction owner ever holds two bucket locks. No hit path takes
+-    // eviction_lock_, so arbitrary old/target order cannot form a cycle.
+-    auto &buffer = *c.result;
+-    if (buffer.assigned_)
+-    {
+-      auto **link = &c.old->head;
+-      while (*link && *link != &buffer)
+-      {
+-        link = &(*link)->next;
+-      }
+-      if (!*link)
+-      {
+-        detail::fail("cache: missing hash identity");
+-      }
+-      *link = buffer.next;
+-      increment(c.target->statistics.evictions);
+-    }
+-    buffer.assigned_ = true;
+-    buffer.dev = c.device;
+-    buffer.blockno = c.block;
+-    buffer.valid = 0;
+-    buffer.bucket_ = index(c.device, c.block);
+-    __atomic_store_n(&buffer.refcnt, 1U, __ATOMIC_RELAXED);
+-    buffer.next = c.target->head;
+-    c.target->head = &buffer;
+-    if (c.old != c.target)
+-    {
+-      c.old->lock.release();
+-    }
+-  }
+-
+-  static void missing(Context &c) noexcept
+-  {
+-    c.target->lock.release();
+-    c.owner.eviction_lock_.release();
+-    detail::fail("bget: no buffers");
++    c.owner.lock_.release();
+   }
+ 
+   static void lock_buffer(Context &c) noexcept
+@@ -208,45 +87,23 @@
+   }
+   struct Cached;
+   struct Retain;
+-  struct Miss;
+-  struct Recheck;
+-  struct Reuse;
+-  struct Select;
+-  struct Victim;
+-  struct Retry;
++  struct Unused;
+   struct Assign;
+   struct Missing;
+   struct Unlock;
+-  struct EvictionUnlock;
+   struct BufferLock;
+-  struct ReuseUnlock;
+   using Graph = flow::graph<
+       Cached,
+       flow::types<
+-          flow::node<
+-              Cached, flow::action<&find_cached>,
+-              flow::branch<flow::condition<&found>, flow::go<Retain>, flow::go<Miss>>>,
++          flow::node<Cached, flow::action<&find_cached>,
++                     flow::branch<flow::condition<&found>, flow::go<Retain>,
++                                  flow::go<Unused>>>,
+           flow::node<Retain, flow::action<&retain>, flow::go<Unlock>>,
+-          flow::node<Miss, flow::action<&miss>, flow::go<Recheck>>,
+-          flow::node<
+-              Recheck, flow::action<&recheck>,
+-              flow::branch<flow::condition<&found>, flow::go<Reuse>, flow::go<Select>>>,
+-          flow::node<Reuse, flow::action<&reference>, flow::go<ReuseUnlock>>,
+-          flow::node<ReuseUnlock, flow::action<&unlock_registry>,
+-                     flow::go<EvictionUnlock>>,
+-          flow::node<Select, flow::action<&find_unused>,
+-                     flow::branch<flow::condition<&found>, flow::go<Victim>,
++          flow::node<Unused, flow::action<&find_unused>,
++                     flow::branch<flow::condition<&found>, flow::go<Assign>,
+                                   flow::go<Missing>>>,
+-          flow::node<Victim, flow::action<&lock_victim>,
+-                     flow::branch<flow::condition<&unused>, flow::go<Assign>,
+-                                  flow::go<Retry>>>,
+-          flow::node<Retry, flow::action<&retry>,
+-                     flow::branch<flow::condition<&found>, flow::go<Victim>,
+-                                  flow::go<Missing>>>,
+-          flow::node<Assign, flow::action<&assign>, flow::go<ReuseUnlock>>,
++          flow::node<Assign, flow::action<&assign>, flow::go<Unlock>>,
+           flow::node<Missing, flow::action<&missing>, flow::stop>,
+-          flow::node<EvictionUnlock, flow::action<&unlock_eviction>,
+-                     flow::go<BufferLock>>,
+           flow::node<Unlock, flow::action<&unlock_registry>, flow::go<BufferLock>>,
+           flow::node<BufferLock, flow::action<&lock_buffer>, flow::stop>>>;
+ };
+@@ -257,7 +114,6 @@
+   {
+     LruBlockCache &owner;
+     Buffer &buffer;
+-    Bucket *bucket = nullptr;
+   };
+ 
+   static bool held(Context &c) noexcept
+@@ -277,35 +133,35 @@
+ 
+   static void drop(Context &c) noexcept
+   {
+-    c.bucket = &c.owner.buckets_[c.buffer.bucket_];
+-    c.owner.acquire(c.bucket->lock, c.bucket->statistics);
+-    auto refs = __atomic_load_n(&c.buffer.refcnt, __ATOMIC_RELAXED);
+-    if (!refs)
+-    {
+-      detail::fail("cache: release without reference");
+-    }
+-    __atomic_store_n(&c.buffer.refcnt, refs - 1, __ATOMIC_RELAXED);
++    c.owner.acquire(c.owner.lock_, c.owner.statistics_);
++    --c.buffer.refcnt;
+   }
+ 
+   static bool unused(Context &c) noexcept
+   {
+-    return !__atomic_load_n(&c.buffer.refcnt, __ATOMIC_RELAXED);
++    return c.buffer.refcnt == 0;
+   }
+ 
+-  static void stamp(Context &c) noexcept
++  static void move_front(Context &c) noexcept
+   {
+-    __atomic_store_n(&c.buffer.last_use_, detail::cache_ticks(), __ATOMIC_RELAXED);
++    auto *buffer = &c.buffer;
++    buffer->next->prev = buffer->prev;
++    buffer->prev->next = buffer->next;
++    buffer->next = c.owner.head_.next;
++    buffer->prev = &c.owner.head_;
++    c.owner.head_.next->prev = buffer;
++    c.owner.head_.next = buffer;
+   }
+ 
+   static void unlock_registry(Context &c) noexcept
+   {
+-    c.bucket->lock.release();
++    c.owner.lock_.release();
+   }
+   struct Held;
+   struct Invalid;
+   struct BufferUnlock;
+   struct Drop;
+-  struct Stamp;
++  struct Move;
+   struct Unlock;
+   using Graph = flow::graph<
+       Held, flow::types<
+@@ -315,9 +171,10 @@
+                 flow::node<Invalid, flow::action<&invalid>, flow::stop>,
+                 flow::node<BufferUnlock, flow::action<&unlock_buffer>, flow::go<Drop>>,
+                 flow::node<Drop, flow::action<&drop>,
+-                           flow::branch<flow::condition<&unused>, flow::go<Stamp>,
++                           flow::branch<flow::condition<&unused>, flow::go<Move>,
+                                         flow::go<Unlock>>>,
+-                flow::node<Stamp, flow::action<&stamp>, flow::go<Unlock>>,
++                flow::node<Move, flow::action<&move_front>, flow::go<Unlock>>,
+                 flow::node<Unlock, flow::action<&unlock_registry>, flow::stop>>>;
+ };
++
+ } // namespace xv::fs

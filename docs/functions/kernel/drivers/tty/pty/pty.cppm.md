@@ -139,3 +139,7 @@
 @brief 原子增加终端对象寿命引用，不获取PTY锁。
 @details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```
+
+- [`xv::drivers::Pty::open_retained_terminal`](pty.cpp.md#fn-780e044b64fd87b9)
+
+- [`xv::drivers::Pty::retain_terminal`](pty.cppm.md#fn-4b9299cf68804fb7)

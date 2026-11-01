@@ -15,6 +15,7 @@ import xv.arch;
 
 namespace xv::fs::detail
 {
+unsigned long cache_ticks() { return xv::arch::r_time(); }
 bool cpu_record(unsigned index,CpuRecord &record)
 {
   xv::arch::CpuHardware hardware;if(!xv::arch::cpu_hardware(index,hardware))return false;

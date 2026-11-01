@@ -194,7 +194,7 @@
 ```doxygen
 @fn void xv::net::SocketRegistry::tick(unsigned long now)
 @brief SocketRegistry：持注册锁调用各对象的计时处理，允许对象在最终状态撤销自身槽位；定时器不进行用户复制或睡眠。
-@details 持注册锁调用各对象的计时处理，允许对象在最终状态撤销自身槽位；定时器不进行用户复制或睡眠。
+@details 逐槽获取 registry 锁后调用该槽对象的 tick，指针不越过锁的生命周期。释放槽锁后允许中断和调度，再检查下一槽；销毁对象后的槽不再访问。
 ```
 
 <a id="fn-75b80a83f7b1ba17"></a>
@@ -216,3 +216,15 @@
 @brief 从 Echo 标识符选择 protocol 1 socket，在注册表锁内交付接收队列。
 @details 同时匹配本地地址及已连接对端地址。队列满时按原 DatagramSocket 有界队列规则丢弃并释放；未匹配的报文保持调用者所有权。
 ```
+
+<a id="fn-cb1a23d131c796cc"></a>
+
+## `xv::net::SocketRegistry::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::SocketRegistry::next_deadline()
+@brief timer 遍历逐槽获取 registry 锁，指针仅在持锁期间使用；槽间可响应中断和调度。查询下一截止时间时锁固定全部 socket 生命周期，返回标量最小值，不保存 socket 指针。
+@details timer 遍历逐槽获取 registry 锁，指针仅在持锁期间使用；槽间可响应中断和调度。查询下一截止时间时锁固定全部 socket 生命周期，返回标量最小值，不保存 socket 指针。
+```
+
+- [`xv::net::SocketRegistry::next_deadline`](registry.cpp.md#fn-cb1a23d131c796cc)

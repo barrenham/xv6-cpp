@@ -293,3 +293,7 @@
 @brief 返回已记录的启动epoch秒数。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。 本轮板级装配增加kbd0(30:0)0600及slot4/IRQ5，在中断启用前初始化键盘，其余设备顺序保持。
 ```
+
+- [`xv::drivers::boot_time_seconds`](qemu_virt.cpp.md#fn-295e9f1fac671bce)
+
+- [`xv::drivers::realtime_seconds`](qemu_virt.cpp.md#fn-98149e18194be74a)

@@ -13,3 +13,15 @@
 - [`xv::process::detail::free_kernel_stack`](kernel_platform.cpp.md#fn-0ccd821dd7af8126)
 - [`xv::process::detail::free_process_page`](kernel_platform.cpp.md#fn-470a48c1e3751448)
 - [`xv::process::detail::storage_fail`](kernel_platform.cpp.md#fn-81d9f378847f3b25)
+
+- [`xv::process::detail::allocate_process_object`](kernel_platform.cpp.md#fn-caa4a1fb931599c7)
+
+- [`xv::process::detail::arm_deadline_timer`](kernel_platform.cpp.md#fn-ab4e82d5ecac01d7)
+
+- [`xv::process::detail::free_process_object`](kernel_platform.cpp.md#fn-9ac05fbc453dc8b6)
+
+- [`xv::process::detail::initialize_process_objects`](kernel_platform.cpp.md#fn-7d233fbcfe20643c)
+
+- [`xv::process::detail::scheduling_time`](kernel_platform.cpp.md#fn-4fba22f386559889)
+
+- [`xv::process::detail::synchronize_kernel_mappings`](kernel_platform.cpp.md#fn-41b310a196e93085)

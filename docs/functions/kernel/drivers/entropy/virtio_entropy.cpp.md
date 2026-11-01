@@ -179,3 +179,39 @@
 @brief 实现 xv::drivers::VirtioEntropy::handle_interrupt 的模块操作，按声明参数读写其封装状态。
 @details VirtIO熵设备；一个descriptor在途，DMA有效数据最多4096字节，一次read最多256字节。设备不可用不伪造随机数据；nonblock无数据返回-EAGAIN，用户复制失败不消费。
 ```
+
+- [`xv::drivers::VirtioEntropy::handle_interrupt`](virtio_entropy.cpp.md#fn-8613f104753364cd)
+
+- [`xv::drivers::VirtioEntropy::initialize`](virtio_entropy.cpp.md#fn-9c7aa002244c6a4d)
+
+- [`xv::drivers::VirtioEntropy::poll`](virtio_entropy.cpp.md#fn-401f1b4055460578)
+
+- [`xv::drivers::VirtioEntropy::read`](virtio_entropy.cpp.md#fn-bfbb50f5dd5b89a2)
+
+- [`xv::drivers::VirtioEntropy::request`](virtio_entropy.cpp.md#fn-1b8f5db03dc4706c)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::allocate`](virtio_entropy.cpp.md#fn-7477e705b311d7ba)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::fail`](virtio_entropy.cpp.md#fn-7db80345e6c398c7)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::found`](virtio_entropy.cpp.md#fn-08fedfea72e2def8)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::identify`](virtio_entropy.cpp.md#fn-893a4acfcfbfc2e4)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::negotiate`](virtio_entropy.cpp.md#fn-071d742d750eba8c)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::okay`](virtio_entropy.cpp.md#fn-41d1d01f541aea62)
+
+- [`xv::drivers::VirtioEntropy::InitializeFlow::publish`](virtio_entropy.cpp.md#fn-9834014bb83a5377)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::again`](virtio_entropy.cpp.md#fn-c598a13938ffca24)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::available`](virtio_entropy.cpp.md#fn-522ae8ef216974d2)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::copy`](virtio_entropy.cpp.md#fn-bd5eb1ab0408c112)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::nonblocking`](virtio_entropy.cpp.md#fn-6e9a16f1df84813d)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::sleep`](virtio_entropy.cpp.md#fn-9c537a7662dcb252)
+
+- [`xv::drivers::VirtioEntropy::ReadFlow::stopped`](virtio_entropy.cpp.md#fn-cb021fa58c6bc886)

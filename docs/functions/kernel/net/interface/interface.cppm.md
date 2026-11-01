@@ -318,3 +318,17 @@
 @fn NetworkInterface *xv::net::InterfaceRegistry::at(unsigned index) const
 @brief 在配置锁内按发布顺序借用接口，越界返回 nullptr；对象长期存活，但并发注销后可能已不在注册表内。
 ```
+
+<a id="fn-23fdd79f66589b42"></a>
+
+## `xv::net::NetworkInterface::next_deadline`
+
+```doxygen
+@fn virtual unsigned long xv::net::NetworkInterface::next_deadline()
+@brief 接口可返回下一次服务的绝对毫秒时间，默认 ~0UL 表示不安排定时服务；既有 tick 虚接口保留。
+@details 接口可返回下一次服务的绝对毫秒时间，默认 ~0UL 表示不安排定时服务；既有 tick 虚接口保留。
+```
+
+- [`xv::net::InterfaceRegistry::next_deadline`](interface.cpp.md#fn-528f930e95cd9717)
+
+- [`xv::net::NetworkInterface::next_deadline`](interface.cppm.md#fn-23fdd79f66589b42)

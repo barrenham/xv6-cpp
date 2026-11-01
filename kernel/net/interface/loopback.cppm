@@ -24,6 +24,7 @@ public:
 
   int transmit(Packet &packet, unsigned next_hop) override;
   void tick(unsigned long now) override;
+  unsigned long next_deadline() override;
 
 private:
 

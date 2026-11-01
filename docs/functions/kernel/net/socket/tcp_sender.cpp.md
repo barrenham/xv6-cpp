@@ -66,8 +66,8 @@
 ```doxygen
 @fn void xv::net::TcpSocket::pump()
 @brief 按对端窗口和拥塞窗口推进多段发送。
-@details 额度为 min(rwnd,cwnd) 减去在途字节，按 MSS 和物理页连续空间切段。成功交给 IP 层才推进 SND.NXT，失败保留未发送队列；最后尝试顺序发送 FIN。 实现通过 PumpFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 调用者持有 SocketRegistry 注册锁。
+@details 保留 PumpFlow 发送及 FIN 流程；仍有发送额度但未完成本地输出时，记录 100ms 的 output_retry_ 截止时间。空闲/无额度时清除本地输出重试登记，RTO/persist 由各自状态决定。
 ```
 
 <a id="fn-cdfa0effd85a294d"></a>

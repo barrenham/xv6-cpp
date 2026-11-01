@@ -189,3 +189,7 @@
 @brief 定义按正 PID 查询的存储契约：成功交付持有进程锁的稳定对象，调用者负责解锁或通过 release 消费。
 @note 详细锁协议见 docs/process-index-wait.md。
 ```
+
+- [`xv::process::ProcessStore::has_pid`](process_store.cpp.md#fn-8bc24c83f3b7435b)
+
+- [`xv::process::ProcessStore::storage_node`](process_store.cpp.md#fn-523816f8354db82c)

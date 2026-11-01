@@ -22,3 +22,5 @@
 @brief 借用注册表、IPv4 层和租约配置服务，初始化八个空客户端槽。
 @details 不执行 I/O，不要求接口已获得地址；所有依赖和接口对象须长期存活。
 ```
+
+- [`xv::net::DhcpManager::next_deadline`](client.cpp.md#fn-4958d65fcbceb71a)

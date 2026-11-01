@@ -230,3 +230,7 @@
 @brief 以原子观察读取共享文件偏移供fdinfo使用。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::io::IoObject::getdents64`](object.cppm.md#fn-fbfbdd198b463c26)
+
+- [`xv::io::IoObject::position`](object.cppm.md#fn-e1b0e8512f77d7f2)

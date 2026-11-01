@@ -49,3 +49,13 @@
 @brief 返回 `nanoseconds()/1000000000UL`。
 @details Goldfish RTC访问：low读取锁存high，自旋锁与I/O barrier固定这对读取，防止多核交叉读取。
 ```
+
+- [`xv::drivers::GoldfishRtc::GoldfishRtc`](goldfish.cppm.md#fn-5ea474bfe4c038cb)
+
+- [`xv::drivers::GoldfishRtc::initialize`](goldfish.cppm.md#fn-520f1a7fe7ceb9d8)
+
+- [`xv::drivers::GoldfishRtc::name`](goldfish.cppm.md#fn-5a0a9ced65c11e52)
+
+- [`xv::drivers::GoldfishRtc::nanoseconds`](goldfish.cppm.md#fn-a6a5527a68bffe8f)
+
+- [`xv::drivers::GoldfishRtc::seconds`](goldfish.cppm.md#fn-f5eaf86219e89b93)

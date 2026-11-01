@@ -16,3 +16,9 @@
 
 
 本文件定义类型、常量、ABI 或模块重导出；参见文件概览。
+
+- [`xv::arch::cpu_hardware`](hardware.cpp.md#fn-37618c73149703fe)
+
+- [`xv::arch::mark_cpu_online`](hardware.cpp.md#fn-f55a5e3eaaf9d02c)
+
+- [`xv::arch::record_cpu_hardware`](hardware.cpp.md#fn-19c4b5a6805f3a9f)

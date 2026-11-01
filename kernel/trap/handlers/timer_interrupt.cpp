@@ -11,9 +11,18 @@ bool TimerInterruptHandler::accepts(const TrapEvent &event) const
 
 TrapAction TimerInterruptHandler::handle(const TrapEvent &event)
 {
-  detail::account_timer(!event.from_supervisor());
-  clock_.interrupt();
-  detail::service_timer_devices();
-  return detail::scheduler_timer_tick() ? TrapAction::Yield : TrapAction::Resume;
+  const bool periodic = clock_.interrupt();
+  if (periodic)
+  {
+    detail::account_timer(!event.from_supervisor());
+  }
+  else
+  {
+    detail::account_deadline_interrupt();
+  }
+  detail::service_timer_devices(periodic);
+  // Deadline wakeups get a dispatch opportunity without consuming a policy tick.
+  return (!periodic || detail::scheduler_timer_tick()) ? TrapAction::Yield
+                                                       : TrapAction::Resume;
 }
 } // namespace xv::trap

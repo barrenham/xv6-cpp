@@ -52,6 +52,8 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/cachebench.cpp
+  tests/timerbench.cpp
   tests/schedulercheck.cpp
   tests/storagecheck.cpp
   tests/vmcheck.cpp

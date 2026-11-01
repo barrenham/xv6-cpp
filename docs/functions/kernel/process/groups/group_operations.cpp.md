@@ -150,3 +150,5 @@
 @brief 在进程组锁内查找并固定当前session的控制终端。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::process::ProcessManager::pin_controlling_terminal`](group_operations.cpp.md#fn-6d7c7b69f9c072ca)

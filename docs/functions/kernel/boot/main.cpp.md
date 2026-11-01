@@ -45,6 +45,7 @@
 ```doxygen
 @fn void xv::boot::initialize_bootstrap_hart()
 @brief 按依赖顺序初始化启动核各服务；网络启动后逐接口输出实际名称、MTU、管理状态及 IPv4 地址列表。
+@details 原设备、内存、文件系统与网络初始化次序保留；在建立 PID 1 后创建 net-timers 永久内核任务，使超时工作能够由正常调度器执行。
 ```
 
 <a id="fn-33edc3fb91e368c4"></a>

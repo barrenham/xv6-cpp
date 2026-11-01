@@ -58,6 +58,7 @@
 @param port 入端口，必须仍属于本桥。
 @param epoch RX 分派时记录的接入代次。
 @param[in,out] frame 同步借用的完整帧，只有显式移交后可以保留。
+@details 网桥 ingress 后通知定时任务；将 FDB 项过期时间与以太接口 ARP 时间取最小值，持配置锁查询 FDB。
 ```
 
 <a id="fn-26b371580e62fdc8"></a>
@@ -87,3 +88,15 @@
 @return 至少一个出口成功或本机已消费返回 true，否则 false。
 @note 不持配置锁分配副本、发送或回调本机协议；同入口过滤、VLAN/保留控制帧拒绝也返回 false。
 ```
+
+<a id="fn-11f0d193b659a9cf"></a>
+
+## `xv::net::BridgeInterface::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::BridgeInterface::next_deadline()
+@brief 网桥 ingress 后通知定时任务；将 FDB 项过期时间与以太接口 ARP 时间取最小值，持配置锁查询 FDB。
+@details 网桥 ingress 后通知定时任务；将 FDB 项过期时间与以太接口 ARP 时间取最小值，持配置锁查询 FDB。
+```
+
+- [`xv::net::BridgeInterface::next_deadline`](bridge.cpp.md#fn-11f0d193b659a9cf)

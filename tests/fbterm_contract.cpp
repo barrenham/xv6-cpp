@@ -137,6 +137,25 @@ int main()
   feed("A\r\nB\tC\bD");
   expect(0, "A");
   expect(1, "B       D");
+  // Horizontal tabs advance to the next 8-column stop regardless of the
+  // preceding field length, and clamp at the final column without scrolling.
+  for (unsigned start = 0; start < 24; ++start)
+  {
+    terminal.reset();
+    for (unsigned i = 0; i < start; ++i) feed("x");
+    feed("\tZ");
+    unsigned stop = (start / 8 + 1) * 8;
+    assert(terminal.cells[0][stop].character == 'Z');
+  }
+  terminal.reset();
+  feed("processor\t: 0\r\nhart\t\t: 0\r\nisa\t\t: rv64");
+  for (unsigned row = 0; row < 3; ++row) assert(terminal.cells[row][16].character == ':');
+  terminal.reset();
+  terminal.x = terminal.columns - 2;
+  feed("\tZ");
+  assert(terminal.y == 0 && terminal.cells[0][terminal.columns - 1].character == 'Z');
+  terminal.reset();
+  feed("A\r\nB\tC\bD");
   // Real font glyph proportions and grayscale edges, rather than stretched 5x7 rows.
   bool partial = false;
   unsigned left = fbterm::cell_width, right = 0, top = fbterm::cell_height, bottom = 0;

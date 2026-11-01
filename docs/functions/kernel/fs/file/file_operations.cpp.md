@@ -401,3 +401,27 @@
 @brief 实现 xv::fs::BlockBackend::ioctl 的模块操作，按声明参数读写其封装状态。
 @details 裸块读写按512字节拆分，边缘写入先读改写，容量与用户拷贝边界受检查；挂载设备只读。
 ```
+
+- [`xv::fs::BlockBackend::close`](file_operations.cpp.md#fn-f06c2e9f8c3d4a45)
+
+- [`xv::fs::BlockBackend::ioctl`](file_operations.cpp.md#fn-b52b92e9c3c77a32)
+
+- [`xv::fs::BlockBackend::poll`](file_operations.cpp.md#fn-80c7bfef78c14c30)
+
+- [`xv::fs::BlockBackend::read`](file_operations.cpp.md#fn-9cff80d478cbfd4c)
+
+- [`xv::fs::BlockBackend::seek`](file_operations.cpp.md#fn-fd2921cb4f69b8d2)
+
+- [`xv::fs::BlockBackend::stat`](file_operations.cpp.md#fn-5a5394fd298e6450)
+
+- [`xv::fs::BlockBackend::sync`](file_operations.cpp.md#fn-0536c40d0e573cd9)
+
+- [`xv::fs::BlockBackend::transfer`](file_operations.cpp.md#fn-f7bda5fc41fea0af)
+
+- [`xv::fs::BlockBackend::write`](file_operations.cpp.md#fn-9a0a89c2fa978ab9)
+
+- [`xv::fs::FileSystem::legacy_next_directory`](file_operations.cpp.md#fn-bd6bd8dfba3b3db6)
+
+- [`xv::fs::InodeBackend::getdents64`](file_operations.cpp.md#fn-ad868dc021560e72)
+
+- [`xv::fs::legacy_record`](file_operations.cpp.md#fn-f18f6dbcb62acdcf)

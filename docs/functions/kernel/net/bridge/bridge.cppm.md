@@ -66,3 +66,5 @@
 @fn constexpr xv::net::BridgeManager::BridgeManager(InterfaceRegistry &interfaces, RoutingTable &routes, IpReceiver &ip)
 @brief 借用接口注册表、静态路由服务和共享 IP 接收器，构造 br0/br1 两个长期存活槽及管理锁；依赖必须比管理器存活更久。
 ```
+
+- [`xv::net::BridgeInterface::next_deadline`](bridge.cpp.md#fn-11f0d193b659a9cf)

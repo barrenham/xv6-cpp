@@ -1,5 +1,6 @@
 module;
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -65,6 +66,7 @@ public:
   bool capture = false;
   unsigned log_start = 0;
   unsigned reads = 0;
+  unsigned read_delay_ms = 0;
   std::mutex mutex;
 
   const char *name() const override
@@ -110,6 +112,7 @@ public:
     {
       std::memcpy(data, image.data() + offset, count);
       ++reads;
+      if (read_delay_ms) std::this_thread::sleep_for(std::chrono::milliseconds(read_delay_ms));
     }
     else
     {
@@ -191,6 +194,89 @@ void load_image(const char *path)
             static_cast<unsigned long>(length),
         "read image");
   std::fclose(input);
+}
+
+void cache_concurrency_contract()
+{
+  MemoryDisk memory;
+  memory.image.resize(256 * BlockSize);
+  memory.read_delay_ms = 2;
+  LruBlockCache cache(&memory);
+  cache.initialize();
+  std::atomic<bool> start{false};
+  Buffer *identities[8]{};
+  std::vector<std::thread> threads;
+  for (unsigned thread = 0; thread < 8; ++thread)
+    threads.emplace_back([&, thread]
+    {
+      while (!start.load(std::memory_order_acquire)) std::this_thread::yield();
+      auto handle = cache.read(0, 0);
+      identities[thread] = &*handle;
+      check(handle->device() == 0 && handle->block_number() == 0,
+            "zero device/block identity is assigned normally");
+    });
+  start.store(true, std::memory_order_release);
+  for (auto &thread : threads) thread.join();
+  check(memory.reads == 1, "concurrent cold misses share one in-flight disk read");
+  for (auto *identity : identities)
+    check(identity == identities[0], "same key has one canonical buffer");
+  auto zero = cache.read(0, 0);
+  auto one = cache.read(1, 0);
+  check(&*zero != &*one, "device is part of cache identity");
+  zero.reset(); one.reset();
+  memory.read_delay_ms = 0;
+  auto retained = cache.read(1, 1);
+  auto *pinned = &*retained;
+  cache.pin(*pinned);
+  retained.reset();
+  for (unsigned block = 2; block < 200; ++block)
+  { auto churn = cache.read(1, block); }
+  unsigned reads = memory.reads;
+  auto same = cache.read(1, 1);
+  check(&*same == pinned && memory.reads == reads, "pinned buffer survives eviction pressure");
+  cache.unpin(*same); same.reset();
+
+  MemoryDisk counters;
+  counters.image.resize(256 * BlockSize);
+  LruBlockCache concurrent(&counters);
+  concurrent.initialize();
+  threads.clear(); start.store(false);
+  constexpr unsigned Iterations = 2000;
+  for (unsigned thread = 0; thread < 8; ++thread)
+    threads.emplace_back([&, thread]
+    {
+      unsigned random = 12345 + thread;
+      while (!start.load(std::memory_order_acquire)) std::this_thread::yield();
+      for (unsigned i = 0; i < Iterations; ++i)
+      {
+        random = random * 1664525U + 1013904223U;
+        auto handle = concurrent.read(0, (random >> 16) % 128);
+        unsigned long value;
+        std::memcpy(&value, handle->bytes(), sizeof(value));
+        ++value;
+        std::memcpy(handle->bytes(), &value, sizeof(value));
+        concurrent.write(*handle);
+      }
+    });
+  start.store(true, std::memory_order_release);
+  for (auto &thread : threads) thread.join();
+  unsigned long total = 0;
+  for (unsigned block = 0; block < 128; ++block)
+  {
+    unsigned long value;
+    std::memcpy(&value, counters.image.data() + block * BlockSize, sizeof(value));
+    total += value;
+  }
+  check(total == 8 * Iterations,
+        "concurrent mutation and replacement preserve every increment");
+  auto statistics = concurrent.statistics();
+  check(statistics.hits + statistics.misses == 8 * Iterations &&
+        statistics.writes == 8 * Iterations && statistics.evictions,
+        "cache counters account logical lookups, writes and replacement");
+  std::vector<BlockHandle> capacity;
+  for (unsigned block = 128; block < 128 + NBUF; ++block)
+    capacity.push_back(concurrent.read(0, block));
+  expect_panic([&] { auto unavailable = concurrent.read(0, 250); });
 }
 
 void cache_contract()
@@ -1435,6 +1521,7 @@ void initialize_cache()
 
 namespace xv::fs::detail
 {
+unsigned long cache_ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
 bool cpu_record(unsigned index,CpuRecord &record)
 {if(index>=2)return false;record={index,(2UL<<62)|(1UL<<8)|(1UL<<12),0,1,1};return true;}
 bool registered_filesystem(unsigned index,FileSystemType &record)
@@ -1594,6 +1681,7 @@ extern "C" int run_fs_contracts(const char *image)
   load_image(image);
   block_cache.initialize();
   cache_contract();
+  cache_concurrency_contract();
   journal_contract();
   page_buffer_contract();
   registry.attach("console", 5, 0, character,0600);
@@ -1772,5 +1860,55 @@ extern "C" int run_ext3_fs_contracts(const char *image)
   check(std::fwrite(secondary_disk.image.data(),1,secondary_disk.image.size(),output)==secondary_disk.image.size(),"ext3 secondary output bytes");check(!std::fclose(output),"ext3 secondary output close");
   backend.shutdown();secondary_backend.shutdown();Transaction::secondary=nullptr;
   std::puts("ext3 xv.fs module: VFS mount, create/read/write/link/rename/unlink and open lifetime passed");
+  return 0;
+}
+
+extern "C" int run_cache_profile()
+{
+  using namespace xv::fs;
+  using namespace xv::fs::test;
+  for (const char *pattern : {"repeat", "sequential", "random", "parallel"})
+  {
+    MemoryDisk memory;
+    memory.image.resize(1024 * BlockSize);
+    for (unsigned block = 0; block < 1024; ++block)
+      for (unsigned offset = 0; offset < BlockSize; ++offset)
+        memory.image[block * BlockSize + offset] = (block * 13 + offset) % 251;
+    LruBlockCache cache(&memory);
+    cache.initialize();
+    std::atomic<bool> start{false};
+    unsigned workers = std::strcmp(pattern, "parallel") ? 1 : 4;
+    constexpr unsigned Operations = 200000;
+    std::vector<std::thread> threads;
+    for (unsigned worker = 0; worker < workers; ++worker)
+      threads.emplace_back([&, worker]
+      {
+        while (!start.load(std::memory_order_acquire)) std::this_thread::yield();
+        unsigned random = 12345 + worker;
+        for (unsigned i = 0; i < Operations / workers; ++i)
+        {
+          random = random * 1664525U + 1013904223U;
+          unsigned block = !std::strcmp(pattern, "repeat") ? i % 16 :
+                           !std::strcmp(pattern, "sequential") ? i % 128 :
+                           !std::strcmp(pattern, "random") ? (random >> 16) % 128 :
+                           worker * 4 + i % 4;
+          auto buffer = cache.read(1, block);
+          check(buffer->bytes()[0] == (block * 13) % 251 &&
+                buffer->bytes()[BlockSize - 1] == (block * 13 + BlockSize - 1) % 251,
+                "cache profile data integrity");
+        }
+      });
+    auto begin = std::chrono::steady_clock::now();
+    start.store(true, std::memory_order_release);
+    for (auto &thread : threads) thread.join();
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - begin).count();
+    auto counters = cache.statistics();
+    std::printf("CACHEPROFILE %s us=%lld ops=%u hits=%lu misses=%lu evictions=%lu probes=%lu reads=%lu locks=%lu contentions=%lu spins=%lu wait_ns=%lu eviction_steps=%lu\n",
+        pattern, static_cast<long long>(elapsed), Operations, counters.hits,
+        counters.misses, counters.evictions, counters.lookup_steps, counters.reads,
+        counters.locks, counters.contentions, counters.spins, counters.wait_ticks,
+        counters.eviction_steps);
+  }
   return 0;
 }

@@ -3,6 +3,8 @@ module xv.process:storage_platform;
 namespace xv::process::detail
 {
 unsigned long scheduling_time();
+void arm_deadline_timer(unsigned long milliseconds);
+void synchronize_kernel_mappings();
 void initialize_process_objects(unsigned long bytes, unsigned long alignment);
 void *allocate_process_object();
 void free_process_object(void *object);

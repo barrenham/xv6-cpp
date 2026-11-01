@@ -26,6 +26,38 @@ void SpinLock::acquire()
   __atomic_store_n(&owner_, detail::current_cpu(), __ATOMIC_RELAXED);
 }
 
+bool SpinLock::try_acquire()
+{
+  detail::push_interrupts_off();
+  if (holding())
+  {
+    detail::fail("spinlock: recursive acquire");
+  }
+  if (__atomic_exchange_n(&locked_, 1, __ATOMIC_ACQUIRE) != 0)
+  {
+    detail::pop_interrupts_off();
+    return false;
+  }
+  __atomic_store_n(&owner_, detail::current_cpu(), __ATOMIC_RELAXED);
+  return true;
+}
+
+unsigned long SpinLock::acquire_spins()
+{
+  detail::push_interrupts_off();
+  if (holding())
+  {
+    detail::fail("spinlock: recursive acquire");
+  }
+  unsigned long spins = 0;
+  while (__atomic_exchange_n(&locked_, 1, __ATOMIC_ACQUIRE) != 0)
+  {
+    ++spins;
+  }
+  __atomic_store_n(&owner_, detail::current_cpu(), __ATOMIC_RELAXED);
+  return spins;
+}
+
 void SpinLock::release()
 {
   if (!holding())

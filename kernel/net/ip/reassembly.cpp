@@ -120,3 +120,20 @@ void Ipv4Reassembly::clear()
   tick(~0UL);
 }
 } // namespace xv::net
+
+namespace xv::net
+{
+unsigned long Ipv4Reassembly::next_deadline()
+{
+  xv::sync::ScopedLock guard(lock_);
+  unsigned long next = ~0UL;
+  for (const auto &assembly : assemblies_)
+  {
+    if (assembly.page && assembly.deadline < next)
+    {
+      next = assembly.deadline;
+    }
+  }
+  return next;
+}
+} // namespace xv::net

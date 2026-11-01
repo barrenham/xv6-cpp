@@ -219,3 +219,47 @@
 @brief 提交暂存事务，提交记录落盘后再checkpoint并清理日志。
 @details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
 ```
+
+- [`xv::ext3::Jbd::accept`](jbd.cpp.md#fn-3790d97f4098aeb2)
+
+- [`xv::ext3::Jbd::capacity`](jbd.cpp.md#fn-fd2d7403e25d8f61)
+
+- [`xv::ext3::Jbd::commit`](jbd.cpp.md#fn-fdb68219a2e1ea1f)
+
+- [`xv::ext3::Jbd::edit`](jbd.cpp.md#fn-c20ee5d2fed40650)
+
+- [`xv::ext3::Jbd::incomplete`](jbd.cpp.md#fn-5f83ab0e886b23b5)
+
+- [`xv::ext3::Jbd::mount`](jbd.cpp.md#fn-84dc32d01171adf8)
+
+- [`xv::ext3::Jbd::read`](jbd.cpp.md#fn-eeea4b93975a608f)
+
+- [`xv::ext3::Jbd::recover`](jbd.cpp.md#fn-4aeb4495dce71ad3)
+
+- [`xv::ext3::Jbd::reset`](jbd.cpp.md#fn-f9c31fc6def17b65)
+
+- [`xv::ext3::Jbd::rollback`](jbd.cpp.md#fn-ec439701f22d506d)
+
+- [`xv::ext3::Jbd::savepoint`](jbd.cpp.md#fn-11d9460ce91aba47)
+
+- [`xv::ext3::Jbd::scan`](jbd.cpp.md#fn-fe8f6c002e489b66)
+
+- [`xv::ext3::Jbd::staged`](jbd.cpp.md#fn-666f7c7adf93389d)
+
+- [`xv::ext3::Jbd::write_super`](jbd.cpp.md#fn-f45f99ea428df3fd)
+
+- [`xv::ext3::Jbd::Revocations::Revocations`](jbd.cpp.md#fn-2307cbc976ae70fb)
+
+- [`xv::ext3::Jbd::Revocations::add`](jbd.cpp.md#fn-f46122475d7dfa87)
+
+- [`xv::ext3::Jbd::Revocations::contains`](jbd.cpp.md#fn-4eba054c43af0c92)
+
+- [`xv::ext3::Jbd::Revocations::~Revocations`](jbd.cpp.md#fn-bfd188569715b12c)
+
+- [`xv::ext3::header`](jbd.cpp.md#fn-a4479c2fb7b020ae)
+
+- [`xv::ext3::Scratch::Scratch`](jbd.cpp.md#fn-2878ea6289c61dfd)
+
+- [`xv::ext3::Scratch::get`](jbd.cpp.md#fn-faaededb28c48d71)
+
+- [`xv::ext3::Scratch::~Scratch`](jbd.cpp.md#fn-8b91a7d6d3ae144e)

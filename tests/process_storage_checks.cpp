@@ -77,19 +77,30 @@ void policy_queues()
   {
     PagedProcessStore store;
     PolicyReadyQueue ready(kind);
-    store.initialize(); ready.initialize();
+    store.initialize();
+    ready.initialize();
     auto *pinned = store.allocate();
     Access::unlock(*pinned);
     check(pinned->pin_cpu(0) == 0, "policy affinity fixture");
-    Access::lock(*pinned); ready.enqueue(*pinned); Access::unlock(*pinned);
+    Access::lock(*pinned);
+    ready.enqueue(*pinned);
+    Access::unlock(*pinned);
     auto *unbound = store.allocate();
-    ready.enqueue(*unbound); Access::unlock(*unbound);
-    check(ready.take(*cpu_at(1)) == unbound, "policy queue skips pinned work without taking process lock");
-    Access::lock(*unbound); ready.start(*unbound);
+    ready.enqueue(*unbound);
+    Access::unlock(*unbound);
+    check(ready.take(*cpu_at(1)) == unbound,
+          "policy queue skips pinned work without taking process lock");
+    Access::lock(*unbound);
+    ready.start(*unbound);
     check(!ready.tick(*unbound), "fresh dispatch has unexpired budget");
-    ready.stop(*unbound); store.release(unbound);
-    check(ready.take(*cpu_at(0)) == pinned, "policy queue leaves pinned entity available");
-    Access::lock(*pinned); ready.start(*pinned); ready.stop(*pinned); store.release(pinned);
+    ready.stop(*unbound);
+    store.release(unbound);
+    check(ready.take(*cpu_at(0)) == pinned,
+          "policy queue leaves pinned entity available");
+    Access::lock(*pinned);
+    ready.start(*pinned);
+    ready.stop(*pinned);
+    store.release(pinned);
     check(!ready.take(*cpu_at(0)) && store.count() == 0 && xv_storage_live_pages() == 0,
           "policy queue preserves descriptor ownership and complete reclamation");
   }
@@ -107,49 +118,72 @@ void pid_index()
     processes.push_back(process);
     Access::unlock(*process);
   }
-  check(!store.find_pid(0) && !store.find_pid(-1) && !store.find_pid(257), "missing PID lookup");
+  check(!store.find_pid(0) && !store.find_pid(-1) && !store.find_pid(257),
+        "missing PID lookup");
   const auto pages = xv_storage_live_pages();
   check(!store.allocate(128) && !store.allocate(-1) && store.count() == 256 &&
-        xv_storage_live_pages() == pages, "duplicate and invalid PID roll back descriptor and stack");
+            xv_storage_live_pages() == pages,
+        "duplicate and invalid PID roll back descriptor and stack");
   // Reverse lookups plus alternating deletion exercise both tree and registry links.
   for (int pid = 256; pid; --pid)
   {
     auto *process = store.find_pid(pid);
-    check(process == processes[pid-1], "indexed PID lookup returns locked stable descriptor");
+    check(process == processes[pid - 1],
+          "indexed PID lookup returns locked stable descriptor");
     Access::unlock(*process);
   }
   for (unsigned parity = 0; parity < 2; ++parity)
+  {
     for (unsigned i = parity; i < processes.size(); i += 2)
     {
-      auto *process = store.find_pid(int(i+1));
+      auto *process = store.find_pid(int(i + 1));
       check(process == processes[i], "PID survives unrelated rotations and removals");
       store.release(process);
-      check(!store.find_pid(int(i+1)), "retired PID absent before storage reuse");
+      check(!store.find_pid(int(i + 1)), "retired PID absent before storage reuse");
     }
+  }
   check(!store.count() && !xv_storage_live_pages(), "PID tree fully reclaimed");
   std::atomic<bool> stop{false};
-  std::thread observer([&] {
-    while (!stop.load())
-      for (int pid = 1; pid <= 4; ++pid)
-        if (auto *process = store.find_pid(pid))
-        { check(process->id() == pid, "concurrent indexed lookup pins identity"); Access::unlock(*process); }
-  });
+  std::thread observer(
+      [&]
+      {
+        while (!stop.load())
+        {
+          for (int pid = 1; pid <= 4; ++pid)
+          {
+            if (auto *process = store.find_pid(pid))
+            {
+              check(process->id() == pid, "concurrent indexed lookup pins identity");
+              Access::unlock(*process);
+            }
+          }
+        }
+      });
   std::vector<std::thread> writers;
   for (int pid = 1; pid <= 4; ++pid)
-    writers.emplace_back([&,pid] {
-      for (unsigned i = 0; i < 200; ++i)
-      {
-        auto *process = store.allocate(pid);
-        check(process != nullptr, "PID can be reused only after retirement");
-        Access::unlock(*process);
-        process = store.find_pid(pid);
-        check(process != nullptr, "writer finds its PID");
-        store.release(process);
-      }
-    });
-  for (auto &writer : writers) writer.join();
-  stop.store(true); observer.join();
-  check(!store.count() && !xv_storage_live_pages(), "concurrent PID lookup/reuse/removal has no leaks");
+  {
+    writers.emplace_back(
+        [&, pid]
+        {
+          for (unsigned i = 0; i < 200; ++i)
+          {
+            auto *process = store.allocate(pid);
+            check(process != nullptr, "PID can be reused only after retirement");
+            Access::unlock(*process);
+            process = store.find_pid(pid);
+            check(process != nullptr, "writer finds its PID");
+            store.release(process);
+          }
+        });
+  }
+  for (auto &writer : writers)
+  {
+    writer.join();
+  }
+  stop.store(true);
+  observer.join();
+  check(!store.count() && !xv_storage_live_pages(),
+        "concurrent PID lookup/reuse/removal has no leaks");
 }
 
 void basic()
@@ -251,13 +285,15 @@ void duplicate()
 void foreign_release()
 {
   auto child = fork();
-  check(child >= 0,"fork foreign registry invariant check");
+  check(child >= 0, "fork foreign registry invariant check");
   if (!child)
   {
-    PagedProcessStore first,second;
-    first.initialize(); second.initialize();
-    auto *one=first.allocate(1); Access::unlock(*one);
-    auto *two=first.allocate(2);
+    PagedProcessStore first, second;
+    first.initialize();
+    second.initialize();
+    auto *one = first.allocate(1);
+    Access::unlock(*one);
+    auto *two = first.allocate(2);
     // The older node has a previous link: reject before touching either tree,
     // list or retirement state, rather than trusting those links as ownership.
     Access::unlock(*two);
@@ -265,8 +301,9 @@ void foreign_release()
     second.release(one);
     std::_Exit(0);
   }
-  int status=0;
-  check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==99,
+  int status = 0;
+  check(waitpid(child, &status, 0) == child && WIFEXITED(status) &&
+            WEXITSTATUS(status) == 99,
         "cross-registry release rejected before mutation");
 }
 
@@ -434,7 +471,15 @@ void poll_subscriptions()
     check(!left.triggered(), "early notification consumed without sleeping");
     waits.wake(&b);
     check(left.triggered() && right.triggered(), "shared queue notifies both contexts");
-    left.sleep(); right.sleep();
+    left.sleep();
+    right.sleep();
+    left.set_deadline(500);
+    left.set_deadline(1000);
+    waits.expire_timers(500);
+    check(!left.triggered(), "reset removes obsolete earlier deadline");
+    left.cancel_deadline();
+    waits.expire_timers(1000);
+    check(!left.triggered(), "explicit cancel removes timer without notification");
     left.set_deadline(1000);
     waits.expire_timers(999);
     check(!left.triggered(), "timer does not notify before deadline");
@@ -445,15 +490,23 @@ void poll_subscriptions()
     check(!left.triggered(), "deadline is removed after notification");
   }
   check(xv_storage_live_pages() == baseline, "poll destruction frees all pages");
-  waits.wake(&a); waits.wake(&b); waits.expire_timers(~0UL);
+  waits.wake(&a);
+  waits.wake(&b);
+  waits.expire_timers(~0UL);
   {
     int channels[400];
     PollWait many(*first, waits);
-    for (auto &channel : channels) many.watch(&channel);
+    for (auto &channel : channels)
+    {
+      many.watch(&channel);
+    }
     check(!many.failed() && xv_storage_live_pages() > baseline + 1,
           "hundreds of subscriptions span multiple owned pages");
     const auto allocated = xv_storage_live_pages();
-    for (auto &channel : channels) many.watch(&channel);
+    for (auto &channel : channels)
+    {
+      many.watch(&channel);
+    }
     check(xv_storage_live_pages() == allocated,
           "duplicates on older pages do not allocate or subscribe twice");
     waits.wake(&channels[399]);
@@ -463,7 +516,9 @@ void poll_subscriptions()
         "multi-page destruction unsubscribes and frees every page");
   {
     PollWait early(*first, waits), middle(*first, waits), late(*first, waits);
-    early.set_deadline(100); middle.set_deadline(200); late.set_deadline(300);
+    early.set_deadline(100);
+    middle.set_deadline(200);
+    late.set_deadline(300);
     waits.expire_timers(199);
     check(early.triggered() && !middle.triggered() && !late.triggered(),
           "expiry skips later deadlines to unlink a due tail");
@@ -481,14 +536,15 @@ void poll_subscriptions()
   }
   xv_storage_fail_after(-1);
   std::atomic<bool> stop{false};
-  std::thread notifier([&]
-  {
-    while (!stop.load())
-    {
-      waits.wake(&a);
-      waits.expire_timers(1000);
-    }
-  });
+  std::thread notifier(
+      [&]
+      {
+        while (!stop.load())
+        {
+          waits.wake(&a);
+          waits.expire_timers(1000);
+        }
+      });
   for (int i = 0; i < 500; ++i)
   {
     PollWait wait(*first, waits);
@@ -505,8 +561,10 @@ void poll_subscriptions()
     PollWait interrupted(*first, waits);
     interrupted.sleep(); // A pending signal skips sleep without recursive locking.
   }
-  Access::lock(*first); store.release(first);
-  Access::lock(*second); store.release(second);
+  Access::lock(*first);
+  store.release(first);
+  Access::lock(*second);
+  store.release(second);
   check(xv_storage_live_pages() == 0, "poll owners retire without residual waits");
 }
 

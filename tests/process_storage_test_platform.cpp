@@ -17,7 +17,18 @@ constinit xv::process::CpuState test_cpus[NCPU]{};
 
 namespace xv::process::detail
 {
-unsigned long scheduling_time() { return 0; }
+void synchronize_kernel_mappings()
+{
+}
+
+void arm_deadline_timer(unsigned long)
+{
+}
+
+unsigned long scheduling_time()
+{
+  return 0;
+}
 
 void *allocate_process_page()
 {
@@ -46,10 +57,21 @@ void free_process_page(void *page)
 
 void initialize_process_objects(unsigned long bytes, unsigned long alignment)
 {
-  if (!bytes || bytes > 2048 || alignment > 4096) std::_Exit(99);
+  if (!bytes || bytes > 2048 || alignment > 4096)
+  {
+    std::_Exit(99);
+  }
 }
-void *allocate_process_object() { return allocate_process_page(); }
-void free_process_object(void *object) { free_process_page(object); }
+
+void *allocate_process_object()
+{
+  return allocate_process_page();
+}
+
+void free_process_object(void *object)
+{
+  free_process_page(object);
+}
 
 unsigned long allocate_kernel_stack()
 {

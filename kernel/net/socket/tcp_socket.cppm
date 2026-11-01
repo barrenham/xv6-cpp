@@ -41,6 +41,7 @@ public:
   void close() override;
   void destroy() override;
   void tick(unsigned long now) override;
+  unsigned long next_deadline() const;
   bool matches(Endpoint local, Endpoint peer) const;
   bool listening(Endpoint local) const;
   void incoming(Endpoint source, Endpoint destination, const unsigned char *segment,
@@ -104,6 +105,7 @@ private:
   TcpCongestion congestion_;
   RetransmissionTimer retransmission_;
   unsigned long idle_deadline_ = 0, persist_deadline_ = 0, last_activity_ = 0;
+  unsigned long output_retry_ = ~0UL;
   bool syn_pending_ = false, fin_sent_ = false, fin_acked_ = false;
   bool read_shutdown_ = false, write_shutdown_ = false;
 };

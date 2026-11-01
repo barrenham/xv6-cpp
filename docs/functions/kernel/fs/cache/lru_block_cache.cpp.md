@@ -24,11 +24,8 @@
 
 ```doxygen
 @fn void xv::fs::LruBlockCache::initialize()
-@brief LRU 块缓存：建立该对象开始工作所需的初始状态。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::fail` → `lock_.init` → `b->lock.init`。
-@details 本函数可见的状态更新包括：`head_.prev = &head_;`；`head_.next = &head_;`；`b->next = head_.next;`；`b->prev = &head_;`；`head_.next->prev = b;`；`head_.next = b;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!device_`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 在无并发借用的初始化阶段建立哈希桶、候选批次和未分配缓冲块。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
 
 <a id="fn-af4d8f5d14b2fff0"></a>
@@ -36,13 +33,11 @@
 ## `xv::fs::LruBlockCache::get`
 
 ```doxygen
-@fn Buffer *xv::fs::LruBlockCache::get(unsigned dev, unsigned blockno)
-@brief LRU 块缓存：取得。
-@param dev 块设备编号。
-@param blockno 本次操作使用的 blockno 值。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release` → `b->lock.acquire`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 返回已保留引用且持有缓冲睡眠锁的 Buffer；无可用缓冲时诊断为致命错误。
-@details 流程由 GetFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@fn Buffer *xv::fs::LruBlockCache::get(unsigned device, unsigned block)
+@brief 运行 GetFlow，返回已持内容锁且身份被引用固定的缓冲块。
+@param device 块设备编号。
+@param block 本次操作使用的 blockno 值。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
 
 <a id="fn-6f7b9e574580bc22"></a>
@@ -51,13 +46,10 @@
 
 ```doxygen
 @fn BlockHandle xv::fs::LruBlockCache::read(unsigned dev, unsigned blockno)
-@brief LRU 块缓存：读取已有数据并按接口返回读取结果。
+@brief 取得缓存块，仅在内容无效时读取设备，并返回持锁句柄。
 @param dev 块设备编号。
 @param blockno 本次操作使用的 blockno 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`get` → `device_->transfer` → `BlockHandle`。
-@details 本函数可见的状态更新包括：`b->valid = 1;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!b->valid`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`BlockHandle(*this, *b)`。应结合上面的条件检查区分正常值、空值和错误值。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
 
 <a id="fn-82145096d9d76c5e"></a>
@@ -66,11 +58,9 @@
 
 ```doxygen
 @fn void xv::fs::LruBlockCache::write(Buffer &buffer)
-@brief LRU 块缓存：提交输入数据并报告传输结果。
+@brief 要求调用者持内容锁，计数并向后端写出整个块。
 @param buffer 接收或提交的数据缓冲。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`b->lock.holding` → `detail::fail` → `device_->transfer`。
-@details 需要特别跟踪的条件：`!b->lock.holding()`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
 
 <a id="fn-c5ecc882a204c8ff"></a>
@@ -79,11 +69,9 @@
 
 ```doxygen
 @fn void xv::fs::LruBlockCache::release(Buffer &buffer)
-@brief LRU 块缓存：释放当前引用或归还对象占用的资源。
+@brief 运行 ReleaseFlow，释放内容锁并归还引用；最后归还更新时间戳。
 @param buffer 接收或提交的数据缓冲。
-@note 源码中出现的锁操作：`b->lock.release` → `lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 流程由 ReleaseFlow 的编译期图连接；具名业务阶段保留原有分配、锁、返回值与资源转移协议。
+@details 先释放 SleepLock，再持所属桶锁减少引用；引用归零时记录时间戳供批量候选复核，不修改全局 LRU 链表。
 ```
 
 <a id="fn-752c3a0a65094c6c"></a>
@@ -92,11 +80,9 @@
 
 ```doxygen
 @fn void xv::fs::LruBlockCache::pin(Buffer &buffer)
-@brief LRU 块缓存：为缓存块增加不能回收的固定引用。
+@brief 在已有引用固定身份的前提下增加 pin 引用，阻止淘汰。
 @param buffer 接收或提交的数据缓冲。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `lock_.release`。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
 
 <a id="fn-1bfa0103c3bfaf36"></a>
@@ -105,9 +91,31 @@
 
 ```doxygen
 @fn void xv::fs::LruBlockCache::unpin(Buffer &buffer)
-@brief LRU 块缓存：撤销缓存块的固定引用。
+@brief 撤销已有 pin 引用，最后一个引用消失时更新时间戳。
 @param buffer 接收或提交的数据缓冲。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`lock_.acquire` → `lock_.release`。
-@note 源码中出现的锁操作：`lock_.acquire` → `lock_.release`。顺序包含分支和释放动作，不表示这些锁同时持有。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
 ```
+
+<a id="fn-53ecf27400f3e0ad"></a>
+
+## `xv::fs::LruBlockCache::acquire`
+
+```doxygen
+@fn void xv::fs::LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics)
+@brief 获取缓存锁，仅在首次竞争后测量等待与自旋。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
+```
+
+<a id="fn-5694eb576f5299cc"></a>
+
+## `xv::fs::LruBlockCache::statistics`
+
+```doxygen
+@fn CacheStatistics xv::fs::LruBlockCache::statistics() const
+@brief 按桶和淘汰管理器汇总累计统计，不冻结其他 CPU。
+@details 初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。
+```
+
+- [`xv::fs::LruBlockCache::acquire`](lru_block_cache.cpp.md#fn-53ecf27400f3e0ad)
+
+- [`xv::fs::LruBlockCache::statistics`](lru_block_cache.cpp.md#fn-5694eb576f5299cc)

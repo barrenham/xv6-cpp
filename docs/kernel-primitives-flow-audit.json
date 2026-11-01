@@ -22,8 +22,8 @@
         },
         {
           "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-          "sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003",
-          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+          "sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72",
+          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：到期通知由统一等待队列处理，按周期边界与最早截止时间的较小值装载硬件比较寄存器。TTY 仍由 hart 0 按 100ms 周期服务；网络超时已移交 net-timers 任务，短截止时间中断不推进 CPU 时间采样。",
           "graph_entries": [
             {
               "qualified": "xv::trap::detail::refill_stack_reserve",
@@ -87,8 +87,8 @@
         },
         {
           "source": "kernel/trap/clock/tick_clock.cpp",
-          "sha256": "adedebe9315bf24140d90cb89316cc333e04c478ddfe53206b7e8a74ddbd5145",
-          "review": "pause 运行 PauseFlow；initialize 为单锁初始化，uptime 为锁内读取，interrupt 为 hart0 锁内计数/唤醒和每 hart 定时器重装的固定硬件回调。",
+          "sha256": "150faa0eeb7d3ab4d3d325f893e4797e008bb287b88171637ad193fa7663d28d",
+          "review": "pause 运行 PauseFlow；initialize 为单锁初始化，uptime 为锁内读取，interrupt 为 hart0 锁内计数/唤醒和每 hart 定时器重装的固定硬件回调。 本轮复核：区分按绝对周期边界到达的 100ms 调度节拍与短截止时间中断；只有周期事件推进 hart 0 uptime 并通知 tick 等待者。每 hart 独立保存下一周期边界，周期到达返回 true；不把短中断计为调度量子。",
           "graph_entries": [
             {
               "qualified": "xv::trap::TickClock::pause",
@@ -104,8 +104,8 @@
         },
         {
           "source": "kernel/trap/clock/tick_clock.cppm",
-          "sha256": "5a996d0f1f2dcccb20607a2cb4473c7dea2d5a3390fdf36332d322847caf947b",
-          "review": "时钟状态/固定间隔与私有 PauseFlow 声明，无额外执行图。",
+          "sha256": "ac70ee6352c55a14611e012d18ea62f809e67e3419398203a5c9b6b6c6ce2b26",
+          "review": "时钟状态/固定间隔与私有 PauseFlow 声明，无额外执行图。 本轮复核：区分按绝对周期边界到达的 100ms 调度节拍与短截止时间中断；只有周期事件推进 hart 0 uptime 并通知 tick 等待者。每 hart 独立保存下一周期边界，周期到达返回 true；不把短中断计为调度量子。",
           "graph_entries": [],
           "pending": []
         },
@@ -217,15 +217,15 @@
         },
         {
           "source": "kernel/trap/handlers/timer_interrupt.cpp",
-          "sha256": "343e5c2a491719b6a9e2e52a2d72ed8cb49e072fe0e79a73d62f26a2dadb5212",
-          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。 Follow-up: timer accounting/rearm and device service still occur first; scheduler_timer_tick chooses Yield versus Resume without changing uptime units or timer cadence. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+          "sha256": "4e92234610d564ee4cd51a0467785987dee583090a3e9cd6d15cb1a6f2c8c7cf",
+          "review": "事件谓词、时钟/设备固定 tick 委托及 Yield 业务返回；无动态接线。 Follow-up: timer accounting/rearm and device service still occur first; scheduler_timer_tick chooses Yield versus Resume without changing uptime units or timer cadence. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：周期事件计入 CPU 采样并调用调度策略 tick；短截止时间中断仅计入总中断并提供调度机会。设备服务不再执行网络协议超时。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/trap/platform/platform.cppm",
-          "sha256": "050c5fa259f127baefa140da4766f265ac216b00e6efe26c93c6e211cd48b9f3",
-          "review": "架构平台边界函数声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+          "sha256": "360f5207dc1b031b7790885a998c71c3c1b103130924007e45f8a62aad1f9532",
+          "review": "架构平台边界函数声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：接口/对象布局接入统一截止时间队列与永久网络定时任务；节点生命周期、取消同步和多核栈映射访问约定见 docs/deadline-timers.md。",
           "graph_entries": [],
           "pending": []
         },
@@ -340,15 +340,15 @@
         },
         {
           "source": "kernel/sync/spin/spinlock.cpp",
-          "sha256": "6d77a6f16b1c99ed6c8eaa8a60995521aa586d753fa8e8c30dc9964db502db3e",
-          "review": "acquire 交换自旋/owner 发布与 release-owner/释放屏障/恢复 noff 为底层原子锁原语；保留诊断和原内存序。",
+          "sha256": "ccbe77bed7f5b49a4c238a55fa00808f0591a674050850658c966f2b3ffb4e0d",
+          "review": "自旋锁保持原先 pushOff/popOff、递归获取检查和 owner 协议。try_acquire 失败恢复中断嵌套，成功保留中断屏蔽至 release；acquire_spins 返回失败原子交换次数，不在无竞争路径读取时钟。原 acquire 调用者行为保留。",
           "graph_entries": [],
           "pending": []
         },
         {
           "source": "kernel/sync/spin/spinlock.cppm",
-          "sha256": "4f0e61f8b4c39a26ceddf0ad1544a9b7ed4e325d56a577a173a847ae4082fd7b",
-          "review": "constexpr 锁对象布局、标量 owner/locked 和接口声明，无新增全局初始化。",
+          "sha256": "6f51b810a7bafbd51c7231e4a6332d3df49829de6a036aec51052ac62f9de088",
+          "review": "提供可选 try_acquire 和 acquire_spins 测量接口；成功持锁时中断保持关闭，尝试失败恢复调用前嵌套深度。默认 acquire 不增加统计。",
           "graph_entries": [],
           "pending": []
         },
@@ -604,6 +604,13 @@
           "source": "kernel/support/byte_fill.h",
           "sha256": "0ea4e49be39dfa88326124c63b1c92b0735f3f79ee6d9275d3ed368af903d6b5",
           "review": "有界字节算法：逐字节对齐后使用 may_alias 机器字写入，尾部逐字节处理；不越界，不引入动态内存、锁或业务生命周期。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/support/deadline_queue.h",
+          "sha256": "8bf7816f9ab08c2d3803e3a12b4a20f00c79ab4ea34f50d45d5d619c3062d4d0",
+          "review": "侵入式截止时间红黑树，不分配节点；调用者提供互斥并保持节点地址稳定。reset 撤销旧登记，cancel 幂等，expire 先摘除再通知且最多处理预算数；通知只允许有界唤醒，不得睡眠、分配或重入队列。",
           "graph_entries": [],
           "pending": []
         }

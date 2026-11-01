@@ -558,3 +558,5 @@
 @brief 流程动作或条件 snapshot；作用于当前Context，转移关系由所属图声明。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::process::ElfLoader::LoadFlow::snapshot`](elf_loader.cpp.md#fn-aab803e89745a022)

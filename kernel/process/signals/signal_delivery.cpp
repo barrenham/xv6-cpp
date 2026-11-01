@@ -99,7 +99,8 @@ struct ProcessManager::SendPidSignalFlow
 
   static bool permitted(Context &c) noexcept
   {
-    return (c.process != c.owner.initial_ || c.signal == 0) &&
+    return (!c.process->kernel_entry_ || c.signal == 0) &&
+           (c.process != c.owner.initial_ || c.signal == 0) &&
            Credentials::may_signal(current()->credentials().snapshot(),
                                    c.process->credentials().snapshot());
   }
@@ -297,7 +298,10 @@ struct ProcessManager::DeliverSignalFlow
     c.owner.waits_.cancel(c.process);
     c.owner.wait_lock_.acquire();
     // Notify before taking the child lock, closing the parent's check-to-sleep window.
-    if (c.process.parent) c.owner.wakeup(&c.process.parent->child_events_);
+    if (c.process.parent)
+    {
+      c.owner.wakeup(&c.process.parent->child_events_);
+    }
     c.process.lock.acquire();
     c.signal = c.process.pending_signals_.take_stop();
   }
@@ -399,7 +403,8 @@ int ProcessManager::send_signal(int target, int signal)
     void visit(ProcessMembership &member) override
     {
       auto *process = member.owner();
-      if (!process || (process == initial_ && signal_ != 0) ||
+      if (!process || (process->kernel_entry_ && signal_ != 0) ||
+          (process == initial_ && signal_ != 0) ||
           !Credentials::may_signal(sender_, process->credentials().snapshot()))
       {
         return;

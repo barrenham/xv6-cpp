@@ -110,6 +110,7 @@
       "c:@N@xv@N@process@F@copy_out#b#l#*1v#l#",
       "c:@N@xv@N@process@F@cpu_statistics#i#&$@N@xv@N@stats@S@Cpu#",
       "c:@N@xv@N@process@F@create_initial_process#",
+      "c:@N@xv@N@process@F@create_kernel_task#*1C#*Fv()#",
       "c:@N@xv@N@process@F@create_session#",
       "c:@N@xv@N@process@F@deliver_signals#",
       "c:@N@xv@N@process@F@detach_terminal#*v#",
@@ -125,6 +126,7 @@
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
       "c:@N@xv@N@process@F@may_read_terminal#*v#",
+      "c:@N@xv@N@process@F@next_timer_deadline#",
       "c:@N@xv@N@process@F@pin_controlling_terminal#*F*v(#S2_)#",
       "c:@N@xv@N@process@F@poll_timer_tick#l#",
       "c:@N@xv@N@process@F@post_terminal_interrupt#*v#I#",
@@ -152,7 +154,9 @@
       "c:@N@xv@N@net@F@firewall_control#i#&$@S@firewall_request#",
       "c:@N@xv@N@net@F@initialize#*$@N@xv@N@net@S@NetworkSetup#",
       "c:@N@xv@N@net@F@interfaces#",
+      "c:@N@xv@N@net@F@next_timer_deadline#",
       "c:@N@xv@N@net@F@routing_table#",
+      "c:@N@xv@N@net@F@start_timer_worker#",
       "c:@N@xv@N@net@F@timer_tick#"
     ]
   },
@@ -1546,10 +1550,12 @@
     "function_usrs": [
       "c:@N@xv@N@sync@S@SpinLock@F@SpinLock#",
       "c:@N@xv@N@sync@S@SpinLock@F@acquire#",
+      "c:@N@xv@N@sync@S@SpinLock@F@acquire_spins#",
       "c:@N@xv@N@sync@S@SpinLock@F@holding#1",
       "c:@N@xv@N@sync@S@SpinLock@F@init#*1C#",
       "c:@N@xv@N@sync@S@SpinLock@F@kind#1",
-      "c:@N@xv@N@sync@S@SpinLock@F@release#"
+      "c:@N@xv@N@sync@S@SpinLock@F@release#",
+      "c:@N@xv@N@sync@S@SpinLock@F@try_acquire#"
     ]
   },
   {
@@ -1557,9 +1563,11 @@
     "document": "docs/functions/kernel/sync/spin/spinlock.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@sync@S@SpinLock@F@acquire#",
+      "c:@N@xv@N@sync@S@SpinLock@F@acquire_spins#",
       "c:@N@xv@N@sync@S@SpinLock@F@holding#1",
       "c:@N@xv@N@sync@S@SpinLock@F@init#*1C#",
-      "c:@N@xv@N@sync@S@SpinLock@F@release#"
+      "c:@N@xv@N@sync@S@SpinLock@F@release#",
+      "c:@N@xv@N@sync@S@SpinLock@F@try_acquire#"
     ]
   },
   {
@@ -1854,6 +1862,7 @@
       "c:@N@xv@N@fs@N@detail@F@allocate_page#",
       "c:@N@xv@N@fs@N@detail@F@allowed#*$@N@xv@N@fs@S@Inode#i#b#",
       "c:@N@xv@N@fs@N@detail@F@boot_epoch_seconds#",
+      "c:@N@xv@N@fs@N@detail@F@cache_ticks#",
       "c:@N@xv@N@fs@N@detail@F@compare#*1C#S0_#i#",
       "c:@N@xv@N@fs@N@detail@F@copy_fixed#*C#*1C#i#",
       "c:@N@xv@N@fs@N@detail@F@copy_in#*v#b#l#i#",
@@ -1891,6 +1900,7 @@
     "function_usrs": [
       "c:@N@xv@N@fs@N@detail@F@allocate_page#",
       "c:@N@xv@N@fs@N@detail@F@boot_epoch_seconds#",
+      "c:@N@xv@N@fs@N@detail@F@cache_ticks#",
       "c:@N@xv@N@fs@N@detail@F@compare#*1C#S0_#i#",
       "c:@N@xv@N@fs@N@detail@F@copy_fixed#*C#*1C#i#",
       "c:@N@xv@N@fs@N@detail@F@copy_in#*v#b#l#i#",
@@ -1977,11 +1987,13 @@
     "source": "kernel/fs/cache/lru_block_cache.cpp",
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cpp.md",
     "function_usrs": [
+      "c:@N@xv@N@fs@S@LruBlockCache@F@acquire#&$@N@xv@N@sync@S@SpinLock#&$@N@xv@N@fs@S@CacheStatistics#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@initialize#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@pin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@read#i#i#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@release#&$@N@xv@N@fs@S@Buffer#",
+      "c:@N@xv@N@fs@S@LruBlockCache@F@statistics#1",
       "c:@N@xv@N@fs@S@LruBlockCache@F@unpin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@write#&$@N@xv@N@fs@S@Buffer#"
     ]
@@ -2002,6 +2014,7 @@
       "c:@N@xv@N@fs@S@BlockCache@F@pin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@BlockCache@F@read#i#i#",
       "c:@N@xv@N@fs@S@BlockCache@F@release#&$@N@xv@N@fs@S@Buffer#",
+      "c:@N@xv@N@fs@S@BlockCache@F@statistics#1",
       "c:@N@xv@N@fs@S@BlockCache@F@unpin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@BlockCache@F@write#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@BlockCache@F@~BlockCache#",
@@ -2028,14 +2041,18 @@
     "document": "docs/functions/kernel/fs/cache/lru_block_cache.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@fs@S@LruBlockCache@F@LruBlockCache#*$@N@xv@N@drivers@S@BlockDevice#",
+      "c:@N@xv@N@fs@S@LruBlockCache@F@acquire#&$@N@xv@N@sync@S@SpinLock#&$@N@xv@N@fs@S@CacheStatistics#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@attach#&$@N@xv@N@drivers@S@BlockDevice#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@flush#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
+      "c:@N@xv@N@fs@S@LruBlockCache@F@increment#&l#l#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@F@index#i#i#S",
       "c:@N@xv@N@fs@S@LruBlockCache@F@initialize#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@name#1",
       "c:@N@xv@N@fs@S@LruBlockCache@F@pin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@read#i#i#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@release#&$@N@xv@N@fs@S@Buffer#",
+      "c:@N@xv@N@fs@S@LruBlockCache@F@statistics#1",
       "c:@N@xv@N@fs@S@LruBlockCache@F@unpin#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@LruBlockCache@F@write#&$@N@xv@N@fs@S@Buffer#"
     ]
@@ -2310,6 +2327,7 @@
     "source": "kernel/trap/platform/platform.cppm",
     "document": "docs/functions/kernel/trap/platform/platform.cppm.md",
     "function_usrs": [
+      "c:@N@xv@N@trap@N@detail@F@account_deadline_interrupt#",
       "c:@N@xv@N@trap@N@detail@F@account_external_interrupt#",
       "c:@N@xv@N@trap@N@detail@F@account_timer#b#",
       "c:@N@xv@N@trap@N@detail@F@advance_user_pc#l#",
@@ -2335,7 +2353,7 @@
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
       "c:@N@xv@N@trap@N@detail@F@scheduler_timer_tick#",
-      "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
+      "c:@N@xv@N@trap@N@detail@F@service_timer_devices#b#",
       "c:@N@xv@N@trap@N@detail@F@sleep#",
       "c:@N@xv@N@trap@N@detail@F@snapshot#",
       "c:@N@xv@N@trap@N@detail@F@time#",
@@ -2471,6 +2489,7 @@
     "function_usrs": [
       "c:@F@kernel_stack_prepare",
       "c:@N@xv@N@trap@F@scheduler_stack_top#",
+      "c:@N@xv@N@trap@N@detail@F@account_deadline_interrupt#",
       "c:@N@xv@N@trap@N@detail@F@account_external_interrupt#",
       "c:@N@xv@N@trap@N@detail@F@account_timer#b#",
       "c:@N@xv@N@trap@N@detail@F@advance_user_pc#l#",
@@ -2497,7 +2516,7 @@
       "c:@N@xv@N@trap@N@detail@F@restore_kernel#&1$@N@xv@N@trap@S@TrapEvent#",
       "c:@N@xv@N@trap@N@detail@F@save_user_pc#l#",
       "c:@N@xv@N@trap@N@detail@F@scheduler_timer_tick#",
-      "c:@N@xv@N@trap@N@detail@F@service_timer_devices#",
+      "c:@N@xv@N@trap@N@detail@F@service_timer_devices#b#",
       "c:@N@xv@N@trap@N@detail@F@sleep#",
       "c:@N@xv@N@trap@N@detail@F@snapshot#",
       "c:@N@xv@N@trap@N@detail@F@take_stack_frame#",
@@ -2537,6 +2556,7 @@
       "c:@N@xv@N@net@S@ArpCache@F@clear#",
       "c:@N@xv@N@net@S@ArpCache@F@initialize#",
       "c:@N@xv@N@net@S@ArpCache@F@neighbor#i#&$@N@xv@N@net@S@NeighborInfo#",
+      "c:@N@xv@N@net@S@ArpCache@F@next_deadline#",
       "c:@N@xv@N@net@S@ArpCache@F@receive#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@ArpCache@F@request#i#",
       "c:@N@xv@N@net@S@ArpCache@F@send#&$@N@xv@N@net@S@Packet#i#",
@@ -2551,6 +2571,7 @@
       "c:@N@xv@N@net@S@ArpCache@F@clear#",
       "c:@N@xv@N@net@S@ArpCache@F@initialize#",
       "c:@N@xv@N@net@S@ArpCache@F@neighbor#i#&$@N@xv@N@net@S@NeighborInfo#",
+      "c:@N@xv@N@net@S@ArpCache@F@next_deadline#",
       "c:@N@xv@N@net@S@ArpCache@F@receive#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@ArpCache@F@request#i#",
       "c:@N@xv@N@net@S@ArpCache@F@send#&$@N@xv@N@net@S@Packet#i#",
@@ -2612,6 +2633,7 @@
     "document": "docs/functions/kernel/net/interface/loopback.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@net@S@LoopbackInterface@F@initialize#",
+      "c:@N@xv@N@net@S@LoopbackInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@LoopbackInterface@F@owns#i#1",
       "c:@N@xv@N@net@S@LoopbackInterface@F@tick#l#",
       "c:@N@xv@N@net@S@LoopbackInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#"
@@ -2642,6 +2664,7 @@
       "c:@N@xv@N@net@S@InterfaceRegistry@F@at#i#1",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@count#1",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@find#i#1",
+      "c:@N@xv@N@net@S@InterfaceRegistry@F@next_deadline#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@owns#i#1",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@publish#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@registration_error#&1$@N@xv@N@net@S@NetworkInterface#1",
@@ -2674,6 +2697,7 @@
       "c:@N@xv@N@net@S@NetworkInterface@F@mtu#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@name#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@neighbor#i#&$@N@xv@N@net@S@NeighborInfo#",
+      "c:@N@xv@N@net@S@NetworkInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@NetworkInterface@F@operator=#&1$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@NetworkInterface@F@owns#i#1",
       "c:@N@xv@N@net@S@NetworkInterface@F@receive_drop#",
@@ -2714,6 +2738,7 @@
       "c:@N@xv@N@net@S@EthernetInterface@F@mac#1",
       "c:@N@xv@N@net@S@EthernetInterface@F@master#1",
       "c:@N@xv@N@net@S@EthernetInterface@F@neighbor#i#&$@N@xv@N@net@S@NeighborInfo#",
+      "c:@N@xv@N@net@S@EthernetInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@EthernetInterface@F@receive#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@EthernetInterface@F@receiver#",
       "c:@N@xv@N@net@S@EthernetInterface@F@tick#l#",
@@ -2727,6 +2752,7 @@
     "function_usrs": [
       "c:@N@xv@N@net@S@InterfaceRegistry@F@add#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@find#i#1",
+      "c:@N@xv@N@net@S@InterfaceRegistry@F@next_deadline#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@owns#i#1",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@publish#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@InterfaceRegistry@F@registration_error#&1$@N@xv@N@net@S@NetworkInterface#1",
@@ -2757,6 +2783,7 @@
       "c:@N@xv@N@net@S@LoopbackInterface@F@LoopbackInterface#i#*1C#",
       "c:@N@xv@N@net@S@LoopbackInterface@F@accepts_destination#i#&1$@N@xv@N@net@S@InterfaceRegistry#1",
       "c:@N@xv@N@net@S@LoopbackInterface@F@initialize#",
+      "c:@N@xv@N@net@S@LoopbackInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@LoopbackInterface@F@owns#i#1",
       "c:@N@xv@N@net@S@LoopbackInterface@F@tick#l#",
       "c:@N@xv@N@net@S@LoopbackInterface@F@transmit#&$@N@xv@N@net@S@Packet#i#"
@@ -2803,13 +2830,16 @@
       "c:@N@xv@N@net@N@detail@F@milliseconds#",
       "c:@N@xv@N@net@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@net@N@detail@F@sleep#",
-      "c:@N@xv@N@net@N@detail@F@wake#*v#"
+      "c:@N@xv@N@net@N@detail@F@timers_changed#",
+      "c:@N@xv@N@net@N@detail@F@wake#*v#",
+      "c:@N@xv@N@net@N@detail@S@TimerChange@F@~TimerChange#"
     ]
   },
   {
     "source": "kernel/net/platform/kernel_platform.cpp",
     "document": "docs/functions/kernel/net/platform/kernel_platform.cpp.md",
     "function_usrs": [
+      "c:@N@xv@N@net@F@start_timer_worker#",
       "c:@N@xv@N@net@N@detail@F@allocate_page#",
       "c:@N@xv@N@net@N@detail@F@copy_in#*v#l#i#",
       "c:@N@xv@N@net@N@detail@F@copy_out#l#*1v#i#",
@@ -2819,7 +2849,9 @@
       "c:@N@xv@N@net@N@detail@F@milliseconds#",
       "c:@N@xv@N@net@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@net@N@detail@F@sleep#",
-      "c:@N@xv@N@net@N@detail@F@wake#*v#"
+      "c:@N@xv@N@net@N@detail@F@timers_changed#",
+      "c:@N@xv@N@net@N@detail@F@wake#*v#",
+      "c:kernel_platform.cpp@N@xv@N@net@aN@F@timer_worker#"
     ]
   },
   {
@@ -2853,6 +2885,7 @@
       "c:@N@xv@N@net@S@Ipv4Layer@F@attach#i#&$@N@xv@N@net@S@IpProtocol#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@initialize#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@mtu_for#i#i#1",
+      "c:@N@xv@N@net@S@Ipv4Layer@F@next_deadline#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@output_allowed#&1$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@send#&$@N@xv@N@net@S@Packet#i#i#i#*1$@N@xv@N@net@S@NetworkInterface#",
@@ -2926,6 +2959,7 @@
       "c:@N@xv@N@net@S@Ipv4Layer@F@initialize#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@local#i#1",
       "c:@N@xv@N@net@S@Ipv4Layer@F@mtu_for#i#i#1",
+      "c:@N@xv@N@net@S@Ipv4Layer@F@next_deadline#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@output_allowed#&1$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@receive#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@Ipv4Layer@F@send#&$@N@xv@N@net@S@Packet#i#i#i#*1$@N@xv@N@net@S@NetworkInterface#",
@@ -2940,6 +2974,7 @@
     "document": "docs/functions/kernel/net/transport/retransmission_timer.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@net@S@RetransmissionTimer@F@acknowledge#i#l#b#",
+      "c:@N@xv@N@net@S@RetransmissionTimer@F@deadline#1",
       "c:@N@xv@N@net@S@RetransmissionTimer@F@expired#l#1",
       "c:@N@xv@N@net@S@RetransmissionTimer@F@reset#",
       "c:@N@xv@N@net@S@RetransmissionTimer@F@retransmit#l#",
@@ -3060,6 +3095,7 @@
       "c:@N@xv@N@net@S@SocketRegistry@F@initialize#",
       "c:@N@xv@N@net@S@SocketRegistry@F@ip#",
       "c:@N@xv@N@net@S@SocketRegistry@F@lock#",
+      "c:@N@xv@N@net@S@SocketRegistry@F@next_deadline#",
       "c:@N@xv@N@net@S@SocketRegistry@F@port_used#i#s#*1$@N@xv@N@net@S@InetSocket#i#1",
       "c:@N@xv@N@net@S@SocketRegistry@F@ready_child#&1$@N@xv@N@net@S@TcpSocket#1",
       "c:@N@xv@N@net@S@SocketRegistry@F@tcp#",
@@ -3088,6 +3124,7 @@
       "c:@N@xv@N@net@S@TcpSocket@F@listening#$@N@xv@N@net@S@Endpoint#1",
       "c:@N@xv@N@net@S@TcpSocket@F@matches#$@N@xv@N@net@S@Endpoint#S0_#1",
       "c:@N@xv@N@net@S@TcpSocket@F@mss#1",
+      "c:@N@xv@N@net@S@TcpSocket@F@next_deadline#1",
       "c:@N@xv@N@net@S@TcpSocket@F@passive#&$@N@xv@N@net@S@TcpSocket#$@N@xv@N@net@S@Endpoint#S2_#*1c#i#",
       "c:@N@xv@N@net@S@TcpSocket@F@persist#l#",
       "c:@N@xv@N@net@S@TcpSocket@F@poll#*$@N@xv@N@sync@S@PollTable#",
@@ -3125,6 +3162,7 @@
       "c:@N@xv@N@net@S@SocketRegistry@F@has_ready_child#&1$@N@xv@N@net@S@TcpSocket#1",
       "c:@N@xv@N@net@S@SocketRegistry@F@initial_sequence#",
       "c:@N@xv@N@net@S@SocketRegistry@F@initialize#",
+      "c:@N@xv@N@net@S@SocketRegistry@F@next_deadline#",
       "c:@N@xv@N@net@S@SocketRegistry@F@port_used#i#s#*1$@N@xv@N@net@S@InetSocket#i#1",
       "c:@N@xv@N@net@S@SocketRegistry@F@ready_child#&1$@N@xv@N@net@S@TcpSocket#1",
       "c:@N@xv@N@net@S@SocketRegistry@F@tick#l#"
@@ -3160,6 +3198,7 @@
       "c:@N@xv@N@net@S@TcpSocket@F@listen#I#",
       "c:@N@xv@N@net@S@TcpSocket@F@listening#$@N@xv@N@net@S@Endpoint#1",
       "c:@N@xv@N@net@S@TcpSocket@F@matches#$@N@xv@N@net@S@Endpoint#S0_#1",
+      "c:@N@xv@N@net@S@TcpSocket@F@next_deadline#1",
       "c:@N@xv@N@net@S@TcpSocket@F@passive#&$@N@xv@N@net@S@TcpSocket#$@N@xv@N@net@S@Endpoint#S2_#*1c#i#",
       "c:@N@xv@N@net@S@TcpSocket@F@poll#*$@N@xv@N@sync@S@PollTable#",
       "c:@N@xv@N@net@S@TcpSocket@F@read#$@N@xv@N@io@S@Buffer#I#",
@@ -3210,6 +3249,7 @@
       "c:@N@xv@N@net@S@BridgeInterface@F@ingress#&$@N@xv@N@net@S@Layer2Port#i#&$@N@xv@N@net@S@Packet#",
       "c:@N@xv@N@net@S@BridgeInterface@F@initialize#&$@N@xv@N@net@S@IpReceiver#",
       "c:@N@xv@N@net@S@BridgeInterface@F@mac_address#*c#1",
+      "c:@N@xv@N@net@S@BridgeInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@BridgeInterface@F@tick#l#",
       "c:@N@xv@N@net@S@BridgeInterface@F@transmit#*v#i#"
     ]
@@ -3237,6 +3277,7 @@
       "c:@N@xv@N@net@S@BridgeInterface@F@initialize#&$@N@xv@N@net@S@IpReceiver#",
       "c:@N@xv@N@net@S@BridgeInterface@F@is_bridge#1",
       "c:@N@xv@N@net@S@BridgeInterface@F@mac_address#*c#1",
+      "c:@N@xv@N@net@S@BridgeInterface@F@next_deadline#",
       "c:@N@xv@N@net@S@BridgeInterface@F@online#1",
       "c:@N@xv@N@net@S@BridgeInterface@F@tick#l#",
       "c:@N@xv@N@net@S@BridgeInterface@F@transmit#*v#i#",
@@ -3271,6 +3312,7 @@
       "c:@N@xv@N@net@F@firewall_control#i#&$@S@firewall_request#",
       "c:@N@xv@N@net@F@initialize#*$@N@xv@N@net@S@NetworkSetup#",
       "c:@N@xv@N@net@F@interfaces#",
+      "c:@N@xv@N@net@F@next_timer_deadline#",
       "c:@N@xv@N@net@F@routing_table#",
       "c:@N@xv@N@net@F@socket_registry#",
       "c:@N@xv@N@net@F@timer_tick#",
@@ -3530,6 +3572,7 @@
     "document": "docs/functions/kernel/process/wait/poll_wait.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@process@S@PollWait@F@allocate_page#",
+      "c:@N@xv@N@process@S@PollWait@F@cancel_deadline#",
       "c:@N@xv@N@process@S@PollWait@F@notify#",
       "c:@N@xv@N@process@S@PollWait@F@set_deadline#l#",
       "c:@N@xv@N@process@S@PollWait@F@sleep#",
@@ -3554,12 +3597,10 @@
       "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@subscribe#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
       "c:@N@xv@N@process@S@WaitChannels@F@arm_timer#&$@N@xv@N@process@S@PollWait#l#",
       "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
+      "c:@N@xv@N@process@S@WaitChannels@F@next_timer#",
       "c:@N@xv@N@process@S@WaitChannels@F@remove_timer#&$@N@xv@N@process@S@PollWait#",
       "c:@N@xv@N@process@S@WaitChannels@F@subscribe#&$@N@xv@N@process@S@PollEntry#*v#",
-      "c:@N@xv@N@process@S@WaitChannels@F@unsubscribe#&$@N@xv@N@process@S@PollEntry#",
-      "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@expired#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S",
-      "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@notify#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S",
-      "c:@N@xv@N@process@S@WaitChannels@S@ExpireFlow@F@scan#&$@N@xv@N@process@S@WaitChannels@S@ExpireFlow@S@Context#S"
+      "c:@N@xv@N@process@S@WaitChannels@F@unsubscribe#&$@N@xv@N@process@S@PollEntry#"
     ]
   },
   {
@@ -3569,6 +3610,7 @@
       "c:@N@xv@N@process@S@PollWait@F@PollWait#&$@N@xv@N@process@S@Process#&$@N@xv@N@process@S@WaitChannels#",
       "c:@N@xv@N@process@S@PollWait@F@PollWait#&1$@N@xv@N@process@S@PollWait#",
       "c:@N@xv@N@process@S@PollWait@F@allocate_page#",
+      "c:@N@xv@N@process@S@PollWait@F@cancel_deadline#",
       "c:@N@xv@N@process@S@PollWait@F@failed#1",
       "c:@N@xv@N@process@S@PollWait@F@notify#",
       "c:@N@xv@N@process@S@PollWait@F@operator=#&1$@N@xv@N@process@S@PollWait#",
@@ -3647,6 +3689,7 @@
       "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
       "c:@N@xv@N@process@S@WaitChannels@F@index#*v#S",
       "c:@N@xv@N@process@S@WaitChannels@F@initialize#",
+      "c:@N@xv@N@process@S@WaitChannels@F@next_timer#",
       "c:@N@xv@N@process@S@WaitChannels@F@prepare#&$@N@xv@N@process@S@Process#*v#b#",
       "c:@N@xv@N@process@S@WaitChannels@F@remove_timer#&$@N@xv@N@process@S@PollWait#",
       "c:@N@xv@N@process@S@WaitChannels@F@subscribe#&$@N@xv@N@process@S@PollEntry#*v#",
@@ -3671,12 +3714,14 @@
       "c:@N@xv@N@process@N@detail@F@allocate_kernel_stack#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
+      "c:@N@xv@N@process@N@detail@F@arm_deadline_timer#l#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
       "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
       "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
       "c:@N@xv@N@process@N@detail@F@scheduling_time#",
-      "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
+      "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#",
+      "c:@N@xv@N@process@N@detail@F@synchronize_kernel_mappings#"
     ]
   },
   {
@@ -3748,12 +3793,14 @@
       "c:@N@xv@N@process@N@detail@F@allocate_kernel_stack#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_object#",
       "c:@N@xv@N@process@N@detail@F@allocate_process_page#",
+      "c:@N@xv@N@process@N@detail@F@arm_deadline_timer#l#",
       "c:@N@xv@N@process@N@detail@F@free_kernel_stack#l#",
       "c:@N@xv@N@process@N@detail@F@free_process_object#*v#",
       "c:@N@xv@N@process@N@detail@F@free_process_page#*v#",
       "c:@N@xv@N@process@N@detail@F@initialize_process_objects#l#l#",
       "c:@N@xv@N@process@N@detail@F@scheduling_time#",
-      "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#"
+      "c:@N@xv@N@process@N@detail@F@storage_fail#*1C#",
+      "c:@N@xv@N@process@N@detail@F@synchronize_kernel_mappings#"
     ]
   },
   {
@@ -4137,6 +4184,7 @@
       "c:@N@xv@N@process@F@copy_out#b#l#*1v#l#",
       "c:@N@xv@N@process@F@cpu_statistics#i#&$@N@xv@N@stats@S@Cpu#",
       "c:@N@xv@N@process@F@create_initial_process#",
+      "c:@N@xv@N@process@F@create_kernel_task#*1C#*Fv()#",
       "c:@N@xv@N@process@F@create_session#",
       "c:@N@xv@N@process@F@deliver_signals#",
       "c:@N@xv@N@process@F@detach_terminal#*v#",
@@ -4152,6 +4200,7 @@
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
       "c:@N@xv@N@process@F@may_read_terminal#*v#",
+      "c:@N@xv@N@process@F@next_timer_deadline#",
       "c:@N@xv@N@process@F@pin_controlling_terminal#*F*v(#S2_)#",
       "c:@N@xv@N@process@F@poll_timer_tick#l#",
       "c:@N@xv@N@process@F@post_terminal_interrupt#*v#I#",
@@ -4212,6 +4261,7 @@
       "c:@N@xv@N@process@S@ProcessManager@F@claim_terminal#*v#",
       "c:@N@xv@N@process@S@ProcessManager@F@collect_child_notifications#",
       "c:@N@xv@N@process@S@ProcessManager@F@create_initial_process#",
+      "c:@N@xv@N@process@S@ProcessManager@F@create_kernel_task#*1C#*Fv()#",
       "c:@N@xv@N@process@S@ProcessManager@F@create_session#",
       "c:@N@xv@N@process@S@ProcessManager@F@deliver_signals#",
       "c:@N@xv@N@process@S@ProcessManager@F@detach_child#&$@N@xv@N@process@S@Process#S",
@@ -4225,6 +4275,7 @@
       "c:@N@xv@N@process@S@ProcessManager@F@initialize#",
       "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
       "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@kernel_task_return#S",
       "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@may_read_terminal#*v#",
       "c:@N@xv@N@process@S@ProcessManager@F@notify_child_events#",
@@ -4260,6 +4311,7 @@
       "c:@N@xv@N@process@S@ProcessManager@F@allocate_pid#",
       "c:@N@xv@N@process@S@ProcessManager@F@attach_child#&$@N@xv@N@process@S@Process#S0_#S",
       "c:@N@xv@N@process@S@ProcessManager@F@create_initial_process#",
+      "c:@N@xv@N@process@S@ProcessManager@F@create_kernel_task#*1C#*Fv()#",
       "c:@N@xv@N@process@S@ProcessManager@F@detach_child#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@ProcessManager@F@dump#",
       "c:@N@xv@N@process@S@ProcessManager@F@exit_process#I#I#",
@@ -4267,6 +4319,7 @@
       "c:@N@xv@N@process@S@ProcessManager@F@initialize#",
       "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
       "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@kernel_task_return#S",
       "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@reap#*$@N@xv@N@process@S@Process#",
       "c:@N@xv@N@process@S@ProcessManager@F@reparent#*$@N@xv@N@process@S@Process#",
@@ -5273,6 +5326,7 @@
       "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
       "c:@N@xv@N@net@S@DhcpManager@F@find#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@DhcpManager@F@initialize#",
+      "c:@N@xv@N@net@S@DhcpManager@F@next_deadline#",
       "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
       "c:@N@xv@N@net@S@DhcpManager@F@select#&$@N@xv@N@net@S@DhcpManager@S@Client#l#i#",
       "c:@N@xv@N@net@S@DhcpManager@F@tick#l#",
@@ -5287,6 +5341,7 @@
       "c:@N@xv@N@net@S@DhcpManager@F@execute#i#&$@S@netctl_request#",
       "c:@N@xv@N@net@S@DhcpManager@F@find#&$@N@xv@N@net@S@NetworkInterface#",
       "c:@N@xv@N@net@S@DhcpManager@F@initialize#",
+      "c:@N@xv@N@net@S@DhcpManager@F@next_deadline#",
       "c:@N@xv@N@net@S@DhcpManager@F@receive_bootstrap#&$@N@xv@N@net@S@NetworkInterface#&$@N@xv@N@net@S@Packet#&1$@N@xv@N@net@S@IpDatagram#",
       "c:@N@xv@N@net@S@DhcpManager@F@select#&$@N@xv@N@net@S@DhcpManager@S@Client#l#i#",
       "c:@N@xv@N@net@S@DhcpManager@F@tick#l#",
@@ -5890,6 +5945,7 @@
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@find_or_create#&1$@N@xv@N@net@S@Ipv4Reassembly@S@Key#&1$@N@xv@N@net@S@Packet#l#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@initialize#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@insert#&$@N@xv@N@net@S@Ipv4Reassembly@S@Assembly#*1c#i#i#b#S",
+      "c:@N@xv@N@net@S@Ipv4Reassembly@F@next_deadline#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@tick#l#"
     ]
   },
@@ -5902,6 +5958,7 @@
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@find_or_create#&1$@N@xv@N@net@S@Ipv4Reassembly@S@Key#&1$@N@xv@N@net@S@Packet#l#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@initialize#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@insert#&$@N@xv@N@net@S@Ipv4Reassembly@S@Assembly#*1c#i#i#b#S",
+      "c:@N@xv@N@net@S@Ipv4Reassembly@F@next_deadline#",
       "c:@N@xv@N@net@S@Ipv4Reassembly@F@tick#l#"
     ]
   },
@@ -7455,13 +7512,22 @@
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@find_unused#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@found#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@lock_buffer#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@lock_victim#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@lookup#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@miss#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@missing#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@recheck#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@reference#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@retain#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@retry#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@select#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unlock_eviction#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unlock_registry#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@GetFlow@F@unused#&$@N@xv@N@fs@S@LruBlockCache@S@GetFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@drop#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@held#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@invalid#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
-      "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@move_front#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
+      "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@stamp#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@unlock_buffer#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@unlock_registry#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@F@unused#&$@N@xv@N@fs@S@LruBlockCache@S@ReleaseFlow@S@Context#S"
@@ -8762,6 +8828,7 @@
     "document": "docs/functions/kernel/fs/procfs/system_providers.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@fs@F@install_proc_providers#&$@N@xv@N@fs@S@ProcFileSystem#",
+      "c:system_providers.cpp@N@xv@N@fs@aN@F@block_cache_statistics#&$@N@xv@N@fs@S@PageBuffer#",
       "c:system_providers.cpp@N@xv@N@fs@aN@F@command_line#i#&$@N@xv@N@fs@S@PageBuffer#",
       "c:system_providers.cpp@N@xv@N@fs@aN@F@command_name#i#&$@N@xv@N@fs@S@PageBuffer#",
       "c:system_providers.cpp@N@xv@N@fs@aN@F@cpu_line#&$@N@xv@N@fs@S@SnapshotText#&1$@N@xv@N@fs@N@detail@S@CpuTime#",
@@ -8967,5 +9034,17 @@
     "source": "kernel/io/keyboard.h",
     "document": "docs/functions/kernel/io/keyboard.h.md",
     "function_usrs": []
+  },
+  {
+    "source": "kernel/support/deadline_queue.h",
+    "document": "docs/functions/kernel/support/deadline_queue.h.md",
+    "function_usrs": [
+      "c:@N@xv@N@time@S@DeadlineQueue@F@cancel#&$@N@xv@N@time@S@Deadline#",
+      "c:@N@xv@N@time@S@DeadlineQueue@F@empty#1",
+      "c:@N@xv@N@time@S@DeadlineQueue@F@expire#l#i#",
+      "c:@N@xv@N@time@S@DeadlineQueue@F@next#1",
+      "c:@N@xv@N@time@S@DeadlineQueue@F@reset#&$@N@xv@N@time@S@Deadline#l#*Fv(#*v)#S4_#",
+      "c:@N@xv@N@time@S@Earlier@F@operator()#&1$@N@xv@N@time@S@Deadline#S0_#1"
+    ]
   }
 ]

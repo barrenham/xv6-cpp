@@ -258,3 +258,15 @@
 @param result 出口返回值。
 @return 原样返回 result，不修改页面所有权。
 ```
+
+<a id="fn-528f930e95cd9717"></a>
+
+## `xv::net::InterfaceRegistry::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::InterfaceRegistry::next_deadline()
+@brief 先在配置锁下复制稳定接口指针，再在锁外查询各接口最早截止时间；避免持全局配置锁嵌套 ARP 等对象锁。
+@details 先在配置锁下复制稳定接口指针，再在锁外查询各接口最早截止时间；避免持全局配置锁嵌套 ARP 等对象锁。
+```
+
+- [`xv::net::InterfaceRegistry::next_deadline`](interface.cpp.md#fn-528f930e95cd9717)

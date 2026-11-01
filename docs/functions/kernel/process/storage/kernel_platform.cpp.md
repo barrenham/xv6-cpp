@@ -115,3 +115,27 @@
 @brief 将已销毁的进程描述符归还所属精确尺寸 slab，非法归还视为内核错误。
 @details 原始对象的构造和析构由调用者负责；初始化在发布前完成，已发布缓存操作由自旋锁串行。布局、回收和测量范围见 docs/slab.md。
 ```
+
+<a id="fn-ab4e82d5ecac01d7"></a>
+
+## `xv::process::detail::arm_deadline_timer`
+
+```doxygen
+@fn void xv::process::detail::arm_deadline_timer(unsigned long milliseconds)
+@brief 在登记者所在 hart 提前一次硬件定时唤醒。
+@details 跨 CPU 等待对象的栈映射访问使用本地 sfence.vma；登记截止时间时在本 hart 提前 stimecmp，已经到期的请求至少间隔 1ms，不能写远端 CSR。
+```
+
+<a id="fn-41b310a196e93085"></a>
+
+## `xv::process::detail::synchronize_kernel_mappings`
+
+```doxygen
+@fn void xv::process::detail::synchronize_kernel_mappings()
+@brief 刷新本地 TLB 后再访问其他进程的可复用内核栈窗口。
+@details 跨 CPU 等待对象的栈映射访问使用本地 sfence.vma；登记截止时间时在本 hart 提前 stimecmp，已经到期的请求至少间隔 1ms，不能写远端 CSR。
+```
+
+- [`xv::process::detail::arm_deadline_timer`](kernel_platform.cpp.md#fn-ab4e82d5ecac01d7)
+
+- [`xv::process::detail::synchronize_kernel_mappings`](kernel_platform.cpp.md#fn-41b310a196e93085)

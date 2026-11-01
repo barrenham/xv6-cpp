@@ -68,3 +68,29 @@
 @brief 仅按区间起点比较节点，保持两棵区间树的地址顺序。
 @details 仅管理虚拟区间及其元数据，不分配映射目标；修改和查询由调用方串行，空元数据页立即回收，reset 释放剩余元数据。
 ```
+
+- [`xv::memory::VirtualAddressPool::allocate`](virtual_address_pool.cpp.md#fn-f591d715372f863d)
+
+- [`xv::memory::VirtualAddressPool::allocate_in`](virtual_address_pool.cpp.md#fn-e689223bfa6884ad)
+
+- [`xv::memory::VirtualAddressPool::attributes`](virtual_address_pool.cpp.md#fn-9c1ea98aae4262f7)
+
+- [`xv::memory::VirtualAddressPool::containing`](virtual_address_pool.cpp.md#fn-0c09f4324cc78221)
+
+- [`xv::memory::VirtualAddressPool::copy_to`](virtual_address_pool.cpp.md#fn-f51d1468efd29191)
+
+- [`xv::memory::VirtualAddressPool::erase`](virtual_address_pool.cpp.md#fn-f443c68878d0d459)
+
+- [`xv::memory::VirtualAddressPool::find`](virtual_address_pool.cpp.md#fn-2515eb287d0d4264)
+
+- [`xv::memory::VirtualAddressPool::fit`](virtual_address_pool.cpp.md#fn-7cd88255501b3ed7)
+
+- [`xv::memory::VirtualAddressPool::protect`](virtual_address_pool.cpp.md#fn-99c9de4880b135f1)
+
+- [`xv::memory::VirtualAddressPool::reserve`](virtual_address_pool.cpp.md#fn-d5e884582fd0f65b)
+
+- [`xv::memory::VirtualAddressPool::return_free`](virtual_address_pool.cpp.md#fn-26ab46b6280b246c)
+
+- [`xv::memory::VirtualAddressPool::swap`](virtual_address_pool.cpp.md#fn-76152a5847515bfc)
+
+- [`xv::memory::VirtualAddressPool::valid`](virtual_address_pool.cpp.md#fn-fc0fb0f7e9a3c257)

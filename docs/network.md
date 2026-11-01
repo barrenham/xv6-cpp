@@ -169,9 +169,9 @@ UDP 与 TCP 均通过 File/socket 管理，端口绑定系统调用为 `sockbind
 
 TCP 覆盖 SYN-SENT、SYN-RECEIVED、ESTABLISHED、FIN-WAIT-1/2、CLOSING、CLOSE-WAIT、LAST-ACK、TIME-WAIT。数据使用序号/确认号和伪首部校验和；按序接收，重复前缀裁剪，乱序段通过累计 ACK 促使对端重传。发送保留一个未确认段，遵守 peer MSS/窗口。零窗口通过探测获取窗口更新。
 
-独立 `RetransmissionTimer` 保存 SRTT、RTTVAR 和 RTO，采用 alpha1/8、beta1/4、Karn 采样约束及指数退避，RTO 为1..60秒。硬件计时器每100ms在 hart0服务网络；最多六次重传后给出超时错误。项目 TIME_WAIT 保留30秒，FIN_WAIT2也有30秒清理边界。
+独立 `RetransmissionTimer` 保存 SRTT、RTTVAR 和 RTO，采用 alpha1/8、beta1/4、Karn 采样约束及指数退避，RTO 为1..60秒。网络超时改由可调度的 net-timers 内核任务按下一绝对截止时间服务；硬件中断只投递等待通知，最多六次重传后给出超时错误。项目 TIME_WAIT 保留30秒，FIN_WAIT2也有30秒清理边界。
 
-锁顺序：驱动先释放设备锁再回调协议；回环接口先取出并解锁再分派；SocketRegistry 使用统一条件锁保护 socket 状态及监听子连接。用户地址复制在注册锁外完成；睡眠在锁内登记等待、解锁后执行。IRQ 和 timer 路径只操作内核页及对象状态。
+锁顺序：驱动先释放设备锁再回调协议；回环接口先取出并解锁再分派；SocketRegistry 使用统一条件锁保护 socket 状态及监听子连接。用户地址复制在注册锁外完成；睡眠在锁内登记等待、解锁后执行。RX IRQ 路径仍可处理收到的协议报文；超时、重传、零窗口探测和定时回收由内核任务执行。逐 socket 的 timer 锁区间之间允许中断与调度。详见 [截止时间队列](deadline-timers.md)。
 
 ## 资源边界与后续范围
 

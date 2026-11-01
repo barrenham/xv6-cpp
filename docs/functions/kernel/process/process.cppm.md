@@ -196,3 +196,5 @@
 @brief 取得进程只读凭据控制对象。
 @details 返回 const 借用，通常调用 snapshot 取得一致值；不能跨进程寿命保留引用。
 ```
+
+- [`xv::process::Process::commit_image`](lifecycle/process.cpp.md#fn-5df6784f15391ad8)

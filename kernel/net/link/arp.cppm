@@ -18,6 +18,7 @@ public:
   int send(Packet &packet, unsigned next_hop);
   void receive(Packet &packet) override;
   void tick(unsigned long now);
+  unsigned long next_deadline();
   bool neighbor(unsigned index, NeighborInfo &result);
   void clear();
 

@@ -101,3 +101,17 @@
 @brief 返回 `lifetime_ ? lifetime_->open_retained_terminal():this`。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::drivers::TerminalLifetime::TerminalLifetime`](tty.cppm.md#fn-d5d21a61ca1b6b3b)
+
+- [`xv::drivers::TerminalLifetime::open_retained_terminal`](tty.cppm.md#fn-62b153502cd3a57e)
+
+- [`xv::drivers::TerminalLifetime::retain_terminal`](tty.cppm.md#fn-536b8598df7afbe4)
+
+- [`xv::drivers::TerminalLifetime::~TerminalLifetime`](tty.cppm.md#fn-cb0619389216bc3b)
+
+- [`xv::drivers::Tty::Tty`](tty.cppm.md#fn-a9dea36568afe117)
+
+- [`xv::drivers::Tty::open_pinned_terminal`](tty.cppm.md#fn-a47f5e5b4533d508)
+
+- [`xv::drivers::Tty::pin_terminal`](tty.cppm.md#fn-3132483920f71056)

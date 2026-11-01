@@ -35,11 +35,30 @@ constinit ProcessGroups groups;
 
 constinit ProcessManager process_manager(store, active_scheduler, waits, groups);
 
-bool cpu_statistics(unsigned cpu,CpuStatistics &result){return accounting.cpu(cpu,result);}
-SystemStatistics system_statistics(){return accounting.system();}
-void account_timer(bool user){accounting.timer(cpu_id(),user,current_cpu()->current!=nullptr);}
-void account_external_interrupt(){accounting.external(cpu_id());}
-void account_dispatch(){accounting.dispatch();}
+bool cpu_statistics(unsigned cpu, CpuStatistics &result)
+{
+  return accounting.cpu(cpu, result);
+}
+
+SystemStatistics system_statistics()
+{
+  return accounting.system();
+}
+
+void account_timer(bool user)
+{
+  accounting.timer(cpu_id(), user, current_cpu()->current != nullptr);
+}
+
+void account_external_interrupt()
+{
+  accounting.external(cpu_id());
+}
+
+void account_dispatch()
+{
+  accounting.dispatch();
+}
 
 WaitChannels &wait_channels()
 {
@@ -54,7 +73,8 @@ Scheduler &scheduler()
 SchedulerKind configured_scheduler_kind()
 {
   return __atomic_load_n(&scheduler_initialized, __ATOMIC_ACQUIRE) == 2
-             ? selected_kind : static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
+             ? selected_kind
+             : static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
 }
 
 bool initialize(SchedulerKind kind)
@@ -62,15 +82,24 @@ bool initialize(SchedulerKind kind)
   ReadyQueue *ready = nullptr;
   switch (kind)
   {
-  case SchedulerKind::Fair: ready = &fair_ready; break;
-  case SchedulerKind::RoundRobin: ready = &round_robin_ready; break;
-  case SchedulerKind::Feedback: ready = &feedback_ready; break;
-  default: return false;
+  case SchedulerKind::Fair:
+    ready = &fair_ready;
+    break;
+  case SchedulerKind::RoundRobin:
+    ready = &round_robin_ready;
+    break;
+  case SchedulerKind::Feedback:
+    ready = &feedback_ready;
+    break;
+  default:
+    return false;
   }
   int expected = 0;
   if (!__atomic_compare_exchange_n(&scheduler_initialized, &expected, 1, false,
-                                    __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+                                   __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+  {
     return false;
+  }
   active_scheduler.select(*ready);
   groups.initialize();
   store.initialize();
@@ -86,7 +115,9 @@ bool initialize(SchedulerKind kind)
 void initialize()
 {
   if (!initialize(static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER)))
+  {
     xv::print::panic("scheduler: invalid or repeated initialization");
+  }
 }
 
 void create_initial_process()
@@ -97,8 +128,11 @@ void create_initial_process()
 
 int fork_process()
 {
-  int pid=process_manager.fork_process();
-  if(pid>0)accounting.created();
+  int pid = process_manager.fork_process();
+  if (pid > 0)
+  {
+    accounting.created();
+  }
   return pid;
 }
 
@@ -153,7 +187,9 @@ void detach_terminal(void *terminal)
 }
 
 void *pin_controlling_terminal(void *(*pin)(void *))
-{return process_manager.pin_controlling_terminal(pin);}
+{
+  return process_manager.pin_controlling_terminal(pin);
+}
 
 int claim_terminal(void *terminal)
 {
@@ -210,6 +246,17 @@ void poll_timer_tick(unsigned long milliseconds)
   waits.expire_timers(milliseconds);
 }
 
+unsigned long next_timer_deadline()
+{
+  return waits.next_timer();
+}
+
+void create_kernel_task(const char *name, void (*entry)())
+{
+  process_manager.create_kernel_task(name, entry);
+  accounting.created();
+}
+
 void dump()
 {
   process_manager.dump();
@@ -235,12 +282,19 @@ int copy_out(bool user, unsigned long destination, const void *source,
   xv::runtime::move(reinterpret_cast<void *>(destination), source, count);
   return 0;
 }
+
 bool snapshot_after(int after, ProcessInfo &result)
 {
   return process_manager.snapshot_after(after, result);
 }
-bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
-{return process_manager.inspect_exec(pid,field,result);}
+
+bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
+{
+  return process_manager.inspect_exec(pid, field, result);
+}
+
 int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
-{ return process_manager.inspect_files(pid, entries, capacity); }
+{
+  return process_manager.inspect_files(pid, entries, capacity);
+}
 } // namespace xv::process

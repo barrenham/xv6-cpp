@@ -59,26 +59,26 @@
     },
     {
       "source": "kernel/fs/cache/block_cache.cppm",
-      "sha256": "52b19a7125bbe438c55fd008be48cfb71f951075679c06c899f1b2c8427e34c3",
-      "review": "Buffer/BlockHandle 原借用/锁/析构及块缓存虚接口。",
+      "sha256": "09731e91f583c0982af9c4e42ce8548e38705435bfdd1ad625cf0c6d50fa0143",
+      "review": "缓存键为设备号与块号；固定地址 Buffer 在借用/pin 期间不得迁移身份。CacheStatistics 提供按实例的累计计数，statistics 默认返回零供替代后端使用，快照不是全系统原子瞬间。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/cache/flow.cppm",
-      "sha256": "5766b94ffc68892e40880909964beb655bd848faee15fc20a01e2e7d3dd0a454",
-      "review": "获取/归还缓存图连接命中、受锁候选、读入与引用更新。",
+      "sha256": "1dd12580eff0bac0ea80d834c5b76d8e085d4a46024dddeae686d85c9764d428",
+      "review": "哈希命中增加引用后释放桶锁，再等待块 SleepLock；未命中先释放目标桶再获取淘汰锁并重查，合并同键并发请求。替换只在淘汰锁下同时持目标/原桶锁，复核零引用和候选时间戳后迁移身份。候选批次按归还时间排序，近似 LRU；全部被引用时保留容量耗尽错误。归还不维护全局链表。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/cache/lru_block_cache.cpp",
-      "sha256": "c4b9aa575ac33a924262ab285861910344134e9124febf3b0b212b968db7fea7",
-      "review": "read/release 运行缓存图；initialize 为固定缓冲链/锁初始化，pin/unpin/dirty 状态和访问器为单状态锁原语。",
+      "sha256": "e8e285cd670a9fc11a2a4a0e7cb294f0d7683c5c16f5bc1137872c76ac5c11af",
+      "review": "初始化只在无并发借用时进行；命中使用桶锁，替换由独立淘汰锁串行。refcnt 非零固定身份，pin/unpin 需要已有引用。最后归还或 unpin 更新原子时间戳；SleepLock 保护内容与设备 I/O，等待期间不持缓存自旋锁。统计逐桶汇总而非原子事务。",
       "graph_entries": [
         {
           "qualified": "xv::fs::LruBlockCache::get",
           "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
           "source": "kernel/fs/cache/lru_block_cache.cpp",
-          "source_sha256": "b03a608b6363fa991c485e724f2b1c8737d890df09436675d43700413614b92a",
+          "source_sha256": "064ea97835c3abccb6951da34d039d1395fed52e2097f33c58932a7c920710e4",
           "graphs": [
             "GetFlow::Graph"
           ]
@@ -96,8 +96,8 @@
     },
     {
       "source": "kernel/fs/cache/lru_block_cache.cppm",
-      "sha256": "254da6965ec59855c79aa286e069eace69095b39cce12ea2d336d3ab542a07ff",
-      "review": "固定 NBUF 对象、LRU 表和原接口/图声明。",
+      "sha256": "2b4133e6162cc10531ecf58903d9df5379c3f441bf2347f1834588bf01f0ca5e",
+      "review": "30 个数据块由 31 个独立哈希桶索引；热命中只锁所属桶，独立淘汰锁管理时间戳候选批次。所有计数按桶原子累计，无竞争时不读计时时钟。完整锁序和统计含义见 docs/block-cache.md。",
       "graph_entries": []
     },
     {
@@ -723,14 +723,14 @@
     },
     {
       "source": "kernel/fs/platform/kernel_platform.cpp",
-      "sha256": "48eb2d473c3e711ca7193307e5a3025b1b187eda6a8040b066bfa6ddec81bead",
-      "review": "身份/进程/文件表快照字段复制、固定 group/descriptor 扫描、内存统计和等待/复制/分配/日志平台委托保持业务边界，不替换实际进程协议。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "f6fc7796c9217739660125a52aec3ae623b6e54671cbbc36e43366e24fc8222e",
+      "review": "cache_ticks 读取 RISC-V 原始时钟，根缓存 proc 标注 10MHz；只用于替换时间戳及竞争后的等待测量，不改等待唤醒协议。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/platform/platform.cppm",
-      "sha256": "e5eec2538ad98e6e46769587414a28c2f49f58780884089758da6d3f80a8c929",
-      "review": "FS 平台接口、值快照及原语声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "255e84d034f278bbdcdcf7bf0c5f31faa49ea6c3269a8180133576ff9ca82dab",
+      "review": "cache_ticks 提供平台缓存时钟：内核为 10MHz 原始 tick，原生契约为单调纳秒；统计消费者必须区分时基。",
       "graph_entries": []
     },
     {
@@ -1162,8 +1162,8 @@
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
-      "sha256": "b5cf8b664de6c479925b88de22af3e842560ef90d720d3d12790133f154cb97a",
-      "review": "注册系统和 PID 文本提供者；读取真实 CSR/分配器/计时器/登记设备/挂载发布快照，格式化结果写 PageBuffer。采样计数非全局原子；挂载快照不进入拓扑锁，argv/env 保留访问检查。遍历是信息聚合原语。",
+      "sha256": "1cb211d43316a92889bd3ef449d8f0e447f72944a8f0ae8714e9f3b6f3b26680",
+      "review": "新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。",
       "graph_entries": [],
       "pending": []
     }

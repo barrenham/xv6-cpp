@@ -4,21 +4,21 @@
 
 | 子系统 | 文件数 | 函数/入口条目数 |
 | --- | ---: | ---: |
-| [arch](#arch) | 5 | 52 |
-| [boot](#boot) | 6 | 10 |
-| [drivers](#drivers) | 42 | 580 |
-| [fs](#fs) | 66 | 1349 |
+| [arch](#arch) | 4 | 6 |
+| [boot](#boot) | 5 | 12 |
+| [drivers](#drivers) | 42 | 760 |
+| [fs](#fs) | 66 | 1753 |
 | [io](#io) | 6 | 21 |
-| [memory](#memory) | 28 | 487 |
-| [net](#net) | 117 | 1394 |
-| [process](#process) | 67 | 742 |
-| [support](#support) | 18 | 134 |
-| [sync](#sync) | 13 | 52 |
-| [syscall](#syscall) | 12 | 261 |
-| [trap](#trap) | 23 | 152 |
+| [memory](#memory) | 28 | 601 |
+| [net](#net) | 117 | 1648 |
+| [process](#process) | 66 | 1010 |
+| [support](#support) | 19 | 132 |
+| [sync](#sync) | 13 | 79 |
+| [syscall](#syscall) | 12 | 348 |
+| [trap](#trap) | 21 | 211 |
 | [tty](#tty) | 1 | 0 |
 
-范围：404 个文件；默认 5160 个唯一 C++ 函数，连同条件接口与汇编入口共 5234 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：405 个文件；默认 5233 个唯一 C++ 函数，连同条件接口与汇编入口共 5307 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -520,3 +520,5 @@
 - [`kernel/drivers/input/virtio_keyboard.cppm`](drivers/input/virtio_keyboard.cppm.md)
 
 - [`kernel/io/keyboard.h`](io/keyboard.h.md)
+
+- [`kernel/support/deadline_queue.h`](support/deadline_queue.h.md)：侵入式截止时间树、重设、取消及有界通知。

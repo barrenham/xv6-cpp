@@ -21,6 +21,7 @@ unsigned TcpSocket::window() const
 
 void TcpSocket::incoming(Endpoint, Endpoint, const unsigned char *p, unsigned length)
 {
+  detail::TimerChange changed;
   IncomingFlow::Context ctx{*this, p, length};
   (void)IncomingFlow::Graph::run<0>(ctx);
 }

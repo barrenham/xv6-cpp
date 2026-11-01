@@ -331,3 +331,67 @@
 @brief 选择滚轮设备能力并复用现有VirtIO输入初始化流程。
 @details 只在设备发布前调用；协商EV_REL/REL_WHEEL而非字母键能力，独立事件队列、root权限和DMA回收规则保持。
 ```
+
+- [`xv::drivers::VirtioKeyboard::allocate`](virtio_keyboard.cpp.md#fn-73b833e10fb4ab7f)
+
+- [`xv::drivers::VirtioKeyboard::close`](virtio_keyboard.cpp.md#fn-9a985696697d3148)
+
+- [`xv::drivers::VirtioKeyboard::disable`](virtio_keyboard.cpp.md#fn-9b6ea0d81d296171)
+
+- [`xv::drivers::VirtioKeyboard::drain`](virtio_keyboard.cpp.md#fn-ab9498cbf73790d0)
+
+- [`xv::drivers::VirtioKeyboard::enqueue`](virtio_keyboard.cpp.md#fn-4037f84d6005e2a0)
+
+- [`xv::drivers::VirtioKeyboard::handle_interrupt`](virtio_keyboard.cpp.md#fn-28da51adebb88eb3)
+
+- [`xv::drivers::VirtioKeyboard::identify`](virtio_keyboard.cpp.md#fn-ab277fa7bf126252)
+
+- [`xv::drivers::VirtioKeyboard::initialize`](virtio_keyboard.cpp.md#fn-d3fd356e92516882)
+
+- [`xv::drivers::VirtioKeyboard::negotiate`](virtio_keyboard.cpp.md#fn-b66af90a2a625682)
+
+- [`xv::drivers::VirtioKeyboard::open`](virtio_keyboard.cpp.md#fn-294a49f5f12d6658)
+
+- [`xv::drivers::VirtioKeyboard::poll`](virtio_keyboard.cpp.md#fn-1c07778e5175b796)
+
+- [`xv::drivers::VirtioKeyboard::publish`](virtio_keyboard.cpp.md#fn-08afe6ccb6f0785a)
+
+- [`xv::drivers::VirtioKeyboard::read`](virtio_keyboard.cpp.md#fn-922d28769507196c)
+
+- [`xv::drivers::VirtioKeyboard::rollback`](virtio_keyboard.cpp.md#fn-f901e356d0436d0e)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::allocate`](virtio_keyboard.cpp.md#fn-e331db210bb765fd)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::fail`](virtio_keyboard.cpp.md#fn-081b3c22114ece74)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::found`](virtio_keyboard.cpp.md#fn-e7eebabe174b748d)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::negotiate`](virtio_keyboard.cpp.md#fn-9f88ac8a16f7c3fa)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::okay`](virtio_keyboard.cpp.md#fn-59354aeb47174641)
+
+- [`xv::drivers::VirtioKeyboard::InitializeFlow::publish`](virtio_keyboard.cpp.md#fn-4181858db623c7bb)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::acknowledge`](virtio_keyboard.cpp.md#fn-3bc5b7104875dfc4)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::drain`](virtio_keyboard.cpp.md#fn-58f8f6ea9e4f8f31)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::fail`](virtio_keyboard.cpp.md#fn-1701c960ec8a4b33)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::okay`](virtio_keyboard.cpp.md#fn-8ff031886657a649)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::ready`](virtio_keyboard.cpp.md#fn-e31a6d48936f1137)
+
+- [`xv::drivers::VirtioKeyboard::InterruptFlow::wake`](virtio_keyboard.cpp.md#fn-a5d51841406643ad)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::again`](virtio_keyboard.cpp.md#fn-bad6553a6542114f)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::available`](virtio_keyboard.cpp.md#fn-e22a1352d3c6d779)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::copy`](virtio_keyboard.cpp.md#fn-c8ceed208d6cca22)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::nonblocking`](virtio_keyboard.cpp.md#fn-c96c10ec48962273)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::sleep`](virtio_keyboard.cpp.md#fn-5c06b6403c3d3940)
+
+- [`xv::drivers::VirtioKeyboard::ReadFlow::stopped`](virtio_keyboard.cpp.md#fn-d25acdb30e4e0f86)

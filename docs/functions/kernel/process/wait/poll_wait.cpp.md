@@ -210,9 +210,7 @@
 @brief 对象等待通道表：设置下一次本 hart 的硬件定时截止值。
 @param wait 本次 poll 等待上下文。
 @param deadline 本次操作使用的 deadline 值。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard` → `detail::storage_fail`。
-@details 本函数可见的状态更新包括：`wait.deadline_ = deadline;`；`wait.timer_next_ = timers_;`；`wait.timer_linked_ = true;`；`timers_ = &wait;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`wait.timer_linked_`。这些条件决定检查、重试或提前返回路径。
+@details 队列锁保护节点和所有者生命期；非空树访问前刷新本地 TLB。reset 撤销旧时间后插入新时间，更新最早数值缓存，并在登记 hart 上提前硬件比较值。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
 
@@ -224,9 +222,7 @@
 @fn void xv::process::WaitChannels::remove_timer(PollWait &wait)
 @brief 对象等待通道表：撤销等待上下文的超时登记。
 @param wait 本次 poll 等待上下文。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard` → `detail::storage_fail`。
-@details 本函数可见的状态更新包括：`wait.timer_linked_ = false;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!wait.timer_linked_`；`*link && *link != &wait`；`!*link`。这些条件决定检查、重试或提前返回路径。
+@details 在队列锁内幂等撤销节点并更新最早截止时间缓存；返回后不存在仍在运行的定时通知。访问其他栈节点前刷新本地 TLB，旧硬件比较值可产生一次无害的额外中断。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
 ```
 
@@ -238,8 +234,8 @@
 @fn void xv::process::WaitChannels::expire_timers(unsigned long milliseconds)
 @brief 对象等待通道表：通知并移除已经到期的等待项。
 @param milliseconds 以毫秒表示的时刻或截止值。
+@details 先在队列锁内比较缓存的最早数值时间，尚未到期直接返回，不读取其他栈或刷新 TLB。到期后刷新本地 TLB，最多摘除并通知 64 个节点，再更新缓存。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 流程由 ExpireFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 
 <a id="fn-06977571e438160c"></a>
@@ -364,30 +360,37 @@
 
 <a id="fn-e67797e43f68331e"></a>
 
-## `xv::process::WaitChannels::ExpireFlow::expired`
-
-```doxygen
-@fn static bool xv::process::WaitChannels::ExpireFlow::expired(Context &c) noexcept
-@brief 检查是否存在到期计时器。
-@details 入口持计时器锁，直接跳过未到期条目；到期先摘链并清标志，再通知并复查当前位置，整个循环迭代执行。 下一节点由图策略声明，业务结果与控制信号分离。
-```
+此旧扫描阶段已由统一截止时间队列替代，保留锚点供历史链接访问；当前实现见 [截止时间队列](../../../../deadline-timers.md)。
 
 <a id="fn-de9f36dff4a301e5"></a>
 
-## `xv::process::WaitChannels::ExpireFlow::notify`
-
-```doxygen
-@fn static void xv::process::WaitChannels::ExpireFlow::notify(Context &c) noexcept
-@brief 摘除到期计时器、清除链接标志并通知对应 poll 等待。
-@details 入口持计时器锁，直接跳过未到期条目；到期先摘链并清标志，再通知并复查当前位置，整个循环迭代执行。 下一节点由图策略声明，业务结果与控制信号分离。
-```
+此旧扫描阶段已由统一截止时间队列替代，保留锚点供历史链接访问；当前实现见 [截止时间队列](../../../../deadline-timers.md)。
 
 <a id="fn-7d94406323895bb7"></a>
 
-## `xv::process::WaitChannels::ExpireFlow::scan`
+此旧扫描阶段已由统一截止时间队列替代，保留锚点供历史链接访问；当前实现见 [截止时间队列](../../../../deadline-timers.md)。
+
+
+<a id="fn-9002ff18c51bbfce"></a>
+
+## `xv::process::PollWait::cancel_deadline`
 
 ```doxygen
-@fn static void xv::process::WaitChannels::ExpireFlow::scan(Context &c) noexcept
-@brief 直接扫描至下一个到期计时器并保存链接位置。
-@details 入口持计时器锁，直接跳过未到期条目；到期先摘链并清标志，再通知并复查当前位置，整个循环迭代执行。 下一节点由图策略声明，业务结果与控制信号分离。
+@fn void xv::process::PollWait::cancel_deadline()
+@brief 同步撤销当前等待的截止时间登记。
+@details 等待节点改由统一截止时间树管理；队列锁固定 PollWait 生命周期，跨 hart 访问可复用栈窗口前刷新本地 TLB。缓存最早数值截止时间，未到期检查不访问其他进程栈；每次到期最多通知 64 个等待者。set_deadline 支持重设，取消与析构同步完成通知。
 ```
+
+<a id="fn-315f7e5b92c30289"></a>
+
+## `xv::process::WaitChannels::next_timer`
+
+```doxygen
+@fn unsigned long xv::process::WaitChannels::next_timer()
+@brief 在队列锁内读取缓存的最早数值截止时间。
+@details 等待节点改由统一截止时间树管理；队列锁固定 PollWait 生命周期，跨 hart 访问可复用栈窗口前刷新本地 TLB。缓存最早数值截止时间，未到期检查不访问其他进程栈；每次到期最多通知 64 个等待者。set_deadline 支持重设，取消与析构同步完成通知。
+```
+
+- [`xv::process::PollWait::cancel_deadline`](poll_wait.cpp.md#fn-9002ff18c51bbfce)
+
+- [`xv::process::WaitChannels::next_timer`](poll_wait.cpp.md#fn-315f7e5b92c30289)

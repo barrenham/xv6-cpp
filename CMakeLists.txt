@@ -485,3 +485,18 @@ foreach(cpus IN ITEMS 1 5)
     --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --keyboard)
   set_tests_properties(keyboard_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "tty;graphics;input")
 endforeach()
+
+add_test(NAME deadline_queue_contract COMMAND "${PROJECT_BINARY_DIR}/deadline_queue_contract")
+set_tests_properties(deadline_queue_contract PROPERTIES TIMEOUT 15 LABELS process)
+
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME timers_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tools/profile_timers.py" --qemu "${XV_QEMU}"
+    --after $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --cpus ${cpus} --rounds 1
+    --output "${PROJECT_BINARY_DIR}/timers-${cpus}cpu/measurements.json")
+  set_tests_properties(timers_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS "process;timer" RUN_SERIAL TRUE)
+endforeach()
+
+add_test(NAME user_printf_contract COMMAND "${PROJECT_BINARY_DIR}/user_printf_contract")
+set_tests_properties(user_printf_contract PROPERTIES TIMEOUT 10 LABELS runtime)

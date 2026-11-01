@@ -366,3 +366,29 @@
 @brief 在权限检查后复制进程argv或环境快照。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::detail::boot_epoch_seconds`](kernel_platform.cpp.md#fn-a6f69cd59600e49a)
+
+- [`xv::fs::detail::cpu_record`](kernel_platform.cpp.md#fn-4f3b846dbcc5503d)
+
+- [`xv::fs::detail::cpu_time`](kernel_platform.cpp.md#fn-39f5c3394ead374a)
+
+- [`xv::fs::detail::epoch_seconds`](kernel_platform.cpp.md#fn-cc3635c2aeecf0ac)
+
+- [`xv::fs::detail::kernel_version`](kernel_platform.cpp.md#fn-32ede710eaeec134)
+
+- [`xv::fs::detail::process_exec_text`](kernel_platform.cpp.md#fn-1ef47a224b7a4a60)
+
+- [`xv::fs::detail::system_counts`](kernel_platform.cpp.md#fn-6abeacd13b8bf534)
+
+<a id="fn-60ae58748deef7d6"></a>
+
+## `xv::fs::detail::cache_ticks`
+
+```doxygen
+@fn unsigned long xv::fs::detail::cache_ticks() { return xv::arch::r_time(); }
+@brief cache_ticks 读取 RISC-V 原始时钟，根缓存 proc 标注 10MHz；只用于替换时间戳及竞争后的等待测量，不改等待唤醒协议。
+@details cache_ticks 读取 RISC-V 原始时钟，根缓存 proc 标注 10MHz；只用于替换时间戳及竞争后的等待测量，不改等待唤醒协议。
+```
+
+- [`xv::fs::detail::cache_ticks`](kernel_platform.cpp.md#fn-60ae58748deef7d6)

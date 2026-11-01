@@ -48,3 +48,5 @@
 @pre 调用者持有 SocketRegistry 条件锁。
 @details 持注册锁读取当前 TcpState 值；不提供运行期无锁状态快照保证。
 ```
+
+- [`xv::net::TcpSocket::next_deadline`](tcp_socket.cpp.md#fn-f99807ccfab21d02)

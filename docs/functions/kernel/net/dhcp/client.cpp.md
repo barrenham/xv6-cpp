@@ -52,7 +52,7 @@
 ```doxygen
 @fn int xv::net::DhcpManager::execute(unsigned operation, netctl_request &request)
 @brief 校验管理 ABI 后执行 DHCP 状态查询、启动、主动续租或停止。
-@details 客户端状态与接口活动标记在同一配置锁内协调，标记通过接口方法维护。停止时先登记 STOPPING 快照，锁外发送 Release，再按 serial 验证快照并撤销配置，最后锁外清理邻居。 实现通过 CommandFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details DHCP 命令和接收状态变更通知内核任务。持配置锁查询重试、租约过期、T1/T2 的最早截止时间；离线接口不为已经到期但不能发送的请求安排忙循环。
 @return 查询成功一，管理成功零，失败负 errno。
 ```
 
@@ -76,12 +76,11 @@
 ```doxygen
 @fn bool xv::net::DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet, const IpDatagram &d)
 @brief 校验 DHCP UDP 回复并推进按接口隔离的事务状态机。
-@details 核对端口、长度、可选 UDP 校验和、BOOTP 首部、MAC、事务 ID、目标和选中服务器；ACK 原子安装或续期，NAK 撤销租约并重新发现，本地地址冲突发送 Decline。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @param interface 实际三层入接口，桥上为 br0/br1。
 @param packet 起始为 IP 首部的借用页面。
 @param datagram 已通过 IPv4 基础校验的范围。
+@details DHCP 命令和接收状态变更通知内核任务。持配置锁查询重试、租约过期、T1/T2 的最早截止时间；离线接口不为已经到期但不能发送的请求安排忙循环。
 @return 已处理或丢弃当前 DHCP 回复为 true；不属于活动客户端为 false。
-@note 不把服务器提供的配置直接写入未验证用户内存；解锁后才清空邻居或发送。
 ```
 
 <a id="fn-40a1e0ee6745de59"></a>
@@ -95,3 +94,15 @@
 @param now 单调毫秒，不依赖进程运行。
 @note 配置锁内只改变状态和归属配置，解锁后分配/发送报文或清理 ARP。
 ```
+
+<a id="fn-4958d65fcbceb71a"></a>
+
+## `xv::net::DhcpManager::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::DhcpManager::next_deadline()
+@brief DHCP 命令和接收状态变更通知内核任务。持配置锁查询重试、租约过期、T1/T2 的最早截止时间；离线接口不为已经到期但不能发送的请求安排忙循环。
+@details DHCP 命令和接收状态变更通知内核任务。持配置锁查询重试、租约过期、T1/T2 的最早截止时间；离线接口不为已经到期但不能发送的请求安排忙循环。
+```
+
+- [`xv::net::DhcpManager::next_deadline`](client.cpp.md#fn-4958d65fcbceb71a)

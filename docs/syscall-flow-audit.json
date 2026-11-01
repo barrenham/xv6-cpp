@@ -226,14 +226,14 @@
     },
     {
       "source": "kernel/syscall/syspoll.cpp",
-      "sha256": "bced9ef4e3814c008cbc2553f45b1b50504df533102fa178008f5e06b98d58f0",
-      "review": "PollFlow 控制扫描/完成/复制/等待；HeldFiles/PollWait 的原词法析构保留，固定描述符循环为业务原语。",
+      "sha256": "270a7e902a6371705469235efb91a53a365dc8e9897e7c97dc71a7add25729ee",
+      "review": "PollFlow 控制扫描/完成/复制/等待；HeldFiles/PollWait 的原词法析构保留，固定描述符循环为业务原语。 本轮复核：poll 保留原描述符引用和订阅协议；用原始 10MHz 时间差判断请求时长，向上取整为队列的绝对毫秒截止时间，避免毫秒截断提前返回。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::sys_poll",
           "usr": "c:@N@xv@N@syscall@F@sys_poll#",
           "source": "kernel/syscall/syspoll.cpp",
-          "source_sha256": "61dc84ebf4b87c7ab72bc867a4e9389f41a1f5be771ab967d08961787ce6c516",
+          "source_sha256": "d4b711064196d872a37fcbda9cdfa95f415a7b60db663eb969f10522c1dcc967",
           "graphs": [
             "PollFlow::Graph"
           ]

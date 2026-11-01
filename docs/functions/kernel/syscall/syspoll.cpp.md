@@ -26,11 +26,8 @@
 ```doxygen
 @fn unsigned long xv::syscall::sys_poll()
 @brief 系统调用入口：poll；从用户参数转入内核服务并返回 ABI 结果。
-@details 先复制 pollfd 数组并保留 File 引用，建立单次 PollWait，首轮先登记全部依赖再查询，之后复查状态直到就绪、超时或信号。局部析构顺序保证先撤销订阅、再释放 File，避免端点已经释放而等待项仍引用它。
-@note 此路径涉及用户地址与内核地址的边界。复制失败必须按当前分支退出，不能继续把用户地址作为普通内核指针使用。
+@details 保留被查询 File 引用及订阅/析构协议。记录原始 10MHz start 时间，用原始差值判断超时；给统一队列的绝对毫秒时间向上取整，不因毫秒截断而提前完成。
 @return 各分支实际返回：`-1`；`ready`。应结合上面的条件检查区分正常值、空值和错误值。
-@note 系统调用处理函数使用内核 64 位返回通道；负错误值经无符号类型传回时保持位模式，由用户 ABI 按相应整型解释。
-@details 编排由 PollFlow 的模板图声明；具名阶段负责业务操作，控制策略负责下一节点。原有等待协议、引用所有权和错误返回约定保留。
 ```
 
 <a id="fn-1af6e5b92a09e329"></a>
@@ -40,7 +37,7 @@
 ```doxygen
 @fn static bool xv::syscall::PollFlow::complete(Context &c) noexcept
 @brief 检查已有就绪事件、零超时或时限已到。
-@details 入口已复制用户描述符并保留文件引用；PollWait 与 HeldFiles 在 sys_poll 返回时按原顺序析构。只有首轮注册依赖，后续轮次重扫状态。 下一节点由 Graph 的类型策略声明；本阶段不返回运行时跳转目标。
+@details 描述符就绪或零超时立即完成；正超时按原始硬件时间差与 timeout*10000 比较。队列唤醒不代替描述符与截止时间重查。
 ```
 
 <a id="fn-f37c560b975a24bb"></a>

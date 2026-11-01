@@ -209,3 +209,73 @@
 @brief 记录错误并返回失败。
 @details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
 ```
+
+- [`xv::ext3::Jbd::Jbd`](jbd.h.md#fn-94dc2b0b24a3c95c)
+
+- [`xv::ext3::Jbd::Jbd`](jbd.h.md#fn-576f0c4549e8ec28)
+
+- [`xv::ext3::Jbd::accept`](jbd.cpp.md#fn-3790d97f4098aeb2)
+
+- [`xv::ext3::Jbd::capacity`](jbd.cpp.md#fn-fd2d7403e25d8f61)
+
+- [`xv::ext3::Jbd::clear_error`](jbd.h.md#fn-dd293ea9777a7693)
+
+- [`xv::ext3::Jbd::commit`](jbd.cpp.md#fn-fdb68219a2e1ea1f)
+
+- [`xv::ext3::Jbd::dirty_count`](jbd.h.md#fn-0b532977fb24fec2)
+
+- [`xv::ext3::Jbd::edit`](jbd.cpp.md#fn-c20ee5d2fed40650)
+
+- [`xv::ext3::Jbd::error`](jbd.h.md#fn-7b5e3d6c2b984fde)
+
+- [`xv::ext3::Jbd::fail`](jbd.h.md#fn-e31bb964bc923c3d)
+
+- [`xv::ext3::Jbd::incomplete`](jbd.cpp.md#fn-5f83ab0e886b23b5)
+
+- [`xv::ext3::Jbd::mount`](jbd.cpp.md#fn-84dc32d01171adf8)
+
+- [`xv::ext3::Jbd::next`](jbd.h.md#fn-001665192e99fe3a)
+
+- [`xv::ext3::Jbd::operator=`](jbd.h.md#fn-2010138f34011d2b)
+
+- [`xv::ext3::Jbd::read`](jbd.cpp.md#fn-eeea4b93975a608f)
+
+- [`xv::ext3::Jbd::recover`](jbd.cpp.md#fn-4aeb4495dce71ad3)
+
+- [`xv::ext3::Jbd::reset`](jbd.cpp.md#fn-f9c31fc6def17b65)
+
+- [`xv::ext3::Jbd::rollback`](jbd.cpp.md#fn-ec439701f22d506d)
+
+- [`xv::ext3::Jbd::savepoint`](jbd.cpp.md#fn-11d9460ce91aba47)
+
+- [`xv::ext3::Jbd::scan`](jbd.cpp.md#fn-fe8f6c002e489b66)
+
+- [`xv::ext3::Jbd::sequence`](jbd.h.md#fn-f03d9631e3315401)
+
+- [`xv::ext3::Jbd::staged`](jbd.cpp.md#fn-666f7c7adf93389d)
+
+- [`xv::ext3::Jbd::write_super`](jbd.cpp.md#fn-f45f99ea428df3fd)
+
+- [`xv::ext3::JournalIo::allocate_page`](jbd.h.md#fn-141f0e8d822fa800)
+
+- [`xv::ext3::JournalIo::block_size`](jbd.h.md#fn-540924a3a732f4a1)
+
+- [`xv::ext3::JournalIo::flush`](jbd.h.md#fn-c18b73ed82b453b2)
+
+- [`xv::ext3::JournalIo::free_page`](jbd.h.md#fn-67b9c8c14fc64bdd)
+
+- [`xv::ext3::JournalIo::journal_capacity`](jbd.h.md#fn-e0d0aa1d7ffbc817)
+
+- [`xv::ext3::JournalIo::read_home`](jbd.h.md#fn-922a5492453f6fcb)
+
+- [`xv::ext3::JournalIo::read_journal`](jbd.h.md#fn-dee8f45b6c14f927)
+
+- [`xv::ext3::JournalIo::recovery_flag`](jbd.h.md#fn-211338170a90b681)
+
+- [`xv::ext3::JournalIo::valid_target`](jbd.h.md#fn-4aec5a0a5b8b4a18)
+
+- [`xv::ext3::JournalIo::write_home`](jbd.h.md#fn-340b3864ccdcd7ff)
+
+- [`xv::ext3::JournalIo::write_journal`](jbd.h.md#fn-7ecc70adf4f87386)
+
+- [`xv::ext3::JournalIo::~JournalIo`](jbd.h.md#fn-26a471c1b0753fc9)

@@ -708,8 +708,9 @@ try:
         checks = [('ramfstest', 'ramfstest: all tests succeeded')]
     if args.procfs:
         checks = [('procfstest', 'procfstest: all tests succeeded'),
-                  ('ps', 'PID PPID PGID SID STATE KiB NAME'),
-                  ('free', 'Mem:'), ('cat /proc/uptime', '.'),
+                  ('ps', f"{'PID':>6} {'PPID':>6} {'PGID':>6} {'SID':>6} {'STATE':<5} {'KiB':>8} NAME"),
+                  ('free', 'Mem:'), ('cat /proc/bcache', 'tick_hz 10000000'),
+                  ('cat /proc/uptime', '.'),
                   ('cat /proc/cpuinfo', 'processor\t: 0'), ('cat /proc/stat', 'btime ')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
@@ -721,6 +722,22 @@ try:
             expect(token, timeout=300 if args.regression else 45)
         expect('$ ')
     if args.procfs:
+        cache_fields = {key.decode(): int(value) for key, value in
+                        re.findall(rb'^(hits|misses|evictions|lookup_steps|reads|writes|eviction_steps|locks|contentions|spins|wait_ticks) ([0-9]+)\r?$', transcript, re.MULTILINE)}
+        if len(cache_fields) != 11 or not cache_fields['hits'] or not cache_fields['misses']:
+            raise RuntimeError(f'incomplete block cache statistics: {cache_fields}')
+        if cache_fields['spins'] < cache_fields['contentions']:
+            raise RuntimeError(f'inconsistent cache lock counters: {cache_fields}')
+        ps_rows = [line.rstrip(b'\r') for line in transcript.split(b'\n')
+                   if re.match(rb'^ +[0-9]+ +[0-9]+ +[0-9]+ +[0-9]+ [A-Z] ', line)]
+        if not ps_rows or not all(all(row[start:end].strip().isdigit()
+                                      for start, end in [(0,6),(7,13),(14,20),(21,27),(34,42)])
+                                  and row[29:34] == b' ' * 5 for row in ps_rows):
+            raise RuntimeError(f'ps columns are not aligned: {ps_rows}')
+        for line in transcript.split(b'\n'):
+            if line.startswith((b'processor\t', b'hart\t', b'isa\t', b'mmu\t', b'misa\t', b'mvendorid\t', b'marchid\t', b'mimpid\t')):
+                if line.expandtabs(8).find(b':') != 16:
+                    raise RuntimeError(f'cpuinfo tab stop differs from column 16: {line!r}')
         processors=[int(value) for value in re.findall(rb'^processor\t: ([0-9]+)\r?$',transcript,re.MULTILINE)]
         if processors!=list(range(args.cpus)):
             raise RuntimeError(f'cpuinfo online hart list {processors} does not match {args.cpus} QEMU CPUs')

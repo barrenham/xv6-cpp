@@ -98,3 +98,15 @@
 @fn void xv::net::EthernetInterface::tick(unsigned long now) override
 @brief 维护本接口独立 ARP 待解析队列，按单调毫秒时刻重试或释放超时报文。
 ```
+
+<a id="fn-1b9e3ef59e8c9528"></a>
+
+## `xv::net::EthernetInterface::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::EthernetInterface::next_deadline() override
+@brief 以太接口把 ARP 待发送包的下一截止时间交给统一网络任务，既有 tick 仍调用 ARP 状态机。
+@details 以太接口把 ARP 待发送包的下一截止时间交给统一网络任务，既有 tick 仍调用 ARP 状态机。
+```
+
+- [`xv::net::EthernetInterface::next_deadline`](ethernet_interface.cppm.md#fn-1b9e3ef59e8c9528)

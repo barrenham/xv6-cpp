@@ -9,15 +9,33 @@ void TickClock::initialize()
   lock_.init("ticks");
 }
 
-void TickClock::interrupt()
+bool TickClock::interrupt()
 {
-  if (detail::hart_id() == 0)
+  const auto now = detail::time();
+  const auto hart = detail::hart_id();
+  bool periodic = false;
   {
     xv::sync::ScopedLock guard(lock_);
-    ++ticks_;
-    detail::wakeup(&ticks_);
+    auto &next = next_tick_[hart];
+    if (!next)
+    {
+      next = TimerInterval;
+    }
+    // Deadline interrupts do not advance uptime or the scheduler's quantum.
+    if (now >= next)
+    {
+      const auto elapsed = (now - next) / TimerInterval + 1;
+      next += elapsed * TimerInterval;
+      periodic = true;
+      if (hart == 0)
+      {
+        ticks_ += elapsed;
+        detail::wakeup(&ticks_);
+      }
+    }
+    detail::arm_timer(next);
   }
-  detail::arm_timer(detail::time() + TimerInterval);
+  return periodic;
 }
 
 unsigned TickClock::uptime() const

@@ -61,6 +61,14 @@ void TcpSocket::pump()
 {
   PumpFlow::Context ctx{*this};
   (void)PumpFlow::Graph::run<0>(ctx);
+  output_retry_ = ~0UL;
+  const auto flight = send_next_ - send_unacknowledged_;
+  if ((state_ == TcpState::Established || state_ == TcpState::CloseWait) &&
+      (wire::before(send_next_, transmit_.end()) || (write_shutdown_ && !fin_sent_)) &&
+      flight < peer_window_ && flight < congestion_.window())
+  {
+    output_retry_ = detail::milliseconds() + 100;
+  }
 }
 
 void TcpSocket::finish()

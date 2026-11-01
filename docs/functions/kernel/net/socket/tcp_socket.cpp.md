@@ -95,7 +95,7 @@
 ```doxygen
 @fn int xv::net::TcpSocket::connect(Endpoint peer, bool nonblocking)
 @brief 执行主动打开，支持阻塞和非阻塞连接。
-@details 检查状态并自动绑定本地地址，初始化收发序号与 SYN 重试；非阻塞返回 -EINPROGRESS。阻塞等待可被信号打断，连接握手仍保留供 poll/SO_ERROR 查询。 实现通过 ConnectFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
 ```
 
 <a id="fn-7e3a04ae59672f21"></a>
@@ -136,7 +136,7 @@
 ```doxygen
 @fn int xv::net::TcpSocket::read(xv::io::Buffer destination, int count)
 @brief 把已连续的接收字节复制给应用并更新窗口。
-@details 每次最多暂存 1024 字节，释放注册锁后复制到用户空间；从零窗口恢复、完全腾空或累计释放达到 MSS 时发送窗口更新。无数据时区分 EOF、错误、非阻塞和信号中断。 实现通过 ReadFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
 ```
 
 <a id="fn-633245e696cf6ebf"></a>
@@ -146,7 +146,7 @@
 ```doxygen
 @fn int xv::net::TcpSocket::write(xv::io::Buffer source, int count)
 @brief 把应用数据排入发送环并尝试推进网络发送。
-@details 每次最多复制 1024 字节，返回已排队字节数。发送环有空间时不等待对端 ACK 或非零窗口；满时阻塞或返回 -EAGAIN。首次活动设置超时基准。 实现通过 WriteFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
 ```
 
 <a id="fn-231bbbb4f11fc234"></a>
@@ -186,7 +186,7 @@
 ```doxygen
 @fn int xv::net::TcpSocket::shutdown(int how)
 @brief 关闭连接的读方向、写方向或两个方向。
-@details 读关闭丢弃当前连续队列并通知窗口；写关闭通过 pump 将 FIN 排在待发数据后，保留未确认字节和另一方向。 实现通过 ShutdownFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
 ```
 
 <a id="fn-c7164ce40d0f4ab4"></a>
@@ -196,7 +196,7 @@
 ```doxygen
 @fn void xv::net::TcpSocket::close()
 @brief 移除应用接管责任，监听关闭时委托注册表复位并回收未接受子连接。
-@details 已接受连接继续独立存活；握手中连接发送复位，已建立连接继续发送排队数据和 FIN，CLOSED 对象立即由注册表回收。整个状态转换仍在统一注册锁内。 实现通过 CloseFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
 ```
 
 <a id="fn-9f612ac9dc8ef596"></a>
@@ -219,3 +219,15 @@
 @details 普通超时按 NewReno 收缩拥塞窗口并指数退避，零窗口使用独立 persist。挂起数据长期无活动时失败，过旧跨核时钟快照不会造成减法下溢；最后回收无应用拥有权的 CLOSED 对象。 实现通过 TickFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 调用者持有 SocketRegistry 注册锁。
 ```
+
+<a id="fn-f99807ccfab21d02"></a>
+
+## `xv::net::TcpSocket::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::TcpSocket::next_deadline() const
+@brief TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
+@details TCP 用户操作结束后通知网络任务重新检查截止时间。下一时间由 RTO、零窗口 persist、停滞、关闭状态、本地输出重试及未持有的已关闭对象回收共同确定；空闲 Established 不登记周期扫描。
+```
+
+- [`xv::net::TcpSocket::next_deadline`](tcp_socket.cpp.md#fn-f99807ccfab21d02)

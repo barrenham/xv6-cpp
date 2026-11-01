@@ -69,3 +69,17 @@
 @brief 查询快照格式化过程中是否曾发生写入失败。
 @details 基于PageBuffer的快照文本格式化；写入错误保持在failed_中，由good()统一报告。
 ```
+
+- [`xv::fs::SnapshotText::SnapshotText`](snapshot_text.cppm.md#fn-25cc5f76459a505b)
+
+- [`xv::fs::SnapshotText::append`](snapshot_text.cppm.md#fn-f34437c5df164541)
+
+- [`xv::fs::SnapshotText::field`](snapshot_text.cppm.md#fn-207dc45a01b61334)
+
+- [`xv::fs::SnapshotText::good`](snapshot_text.cppm.md#fn-916b8502d81a0d8d)
+
+- [`xv::fs::SnapshotText::hexadecimal`](snapshot_text.cppm.md#fn-3ee54eaafc06d36a)
+
+- [`xv::fs::SnapshotText::number`](snapshot_text.cppm.md#fn-71810e2ce6eee1d4)
+
+- [`xv::fs::SnapshotText::raw`](snapshot_text.cppm.md#fn-4f7c2f62c8ca2dcb)

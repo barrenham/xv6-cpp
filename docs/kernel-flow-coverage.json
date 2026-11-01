@@ -291,13 +291,13 @@
           "qualified": "xv::syscall::sys_poll",
           "usr": "c:@N@xv@N@syscall@F@sys_poll#",
           "source": "kernel/syscall/syspoll.cpp",
-          "source_sha256": "61dc84ebf4b87c7ab72bc867a4e9389f41a1f5be771ab967d08961787ce6c516",
+          "source_sha256": "d4b711064196d872a37fcbda9cdfa95f415a7b60db663eb969f10522c1dcc967",
           "graphs": [
             "PollFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "bced9ef4e3814c008cbc2553f45b1b50504df533102fa178008f5e06b98d58f0"
+      "definition_sha256": "270a7e902a6371705469235efb91a53a365dc8e9897e7c97dc71a7add25729ee"
     },
     {
       "module": "support",
@@ -646,7 +646,7 @@
           "qualified": "xv::fs::LruBlockCache::get",
           "usr": "c:@N@xv@N@fs@S@LruBlockCache@F@get#i#i#",
           "source": "kernel/fs/cache/lru_block_cache.cpp",
-          "source_sha256": "b03a608b6363fa991c485e724f2b1c8737d890df09436675d43700413614b92a",
+          "source_sha256": "064ea97835c3abccb6951da34d039d1395fed52e2097f33c58932a7c920710e4",
           "graphs": [
             "GetFlow::Graph"
           ]
@@ -661,7 +661,7 @@
           ]
         }
       ],
-      "definition_sha256": "5766b94ffc68892e40880909964beb655bd848faee15fc20a01e2e7d3dd0a454"
+      "definition_sha256": "1dd12580eff0bac0ea80d834c5b76d8e085d4a46024dddeae686d85c9764d428"
     },
     {
       "module": "fs",
@@ -1400,13 +1400,13 @@
           ]
         }
       ],
-      "definition_sha256": "d1807a62004ba308b0a12c7f6c12a2ee90112d7a62a057c8e8a3f13b387e7616",
+      "definition_sha256": "c541d07f9c217e7ca0ab5db6875a7c0f20ef491fb220eb3b8b90f97fc0957b01",
       "internal_bindings": [
         {
           "qualified": "xv::process::ProcessManager::inspect_exec",
           "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "28d63e6dcba7082d38aece99bd19e30b9cfc0f008048362cd68bba6bd65274c9",
+          "source_sha256": "af17727feae3180f4091c52053fc37825ff1138c896a1a755d32cbd16b15a1b1",
           "graphs": [
             "InspectFlow::Graph"
           ]
@@ -1624,7 +1624,7 @@
           "qualified": "xv::process::ProcessManager::send_signal",
           "usr": "c:@N@xv@N@process@S@ProcessManager@F@send_signal#I#I#",
           "source": "kernel/process/signals/signal_delivery.cpp",
-          "source_sha256": "10bd46ccd637d743ab7450c23e5f69edb57c77d2b2ccb667ad150163d7d6746b",
+          "source_sha256": "06a644cf214fa98462ee1ce1aa10df7e5a71fff9eb4f221479d088db8c72e42a",
           "graphs": [
             "SendPidSignalFlow::Graph",
             "SendGroupSignalFlow::Graph"
@@ -1649,7 +1649,7 @@
           ]
         }
       ],
-      "definition_sha256": "f39bc35c993f43a736552d528e91e43be8ace5eb76d409c53399a443c6058d04"
+      "definition_sha256": "839278c343ea1534ac4ca9c3a5473ddf4e3704ec0283d8f9721a661def803b13"
     },
     {
       "module": "process",
@@ -1762,7 +1762,7 @@
           ]
         }
       ],
-      "definition_sha256": "6c341554d0525546480cd2872369f59937f42b3bff3feac36798d59d786afa0e"
+      "definition_sha256": "7201b0217ec9cab3331e677bbce1411ae5f6e5cd1964f749265489d056fcbeaa"
     },
     {
       "module": "process",
@@ -1807,30 +1807,7 @@
           ]
         }
       ],
-      "definition_sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c"
-    },
-    {
-      "module": "process",
-      "owner": "WaitChannels",
-      "methods": [
-        "expire_timers"
-      ],
-      "definition": "kernel/process/wait/poll_wait.cpp",
-      "graphs": [
-        "ExpireFlow::Graph"
-      ],
-      "bindings": [
-        {
-          "qualified": "xv::process::WaitChannels::expire_timers",
-          "usr": "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
-          "source": "kernel/process/wait/poll_wait.cpp",
-          "source_sha256": "118785a5fbd9ce6bdd45a5d604a0ee0fd3a95e973fede5b996c0c617f64a0fee",
-          "graphs": [
-            "ExpireFlow::Graph"
-          ]
-        }
-      ],
-      "definition_sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c"
+      "definition_sha256": "12c5ee268634c7475f40ef3f5b36ba07f174c39f71f46ebc32c378d8998ca94c"
     },
     {
       "module": "process",
@@ -3527,7 +3504,7 @@
           ]
         }
       ],
-      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
+      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
     },
     {
       "module": "trap",
@@ -3551,7 +3528,7 @@
           ]
         }
       ],
-      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
+      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
     },
     {
       "module": "trap",
@@ -3574,7 +3551,7 @@
           ]
         }
       ],
-      "definition_sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003"
+      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
     },
     {
       "module": "support",

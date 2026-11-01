@@ -66,3 +66,27 @@
 @note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
 @return 各分支实际返回：`__atomic_load_n(&locked_, __ATOMIC_RELAXED) != 0 && __atomic_load_n(&owner_, __ATOMIC_RELAXED) == detail::current_cpu()`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+<a id="fn-ddedf097009cd32c"></a>
+
+## `xv::sync::SpinLock::acquire_spins`
+
+```doxygen
+@fn unsigned long xv::sync::SpinLock::acquire_spins()
+@brief 获取自旋锁并返回失败原子交换次数。
+@details 自旋锁保持原先 pushOff/popOff、递归获取检查和 owner 协议。try_acquire 失败恢复中断嵌套，成功保留中断屏蔽至 release；acquire_spins 返回失败原子交换次数，不在无竞争路径读取时钟。原 acquire 调用者行为保留。
+```
+
+<a id="fn-1ed9206d4f9fc80e"></a>
+
+## `xv::sync::SpinLock::try_acquire`
+
+```doxygen
+@fn bool xv::sync::SpinLock::try_acquire()
+@brief 尝试一次获取；失败恢复中断嵌套，成功保留 owner 与屏蔽状态。
+@details 自旋锁保持原先 pushOff/popOff、递归获取检查和 owner 协议。try_acquire 失败恢复中断嵌套，成功保留中断屏蔽至 release；acquire_spins 返回失败原子交换次数，不在无竞争路径读取时钟。原 acquire 调用者行为保留。
+```
+
+- [`xv::sync::SpinLock::acquire_spins`](spinlock.cpp.md#fn-ddedf097009cd32c)
+
+- [`xv::sync::SpinLock::try_acquire`](spinlock.cpp.md#fn-1ed9206d4f9fc80e)

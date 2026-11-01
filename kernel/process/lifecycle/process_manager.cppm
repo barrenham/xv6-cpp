@@ -21,6 +21,8 @@ public:
 
   void initialize();
   void create_initial_process();
+  void create_kernel_task(const char *name, void (*entry)());
+  static void kernel_task_return();
   int fork_process();
   [[noreturn]] void exit_process(int status, int signal = 0);
   int wait(unsigned long status_address);
@@ -41,7 +43,7 @@ public:
   void dump();
   bool snapshot_after(int after, ProcessInfo &result);
   int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
-  bool inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result);
+  bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result);
   int get_process_group();
   int set_process_group(int pid, int group);
   int get_session(int pid);

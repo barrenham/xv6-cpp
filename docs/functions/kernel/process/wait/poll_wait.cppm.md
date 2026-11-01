@@ -67,3 +67,5 @@
 @brief 单次 poll 等待上下文：读取或计算 `failed_`，返回当前查询结果。
 @return 各分支实际返回：`failed_`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+- [`xv::process::PollWait::cancel_deadline`](poll_wait.cpp.md#fn-9002ff18c51bbfce)

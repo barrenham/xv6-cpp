@@ -37,3 +37,7 @@
 @brief 自旋锁：读取或计算 `LockKind::Spin`，返回当前查询结果。
 @return 各分支实际返回：`LockKind::Spin`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+- [`xv::sync::SpinLock::acquire_spins`](spinlock.cpp.md#fn-ddedf097009cd32c)
+
+- [`xv::sync::SpinLock::try_acquire`](spinlock.cpp.md#fn-1ed9206d4f9fc80e)

@@ -249,3 +249,53 @@
 @brief 实现 xv::ext3::Volume::lookup 的模块操作，按声明参数读写其封装状态。
 @details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
 ```
+
+- [`xv::ext3::Volume::group`](volume.cpp.md#fn-26a322198cc7e318)
+
+- [`xv::ext3::Volume::inode_location`](volume.cpp.md#fn-3b67f9d94d7f003f)
+
+- [`xv::ext3::Volume::journal_block`](volume.cpp.md#fn-3a66a7d2df1e0f9d)
+
+- [`xv::ext3::Volume::journal_mapping`](volume.cpp.md#fn-f2c4033416c64d19)
+
+- [`xv::ext3::Volume::lookup`](volume.cpp.md#fn-c41c4c139c472207)
+
+- [`xv::ext3::Volume::map_block`](volume.cpp.md#fn-29f09b6e7aee4234)
+
+- [`xv::ext3::Volume::mount`](volume.cpp.md#fn-86a45bd16f7ac115)
+
+- [`xv::ext3::Volume::next_entry`](volume.cpp.md#fn-5632ad9397bf2f0b)
+
+- [`xv::ext3::Volume::pointer`](volume.cpp.md#fn-ffc2d006e838fcc7)
+
+- [`xv::ext3::Volume::read`](volume.cpp.md#fn-5dcfa6d563ecc56d)
+
+- [`xv::ext3::Volume::read_block`](volume.cpp.md#fn-8853974a145c2ce7)
+
+- [`xv::ext3::Volume::read_inode`](volume.cpp.md#fn-84723da571b15285)
+
+- [`xv::ext3::Volume::reserve_block`](volume.cpp.md#fn-51b38431be659e50)
+
+- [`xv::ext3::Volume::reserved_block`](volume.cpp.md#fn-dd46e9ed5c2383f3)
+
+- [`xv::ext3::Volume::reset`](volume.cpp.md#fn-4f13e60f4c2125a4)
+
+- [`xv::ext3::Volume::set_recovery`](volume.cpp.md#fn-089515a810f5593c)
+
+- [`xv::ext3::Volume::superblock`](volume.cpp.md#fn-59e35d3d5c14c2a3)
+
+- [`xv::ext3::Volume::JournalDevice::read_home`](volume.cpp.md#fn-561184945411f403)
+
+- [`xv::ext3::Volume::JournalDevice::read_journal`](volume.cpp.md#fn-1e42f013d9856434)
+
+- [`xv::ext3::Volume::JournalDevice::valid_target`](volume.cpp.md#fn-74b70e78d0ff709b)
+
+- [`xv::ext3::Volume::JournalDevice::write_home`](volume.cpp.md#fn-0167e667e72f95aa)
+
+- [`xv::ext3::Volume::JournalDevice::write_journal`](volume.cpp.md#fn-15096dab85f2a092)
+
+- [`xv::ext3::Page::Page`](volume.cpp.md#fn-e16f68b2be2bdce3)
+
+- [`xv::ext3::Page::get`](volume.cpp.md#fn-e08d42013080121e)
+
+- [`xv::ext3::Page::~Page`](volume.cpp.md#fn-a79b9adde708ad3c)

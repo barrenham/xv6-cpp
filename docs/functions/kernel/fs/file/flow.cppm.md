@@ -276,3 +276,7 @@
 @brief 流程动作或条件 bind_block；作用于当前Context，转移关系由所属图声明。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::OpenFileTable::BindInodeFlow::bind_block`](flow.cppm.md#fn-dd39c1bdcd14398c)
+
+- [`xv::fs::OpenFileTable::BindInodeFlow::block`](flow.cppm.md#fn-c1b3c7f132d65988)

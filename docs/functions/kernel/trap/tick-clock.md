@@ -19,13 +19,12 @@
 ## `xv::trap::TickClock::interrupt`
 
 ```doxygen
-@fn void xv::trap::TickClock::interrupt()
-@brief 处理本 hart 的定时事件，在 hart 0 增加全局计数并唤醒 tick 等待者。
-@return 无返回值。
+@fn bool xv::trap::TickClock::interrupt()
+@brief 区分 100ms 周期节拍与短截止时间中断，并装载下一周期边界。
 @pre 由内核定时中断分发路径调用，不允许睡眠。
-@details hart 0 持 lock_ 更新 ticks_，按 &ticks_ 通道唤醒等待者。每个 hart 都以当前硬件时间加 TimerInterval 重新装载自己的下一次中断。
-@note TimerInterval=1000000；当前 QEMU virt 时基下约 100ms。其他 hart 不重复增加全局 ticks，避免 SMP 下计时倍增。
 @see TickClock::pause
+@details 区分按绝对周期边界到达的 100ms 调度节拍与短截止时间中断；只有周期事件推进 hart 0 uptime 并通知 tick 等待者。每 hart 独立保存下一周期边界，周期到达返回 true；不把短中断计为调度量子。
+@return 本 hart 跨过周期边界返回 true，短截止时间事件返回 false。
 ```
 
 <a id="clock-tickclock-uptime"></a>

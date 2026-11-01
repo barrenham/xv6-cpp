@@ -9,3 +9,5 @@
 @brief 按字节值填充给定区间，使用对齐机器字主体和精确前后缀。
 @details 字节语义填充：前缀先对齐，主体使用may_alias机器字，尾部逐字节处理；只写入请求半开区间，长度零允许空指针。
 ```
+
+- [`xv::support::byte_fill`](byte_fill.h.md#fn-cfdae64c12d3d113)

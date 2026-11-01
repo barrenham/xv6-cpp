@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/deadline_queue.h"
 export module xv.process:poll;
 import :process;
 import xv.sync;
@@ -21,6 +23,7 @@ public:
   xv::sync::PollTable *table();
   void watch(void *channel);
   void set_deadline(unsigned long milliseconds);
+  void cancel_deadline();
   void sleep();
 
   bool failed() const
@@ -43,9 +46,7 @@ private:
   WaitChannels &channels_;
   Page *pages_ = nullptr;
   bool failed_ = false;
-  bool triggered_ = false;    // Protected by process_.lock.
-  bool timer_linked_ = false; // Protected by WaitChannels' timer lock.
-  unsigned long deadline_ = 0;
-  PollWait *timer_next_ = nullptr;
+  bool triggered_ = false;   // Protected by process_.lock.
+  xv::time::Deadline timer_; // Protected by WaitChannels' timer lock.
 };
 } // namespace xv::process

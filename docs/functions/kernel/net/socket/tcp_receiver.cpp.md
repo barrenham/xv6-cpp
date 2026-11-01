@@ -36,6 +36,6 @@
 ```doxygen
 @fn void xv::net::TcpSocket::incoming(Endpoint, Endpoint, const unsigned char *p, unsigned length)
 @brief 处理本连接的握手、ACK、窗口、重排数据及 FIN，按状态与序号约束推进收发。
-@details 注册表负责连接分派；异常 SYN-SENT 确认的复位响应也通过所属注册表的 TCP 对象发送。支持原有同时打开、挑战 ACK、NewReno 及接收位图语义。 实现通过 IncomingFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 @pre 调用者持本注册表锁，传入字节已经协议层验证。
+@details 输入段状态转换完成后通过 TimerChange 通知内核任务重算超时；接收路径仍可在 RX 中断中运行，移动的是协议超时处理。
 ```

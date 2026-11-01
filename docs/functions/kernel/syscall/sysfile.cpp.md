@@ -1403,3 +1403,7 @@
 @brief 流程动作或条件 unlock_bound；作用于当前Context，转移关系由所属图声明。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::syscall::sys_getdents64`](sysfile.cpp.md#fn-fb210246732bc020)
+
+- [`xv::syscall::OpenFlow::unlock_bound`](sysfile.cpp.md#fn-7643707c0f28dddb)

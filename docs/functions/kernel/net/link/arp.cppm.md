@@ -21,3 +21,5 @@
 @fn constexpr xv::net::ArpCache::ArpCache(EthernetLayer &link, const NetworkInterface &interface)
 @brief 构造对象并保存稳定身份或借用的层间依赖，初始化空状态；不执行网络 I/O，依赖与名称须比对象存活更久。
 ```
+
+- [`xv::net::ArpCache::next_deadline`](arp.cpp.md#fn-31d8638427697b99)

@@ -50,7 +50,7 @@
 ## `xv::net::SocketRegistry::SocketRegistry`
 
 ```doxygen
-@fn constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr) : ip_(ip), udp_(udp), tcp_(tcp), icmp_(icmp)
+@fn constexpr xv::net::SocketRegistry::SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr)
 @brief 绑定 IPv4、UDP、TCP 及可选 ICMP Echo 服务，初始化注册表锁。
 @note icmp 为空时保留只支持 UDP/TCP 的独立测试配置。
 ```
@@ -163,3 +163,7 @@
 @brief 借用已绑定的 ICMP 协议服务。
 @pre 仅由成功创建的 protocol 1 socket 使用；无 ICMP 服务的独立测试注册表不能创建该类 socket。
 ```
+
+- [`xv::net::SocketRegistry::deliver_echo`](registry.cpp.md#fn-203f77c89adc34f4)
+
+- [`xv::net::SocketRegistry::next_deadline`](registry.cpp.md#fn-cb1a23d131c796cc)

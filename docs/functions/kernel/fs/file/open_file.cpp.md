@@ -331,3 +331,13 @@
 @brief 按完整Linux dirent64记录枚举目录，保留每次打开的cookie与编码模式。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::fs::open_registered_block`](open_file.cpp.md#fn-9a9273ba721f4c1c)
+
+- [`xv::fs::DeviceRegistry::attach`](open_file.cpp.md#fn-a53ec5994c9eddf1)
+
+- [`xv::fs::DeviceRegistry::attach_block`](open_file.cpp.md#fn-24c33d00d3aee9ba)
+
+- [`xv::fs::DeviceRegistry::block`](open_file.cpp.md#fn-ea2cf7655166476a)
+
+- [`xv::fs::OpenFileTable::getdents64`](open_file.cpp.md#fn-86a5102557e07ad5)

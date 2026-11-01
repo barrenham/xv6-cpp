@@ -7,7 +7,7 @@
 ```doxygen
 @fn void xv::fs::install_proc_providers(ProcFileSystem &filesystem)
 @brief 初始化时登记系统及PID文本提供者，失败终止启动。
-@details 动态只读信息提供者。来源为硬件、分配器、计时器及注册表；结果通过PageBuffer形成打开快照，错误不返回伪造成功。CPU计时是100ms采样并导出100Hz单位。
+@details 新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。
 ```
 
 <a id="fn-db10a975ebb747b4"></a>
@@ -149,3 +149,45 @@
 @brief 核对PID仍存在后输出进程comm。
 @details 动态只读信息提供者。来源为硬件、分配器、计时器及注册表；结果通过PageBuffer形成打开快照，错误不返回伪造成功。CPU计时是100ms采样并导出100Hz单位。
 ```
+
+- [`xv::fs::install_proc_providers`](system_providers.cpp.md#fn-5d218d64f2782b2e)
+
+- [`xv::fs::command_line`](system_providers.cpp.md#fn-de07421d8919c05e)
+
+- [`xv::fs::command_name`](system_providers.cpp.md#fn-efe7e7bcb7dc8576)
+
+- [`xv::fs::cpu_line`](system_providers.cpp.md#fn-a9a30ca895949623)
+
+- [`xv::fs::cpuinfo`](system_providers.cpp.md#fn-a8b7e9b95c6314aa)
+
+- [`xv::fs::devices_list`](system_providers.cpp.md#fn-ab0edcb9527c0899)
+
+- [`xv::fs::environment`](system_providers.cpp.md#fn-fece7381206b86b8)
+
+- [`xv::fs::filesystems`](system_providers.cpp.md#fn-6c084425f8635164)
+
+- [`xv::fs::memory`](system_providers.cpp.md#fn-db10a975ebb747b4)
+
+- [`xv::fs::mounts`](system_providers.cpp.md#fn-9446d38b78040217)
+
+- [`xv::fs::partitions`](system_providers.cpp.md#fn-4d660bdbaf1dabd2)
+
+- [`xv::fs::seconds`](system_providers.cpp.md#fn-54f6a6b75d3608cc)
+
+- [`xv::fs::statistics`](system_providers.cpp.md#fn-f729a8588810f9bd)
+
+- [`xv::fs::uptime`](system_providers.cpp.md#fn-dcf9a4ed75528abc)
+
+- [`xv::fs::version`](system_providers.cpp.md#fn-db586c5d41bbee77)
+
+<a id="fn-3b55e24fadddceba"></a>
+
+## `xv::fs::block_cache_statistics`
+
+```doxygen
+@fn bool xv::fs::block_cache_statistics(PageBuffer &buffer)
+@brief 新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。
+@details 新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。
+```
+
+- [`xv::fs::block_cache_statistics`](system_providers.cpp.md#fn-3b55e24fadddceba)

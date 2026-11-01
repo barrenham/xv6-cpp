@@ -146,6 +146,10 @@ struct WaitChannels::WakeFlow
 
   static void pollers(Context &c) noexcept
   {
+    if (c.bucket.pollers)
+    {
+      detail::synchronize_kernel_mappings();
+    }
     for (auto *entry = c.bucket.pollers; entry; entry = entry->next)
     {
       if (entry->channel == c.channel)

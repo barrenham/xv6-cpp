@@ -111,6 +111,19 @@ bool partitions(PageBuffer &buffer)
   }
   return text.good();
 }
+bool block_cache_statistics(PageBuffer &buffer)
+{
+  SnapshotText text(buffer);
+  auto statistics = cache().statistics();
+  text.append("backend "); text.append(cache().name()); text.append("\n");
+#define FIELD(name) text.field(#name " ", statistics.name)
+  FIELD(hits); FIELD(misses); FIELD(evictions); FIELD(lookup_steps);
+  FIELD(reads); FIELD(writes); FIELD(eviction_steps);
+  FIELD(locks); FIELD(contentions); FIELD(spins); FIELD(wait_ticks);
+#undef FIELD
+  text.field("tick_hz ", 10000000);
+  return text.good();
+}
 bool version(PageBuffer &buffer)
 {SnapshotText text(buffer);text.append(detail::kernel_version());return text.good();}
 bool command_line(unsigned pid,PageBuffer &buffer){return detail::process_exec_text(pid,false,buffer);}
@@ -125,7 +138,7 @@ bool command_name(unsigned pid,PageBuffer &buffer)
 void install_proc_providers(ProcFileSystem &filesystem)
 {
   const struct {const char *name;ProcProviderRegistry::Render render;} entries[]={
-    {"meminfo",&memory},{"uptime",&uptime},{"stat",&statistics},{"cpuinfo",&cpuinfo},{"filesystems",&filesystems},
+    {"bcache",&block_cache_statistics},{"meminfo",&memory},{"uptime",&uptime},{"stat",&statistics},{"cpuinfo",&cpuinfo},{"filesystems",&filesystems},
     {"mounts",&mounts},{"devices",&devices_list},{"partitions",&partitions},{"version",&version}};
   for(const auto &entry:entries)
     if(!filesystem.register_file(entry.name,entry.render))detail::fail("procfs: provider registration failed");

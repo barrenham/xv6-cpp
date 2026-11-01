@@ -28,3 +28,5 @@
 @fn bool xv::net::LoopbackInterface::accepts_destination(unsigned value, const InterfaceRegistry &registry) const override
 @brief 允许发往任一已启用本机接口地址的本地回环包，配合主机 /32 路由。
 ```
+
+- [`xv::net::LoopbackInterface::next_deadline`](loopback.cpp.md#fn-c26504ba748ea3dd)

@@ -449,3 +449,93 @@
 @brief 挂载时按有界批次恢复孤儿回收，每批独立提交。
 @details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
 ```
+
+- [`xv::ext3::Volume::add_entry`](mutate.cpp.md#fn-bc48e4efd088311a)
+
+- [`xv::ext3::Volume::add_orphan`](mutate.cpp.md#fn-46ca4f81d6f810b8)
+
+- [`xv::ext3::Volume::allocate_block`](mutate.cpp.md#fn-cb22b8c21b6fe415)
+
+- [`xv::ext3::Volume::allocate_inode`](mutate.cpp.md#fn-30e83e529ffbf388)
+
+- [`xv::ext3::Volume::create`](mutate.cpp.md#fn-175c1ffe8b63fddb)
+
+- [`xv::ext3::Volume::edit`](mutate.cpp.md#fn-eb822b6975d16ed4)
+
+- [`xv::ext3::Volume::edit_group`](mutate.cpp.md#fn-fb9f263383dac503)
+
+- [`xv::ext3::Volume::edit_super`](mutate.cpp.md#fn-ceea3eea813dbe1c)
+
+- [`xv::ext3::Volume::empty_directory`](mutate.cpp.md#fn-049a56c76e7cf720)
+
+- [`xv::ext3::Volume::find_entry`](mutate.cpp.md#fn-b134760f1d63dea6)
+
+- [`xv::ext3::Volume::free_block`](mutate.cpp.md#fn-e86dfd837a697d92)
+
+- [`xv::ext3::Volume::free_inode`](mutate.cpp.md#fn-d8b13bcc2b215c13)
+
+- [`xv::ext3::Volume::free_tree`](mutate.cpp.md#fn-cd51fe0f0ab2c850)
+
+- [`xv::ext3::Volume::link`](mutate.cpp.md#fn-53fe6c028faa48d9)
+
+- [`xv::ext3::Volume::map_allocated`](mutate.cpp.md#fn-fd41b1cd1447632e)
+
+- [`xv::ext3::Volume::metadata_block`](mutate.cpp.md#fn-62e9585751b7a8a9)
+
+- [`xv::ext3::Volume::orphan_head`](mutate.cpp.md#fn-8fed6746c7aeaf2e)
+
+- [`xv::ext3::Volume::orphan_step`](mutate.cpp.md#fn-4a8280b07b5116c6)
+
+- [`xv::ext3::Volume::prune`](mutate.cpp.md#fn-d8cf153cf1fb61fd)
+
+- [`xv::ext3::Volume::put_inode`](mutate.cpp.md#fn-649b328bbf101e80)
+
+- [`xv::ext3::Volume::reclaim`](mutate.cpp.md#fn-e5be415f5ea8ce38)
+
+- [`xv::ext3::Volume::reclaim_step`](mutate.cpp.md#fn-053d87f5c5eb7695)
+
+- [`xv::ext3::Volume::recover_orphans`](mutate.cpp.md#fn-6274bf8645e2f832)
+
+- [`xv::ext3::Volume::remove_entry`](mutate.cpp.md#fn-07c6fa6a5f2bee78)
+
+- [`xv::ext3::Volume::remove_orphan`](mutate.cpp.md#fn-bfacd58eb3a7ecbe)
+
+- [`xv::ext3::Volume::rename`](mutate.cpp.md#fn-f1a1fe0929a9f193)
+
+- [`xv::ext3::Volume::resize`](mutate.cpp.md#fn-30efaad9cbb4a6c7)
+
+- [`xv::ext3::Volume::resize_raw`](mutate.cpp.md#fn-1f8c10d6557602c8)
+
+- [`xv::ext3::Volume::set_attributes`](mutate.cpp.md#fn-db375798f6bf7ab1)
+
+- [`xv::ext3::Volume::set_device`](mutate.cpp.md#fn-b90b576e86e09ab5)
+
+- [`xv::ext3::Volume::unlink`](mutate.cpp.md#fn-762ee7759d3f30fd)
+
+- [`xv::ext3::Volume::write`](mutate.cpp.md#fn-da55a551708539bb)
+
+- [`xv::ext3::Volume::Operation::Operation`](mutate.cpp.md#fn-e246c2943a0afd5f)
+
+- [`xv::ext3::Volume::Operation::finish`](mutate.cpp.md#fn-be19bd35a9e02f12)
+
+- [`xv::ext3::Volume::Operation::~Operation`](mutate.cpp.md#fn-3fab5cb7903b7a8e)
+
+- [`xv::ext3::directory_type`](mutate.cpp.md#fn-864aaab99cf643bf)
+
+- [`xv::ext3::name_size`](mutate.cpp.md#fn-81c5506b2dd2d2e6)
+
+- [`xv::ext3::power`](mutate.cpp.md#fn-ca2a978fdb3761b8)
+
+- [`xv::ext3::set_pointer`](mutate.cpp.md#fn-477b959b42260ba7)
+
+- [`xv::ext3::set_size`](mutate.cpp.md#fn-b0fba8d1fd7c3caf)
+
+- [`xv::ext3::special_name`](mutate.cpp.md#fn-f1a46248da43f7b0)
+
+- [`xv::ext3::touch`](mutate.cpp.md#fn-b3d4a3896a1ea8d5)
+
+- [`xv::ext3::Page::Page`](mutate.cpp.md#fn-2bc8f865a8d95715)
+
+- [`xv::ext3::Page::get`](mutate.cpp.md#fn-c5ee4d7a7371063e)
+
+- [`xv::ext3::Page::~Page`](mutate.cpp.md#fn-6c4903705eeebd6a)

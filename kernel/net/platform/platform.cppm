@@ -12,4 +12,13 @@ int copy_out(unsigned long destination, const void *source, unsigned count);
 void prepare_sleep(void *channel);
 void sleep();
 void wake(void *channel);
+void timers_changed();
+
+struct TimerChange
+{
+  ~TimerChange()
+  {
+    timers_changed();
+  }
+};
 } // namespace xv::net::detail

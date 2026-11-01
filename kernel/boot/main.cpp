@@ -11,6 +11,7 @@ import xv.arch;
 import xv.net;
 
 extern "C" [[noreturn]] void enter_scheduler_stack(unsigned long top);
+
 extern "C" [[noreturn]] void scheduler_on_stack()
 {
   xv::process::scheduler().run();
@@ -28,9 +29,8 @@ void initialize_bootstrap_hart()
   xv::print::initialize();
   xv::print::printk("\nxv6 kernel is booting\n\n");
 
-  xv::memory::boot_initialize(
-      xv::memory::configured_allocator_kind(),
-      xv::memory::PhysicalAddress(detail::device_tree()));
+  xv::memory::boot_initialize(xv::memory::configured_allocator_kind(),
+                              xv::memory::PhysicalAddress(detail::device_tree()));
   xv::print::printk("physical allocator: %s\n", xv::memory::allocator().name());
   xv::memory::kernel_page_table().initialize();
   xv::memory::kernel_page_table().activate_hart();
@@ -46,7 +46,8 @@ void initialize_bootstrap_hart()
   xv::fs::files().initialize();
   xv::drivers::block_device().initialize();
   xv::net::initialize();
-  xv::print::printk("e1000: %s\n", xv::drivers::network_device().online() ? "ready" : "not present");
+  xv::print::printk("e1000: %s\n",
+                    xv::drivers::network_device().online() ? "ready" : "not present");
   for (unsigned i = 0; i < xv::net::interfaces().count(); ++i)
   {
     auto *interface = xv::net::interfaces().at(i);
@@ -56,11 +57,13 @@ void initialize_bootstrap_hart()
     {
       auto address = interface->address(n);
       xv::print::printk("net: %s %d.%d.%d.%d/%d\n", interface->name(),
-          address.address>>24, (address.address>>16)&255, (address.address>>8)&255,
-          address.address&255, address.prefix);
+                        address.address >> 24, (address.address >> 16) & 255,
+                        (address.address >> 8) & 255, address.address & 255,
+                        address.prefix);
     }
   }
   xv::process::create_initial_process();
+  xv::net::start_timer_worker();
 }
 
 void initialize_secondary_hart()

@@ -262,6 +262,7 @@ int firewall_control(unsigned operation, firewall_request &request)
 
 int control(unsigned operation, netctl_request &request)
 {
+  detail::TimerChange changed;
   return manager.execute(operation, request);
 }
 
@@ -290,5 +291,24 @@ void timer_tick()
 {
   TimerFlow::Context ctx{detail::milliseconds()};
   (void)TimerFlow::Graph::run<0>(ctx);
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long next_timer_deadline()
+{
+  unsigned long next = interface_registry.next_deadline();
+  auto include = [&](unsigned long at)
+  {
+    if (at < next)
+    {
+      next = at;
+    }
+  };
+  include(ip.next_deadline());
+  include(dhcp.next_deadline());
+  include(sockets.next_deadline());
+  return next;
 }
 } // namespace xv::net

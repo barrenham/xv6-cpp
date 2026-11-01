@@ -125,3 +125,39 @@
 @param channel 入队或最终释放的端口槽。
 @details 仅表示条件可能变化，不能假定醒来后一定有数据。
 ```
+
+<a id="fn-2beb5ecbf5b62349"></a>
+
+## `xv::net::start_timer_worker`
+
+```doxygen
+@fn void xv::net::start_timer_worker()
+@brief 在启动期建立 net-timers 永久内核任务。
+@details 网络 generation 合并状态通知并触发本地 1ms 一次性调度机会。永久订阅先于 generation 检查；内核任务在可调度上下文执行 TimerFlow、聚合下次截止时间并睡眠，连续八轮主动 yield；无对象指针逃逸到后台回调。
+```
+
+<a id="fn-3918e1d92132206c"></a>
+
+## `xv::net::detail::timers_changed`
+
+```doxygen
+@fn void xv::net::detail::timers_changed()
+@brief 合并网络状态变化并唤醒定时任务和本地 hart。
+@details 网络 generation 合并状态通知并触发本地 1ms 一次性调度机会。永久订阅先于 generation 检查；内核任务在可调度上下文执行 TimerFlow、聚合下次截止时间并睡眠，连续八轮主动 yield；无对象指针逃逸到后台回调。
+```
+
+<a id="fn-7b6e723ece0b17bd"></a>
+
+## `xv::net::timer_worker`
+
+```doxygen
+@fn void xv::net::timer_worker()
+@brief 合并状态通知并在可调度上下文服务到期协议工作。
+@details 网络 generation 合并状态通知并触发本地 1ms 一次性调度机会。永久订阅先于 generation 检查；内核任务在可调度上下文执行 TimerFlow、聚合下次截止时间并睡眠，连续八轮主动 yield；无对象指针逃逸到后台回调。
+```
+
+- [`xv::net::start_timer_worker`](kernel_platform.cpp.md#fn-2beb5ecbf5b62349)
+
+- [`xv::net::detail::timers_changed`](kernel_platform.cpp.md#fn-3918e1d92132206c)
+
+- [`xv::net::timer_worker`](kernel_platform.cpp.md#fn-7b6e723ece0b17bd)

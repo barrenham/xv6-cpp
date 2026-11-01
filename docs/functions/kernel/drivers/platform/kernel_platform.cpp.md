@@ -475,3 +475,5 @@
 - [`xv::drivers::detail::mapped_dma_pages`](kernel_platform.cpp.md#fn-7cf91398c937e79d)
 
 - [`xv::drivers::detail::unmap_dma_pages`](kernel_platform.cpp.md#fn-fa10a0b715df66ba)
+
+- [`xv::drivers::detail::pin_controlling_terminal`](kernel_platform.cpp.md#fn-fa841fa451524ec7)

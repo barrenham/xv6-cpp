@@ -230,12 +230,25 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
             run('ls /bin/fbterm', 'fbterm')
             lines, _ = screenshot('ls')
             assert any('fbterm' in line for line in lines), lines
-            run('ps', 'PID PPID PGID SID STATE KiB NAME')
+            ps_header = f"{'PID':>6} {'PPID':>6} {'PGID':>6} {'SID':>6} {'STATE':<5} {'KiB':>8} NAME"
+            run('ps', ps_header)
             lines, _ = screenshot('ps')
-            assert any('PID PPID PGID SID STATE KiB NAME' in line for line in lines), lines
+            assert any(ps_header in line for line in lines), lines
+            records = [line for line in lines if re.match(r'^ +[0-9]+ +[0-9]+ +[0-9]+ +[0-9]+ [A-Z] ', line)]
+            assert records, lines
+            for line in records:
+                assert all(line[start:end].strip().isdigit() for start, end in [(0, 6), (7, 13), (14, 20), (21, 27), (34, 42)]), line
+                assert line[28].isalpha() and line[29:34] == ' ' * 5, line
+            # Real horizontal tabs from procfs: processor/hart/isa labels all
+            # place ':' at column 16, on both serial output and GPU scanout.
+            run('cat /proc/cpuinfo', 'processor\t: 0')
+            lines, _ = screenshot('tabs')
+            tab_lines = [line for line in lines if line.startswith(('processor', 'hart', 'isa', 'mmu', 'misa', 'mvendorid', 'marchid', 'mimpid'))]
+            assert tab_lines and all(line[16] == ':' for line in tab_lines), tab_lines
             run('free', 'Mem:')
             lines, _ = screenshot('free')
-            assert any('Mem:' in line for line in lines), lines
+            memory_rows = [line for line in lines if line.startswith('Mem:')]
+            assert memory_rows and all(memory_rows[-1][start:end].strip().isdigit() for start, end in [(9, 19), (20, 30), (31, 41), (42, 52)]), lines
             # More than one proxy buffer: verify every byte survives backpressure.
             payload = (Path(__file__).resolve().parents[1] / 'README.xv6').read_text()
             assert len(payload.encode()) > 1024
@@ -247,7 +260,7 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
             run('echo EDIT_X\x7fOK', 'EDIT_OK\r\n')
             lines, _ = screenshot('edited')
             assert any(line.startswith('EDIT_OK') for line in lines), lines
-            assert not any('Mem:' in line or 'PID PPID' in line for line in lines), lines
+            assert not any('Mem:' in line or ps_header in line for line in lines), lines
             run('stty -a', 'icanon echo')
             send('clear\n'); expect('\x1b[3J'); expect('root:/$ ')
             long_text = 'a' * (columns + 29)

@@ -40,8 +40,8 @@
 
 ```doxygen
 @fn const char *xv::fs::LruBlockCache::name() const override
-@brief LRU 块缓存：读取或计算 `"`，返回当前查询结果。
-@return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
+@brief xv::fs::LruBlockCache::name：执行哈希缓存协议。
+@details 30 个数据块由 31 个独立哈希桶索引；热命中只锁所属桶，独立淘汰锁管理时间戳候选批次。所有计数按桶原子累计，无竞争时不读计时时钟。完整锁序和统计含义见 docs/block-cache.md。
 ```
 
 <a id="fn-5c62e7d3411efdaf"></a>
@@ -65,3 +65,31 @@
 @brief 将屏障传递给所绑定的块设备。
 @details 不改变缓冲引用或替换策略；日志先按顺序写出块，再通过此入口等待设备 flush。
 ```
+
+<a id="fn-292e243da5098174"></a>
+
+## `xv::fs::LruBlockCache::increment`
+
+```doxygen
+@fn static void xv::fs::LruBlockCache::increment(unsigned long &value, unsigned long amount = 1)
+@brief 以 relaxed 原子加法累计所属桶或淘汰管理器的计数。
+@details 30 个数据块由 31 个独立哈希桶索引；热命中只锁所属桶，独立淘汰锁管理时间戳候选批次。所有计数按桶原子累计，无竞争时不读计时时钟。完整锁序和统计含义见 docs/block-cache.md。
+```
+
+<a id="fn-b66ee46e7c766761"></a>
+
+## `xv::fs::LruBlockCache::index`
+
+```doxygen
+@fn static unsigned xv::fs::LruBlockCache::index(unsigned device, unsigned block)
+@brief 同时混合设备号和块号，映射到 31 个哈希桶。
+@details 30 个数据块由 31 个独立哈希桶索引；热命中只锁所属桶，独立淘汰锁管理时间戳候选批次。所有计数按桶原子累计，无竞争时不读计时时钟。完整锁序和统计含义见 docs/block-cache.md。
+```
+
+- [`xv::fs::LruBlockCache::acquire`](lru_block_cache.cpp.md#fn-53ecf27400f3e0ad)
+
+- [`xv::fs::LruBlockCache::increment`](lru_block_cache.cppm.md#fn-292e243da5098174)
+
+- [`xv::fs::LruBlockCache::index`](lru_block_cache.cppm.md#fn-b66ee46e7c766761)
+
+- [`xv::fs::LruBlockCache::statistics`](lru_block_cache.cpp.md#fn-5694eb576f5299cc)

@@ -53,6 +53,11 @@ public:
     arp_.clear();
   }
 
+  unsigned long next_deadline() override
+  {
+    return arp_.next_deadline();
+  }
+
   void tick(unsigned long now) override
   {
     arp_.tick(now);

@@ -106,8 +106,8 @@ bool SocketRegistry::deliver(Packet &packet, Endpoint source, Endpoint destinati
   for (auto *socket : sockets_)
   {
     if (socket && socket->protocol() == 17 &&
-        static_cast<DatagramSocket *>(socket)->deliver(packet, source, destination, offset,
-                                                  length))
+        static_cast<DatagramSocket *>(socket)->deliver(packet, source, destination,
+                                                       offset, length))
     {
       return true;
     }
@@ -120,9 +120,16 @@ bool SocketRegistry::deliver_echo(Packet &packet, const IpDatagram &d)
   auto identifier = wire::read16(packet.data() + d.offset + 4);
   xv::sync::ScopedLock guard(lock_);
   for (auto *socket : sockets_)
+  {
     if (socket && socket->protocol() == 1 &&
-        static_cast<DatagramSocket *>(socket)->deliver(packet, {d.source, 0},
-            {d.destination, static_cast<unsigned short>(identifier)}, d.offset, d.length)) return true;
+        static_cast<DatagramSocket *>(socket)->deliver(
+            packet, {d.source, 0},
+            {d.destination, static_cast<unsigned short>(identifier)}, d.offset,
+            d.length))
+    {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -203,12 +210,14 @@ void SocketRegistry::close_children(TcpSocket &listener)
 
 void SocketRegistry::tick(unsigned long now)
 {
-  xv::sync::ScopedLock guard(lock_);
-  for (auto *socket : sockets_)
+  // Pin one slot at a time. Protocol work is preemptible between sockets;
+  // pointers never survive releasing the registry lock or socket destruction.
+  for (unsigned i = 0; i < Capacity; ++i)
   {
-    if (socket)
+    xv::sync::ScopedLock guard(lock_);
+    if (sockets_[i])
     {
-      socket->tick(now);
+      sockets_[i]->tick(now);
     }
   }
 }
@@ -216,5 +225,27 @@ void SocketRegistry::tick(unsigned long now)
 Socket *create_socket(int type, int protocol)
 {
   return socket_registry().create(type, protocol);
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+unsigned long SocketRegistry::next_deadline()
+{
+  xv::sync::ScopedLock guard(lock_);
+  unsigned long next = ~0UL;
+  for (auto *socket : sockets_)
+  {
+    if (!socket || socket->protocol() != 6)
+    {
+      continue;
+    }
+    auto at = static_cast<TcpSocket *>(socket)->next_deadline();
+    if (at < next)
+    {
+      next = at;
+    }
+  }
+  return next;
 }
 } // namespace xv::net

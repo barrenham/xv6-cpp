@@ -99,3 +99,23 @@
 @brief 返回 `!((value-previous)&0x80000000U)`。
 @details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
 ```
+
+- [`xv::ext3::be32`](format.h.md#fn-61e3d74043ad803f)
+
+- [`xv::ext3::copy`](format.h.md#fn-1eb934da6de36461)
+
+- [`xv::ext3::equal`](format.h.md#fn-f32ef8f1326aad34)
+
+- [`xv::ext3::le16`](format.h.md#fn-3d46ae22fc28fd63)
+
+- [`xv::ext3::le32`](format.h.md#fn-b25191749d3451ac)
+
+- [`xv::ext3::put16`](format.h.md#fn-2ab26b11a6256cf5)
+
+- [`xv::ext3::put32`](format.h.md#fn-1da1459e57db1b39)
+
+- [`xv::ext3::put_be32`](format.h.md#fn-8de2f5bea54f3f0a)
+
+- [`xv::ext3::sequence_at_least`](format.h.md#fn-775cda481f588328)
+
+- [`xv::ext3::zero`](format.h.md#fn-5da6fd7b138a8fea)

@@ -49,3 +49,13 @@
 @brief 禁止后续修改provider注册表。
 @details 固定32项provider注册表；初始化完成后seal，禁止运行期修改。只接受非重复只读名字，PID数字目录及self保留。
 ```
+
+- [`xv::fs::ProcRegistry::add`](provider_registry.cppm.md#fn-cb80a780d0d6b5d6)
+
+- [`xv::fs::ProcRegistry::at`](provider_registry.cppm.md#fn-5bbd326f8379112d)
+
+- [`xv::fs::ProcRegistry::count`](provider_registry.cppm.md#fn-767e78ffed0a42d3)
+
+- [`xv::fs::ProcRegistry::find`](provider_registry.cppm.md#fn-f84fc98dfa1aab32)
+
+- [`xv::fs::ProcRegistry::seal`](provider_registry.cppm.md#fn-1fee57612344e71d)

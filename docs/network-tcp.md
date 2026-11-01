@@ -144,3 +144,5 @@ QEMU 在单核和三核下，各重复两轮 256 KiB 主动与被动传输，再
 协议依据：[TCP](https://www.rfc-editor.org/rfc/rfc9293.html)、[拥塞控制](https://datatracker.ietf.org/doc/html/rfc5681)、[NewReno](https://datatracker.ietf.org/doc/html/rfc6582)、[RTO](https://www.rfc-editor.org/rfc/rfc6298.html)。
 
 原生 `tests/tcp_registry.cpp` 使用两个独立回环协议栈验证相同四元组隔离、待接受连接 poll/accept、backlog 满后重试、监听关闭对未接受与已接受连接的不同处理，以及最终页面回收。
+
+超时执行上下文已改为 `net-timers` 内核任务；RTO、persist、停滞和关闭状态的截止时间聚合后进入统一队列，空闲连接不再依赖 100ms 网络扫描。见 [截止时间队列与验收](deadline-timers.md)。

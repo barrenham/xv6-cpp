@@ -76,3 +76,15 @@
 @brief 释放所有未完成重组页面并恢复空槽，供短期组件显式结束生命周期。
 @pre 调用方已停止接收新片段；组件按内核长期服务模型使用，不注册全局自动析构。
 ```
+
+<a id="fn-e10297cece18a0e6"></a>
+
+## `xv::net::Ipv4Reassembly::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::Ipv4Reassembly::next_deadline()
+@brief 持重组锁查询仍占用页的 assembly 最早截止时间，不向后台保存 assembly 指针。
+@details 持重组锁查询仍占用页的 assembly 最早截止时间，不向后台保存 assembly 指针。
+```
+
+- [`xv::net::Ipv4Reassembly::next_deadline`](reassembly.cpp.md#fn-e10297cece18a0e6)

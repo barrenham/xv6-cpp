@@ -39,7 +39,7 @@
 ```doxygen
 @fn int xv::net::ArpCache::send(Packet &packet, unsigned next_hop)
 @brief 先验证接口和源地址快照，邻居命中则直接发送，否则有界保留页面、长度、上下文与配置代次等待解析。
-@details ARP 请求在邻居锁外发送，队列失败不接管报文；恢复待发报文时保留处理上下文。 实现通过 SendFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details ARP 发送、接收及清理后通知网络任务；持 ARP 锁查询仍有待发送页的最早重试/回收截止时间，缓存失效检查仍在查询/工作路径执行。
 ```
 
 <a id="fn-704e5894f62445e0"></a>
@@ -49,7 +49,7 @@
 ```doxygen
 @fn void xv::net::ArpCache::receive(Packet &packet)
 @brief 验证并学习面向本机的 ARP 请求/回复，按配置代次恢复待解析报文，再在锁外发送。
-@details 队列恢复时携带原 Packet 上下文；过期配置的页面丢弃。有效请求继续生成本机 ARP 回复，不在持邻居锁时回调驱动。 实现通过 ReceiveFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details ARP 发送、接收及清理后通知网络任务；持 ARP 锁查询仍有待发送页的最早重试/回收截止时间，缓存失效检查仍在查询/工作路径执行。
 ```
 
 <a id="fn-ab7954406875ed6d"></a>
@@ -82,4 +82,17 @@
 ```doxygen
 @fn void xv::net::ArpCache::clear()
 @brief 在邻居锁内清零缓存并由 Packet RAII 释放所有待解析页；调用者不得持配置锁，以保持单向锁顺序。
+@details ARP 发送、接收及清理后通知网络任务；持 ARP 锁查询仍有待发送页的最早重试/回收截止时间，缓存失效检查仍在查询/工作路径执行。
 ```
+
+<a id="fn-31d8638427697b99"></a>
+
+## `xv::net::ArpCache::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::ArpCache::next_deadline()
+@brief ARP 发送、接收及清理后通知网络任务；持 ARP 锁查询仍有待发送页的最早重试/回收截止时间，缓存失效检查仍在查询/工作路径执行。
+@details ARP 发送、接收及清理后通知网络任务；持 ARP 锁查询仍有待发送页的最早重试/回收截止时间，缓存失效检查仍在查询/工作路径执行。
+```
+
+- [`xv::net::ArpCache::next_deadline`](arp.cpp.md#fn-31d8638427697b99)

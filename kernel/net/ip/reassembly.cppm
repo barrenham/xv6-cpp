@@ -13,6 +13,7 @@ public:
   Packet accept(const void *ingress, const Packet &fragment, unsigned header_length,
                 unsigned total_length, unsigned long now);
   void tick(unsigned long now);
+  unsigned long next_deadline();
   void clear();
 
 private:

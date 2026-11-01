@@ -70,3 +70,5 @@
 @brief 返回设备真实的64位512字节扇区数。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+- [`xv::drivers::BlockDevice::capacity_sectors`](block_device.cppm.md#fn-bda7dac14ba4c3cb)

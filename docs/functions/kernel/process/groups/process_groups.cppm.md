@@ -117,3 +117,5 @@
 ```
 
 组 ID 哈希索引的所有权与复杂度见 [基础容器](../../../../kernel-containers.md)。
+
+- [`xv::process::ProcessGroups::pin_terminal`](terminal_control.cpp.md#fn-6d5a17358d9998ed)

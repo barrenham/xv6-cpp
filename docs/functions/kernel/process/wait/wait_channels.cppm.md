@@ -35,3 +35,5 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`scheduler_`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
+
+- [`xv::process::WaitChannels::next_timer`](poll_wait.cpp.md#fn-315f7e5b92c30289)

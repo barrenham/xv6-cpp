@@ -38,6 +38,8 @@ int current_pid();
 int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity);
 bool process_exec_text(unsigned pid,bool environment,PageBuffer &buffer);
 unsigned long uptime_ticks();
+// Raw monotonic ticks: QEMU timebase 10MHz; native contracts use nanoseconds.
+unsigned long cache_ticks();
 unsigned long epoch_seconds();
 unsigned long boot_epoch_seconds();
 void memory_info(unsigned long &total_kib, unsigned long &free_kib);

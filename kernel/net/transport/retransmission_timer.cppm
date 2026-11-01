@@ -19,6 +19,11 @@ public:
     deadline_ = now + interval_;
   }
 
+  unsigned long deadline() const
+  {
+    return deadline_;
+  }
+
   bool expired(unsigned long now) const
   {
     return now >= deadline_;

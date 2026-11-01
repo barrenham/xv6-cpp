@@ -30,7 +30,7 @@
 ## `xv::trap::TimerInterruptHandler::handle`
 
 ```doxygen
-@fn TrapAction TimerInterruptHandler::xv::trap::TimerInterruptHandler::handle(const TrapEvent &event)
+@fn TrapAction xv::trap::TimerInterruptHandler::handle(const TrapEvent &event)
 @brief 先服务时钟和设备，再由所选调度策略决定抢占。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details TickClock 返回周期标志后，仅周期事件计入 100ms CPU 采样并调用调度策略 tick；短事件计入总中断并请求一次调度机会。所有事件仍服务到期等待队列。
 ```

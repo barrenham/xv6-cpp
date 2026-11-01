@@ -34,7 +34,7 @@
 ```doxygen
 @fn int xv::net::LoopbackInterface::transmit(Packet &packet, unsigned)
 @brief 在有界回环队列接管纯 IP 报文页面、长度及处理上下文。
-@details 检查启用、MTU 与十六项队列容量，失败保留调用方拥有权；入队不直接回调协议。 实现通过 TransmitFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
+@details loopback 入队后通知内核任务；队列非空返回立即工作时间，空队列返回 ~0UL。锁只保护环形队列状态，递送继续在解锁后进行。
 ```
 
 <a id="fn-49f2bb3530d94f42"></a>
@@ -46,3 +46,15 @@
 @brief 在队列锁内摘除页面与元数据，锁外恢复完整 Packet 上下文并回调本机入口。
 @details 每次最多处理六十四项，避免同步重入和丢失隧道预算。 实现通过 DrainFlow 的编译期图连接具名业务阶段；返回码、锁范围和资源所有权保持原类契约。
 ```
+
+<a id="fn-c26504ba748ea3dd"></a>
+
+## `xv::net::LoopbackInterface::next_deadline`
+
+```doxygen
+@fn unsigned long xv::net::LoopbackInterface::next_deadline()
+@brief loopback 入队后通知内核任务；队列非空返回立即工作时间，空队列返回 ~0UL。锁只保护环形队列状态，递送继续在解锁后进行。
+@details loopback 入队后通知内核任务；队列非空返回立即工作时间，空队列返回 ~0UL。锁只保护环形队列状态，递送继续在解锁后进行。
+```
+
+- [`xv::net::LoopbackInterface::next_deadline`](loopback.cpp.md#fn-c26504ba748ea3dd)

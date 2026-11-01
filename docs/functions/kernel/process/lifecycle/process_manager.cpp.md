@@ -599,7 +599,7 @@
 ```doxygen
 @fn static bool xv::process::ProcessManager::KillFlow::permitted(Context &c) noexcept
 @brief 拒绝 init，再按原调用表达式检查信号权限。
-@details PID 参数在入口验证，ProcessStore 查找返回带锁对象；保护 init 并保留原凭据快照调用，先标记和唤醒，再解进程锁并发送子事件通知。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动后可创建永久内核任务：借用正常描述符、空地址空间、内核栈与就绪队列，设置内核入口后发布，第一轮调度释放进程锁再进入入口；入口不可返回，用户 kill 不得终止该任务。PID 1 的初始化与普通 fork/exit 协议保留。
 ```
 
 <a id="fn-8fae86f2accfe852"></a>
@@ -766,7 +766,33 @@
 ## `xv::process::ProcessManager::inspect_exec`
 
 ```doxygen
-@fn bool ProcessManager::xv::process::ProcessManager::inspect_exec(int pid,ExecSnapshot::Field field,xv::fs::PageBuffer &result)
+@fn bool xv::process::ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
 @brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
 @details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
 ```
+
+<a id="fn-ba62a68053e8bff4"></a>
+
+## `xv::process::ProcessManager::create_kernel_task`
+
+```doxygen
+@fn void xv::process::ProcessManager::create_kernel_task(const char *name, void (*entry)())
+@brief 为启动期永久内核任务分配并发布一个可运行上下文。
+@details 启动后可创建永久内核任务：借用正常描述符、空地址空间、内核栈与就绪队列，设置内核入口后发布，第一轮调度释放进程锁再进入入口；入口不可返回，用户 kill 不得终止该任务。PID 1 的初始化与普通 fork/exit 协议保留。
+```
+
+<a id="fn-515405cb03cd091d"></a>
+
+## `xv::process::ProcessManager::kernel_task_return`
+
+```doxygen
+@fn void xv::process::ProcessManager::kernel_task_return()
+@brief 释放首次调度持有的进程锁并进入永久内核入口。
+@details 启动后可创建永久内核任务：借用正常描述符、空地址空间、内核栈与就绪队列，设置内核入口后发布，第一轮调度释放进程锁再进入入口；入口不可返回，用户 kill 不得终止该任务。PID 1 的初始化与普通 fork/exit 协议保留。
+```
+
+- [`xv::process::ProcessManager::create_kernel_task`](process_manager.cpp.md#fn-ba62a68053e8bff4)
+
+- [`xv::process::ProcessManager::inspect_exec`](process_manager.cpp.md#fn-4d81fa87fc855998)
+
+- [`xv::process::ProcessManager::kernel_task_return`](process_manager.cpp.md#fn-515405cb03cd091d)

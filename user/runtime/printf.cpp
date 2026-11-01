@@ -1,138 +1,181 @@
 #include "kernel/support/types.h"
-#include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
-
 #include <stdarg.h>
 
-extern "C" {
-
-static char digits[] = "0123456789ABCDEF";
-
-static void
-putc(int fd, char c)
+namespace
 {
-  write(fd, &c, 1);
+void put(int fd, char value)
+{
+  write(fd, &value, 1);
 }
 
-static void
-printint(int fd, long long xx, int base, int sgn)
+void field(int fd, const char *text, unsigned length, unsigned width, bool left,
+           bool zero = false)
 {
-  char buf[20];
-  int i, neg;
-  unsigned long long x;
-
-  neg = 0;
-  if (sgn && xx < 0) {
-    neg = 1;
-    x = -xx;
-  } else {
-    x = xx;
+  unsigned padding = width > length ? width - length : 0;
+  unsigned begin = 0;
+  if (!left && zero && length && text[0] == '-')
+  {
+    put(fd, '-');
+    begin = 1;
   }
-
-  i = 0;
-  do {
-    buf[i++] = digits[x % base];
-  } while ((x /= base) != 0);
-  if (neg)
-    buf[i++] = '-';
-
-  while (--i >= 0)
-    putc(fd, buf[i]);
-}
-
-static void
-printptr(int fd, uint64 x)
-{
-  int i;
-  putc(fd, '0');
-  putc(fd, 'x');
-  for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
-    putc(fd, digits[x >> (sizeof(uint64) * 8 - 4)]);
-}
-
-// Print to the given fd. Only understands %d, %x, %p, %c, %s.
-void
-vprintf(int fd, const char *fmt, va_list ap)
-{
-  char *s;
-  int c0, c1, c2, i, state;
-
-  state = 0;
-  for (i = 0; fmt[i]; i++) {
-    c0 = fmt[i] & 0xff;
-    if (state == 0) {
-      if (c0 == '%') {
-        state = '%';
-      } else {
-        putc(fd, c0);
-      }
-    } else if (state == '%') {
-      c1 = c2 = 0;
-      if (c0)
-        c1 = fmt[i + 1] & 0xff;
-      if (c1)
-        c2 = fmt[i + 2] & 0xff;
-      if (c0 == 'd') {
-        printint(fd, va_arg(ap, int), 10, 1);
-      } else if (c0 == 'l' && c1 == 'd') {
-        printint(fd, va_arg(ap, uint64), 10, 1);
-        i += 1;
-      } else if (c0 == 'l' && c1 == 'l' && c2 == 'd') {
-        printint(fd, va_arg(ap, uint64), 10, 1);
-        i += 2;
-      } else if (c0 == 'u') {
-        printint(fd, va_arg(ap, uint32), 10, 0);
-      } else if (c0 == 'l' && c1 == 'u') {
-        printint(fd, va_arg(ap, uint64), 10, 0);
-        i += 1;
-      } else if (c0 == 'l' && c1 == 'l' && c2 == 'u') {
-        printint(fd, va_arg(ap, uint64), 10, 0);
-        i += 2;
-      } else if (c0 == 'x') {
-        printint(fd, va_arg(ap, uint32), 16, 0);
-      } else if (c0 == 'l' && c1 == 'x') {
-        printint(fd, va_arg(ap, uint64), 16, 0);
-        i += 1;
-      } else if (c0 == 'l' && c1 == 'l' && c2 == 'x') {
-        printint(fd, va_arg(ap, uint64), 16, 0);
-        i += 2;
-      } else if (c0 == 'p') {
-        printptr(fd, va_arg(ap, uint64));
-      } else if (c0 == 'c') {
-        putc(fd, va_arg(ap, uint32));
-      } else if (c0 == 's') {
-        if ((s = va_arg(ap, char *)) == 0)
-          s = "(null)";
-        for (; *s; s++)
-          putc(fd, *s);
-      } else if (c0 == '%') {
-        putc(fd, '%');
-      } else {
-        // Unknown % sequence.  Print it to draw attention.
-        putc(fd, '%');
-        putc(fd, c0);
-      }
-
-      state = 0;
+  if (!left)
+  {
+    for (unsigned i = 0; i < padding; ++i)
+    {
+      put(fd, zero ? '0' : ' ');
+    }
+  }
+  for (unsigned i = begin; i < length; ++i)
+  {
+    put(fd, text[i]);
+  }
+  if (left)
+  {
+    for (unsigned i = 0; i < padding; ++i)
+    {
+      put(fd, ' ');
     }
   }
 }
 
-void
-fprintf(int fd, const char *fmt, ...)
+void number(int fd, uint64 value, bool negative, unsigned base, unsigned width,
+            bool left, bool zero)
 {
-  va_list ap;
+  constexpr char digits[] = "0123456789ABCDEF";
+  char reversed[24], text[24];
+  unsigned count = 0, length = 0;
+  do
+  {
+    reversed[count++] = digits[value % base];
+    value /= base;
+  } while (value);
+  if (negative)
+  {
+    text[length++] = '-';
+  }
+  while (count)
+  {
+    text[length++] = reversed[--count];
+  }
+  field(fd, text, length, width, left, zero);
+}
+} // namespace
 
-  va_start(ap, fmt);
-  vprintf(fd, fmt, ap);
+extern "C" void vprintf(int fd, const char *format, va_list arguments)
+{
+  while (*format)
+  {
+    if (*format != '%')
+    {
+      put(fd, *format++);
+      continue;
+    }
+    ++format;
+    bool left = false, zero = false;
+    while (*format == '-' || *format == '0')
+    {
+      if (*format == '-')
+      {
+        left = true;
+      }
+      else
+      {
+        zero = true;
+      }
+      ++format;
+    }
+    unsigned width = 0;
+    while (*format >= '0' && *format <= '9')
+    {
+      width = width * 10 + *format++ - '0';
+      if (width > 1024)
+      {
+        width = 1024;
+      }
+    }
+    unsigned longs = 0;
+    while (longs < 2 && *format == 'l')
+    {
+      ++longs;
+      ++format;
+    }
+    char type = *format;
+    if (!type)
+    {
+      break;
+    }
+    ++format;
+    if (type == 'd')
+    {
+      long long value = longs == 2   ? va_arg(arguments, long long)
+                        : longs == 1 ? va_arg(arguments, long)
+                                     : va_arg(arguments, int);
+      bool negative = value < 0;
+      uint64 magnitude = negative ? 0ULL - static_cast<uint64>(value) : value;
+      number(fd, magnitude, negative, 10, width, left, zero);
+    }
+    else if (type == 'u' || type == 'x')
+    {
+      uint64 value = longs == 2   ? va_arg(arguments, unsigned long long)
+                     : longs == 1 ? va_arg(arguments, unsigned long)
+                                  : va_arg(arguments, uint32);
+      number(fd, value, false, type == 'u' ? 10 : 16, width, left, zero);
+    }
+    else if (type == 'p')
+    {
+      uint64 value = va_arg(arguments, uint64);
+      char text[18] = {'0', 'x'};
+      constexpr char digits[] = "0123456789ABCDEF";
+      for (unsigned i = 0; i < 16; ++i)
+      {
+        text[2 + i] = digits[(value >> (60 - 4 * i)) & 15];
+      }
+      field(fd, text, sizeof(text), width, left);
+    }
+    else if (type == 's')
+    {
+      const char *text = va_arg(arguments, const char *);
+      if (!text)
+      {
+        text = "(null)";
+      }
+      unsigned length = 0;
+      while (text[length])
+      {
+        ++length;
+      }
+      field(fd, text, length, width, left);
+    }
+    else if (type == 'c')
+    {
+      char character = va_arg(arguments, int);
+      field(fd, &character, 1, width, left);
+    }
+    else if (type == '%')
+    {
+      put(fd, '%');
+    }
+    else
+    {
+      put(fd, '%');
+      put(fd, type);
+    }
+  }
 }
 
-void
-printf(const char *fmt, ...)
+extern "C" void fprintf(int fd, const char *format, ...)
 {
-  va_list ap;
-
-  va_start(ap, fmt);
-  vprintf(1, fmt, ap);
+  va_list arguments;
+  va_start(arguments, format);
+  vprintf(fd, format, arguments);
+  va_end(arguments);
 }
+
+extern "C" void printf(const char *format, ...)
+{
+  va_list arguments;
+  va_start(arguments, format);
+  vprintf(1, format, arguments);
+  va_end(arguments);
 }

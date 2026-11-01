@@ -22,3 +22,11 @@
 - [`xv::memory::translate_user_page`](vm.cpp.md#fn-3be6479c7074a2cd)
 - [`xv::memory::unmap_user_pages`](vm.cpp.md#fn-99f83a0dbe555628)
 - [`xv::memory::walk_entry`](vm.cpp.md#fn-f2c541337b31c9a9)
+
+- [`xv::memory::copy_from_user`](vm.cpp.md#fn-a138f76fb900bf77)
+
+- [`xv::memory::copy_to_user`](vm.cpp.md#fn-7eec4370a3d73464)
+
+- [`xv::memory::copy_user_string`](vm.cpp.md#fn-1fe74d24bcc0849e)
+
+- [`xv::memory::resolve_user_fault`](vm.cpp.md#fn-b403efa4391d3eee)

@@ -64,3 +64,23 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`store_` → `scheduler_` → `waits_` → `groups_`。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
+
+- [`xv::process::ProcessManager::cancel_child_notification`](../wait/wait_child.cpp.md#fn-06ba42f93fa856c3)
+
+- [`xv::process::ProcessManager::collect_child_notifications`](../wait/wait_child.cpp.md#fn-7406f868096667c7)
+
+- [`xv::process::ProcessManager::create_kernel_task`](process_manager.cpp.md#fn-ba62a68053e8bff4)
+
+- [`xv::process::ProcessManager::inspect_exec`](process_manager.cpp.md#fn-4d81fa87fc855998)
+
+- [`xv::process::ProcessManager::kernel_task_return`](process_manager.cpp.md#fn-515405cb03cd091d)
+
+- [`xv::process::ProcessManager::pin_controlling_terminal`](../groups/group_operations.cpp.md#fn-6d7c7b69f9c072ca)
+
+- [`xv::process::ProcessManager::queue_child_notification`](../wait/wait_child.cpp.md#fn-934632d76503279c)
+
+- [`xv::process::ProcessManager::refresh_child_events`](../wait/wait_child.cpp.md#fn-03da042b7d74a1e6)
+
+- [`xv::process::ProcessManager::remove_child_events`](../wait/wait_child.cpp.md#fn-3f9e1ed58704500c)
+
+- [`xv::process::ProcessManager::update_child_event`](../wait/wait_child.cpp.md#fn-b6cdc964d2b78f2e)

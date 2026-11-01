@@ -89,3 +89,21 @@
 @brief 按inode号复用或取得受引用锁保护的缓存槽。
 @details 松弛原子采样计数器。CPU索引有界；快照逐项读取并非全局同一时刻，计时来源为100ms周期。
 ```
+
+- [`xv::stats::Accounting::Accounting<CpuCount>`](system_accounting.h.md#fn-a791581b6eedcfdd)
+
+- [`xv::stats::Accounting::add`](system_accounting.h.md#fn-bc1058d33aa1d768)
+
+- [`xv::stats::Accounting::cpu`](system_accounting.h.md#fn-d801a09e72e09916)
+
+- [`xv::stats::Accounting::created`](system_accounting.h.md#fn-c7032d70a9e9db67)
+
+- [`xv::stats::Accounting::dispatch`](system_accounting.h.md#fn-31464fc19498ec19)
+
+- [`xv::stats::Accounting::external`](system_accounting.h.md#fn-ab9b05869b631f71)
+
+- [`xv::stats::Accounting::get`](system_accounting.h.md#fn-eaa5a81a4dd8f66e)
+
+- [`xv::stats::Accounting::system`](system_accounting.h.md#fn-1c8bfdf08a66351d)
+
+- [`xv::stats::Accounting::timer`](system_accounting.h.md#fn-4ee5c9fcde2a8912)

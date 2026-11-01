@@ -383,3 +383,51 @@
 - [`xv::drivers::VirtioGpu::MappedPresentFlow::commit`](virtio_gpu.cpp.md#fn-d8e4a08e317ec9ff)
 
 - [`xv::drivers::VirtioGpu::MappedPresentFlow::fail`](virtio_gpu.cpp.md#fn-8efa6714144a9cd5)
+
+- [`xv::drivers::VirtioGpu::allocate`](virtio_gpu.cpp.md#fn-418918c2b76c710d)
+
+- [`xv::drivers::VirtioGpu::copy_pixels`](virtio_gpu.cpp.md#fn-c2b8968074a6c023)
+
+- [`xv::drivers::VirtioGpu::handle_interrupt`](virtio_gpu.cpp.md#fn-46afcdf81348cbc3)
+
+- [`xv::drivers::VirtioGpu::initialize`](virtio_gpu.cpp.md#fn-56c766baedcb4f8f)
+
+- [`xv::drivers::VirtioGpu::ioctl`](virtio_gpu.cpp.md#fn-afdca91566a1ddb9)
+
+- [`xv::drivers::VirtioGpu::negotiate`](virtio_gpu.cpp.md#fn-0b83b7431aa9d7af)
+
+- [`xv::drivers::VirtioGpu::offline`](virtio_gpu.cpp.md#fn-da8e12e4f3828f60)
+
+- [`xv::drivers::VirtioGpu::open`](virtio_gpu.cpp.md#fn-353b8b6656921f0a)
+
+- [`xv::drivers::VirtioGpu::packet`](virtio_gpu.cpp.md#fn-3b4ed7f29ddf56dc)
+
+- [`xv::drivers::VirtioGpu::present`](virtio_gpu.cpp.md#fn-b5ed3779f0a0fa3f)
+
+- [`xv::drivers::VirtioGpu::setup`](virtio_gpu.cpp.md#fn-c8cefba6a339c3f6)
+
+- [`xv::drivers::VirtioGpu::submit`](virtio_gpu.cpp.md#fn-bdb7619ca99109e5)
+
+- [`xv::drivers::VirtioGpu::DrawFlow::copy`](virtio_gpu.cpp.md#fn-7fdc7d9e503c8d44)
+
+- [`xv::drivers::VirtioGpu::DrawFlow::okay`](virtio_gpu.cpp.md#fn-76c0057bbd8b8849)
+
+- [`xv::drivers::VirtioGpu::DrawFlow::present`](virtio_gpu.cpp.md#fn-1dd931d231b641d3)
+
+- [`xv::drivers::VirtioGpu::DrawFlow::read`](virtio_gpu.cpp.md#fn-f59989396c8306c4)
+
+- [`xv::drivers::VirtioGpu::DrawFlow::valid`](virtio_gpu.cpp.md#fn-b7cca7da0f02fe49)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::allocate`](virtio_gpu.cpp.md#fn-db1ece15ecd3bcd9)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::fail`](virtio_gpu.cpp.md#fn-7e4cc732ae105cab)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::found`](virtio_gpu.cpp.md#fn-1e44dc80c26a7ad6)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::negotiate`](virtio_gpu.cpp.md#fn-9d93ca82e82cdb8d)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::okay`](virtio_gpu.cpp.md#fn-b12444d82f463210)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::ready`](virtio_gpu.cpp.md#fn-86d94b2d62387fff)
+
+- [`xv::drivers::VirtioGpu::InitializeFlow::setup`](virtio_gpu.cpp.md#fn-8716c88de93dd635)

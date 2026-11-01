@@ -5,6 +5,13 @@ export import xv.sync;
 export namespace xv::fs
 {
 inline constexpr unsigned BlockSize = 1024;
+
+struct CacheStatistics
+{
+  unsigned long hits = 0, misses = 0, evictions = 0, lookup_steps = 0;
+  unsigned long reads = 0, writes = 0, eviction_steps = 0;
+  unsigned long locks = 0, contentions = 0, spins = 0, wait_ticks = 0;
+};
 class BlockCache;
 class LruBlockCache;
 
@@ -38,13 +45,17 @@ private:
 
   friend class LruBlockCache;
   friend class BlockCache;
+  bool assigned_ = false;
   int valid = 0;
   unsigned dev = 0;
   unsigned blockno = 0;
   xv::sync::SleepLock lock;
   unsigned refcnt = 0;
-  Buffer *prev = nullptr;
+  // Identity and links belong to bucket_; replacement alone changes bucket_.
+  unsigned bucket_ = 0;
   Buffer *next = nullptr;
+  // Atomic hints permit victim selection without locking every bucket.
+  unsigned long last_use_ = 0;
   alignas(unsigned long) unsigned char data[BlockSize]{};
 };
 
@@ -94,8 +105,18 @@ public:
   BlockCache(const BlockCache &) = delete;
   BlockCache &operator=(const BlockCache &) = delete;
   virtual const char *name() const = 0;
+
+  virtual CacheStatistics statistics() const
+  {
+    return {};
+  }
+
   virtual void initialize() = 0;
-  virtual void flush() {}
+
+  virtual void flush()
+  {
+  }
+
   virtual BlockHandle read(unsigned device, unsigned block) = 0;
   virtual void write(Buffer &buffer) = 0;
   virtual void release(Buffer &buffer) = 0;

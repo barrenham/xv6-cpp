@@ -1107,3 +1107,5 @@
 @brief 消费已固定的终端引用，在group锁外完成slave登记和打开。
 @details 终端寿命先在进程组锁内原子固定，再在该锁外取得PTY锁完成打开；关闭释放对应引用。
 ```
+
+- [`xv::drivers::Pty::open_retained_terminal`](pty.cpp.md#fn-780e044b64fd87b9)

@@ -98,11 +98,11 @@
 ```doxygen
 @fn int xv::net::control(unsigned operation, netctl_request &request)
 @brief 把已经复制到内核的管理请求交给静态 NetworkManager。
-@details 查询返回一或枚举结束零，修改成功零，失败负 errno；供系统调用与原生契约共用。
 @param operation NETCTL_* 操作号。
 @param[in,out] request 已复制至内核的 128 字节请求或查询结果。
-@return 查询 1/0、修改成功 0，失败负 errno。
 @see docs/network-management.md
+@details 保持 manager.execute 的查询、修改返回值；管理作用域结束时通知 net-timers 重算配置变更涉及的截止时间。
+@return 查询 1/0、修改成功 0，失败负 errno。
 ```
 
 <a id="fn-850f3daf0de0f624"></a>
@@ -312,3 +312,15 @@
 @brief 按同一时间快照处理 DHCP 客户端定时任务；所属流程为 xv::net::TimerFlow。
 @details 上下文借用或持有本次操作所需业务值；下一节点由 Graph 的类型策略决定，不由动作返回目标。
 ```
+
+<a id="fn-d19f233ae3a4cce9"></a>
+
+## `xv::net::next_timer_deadline`
+
+```doxygen
+@fn unsigned long xv::net::next_timer_deadline()
+@brief 聚合所有网络子系统的下一次服务时间。
+@details 网络管理变更通知定时任务；TimerFlow 保留原协议阶段，在 net-timers 内核任务运行。聚合接口、分片、DHCP 和 socket 的下一绝对截止时间；无工作时返回 ~0UL。
+```
+
+- [`xv::net::next_timer_deadline`](service.cpp.md#fn-d19f233ae3a4cce9)

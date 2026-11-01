@@ -34,3 +34,23 @@
 - [`xv::process::wait`](service.md#service-wait)
 - [`xv::process::wait_for_child`](service.md#service-wait-for-child)
 - [`xv::process::wakeup`](service.md#service-wakeup)
+
+- [`xv::process::account_dispatch`](lifecycle/service.cpp.md#fn-f5316ba7fe99bd3c)
+
+- [`xv::process::account_external_interrupt`](lifecycle/service.cpp.md#fn-9cf7888dc70699df)
+
+- [`xv::process::account_timer`](lifecycle/service.cpp.md#fn-c8afa39d3fd38a5f)
+
+- [`xv::process::cpu_statistics`](lifecycle/service.cpp.md#fn-0f9629832bbc85a8)
+
+- [`xv::process::create_kernel_task`](lifecycle/service.cpp.md#fn-88c6c45fee594eeb)
+
+- [`xv::process::initialize`](lifecycle/service.cpp.md#fn-fb111739818ea246)
+
+- [`xv::process::inspect_exec`](lifecycle/service.cpp.md#fn-fdec1bd9dc3e9eaa)
+
+- [`xv::process::next_timer_deadline`](lifecycle/service.cpp.md#fn-04ead5ec062a0bf2)
+
+- [`xv::process::pin_controlling_terminal`](lifecycle/service.cpp.md#fn-a80386bf7a0d6e46)
+
+- [`xv::process::system_statistics`](lifecycle/service.cpp.md#fn-6da719ed0fea92a2)

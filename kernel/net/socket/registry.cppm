@@ -10,11 +10,14 @@ namespace xv::net
 class InetSocket;
 class TcpSocket;
 
-class SocketRegistry final : public DatagramSink, public TcpSegmentSink, public IcmpEchoSink
+class SocketRegistry final : public DatagramSink,
+                             public TcpSegmentSink,
+                             public IcmpEchoSink
 {
 public:
 
-  constexpr SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp, IcmpProtocol *icmp = nullptr)
+  constexpr SocketRegistry(Ipv4Layer &ip, UdpProtocol &udp, TcpProtocol &tcp,
+                           IcmpProtocol *icmp = nullptr)
       : ip_(ip), udp_(udp), tcp_(tcp), icmp_(icmp)
   {
   }
@@ -30,6 +33,7 @@ public:
                unsigned length) override;
   bool deliver_echo(Packet &packet, const IpDatagram &datagram) override;
   void tick(unsigned long now);
+  unsigned long next_deadline();
   bool deliver_segment(const TcpSegment &segment) override;
   TcpSocket *accept_child(TcpSocket &listener);
   bool has_ready_child(const TcpSocket &listener) const;
@@ -50,7 +54,10 @@ public:
     return udp_;
   }
 
-  IcmpProtocol &icmp() { return *icmp_; }
+  IcmpProtocol &icmp()
+  {
+    return *icmp_;
+  }
 
   TcpProtocol &tcp()
   {

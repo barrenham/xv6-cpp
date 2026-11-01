@@ -21,19 +21,30 @@ import xv.syscall;
 
 namespace xv::trap::detail
 {
-void account_timer(bool user){xv::process::account_timer(user);}
-void account_external_interrupt(){xv::process::account_external_interrupt();}
+void account_timer(bool user)
+{
+  xv::process::account_timer(user);
+}
+
+void account_external_interrupt()
+{
+  xv::process::account_external_interrupt();
+}
+
 alignas(4096) unsigned char entry_stacks[NCPU][16384]{};
 unsigned long scheduler_stacks[NCPU]{};
 constexpr unsigned StackReservePages = 64;
+
 struct StackReserve
 {
   void *pages[StackReservePages]{};
   unsigned count = 0;
 };
+
 StackReserve stack_reserves[NCPU];
 
 namespace flow = xv::flow;
+
 struct RefillReserveFlow
 {
   struct Context
@@ -41,12 +52,18 @@ struct RefillReserveFlow
     StackReserve &reserve;
     void *page = nullptr;
   };
-  static bool space(Context &c) noexcept { return c.reserve.count < StackReservePages; }
+
+  static bool space(Context &c) noexcept
+  {
+    return c.reserve.count < StackReservePages;
+  }
+
   static bool allocate(Context &c) noexcept
   {
     c.page = xv::memory::allocator().allocate();
     return c.page;
   }
+
   static void publish(Context &c) noexcept
   {
     c.reserve.pages[c.reserve.count++] = c.page;
@@ -74,6 +91,7 @@ void refill_stack_reserve()
   RefillReserveFlow::Context context{reserve};
   (void)RefillReserveFlow::Graph::run<0>(context);
 }
+
 void *take_stack_frame()
 {
   if (!xv::process::current_cpu()->noff)
@@ -101,6 +119,7 @@ __attribute__((noinline)) unsigned long stack_probe(unsigned depth)
   auto next = depth ? stack_probe(depth - 1) : 0;
   return next + page[0] + page[4095];
 }
+
 void run_vm_kernel_probe()
 {
   auto base = xv::process::current()->kernel_stack();
@@ -110,7 +129,10 @@ void run_vm_kernel_probe()
   (void)base;
   auto &table = xv::memory::kernel_page_table();
   auto fixture = table.allocate_process_stack();
-  if (!fixture) xv::print::panic("kernel virtual pool: OOM fixture failed");
+  if (!fixture)
+  {
+    xv::print::panic("kernel virtual pool: OOM fixture failed");
+  }
   table.free_process_stack(fixture);
   auto initial = xv::memory::allocator().free_pages();
   void *held = nullptr;
@@ -129,21 +151,31 @@ void run_vm_kernel_probe()
     }
     auto available = xv::memory::allocator().free_pages();
     auto address = table.allocate_process_stack();
-    if ((budget < KSTACK_INITIAL_PAGES + KSTACK_BYTES / (512 * PGSIZE)) == bool(address))
+    if ((budget < KSTACK_INITIAL_PAGES + KSTACK_BYTES / (512 * PGSIZE)) ==
+        bool(address))
+    {
       xv::print::panic("kernel virtual pool: unexpected allocation budget");
+    }
     if (address)
     {
-      if (address != fixture) xv::print::panic("kernel virtual pool: rollback lost range");
+      if (address != fixture)
+      {
+        xv::print::panic("kernel virtual pool: rollback lost range");
+      }
       table.free_process_stack(address);
     }
     else
     {
       xv::memory::VirtualRegion region;
       if (table.region(fixture, region) || table.region(fixture - 1, region))
+      {
         xv::print::panic("kernel virtual pool: rollback retained regions");
+      }
     }
     if (xv::memory::allocator().free_pages() != available)
+    {
       xv::print::panic("kernel virtual pool: OOM rollback leaked frames");
+    }
   }
   while (held)
   {
@@ -152,9 +184,13 @@ void run_vm_kernel_probe()
     xv::memory::allocator().deallocate(page);
   }
   if (xv::memory::allocator().free_pages() != initial)
+  {
     xv::print::panic("kernel virtual pool: OOM fixture leaked frames");
+  }
   if (table.allocate_process_stack() != fixture)
+  {
     xv::print::panic("kernel virtual pool: OOM recovery lost range");
+  }
   table.free_process_stack(fixture);
   xv::print::printk("kernel virtual pool: OOM rollback and recovery OK\n");
 #elif XV_VM_SELF_TEST == 5
@@ -163,26 +199,47 @@ void run_vm_kernel_probe()
   // Stabilize the running probe's own stack/margin before measuring resources
   // belonging to the 1000 independent test stacks.
   if (!table.grow_process_stack(base, base + KSTACK_BYTES - 32 * PGSIZE))
+  {
     xv::print::panic("kernel virtual pool: probe stack preparation failed");
+  }
   auto initial = xv::memory::allocator().free_pages();
   for (auto &address : addresses)
   {
     address = table.allocate_process_stack();
-    if (!address) xv::print::panic("kernel virtual pool: 1000 stack allocation failed");
+    if (!address)
+    {
+      xv::print::panic("kernel virtual pool: 1000 stack allocation failed");
+    }
     xv::memory::VirtualRegion region;
-    if (!table.region(address, region) || region.kind != xv::memory::RegionKind::KernelStack ||
-        !table.region(address - 1, region) || region.kind != xv::memory::RegionKind::Guard)
+    if (!table.region(address, region) ||
+        region.kind != xv::memory::RegionKind::KernelStack ||
+        !table.region(address - 1, region) ||
+        region.kind != xv::memory::RegionKind::Guard)
+    {
       xv::print::panic("kernel virtual pool: region mismatch");
+    }
   }
-  for (unsigned i = 0; i < 1000; i += 2) table.free_process_stack(addresses[i]);
-  if (table.handle_stack_fault(addresses[0], addresses[0] + KSTACK_BYTES,
-                               addresses[0], xv::memory::FaultAccess::Write,
-                               take_stack_frame) != xv::memory::FaultResult::OutsideRegion)
-    xv::print::panic("kernel virtual pool: freed stack remained published");
   for (unsigned i = 0; i < 1000; i += 2)
+  {
+    table.free_process_stack(addresses[i]);
+  }
+  if (table.handle_stack_fault(addresses[0], addresses[0] + KSTACK_BYTES, addresses[0],
+                               xv::memory::FaultAccess::Write, take_stack_frame) !=
+      xv::memory::FaultResult::OutsideRegion)
+  {
+    xv::print::panic("kernel virtual pool: freed stack remained published");
+  }
+  for (unsigned i = 0; i < 1000; i += 2)
+  {
     if (table.allocate_process_stack() != addresses[i])
+    {
       xv::print::panic("kernel virtual pool: fragmented range not reused");
-  for (auto address : addresses) table.free_process_stack(address);
+    }
+  }
+  for (auto address : addresses)
+  {
+    table.free_process_stack(address);
+  }
   auto warm = xv::memory::allocator().free_pages();
   if (warm != initial)
   {
@@ -193,11 +250,19 @@ void run_vm_kernel_probe()
   for (auto &address : addresses)
   {
     address = table.allocate_process_stack();
-    if (!address) xv::print::panic("kernel virtual pool: repeat allocation failed");
+    if (!address)
+    {
+      xv::print::panic("kernel virtual pool: repeat allocation failed");
+    }
   }
-  for (auto address : addresses) table.free_process_stack(address);
+  for (auto address : addresses)
+  {
+    table.free_process_stack(address);
+  }
   if (xv::memory::allocator().free_pages() != warm)
+  {
     xv::print::panic("kernel virtual pool: stack resource leak");
+  }
   xv::print::printk("kernel virtual pool: 1000 stacks, fragmentation and reuse OK\n");
 #elif XV_VM_SELF_TEST == 2
   auto *entry =
@@ -247,28 +312,65 @@ void install_kernel_vector()
   xv::arch::w_stvec(reinterpret_cast<Word>(kernelvec));
 }
 
-bool has_process() { return xv::process::current() != nullptr; }
+bool has_process()
+{
+  return xv::process::current() != nullptr;
+}
 
-void deliver_signals() { xv::process::deliver_signals(); }
+void deliver_signals()
+{
+  xv::process::deliver_signals();
+}
 
-bool interrupted() { return xv::process::current()->is_killed(); }
+bool interrupted()
+{
+  return xv::process::current()->is_killed();
+}
 
-bool killed() { return xv::process::current()->termination_status() != 0; }
+bool killed()
+{
+  return xv::process::current()->termination_status() != 0;
+}
 
-void request_kill() { xv::process::current()->request_kill(); }
+void request_kill()
+{
+  xv::process::current()->request_kill();
+}
 
-[[noreturn]] void exit_current(int status) { xv::process::exit_process(status); }
+[[noreturn]] void exit_current(int status)
+{
+  xv::process::exit_process(status);
+}
 
-void yield_current() { xv::process::scheduler().yield(); }
-bool scheduler_timer_tick() { return xv::process::scheduler().timer_tick(); }
+void yield_current()
+{
+  xv::process::scheduler().yield();
+}
 
-void save_user_pc(Word pc) { xv::process::current()->registers()->epc = pc; }
+bool scheduler_timer_tick()
+{
+  return xv::process::scheduler().timer_tick();
+}
 
-void advance_user_pc(Word bytes) { xv::process::current()->registers()->epc += bytes; }
+void save_user_pc(Word pc)
+{
+  xv::process::current()->registers()->epc = pc;
+}
 
-void enable_interrupts() { xv::arch::intr_on(); }
+void advance_user_pc(Word bytes)
+{
+  xv::process::current()->registers()->epc += bytes;
+}
 
-void dispatch_system_call() { xv::syscall::dispatch(); }
+void enable_interrupts()
+{
+  xv::arch::intr_on();
+}
+
+void dispatch_system_call()
+{
+  xv::syscall::dispatch();
+}
 
 void dispatch_external_interrupt()
 {
@@ -310,7 +412,12 @@ struct UserReturnFlow
     xv::process::Process *process;
     xv::process::TrapFrame *frame = nullptr;
   };
-  static void mask(Context &) noexcept { xv::arch::intr_off(); }
+
+  static void mask(Context &) noexcept
+  {
+    xv::arch::intr_off();
+  }
+
   static void vector(Context &c) noexcept
   {
     const auto address = TRAMPOLINE + (reinterpret_cast<Word>(uservec) -
@@ -318,6 +425,7 @@ struct UserReturnFlow
     xv::arch::w_stvec(address);
     c.frame = c.process->registers();
   }
+
   static void frame(Context &c) noexcept
   {
     c.frame->kernel_satp = xv::arch::r_satp();
@@ -325,6 +433,7 @@ struct UserReturnFlow
     c.frame->kernel_trap = reinterpret_cast<Word>(usertrap);
     c.frame->kernel_hartid = xv::arch::r_tp();
   }
+
   static void commit(Context &c) noexcept
   {
     auto status = xv::arch::r_sstatus();
@@ -378,19 +487,47 @@ void restore_kernel(const TrapEvent &event)
   __builtin_unreachable();
 }
 
-int hart_id() { return xv::process::cpu_id(); }
-
-Word time() { return xv::arch::r_time(); }
-
-void arm_timer(Word deadline) { xv::arch::w_stimecmp(deadline); }
-
-void service_timer_devices()
+int hart_id()
 {
-  if (hart_id() == 0)
+  return xv::process::cpu_id();
+}
+
+Word time()
+{
+  return xv::arch::r_time();
+}
+
+void arm_timer(Word deadline)
+{
+  xv::arch::w_stimecmp(deadline);
+}
+
+// The accounting counter records total interrupts, irrespective of source.
+void account_deadline_interrupt()
+{
+  xv::process::account_external_interrupt();
+}
+
+void service_timer_devices(bool periodic)
+{
+  const auto now = xv::arch::r_time();
+  xv::process::poll_timer_tick(now / 10000);
+  if (periodic && hart_id() == 0)
   {
-    xv::process::poll_timer_tick(xv::arch::r_time() / 10000);
     xv::drivers::terminal_timer_tick();
-    xv::net::timer_tick();
+  }
+  const auto next = xv::process::next_timer_deadline();
+  if (next != ~0UL && next <= ~0UL / 10000)
+  {
+    auto at = next * 10000;
+    if (at < now + 10000)
+    {
+      at = now + 10000;
+    }
+    if (at < xv::arch::r_stimecmp())
+    {
+      xv::arch::w_stimecmp(at);
+    }
   }
 }
 
@@ -399,11 +536,21 @@ void prepare_interruptible_sleep(void *channel)
   xv::process::prepare_interruptible_sleep(channel);
 }
 
-void prepare_sleep(void *channel) { xv::process::prepare_sleep(channel); }
+void prepare_sleep(void *channel)
+{
+  xv::process::prepare_sleep(channel);
+}
 
-void sleep() { xv::process::sleep(); }
+void sleep()
+{
+  xv::process::sleep();
+}
 
-void wakeup(void *channel) { xv::process::wakeup(channel); }
+void wakeup(void *channel)
+{
+  xv::process::wakeup(channel);
+}
+
 struct KernelStackPrepareFlow
 {
   struct Context
@@ -415,10 +562,12 @@ struct KernelStackPrepareFlow
     pte_t *entry = nullptr;
     int result = 0;
   };
+
   static bool within(Context &c) noexcept
   {
     return c.stack >= c.base && c.stack <= c.base + KSTACK_BYTES;
   }
+
   static void outside(Context &c) noexcept
   {
     if (xv::memory::kernel_page_table().in_stack_window(c.stack))
@@ -426,6 +575,7 @@ struct KernelStackPrepareFlow
       xv::print::panic("kernel stack reserve exhausted");
     }
   }
+
   static bool stack_fault(Context &c) noexcept
   {
     bool page_fault = c.cause == 12 || c.cause == 13 || c.cause == 15;
@@ -433,6 +583,7 @@ struct KernelStackPrepareFlow
     bool in_guard = c.fault >= c.base - KSTACK_BYTES && c.fault < c.base;
     return page_fault && (in_stack || in_guard);
   }
+
   static void resolve(Context &c) noexcept
   {
     auto access = c.cause == 12   ? xv::memory::FaultAccess::Execute
@@ -441,12 +592,18 @@ struct KernelStackPrepareFlow
     c.fault_result = xv::memory::kernel_page_table().handle_stack_fault(
         c.base, c.stack, c.fault, access, take_stack_frame);
   }
+
   static bool resolved(Context &c) noexcept
   {
     return c.fault_result == xv::memory::FaultResult::Resolved;
   }
+
   // Return directly to the trapped instruction, without registry or refill work.
-  static void handled(Context &c) noexcept { c.result = 1; }
+  static void handled(Context &c) noexcept
+  {
+    c.result = 1;
+  }
+
   static void diagnose(Context &c) noexcept
   {
     if (c.fault_result == xv::memory::FaultResult::Permission)
@@ -467,7 +624,12 @@ struct KernelStackPrepareFlow
     }
     xv::print::panic("kernel stack: invalid mapping");
   }
-  static bool unlocked(Context &) noexcept { return !xv::process::current_cpu()->noff; }
+
+  static bool unlocked(Context &) noexcept
+  {
+    return !xv::process::current_cpu()->noff;
+  }
+
   static void margin(Context &c) noexcept
   {
     refill_stack_reserve();
@@ -479,11 +641,13 @@ struct KernelStackPrepareFlow
         static_cast<xv::memory::PageTable>(const_cast<void *>(c.table->root())),
         c.lowest & ~(PGSIZE - 1UL), 0);
   }
+
   // Preserve the mapped-margin fast path: no global stack lock on a hit.
   static bool needs_growth(Context &c) noexcept
   {
     return !c.entry || !(__atomic_load_n(c.entry, __ATOMIC_ACQUIRE) & PTE_V);
   }
+
   static void grow(Context &c) noexcept
   {
     c.table->grow_process_stack(c.base, c.lowest);
@@ -519,23 +683,35 @@ struct KernelStackPrepareFlow
                                           flow::go<Grow>, flow::stop>>,
                   flow::node<Grow, flow::action<&grow>, flow::stop>>>;
 };
+
 struct SchedulerStackFlow
 {
   struct Context
   {
     unsigned long &base;
   };
-  static bool exists(Context &c) noexcept { return c.base != 0; }
+
+  static bool exists(Context &c) noexcept
+  {
+    return c.base != 0;
+  }
+
   static void duplicate(Context &) noexcept
   {
     xv::print::panic("scheduler stack already initialized");
   }
-  static void refill(Context &) noexcept { refill_stack_reserve(); }
+
+  static void refill(Context &) noexcept
+  {
+    refill_stack_reserve();
+  }
+
   static bool allocate(Context &c) noexcept
   {
     c.base = xv::memory::kernel_page_table().allocate_process_stack();
     return c.base != 0;
   }
+
   static void failed(Context &) noexcept
   {
     xv::print::panic("scheduler stack allocation failed");

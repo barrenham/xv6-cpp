@@ -159,6 +159,11 @@ public:
 
   virtual int transmit(Packet &packet, unsigned next_hop) = 0;
 
+  virtual unsigned long next_deadline()
+  {
+    return ~0UL;
+  }
+
   virtual void tick(unsigned long)
   {
   }
@@ -209,6 +214,7 @@ public:
   NetworkInterface *find(unsigned id) const;
   bool owns(unsigned address) const;
   void tick(unsigned long now);
+  unsigned long next_deadline();
 
 private:
 

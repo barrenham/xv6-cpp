@@ -115,7 +115,7 @@
 ```doxygen
 @fn static void xv::process::WaitChannels::WakeFlow::pollers(Context &c) noexcept
 @brief 直接枚举并通知同通道的 poll 订阅。
-@details 入口桶锁固定链表和 successor；每个匹配进程在进程锁下摘链并按原睡眠状态唤醒，之后通知同通道 poll 订阅。 下一节点由图策略声明，业务结果与控制信号分离。
+@details bucket 锁固定订阅及 PollWait 的生命周期；存在订阅时先刷新本地 TLB，再通知匹配通道的等待对象，避免读取复用栈地址的旧翻译。
 ```
 
 <a id="fn-04d2dcc8eadcf2da"></a>

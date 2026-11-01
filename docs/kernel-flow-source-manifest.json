@@ -1,5 +1,5 @@
 {
-  "scope": "Every kernel source; boot excluded from graph conversion. ext3/dev/proc startup hooks reviewed; GPU adds initialization/draw flows and one MMIO page. Network baseline unchanged. Keyboard adds initialization/read/interrupt graphs, kbd0, and slot4 MMIO; GPU style reviewed without ABI changes. GPU boot resolution defaults to 1280x800 and supports up to 1920x1080; 16-entry GPU-only rings and derived scatter request pages reviewed.",
+  "scope": "Every kernel source is inventoried. Boot remains excluded from graph conversion; startup task publication is reviewed. Current non-network coverage has 230 graph identities plus 3 conditional alternatives. The 110 network protocol graphs are preserved while deadline queries and notifications move timeout execution into a schedulable kernel task. The old WaitChannels expiry scan is replaced by a bounded intrusive-tree primitive. Ownership, cancellation, TLB synchronization and runtime evidence are documented in docs/deadline-timers.md.",
   "files": [
     {
       "source": "kernel/arch/arch.cppm",
@@ -51,7 +51,7 @@
     },
     {
       "source": "kernel/boot/main.cpp",
-      "sha256": "3ec646f5175a77f72c5d191cb7110971b283b1304d28077dac741f5a9b923f40",
+      "sha256": "00c26002d15d7ac10da9ce76a2e0e15a748a9ad8ceacd11c945d154374615338",
       "classification": "excluded_boot",
       "review": "kernel/boot excluded; hardware capture/online publication hooks reviewed for this integration"
     },
@@ -356,25 +356,25 @@
     },
     {
       "source": "kernel/fs/cache/block_cache.cppm",
-      "sha256": "52b19a7125bbe438c55fd008be48cfb71f951075679c06c899f1b2c8427e34c3",
+      "sha256": "09731e91f583c0982af9c4e42ce8548e38705435bfdd1ad625cf0c6d50fa0143",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/cache/flow.cppm",
-      "sha256": "5766b94ffc68892e40880909964beb655bd848faee15fc20a01e2e7d3dd0a454",
+      "sha256": "1dd12580eff0bac0ea80d834c5b76d8e085d4a46024dddeae686d85c9764d428",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/cache/lru_block_cache.cpp",
-      "sha256": "c4b9aa575ac33a924262ab285861910344134e9124febf3b0b212b968db7fea7",
+      "sha256": "e8e285cd670a9fc11a2a4a0e7cb294f0d7683c5c16f5bc1137872c76ac5c11af",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/cache/lru_block_cache.cppm",
-      "sha256": "254da6965ec59855c79aa286e069eace69095b39cce12ea2d336d3ab542a07ff",
+      "sha256": "2b4133e6162cc10531ecf58903d9df5379c3f441bf2347f1834588bf01f0ca5e",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -626,13 +626,13 @@
     },
     {
       "source": "kernel/fs/platform/kernel_platform.cpp",
-      "sha256": "48eb2d473c3e711ca7193307e5a3025b1b187eda6a8040b066bfa6ddec81bead",
+      "sha256": "f6fc7796c9217739660125a52aec3ae623b6e54671cbbc36e43366e24fc8222e",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/platform/platform.cppm",
-      "sha256": "e5eec2538ad98e6e46769587414a28c2f49f58780884089758da6d3f80a8c929",
+      "sha256": "255e84d034f278bbdcdcf7bf0c5f31faa49ea6c3269a8180133576ff9ca82dab",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -662,7 +662,7 @@
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
-      "sha256": "b5cf8b664de6c479925b88de22af3e842560ef90d720d3d12790133f154cb97a",
+      "sha256": "1cb211d43316a92889bd3ef449d8f0e447f72944a8f0ae8714e9f3b6f3b26680",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -932,13 +932,13 @@
     },
     {
       "source": "kernel/net/bridge/bridge.cpp",
-      "sha256": "cca6bf46c222000e3cca4115e49d25b033d7eb9c87a62d5d0eab7780913fae0d",
+      "sha256": "45b951e9e7058af1a7f49467ddec4d48f4a15d3ba237b7e62845979e2d7c4a53",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/bridge/bridge.cppm",
-      "sha256": "a5537d48127f2230ee605f50a663bede9ae0f68764fe5c37451966fb6d649a24",
+      "sha256": "3b93825fd20a7d6219fa9abea3e8e77a1d77f0304dc64bdab528510b7a3d046d",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1010,7 +1010,7 @@
     },
     {
       "source": "kernel/net/core/service.cpp",
-      "sha256": "401758b547009ee3a605f79d20342adbc5d10bb7ce35dc2f4eff5ec54e76b971",
+      "sha256": "c595e848fc4ea47baaa7b7e613401710ae2fc36eac7577d7e213303f1cbc7faf",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1022,13 +1022,13 @@
     },
     {
       "source": "kernel/net/dhcp/client.cpp",
-      "sha256": "a5c9b082545ee3926adc94b568d7ababfbd3dd1c93334f62ce5640261a24785c",
+      "sha256": "0633f6e59e6df0538e7147656a6cb2fc3240898fbb043afaa23ee1ec2c651cae",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/dhcp/client.cppm",
-      "sha256": "6f36aee203fde014b02e8d1af32c37983fa6629b724e0785d215b63e9be84c8b",
+      "sha256": "ace9212b9752d8958f75fd0af818b4d1d617ece582f39557081d98a5ea706964",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1202,31 +1202,31 @@
     },
     {
       "source": "kernel/net/interface/ethernet_interface.cppm",
-      "sha256": "fb56234af18e68e56146a513527ede9cf4f2d3f4c109414f0c2dc1447c858212",
+      "sha256": "bbb4e2b9ef29cac3c591a292efb69bd88794b1e319637cd0e25927725711f225",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/interface/interface.cpp",
-      "sha256": "9e3c95599431200d150108e66980395ea62da6ca276b0f13cbac146a9c53e358",
+      "sha256": "061c2861a3e0602247cb2e5d91f21937891080e6d1b76885c2683a40aa2dd680",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/interface/interface.cppm",
-      "sha256": "4d1c2ab2c2b9860501968ca6c3e73d541910f79d6d88b4233e20f56954e49e75",
+      "sha256": "3f3ae00f88096fd5a2ecda691942f2f837fe5eeafe68a2b766a9276d9b404af7",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/interface/loopback.cpp",
-      "sha256": "10d3998d72206c9b63788bd439c184b620cd203389e56986d95b82e573eae6de",
+      "sha256": "29cc8da0ace22f2688f7dd95404818a288bc7a0c467261965ef8f575617c430d",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/interface/loopback.cppm",
-      "sha256": "53f543c7f79ea156b051fba1f910d85c765a19a720935d72df01423c2fe745a2",
+      "sha256": "803583ee2872b2c0229b56c9938cf1fc32c56e77ae554bc7ced27636ae26a81f",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1292,13 +1292,13 @@
     },
     {
       "source": "kernel/net/ip/ipv4.cpp",
-      "sha256": "85e5f7196e6c148866f519217349eeacb40347ef49382b4fbfe272f9fbb826a6",
+      "sha256": "27e05811836866e63597cd82ef0526b9f1dc030dadbd50950c5d7723befb84f6",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/ip/ipv4.cppm",
-      "sha256": "bb6aea5b5ac0faca702c9970fde9c11da3fdf5e002ecaf72f2882a15b8143ee1",
+      "sha256": "d347d1a525a3d2d56dcbcf7f2d1f7f22afc7baf89386f5e50eb24099c29dff08",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1316,13 +1316,13 @@
     },
     {
       "source": "kernel/net/ip/reassembly.cpp",
-      "sha256": "309318e9d540a168cdfa4203673e948a6c7b2be317212040ea821a7eb6b8def2",
+      "sha256": "ca51d840c9439c3c96be2682d707a77c16d5ef59173c82efbbeaa7e6be74c6f6",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/ip/reassembly.cppm",
-      "sha256": "96ea72c2f90ab42f6d574ebd398c90d9aea15859b80f89ce060d7b721d897429",
+      "sha256": "a6955cba9d9dafd7964c2458d1428a4f27eca14829adb36a68ecb8b6c106b0fd",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1358,13 +1358,13 @@
     },
     {
       "source": "kernel/net/link/arp.cpp",
-      "sha256": "b69c861be8439abecc1e0f5a867ada6b109d2ac4884443d8e3b3c47e986fe636",
+      "sha256": "42ef5bb2111f99aa792ef8a65a47ec922d8bf283c056ac94e66a364e2fa24b45",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/link/arp.cppm",
-      "sha256": "ff52c1e0e1d6cdfcbc0e6539604ce718a64c049abc8cb8bd49db9947f7aa2583",
+      "sha256": "b98dbb9aa825340d915fb6956e00fb7415c318e602d6f1e3ec623aafddd94772",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1412,19 +1412,19 @@
     },
     {
       "source": "kernel/net/net.cppm",
-      "sha256": "6d932c370b8581c6c966fc269b799477f9878ac7dfd259c9b9baa058c7951800",
+      "sha256": "4077897f9fd78bdefe8a80186df8253d7e840247e6150c85208c77ec8defe13b",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/platform/kernel_platform.cpp",
-      "sha256": "a55a41a051230dcd9ee7a34315e22359e46dbc8882be5c4262c3d08374edd4ef",
+      "sha256": "04b5c10fba1b9dca2cbff7dc51075a14502dd208b47159044ff76fb4af8cc239",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/platform/platform.cppm",
-      "sha256": "202f800d6663d6ab5a44b26ff2343a2e5cc1b6cf8eda0d84ab8c5a6f53f36b6d",
+      "sha256": "33db0c32cd948c5f97ae2caf90b062ab9dc2f74dbb2e49ba823c79d035f72c24",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1436,13 +1436,13 @@
     },
     {
       "source": "kernel/net/socket/registry.cpp",
-      "sha256": "ae8b5046c3f31bd20fa8083113ad5512076bda7c472c1b7170ed2596c6a2eea6",
+      "sha256": "1705591fb8fa5b7cffd7a1ebcdac8c75b9bb46f5dcff95eb5b8e4178e32e4619",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/registry.cppm",
-      "sha256": "a16f1cfa21a94aac75a483f245c44d1710a11c25f396cec90e950a63608fa369",
+      "sha256": "daa2762cc62cdf0738576bef7f82b6c39676e2c62678a7523841fedbbd5c33f3",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1508,25 +1508,25 @@
     },
     {
       "source": "kernel/net/socket/tcp_receiver.cpp",
-      "sha256": "01238cf113bbe4e515ececc9d6c81beb7ca53a775f9e7487a6087224200e481e",
+      "sha256": "c034418f01198775c886f4bf21ec56768916c49b3dbf53f42aba901c23cd8139",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/tcp_sender.cpp",
-      "sha256": "6528d737892f10e6dc9f7c7cf5ee5a214a368ab73eb9d37a7eb1497d2902745c",
+      "sha256": "1aca2430b2720df56bad58ed79ee03b878b6e1b4929ef3138ae0c3a495e3fb8c",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/tcp_socket.cpp",
-      "sha256": "973e6b0631c26216b0236898417fbdf7987c1def8a92922d6c6570b778b3c1fa",
+      "sha256": "4bd0725ef8d78b0d0f2655f75db693799d8a0c6dd0ca041a873c0e19ed174507",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
     {
       "source": "kernel/net/socket/tcp_socket.cppm",
-      "sha256": "de5efcfa0556ab1fd2a21d24055a2c40ae66ba99e99ef6ab891816f3a172cfd0",
+      "sha256": "a7e88a8babeb20f2cf22026f4fa13dd5952e65338c8727352b6f91ed3e5467f5",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1580,7 +1580,7 @@
     },
     {
       "source": "kernel/net/transport/retransmission_timer.cppm",
-      "sha256": "51617730dcb02f8b564a577ed7d4ccc49f35a73c5e0d2c1b37d5793ec8cbc872",
+      "sha256": "8ec5dc2b4a01d61d34aa0b22d14b7ce1bfc8167c544ad3c8b1f1be6e35409296",
       "classification": "preserved_network",
       "review": "docs/network-flow-coverage.json"
     },
@@ -1754,19 +1754,19 @@
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cpp",
-      "sha256": "d1807a62004ba308b0a12c7f6c12a2ee90112d7a62a057c8e8a3f13b387e7616",
+      "sha256": "c541d07f9c217e7ca0ab5db6875a7c0f20ef491fb220eb3b8b90f97fc0957b01",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cppm",
-      "sha256": "8983ba25421af9b2c8b256fbd97082cf9ae69630634d0028d33ae5c9a293ad04",
+      "sha256": "1efa1a2e17cd7e8e20db6bd4a73f054c38cddc3ade9a2fd49e23daf8b7ef6674",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/lifecycle/service.cpp",
-      "sha256": "fed8f44e38467ed682371f0ac4fdf737bfef5cef5bfe87f411d3061379e62c96",
+      "sha256": "1bdc4e870a771dbf7cb56c26fb5261bb6f5af31fefcbe60d4fc86dca42662141",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1790,13 +1790,13 @@
     },
     {
       "source": "kernel/process/process.cppm",
-      "sha256": "b6ab5ee1e7c20698efbaa501bc214bf08fce9f3386f885a2044e1e7cb099533f",
+      "sha256": "0c13a192413e5174d6e9c6481e78e5bc853ed02bb156ea5ab36bf118ec89805e",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/process_module.cppm",
-      "sha256": "ced7c579c08f7b06fea5b8d955a25e201ec05d38a3e316057ef601056ac535fe",
+      "sha256": "f30d6e92e0823d59cd5c9237a2264f686906948d484991d3553b8a1a64b76d6d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1940,7 +1940,7 @@
     },
     {
       "source": "kernel/process/signals/signal_delivery.cpp",
-      "sha256": "f39bc35c993f43a736552d528e91e43be8ace5eb76d409c53399a443c6058d04",
+      "sha256": "839278c343ea1534ac4ca9c3a5473ddf4e3704ec0283d8f9721a661def803b13",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1952,7 +1952,7 @@
     },
     {
       "source": "kernel/process/storage/kernel_platform.cpp",
-      "sha256": "fe51f8fd2220d333082ca5e7d87bc33427389afa380259496159f4bf62788f8d",
+      "sha256": "5e75e65250ffba84eebac2e008d1ea4d0489e08d11d1ae4c1739cb65903fc2ee",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1970,7 +1970,7 @@
     },
     {
       "source": "kernel/process/storage/platform.cppm",
-      "sha256": "2a3aa37dcdab5a459fa5b96d579c57938d42b69b0b94b33699c1b5f57fdf4099",
+      "sha256": "ceb586e17017a19ce63cf3381c84ead2449560fd060a063cf73b00802e48cedb",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1994,13 +1994,13 @@
     },
     {
       "source": "kernel/process/wait/poll_wait.cpp",
-      "sha256": "624c6200189a8dcffd45083d6b38e3284209504e5ee86d1d51788365b75a8e1c",
+      "sha256": "12c5ee268634c7475f40ef3f5b36ba07f174c39f71f46ebc32c378d8998ca94c",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/wait/poll_wait.cppm",
-      "sha256": "46f3eaf363f7d3791f185e6e1feb77c69855f4760d06cb7c675888b3d27fc3d5",
+      "sha256": "2ce01da44bb5b8f4bf217b2d389939c7128230ebf071da2e10ba807d4c8f0e85",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2018,13 +2018,13 @@
     },
     {
       "source": "kernel/process/wait/wait_channels.cpp",
-      "sha256": "6c341554d0525546480cd2872369f59937f42b3bff3feac36798d59d786afa0e",
+      "sha256": "7201b0217ec9cab3331e677bbce1411ae5f6e5cd1964f749265489d056fcbeaa",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/wait/wait_channels.cppm",
-      "sha256": "b72f3478b568030dbcab5ca8e58bfb19be2a9016294ef225b8efcc01837fe5a5",
+      "sha256": "54134a2658fff2165be0d91e712fa2da9ff11163c8709ecdcf17fd116e495025",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2055,6 +2055,12 @@
     {
       "source": "kernel/support/cpp_runtime.cpp",
       "sha256": "9fc8aae648c7a907c3b75acbe2bcb09f85416a2b5f8698324af83784f39ab1e3",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
+      "source": "kernel/support/deadline_queue.h",
+      "sha256": "8bf7816f9ab08c2d3803e3a12b4a20f00c79ab4ea34f50d45d5d619c3062d4d0",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2204,13 +2210,13 @@
     },
     {
       "source": "kernel/sync/spin/spinlock.cpp",
-      "sha256": "6d77a6f16b1c99ed6c8eaa8a60995521aa586d753fa8e8c30dc9964db502db3e",
+      "sha256": "ccbe77bed7f5b49a4c238a55fa00808f0591a674050850658c966f2b3ffb4e0d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
       "source": "kernel/sync/spin/spinlock.cppm",
-      "sha256": "4f0e61f8b4c39a26ceddf0ad1544a9b7ed4e325d56a577a173a847ae4082fd7b",
+      "sha256": "6f51b810a7bafbd51c7231e4a6332d3df49829de6a036aec51052ac62f9de088",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2270,7 +2276,7 @@
     },
     {
       "source": "kernel/syscall/syspoll.cpp",
-      "sha256": "bced9ef4e3814c008cbc2553f45b1b50504df533102fa178008f5e06b98d58f0",
+      "sha256": "270a7e902a6371705469235efb91a53a365dc8e9897e7c97dc71a7add25729ee",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
@@ -2306,7 +2312,7 @@
     },
     {
       "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-      "sha256": "7eeef15fdf5b1f7fa65fbc6821a4c03ccd757e2e0a0274cd88aed4b06638d003",
+      "sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2330,13 +2336,13 @@
     },
     {
       "source": "kernel/trap/clock/tick_clock.cpp",
-      "sha256": "adedebe9315bf24140d90cb89316cc333e04c478ddfe53206b7e8a74ddbd5145",
+      "sha256": "150faa0eeb7d3ab4d3d325f893e4797e008bb287b88171637ad193fa7663d28d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
       "source": "kernel/trap/clock/tick_clock.cppm",
-      "sha256": "5a996d0f1f2dcccb20607a2cb4473c7dea2d5a3390fdf36332d322847caf947b",
+      "sha256": "ac70ee6352c55a14611e012d18ea62f809e67e3419398203a5c9b6b6c6ce2b26",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2408,13 +2414,13 @@
     },
     {
       "source": "kernel/trap/handlers/timer_interrupt.cpp",
-      "sha256": "343e5c2a491719b6a9e2e52a2d72ed8cb49e072fe0e79a73d62f26a2dadb5212",
+      "sha256": "4e92234610d564ee4cd51a0467785987dee583090a3e9cd6d15cb1a6f2c8c7cf",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
       "source": "kernel/trap/platform/platform.cppm",
-      "sha256": "050c5fa259f127baefa140da4766f265ac216b00e6efe26c93c6e211cd48b9f3",
+      "sha256": "360f5207dc1b031b7790885a998c71c3c1b103130924007e45f8a62aad1f9532",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2439,7 +2445,7 @@
   ],
   "preserved_subtrees": {
     "kernel/boot/": {
-      "kernel/boot/main.cpp": "3ec646f5175a77f72c5d191cb7110971b283b1304d28077dac741f5a9b923f40",
+      "kernel/boot/main.cpp": "00c26002d15d7ac10da9ce76a2e0e15a748a9ad8ceacd11c945d154374615338",
       "kernel/boot/README.md": "c95638b6afb2505d5190ee9cd20ec94c7eb4edadc4c7835e7a76fd465b3a2746",
       "kernel/boot/entry.cpp": "1f18736ef80943e1bf080ee3ec19fbfc0b240c214b0bf2c7856f34a0c19fd60f",
       "kernel/boot/CMakeLists.txt": "188205234669b226793ca62d8e2d7d9db02f876927d435ceb7bf69f5b746b5c5",
@@ -2449,44 +2455,44 @@
       "kernel/boot/entry.S": "f6214a9ab032bb72b2de39b8a81ffff03d44c58b485e85e6764b97d0fe8bc5a0"
     },
     "kernel/net/": {
-      "kernel/net/net.cppm": "6d932c370b8581c6c966fc269b799477f9878ac7dfd259c9b9baa058c7951800",
+      "kernel/net/net.cppm": "4077897f9fd78bdefe8a80186df8253d7e840247e6150c85208c77ec8defe13b",
       "kernel/net/errno.h": "c6de20be15a94fe5cc46308eb05b123e3c13acb7702b7eab423fb4ee6d77decc",
       "kernel/net/CMakeLists.txt": "d1a401aff8900a183527b89ba9251603124dcdd724296b0b9364f916bb37d113",
       "kernel/net/control.h": "9dac07b31e1133b4c9329e8c8f5d2a848b751452927cbf3ab8307fed6563b0cd",
-      "kernel/net/link/arp.cpp": "b69c861be8439abecc1e0f5a867ada6b109d2ac4884443d8e3b3c47e986fe636",
-      "kernel/net/link/arp.cppm": "ff52c1e0e1d6cdfcbc0e6539604ce718a64c049abc8cb8bd49db9947f7aa2583",
+      "kernel/net/link/arp.cpp": "42ef5bb2111f99aa792ef8a65a47ec922d8bf283c056ac94e66a364e2fa24b45",
+      "kernel/net/link/arp.cppm": "b98dbb9aa825340d915fb6956e00fb7415c318e602d6f1e3ec623aafddd94772",
       "kernel/net/link/ethernet.cpp": "7edee431679ebe56febe700265c278f212460665afed36a224b671676be8576d",
       "kernel/net/link/port.cppm": "2e9dac5e581567b9221b0cddf975b78aac929341f23b93d3e3ca0fe632342940",
       "kernel/net/link/ethernet.cppm": "75144b9360a27ea947456ccc8f1e0f64e8420ac8181bd69747e4adef25adf156",
-      "kernel/net/dhcp/client.cppm": "6f36aee203fde014b02e8d1af32c37983fa6629b724e0785d215b63e9be84c8b",
+      "kernel/net/dhcp/client.cppm": "ace9212b9752d8958f75fd0af818b4d1d617ece582f39557081d98a5ea706964",
       "kernel/net/dhcp/message.cppm": "5492a2457f9d491d81460c0cb795e3c373f83b11f84ed70d63b386185e6f1bb1",
       "kernel/net/dhcp/lease.cppm": "88ed602b6d28d134436860a9e74d4e2b9b6e291882f63928dc50527abf17352c",
-      "kernel/net/dhcp/client.cpp": "a5c9b082545ee3926adc94b568d7ababfbd3dd1c93334f62ce5640261a24785c",
+      "kernel/net/dhcp/client.cpp": "0633f6e59e6df0538e7147656a6cb2fc3240898fbb043afaa23ee1ec2c651cae",
       "kernel/net/dhcp/message.cpp": "1cf01225990d6f9dbd50ff76f43344935d0821958e935eab455b47e5ebaf49f0",
       "kernel/net/dhcp/lease.cpp": "68b240af861305a7facecc60ed36596c8c5ec042c4dcd67a0b679aa5a28f9e9f",
-      "kernel/net/interface/loopback.cpp": "10d3998d72206c9b63788bd439c184b620cd203389e56986d95b82e573eae6de",
+      "kernel/net/interface/loopback.cpp": "29cc8da0ace22f2688f7dd95404818a288bc7a0c467261965ef8f575617c430d",
       "kernel/net/interface/ethernet_interface.cpp": "c6132cdfe5319b917ceeaaf9d02b2ece9bfb9c27d465721a9e0834de2c0f5c17",
       "kernel/net/interface/configuration.cpp": "39b3ad49d6e628b658027bb499b6aa6b4d3346d8175789c8544d0db2ef4a9f5c",
-      "kernel/net/interface/interface.cppm": "4d1c2ab2c2b9860501968ca6c3e73d541910f79d6d88b4233e20f56954e49e75",
+      "kernel/net/interface/interface.cppm": "3f3ae00f88096fd5a2ecda691942f2f837fe5eeafe68a2b766a9276d9b404af7",
       "kernel/net/interface/address_configuration.cpp": "081ea593a26771730db256b382a8814b8e30d1e1d54088534ab5dd2f826d0785",
       "kernel/net/interface/configuration.cppm": "eb031858131829a9c3fba1b797da675f991c7787332bbe86dca542bbb79e0914",
-      "kernel/net/interface/ethernet_interface.cppm": "fb56234af18e68e56146a513527ede9cf4f2d3f4c109414f0c2dc1447c858212",
-      "kernel/net/interface/interface.cpp": "9e3c95599431200d150108e66980395ea62da6ca276b0f13cbac146a9c53e358",
+      "kernel/net/interface/ethernet_interface.cppm": "bbb4e2b9ef29cac3c591a292efb69bd88794b1e319637cd0e25927725711f225",
+      "kernel/net/interface/interface.cpp": "061c2861a3e0602247cb2e5d91f21937891080e6d1b76885c2683a40aa2dd680",
       "kernel/net/interface/address_configuration.cppm": "b2a80abfb182f6edec1d7f46a50cf14a710c4a2d4d8e37e516a6db62392c7522",
-      "kernel/net/interface/loopback.cppm": "53f543c7f79ea156b051fba1f910d85c765a19a720935d72df01423c2fe745a2",
+      "kernel/net/interface/loopback.cppm": "803583ee2872b2c0229b56c9938cf1fc32c56e77ae554bc7ced27636ae26a81f",
       "kernel/net/interface/tunnel.cppm": "c39e0506a2da0dba6ac641d8ac8a3b770f9c70daa872b8332664763acf92a886",
       "kernel/net/interface/tunnel.cpp": "3e01f4c37106128a74a4704cce8cef6c0883f0c7058035412d8729bd9aaced20",
-      "kernel/net/platform/platform.cppm": "202f800d6663d6ab5a44b26ff2343a2e5cc1b6cf8eda0d84ab8c5a6f53f36b6d",
-      "kernel/net/platform/kernel_platform.cpp": "a55a41a051230dcd9ee7a34315e22359e46dbc8882be5c4262c3d08374edd4ef",
-      "kernel/net/ip/reassembly.cpp": "309318e9d540a168cdfa4203673e948a6c7b2be317212040ea821a7eb6b8def2",
+      "kernel/net/platform/platform.cppm": "33db0c32cd948c5f97ae2caf90b062ab9dc2f74dbb2e49ba823c79d035f72c24",
+      "kernel/net/platform/kernel_platform.cpp": "04b5c10fba1b9dca2cbff7dc51075a14502dd208b47159044ff76fb4af8cc239",
+      "kernel/net/ip/reassembly.cpp": "ca51d840c9439c3c96be2682d707a77c16d5ef59173c82efbbeaa7e6be74c6f6",
       "kernel/net/ip/routing.cpp": "fd865d99c5b4694f6de4367935ca209c3fbe49e98404f3139757313aa2909197",
-      "kernel/net/ip/ipv4.cpp": "85e5f7196e6c148866f519217349eeacb40347ef49382b4fbfe272f9fbb826a6",
+      "kernel/net/ip/ipv4.cpp": "27e05811836866e63597cd82ef0526b9f1dc030dadbd50950c5d7723befb84f6",
       "kernel/net/ip/icmp.cppm": "efec68874b39d8340df890879034b35e96ae0fc03a438948e2fef5932ba6beec",
-      "kernel/net/ip/reassembly.cppm": "96ea72c2f90ab42f6d574ebd398c90d9aea15859b80f89ce060d7b721d897429",
+      "kernel/net/ip/reassembly.cppm": "a6955cba9d9dafd7964c2458d1428a4f27eca14829adb36a68ecb8b6c106b0fd",
       "kernel/net/ip/icmp.cpp": "1fd5b50603d449df5a450898ce7c4a970807d739db0c239a4b890ad61c8fa230",
       "kernel/net/ip/routing.cppm": "57a0d8def4443c5432e5a9530d610f462567233c909ed8bf3025218bf38a788f",
-      "kernel/net/ip/ipv4.cppm": "bb6aea5b5ac0faca702c9970fde9c11da3fdf5e002ecaf72f2882a15b8143ee1",
-      "kernel/net/transport/retransmission_timer.cppm": "51617730dcb02f8b564a577ed7d4ccc49f35a73c5e0d2c1b37d5793ec8cbc872",
+      "kernel/net/ip/ipv4.cppm": "d347d1a525a3d2d56dcbcf7f2d1f7f22afc7baf89386f5e50eb24099c29dff08",
+      "kernel/net/transport/retransmission_timer.cppm": "8ec5dc2b4a01d61d34aa0b22d14b7ce1bfc8167c544ad3c8b1f1be6e35409296",
       "kernel/net/transport/tcp.cppm": "475a9d2d46cea5cc32e30fc78bf6d9be3805124c954fd82485f54b51caa09821",
       "kernel/net/transport/udp.cpp": "f49e4b7bd3cf1635f9a85e38274a027cfa3c896904c3d43560c37c2283ced7be",
       "kernel/net/transport/stream_buffer.cppm": "cc6ee62ea8f20e44240b68b8d10e825c31e06faee1224bd7909fddb29be9d720",
@@ -2496,20 +2502,20 @@
       "kernel/net/transport/algorithms.cpp": "0a50e23ab66fba414787d995e44255142b176d9dd26331c85eb1a7c2124bb2bd",
       "kernel/net/socket/udp_socket.cppm": "abbd8440937170d6738f6030161c7a316c30c0dfaca34ebb85c531f23e0c8825",
       "kernel/net/socket/inet_socket.cpp": "3b5d64f383e8c075e9a5835b7fd67a1db80756242dcd03a8545bbeee3ccb20f2",
-      "kernel/net/socket/tcp_sender.cpp": "6528d737892f10e6dc9f7c7cf5ee5a214a368ab73eb9d37a7eb1497d2902745c",
-      "kernel/net/socket/registry.cppm": "a16f1cfa21a94aac75a483f245c44d1710a11c25f396cec90e950a63608fa369",
-      "kernel/net/socket/tcp_socket.cppm": "de5efcfa0556ab1fd2a21d24055a2c40ae66ba99e99ef6ab891816f3a172cfd0",
-      "kernel/net/socket/tcp_receiver.cpp": "01238cf113bbe4e515ececc9d6c81beb7ca53a775f9e7487a6087224200e481e",
-      "kernel/net/socket/registry.cpp": "ae8b5046c3f31bd20fa8083113ad5512076bda7c472c1b7170ed2596c6a2eea6",
+      "kernel/net/socket/tcp_sender.cpp": "1aca2430b2720df56bad58ed79ee03b878b6e1b4929ef3138ae0c3a495e3fb8c",
+      "kernel/net/socket/registry.cppm": "daa2762cc62cdf0738576bef7f82b6c39676e2c62678a7523841fedbbd5c33f3",
+      "kernel/net/socket/tcp_socket.cppm": "a7e88a8babeb20f2cf22026f4fa13dd5952e65338c8727352b6f91ed3e5467f5",
+      "kernel/net/socket/tcp_receiver.cpp": "c034418f01198775c886f4bf21ec56768916c49b3dbf53f42aba901c23cd8139",
+      "kernel/net/socket/registry.cpp": "1705591fb8fa5b7cffd7a1ebcdac8c75b9bb46f5dcff95eb5b8e4178e32e4619",
       "kernel/net/socket/udp_socket.cpp": "4a736836c1a737d32186493dbef85d213dc101683152de3b8d27fc43fb18635f",
-      "kernel/net/socket/tcp_socket.cpp": "973e6b0631c26216b0236898417fbdf7987c1def8a92922d6c6570b778b3c1fa",
+      "kernel/net/socket/tcp_socket.cpp": "4bd0725ef8d78b0d0f2655f75db693799d8a0c6dd0ca041a873c0e19ed174507",
       "kernel/net/socket/socket.cppm": "3db79653732b9b19b2ac7ba772a14c123e5aa9e580b886e9514f5eec33ec1216",
       "kernel/net/socket/socket.h": "6713bc81fef3e29e7a7e3e60a9d0150107901dc8f30386cdb512f5186f0bf008",
-      "kernel/net/bridge/bridge.cpp": "cca6bf46c222000e3cca4115e49d25b033d7eb9c87a62d5d0eab7780913fae0d",
+      "kernel/net/bridge/bridge.cpp": "45b951e9e7058af1a7f49467ddec4d48f4a15d3ba237b7e62845979e2d7c4a53",
       "kernel/net/bridge/manager.cpp": "20331b7a1da3346779f38297dce08bb32b22e5bb6db76168241cae96a0a220de",
-      "kernel/net/bridge/bridge.cppm": "a5537d48127f2230ee605f50a663bede9ae0f68764fe5c37451966fb6d649a24",
+      "kernel/net/bridge/bridge.cppm": "3b93825fd20a7d6219fa9abea3e8e77a1d77f0304dc64bdab528510b7a3d046d",
       "kernel/net/core/wire.cppm": "2d8b6a1e79dad7c8a0f469a91fcb429270eeff09f445df3b7ece1655646e67cb",
-      "kernel/net/core/service.cpp": "401758b547009ee3a605f79d20342adbc5d10bb7ce35dc2f4eff5ec54e76b971",
+      "kernel/net/core/service.cpp": "c595e848fc4ea47baaa7b7e613401710ae2fc36eac7577d7e213303f1cbc7faf",
       "kernel/net/core/control.cppm": "716233a87630a553c95f27cef6007fc7fb9989e46b9fc47cefd34c4bb88b1257",
       "kernel/net/core/packet.cppm": "4fd60e27342c5b8218d0d74e8898c2d1ac9612d7fba03474f3968035b396598e",
       "kernel/net/core/packet.cpp": "19b527c95937cde97a91181cc5d847996c07bfe5fdd385a9b85e5479545a9ff1",

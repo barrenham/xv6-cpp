@@ -1,3 +1,5 @@
+module;
+#include "kernel/support/param.h"
 export module xv.trap:clock;
 import xv.sync;
 
@@ -18,7 +20,7 @@ public:
   TickClock &operator=(const TickClock &) = delete;
   void initialize();
   // Count/wake on hart 0, rearm the local hardware timer on every hart.
-  void interrupt();
+  bool interrupt();
   unsigned uptime() const;
   // Process context. Returns -1 if killed while waiting; negative counts mean 0.
   int pause(int count);
@@ -29,6 +31,7 @@ private:
 
   mutable xv::sync::SpinLock lock_;
   unsigned ticks_;
+  unsigned long next_tick_[NCPU]{};
 };
 
 TickClock &clock();

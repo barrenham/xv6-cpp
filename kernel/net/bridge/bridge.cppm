@@ -29,6 +29,7 @@ public:
 
   bool carrier() const override;
   void tick(unsigned long now) override;
+  unsigned long next_deadline() override;
 
 private:
 
