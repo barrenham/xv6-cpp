@@ -128,3 +128,5 @@ copy/transfer/flush和像素搬运为累计阶段时间除以帧数，DRAW为全
 - QEMU单核/五核非阻塞I/O、poll、GPU、fbterm、键盘、滚轮、2000行完整输出、
   镜像关闭、嵌套PTY和退出恢复通过；GPU缺失路径保持。
 - kernel函数文档5234项和228个非网络图身份同步；未运行fork性能门禁。
+
+后续共享像素映射及GPU视口滚屏见[共享 framebuffer 与 GPU 优化](mapped-gpu.md)。

@@ -8,7 +8,7 @@
 
 ## 功能
 
-- **图形**：VirtIO-GPU 2D 帧缓冲、VNC 显示、[fbterm 图形终端](docs/fbterm.md)（默认1280×800、自适应字符网格、PTY shell，VNC/串口键盘输入、滚动历史及[异步显示](docs/display-pipeline.md)）。
+- **图形**：VirtIO-GPU 2D 帧缓冲、VNC 显示、[fbterm 图形终端](docs/fbterm.md)（默认1280×800、自适应字符网格、PTY shell，VNC/串口键盘输入、滚动历史及[异步显示](docs/display-pipeline.md)、[共享显存及GPU滚屏](docs/mapped-gpu.md)）。
 - **内存**：设备树 RAM 发现、伙伴/链表页分配器、可选空闲链表/位图 slab、Sv39 页表与大页映射、虚拟区域登记、按需内核栈及应急补页、写时复制 fork。
 - **进程**：多核调度、动态进程登记、信号处理、进程组、shell 作业控制、历史编辑/补全、脚本与环境变量。
 - **文件与终端**：日志文件系统、VFS、devfs/ramfs、动态 RAM/磁盘挂载、持久 rootfs、符号链接、pwd/cp/mv、随机文件 I/O、统一 I/O 后端、管道、TTY/命名 PTY、procfs、ps/free、poll 与非阻塞 I/O。

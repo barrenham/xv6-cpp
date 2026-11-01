@@ -427,3 +427,51 @@
 @brief 以完成通知和绝对截止时间等待设备队列推进。
 @details 启动期无当前进程时返回0供调用者有界轮询；运行期DeviceWaitFlow注册完成通道和定时器，注册后重查used索引，完成返回1，信号、分配失败或到期返回-1。
 ```
+
+<a id="fn-64688896f596d39f"></a>
+
+## `xv::drivers::detail::release_dma_page`
+
+```doxygen
+@fn void xv::drivers::detail::release_dma_page(void *page)
+@brief 释放驱动持有的DMA页引用，用户映射仍持引用时不回收物理页。
+@details GPU为两屏高的BGRX8888资源分配散页，32槽独立队列容纳最多16请求页加响应。MAP仅root调用，映射响应复制失败时仅回滚新建映射；旧映射保留。PRESENT校验映射身份、资源边界及origin_y，先完成脏区transfer，再按需修改scanout，最后flush；每步保留fence验证与500ms期限，失败reset确认后释放驱动引用，用户引用保留像素页。原DRAW复制接口兼容并恢复origin=0，旧统计ABI保持。
+```
+
+<a id="fn-581e39b5199c76f2"></a>
+
+## `xv::drivers::detail::map_dma_pages`
+
+```doxygen
+@fn unsigned long xv::drivers::detail::map_dma_pages(void *const *pages, unsigned count)
+@brief 将驱动像素页映射到当前进程的共享设备窗口，无当前进程时失败。
+@details GPU为两屏高的BGRX8888资源分配散页，32槽独立队列容纳最多16请求页加响应。MAP仅root调用，映射响应复制失败时仅回滚新建映射；旧映射保留。PRESENT校验映射身份、资源边界及origin_y，先完成脏区transfer，再按需修改scanout，最后flush；每步保留fence验证与500ms期限，失败reset确认后释放驱动引用，用户引用保留像素页。原DRAW复制接口兼容并恢复origin=0，旧统计ABI保持。
+```
+
+<a id="fn-7cf91398c937e79d"></a>
+
+## `xv::drivers::detail::mapped_dma_pages`
+
+```doxygen
+@fn bool xv::drivers::detail::mapped_dma_pages(void *const *pages, unsigned count)
+@brief 核对当前进程的设备映射身份与页数，不逐帧遍历像素页。
+@details GPU为两屏高的BGRX8888资源分配散页，32槽独立队列容纳最多16请求页加响应。MAP仅root调用，映射响应复制失败时仅回滚新建映射；旧映射保留。PRESENT校验映射身份、资源边界及origin_y，先完成脏区transfer，再按需修改scanout，最后flush；每步保留fence验证与500ms期限，失败reset确认后释放驱动引用，用户引用保留像素页。原DRAW复制接口兼容并恢复origin=0，旧统计ABI保持。
+```
+
+<a id="fn-fa10a0b715df66ba"></a>
+
+## `xv::drivers::detail::unmap_dma_pages`
+
+```doxygen
+@fn bool xv::drivers::detail::unmap_dma_pages()
+@brief 显式解除当前进程设备窗口并释放映射引用。
+@details GPU为两屏高的BGRX8888资源分配散页，32槽独立队列容纳最多16请求页加响应。MAP仅root调用，映射响应复制失败时仅回滚新建映射；旧映射保留。PRESENT校验映射身份、资源边界及origin_y，先完成脏区transfer，再按需修改scanout，最后flush；每步保留fence验证与500ms期限，失败reset确认后释放驱动引用，用户引用保留像素页。原DRAW复制接口兼容并恢复origin=0，旧统计ABI保持。
+```
+
+- [`xv::drivers::detail::release_dma_page`](kernel_platform.cpp.md#fn-64688896f596d39f)
+
+- [`xv::drivers::detail::map_dma_pages`](kernel_platform.cpp.md#fn-581e39b5199c76f2)
+
+- [`xv::drivers::detail::mapped_dma_pages`](kernel_platform.cpp.md#fn-7cf91398c937e79d)
+
+- [`xv::drivers::detail::unmap_dma_pages`](kernel_platform.cpp.md#fn-fa10a0b715df66ba)

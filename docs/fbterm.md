@@ -70,10 +70,11 @@ fbterm --no-serial-mirror cat /usr/share/doc/xv6/README
 - 支持 shell 编辑和 `clear` 使用的 CSI 行/屏擦除、光标移动/定位、
   保存/恢复位置、16 色 SGR、粗亮色、反显、光标显隐；忽略 OSC 标题。
   这是有限的终端控制序列子集，`TERM=xv-fbterm`，不宣称完整 VT/xterm 兼容。
-- 非 ASCII UTF-8 字符显示为 `?`；没有中文字体、历史滚屏查看、鼠标、
-  剪贴板、光标闪烁或多窗口。清屏的 CSI 3J 因没有历史缓冲而忽略。
-- 渲染把全部脏行合并为一次矩形提交；像素缓冲按实际屏幕分配，避免条带
-  分别flush造成滚屏割裂。缓冲位于堆内存，1920×1080约7.91 MiB，不占用户栈。
+- 非 ASCII UTF-8 字符显示为 `?`；没有中文字体、剪贴板、光标闪烁或多窗口。
+  保存1024行历史，支持PageUp/PageDown及鼠标滚轮，CSI 3J清除历史。
+- 独立显示进程合并更新并直接写共享像素页；GPU资源为两屏高，1920×1080
+  可见窗口对应约15.82 MiB资源。视口滚屏复用旧行，只上传变化区域；
+  无法复用时按保守内容宽度重绘，避免多条带独立flush造成割裂。
 - 使用 `/dev/ptmx` 创建 slave；将slave窗口设为实际字符网格与像素尺寸，
   启用 OPOST/ONLCR。子进程创建会话、取得控制终端并将 slave 复制到 0/1/2。
   子程序继承当前目录、账户身份和环境，并设置 TERM、COLUMNS、LINES。
@@ -117,3 +118,5 @@ PageUp/PageDown或VNC滚轮可查看最多1024行离屏历史；输入或End返�
 逐帧测量，操作、边界及实测数据见[滚动历史说明](scrollback.md)。
 
 后续输出/显示解耦、裁剪提交与复制优化见[显示管道优化](display-pipeline.md)。
+
+后续共享像素映射及GPU视口滚屏见[共享 framebuffer 与 GPU 优化](mapped-gpu.md)。

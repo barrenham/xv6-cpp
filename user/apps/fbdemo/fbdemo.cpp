@@ -4,7 +4,76 @@
 #include "user/runtime/user.h"
 static unsigned pixels[1920];
 
-extern "C" int main()
+static bool mapped_demo(int fd, const FramebufferInfo &info)
+{
+  FramebufferMapping mapping{};
+  FramebufferTiming before{}, after{};
+  if (ioctl(fd, XV_FB_MAP, ~0UL) != -1 ||
+      ioctl(fd, XV_FB_MAP, reinterpret_cast<uint64>(&mapping)) < 0 ||
+      mapping.version != 1 || mapping.backing_height < info.height * 2 ||
+      mapping.bytes < static_cast<uint64>(info.stride) * mapping.backing_height)
+  {
+    return false;
+  }
+  auto *shared = reinterpret_cast<volatile unsigned *>(mapping.address);
+  shared[0] = 0;
+  int child = fork();
+  if (child == 0)
+  {
+    shared[0] = 0x123456;
+    exit(0);
+  }
+  int status = -1;
+  if (child < 0 || wait(&status) != child || status || shared[0] != 0x123456)
+  {
+    return false;
+  }
+  child = fork();
+  if (child == 0)
+  {
+    char *args[] = {const_cast<char *>("fbdemo"),
+                    const_cast<char *>("--expect-unmapped"), nullptr};
+    execvp(args[0], args);
+    exit(1);
+  }
+  if (child < 0 || wait(&status) != child || status)
+  {
+    return false;
+  }
+  // Paint the second screen, then select it: the QMP/VNC test sees these pixels.
+  for (unsigned y = info.height; y < info.height * 2; ++y)
+  {
+    for (unsigned x = 0; x < info.width; ++x)
+    {
+      shared[y * info.width + x] = x < info.width / 3       ? 0x00ff0000
+                                   : x < 2 * info.width / 3 ? 0x0000ff00
+                                                            : 0x000000ff;
+    }
+  }
+  FramebufferPresent update{0, 0, info.width, info.height, info.height, 0};
+  if (ioctl(fd, XV_FB_GET_TIMING, reinterpret_cast<uint64>(&before)) < 0 ||
+      ioctl(fd, XV_FB_PRESENT, reinterpret_cast<uint64>(&update)) < 0 ||
+      ioctl(fd, XV_FB_GET_TIMING, reinterpret_cast<uint64>(&after)) < 0 ||
+      before.copied_bytes != after.copied_bytes)
+  {
+    return false;
+  }
+  update.origin_y = info.height + 1;
+  if (ioctl(fd, XV_FB_PRESENT, reinterpret_cast<uint64>(&update)) != -1 ||
+      ioctl(fd, XV_FB_UNMAP, 0) < 0 || ioctl(fd, XV_FB_UNMAP, 0) != -1)
+  {
+    return false;
+  }
+  update.origin_y = 0;
+  if (ioctl(fd, XV_FB_PRESENT, reinterpret_cast<uint64>(&update)) != -1)
+  {
+    return false;
+  }
+  printf("fbdemo: mapped fork/exec/unmap and zero-copy checks passed\n");
+  return true;
+}
+
+extern "C" int main(int argc, char **argv)
 {
   int fd = open("/dev/fb0", O_RDWR);
   if (fd < 0)
@@ -20,6 +89,22 @@ extern "C" int main()
     fprintf(2, "fbdemo: unsupported framebuffer\n");
     close(fd);
     return 1;
+  }
+  if (argc == 2 && !strcmp(argv[1], "--expect-unmapped"))
+  {
+    FramebufferPresent update{0, 0, 1, 1, 0, 0};
+    bool okay = ioctl(fd, XV_FB_PRESENT, reinterpret_cast<uint64>(&update)) == -1 &&
+                ioctl(fd, XV_FB_UNMAP, 0) == -1;
+    close(fd);
+    return okay ? 0 : 1;
+  }
+  if (argc == 2 && !strcmp(argv[1], "--mapped"))
+  {
+    bool okay = mapped_demo(fd, info);
+    printf("fbdemo: %dx%d RGB bars %s\n", info.width, info.height,
+           okay ? "displayed" : "failed");
+    close(fd);
+    return okay ? 0 : 1;
   }
   FramebufferUpdate invalid{
       info.width, 0, 1, 1, 4, 0, reinterpret_cast<uint64>(pixels)};

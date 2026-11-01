@@ -56,7 +56,7 @@ bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels
   // glyphs, colored backgrounds and the cursor instead of shading every pixel.
   for (unsigned i = 0; i < width * (bottom - top); ++i)
   {
-    pixels[i] = palette[0];
+    pixels[top * width + i] = palette[0];
   }
   for (unsigned row = first; row < end; ++row)
   {
@@ -75,15 +75,15 @@ bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels
       {
         for (unsigned gx = 0; gx < cell_width; ++gx)
         {
-          pixels[((row - first) * cell_height + gy) * width + column * cell_width +
-                 gx] = glyph && !(cursor && gy >= cell_height - 2)
-                           ? glyph[gy * cell_width + gx]
-                           : Terminal::cell_pixel(cell, gx, gy, cursor);
+          pixels[(row * cell_height + gy) * width + column * cell_width + gx] =
+              glyph && !(cursor && gy >= cell_height - 2)
+                  ? glyph[gy * cell_width + gx]
+                  : Terminal::cell_pixel(cell, gx, gy, cursor);
         }
       }
     }
   }
-  if (!submit(top, bottom - top, pixels))
+  if (!submit(top, bottom - top, pixels + top * width))
   {
     return false;
   }
@@ -103,7 +103,9 @@ public:
 
   unsigned long long raster_rows = 0, reused_rows = 0;
   unsigned damage_width = 0;
-  bool trim = true;
+  bool full_damage = false;
+  unsigned backing_height = 0, origin_y = 0;
+  unsigned long long viewport_reuses = 0, viewport_resets = 0;
   unsigned long long move_ticks = 0;
   unsigned long (*clock)() = nullptr;
 
@@ -116,34 +118,66 @@ public:
     long long origin =
         static_cast<long long>(terminal.scroll_position) - terminal.view_offset;
     long long delta = valid ? origin - origin_ : 0;
-    // Outside this extent every old and new row is the default background.
-    // Include old content too: shortening a line must erase its former tail.
-    damage_width = valid && trim ? 0 : width;
-    if (valid && trim)
+    unsigned old_origin_y = origin_y;
+    bool viewport = backing_height >= height * 2;
+    if (viewport)
+    {
+      long long next = static_cast<long long>(origin_y) + delta * cell_height;
+      if (!valid || next < 0 || next > backing_height - height)
+      {
+        if (valid)
+        {
+          ++viewport_resets;
+        }
+        origin_y = 0;
+        valid = false;
+      }
+      else
+      {
+        origin_y = next;
+        if (delta)
+        {
+          ++viewport_reuses;
+        }
+      }
+    }
+    bool initialize_backing = viewport && !backing_ready_;
+    if (initialize_backing)
+    {
+      for (unsigned i = 0; i < width * backing_height; ++i)
+      {
+        pixels[i] = palette[0];
+      }
+    }
+    // Keep a conservative bound over every physical row ever written into
+    // this resource. It includes offscreen tails even after a viewport wrap.
+    // Outside this extent the initial host-side background remains unchanged.
+    unsigned extent = initialize_backing ? 0 : resource_extent_;
+    if (viewport || (valid && !full_damage))
     {
       for (unsigned row = 0; row < terminal.rows; ++row)
       {
         for (unsigned column = 0; column < terminal.columns; ++column)
         {
           const auto &a = terminal.display_cell(row, column);
-          const auto &b = previous_[row][column];
-          if (a.character != ' ' || a.background || b.character != ' ' ||
-              b.background || terminal.display_cursor(row, column) ||
-              cursor_[row] == static_cast<int>(column))
+          bool occupied = a.character != ' ' || a.background ||
+                          terminal.display_cursor(row, column);
+          if (!viewport)
           {
-            if ((column + 1) * cell_width > damage_width)
-            {
-              damage_width = (column + 1) * cell_width;
-            }
+            const auto &b = previous_[row][column];
+            occupied = occupied || b.character != ' ' || b.background ||
+                       cursor_[row] == static_cast<int>(column);
+          }
+          if (occupied && (column + 1) * cell_width > extent)
+          {
+            extent = (column + 1) * cell_width;
           }
         }
       }
     }
-    // A blank-to-blank shift still has a valid, harmless one-pixel rectangle.
-    if (!damage_width)
-    {
-      damage_width = 1;
-    }
+    damage_width = full_damage || initialize_backing || (!viewport && !valid) ? width
+                   : extent                                                   ? extent
+                                                                              : 1;
     unsigned first = terminal.rows, end = 0;
     for (unsigned step = 0; step < terminal.rows; ++step)
     {
@@ -164,8 +198,12 @@ public:
                   a.background == b.background;
         }
       }
-      if (match && !delta)
+      if (match && (!delta || viewport))
       {
+        if (delta)
+        {
+          ++reused_rows;
+        }
         continue;
       }
       if (row < first)
@@ -176,7 +214,7 @@ public:
       {
         end = row + 1;
       }
-      unsigned *destination = pixels + row * cell_height * width;
+      unsigned *destination = pixels + (origin_y + row * cell_height) * width;
       if (match)
       {
         const unsigned *source = pixels + old * cell_height * width;
@@ -221,20 +259,31 @@ public:
         }
       }
     }
-    if (!valid)
+    unsigned padding = terminal.rows * cell_height;
+    if ((!valid || old_origin_y != origin_y) && padding < height)
     {
-      for (unsigned i = terminal.rows * cell_height * width; i < width * height; ++i)
+      for (unsigned i = padding * width; i < height * width; ++i)
       {
-        pixels[i] = palette[0];
+        pixels[origin_y * width + i] = palette[0];
       }
+      if (first == terminal.rows)
+      {
+        first = terminal.rows - 1;
+      }
+      end = terminal.rows;
     }
-    if (first != terminal.rows &&
-        !submit(first * cell_height,
-                end == terminal.rows ? height - first * cell_height
-                                     : (end - first) * cell_height,
-                pixels + first * cell_height * width))
+    bool changed = first != terminal.rows;
+    if ((changed || old_origin_y != origin_y) &&
+        !submit(changed ? first * cell_height : 0,
+                initialize_backing ? backing_height
+                : changed ? (end == terminal.rows ? height - first * cell_height
+                                                  : (end - first) * cell_height)
+                          : 0,
+                pixels + (origin_y + (changed ? first * cell_height : 0)) * width))
     {
       valid_ = false;
+      backing_ready_ = false;
+      resource_extent_ = 0;
       return false;
     }
     for (unsigned row = 0; row < terminal.rows; ++row)
@@ -255,6 +304,8 @@ public:
     generation_ = terminal.generation;
     origin_ = origin;
     valid_ = true;
+    backing_ready_ = backing_ready_ || viewport;
+    resource_extent_ = viewport ? extent : 0;
     return true;
   }
 
@@ -262,9 +313,9 @@ private:
 
   Cell previous_[max_rows][max_columns]{};
   int cursor_[max_rows]{};
-  unsigned width_ = 0, height_ = 0;
+  unsigned width_ = 0, height_ = 0, resource_extent_ = 0;
   unsigned long long generation_ = 0;
   long long origin_ = 0;
-  bool valid_ = false;
+  bool valid_ = false, backing_ready_ = false;
 };
 } // namespace fbterm

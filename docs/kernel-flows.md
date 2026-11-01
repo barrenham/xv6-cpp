@@ -1070,3 +1070,7 @@ VirtIO 键盘通过 InitializeFlow、ReadFlow 和 InterruptFlow 接入；当前�
 本轮新增驱动平台DeviceWaitFlow，先订阅完成通道再检查队列，以绝对期限
 等待GPU IRQ；当前228个非网络图身份。滚轮实例复用既有输入图，见
 [像素复用与滚动历史](scrollback.md)。
+
+共享显存更新新增AddressSpace::DeviceMapFlow、VirtioGpu::MapFlow和
+MappedPresentFlow，设备页映射/保留/回滚及呈现失败生命周期显式接图。
+当前非网络图身份231个，保留3个条件替代及110个网络图身份。

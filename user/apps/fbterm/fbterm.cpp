@@ -21,6 +21,9 @@ fbterm::Renderer renderer{};
 // Allocate exactly one screen of pixels; never put it on the user stack.
 unsigned *pixels = nullptr;
 FramebufferInfo screen{};
+FramebufferMapping mapping{};
+bool mapped_buffer = false;
+FramebufferMappedStats mapped_stats{}, mapped_stats_begin{};
 volatile sig_atomic_t stopping = 0;
 
 // Opt-in diagnostic modes; normal launches retain the production display path.
@@ -67,7 +70,7 @@ bool configure_profile()
   }
   reference_raster = raster && !strcmp(raster, "full");
   const char *damage = getenv("FBTERM_DAMAGE");
-  renderer.trim = !damage || strcmp(damage, "full");
+  renderer.full_damage = damage && !strcmp(damage, "full");
   if (!strcmp(profile_mode, "normal") || !strcmp(profile_mode, "frames"))
   {
     return true;
@@ -127,6 +130,10 @@ void report(uint64 elapsed)
          gpu_timing.flush_ms - gpu_timing_begin.flush_ms,
          gpu_timing.copied_bytes - gpu_timing_begin.copied_bytes,
          gpu_timing.draws - gpu_timing_begin.draws);
+  printf("FBMAPPED enabled=%d presents=%lu uploaded=%lu scanouts=%lu\n", mapped_buffer,
+         mapped_stats.presents - mapped_stats_begin.presents,
+         mapped_stats.uploaded_bytes - mapped_stats_begin.uploaded_bytes,
+         mapped_stats.scanout_changes - mapped_stats_begin.scanout_changes);
   if (!strcmp(profile_mode, "frames"))
   {
     uint64 first = sample_count > 256 ? sample_count - 256 : 0;
@@ -193,8 +200,13 @@ bool flush(int framebuffer)
       return true;
     }
     uint64 begin = timestamp();
-    bool okay =
-        ioctl(framebuffer, XV_FB_DRAW, reinterpret_cast<unsigned long>(&update)) == 0;
+    FramebufferPresent region{
+        0, top, height ? width : 0, height, reference_raster ? 0 : renderer.origin_y,
+        0};
+    bool okay = mapped_buffer ? ioctl(framebuffer, XV_FB_PRESENT,
+                                      reinterpret_cast<unsigned long>(&region)) == 0
+                              : ioctl(framebuffer, XV_FB_DRAW,
+                                      reinterpret_cast<unsigned long>(&update)) == 0;
     if (profiling)
     {
       uint64 duration = timestamp() - begin;
@@ -243,7 +255,7 @@ public:
 
   int writer = -1, reader = -1, pid = -1;
   bool busy = false;
-  uint64 completed_cost = 0;
+  uint64 completed_cost = 0, completed_rows = 0;
 
   bool start(int framebuffer, int master)
   {
@@ -356,9 +368,16 @@ public:
   {
     if (synchronous_)
     {
-      return flush(framebuffer_);
+      uint64 begin = clockticks(), rows = renderer.raster_rows;
+      bool okay = flush(framebuffer_);
+      completed_cost = clockticks() - begin;
+      completed_rows = renderer.raster_rows - rows;
+      return okay;
     }
     render_snapshot.capture(terminal);
+    // Scrolling after this snapshot belongs to the next batch. The renderer
+    // owns a different Terminal, so its flush cannot clear the producer flag.
+    terminal.scrolled = false;
     wire_size_ = render_snapshot.encode(render_wire, terminal.rows, terminal.columns);
     sent_ = received_ = 0;
     busy = true;
@@ -404,6 +423,7 @@ public:
         }
         busy = false;
         completed_cost = reply_.cost;
+        completed_rows = reply_.raster_rows - renderer.raster_rows;
         // Parsing, mirroring and poll counters belong to this process.
         const auto &d = reply_.diagnostics;
         diagnostics.paint_ticks = d.paint_ticks;
@@ -571,7 +591,8 @@ bool transfer(int master, int &keyboard, int &mouse)
     }
     if (was_busy && !presenter.busy)
     {
-      pacer.feedback(clockticks(), presenter.completed_cost);
+      pacer.feedback(clockticks(), presenter.completed_cost,
+                     presenter.completed_rows == terminal.rows);
     }
     if (descriptors[3].revents & (POLLERR | POLLNVAL | POLLHUP))
     {
@@ -784,7 +805,13 @@ bool transfer(int master, int &keyboard, int &mouse)
         return false;
       }
       needs_paint = false;
-      pacer.complete(start, clockticks());
+      uint64 end = clockticks();
+      pacer.complete(start, end);
+      if (!presenter.busy)
+      {
+        pacer.feedback(end, presenter.completed_cost,
+                       presenter.completed_rows == terminal.rows);
+      }
     }
   }
   return presenter.finish(needs_paint);
@@ -868,8 +895,34 @@ extern "C" int main(int argc, char **argv)
   {
     ioctl(framebuffer, XV_FB_GET_TIMING,
           reinterpret_cast<unsigned long>(&gpu_timing_begin));
+    ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
+          reinterpret_cast<unsigned long>(&mapped_stats_begin));
   }
-  pixels = static_cast<unsigned *>(malloc(info.width * info.height * sizeof(unsigned)));
+  const char *buffer_mode = profiling ? getenv("FBTERM_BUFFER") : nullptr;
+  bool copied_buffer = buffer_mode && !strcmp(buffer_mode, "copied");
+  if (!copied_buffer)
+  {
+    mapped_buffer =
+        ioctl(framebuffer, XV_FB_MAP, reinterpret_cast<unsigned long>(&mapping)) == 0;
+    if (!mapped_buffer || mapping.version != 1 || !mapping.address ||
+        mapping.backing_height < info.height * 2 ||
+        mapping.bytes < static_cast<uint64>(info.stride) * mapping.backing_height)
+    {
+      fprintf(2, "fbterm: shared framebuffer mapping failed\n");
+      close(framebuffer);
+      return 1;
+    }
+    pixels = reinterpret_cast<unsigned *>(mapping.address);
+    const char *scroll = profiling ? getenv("FBTERM_SCROLL") : nullptr;
+    renderer.backing_height = !reference_raster && (!scroll || strcmp(scroll, "copied"))
+                                  ? mapping.backing_height
+                                  : 0;
+  }
+  else
+  {
+    pixels =
+        static_cast<unsigned *>(malloc(info.width * info.height * sizeof(unsigned)));
+  }
   auto *history = static_cast<fbterm::Cell(*)[fbterm::max_columns]>(malloc(
       fbterm::Terminal::history_capacity * fbterm::max_columns * sizeof(fbterm::Cell)));
   if (!pixels || !history)
@@ -894,6 +947,8 @@ extern "C" int main(int argc, char **argv)
     printf("fbterm: benchmark start\n");
     ioctl(framebuffer, XV_FB_GET_TIMING,
           reinterpret_cast<unsigned long>(&gpu_timing_begin));
+    ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
+          reinterpret_cast<unsigned long>(&mapped_stats_begin));
     diagnostics = {};
     sample_count = 0;
     renderer.raster_rows = renderer.reused_rows = 0;
@@ -911,6 +966,8 @@ extern "C" int main(int argc, char **argv)
       ioctl(framebuffer, XV_FB_GET_STATS, reinterpret_cast<unsigned long>(&gpu_stats));
     }
     ioctl(framebuffer, XV_FB_GET_TIMING, reinterpret_cast<unsigned long>(&gpu_timing));
+    ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
+          reinterpret_cast<unsigned long>(&mapped_stats));
     report(elapsed);
     close(framebuffer);
     printf("fbterm: benchmark %s\n", okay ? "complete" : "failed");
@@ -1019,6 +1076,8 @@ extern "C" int main(int argc, char **argv)
                     fcntl(fds[0], F_SETFL, O_NONBLOCK) == 0;
   ioctl(framebuffer, XV_FB_GET_TIMING,
         reinterpret_cast<unsigned long>(&gpu_timing_begin));
+  ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
+        reinterpret_cast<unsigned long>(&mapped_stats_begin));
   diagnostics = {};
   sample_count = 0;
   renderer.raster_rows = renderer.reused_rows = 0;
@@ -1048,6 +1107,8 @@ extern "C" int main(int argc, char **argv)
     ioctl(framebuffer, XV_FB_GET_STATS, reinterpret_cast<unsigned long>(&gpu_stats));
   }
   ioctl(framebuffer, XV_FB_GET_TIMING, reinterpret_cast<unsigned long>(&gpu_timing));
+  ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
+        reinterpret_cast<unsigned long>(&mapped_stats));
   close(framebuffer);
   report(transfer_ticks);
   printf("fbterm: disconnected%s\n", ok ? "" : " (I/O error)");

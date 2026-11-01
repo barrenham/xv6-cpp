@@ -80,6 +80,7 @@ unsigned wakeups = 0;
 unsigned dumps = 0;
 unsigned interrupts = 0;
 std::vector<void *> dma_pages;
+std::vector<void *> mapped_gpu_pages, retired_gpu_pages;
 bool fail_dma = false;
 int dma_budget=-1;
 unsigned hangups = 0, signal_services = 0;
@@ -793,7 +794,7 @@ void complete_transfer()
 void gpu_contract()
 {
   constexpr unsigned width = XV_DISPLAY_WIDTH, height = XV_DISPLAY_HEIGHT;
-  constexpr unsigned frame_pages = (width * height * 4 + 4095) / 4096;
+  constexpr unsigned frame_pages = (width * height * 8 + 4095) / 4096;
   constexpr unsigned request_pages = (32 + frame_pages * 16 + 4095) / 4096;
   constexpr unsigned dma_count = frame_pages + request_pages + 4;
   alignas(4096) unsigned registers[1024]{};
@@ -816,7 +817,7 @@ void gpu_contract()
     auto *available=reinterpret_cast<GpuAvailableRing *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
     if(available->idx==consumed)return;
     auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
-    alignas(8) unsigned char request[32768]{};unsigned count=0,index=available->ring[consumed%GpuQueueEntries];
+    alignas(8) unsigned char request[65536]{};unsigned count=0,index=available->ring[consumed%GpuQueueEntries];
     for(unsigned step=0;;++step)
     {
       check(index<GpuQueueEntries && step<GpuQueueEntries,"GPU descriptor chain bounded");
@@ -887,7 +888,45 @@ void gpu_contract()
   update.reserved=1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU validates reserved ABI fields");update.reserved=0;
   fail_copy=true;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU request copy failure");fail_copy=false;
   check(gpu.ioctl(0,buffer)==-1,"GPU rejects unknown ioctl");
-  corrupt=true;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1 && !gpu.open(false) && dma_pages.size()==baseline,"GPU bad completion fence resets before releasing DMA");
+  FramebufferMapping mapping{};
+  IoBuffer mapping_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&mapping)};
+  effective_user = 1000;
+  check(gpu.ioctl(XV_FB_MAP, mapping_buffer) == -1 && mapped_gpu_pages.empty(),
+        "mapping requires root");
+  effective_user = 0;
+  fail_copy = true;
+  check(gpu.ioctl(XV_FB_MAP, mapping_buffer) == -1 && mapped_gpu_pages.empty(),
+        "failed mapping response rolls back a new mapping");
+  fail_copy = false;
+  check(gpu.ioctl(XV_FB_MAP, mapping_buffer) == 0 && mapping.version == 1 &&
+            mapping.backing_height == height * 2 && mapping.bytes == frame_pages * 4096UL,
+        "mapping exposes exactly the pixel backing, including the second viewport");
+  FramebufferPresent region{0, height - 20, width, 20, 20, 0};
+  IoBuffer present_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&region)};
+  auto copy_bytes_before = timing.copied_bytes;
+  unsigned commands_before = commands;
+  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == 0 && commands == commands_before + 3,
+        "viewport present transfers damage, changes scanout and flushes");
+  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == 0 &&
+            timing.copied_bytes == copy_bytes_before,
+        "mapped present performs no user pixel copy");
+  region.origin_y = height + 1;
+  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == -1,
+        "viewport cannot overrun resource");
+  region.origin_y = 0;
+  region.height = height * 2 + 1;
+  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == -1,
+        "damage cannot overrun resource");
+  region.height = 0;
+  region.width = 0;
+  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == 0,
+        "viewport can move with no transfer when all rows are reused");
+  corrupt = true;
+  check(gpu.ioctl(XV_FB_DRAW,buffer) == -1 && !gpu.open(false) &&
+            dma_pages.size() == baseline + frame_pages,
+        "bad fence resets device, retains user-mapped pixel pages");
+  check(gpu.ioctl(XV_FB_UNMAP, mapping_buffer) == 0 && dma_pages.size() == baseline,
+        "offline device still permits unmap and final backing release");
   gpu_barrier=nullptr;setup();VirtioGpu stalled(reinterpret_cast<unsigned long>(registers),4);stalled.initialize();
   check(!stalled.open(false) && dma_pages.size()==baseline,"GPU timeout resets and frees safely");
   gpu_clock=false;effective_user=1000;
@@ -1187,6 +1226,42 @@ void free_terminal_page(void *page)
 }
 
 void free_dma_page(void *page) { free_terminal_page(page); }
+void release_dma_page(void *page)
+{
+  for (auto *mapped : test::mapped_gpu_pages)
+  {
+    if (mapped == page)
+    {
+      test::retired_gpu_pages.push_back(page);
+      return;
+    }
+  }
+  free_terminal_page(page);
+}
+unsigned long map_dma_pages(void *const *pages, unsigned count)
+{
+  if (test::mapped_gpu_pages.empty())
+  {
+    test::mapped_gpu_pages.assign(pages, pages + count);
+  }
+  return 0x20000000UL;
+}
+bool mapped_dma_pages(void *const *pages, unsigned count)
+{
+  return count && test::mapped_gpu_pages.size() == count &&
+         test::mapped_gpu_pages[0] == pages[0];
+}
+bool unmap_dma_pages()
+{
+  bool existed = !test::mapped_gpu_pages.empty();
+  for (auto *page : test::retired_gpu_pages)
+  {
+    free_terminal_page(page);
+  }
+  test::retired_gpu_pages.clear();
+  test::mapped_gpu_pages.clear();
+  return existed;
+}
 
 unsigned long terminal_milliseconds()
 {

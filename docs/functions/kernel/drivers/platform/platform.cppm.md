@@ -33,3 +33,11 @@
 - [`xv::drivers::detail::zero_page`](kernel_platform.cpp.md#fn-20570dfe40006a2d)
 
 - [`xv::drivers::detail::wait_device_completion`](kernel_platform.cpp.md#fn-26beb0af2cb78450)
+
+- [`xv::drivers::detail::release_dma_page`](kernel_platform.cpp.md#fn-64688896f596d39f)
+
+- [`xv::drivers::detail::map_dma_pages`](kernel_platform.cpp.md#fn-581e39b5199c76f2)
+
+- [`xv::drivers::detail::mapped_dma_pages`](kernel_platform.cpp.md#fn-7cf91398c937e79d)
+
+- [`xv::drivers::detail::unmap_dma_pages`](kernel_platform.cpp.md#fn-fa10a0b715df66ba)

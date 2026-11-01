@@ -30,3 +30,25 @@ struct FramebufferTiming
   uint64 copy_ms, transfer_ms, flush_ms, copied_bytes, draws;
 };
 static_assert(sizeof(FramebufferTiming) == 40);
+
+// Shared framebuffer aperture. Visible dimensions still come from GET_INFO.
+inline constexpr unsigned XV_FB_MAP = 0x58460005U;
+inline constexpr unsigned XV_FB_UNMAP = 0x58460006U;
+inline constexpr unsigned XV_FB_PRESENT = 0x58460007U;
+inline constexpr unsigned XV_FB_GET_MAPPED_STATS = 0x58460008U;
+struct FramebufferMapping
+{
+  uint64 address, bytes;
+  uint backing_height, version;
+};
+struct FramebufferPresent
+{
+  uint x, y, width, height, origin_y, reserved;
+};
+struct FramebufferMappedStats
+{
+  uint64 maps, presents, uploaded_bytes, scanout_changes;
+};
+static_assert(sizeof(FramebufferMapping) == 24);
+static_assert(sizeof(FramebufferPresent) == 24);
+static_assert(sizeof(FramebufferMappedStats) == 32);

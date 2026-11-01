@@ -33,6 +33,10 @@ bool panicked();
 void io_barrier();
 void *allocate_dma_page();
 void free_dma_page(void *page);
+void release_dma_page(void *page);
+unsigned long map_dma_pages(void *const *pages, unsigned count);
+bool mapped_dma_pages(void *const *pages, unsigned count);
+bool unmap_dma_pages();
 void zero_page(void *page);
 [[noreturn]] void fail(const char *message);
 } // namespace xv::drivers::detail

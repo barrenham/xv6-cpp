@@ -436,8 +436,8 @@
         },
         {
           "source": "kernel/io/framebuffer.h",
-          "sha256": "d05efa280ef24cce746df6b4d4f916a4ed491a3b96171c43df0e5327bb8f1522",
-          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。 新增独立40字节GET_TIMING ABI，不改变旧信息、绘图和32字节统计结构。",
+          "sha256": "08577efa72738c558926a3e5dbba24fe3defaa8647a115d0e5c1416195050030",
+          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。 新增独立40字节GET_TIMING ABI，不改变旧信息、绘图和32字节统计结构。 新增独立MAP/UNMAP/PRESENT/GET_MAPPED_STATS ABI，版本1映射描述包含backing高度及页面字节数；原GET_INFO/DRAW/统计结构不变。",
           "graph_entries": [],
           "pending": []
         },

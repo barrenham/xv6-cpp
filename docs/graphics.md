@@ -77,9 +77,9 @@ SET_SCANOUT 和初次刷新。只选择首个启用的 scanout，启动配置尺
 [VirtIO 1.2 GPU 章节](https://docs.oasis-open.org/virtio/virtio/v1.2/virtio-v1.2.html)。
 
 帧缓冲采用 B8G8R8X8_UNORM（格式号2），整数像素为 `0x00RRGGBB`。
-显存和attach请求按配置尺寸计算，GPU专用16槽队列支持多页请求。默认
-1280×800使用1000个显存页和8个控制页；640×480仍为300+6页。
-最大1920×1080使用2025+12页；设备缺失不分配显存。
+显存按两倍可见高度分配，GPU专用32槽队列支持多页请求。默认1280×800
+使用2000个显存页和12个控制页；640×480为600+7页。最大1920×1080
+使用4050+20页；设备缺失不分配显存。两屏高资源用于视口滚屏。
 配置方式、容量计算与终端自适应见 [分辨率说明](display-resolution.md)。
 
 controlq 同时仅一条在途请求，descriptor 链区分设备只读请求与可写响应。
@@ -110,7 +110,8 @@ DRAW 还检查当前有效 UID 为 root，降权后不能利用继承的 fd 绘�
 backing 前缀，但不执行 transfer/flush，不提供整次更新的内存回滚保证。
 
 原始 read/write 不提供像素流语义：零长度返回零，非零长度返回失败。
-当前没有 mmap、硬件光标、VirGL/3D、运行期模式切换或内核显示终端。
+已提供设备专用MAP/UNMAP/PRESENT共享像素接口，详见[共享映射](mapped-gpu.md)。
+尚无硬件光标、VirGL/3D、运行期模式切换或内核显示终端。
 已增加VirtIO鼠标滚轮输入，未实现图形指针；用户态显示终端由 [fbterm](fbterm.md) 提供，
 [VirtIO 键盘](keyboard.md) 与串口 TTY 均可提供输入。
 
@@ -135,3 +136,5 @@ ctest --test-dir build/dev --output-on-failure -j2 -R '^(gpu_|driver_contract)'
 截图与本地日志位于 `build/docs/gpu/`（不提交磁盘镜像或账户数据）。
 
 本轮验收详见 [验收记录](graphics-acceptance.json)：15 项相关检查、真实显示截图、sanitizer 与两种模式共12个fork样本通过。此前109项全量检查是GPU接入前的历史证据，不计作本轮重新运行。
+
+后续共享像素映射及GPU视口滚屏见[共享 framebuffer 与 GPU 优化](mapped-gpu.md)。

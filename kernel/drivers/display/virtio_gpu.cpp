@@ -274,7 +274,7 @@ bool VirtioGpu::setup()
     return false;
   }
   GpuCreate create{
-      {ResourceCreate2d, 0, 0, 0, 0, {}}, ResourceId, Bgrx8888, Width, Height};
+      {ResourceCreate2d, 0, 0, 0, 0, {}}, ResourceId, Bgrx8888, Width, BackingHeight};
   packet(0, &create, sizeof(create));
   if (!submit(sizeof(create), Okay))
   {
@@ -297,24 +297,53 @@ bool VirtioGpu::setup()
   return submit(sizeof(scan), Okay) && present(0, 0, Width, Height);
 }
 
-bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)
+bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height,
+                        unsigned origin_y)
 {
+  const bool moved = origin_y != origin_y_;
+  const unsigned physical_y = origin_y + y;
+  if (!width && !height && !moved)
+  {
+    return true;
+  }
   GpuTransfer transfer{{TransferToHost2d, 0, 0, 0, 0, {}},
-                       {x, y, width, height},
-                       static_cast<unsigned long>(y) * Stride + x * 4,
+                       {x, physical_y, width, height},
+                       static_cast<unsigned long>(physical_y) * Stride + x * 4,
                        1,
                        0};
-  packet(0, &transfer, sizeof(transfer));
-  auto begin = detail::terminal_milliseconds();
-  bool transferred = submit(sizeof(transfer), Okay);
-  timing_.transfer_ms += detail::terminal_milliseconds() - begin;
-  if (!transferred)
+  if (width && height)
   {
-    return false;
+    packet(0, &transfer, sizeof(transfer));
+    auto begin = detail::terminal_milliseconds();
+    bool transferred = submit(sizeof(transfer), Okay);
+    timing_.transfer_ms += detail::terminal_milliseconds() - begin;
+    if (!transferred)
+    {
+      return false;
+    }
+    mapped_stats_.uploaded_bytes += static_cast<unsigned long>(width) * height * 4;
   }
-  GpuFlush flush{{ResourceFlush, 0, 0, 0, 0, {}}, {x, y, width, height}, 1, 0};
+  if (moved)
+  {
+    GpuScanout scan{{SetScanout, 0, 0, 0, 0, {}},
+                    {0, origin_y, Width, Height},
+                    scanout_,
+                    ResourceId};
+    packet(0, &scan, sizeof(scan));
+    if (!submit(sizeof(scan), Okay))
+    {
+      return false;
+    }
+    origin_y_ = origin_y;
+    ++mapped_stats_.scanout_changes;
+  }
+  GpuFlush flush{{ResourceFlush, 0, 0, 0, 0, {}},
+                 moved ? GpuRect{0, origin_y, Width, Height}
+                       : GpuRect{x, physical_y, width, height},
+                 ResourceId,
+                 0};
   packet(0, &flush, sizeof(flush));
-  begin = detail::terminal_milliseconds();
+  auto begin = detail::terminal_milliseconds();
   bool flushed = submit(sizeof(flush), Okay);
   timing_.flush_ms += detail::terminal_milliseconds() - begin;
   return flushed;
@@ -337,7 +366,7 @@ void VirtioGpu::offline()
   {
     if (page)
     {
-      detail::free_dma_page(page);
+      detail::release_dma_page(page);
       page = nullptr;
     }
   }
@@ -532,9 +561,144 @@ struct VirtioGpu::DrawFlow
                 xv::flow::node<Present, xv::flow::action<&present>, xv::flow::stop>>>;
 };
 
+struct VirtioGpu::MapFlow
+{
+  struct Context
+  {
+    VirtioGpu &owner;
+    IoBuffer argument;
+    unsigned long address = 0;
+    bool existed = false;
+    int result = -1;
+  };
+
+  static void acquire(Context &c) noexcept
+  {
+    c.existed = detail::mapped_dma_pages(c.owner.frame_, FramePages);
+    c.address = detail::map_dma_pages(c.owner.frame_, FramePages);
+  }
+
+  static bool acquired(Context &c) noexcept
+  {
+    return c.address != 0;
+  }
+
+  static void publish(Context &c) noexcept
+  {
+    FramebufferMapping mapping{c.address, FramePages * 4096UL, BackingHeight, 1};
+    c.result = detail::copy_out(c.argument.space == AddressSpace::User,
+                                c.argument.address, &mapping, sizeof(mapping));
+  }
+
+  static bool published(Context &c) noexcept
+  {
+    return c.result == 0;
+  }
+
+  static void rollback(Context &c) noexcept
+  {
+    if (!c.existed)
+    {
+      detail::unmap_dma_pages();
+    }
+  }
+
+  static void count(Context &c) noexcept
+  {
+    if (!c.existed)
+    {
+      ++c.owner.mapped_stats_.maps;
+    }
+  }
+  struct Acquire;
+  struct Publish;
+  struct Rollback;
+  struct Count;
+  using Graph = xv::flow::graph<
+      Acquire,
+      xv::flow::types<
+          xv::flow::node<Acquire, xv::flow::action<&acquire>,
+                         xv::flow::branch<xv::flow::condition<&acquired>,
+                                          xv::flow::go<Publish>, xv::flow::stop>>,
+          xv::flow::node<Publish, xv::flow::action<&publish>,
+                         xv::flow::branch<xv::flow::condition<&published>,
+                                          xv::flow::go<Count>, xv::flow::go<Rollback>>>,
+          xv::flow::node<Count, xv::flow::action<&count>, xv::flow::stop>,
+          xv::flow::node<Rollback, xv::flow::action<&rollback>, xv::flow::stop>>>;
+};
+
+struct VirtioGpu::MappedPresentFlow
+{
+  struct Context
+  {
+    VirtioGpu &owner;
+    IoBuffer argument;
+    FramebufferPresent update{};
+    bool okay = false;
+    int result = -1;
+  };
+
+  static void read(Context &c) noexcept
+  {
+    c.okay = detail::mapped_dma_pages(c.owner.frame_, FramePages) &&
+             detail::copy_in(&c.update, c.argument.space == AddressSpace::User,
+                             c.argument.address, sizeof(c.update)) == 0;
+  }
+
+  static bool valid(Context &c) noexcept
+  {
+    const auto &u = c.update;
+    return c.okay && !u.reserved && u.origin_y <= BackingHeight - Height &&
+           u.x < Width && u.y < BackingHeight - u.origin_y && u.width <= Width - u.x &&
+           u.height <= BackingHeight - u.origin_y - u.y && (!u.width == !u.height);
+  }
+
+  static void present(Context &c) noexcept
+  {
+    detail::io_barrier();
+    const auto &u = c.update;
+    c.okay = c.owner.present(u.x, u.y, u.width, u.height, u.origin_y);
+  }
+
+  static bool okay(Context &c) noexcept
+  {
+    return c.okay;
+  }
+
+  static void commit(Context &c) noexcept
+  {
+    ++c.owner.mapped_stats_.presents;
+    c.result = 0;
+  }
+
+  static void fail(Context &c) noexcept
+  {
+    c.owner.offline();
+  }
+  struct Read;
+  struct Present;
+  struct Commit;
+  struct Fail;
+  using Graph = xv::flow::graph<
+      Read,
+      xv::flow::types<
+          xv::flow::node<Read, xv::flow::action<&read>,
+                         xv::flow::branch<xv::flow::condition<&valid>,
+                                          xv::flow::go<Present>, xv::flow::stop>>,
+          xv::flow::node<Present, xv::flow::action<&present>,
+                         xv::flow::branch<xv::flow::condition<&okay>,
+                                          xv::flow::go<Commit>, xv::flow::go<Fail>>>,
+          xv::flow::node<Commit, xv::flow::action<&commit>, xv::flow::stop>,
+          xv::flow::node<Fail, xv::flow::action<&fail>, xv::flow::stop>>>;
+};
+
 int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
 {
   xv::sync::ScopedLock guard(io_);
+  if (request == XV_FB_UNMAP && detail::effective_uid() == 0)
+  {
+    return detail::unmap_dma_pages() ? 0 : -1;
+  }
   if (!ready_)
   {
     return -1;
@@ -556,6 +720,23 @@ int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
   {
     return detail::copy_out(argument.space == AddressSpace::User, argument.address,
                             &timing_, sizeof(timing_));
+  }
+  if (request == XV_FB_GET_MAPPED_STATS && detail::effective_uid() == 0)
+  {
+    return detail::copy_out(argument.space == AddressSpace::User, argument.address,
+                            &mapped_stats_, sizeof(mapped_stats_));
+  }
+  if (request == XV_FB_MAP && detail::effective_uid() == 0)
+  {
+    MapFlow::Context c{*this, argument};
+    (void)MapFlow::Graph::run<0>(c);
+    return c.result;
+  }
+  if (request == XV_FB_PRESENT && detail::effective_uid() == 0)
+  {
+    MappedPresentFlow::Context c{*this, argument};
+    (void)MappedPresentFlow::Graph::run<0>(c);
+    return c.result;
   }
   if (request != XV_FB_DRAW || detail::effective_uid() != 0)
   {

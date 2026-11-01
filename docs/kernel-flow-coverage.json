@@ -168,7 +168,7 @@
           "qualified": "xv::process::AddressSpace::copy_to",
           "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
           "source": "kernel/process/memory/address_space.cpp",
-          "source_sha256": "591d99b02ab120e423911e5e64fa9599016fac35417e029678d8b045a1a82fdd",
+          "source_sha256": "7f85f23c0d2a09f750d39d65150777da62580558135a7789d2834b7a3a4b7e0e",
           "graphs": [
             "CopyFlow::Graph"
           ]
@@ -3724,7 +3724,7 @@
         "initialize"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
+      "definition_sha256": "1dbbd16db0c111559ff0128ed1fe3d3917fe65164c99264d4e204505d5ed1c8d",
       "graphs": [
         "InitializeFlow::Graph"
       ],
@@ -3747,18 +3747,22 @@
         "ioctl"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
+      "definition_sha256": "1dbbd16db0c111559ff0128ed1fe3d3917fe65164c99264d4e204505d5ed1c8d",
       "graphs": [
-        "DrawFlow::Graph"
+        "DrawFlow::Graph",
+        "MapFlow::Graph",
+        "MappedPresentFlow::Graph"
       ],
       "bindings": [
         {
           "qualified": "xv::drivers::VirtioGpu::ioctl",
           "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
           "source": "kernel/drivers/display/virtio_gpu.cpp",
-          "source_sha256": "a94418945f136b0823c8ac29d2c1d898a1ac53ea71927ae8508b7554738d6545",
+          "source_sha256": "a17b9093972c44df0160095941e8217cc2005c6a5b2e75b92d90a2ccb4969b1a",
           "graphs": [
-            "DrawFlow::Graph"
+            "DrawFlow::Graph",
+            "MapFlow::Graph",
+            "MappedPresentFlow::Graph"
           ]
         }
       ]
@@ -3840,7 +3844,7 @@
         "wait_device_completion"
       ],
       "definition": "kernel/drivers/platform/kernel_platform.cpp",
-      "definition_sha256": "ca437c528353d03d6ca671e586f8c4f33ac090fa75d45c3b908111ef932f8a47",
+      "definition_sha256": "03438acb0299c763a65d55f1c6114b55be8d779de071d770dd27daf3843ad0d3",
       "graphs": [
         "DeviceWaitFlow::Graph"
       ],
@@ -3852,6 +3856,29 @@
           "source_sha256": "6633ca8d6294749b92ce54dcf6c5f69b75b8bc2b3ddaa0fd9f06fa5151c54215",
           "graphs": [
             "DeviceWaitFlow::Graph"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "process",
+      "owner": "AddressSpace",
+      "methods": [
+        "map_device"
+      ],
+      "definition": "kernel/process/memory/address_space.cpp",
+      "definition_sha256": "4efe709832370c93a1da4afa949adfcf4f7f2647f73173598ef609c307b779c0",
+      "graphs": [
+        "DeviceMapFlow::Graph"
+      ],
+      "bindings": [
+        {
+          "qualified": "xv::process::AddressSpace::map_device",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@map_device#*1*v#i#*1$@N@xv@N@process@S@AddressSpace#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "3394b18fb2a2cbf03fbaf201eb8301e1bcda410187b7500d3d4740865f1bb62a",
+          "graphs": [
+            "DeviceMapFlow::Graph"
           ]
         }
       ]

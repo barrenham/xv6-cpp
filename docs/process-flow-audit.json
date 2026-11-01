@@ -308,8 +308,8 @@
     },
     {
       "source": "kernel/process/memory/address_space.cpp",
-      "sha256": "57a15cc0f5838758c3493510ac02ae5209df647a2f550b6311415cc005e0b200",
-      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
+      "sha256": "4efe709832370c93a1da4afa949adfcf4f7f2647f73173598ef609c307b779c0",
+      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope. 设备窗口位于UTOP下方32MiB处，最多4096页，使用RWU Special区域以独立于堆大小参与用户访问检查；没有执行权限。页引用由设备与每个地址空间分别持有，fork显式继承共享可写页而不转为COW；swap交接计数/身份，exec/reset/退出或显式unmap释放引用。页表失败只撤销已成功保留的前缀，空页表目录仍由地址空间最终释放。",
       "graph_entries": [
         {
           "qualified": "xv::process::AddressSpace::create",
@@ -342,7 +342,7 @@
           "qualified": "xv::process::AddressSpace::copy_to",
           "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
           "source": "kernel/process/memory/address_space.cpp",
-          "source_sha256": "591d99b02ab120e423911e5e64fa9599016fac35417e029678d8b045a1a82fdd",
+          "source_sha256": "7f85f23c0d2a09f750d39d65150777da62580558135a7789d2834b7a3a4b7e0e",
           "graphs": [
             "CopyFlow::Graph"
           ]
@@ -355,13 +355,22 @@
           "graphs": [
             "GuardFlow::Graph"
           ]
+        },
+        {
+          "qualified": "xv::process::AddressSpace::map_device",
+          "usr": "c:@N@xv@N@process@S@AddressSpace@F@map_device#*1*v#i#*1$@N@xv@N@process@S@AddressSpace#",
+          "source": "kernel/process/memory/address_space.cpp",
+          "source_sha256": "3394b18fb2a2cbf03fbaf201eb8301e1bcda410187b7500d3d4740865f1bb62a",
+          "graphs": [
+            "DeviceMapFlow::Graph"
+          ]
         }
       ]
     },
     {
       "source": "kernel/process/memory/address_space.cppm",
-      "sha256": "9e1af424b8e992476e7e165a8f97d4ea365b225ce378c6cc7388f3d20cc2bcc0",
-      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope.",
+      "sha256": "8605a4d2ab47c262ead5d242818e16df7552f390342eda96d0d8bb04be93e7bc",
+      "review": "AddressSpace create/copy/resize/grow/guard graphs own fallible mutation. Reset follows fixed teardown of borrowed special mappings and owned user memory, swap exchanges state, and translation/fault/copy methods delegate to the memory subsystem. Memory implementation migration remains a separate scope. 增加单个设备窗口页数/身份、映射接口和DeviceMapFlow声明；默认地址空间仍具有显式reset生命周期。",
       "graph_entries": []
     },
     {
@@ -850,7 +859,7 @@
       "pending": []
     }
   ],
-  "graph_count": 47,
-  "original_entry_count": 46,
+  "graph_count": 48,
+  "original_entry_count": 47,
   "excluded_execution_primitives": "Register/CSR/assembly operations, compact bitset policies, stable scans, fixed table transfers and simple delegates are intentionally direct; their outer complex orchestration uses graphs."
 }

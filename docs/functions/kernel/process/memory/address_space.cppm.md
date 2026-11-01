@@ -99,3 +99,11 @@
 @brief 借用当前进程的虚拟区域登记。
 @details 供内部页表实验和用户复制路径做一致性验证；调用者必须处于所属进程的独占地址空间操作上下文，不能保存到并发 reset 或 exec 之后。
 ```
+
+- [`xv::process::AddressSpace::map_device_pages`](address_space.cpp.md#fn-fa4426fa4e5caabb)
+
+- [`xv::process::AddressSpace::device_mapping`](address_space.cpp.md#fn-354924ecaf09fe35)
+
+- [`xv::process::AddressSpace::unmap_device_pages`](address_space.cpp.md#fn-fe25ab9d20f5ce0a)
+
+- [`xv::process::AddressSpace::map_device`](address_space.cpp.md#fn-03c9db31cea2af38)

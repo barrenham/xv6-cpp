@@ -61,11 +61,11 @@ struct DeviceWaitFlow
     return c.result != 0;
   }
   struct Wait;
-  using Graph = xv::flow::graph<
-      Wait, xv::flow::types<xv::flow::node<
-                Wait, xv::flow::action<&attempt>,
-                xv::flow::branch<xv::flow::condition<&finished>, xv::flow::stop,
-                                 xv::flow::go<Wait>>>>>;
+  using Graph =
+      xv::flow::graph<Wait, xv::flow::types<xv::flow::node<
+                                Wait, xv::flow::action<&attempt>,
+                                xv::flow::branch<xv::flow::condition<&finished>,
+                                                 xv::flow::stop, xv::flow::go<Wait>>>>>;
 };
 
 int wait_device_completion(void *channel, volatile unsigned short *index,
@@ -80,8 +80,16 @@ int wait_device_completion(void *channel, volatile unsigned short *index,
   return context.result;
 }
 
-unsigned effective_uid() { return xv::process::current()->credentials().snapshot().effective_uid; }
-unsigned effective_gid() { return xv::process::current()->credentials().snapshot().effective_gid; }
+unsigned effective_uid()
+{
+  return xv::process::current()->credentials().snapshot().effective_uid;
+}
+
+unsigned effective_gid()
+{
+  return xv::process::current()->credentials().snapshot().effective_gid;
+}
+
 void prepare_interruptible_sleep(void *channel)
 {
   xv::process::prepare_interruptible_sleep(channel);
@@ -103,7 +111,9 @@ void wake_processes(void *channel)
 }
 
 void *pin_controlling_terminal(void *(*pin)(void *))
-{return xv::process::pin_controlling_terminal(pin);}
+{
+  return xv::process::pin_controlling_terminal(pin);
+}
 
 int claim_terminal(void *terminal)
 {
@@ -210,6 +220,29 @@ void *allocate_dma_page()
 void free_dma_page(void *page)
 {
   xv::memory::allocator().deallocate(page);
+}
+
+void release_dma_page(void *page)
+{
+  xv::memory::allocator().release_page(page);
+}
+
+unsigned long map_dma_pages(void *const *pages, unsigned count)
+{
+  auto *process = xv::process::current();
+  return process ? process->memory().map_device_pages(pages, count) : 0;
+}
+
+bool mapped_dma_pages(void *const *pages, unsigned count)
+{
+  auto *process = xv::process::current();
+  return process && process->memory().device_mapping(pages, count);
+}
+
+bool unmap_dma_pages()
+{
+  auto *process = xv::process::current();
+  return process && process->memory().unmap_device_pages();
 }
 
 void zero_page(void *page)

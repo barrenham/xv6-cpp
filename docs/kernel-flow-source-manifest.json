@@ -117,13 +117,13 @@
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cpp",
-      "sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
+      "sha256": "1dbbd16db0c111559ff0128ed1fe3d3917fe65164c99264d4e204505d5ed1c8d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。"
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cppm",
-      "sha256": "381b72e3548d7512ec5e8c107a4817818fa789aef09b0160fbdbd308c77de54a",
+      "sha256": "1eecfb03b197f2ce4a3150678b768df1bb99ee89bf3f431d8647a3b6f5154440",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json 增加IRQ/运行等待/启动轮询/失败计数，单个持锁请求与DMA布局保持。"
     },
@@ -225,7 +225,7 @@
     },
     {
       "source": "kernel/drivers/platform/kernel_platform.cpp",
-      "sha256": "ca437c528353d03d6ca671e586f8c4f33ac090fa75d45c3b908111ef932f8a47",
+      "sha256": "03438acb0299c763a65d55f1c6114b55be8d779de071d770dd27daf3843ad0d3",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json DeviceWaitFlow通过定时PollWait先注册完成通道再检查队列，运行期睡眠等待IRQ或绝对截止时间；无当前进程返回0保留启动有界轮询。",
       "graph_entries": [
@@ -242,7 +242,7 @@
     },
     {
       "source": "kernel/drivers/platform/platform.cppm",
-      "sha256": "241308cc32b7adf24adb5016a10bfd0b8c2298104f04babd51b32e95d6c51387",
+      "sha256": "d58508b40e99bb35b71958c5afcec7a5c68346f2ae9b38497266e69b7af786b0",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json 导出设备完成等待桥接，0表示早期启动回退、1完成、-1失败。"
     },
@@ -740,7 +740,7 @@
     },
     {
       "source": "kernel/io/framebuffer.h",
-      "sha256": "d05efa280ef24cce746df6b4d4f916a4ed491a3b96171c43df0e5327bb8f1522",
+      "sha256": "08577efa72738c558926a3e5dbba24fe3defaa8647a115d0e5c1416195050030",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。"
     },
@@ -1772,13 +1772,13 @@
     },
     {
       "source": "kernel/process/memory/address_space.cpp",
-      "sha256": "57a15cc0f5838758c3493510ac02ae5209df647a2f550b6311415cc005e0b200",
+      "sha256": "4efe709832370c93a1da4afa949adfcf4f7f2647f73173598ef609c307b779c0",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/memory/address_space.cppm",
-      "sha256": "9e1af424b8e992476e7e165a8f97d4ea365b225ce378c6cc7388f3d20cc2bcc0",
+      "sha256": "8605a4d2ab47c262ead5d242818e16df7552f390342eda96d0d8bb04be93e7bc",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },

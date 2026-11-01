@@ -82,6 +82,17 @@ int main()
   asynchronous.feedback(30 * ms, 10 * ms);
   assert(asynchronous.timeout(30 * ms) == 100);
   assert(asynchronous.timeout(130 * ms) == 0);
+  Pacer whole;
+  whole.output(0, 4096, true);
+  whole.complete(20 * ms, 21 * ms);
+  whole.output(22 * ms, 1, true);
+  whole.feedback(30 * ms, 5 * ms, true);
+  assert(whole.timeout(30 * ms) == 250);
+  assert(whole.timeout(280 * ms) == 0);
+  whole.complete(280 * ms, 281 * ms);
+  whole.feedback(281 * ms, 5 * ms, true);
+  whole.output(300 * ms, 1, false);
+  assert(whole.timeout(300 * ms) == 16); // Typing does not inherit bulk throttling.
   fbterm::Navigation navigation;
   char forwarded[4];
   int page = 0;
@@ -334,6 +345,20 @@ int main()
       assert(frame[y * 1366 + x] == terminal.pixel(x, y));
     }
   }
+  feed("\033[2;1Hpartial reference update");
+  assert(fbterm::paint(terminal, 1366, 768, frame,
+                       [&](unsigned top, unsigned height, unsigned *data)
+                       {
+                         assert(top && height && data == frame + top * 1366);
+                         return true;
+                       }));
+  for (unsigned y = 0; y < 768; ++y)
+  {
+    for (unsigned x = 0; x < 1366; ++x)
+    {
+      assert(frame[y * 1366 + x] == terminal.pixel(x, y));
+    }
+  }
   // A persistent raster must match the per-pixel reference after scrolling,
   // viewport moves in both directions, edits, cursor motion and a failed draw.
   static fbterm::Cell history[fbterm::Terminal::history_capacity][fbterm::max_columns];
@@ -466,6 +491,71 @@ int main()
   assert(terminal.view_offset == 0);
   feed("\033[3J");
   assert(terminal.history_count == 0 && terminal.view_offset == 0);
+  // Model host-side resource storage separately from mapped guest memory.
+  // Only submitted pixels reach the host; scanout is a moving window into it.
+  static fbterm::Renderer viewport;
+  constexpr unsigned viewport_width = 640, viewport_height = 481;
+  auto *backing = static_cast<unsigned *>(
+      std::calloc(viewport_width * viewport_height * 2, sizeof(unsigned)));
+  auto *host = static_cast<unsigned *>(
+      std::calloc(viewport_width * viewport_height * 2, sizeof(unsigned)));
+  assert(backing && host);
+  viewport.backing_height = viewport_height * 2;
+  assert(terminal.configure(viewport_width, viewport_height));
+  auto view_compare = [&]
+  {
+    assert(viewport.paint(
+        terminal, viewport_width, viewport_height, backing,
+        [&](unsigned top, unsigned height, unsigned *data)
+        {
+          assert(viewport.origin_y + top + height <= viewport_height * 2);
+          for (unsigned y = 0; y < height; ++y)
+          {
+            std::memcpy(host + (viewport.origin_y + top + y) * viewport_width,
+                        data + y * viewport_width,
+                        viewport.damage_width * sizeof(unsigned));
+          }
+          return true;
+        }));
+    for (unsigned y = 0; y < viewport_height; ++y)
+    {
+      for (unsigned x = 0; x < viewport_width; ++x)
+      {
+        assert(host[(viewport.origin_y + y) * viewport_width + x] ==
+               terminal.pixel(x, y));
+      }
+    }
+  };
+  view_compare();
+  for (unsigned i = 0; i < 80; ++i)
+  {
+    feed(i % 3 ? "short scroll\r\n"
+               : "\033[45mcolored, wider scroll content\033[0m\r\n");
+    view_compare();
+  }
+  assert(viewport.viewport_reuses > 45 && viewport.viewport_resets > 1);
+  assert(viewport.move_ticks == 0);
+  terminal.scroll_history(15);
+  view_compare();
+  terminal.scroll_history(-7);
+  view_compare();
+  terminal.live();
+  view_compare();
+  feed("\033[1;100Hwide tail");
+  view_compare();
+  for (unsigned i = 0; i < 60; ++i)
+  {
+    feed("short tail erase\r\n");
+    view_compare();
+  }
+  feed("\033[1;1H\033[2Kshort\033[3J");
+  view_compare();
+  feed("retry");
+  assert(!viewport.paint(terminal, viewport_width, viewport_height, backing,
+                         [](unsigned, unsigned, unsigned *) { return false; }));
+  view_compare();
+  std::free(host);
+  std::free(backing);
   std::puts(
       "fbterm contract: text, raster, scrolling, editor, ANSI and adversarial input passed");
 }

@@ -8509,7 +8509,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@reset#",
     "hover_expectation": "observe",
-    "source_sha256": "e1c413cb77a7066b6ba8ba6bdbbd6b76acd12d499aa3485e525adc0c91a18245"
+    "source_sha256": "c04f37f285fb81538bb7323544e28c65ff5b70e52252dc8e1bb6e928ec64ab7e"
   },
   {
     "anchor": "fn-5fd205292faac723",
@@ -8522,7 +8522,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@swap#&$@N@xv@N@process@S@AddressSpace#",
     "hover_expectation": "observe",
-    "source_sha256": "ce52d627ee5f6ea1342aabc484ef8c567af04ce8cfce106e0485023a8a1ecc2e"
+    "source_sha256": "629f3e286229cdb36f915f9dde367ad20fe866a5268b2bf52d86965fc8f220c5"
   },
   {
     "anchor": "fn-f441ea3cfe631614",
@@ -8535,7 +8535,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@process@S@AddressSpace@F@copy_to#&$@N@xv@N@process@S@AddressSpace#1",
     "hover_expectation": "observe",
-    "source_sha256": "591d99b02ab120e423911e5e64fa9599016fac35417e029678d8b045a1a82fdd"
+    "source_sha256": "7f85f23c0d2a09f750d39d65150777da62580558135a7789d2834b7a3a4b7e0e"
   },
   {
     "anchor": "fn-75a8c7ea8deccbc3",
@@ -17976,7 +17976,7 @@
     "source": "kernel/drivers/platform/kernel_platform.cpp",
     "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
     "usr": "c:@N@xv@N@drivers@N@detail@F@effective_uid#",
-    "source_sha256": "f262cb2236d2f99eb821b10870824d9e31ea1149b08e2be4efb45a44e715b13b",
+    "source_sha256": "eec3572129b83a8994d14b0441d1be639f6fc9a6fdf9890db34b2ce8e9859712",
     "qualified": "xv::drivers::detail::effective_uid",
     "spelling": "effective_uid",
     "signature": "unsigned effective_uid()",
@@ -17989,7 +17989,7 @@
     "source": "kernel/drivers/platform/kernel_platform.cpp",
     "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
     "usr": "c:@N@xv@N@drivers@N@detail@F@effective_gid#",
-    "source_sha256": "b0bb249fb6fe92ce2eb6d738cac82d606039a6de4912209d454970b8d7107000",
+    "source_sha256": "2dbaa36c23ff1dc664493981a8c9bc5541b5879f6a33fd86f340e6302cf94050",
     "qualified": "xv::drivers::detail::effective_gid",
     "spelling": "effective_gid",
     "signature": "unsigned effective_gid()",
@@ -61109,7 +61109,7 @@
     "signature": "void *pin_controlling_terminal(void *(*pin)(void *))",
     "spelling": "pin_controlling_terminal",
     "fn": "void *xv::drivers::detail::pin_controlling_terminal(void *(*pin)(void *))",
-    "source_sha256": "1f43d4a97589ada6500f56089a0647af14cc62cbb52c7a47d1f3661f6c9a099c"
+    "source_sha256": "03be1d81f98d5e814baf775f190ab65156ebb2ae2cd8d1c2fd04f556573568a9"
   },
   {
     "anchor": "fn-5ea474bfe4c038cb",
@@ -67312,7 +67312,7 @@
     "signature": "bool VirtioGpu::setup()",
     "spelling": "setup",
     "fn": "bool xv::drivers::VirtioGpu::setup()",
-    "source_sha256": "c98bc6d87dd55ebc51d5110962311d840adc9ae80ef2c251805ececd8483d922"
+    "source_sha256": "8d215849e33d099c756335c0a3025f606474e2666603d72f22d108cf37d4dff4"
   },
   {
     "anchor": "fn-b5ed3779f0a0fa3f",
@@ -67320,12 +67320,12 @@
     "source": "kernel/drivers/display/virtio_gpu.cpp",
     "qualified": "xv::drivers::VirtioGpu::present",
     "kind": "InstanceMethod",
-    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@present#i#i#i#i#",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@present#i#i#i#i#i#",
     "hover_expectation": "observe",
-    "signature": "bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)",
+    "signature": "bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height, unsigned origin_y)",
     "spelling": "present",
-    "fn": "bool xv::drivers::VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)",
-    "source_sha256": "53aea28191d9fb9ccbadf2bbf565fb5d8c43104d5c392ecb9aee7391ed469e73"
+    "fn": "bool xv::drivers::VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height, unsigned origin_y)",
+    "source_sha256": "cf18488b7b3bd525aeb6a07dd021e7a5acf2644e8eec944500eadd975356142c"
   },
   {
     "anchor": "fn-da8e12e4f3828f60",
@@ -67338,7 +67338,7 @@
     "signature": "void VirtioGpu::offline()",
     "spelling": "offline",
     "fn": "void xv::drivers::VirtioGpu::offline()",
-    "source_sha256": "d55f23639ac694fda4823a07e5c09c60caaf55e0ad9eeb4693f5e253bb526c3b"
+    "source_sha256": "24d1622633cc4bb4ea2ded75c29fa0ffa1ae4e8656f661382266fbe82d66f701"
   },
   {
     "anchor": "fn-1e44dc80c26a7ad6",
@@ -67546,7 +67546,7 @@
     "signature": "int VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
     "spelling": "ioctl",
     "fn": "int xv::drivers::VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
-    "source_sha256": "a94418945f136b0823c8ac29d2c1d898a1ac53ea71927ae8508b7554738d6545"
+    "source_sha256": "a17b9093972c44df0160095941e8217cc2005c6a5b2e75b92d90a2ccb4969b1a"
   },
   {
     "anchor": "fn-46afcdf81348cbc3",
@@ -68197,5 +68197,343 @@
     "usr": "c:@N@xv@N@drivers@N@detail@F@wait_device_completion#*v#*2s#s#l#",
     "hover_expectation": "observe",
     "source_sha256": "6633ca8d6294749b92ce54dcf6c5f69b75b8bc2b3ddaa0fd9f06fa5151c54215"
+  },
+  {
+    "anchor": "fn-1c35df73ab44ab6f",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "acquire",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::acquire",
+    "signature": "static void acquire(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MapFlow::acquire(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@acquire#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "91857ee19aef9adffb5c9301c89d629dcd7da50e2f7ef366d6776a9a3fe70d91"
+  },
+  {
+    "anchor": "fn-93fed9e810dd4ceb",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "acquired",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::acquired",
+    "signature": "static bool acquired(Context &c) noexcept",
+    "fn": "static bool xv::drivers::VirtioGpu::MapFlow::acquired(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@acquired#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "cae7897e93d9ec2bbe83d2364169276f16d3e3bfcc94a80abceed0a409f981fe"
+  },
+  {
+    "anchor": "fn-c35ab49b37af58db",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "publish",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::publish",
+    "signature": "static void publish(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MapFlow::publish(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@publish#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "88b195bd82efb103b799edd455b40817bd63ecb051515fafd2c94a7c17f1baa9"
+  },
+  {
+    "anchor": "fn-08e4034568494479",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "published",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::published",
+    "signature": "static bool published(Context &c) noexcept",
+    "fn": "static bool xv::drivers::VirtioGpu::MapFlow::published(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@published#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "e557c80a9556855a47b4a4614f5c89a969b424fe61b6476d974eb482a221ac5a"
+  },
+  {
+    "anchor": "fn-11facbe35af003f0",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "rollback",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::rollback",
+    "signature": "static void rollback(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MapFlow::rollback(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@rollback#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "c59ffb0b663398177bfee71421bdca46cabd8c404b4ac006799d8e3d84da878d"
+  },
+  {
+    "anchor": "fn-607306c629b9b498",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "count",
+    "qualified": "xv::drivers::VirtioGpu::MapFlow::count",
+    "signature": "static void count(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MapFlow::count(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@F@count#&$@N@xv@N@drivers@S@VirtioGpu@S@MapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "ac1d3faac4b9d038b44d18539a831eee9c21b8f3e5aeaf74aa5cb0a5c57b0d9b"
+  },
+  {
+    "anchor": "fn-be8cd6776831ccad",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "read",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::read",
+    "signature": "static void read(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MappedPresentFlow::read(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@read#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "7ede64919b841f3f46ac7ac673569a5297d47d849f063e4b6f4cbb8ad8f418c2"
+  },
+  {
+    "anchor": "fn-849f99b2443731ff",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "valid",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::valid",
+    "signature": "static bool valid(Context &c) noexcept",
+    "fn": "static bool xv::drivers::VirtioGpu::MappedPresentFlow::valid(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@valid#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "3842c353315eb48279a6a4f0cb75b7772f7329ec9aa6ae46e85481bbba8a0c84"
+  },
+  {
+    "anchor": "fn-322d80c306a868d9",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "present",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::present",
+    "signature": "static void present(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MappedPresentFlow::present(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@present#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "8338aff7c97d2a594e350237ad2314035663211612f53f5547be98288dfd1724"
+  },
+  {
+    "anchor": "fn-d194163e8ecf4522",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "okay",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::okay",
+    "signature": "static bool okay(Context &c) noexcept",
+    "fn": "static bool xv::drivers::VirtioGpu::MappedPresentFlow::okay(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@okay#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "5578372dbc96ca1adaba0059a8532a3bdd8fded1d040945844f2f3ae68caf118"
+  },
+  {
+    "anchor": "fn-d8e4a08e317ec9ff",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "commit",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::commit",
+    "signature": "static void commit(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MappedPresentFlow::commit(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@commit#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "972139998b25831f53d45e1e88f483ac6f2d5ff952e2078b036e480863a27a35"
+  },
+  {
+    "anchor": "fn-8efa6714144a9cd5",
+    "document": "docs/functions/kernel/drivers/display/virtio_gpu.cpp.md",
+    "source": "kernel/drivers/display/virtio_gpu.cpp",
+    "spelling": "fail",
+    "qualified": "xv::drivers::VirtioGpu::MappedPresentFlow::fail",
+    "signature": "static void fail(Context &c) noexcept",
+    "fn": "static void xv::drivers::VirtioGpu::MappedPresentFlow::fail(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@F@fail#&$@N@xv@N@drivers@S@VirtioGpu@S@MappedPresentFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "70eb6690b11562056a5689c9ca0e040d714f20354fe41276f45481ca2f55093d"
+  },
+  {
+    "anchor": "fn-64688896f596d39f",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "release_dma_page",
+    "qualified": "xv::drivers::detail::release_dma_page",
+    "signature": "void release_dma_page(void *page)",
+    "fn": "void xv::drivers::detail::release_dma_page(void *page)",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@drivers@N@detail@F@release_dma_page#*v#",
+    "hover_expectation": "observe",
+    "source_sha256": "1312758397dca73ce45707ed3ef806e12b07efe73ca6c3424499e888506a155f"
+  },
+  {
+    "anchor": "fn-581e39b5199c76f2",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "map_dma_pages",
+    "qualified": "xv::drivers::detail::map_dma_pages",
+    "signature": "unsigned long map_dma_pages(void *const *pages, unsigned count)",
+    "fn": "unsigned long xv::drivers::detail::map_dma_pages(void *const *pages, unsigned count)",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@drivers@N@detail@F@map_dma_pages#*1*v#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "71107ae493e3d5c162e56c117d91054ed50e879a5f171486d9b469e1f6fcc965"
+  },
+  {
+    "anchor": "fn-7cf91398c937e79d",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "mapped_dma_pages",
+    "qualified": "xv::drivers::detail::mapped_dma_pages",
+    "signature": "bool mapped_dma_pages(void *const *pages, unsigned count)",
+    "fn": "bool xv::drivers::detail::mapped_dma_pages(void *const *pages, unsigned count)",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@drivers@N@detail@F@mapped_dma_pages#*1*v#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "a175121588f2ce071af5a0c0cbf522d5bc3520976da90b963701a30a2e625a3a"
+  },
+  {
+    "anchor": "fn-fa10a0b715df66ba",
+    "document": "docs/functions/kernel/drivers/platform/kernel_platform.cpp.md",
+    "source": "kernel/drivers/platform/kernel_platform.cpp",
+    "spelling": "unmap_dma_pages",
+    "qualified": "xv::drivers::detail::unmap_dma_pages",
+    "signature": "bool unmap_dma_pages()",
+    "fn": "bool xv::drivers::detail::unmap_dma_pages()",
+    "kind": "Function",
+    "usr": "c:@N@xv@N@drivers@N@detail@F@unmap_dma_pages#",
+    "hover_expectation": "observe",
+    "source_sha256": "84ccd24a0195a5c48e8a3d09f7d41f6e064b792d71c1dd071ace9e7f086adb81"
+  },
+  {
+    "anchor": "fn-fa4426fa4e5caabb",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "AddressSpace::map_device_pages",
+    "qualified": "xv::process::AddressSpace::map_device_pages",
+    "signature": "unsigned long AddressSpace::map_device_pages(void *const *pages, unsigned count)",
+    "fn": "unsigned long xv::process::AddressSpace::map_device_pages(void *const *pages, unsigned count)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@map_device_pages#*1*v#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "0b7b6a7386955fb157ceab884333f4b311d2ab76dee1c1c27cf561d90e3e6c0f"
+  },
+  {
+    "anchor": "fn-354924ecaf09fe35",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "AddressSpace::device_mapping",
+    "qualified": "xv::process::AddressSpace::device_mapping",
+    "signature": "bool AddressSpace::device_mapping(void *const *pages, unsigned count) const",
+    "fn": "bool xv::process::AddressSpace::device_mapping(void *const *pages, unsigned count) const",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@device_mapping#*1*v#i#1",
+    "hover_expectation": "observe",
+    "source_sha256": "cb56849c793ab9ed4d62284074c93293ba354606841d54f190a1c344924b1a7f"
+  },
+  {
+    "anchor": "fn-fe25ab9d20f5ce0a",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "AddressSpace::unmap_device_pages",
+    "qualified": "xv::process::AddressSpace::unmap_device_pages",
+    "signature": "bool AddressSpace::unmap_device_pages()",
+    "fn": "bool xv::process::AddressSpace::unmap_device_pages()",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@unmap_device_pages#",
+    "hover_expectation": "observe",
+    "source_sha256": "fd7896e2fbeba3c3f39770bcb3aef380cef6c0f4e987a15ba22368835cc20932"
+  },
+  {
+    "anchor": "fn-e6e7125a31b36c94",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "reserve",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::reserve",
+    "signature": "static bool reserve(Context &c) noexcept",
+    "fn": "static bool xv::process::AddressSpace::DeviceMapFlow::reserve(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@reserve#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "7c2ebf24ce6434cfabdecc6d1e649322030aaa6d519b2e8f9880b1a0419b819e"
+  },
+  {
+    "anchor": "fn-1f227b88ce994e19",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "map",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::map",
+    "signature": "static bool map(Context &c) noexcept",
+    "fn": "static bool xv::process::AddressSpace::DeviceMapFlow::map(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@map#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "cb2a0f1234e0a863e931ba9222add3bc24209a4ae4b29213858d5cf90afe95ea"
+  },
+  {
+    "anchor": "fn-b2cf60a0b2fcb6d8",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "retain",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::retain",
+    "signature": "static void retain(Context &c) noexcept",
+    "fn": "static void xv::process::AddressSpace::DeviceMapFlow::retain(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@retain#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "61d9385cbbd1dbb5c60e37d1cb954f09d852d7df0a6c58feb6af31d44d7e83b5"
+  },
+  {
+    "anchor": "fn-2c6a9133c45fe3fe",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "finished",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::finished",
+    "signature": "static bool finished(Context &c) noexcept",
+    "fn": "static bool xv::process::AddressSpace::DeviceMapFlow::finished(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@finished#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "2ebfd7ff8a1fa593d75dd937df40dedb80ae0fba40c3b93314f8ead087eaeab7"
+  },
+  {
+    "anchor": "fn-e65bfbe430939f29",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "commit",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::commit",
+    "signature": "static void commit(Context &c) noexcept",
+    "fn": "static void xv::process::AddressSpace::DeviceMapFlow::commit(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@commit#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "1197e581ff68167eb95316889e2948bed3772bbbbd131c1a05b9c547d2cab05c"
+  },
+  {
+    "anchor": "fn-b958d00b21e0b685",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "rollback",
+    "qualified": "xv::process::AddressSpace::DeviceMapFlow::rollback",
+    "signature": "static void rollback(Context &c) noexcept",
+    "fn": "static void xv::process::AddressSpace::DeviceMapFlow::rollback(Context &c) noexcept",
+    "kind": "StaticMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@F@rollback#&$@N@xv@N@process@S@AddressSpace@S@DeviceMapFlow@S@Context#S",
+    "hover_expectation": "observe",
+    "source_sha256": "fdbf73d40db885d68b9a677579470933ef8c07402b4c722ea83a9e2e5572b2a4"
+  },
+  {
+    "anchor": "fn-03c9db31cea2af38",
+    "document": "docs/functions/kernel/process/memory/address_space.cpp.md",
+    "source": "kernel/process/memory/address_space.cpp",
+    "spelling": "AddressSpace::map_device",
+    "qualified": "xv::process::AddressSpace::map_device",
+    "signature": "unsigned long AddressSpace::map_device(void *const *pages, unsigned count, const AddressSpace *inherited)",
+    "fn": "unsigned long xv::process::AddressSpace::map_device(void *const *pages, unsigned count, const AddressSpace *inherited)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@process@S@AddressSpace@F@map_device#*1*v#i#*1$@N@xv@N@process@S@AddressSpace#",
+    "hover_expectation": "observe",
+    "source_sha256": "3394b18fb2a2cbf03fbaf201eb8301e1bcda410187b7500d3d4740865f1bb62a"
   }
 ]

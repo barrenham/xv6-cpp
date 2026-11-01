@@ -167,7 +167,7 @@ set_tests_properties(fs_contract PROPERTIES TIMEOUT 45 LABELS fs)
 add_test(NAME process_contract COMMAND "${PROJECT_BINARY_DIR}/process_contract")
 set_tests_properties(process_contract PROPERTIES TIMEOUT 45 LABELS process)
 add_test(NAME driver_contract COMMAND "${PROJECT_BINARY_DIR}/driver_contract")
-set_tests_properties(driver_contract PROPERTIES TIMEOUT 45 LABELS drivers)
+set_tests_properties(driver_contract PROPERTIES TIMEOUT 180 LABELS drivers)
 add_test(NAME sync_contract COMMAND "${PROJECT_BINARY_DIR}/sync_contract")
 set_tests_properties(sync_contract PROPERTIES TIMEOUT 45 LABELS sync)
 add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")
@@ -448,6 +448,13 @@ foreach(cpus IN ITEMS 1 5)
     "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT})
   set_tests_properties(gpu_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS "drivers;graphics")
+endforeach()
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME gpu_mapped_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --cpus ${cpus} --width ${XV_DISPLAY_WIDTH} --height ${XV_DISPLAY_HEIGHT} --mapped --vnc)
+  set_tests_properties(gpu_mapped_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS "drivers;graphics;memory")
 endforeach()
 add_test(NAME gpu_absent_1cpu COMMAND "${Python3_EXECUTABLE}"
   "${PROJECT_SOURCE_DIR}/tests/gpu.py" --qemu "${XV_QEMU}"

@@ -32,6 +32,8 @@ def main():
     parser.add_argument('--vnc-client', action='store_true')
     parser.add_argument('--no-serial-mirror', action='store_true')
     parser.add_argument('--benchmark-scroll', action='store_true')
+    parser.add_argument('--buffer', choices=('mapped', 'copied'), default='mapped')
+    parser.add_argument('--scroll', choices=('viewport', 'copied'), default='viewport')
     parser.add_argument('--damage', choices=('trimmed', 'full'), default='trimmed')
     parser.add_argument('--display', choices=('async', 'sync'), default='async')
     parser.add_argument('--raster', choices=('cached','full'), default='cached')
@@ -162,6 +164,13 @@ def main():
                 vnc.settimeout(None)
                 vnc_thread = threading.Thread(target=consume_vnc, daemon=True)
                 vnc_thread.start()
+            for setting in (
+                    f'FBTERM_RASTER={args.raster} FBTERM_DAMAGE={args.damage}',
+                    f'FBTERM_DISPLAY={args.display} FBTERM_BUFFER={args.buffer}',
+                    f'FBTERM_SCROLL={args.scroll}'):
+                guest.stdin.write(f'export {setting}\n'.encode())
+                guest.stdin.flush()
+                expect('root:/$ ')
             for round_number in range(args.rounds):
                 modes = args.modes if round_number % 2 == 0 else args.modes[::-1]
                 for mode in modes:
@@ -171,7 +180,7 @@ def main():
                     start_traffic = traffic.copy()
                     option = '--no-serial-mirror ' if args.no_serial_mirror else ''
                     task = '--benchmark-scroll' if args.benchmark_scroll else option + 'cat /burst.txt'
-                    guest.stdin.write(f'env FBTERM_PROFILE={mode} FBTERM_RASTER={args.raster} FBTERM_DISPLAY={args.display} FBTERM_DAMAGE={args.damage} fbterm {task}\n'.encode())
+                    guest.stdin.write(f'env FBTERM_PROFILE={mode} fbterm {task}\n'.encode())
                     guest.stdin.flush()
                     expect('fbterm: benchmark start' if args.benchmark_scroll else 'fbterm: connected')
                     expect('fbterm: benchmark complete' if args.benchmark_scroll else 'fbterm: disconnected')
@@ -203,6 +212,11 @@ def main():
                     stages = re.search(rb'FBSTAGES ([^\r\n]+)', segment)
                     result['stages'] = {key: int(value) for key, value in
                         re.findall(r'(\w+)=(\d+)', stages[1].decode())} if stages else {}
+                    mapped = re.search(rb'FBMAPPED ([^\r\n]+)', segment)
+                    result['mapped'] = {key: int(value) for key, value in
+                        re.findall(r'(\w+)=(\d+)', mapped[1].decode())} if mapped else {}
+                    result['buffer'] = args.buffer
+                    result['scroll'] = args.scroll
                     result['damage'] = args.damage
                     result['display'] = args.display
                     result['raster'] = args.raster

@@ -3,7 +3,7 @@
 import argparse,json,os,selectors,shutil,socket,struct,subprocess,tempfile,time
 from pathlib import Path
 from console_login import login_root
-p=argparse.ArgumentParser();p.add_argument('--qemu',required=True);p.add_argument('--kernel',required=True);p.add_argument('--image',required=True);p.add_argument('--cpus',type=int,default=5);p.add_argument('--without-gpu',action='store_true');p.add_argument('--vnc',action='store_true');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=800);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--qemu',required=True);p.add_argument('--kernel',required=True);p.add_argument('--image',required=True);p.add_argument('--cpus',type=int,default=5);p.add_argument('--without-gpu',action='store_true');p.add_argument('--vnc',action='store_true');p.add_argument('--mapped',action='store_true');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=800);a=p.parse_args()
 if a.vnc and a.without_gpu:p.error('--vnc requires a GPU')
 
 def receive(stream,count):
@@ -73,9 +73,10 @@ with tempfile.TemporaryDirectory(prefix='xv-gpu-',dir=output) as directory:
   raise TimeoutError(f'waiting for {token!r}')
  try:
   login_root(expect,guest)
-  guest.stdin.write(b'fbdemo\n');guest.stdin.flush()
+  guest.stdin.write(b'fbdemo --mapped\n' if a.mapped else b'fbdemo\n');guest.stdin.flush()
   if a.without_gpu:expect('fbdemo: no framebuffer');expect('$ ')
   else:
+   if a.mapped:expect('fbdemo: mapped fork/exec/unmap and zero-copy checks passed',timeout=90)
    expect(f'fbdemo: {a.width}x{a.height} RGB bars displayed',timeout=90);expect('$ ')
    with socket.socket(socket.AF_UNIX) as connection:
     connection.settimeout(10);connection.connect(str(monitor));stream=connection.makefile('rwb',buffering=0)

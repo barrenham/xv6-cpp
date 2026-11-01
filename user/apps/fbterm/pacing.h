@@ -39,9 +39,10 @@ public:
     // Leave at least three times the previous paint cost for I/O and the guest.
     // A slow frame must not cause an immediate series of more slow frames.
     Tick gap = cost > 250 * Millisecond / 3 ? 250 * Millisecond : cost * 3;
-    if (bulk && gap < 100 * Millisecond)
+    Tick minimum = whole_repaint ? 250 * Millisecond : 100 * Millisecond;
+    if (bulk && gap < minimum)
     {
-      gap = 100 * Millisecond;
+      gap = minimum;
     }
     if (presented && last_present + gap > deadline)
     {
@@ -60,16 +61,17 @@ public:
 
   // An asynchronous display completion updates the cost without discarding
   // output that arrived while the renderer was busy.
-  void feedback(Tick now, Tick duration)
+  void feedback(Tick now, Tick duration, bool whole = false)
   {
     cost = duration;
     last_present = now;
+    whole_repaint = whole;
   }
 
 private:
 
   Tick first = 0, last_output = 0, last_present = 0, cost = 0;
   unsigned volume = 0;
-  bool pending = false, bulk = false, presented = false;
+  bool pending = false, bulk = false, presented = false, whole_repaint = false;
 };
 } // namespace fbterm

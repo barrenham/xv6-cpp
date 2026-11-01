@@ -46,6 +46,11 @@ public:
     return regions_;
   }
 
+  // A shared, non-executable device aperture outside the ordinary heap.
+  unsigned long map_device_pages(void *const *pages, unsigned count);
+  bool unmap_device_pages();
+  bool device_mapping(void *const *pages, unsigned count) const;
+
   int copy_in(void *destination, unsigned long source, unsigned long bytes) const;
   int copy_out(unsigned long destination, const void *source,
                unsigned long bytes) const;
@@ -58,6 +63,11 @@ private:
   struct GrowFlow;
   struct CopyFlow;
   struct GuardFlow;
+  struct DeviceMapFlow;
+  unsigned device_pages_ = 0;
+  unsigned long device_identity_ = 0;
+  unsigned long map_device(void *const *pages, unsigned count,
+                           const AddressSpace *inherited);
 
   PageTable table_ = nullptr;
   unsigned long size_ = 0;

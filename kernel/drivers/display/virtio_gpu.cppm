@@ -15,7 +15,7 @@ import xv.sync;
 
 namespace xv::drivers
 {
-inline constexpr unsigned GpuQueueEntries = 16;
+inline constexpr unsigned GpuQueueEntries = 32;
 
 struct GpuAvailableRing
 {
@@ -79,12 +79,15 @@ private:
 
   struct InitializeFlow;
   struct DrawFlow;
+  struct MapFlow;
+  struct MappedPresentFlow;
   static constexpr unsigned Width = XV_DISPLAY_WIDTH;
   static constexpr unsigned Height = XV_DISPLAY_HEIGHT;
   static constexpr unsigned Stride = Width * 4;
   static_assert(Width >= 640 && Width <= 1920);
   static_assert(Height >= 480 && Height <= 1080);
-  static constexpr unsigned FramePages = (Stride * Height + 4095) / 4096;
+  static constexpr unsigned BackingHeight = Height * 2;
+  static constexpr unsigned FramePages = (Stride * BackingHeight + 4095) / 4096;
   static constexpr unsigned RequestPages = (32 + FramePages * 16 + 4095) / 4096;
   static constexpr unsigned ResponsePage = 3 + RequestPages;
   static constexpr unsigned ControlPages = ResponsePage + 1;
@@ -98,7 +101,8 @@ private:
   void *control_[ControlPages]{};
   void *frame_[FramePages]{};
   unsigned short used_index_ = 0;
-  unsigned scanout_ = 0;
+  unsigned scanout_ = 0, origin_y_ = 0;
+  FramebufferMappedStats mapped_stats_{};
   unsigned long fence_ = 0;
   bool ready_ = false;
   FramebufferTiming timing_{};
@@ -108,7 +112,8 @@ private:
   bool setup();
   bool submit(unsigned bytes, unsigned response_type, unsigned minimum = 24);
   void packet(unsigned offset, const void *data, unsigned bytes);
-  bool present(unsigned x, unsigned y, unsigned width, unsigned height);
+  bool present(unsigned x, unsigned y, unsigned width, unsigned height,
+               unsigned origin_y = 0);
   void offline();
   bool copy_pixels(const FramebufferUpdate &, IoBuffer);
 };
