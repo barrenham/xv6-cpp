@@ -1,6 +1,6 @@
 # xv-labs-cpp-2026
 
-当前版本：`v0.0.2`。
+当前版本：`v0.0.3`。
 
 用 C++20 重构的 xv6 RISC-V 教学操作系统。内核按具名模块组织，通过类接口和 RAII 管理设备、内存、文件与进程资源。使用 CMake、Ninja 和 Clang/LLD 构建，在 QEMU 上运行。
 
@@ -71,6 +71,7 @@ cmake --build build/dev --target qemu
 
 ## 文档
 
+- [v0.0.3 版本说明](docs/releases/v0.0.3.md)：图形终端、共享显存、GPU 视口滚屏及系统基础设施更新。
 - [v0.0.2 版本说明](docs/releases/v0.0.2.md)：rootfs 工具、防火墙与网络层重构。
 
 - [rootfs 创建与程序更新](docs/rootfs-tools.md)：新使用者设置自己的密码，离线更新现有系统程序。
