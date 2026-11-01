@@ -32,30 +32,65 @@ int compare_bytes(const void *v1, const void *v2, unsigned long n)
 
 void *move(void *dst, const void *src, unsigned long n)
 {
-  const char *s;
-  char *d;
-
-  if (n == 0)
+  auto *d = static_cast<unsigned char *>(dst);
+  auto *s = static_cast<const unsigned char *>(src);
+  if (!n || d == s)
   {
     return dst;
   }
-
-  s = static_cast<const char *>(src);
-  d = static_cast<char *>(dst);
-  if (s < d && s + n > d)
+  // Word accesses are used only when both addresses have equal alignment.
+  // Prefix/tail bytes stay inside the requested interval, including overlap.
+  typedef unsigned long AliasWord __attribute__((__may_alias__));
+  constexpr unsigned width = sizeof(AliasWord);
+  auto destination = reinterpret_cast<unsigned long>(d);
+  auto source = reinterpret_cast<unsigned long>(s);
+  bool aligned = ((destination ^ source) & (width - 1)) == 0;
+  if (destination > source && destination - source < n)
   {
-    s += n;
     d += n;
-    while (n-- > 0)
+    s += n;
+    if (aligned)
+    {
+      while (n && (reinterpret_cast<unsigned long>(d) & (width - 1)))
+      {
+        *--d = *--s;
+        --n;
+      }
+      while (n >= width)
+      {
+        d -= width;
+        s -= width;
+        *reinterpret_cast<AliasWord *>(d) = *reinterpret_cast<const AliasWord *>(s);
+        n -= width;
+      }
+    }
+    while (n)
     {
       *--d = *--s;
+      --n;
     }
   }
   else
   {
-    while (n-- > 0)
+    if (aligned)
+    {
+      while (n && (reinterpret_cast<unsigned long>(d) & (width - 1)))
+      {
+        *d++ = *s++;
+        --n;
+      }
+      while (n >= width)
+      {
+        *reinterpret_cast<AliasWord *>(d) = *reinterpret_cast<const AliasWord *>(s);
+        d += width;
+        s += width;
+        n -= width;
+      }
+    }
+    while (n)
     {
       *d++ = *s++;
+      --n;
     }
   }
 

@@ -102,6 +102,10 @@ class Renderer
 public:
 
   unsigned long long raster_rows = 0, reused_rows = 0;
+  unsigned damage_width = 0;
+  bool trim = true;
+  unsigned long long move_ticks = 0;
+  unsigned long (*clock)() = nullptr;
 
   template <class Submit>
   bool paint(Terminal &terminal, unsigned width, unsigned height, unsigned *pixels,
@@ -112,6 +116,34 @@ public:
     long long origin =
         static_cast<long long>(terminal.scroll_position) - terminal.view_offset;
     long long delta = valid ? origin - origin_ : 0;
+    // Outside this extent every old and new row is the default background.
+    // Include old content too: shortening a line must erase its former tail.
+    damage_width = valid && trim ? 0 : width;
+    if (valid && trim)
+    {
+      for (unsigned row = 0; row < terminal.rows; ++row)
+      {
+        for (unsigned column = 0; column < terminal.columns; ++column)
+        {
+          const auto &a = terminal.display_cell(row, column);
+          const auto &b = previous_[row][column];
+          if (a.character != ' ' || a.background || b.character != ' ' ||
+              b.background || terminal.display_cursor(row, column) ||
+              cursor_[row] == static_cast<int>(column))
+          {
+            if ((column + 1) * cell_width > damage_width)
+            {
+              damage_width = (column + 1) * cell_width;
+            }
+          }
+        }
+      }
+    }
+    // A blank-to-blank shift still has a valid, harmless one-pixel rectangle.
+    if (!damage_width)
+    {
+      damage_width = 1;
+    }
     unsigned first = terminal.rows, end = 0;
     for (unsigned step = 0; step < terminal.rows; ++step)
     {
@@ -149,10 +181,15 @@ public:
       {
         const unsigned *source = pixels + old * cell_height * width;
         // Different character rows do not overlap; row order protects later sources.
-        for (unsigned i = 0; i < cell_height * width; ++i)
+        auto begin = clock ? clock() : 0;
+        for (unsigned y = 0; y < cell_height; ++y)
         {
-          destination[i] = source[i];
+          for (unsigned x = 0; x < damage_width; ++x)
+          {
+            destination[y * width + x] = source[y * width + x];
+          }
         }
+        move_ticks += clock ? clock() - begin : 0;
         ++reused_rows;
         continue;
       }

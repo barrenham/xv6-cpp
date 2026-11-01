@@ -557,15 +557,15 @@
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cppm",
-      "sha256": "8ec2263d8c4b96a60716faa5b5911fa5761f3db6fd5807d5b70237782294a298",
+      "sha256": "381b72e3548d7512ec5e8c107a4817818fa789aef09b0160fbdbd308c77de54a",
       "review": "GPU尺寸由编译期配置限定640..1920×480..1080，默认1280×800。仅GPU采用16槽描述符和独立ring布局；FramePages按像素字节向上取整，RequestPages按32+FramePages*16向上取整，ResponsePage紧随请求，ControlPages=RequestPages+4。静态断言保证最大8请求页加1响应描述符不超过16槽；原设备接口和ABI保持。 增加IRQ/运行等待/启动轮询/失败计数，单个持锁请求与DMA布局保持。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cpp",
-      "sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
-      "review": "InitializeFlow按配置分配所有显存/请求/响应页；submit使用GPU专用16槽环，长度上界为RequestPages*4096，响应地址由ResponsePage计算，scatter条目不会覆盖响应。DrawFlow校验当前Width/Height及stride/用户地址边界；copy_pixels与present使用配置Stride。原FENCE/完成索引/类型/长度检查、500ms期限、sleep锁及reset确认后回收DMA保持；无GPU零DMA。640×480、1280×800、1920×1080实际运行和全部分配失败点均核对。 submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。",
+      "sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
+      "review": "InitializeFlow按配置分配所有显存/请求/响应页；submit使用GPU专用16槽环，长度上界为RequestPages*4096，响应地址由ResponsePage计算，scatter条目不会覆盖响应。DrawFlow校验当前Width/Height及stride/用户地址边界；copy_pixels与present使用配置Stride。原FENCE/完成索引/类型/长度检查、500ms期限、sleep锁及reset确认后回收DMA保持；无GPU零DMA。640×480、1280×800、1920×1080实际运行和全部分配失败点均核对。 submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。 分段累计copy、transfer、flush墙钟毫秒；新增独立40字节GET_TIMING，仅root读取并持原io sleep锁；旧32字节GET_STATS保持。copy失败累计耗时但不计成功复制量，完整复制后计draws/bytes；设备完成验证、IRQ睡眠和reset所有权不变。",
       "graph_entries": [
         {
           "qualified": "xv::drivers::VirtioGpu::initialize",
@@ -576,18 +576,18 @@
             "InitializeFlow::Graph"
           ],
           "review": "本轮展开单行函数、条件/循环及协议结构，命令/状态/fence/resource常量具名化；InitializeFlow/DrawFlow、306页分配、两页请求、500ms有界等待、used/id/长度/fence校验、reset后释放及错误时保留DMA语义逐项保留。通过实际GPU契约和QMP像素回归核对。 submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。",
-          "sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d"
+          "sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5"
         },
         {
           "qualified": "xv::drivers::VirtioGpu::ioctl",
           "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
           "source": "kernel/drivers/display/virtio_gpu.cpp",
-          "source_sha256": "a7537da13f3ad995977da4cf32936d244a2c39bc8878e7ae2a00047073853af9",
+          "source_sha256": "a94418945f136b0823c8ac29d2c1d898a1ac53ea71927ae8508b7554738d6545",
           "graphs": [
             "DrawFlow::Graph"
           ],
           "review": "本轮展开单行函数、条件/循环及协议结构，命令/状态/fence/resource常量具名化；InitializeFlow/DrawFlow、306页分配、两页请求、500ms有界等待、used/id/长度/fence校验、reset后释放及错误时保留DMA语义逐项保留。通过实际GPU契约和QMP像素回归核对。 submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。",
-          "sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d"
+          "sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5"
         }
       ],
       "pending": []

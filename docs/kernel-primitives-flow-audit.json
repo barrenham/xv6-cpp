@@ -436,8 +436,8 @@
         },
         {
           "source": "kernel/io/framebuffer.h",
-          "sha256": "cb43a37bfaa4faa6a1bc9a33e23cbe6b9bd9467d24826307e01fc61aea640b3f",
-          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。",
+          "sha256": "d05efa280ef24cce746df6b4d4f916a4ed491a3b96171c43df0e5327bb8f1522",
+          "review": "项目v1帧缓冲ioctl ABI，BGRX8888像素，显式固定宽度布局断言；不是Linux framebuffer二进制ABI。 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。 新增独立40字节GET_TIMING ABI，不改变旧信息、绘图和32字节统计结构。",
           "graph_entries": [],
           "pending": []
         },
@@ -551,8 +551,8 @@
         },
         {
           "source": "kernel/support/string.cpp",
-          "sha256": "9a7a3252ae591ee35414ec80535b9a44c4b29321e093325259c47ee0cff5cc78",
-          "review": "逐字节 fill/move/compare/copy/length，包含重叠方向和 NUL 策略，为紧凑数据原语，不能按字节增加图分派。 fill委托对齐机器字byte_fill，保留原字节语义。",
+          "sha256": "ab3f771535bf3787b58ada09f17138b546eefe69e9a68ff5fbfb2aec066c82c0",
+          "review": "逐字节 fill/move/compare/copy/length，包含重叠方向和 NUL 策略，为紧凑数据原语，不能按字节增加图分派。 fill委托对齐机器字byte_fill，保留原字节语义。 runtime::move为有界内存原语：同余对齐时以may_alias机器字复制，前后缀逐字节且不越界；向后重叠倒序、其余正序，不同余对齐回退逐字节。无分配/锁/重试，不新增控制图。",
           "graph_entries": [],
           "pending": []
         },

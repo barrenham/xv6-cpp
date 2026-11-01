@@ -3724,7 +3724,7 @@
         "initialize"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
+      "definition_sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
       "graphs": [
         "InitializeFlow::Graph"
       ],
@@ -3747,7 +3747,7 @@
         "ioctl"
       ],
       "definition": "kernel/drivers/display/virtio_gpu.cpp",
-      "definition_sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
+      "definition_sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
       "graphs": [
         "DrawFlow::Graph"
       ],
@@ -3756,7 +3756,7 @@
           "qualified": "xv::drivers::VirtioGpu::ioctl",
           "usr": "c:@N@xv@N@drivers@S@VirtioGpu@F@ioctl#i#$@N@xv@N@drivers@S@IoBuffer#",
           "source": "kernel/drivers/display/virtio_gpu.cpp",
-          "source_sha256": "a7537da13f3ad995977da4cf32936d244a2c39bc8878e7ae2a00047073853af9",
+          "source_sha256": "a94418945f136b0823c8ac29d2c1d898a1ac53ea71927ae8508b7554738d6545",
           "graphs": [
             "DrawFlow::Graph"
           ]

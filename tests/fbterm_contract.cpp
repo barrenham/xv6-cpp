@@ -3,6 +3,7 @@
 #include "user/apps/fbterm/render.h"
 #include "user/apps/fbterm/pacing.h"
 #include "user/apps/fbterm/navigation.h"
+#include "user/apps/fbterm/snapshot.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -74,6 +75,13 @@ int main()
   // Saturation remains safe even for extremely large read sizes.
   volume.output(2 * ms, ~0u, false);
   assert(volume.timeout(2 * ms) == 20);
+  Pacer asynchronous;
+  asynchronous.output(0, 4096, true);
+  asynchronous.complete(20 * ms, 21 * ms);
+  asynchronous.output(22 * ms, 32, true);
+  asynchronous.feedback(30 * ms, 10 * ms);
+  assert(asynchronous.timeout(30 * ms) == 100);
+  assert(asynchronous.timeout(130 * ms) == 0);
   fbterm::Navigation navigation;
   char forwarded[4];
   int page = 0;
@@ -333,10 +341,17 @@ int main()
   terminal.set_history(history);
   assert(terminal.configure(1366, 768));
   unsigned submissions = 0;
+  static unsigned displayed[1366 * 768];
   auto cached_submit = [&](unsigned top, unsigned height, unsigned *data)
   {
     assert(top < 768 && height && top + height <= 768);
     assert(data == frame + top * 1366);
+    assert(cached.damage_width && cached.damage_width <= 1366);
+    for (unsigned y = 0; y < height; ++y)
+    {
+      std::memcpy(displayed + (top + y) * 1366, data + y * 1366,
+                  cached.damage_width * sizeof(unsigned));
+    }
     ++submissions;
     return true;
   };
@@ -348,6 +363,7 @@ int main()
       for (unsigned x = 0; x < 1366; ++x)
       {
         assert(frame[y * 1366 + x] == terminal.pixel(x, y));
+        assert(displayed[y * 1366 + x] == terminal.pixel(x, y));
       }
     }
   };
@@ -364,6 +380,7 @@ int main()
   compare();
   assert(cached.raster_rows - rows_before <= 2);
   assert(cached.reused_rows - reused_before >= terminal.rows - 2);
+  assert(cached.damage_width < 1366 / 2);
   terminal.scroll_history(15);
   compare();
   auto presentations = submissions;
@@ -372,11 +389,64 @@ int main()
   assert(submissions == presentations); // Frozen history needs no redraw.
   terminal.scroll_history(-7);
   compare();
+  // A pending snapshot is immutable while the producer continues consuming.
+  static fbterm::Snapshot snapshot;
+  static fbterm::Terminal consumer;
+  assert(consumer.configure(1366, 768));
+  snapshot.capture(terminal);
+  static unsigned char wire[fbterm::Snapshot::wire_capacity];
+  unsigned wire_size = snapshot.encode(wire, terminal.rows, terminal.columns);
+  assert(wire_size < sizeof(snapshot));
+  static fbterm::Snapshot decoded;
+  assert(decoded.decode(wire, wire_size, terminal.rows, terminal.columns));
+  for (unsigned cut :
+       {0U, 7U, unsigned(sizeof(fbterm::Snapshot::Header)), wire_size - 1})
+  {
+    assert(!decoded.decode(wire, cut, terminal.rows, terminal.columns));
+  }
+  assert(decoded.decode(wire, wire_size, terminal.rows, terminal.columns));
+  decoded.restore(consumer);
+  assert(!consumer.cursor_visible);
+  for (unsigned row = 0; row < terminal.rows; ++row)
+  {
+    for (unsigned column = 0; column < terminal.columns; ++column)
+    {
+      assert(!std::memcmp(&consumer.cells[row][column],
+                          &terminal.display_cell(row, column), sizeof(fbterm::Cell)));
+    }
+  }
+  auto saved_cell = consumer.cells[0][0];
+  feed("more output while a frame is in flight\r\n");
+  snapshot.restore(consumer);
+  assert(!std::memcmp(&saved_cell, &consumer.cells[0][0], sizeof(saved_cell)));
+  assert(consumer.configure(1920, 1080));
+  for (unsigned row = 0; row < consumer.rows; ++row)
+  {
+    for (unsigned column = 0; column < consumer.columns; ++column)
+    {
+      consumer.cells[row][column] = {static_cast<unsigned char>('A' + column % 26),
+                                     static_cast<unsigned char>(1 + column % 2),
+                                     static_cast<unsigned char>(row % 16)};
+    }
+  }
+  snapshot.capture(consumer);
+  wire_size = snapshot.encode(wire, consumer.rows, consumer.columns);
+  assert(wire_size == sizeof(wire)); // Worst case: a color change at every cell.
+  assert(decoded.decode(wire, wire_size, consumer.rows, consumer.columns));
+  assert(!std::memcmp(decoded.cells, snapshot.cells, sizeof(snapshot.cells)));
+  wire[sizeof(fbterm::Snapshot::Header) + 2] = 127;
+  assert(!decoded.decode(wire, wire_size, consumer.rows, consumer.columns));
   terminal.live();
   compare();
   feed("\033[2;3H\033[44mcolored edit\033[0m");
   compare();
-  feed("retry");
+  feed("\033[1;100Hwide tail\033[0m");
+  compare();
+  feed("\033[1;1H\033[2Kshort");
+  compare();
+  feed("\033[45m\033[2J\033[0m");
+  compare();
+  feed("\033[2Jretry");
   assert(!cached.paint(terminal, 1366, 768, frame,
                        [](unsigned, unsigned, unsigned *) { return false; }));
   compare();

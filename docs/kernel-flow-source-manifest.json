@@ -117,13 +117,13 @@
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cpp",
-      "sha256": "114ec2f33d3f06229ed5693cb851c5d226d9b39d3396bb66b16ec193c462464d",
+      "sha256": "0a6a0ab23f0a7512b1ddc9efa636cb580cb974f03f467b28e201f5e69622bcd5",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json submit运行期通过完成通道等待并保留500ms期限，IRQ确认后唤醒；root可读取诊断计数。完成fence、used长度/增量检查、故障reset及DMA所有权保持。"
     },
     {
       "source": "kernel/drivers/display/virtio_gpu.cppm",
-      "sha256": "8ec2263d8c4b96a60716faa5b5911fa5761f3db6fd5807d5b70237782294a298",
+      "sha256": "381b72e3548d7512ec5e8c107a4817818fa789aef09b0160fbdbd308c77de54a",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/drivers-flow-audit.json 增加IRQ/运行等待/启动轮询/失败计数，单个持锁请求与DMA布局保持。"
     },
@@ -740,7 +740,7 @@
     },
     {
       "source": "kernel/io/framebuffer.h",
-      "sha256": "cb43a37bfaa4faa6a1bc9a33e23cbe6b9bd9467d24826307e01fc61aea640b3f",
+      "sha256": "d05efa280ef24cce746df6b4d4f916a4ed491a3b96171c43df0e5327bb8f1522",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。"
     },
@@ -2126,7 +2126,7 @@
     },
     {
       "source": "kernel/support/string.cpp",
-      "sha256": "9a7a3252ae591ee35414ec80535b9a44c4b29321e093325259c47ee0cff5cc78",
+      "sha256": "ab3f771535bf3787b58ada09f17138b546eefe69e9a68ff5fbfb2aec066c82c0",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },

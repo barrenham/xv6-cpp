@@ -122,3 +122,5 @@ python3 tools/profile_fbterm.py --cpus 5 --rounds 2 --benchmark-scroll \
   和网络子树保持。fork门禁按用户要求跳过。
 
 [验收记录与逐帧数据](scrollback-acceptance.json)。重启QEMU使用新内核及fbterm。
+
+后续输出/显示解耦、裁剪提交与复制优化见[显示管道优化](display-pipeline.md)。

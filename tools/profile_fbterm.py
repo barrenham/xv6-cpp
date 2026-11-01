@@ -23,6 +23,7 @@ from create_rootfs import Image, FILE
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, default=Path('build/dev'))
+    parser.add_argument('--kernel', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--qemu', default='qemu-system-riscv64')
     parser.add_argument('--cpus', type=int, choices=(1, 5), default=1)
@@ -31,6 +32,8 @@ def main():
     parser.add_argument('--vnc-client', action='store_true')
     parser.add_argument('--no-serial-mirror', action='store_true')
     parser.add_argument('--benchmark-scroll', action='store_true')
+    parser.add_argument('--damage', choices=('trimmed', 'full'), default='trimmed')
+    parser.add_argument('--display', choices=('async', 'sync'), default='async')
     parser.add_argument('--raster', choices=('cached','full'), default='cached')
     parser.add_argument('--modes', nargs='+')
     args = parser.parse_args()
@@ -68,7 +71,7 @@ def main():
         width = int(re.search(r'^XV_DISPLAY_WIDTH:STRING=(\d+)$', cache, re.M)[1])
         height = int(re.search(r'^XV_DISPLAY_HEIGHT:STRING=(\d+)$', cache, re.M)[1])
         command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel',
-                   str(args.build / 'kernel.elf'), '-m', '128M', '-smp', str(args.cpus),
+                   str(args.kernel or args.build / 'kernel.elf'), '-m', '128M', '-smp', str(args.cpus),
                    '-display', 'none', '-serial', 'stdio', '-global',
                    'virtio-mmio.force-legacy=false', '-drive',
                    f'file={disk},if=none,format=raw,id=x0', '-device',
@@ -168,7 +171,7 @@ def main():
                     start_traffic = traffic.copy()
                     option = '--no-serial-mirror ' if args.no_serial_mirror else ''
                     task = '--benchmark-scroll' if args.benchmark_scroll else option + 'cat /burst.txt'
-                    guest.stdin.write(f'env FBTERM_PROFILE={mode} FBTERM_RASTER={args.raster} fbterm {task}\n'.encode())
+                    guest.stdin.write(f'env FBTERM_PROFILE={mode} FBTERM_RASTER={args.raster} FBTERM_DISPLAY={args.display} FBTERM_DAMAGE={args.damage} fbterm {task}\n'.encode())
                     guest.stdin.flush()
                     expect('fbterm: benchmark start' if args.benchmark_scroll else 'fbterm: connected')
                     expect('fbterm: benchmark complete' if args.benchmark_scroll else 'fbterm: disconnected')
@@ -197,6 +200,11 @@ def main():
                                   vnc_updates=traffic['updates']-start_traffic['updates'])
                     gpu = re.search(rb'GPUSTATS ([^\r\n]+)', segment)
                     result['gpu'] = {key: int(value) for key, value in re.findall(r'(\w+)=(\d+)', gpu[1].decode())} if gpu else {}
+                    stages = re.search(rb'FBSTAGES ([^\r\n]+)', segment)
+                    result['stages'] = {key: int(value) for key, value in
+                        re.findall(r'(\w+)=(\d+)', stages[1].decode())} if stages else {}
+                    result['damage'] = args.damage
+                    result['display'] = args.display
                     result['raster'] = args.raster
                     result['benchmark_scroll'] = args.benchmark_scroll
                     result['frame_samples'] = [

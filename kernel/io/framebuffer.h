@@ -22,3 +22,11 @@ struct FramebufferStats
   unsigned long long interrupts, runtime_waits, boot_polls, failed_waits;
 };
 static_assert(sizeof(FramebufferStats) == 32);
+
+// Independent diagnostic ABI: original GET_STATS remains exactly 32 bytes.
+inline constexpr unsigned XV_FB_GET_TIMING = 0x58460004U;
+struct FramebufferTiming
+{
+  uint64 copy_ms, transfer_ms, flush_ms, copied_bytes, draws;
+};
+static_assert(sizeof(FramebufferTiming) == 40);

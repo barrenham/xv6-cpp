@@ -11044,7 +11044,7 @@
     "kind": "Function",
     "usr": "c:@N@xv@N@runtime@F@move#*v#*1v#l#",
     "hover_expectation": "observe",
-    "source_sha256": "fc1091e811880d3abe05cea2e7deb91a3d6cbc0fb13332355542680a1fff27e7"
+    "source_sha256": "1e8db76387b2922879808391d5c58b272b343bf62246d67c4d44d57cf1c5694f"
   },
   {
     "anchor": "fn-d746938e9fff88f5",
@@ -67325,7 +67325,7 @@
     "signature": "bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)",
     "spelling": "present",
     "fn": "bool xv::drivers::VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)",
-    "source_sha256": "fc7c7ea2db437161c8e011dc0d03b5bd5b6a5f065e34ef5f7d06dfc4e4867a20"
+    "source_sha256": "53aea28191d9fb9ccbadf2bbf565fb5d8c43104d5c392ecb9aee7391ed469e73"
   },
   {
     "anchor": "fn-da8e12e4f3828f60",
@@ -67507,7 +67507,7 @@
     "signature": "static void copy(Context &c) noexcept",
     "spelling": "copy",
     "fn": "static void xv::drivers::VirtioGpu::DrawFlow::copy(Context &c) noexcept",
-    "source_sha256": "ee3b827bcbfa70eb92e4d5be71064df1457510992473f4563184948037117f56"
+    "source_sha256": "aed5feb5a75d291f8eaf36117f7c75e43251c9f1986ac816e339dc5291fe54eb"
   },
   {
     "anchor": "fn-76c0057bbd8b8849",
@@ -67546,7 +67546,7 @@
     "signature": "int VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
     "spelling": "ioctl",
     "fn": "int xv::drivers::VirtioGpu::ioctl(unsigned request, IoBuffer argument)",
-    "source_sha256": "a7537da13f3ad995977da4cf32936d244a2c39bc8878e7ae2a00047073853af9"
+    "source_sha256": "a94418945f136b0823c8ac29d2c1d898a1ac53ea71927ae8508b7554738d6545"
   },
   {
     "anchor": "fn-46afcdf81348cbc3",

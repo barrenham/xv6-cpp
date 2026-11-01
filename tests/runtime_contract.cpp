@@ -51,6 +51,43 @@ int main()
         "byte comparison treats high bits as unsigned");
   check(rt::fill(bytes, 1, 0) == bytes && bytes[0] == 0, "empty fill");
 
+  // Compare both overlap directions, independent alignments and page-size
+  // copies against libc, checking the entire surrounding allocation each time.
+  for (unsigned destination = 0; destination < 32; ++destination)
+  {
+    for (unsigned source = 0; source < 32; ++source)
+    {
+      for (unsigned length : {0U, 1U, 7U, 8U, 9U, 15U, 16U, 17U, 63U,
+                              64U, 65U, 255U, 4095U, 4096U, 8192U})
+      {
+        for (unsigned i = 0; i < sizeof(actual); ++i)
+        {
+          actual[i] = expected[i] = (i * 29 + i / 13) & 255;
+        }
+        check(rt::move(actual + destination, actual + source, length) ==
+                  actual + destination, "move returns destination across alignments");
+        std::memmove(expected + destination, expected + source, length);
+        check(!std::memcmp(actual, expected, sizeof(actual)),
+              "word move matches libc with overlap and preserves both boundaries");
+      }
+    }
+  }
+  auto *mapping = static_cast<unsigned char *>(mmap(
+      nullptr, page * 6, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
+  check(mapping != MAP_FAILED &&
+            !mprotect(mapping + page, page, PROT_READ | PROT_WRITE) &&
+            !mprotect(mapping + page * 4, page, PROT_READ | PROT_WRITE),
+        "move guard mapping");
+  auto *source_page = mapping + page;
+  auto *destination_page = mapping + page * 4;
+  std::memset(source_page, 0x5a, page);
+  for (unsigned long length = 0; length <= page; ++length)
+  {
+    rt::move(destination_page + page - length, source_page, length);
+    rt::move(destination_page, source_page + page - length, length);
+  }
+  check(!munmap(mapping, page * 6), "move guard release");
+
   char overlap[] = "abcdef";
   check(rt::move(overlap + 1, overlap, 5) == overlap + 1, "move returns destination");
   check(rt::compare_bytes(overlap, "aabcde", 7) == 0, "backward overlap");

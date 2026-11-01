@@ -10,6 +10,7 @@
 #include "render.h"
 #include "pacing.h"
 #include "navigation.h"
+#include "snapshot.h"
 #include "user/runtime/user.h"
 #include "user/runtime/terminal_proxy.h"
 
@@ -27,7 +28,7 @@ struct Diagnostics
 {
   uint64 poll_ticks = 0, read_ticks = 0, feed_ticks = 0;
   uint64 paint_ticks = 0, draw_ticks = 0, mirror_ticks = 0;
-  uint64 bytes = 0, mirrored = 0, pixel_bytes = 0;
+  uint64 bytes = 0, mirrored = 0, pixel_bytes = 0, busy_bytes = 0;
   uint64 polls = 0, reads = 0, writes = 0, frames = 0, draws = 0;
   uint64 max_draw_ticks = 0, max_raster_ticks = 0;
 } diagnostics;
@@ -39,6 +40,7 @@ struct FrameSample
 
 FrameSample frame_samples[256]{};
 FramebufferStats gpu_stats{};
+FramebufferTiming gpu_timing{}, gpu_timing_begin{};
 bool reference_raster = false;
 uint64 sample_count = 0;
 
@@ -64,6 +66,8 @@ bool configure_profile()
     return false;
   }
   reference_raster = raster && !strcmp(raster, "full");
+  const char *damage = getenv("FBTERM_DAMAGE");
+  renderer.trim = !damage || strcmp(damage, "full");
   if (!strcmp(profile_mode, "normal") || !strcmp(profile_mode, "frames"))
   {
     return true;
@@ -101,7 +105,7 @@ void report(uint64 elapsed)
   printf("FBPROFILE mode=%s elapsed=%lu poll=%lu read=%lu feed=%lu raster=%lu "
          "draw=%lu mirror=%lu bytes=%lu mirrored=%lu pixels=%lu polls=%lu "
          "reads=%lu writes=%lu frames=%lu draws=%lu maxdraw=%lu maxraster=%lu "
-         "rasterrows=%lu reusedrows=%lu\n",
+         "rasterrows=%lu reusedrows=%lu busybytes=%lu\n",
          profile_mode, elapsed, diagnostics.poll_ticks, diagnostics.read_ticks,
          diagnostics.feed_ticks, diagnostics.paint_ticks - diagnostics.draw_ticks,
          diagnostics.draw_ticks, diagnostics.mirror_ticks, diagnostics.bytes,
@@ -109,12 +113,20 @@ void report(uint64 elapsed)
          diagnostics.reads, diagnostics.writes, diagnostics.frames, diagnostics.draws,
          diagnostics.max_draw_ticks, diagnostics.max_raster_ticks,
          static_cast<uint64>(renderer.raster_rows),
-         static_cast<uint64>(renderer.reused_rows));
+         static_cast<uint64>(renderer.reused_rows), diagnostics.busy_bytes);
   printf("GPUSTATS interrupts=%lu waits=%lu bootpolls=%lu failed=%lu\n",
          static_cast<uint64>(gpu_stats.interrupts),
          static_cast<uint64>(gpu_stats.runtime_waits),
          static_cast<uint64>(gpu_stats.boot_polls),
          static_cast<uint64>(gpu_stats.failed_waits));
+  printf("FBSTAGES move=%lu copy_ms=%lu transfer_ms=%lu flush_ms=%lu "
+         "copied=%lu gpudraws=%lu\n",
+         static_cast<uint64>(renderer.move_ticks),
+         gpu_timing.copy_ms - gpu_timing_begin.copy_ms,
+         gpu_timing.transfer_ms - gpu_timing_begin.transfer_ms,
+         gpu_timing.flush_ms - gpu_timing_begin.flush_ms,
+         gpu_timing.copied_bytes - gpu_timing_begin.copied_bytes,
+         gpu_timing.draws - gpu_timing_begin.draws);
   if (!strcmp(profile_mode, "frames"))
   {
     uint64 first = sample_count > 256 ? sample_count - 256 : 0;
@@ -164,13 +176,9 @@ bool flush(int framebuffer)
   uint64 rows_before = renderer.raster_rows, reuse_before = renderer.reused_rows;
   auto submit = [&](unsigned top, unsigned height, unsigned *data)
   {
-    FramebufferUpdate update{0,
-                             top,
-                             screen.width,
-                             height,
-                             screen.width * 4,
-                             0,
-                             reinterpret_cast<uint64>(data)};
+    unsigned width = reference_raster ? screen.width : renderer.damage_width;
+    FramebufferUpdate update{
+        0, top, width, height, screen.width * 4, 0, reinterpret_cast<uint64>(data)};
     if (profiling)
     {
       ++diagnostics.frames;
@@ -192,7 +200,7 @@ bool flush(int framebuffer)
       uint64 duration = timestamp() - begin;
       diagnostics.draw_ticks += duration;
       ++diagnostics.draws;
-      diagnostics.pixel_bytes += screen.width * height * 4;
+      diagnostics.pixel_bytes += width * height * 4;
       if (duration > diagnostics.max_draw_ticks)
       {
         diagnostics.max_draw_ticks = duration;
@@ -224,6 +232,267 @@ bool flush(int framebuffer)
   return okay;
 }
 
+fbterm::Snapshot render_snapshot{};
+unsigned char render_wire[fbterm::Snapshot::wire_capacity]{};
+
+// A renderer is the only process allowed to draw after start(). The I/O
+// process sends at most one cell snapshot and continues servicing the PTY.
+class Presenter
+{
+public:
+
+  int writer = -1, reader = -1, pid = -1;
+  bool busy = false;
+  uint64 completed_cost = 0;
+
+  bool start(int framebuffer, int master)
+  {
+    framebuffer_ = framebuffer;
+    const char *mode = profiling ? getenv("FBTERM_DISPLAY") : nullptr;
+    synchronous_ = mode && !strcmp(mode, "sync");
+    if (synchronous_)
+    {
+      return true;
+    }
+    int requests[2] = {-1, -1}, replies[2] = {-1, -1};
+    if (pipe(requests) < 0 || pipe(replies) < 0)
+    {
+      for (int fd : requests)
+      {
+        if (fd >= 0)
+        {
+          close(fd);
+        }
+      }
+      for (int fd : replies)
+      {
+        if (fd >= 0)
+        {
+          close(fd);
+        }
+      }
+      return false;
+    }
+    pid = fork();
+    if (pid == 0)
+    {
+      close(requests[1]);
+      close(replies[0]);
+      close(master);
+      close(0);
+      close(1);
+      close(2);
+      signal(SIGTERM, SIG_DFL);
+      signal(SIGHUP, SIG_DFL);
+      signal(SIGINT, SIG_IGN);
+      diagnostics = {};
+      sample_count = 0;
+      renderer.raster_rows = renderer.reused_rows = renderer.move_ticks = 0;
+      for (;;)
+      {
+        unsigned received = 0;
+        unsigned target = sizeof(fbterm::Snapshot::Header);
+        while (received < target)
+        {
+          int n = read(requests[0], render_wire + received, target - received);
+          if (n <= 0)
+          {
+            exit(received ? 1 : 0);
+          }
+          received += n;
+          if (received == sizeof(fbterm::Snapshot::Header))
+          {
+            fbterm::Snapshot::Header header{};
+            memcpy(&header, render_wire, sizeof(header));
+            if (header.bytes < sizeof(header) || header.bytes > sizeof(render_wire))
+            {
+              exit(1);
+            }
+            target = header.bytes;
+          }
+        }
+        if (!render_snapshot.decode(render_wire, received, terminal.rows,
+                                    terminal.columns))
+        {
+          exit(1);
+        }
+        render_snapshot.restore(terminal);
+        uint64 begin = clockticks();
+        bool okay = flush(framebuffer);
+        reply_.cost = clockticks() - begin;
+        reply_.okay = okay;
+        reply_.diagnostics = diagnostics;
+        reply_.raster_rows = renderer.raster_rows;
+        reply_.reused_rows = renderer.reused_rows;
+        reply_.move_ticks = renderer.move_ticks;
+        reply_.sample =
+            sample_count ? frame_samples[(sample_count - 1) % 256] : FrameSample{};
+        reply_.sample_count = sample_count;
+        if (write(replies[1], &reply_, sizeof(reply_)) != sizeof(reply_))
+        {
+          exit(1);
+        }
+        if (!okay)
+        {
+          exit(1);
+        }
+      }
+    }
+    close(requests[0]);
+    close(replies[1]);
+    if (pid < 0)
+    {
+      close(requests[1]);
+      close(replies[0]);
+      return false;
+    }
+    writer = requests[1];
+    reader = replies[0];
+    return fcntl(writer, F_SETFL, O_NONBLOCK) == 0 &&
+           fcntl(reader, F_SETFL, O_NONBLOCK) == 0;
+  }
+
+  bool enqueue()
+  {
+    if (synchronous_)
+    {
+      return flush(framebuffer_);
+    }
+    render_snapshot.capture(terminal);
+    wire_size_ = render_snapshot.encode(render_wire, terminal.rows, terminal.columns);
+    sent_ = received_ = 0;
+    busy = true;
+    return true;
+  }
+
+  bool writing() const
+  {
+    return busy && sent_ < wire_size_;
+  }
+
+  bool progress()
+  {
+    if (writing())
+    {
+      int n = write(writer, render_wire + sent_, wire_size_ - sent_);
+      if (n > 0)
+      {
+        sent_ += n;
+      }
+      else if (n != -EAGAIN)
+      {
+        return false;
+      }
+    }
+    if (busy)
+    {
+      int n = read(reader, reinterpret_cast<char *>(&reply_) + received_,
+                   sizeof(reply_) - received_);
+      if (n > 0)
+      {
+        received_ += n;
+      }
+      else if (n != -EAGAIN)
+      {
+        return false;
+      }
+      if (received_ == sizeof(reply_))
+      {
+        if (!reply_.okay)
+        {
+          return false;
+        }
+        busy = false;
+        completed_cost = reply_.cost;
+        // Parsing, mirroring and poll counters belong to this process.
+        const auto &d = reply_.diagnostics;
+        diagnostics.paint_ticks = d.paint_ticks;
+        diagnostics.draw_ticks = d.draw_ticks;
+        diagnostics.pixel_bytes = d.pixel_bytes;
+        diagnostics.frames = d.frames;
+        diagnostics.draws = d.draws;
+        diagnostics.max_draw_ticks = d.max_draw_ticks;
+        diagnostics.max_raster_ticks = d.max_raster_ticks;
+        renderer.raster_rows = reply_.raster_rows;
+        renderer.reused_rows = reply_.reused_rows;
+        renderer.move_ticks = reply_.move_ticks;
+        if (reply_.sample_count > sample_count)
+        {
+          frame_samples[sample_count++ % 256] = reply_.sample;
+        }
+      }
+    }
+    return true;
+  }
+
+  bool finish(bool dirty)
+  {
+    if (synchronous_)
+    {
+      return !dirty || flush(framebuffer_);
+    }
+    // Publish the last state on EOF/detach, even if an earlier frame is in flight.
+    for (unsigned phase = 0; phase < (dirty ? 2U : 1U); ++phase)
+    {
+      if (phase)
+      {
+        if (!enqueue())
+        {
+          return false;
+        }
+      }
+      uint64 deadline = clockticks() + 5000 * fbterm::FramePacer::Millisecond;
+      while (busy)
+      {
+        pollfd fds[] = {{reader, POLLIN, 0}, {writing() ? writer : -1, POLLOUT, 0}};
+        if (clockticks() >= deadline || poll(fds, 2, 100) < 0 || !progress())
+        {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  void close_worker()
+  {
+    if (writer >= 0)
+    {
+      close(writer);
+    }
+    if (reader >= 0)
+    {
+      close(reader);
+    }
+    if (pid > 0)
+    {
+      if (waitpid(pid, nullptr, WNOHANG) == 0)
+      {
+        kill(pid);
+      }
+      waitpid(pid, nullptr, 0);
+    }
+  }
+
+private:
+
+  int framebuffer_ = -1;
+  bool synchronous_ = false;
+  unsigned wire_size_ = 0;
+
+  struct Reply
+  {
+    Diagnostics diagnostics;
+    FrameSample sample;
+    uint64 raster_rows, reused_rows, move_ticks, sample_count, cost;
+    bool okay;
+  } reply_{};
+
+  unsigned sent_ = 0, received_ = 0;
+};
+
+Presenter presenter{};
+
 bool demo(int framebuffer)
 {
   const char *header = "fbterm: ASCII terminal\r\n";
@@ -241,7 +510,7 @@ bool demo(int framebuffer)
   return flush(framebuffer);
 }
 
-bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
+bool transfer(int master, int &keyboard, int &mouse)
 {
   fbterm::Keyboard keymap{};
   fbterm::Navigation navigation{};
@@ -265,6 +534,8 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
         {sent < used ? 1 : -1, POLLOUT, 0},
         {input_sent < input_used || hungup ? -1 : keyboard, POLLIN, 0},
         {mouse, POLLIN, 0},
+        {presenter.busy ? presenter.reader : -1, POLLIN, 0},
+        {presenter.writing() ? presenter.writer : -1, POLLOUT, 0},
     };
     uint64 now = clockticks();
     if (input_sent == input_used && navigation.timeout(now) == 0)
@@ -276,14 +547,14 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
       pacer.output(now, 0, false);
       continue;
     }
-    int timeout = pacer.timeout(now);
+    int timeout = presenter.busy ? -1 : pacer.timeout(now);
     int navigation_timeout = navigation.timeout(now);
     if (navigation_timeout >= 0 && (timeout < 0 || navigation_timeout < timeout))
     {
       timeout = navigation_timeout;
     }
     uint64 poll_begin = timestamp();
-    int ready = poll(descriptors, 5, timeout);
+    int ready = poll(descriptors, 7, timeout);
     if (profiling)
     {
       diagnostics.poll_ticks += timestamp() - poll_begin;
@@ -292,6 +563,15 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
     if (ready < 0)
     {
       return stopping;
+    }
+    bool was_busy = presenter.busy;
+    if (!presenter.progress())
+    {
+      return false;
+    }
+    if (was_busy && !presenter.busy)
+    {
+      pacer.feedback(clockticks(), presenter.completed_cost);
     }
     if (descriptors[3].revents & (POLLERR | POLLNVAL | POLLHUP))
     {
@@ -352,7 +632,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
       }
       if (n == 0)
       {
-        return !needs_paint || flush(framebuffer);
+        return presenter.finish(needs_paint);
       }
       if (n < 0 && n != -EAGAIN)
       {
@@ -360,7 +640,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
       }
       if (n == -EAGAIN && hungup)
       {
-        return !needs_paint || flush(framebuffer);
+        return presenter.finish(needs_paint);
       }
       if (n > 0)
       {
@@ -370,6 +650,10 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
         {
           diagnostics.feed_ticks += timestamp() - feed_begin;
           diagnostics.bytes += n;
+          if (presenter.busy)
+          {
+            diagnostics.busy_bytes += n;
+          }
         }
         needs_paint = true;
         pacer.output(clockticks(), n, terminal.scrolled);
@@ -404,7 +688,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
       int n = read(0, serial, sizeof(serial));
       if (n == 0)
       {
-        return !needs_paint || flush(framebuffer);
+        return presenter.finish(needs_paint);
       }
       if (n < 0 && n != -EAGAIN)
       {
@@ -418,7 +702,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
         {
           if (terminal_proxy::detach_requested(master, serial[i]))
           {
-            return !needs_paint || flush(framebuffer);
+            return presenter.finish(needs_paint);
           }
           char forwarded[4];
           int page = 0;
@@ -474,7 +758,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
         {
           if (terminal_proxy::detach_requested(master, translated[j]))
           {
-            return !needs_paint || flush(framebuffer);
+            return presenter.finish(needs_paint);
           }
           input[input_used++] = translated[j];
         }
@@ -492,10 +776,10 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
         return false;
       }
     }
-    if (needs_paint && pacer.timeout(clockticks()) == 0)
+    if (needs_paint && !presenter.busy && pacer.timeout(clockticks()) == 0)
     {
       uint64 start = clockticks();
-      if (!flush(framebuffer))
+      if (!presenter.enqueue())
       {
         return false;
       }
@@ -503,7 +787,7 @@ bool transfer(int master, int framebuffer, int &keyboard, int &mouse)
       pacer.complete(start, clockticks());
     }
   }
-  return !needs_paint || flush(framebuffer);
+  return presenter.finish(needs_paint);
 }
 } // namespace
 
@@ -579,6 +863,12 @@ extern "C" int main(int argc, char **argv)
     return 1;
   }
   screen = info;
+  renderer.clock = profiling ? timestamp : nullptr;
+  if (profiling)
+  {
+    ioctl(framebuffer, XV_FB_GET_TIMING,
+          reinterpret_cast<unsigned long>(&gpu_timing_begin));
+  }
   pixels = static_cast<unsigned *>(malloc(info.width * info.height * sizeof(unsigned)));
   auto *history = static_cast<fbterm::Cell(*)[fbterm::max_columns]>(malloc(
       fbterm::Terminal::history_capacity * fbterm::max_columns * sizeof(fbterm::Cell)));
@@ -602,6 +892,8 @@ extern "C" int main(int argc, char **argv)
       return 1;
     }
     printf("fbterm: benchmark start\n");
+    ioctl(framebuffer, XV_FB_GET_TIMING,
+          reinterpret_cast<unsigned long>(&gpu_timing_begin));
     diagnostics = {};
     sample_count = 0;
     renderer.raster_rows = renderer.reused_rows = 0;
@@ -618,6 +910,7 @@ extern "C" int main(int argc, char **argv)
     {
       ioctl(framebuffer, XV_FB_GET_STATS, reinterpret_cast<unsigned long>(&gpu_stats));
     }
+    ioctl(framebuffer, XV_FB_GET_TIMING, reinterpret_cast<unsigned long>(&gpu_timing));
     report(elapsed);
     close(framebuffer);
     printf("fbterm: benchmark %s\n", okay ? "complete" : "failed");
@@ -712,6 +1005,7 @@ extern "C" int main(int argc, char **argv)
                   sigaction(SIGHUP, &action, nullptr) == 0 &&
                   sigaction(SIGINT, &action, nullptr) == 0;
   signal(SIGTSTP, SIG_IGN); // Ctrl-Z is forwarded to the slave's foreground job.
+  bool display_ready = handlers && presenter.start(framebuffer, fds[0]);
   int keyboard = open("/dev/kbd0", O_RDONLY | O_NONBLOCK);
   int mouse = open("/dev/mouse0", O_RDONLY | O_NONBLOCK);
   printf("fbterm: connected (%dx%d); %s keyboard, Ctrl-] exits\n", terminal.columns,
@@ -719,16 +1013,19 @@ extern "C" int main(int argc, char **argv)
   termios raw = saved;
   cfmakeraw(&raw);
   raw.c_lflag |= XV_PROXY;
-  bool configured = handlers && tcsetattr(0, TCSANOW, &raw) == 0 &&
+  bool configured = display_ready && tcsetattr(0, TCSANOW, &raw) == 0 &&
                     fcntl(0, F_SETFL, input_flags | O_NONBLOCK) == 0 &&
                     fcntl(1, F_SETFL, output_flags | O_NONBLOCK) == 0 &&
                     fcntl(fds[0], F_SETFL, O_NONBLOCK) == 0;
+  ioctl(framebuffer, XV_FB_GET_TIMING,
+        reinterpret_cast<unsigned long>(&gpu_timing_begin));
   diagnostics = {};
   sample_count = 0;
   renderer.raster_rows = renderer.reused_rows = 0;
   uint64 transfer_begin = timestamp();
-  bool ok = configured && transfer(fds[0], framebuffer, keyboard, mouse);
+  bool ok = configured && transfer(fds[0], keyboard, mouse);
   uint64 transfer_ticks = timestamp() - transfer_begin;
+  presenter.close_worker();
   if (mouse >= 0)
   {
     close(mouse);
@@ -750,6 +1047,7 @@ extern "C" int main(int argc, char **argv)
   {
     ioctl(framebuffer, XV_FB_GET_STATS, reinterpret_cast<unsigned long>(&gpu_stats));
   }
+  ioctl(framebuffer, XV_FB_GET_TIMING, reinterpret_cast<unsigned long>(&gpu_timing));
   close(framebuffer);
   report(transfer_ticks);
   printf("fbterm: disconnected%s\n", ok ? "" : " (I/O error)");

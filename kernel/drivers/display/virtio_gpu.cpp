@@ -305,13 +305,19 @@ bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height)
                        1,
                        0};
   packet(0, &transfer, sizeof(transfer));
-  if (!submit(sizeof(transfer), Okay))
+  auto begin = detail::terminal_milliseconds();
+  bool transferred = submit(sizeof(transfer), Okay);
+  timing_.transfer_ms += detail::terminal_milliseconds() - begin;
+  if (!transferred)
   {
     return false;
   }
   GpuFlush flush{{ResourceFlush, 0, 0, 0, 0, {}}, {x, y, width, height}, 1, 0};
   packet(0, &flush, sizeof(flush));
-  return submit(sizeof(flush), Okay);
+  begin = detail::terminal_milliseconds();
+  bool flushed = submit(sizeof(flush), Okay);
+  timing_.flush_ms += detail::terminal_milliseconds() - begin;
+  return flushed;
 }
 
 void VirtioGpu::offline()
@@ -485,7 +491,15 @@ struct VirtioGpu::DrawFlow
 
   static void copy(Context &c) noexcept
   {
+    auto begin = detail::terminal_milliseconds();
     c.okay = c.owner.copy_pixels(c.update, c.argument);
+    c.owner.timing_.copy_ms += detail::terminal_milliseconds() - begin;
+    if (c.okay)
+    {
+      c.owner.timing_.copied_bytes +=
+          static_cast<unsigned long>(c.update.width) * c.update.height * 4;
+      ++c.owner.timing_.draws;
+    }
   }
 
   static bool okay(Context &c) noexcept
@@ -537,6 +551,11 @@ int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
                            runtime_waits_, boot_polls_, failed_waits_};
     return detail::copy_out(argument.space == AddressSpace::User, argument.address,
                             &stats, sizeof(stats));
+  }
+  if (request == XV_FB_GET_TIMING && detail::effective_uid() == 0)
+  {
+    return detail::copy_out(argument.space == AddressSpace::User, argument.address,
+                            &timing_, sizeof(timing_));
   }
   if (request != XV_FB_DRAW || detail::effective_uid() != 0)
   {

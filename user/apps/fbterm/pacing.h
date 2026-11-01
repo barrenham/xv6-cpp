@@ -58,6 +58,14 @@ public:
     presented = true;
   }
 
+  // An asynchronous display completion updates the cost without discarding
+  // output that arrived while the renderer was busy.
+  void feedback(Tick now, Tick duration)
+  {
+    cost = duration;
+    last_present = now;
+  }
+
 private:
 
   Tick first = 0, last_output = 0, last_present = 0, cost = 0;

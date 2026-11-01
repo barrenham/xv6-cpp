@@ -1,0 +1,3557 @@
+{
+  "date": "2026-11-01",
+  "status": "passed",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "cpus": 5,
+  "method": "Sequential private QEMU instances, no simultaneous regression guests; two rounds each, one active raw VNC round. Wall timings include scheduling; CPU seconds cover entire fbterm command. No fork performance gates.",
+  "baseline_kernel_sha256": "607b76cb0da14d1fe5f5dc30ffd3cb909fd0fc865231bc6b549558c822738bf6",
+  "current_kernel_sha256": "7eae9f305d8f17956c533ce4d0de4db5ba0f4e3c58427e5f600bd692146046a9",
+  "baseline_runtime_source": "kernel/support/string.cpp at 41af3ab; same GPU timing instrumentation as optimized kernel",
+  "checks": {
+    "contracts": 6,
+    "vm_contracts": 3,
+    "qemu_regressions": 12,
+    "asan_ubsan_leaks": [
+      "fbterm_contract",
+      "runtime_contract"
+    ],
+    "kernel_docs": 5234,
+    "non_network_graphs": 228
+  },
+  "limitations": [
+    "Only two rounds; substantial baseline host timing variation.",
+    "In-flight byte window includes IPC and rendering, not only GPU waits.",
+    "No shared framebuffer, device-side scroll or kernel asynchronous command queue.",
+    "Serial mirroring still applies backpressure.",
+    "Additional renderer process and COW memory; intermediate visual states coalesced, PTY bytes retained."
+  ],
+  "summary": {
+    "baseline-full": {
+      "rounds": 2,
+      "elapsed_s_median": 8.0824678,
+      "copy_ms_per_frame_mean": 90.23333333333333,
+      "transfer_ms_per_frame_mean": 4.241666666666666,
+      "flush_ms_per_frame_mean": 1.8416666666666666,
+      "move_ms_per_frame_mean": 27.716378333333335,
+      "draw_ms_median": 97.93815,
+      "raster_ms_median": 36.5795,
+      "qemu_cpu_seconds_median": 17.845000000000002,
+      "pixel_bytes_per_round": [
+        497664000,
+        497664000
+      ],
+      "frames_per_round": [
+        60,
+        60
+      ],
+      "parsed_bytes_per_round": [
+        0,
+        0
+      ],
+      "inflight_parsed_bytes_per_round": [
+        0,
+        0
+      ]
+    },
+    "word-full": {
+      "rounds": 2,
+      "elapsed_s_median": 3.65034625,
+      "copy_ms_per_frame_mean": 22.175,
+      "transfer_ms_per_frame_mean": 3.7,
+      "flush_ms_per_frame_mean": 1.5916666666666666,
+      "move_ms_per_frame_mean": 23.502300833333333,
+      "draw_ms_median": 25.8673,
+      "raster_ms_median": 30.64985,
+      "qemu_cpu_seconds_median": 12.559999999999999,
+      "pixel_bytes_per_round": [
+        497664000,
+        497664000
+      ],
+      "frames_per_round": [
+        60,
+        60
+      ],
+      "parsed_bytes_per_round": [
+        0,
+        0
+      ],
+      "inflight_parsed_bytes_per_round": [
+        0,
+        0
+      ]
+    },
+    "word-trimmed": {
+      "rounds": 2,
+      "elapsed_s_median": 2.543474,
+      "copy_ms_per_frame_mean": 11.266666666666667,
+      "transfer_ms_per_frame_mean": 4.4,
+      "flush_ms_per_frame_mean": 1.675,
+      "move_ms_per_frame_mean": 13.884000833333333,
+      "draw_ms_median": 17.17075,
+      "raster_ms_median": 22.5261,
+      "qemu_cpu_seconds_median": 11.715,
+      "pixel_bytes_per_round": [
+        127008000,
+        127008000
+      ],
+      "frames_per_round": [
+        60,
+        60
+      ],
+      "parsed_bytes_per_round": [
+        0,
+        0
+      ],
+      "inflight_parsed_bytes_per_round": [
+        0,
+        0
+      ]
+    },
+    "final-sync-burst": {
+      "rounds": 2,
+      "elapsed_s_median": 1.4576402000000002,
+      "copy_ms_per_frame_mean": 9.266666666666667,
+      "transfer_ms_per_frame_mean": 3.2666666666666666,
+      "flush_ms_per_frame_mean": 1.4,
+      "move_ms_per_frame_mean": 0.0,
+      "draw_ms_median": 12.9715,
+      "raster_ms_median": 17.7052,
+      "qemu_cpu_seconds_median": 4.64,
+      "pixel_bytes_per_round": [
+        14515200,
+        12700800
+      ],
+      "frames_per_round": [
+        8,
+        7
+      ],
+      "parsed_bytes_per_round": [
+        88013,
+        88013
+      ],
+      "inflight_parsed_bytes_per_round": [
+        0,
+        0
+      ]
+    },
+    "final-async-burst": {
+      "rounds": 2,
+      "elapsed_s_median": 1.34273645,
+      "copy_ms_per_frame_mean": 10.0,
+      "transfer_ms_per_frame_mean": 3.625,
+      "flush_ms_per_frame_mean": 1.0,
+      "move_ms_per_frame_mean": 0.852575,
+      "draw_ms_median": 13.9122,
+      "raster_ms_median": 25.5375,
+      "qemu_cpu_seconds_median": 4.555,
+      "pixel_bytes_per_round": [
+        7257600,
+        7257600
+      ],
+      "frames_per_round": [
+        4,
+        4
+      ],
+      "parsed_bytes_per_round": [
+        88013,
+        88013
+      ],
+      "inflight_parsed_bytes_per_round": [
+        45613,
+        42434
+      ]
+    },
+    "final-vnc-burst": {
+      "rounds": 1,
+      "elapsed_s_median": 1.2529987,
+      "copy_ms_per_frame_mean": 8.5,
+      "transfer_ms_per_frame_mean": 2.75,
+      "flush_ms_per_frame_mean": 1.0,
+      "move_ms_per_frame_mean": 1.234,
+      "draw_ms_median": 13.06835,
+      "raster_ms_median": 71.28625,
+      "qemu_cpu_seconds_median": 4.5,
+      "pixel_bytes_per_round": [
+        6652800
+      ],
+      "frames_per_round": [
+        4
+      ],
+      "parsed_bytes_per_round": [
+        88013
+      ],
+      "inflight_parsed_bytes_per_round": [
+        45479
+      ]
+    }
+  },
+  "experiments": {
+    "baseline-full": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 16.285135757992975,
+          "qemu_cpu_s": 19.64,
+          "ticks": {
+            "elapsed": 101330094,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 27180837,
+            "draw": 73827669,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 497664000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 1736492,
+            "maxraster": 678078,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 123,
+            "waits": 112,
+            "bootpolls": 1810,
+            "failed": 0
+          },
+          "stages": {
+            "move": 20234150,
+            "copy_ms": 6889,
+            "transfer_ms": 300,
+            "flush_ms": 142,
+            "copied": 497664000,
+            "gpudraws": 60
+          },
+          "damage": "full",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 395395,
+              "draw": 1144381,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 464423,
+              "draw": 1138997,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 603853,
+              "draw": 1276662,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 480612,
+              "draw": 1160806,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 619028,
+              "draw": 928314,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 477769,
+              "draw": 1010463,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 343622,
+              "draw": 1175015,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 500491,
+              "draw": 1142524,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 465477,
+              "draw": 1209132,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 631234,
+              "draw": 1148420,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 591486,
+              "draw": 1136456,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 468912,
+              "draw": 1267904,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 484838,
+              "draw": 1394312,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 678078,
+              "draw": 1125622,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 589620,
+              "draw": 1161477,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 614653,
+              "draw": 1050745,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 499975,
+              "draw": 1684350,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 416273,
+              "draw": 1277914,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 472567,
+              "draw": 1205345,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 446704,
+              "draw": 1190022,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 577361,
+              "draw": 1219106,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 495614,
+              "draw": 1154293,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 500867,
+              "draw": 1139151,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 494186,
+              "draw": 1685440,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 500950,
+              "draw": 1283033,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 320230,
+              "draw": 1615362,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 492795,
+              "draw": 1197447,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 316219,
+              "draw": 908781,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 293721,
+              "draw": 922929,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 416530,
+              "draw": 1230492,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 266664,
+              "draw": 1183690,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 388495,
+              "draw": 1701314,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 410251,
+              "draw": 1236073,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 459399,
+              "draw": 1268642,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 437865,
+              "draw": 1325512,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 422007,
+              "draw": 1317048,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 292315,
+              "draw": 530067,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 165791,
+              "draw": 713567,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 220329,
+              "draw": 1193977,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 448463,
+              "draw": 1736492,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 504546,
+              "draw": 1259444,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 515703,
+              "draw": 1214900,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 406806,
+              "draw": 1226426,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 494521,
+              "draw": 827976,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 268402,
+              "draw": 1041369,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 373029,
+              "draw": 1611222,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 513831,
+              "draw": 1355997,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 504413,
+              "draw": 1501556,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 353123,
+              "draw": 1173589,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 467141,
+              "draw": 1162792,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 451987,
+              "draw": 1300252,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 493810,
+              "draw": 1277628,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 352480,
+              "draw": 1558130,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 449474,
+              "draw": 1312510,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 480368,
+              "draw": 1322273,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 486710,
+              "draw": 1680777,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 360640,
+              "draw": 872109,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 452309,
+              "draw": 1318322,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 549157,
+              "draw": 1268614,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 537325,
+              "draw": 1150506,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 12.499019055976532,
+          "qemu_cpu_s": 16.050000000000004,
+          "ticks": {
+            "elapsed": 60319262,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 17556537,
+            "draw": 42568450,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 497664000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 1231643,
+            "maxraster": 673078,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 244,
+            "waits": 225,
+            "bootpolls": 1810,
+            "failed": 0
+          },
+          "stages": {
+            "move": 13025504,
+            "copy_ms": 3939,
+            "transfer_ms": 209,
+            "flush_ms": 79,
+            "copied": 497664000,
+            "gpudraws": 60
+          },
+          "damage": "full",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 237723,
+              "draw": 606284,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 317196,
+              "draw": 737264,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 282609,
+              "draw": 564768,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 342107,
+              "draw": 789573,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 358707,
+              "draw": 984724,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 416838,
+              "draw": 714293,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 249640,
+              "draw": 595598,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 231256,
+              "draw": 594197,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 241401,
+              "draw": 614647,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 303875,
+              "draw": 982372,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 511547,
+              "draw": 1231643,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 673078,
+              "draw": 976391,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 455310,
+              "draw": 691152,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 262656,
+              "draw": 650950,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 238640,
+              "draw": 577249,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 239492,
+              "draw": 772170,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 636333,
+              "draw": 992205,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 246316,
+              "draw": 801625,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 281725,
+              "draw": 826329,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 386222,
+              "draw": 864700,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 278047,
+              "draw": 753838,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 325830,
+              "draw": 603793,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 241833,
+              "draw": 619986,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 253675,
+              "draw": 653392,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 450622,
+              "draw": 762077,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 370950,
+              "draw": 802843,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 231438,
+              "draw": 514184,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 221340,
+              "draw": 726741,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 254653,
+              "draw": 487869,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 200268,
+              "draw": 564858,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 206485,
+              "draw": 530417,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 187680,
+              "draw": 552283,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 212472,
+              "draw": 539003,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 186601,
+              "draw": 601202,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 193048,
+              "draw": 549086,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 191138,
+              "draw": 528731,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 203406,
+              "draw": 502310,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 286655,
+              "draw": 840861,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 304769,
+              "draw": 1128380,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 232761,
+              "draw": 711112,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 393314,
+              "draw": 505935,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 180599,
+              "draw": 499182,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 206376,
+              "draw": 552201,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 205780,
+              "draw": 557955,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 181496,
+              "draw": 533328,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 224942,
+              "draw": 560350,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 383738,
+              "draw": 640511,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 211920,
+              "draw": 611260,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 254470,
+              "draw": 624372,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 311008,
+              "draw": 1117823,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 316158,
+              "draw": 662172,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 275910,
+              "draw": 870003,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 264505,
+              "draw": 596735,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 221172,
+              "draw": 572021,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 261847,
+              "draw": 556055,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 224862,
+              "draw": 814472,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 411117,
+              "draw": 1121064,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 359958,
+              "draw": 920178,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 328641,
+              "draw": 912016,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 392382,
+              "draw": 799717,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        }
+      ]
+    },
+    "word-full": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 9.221763258974534,
+          "qemu_cpu_s": 12.17,
+          "ticks": {
+            "elapsed": 36581403,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 18564446,
+            "draw": 17771098,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 497664000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 492120,
+            "maxraster": 529335,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 123,
+            "waits": 120,
+            "bootpolls": 741,
+            "failed": 0
+          },
+          "stages": {
+            "move": 13738948,
+            "copy_ms": 1419,
+            "transfer_ms": 226,
+            "flush_ms": 92,
+            "copied": 497664000,
+            "gpudraws": 60
+          },
+          "damage": "full",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 272604,
+              "draw": 247239,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 285354,
+              "draw": 307751,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 332434,
+              "draw": 293511,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 321563,
+              "draw": 233661,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 316334,
+              "draw": 264612,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 328525,
+              "draw": 292627,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 307104,
+              "draw": 343891,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 244777,
+              "draw": 265328,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 255819,
+              "draw": 242322,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 304232,
+              "draw": 241696,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 255983,
+              "draw": 245090,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 231763,
+              "draw": 237368,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 315358,
+              "draw": 336691,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 254282,
+              "draw": 247063,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 335255,
+              "draw": 301133,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 287262,
+              "draw": 258402,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 352102,
+              "draw": 299986,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 312521,
+              "draw": 250038,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 216743,
+              "draw": 271818,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 207946,
+              "draw": 238174,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 266968,
+              "draw": 469121,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 275157,
+              "draw": 245433,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 208947,
+              "draw": 237132,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 231056,
+              "draw": 211386,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 210417,
+              "draw": 191089,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 205558,
+              "draw": 250708,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 269230,
+              "draw": 284236,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 328742,
+              "draw": 294348,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 371375,
+              "draw": 329277,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 430815,
+              "draw": 288362,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 340862,
+              "draw": 305737,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 349218,
+              "draw": 315514,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 291326,
+              "draw": 310150,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 319275,
+              "draw": 239569,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 226680,
+              "draw": 309598,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 247308,
+              "draw": 252509,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 229200,
+              "draw": 319848,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 342423,
+              "draw": 443603,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 484379,
+              "draw": 391226,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 334943,
+              "draw": 358309,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 307985,
+              "draw": 261392,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 278432,
+              "draw": 380177,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 301724,
+              "draw": 462366,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 331553,
+              "draw": 412761,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 272470,
+              "draw": 310768,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 498081,
+              "draw": 492120,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 408702,
+              "draw": 322143,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 350462,
+              "draw": 284954,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 383602,
+              "draw": 408942,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 442759,
+              "draw": 381925,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 492052,
+              "draw": 483425,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 478027,
+              "draw": 299377,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 529335,
+              "draw": 214521,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 252310,
+              "draw": 323896,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 296093,
+              "draw": 231828,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 241967,
+              "draw": 207815,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 274726,
+              "draw": 203005,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 264766,
+              "draw": 208493,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 265508,
+              "draw": 237846,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 192052,
+              "draw": 177788,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 9.678239483037032,
+          "qemu_cpu_s": 12.95,
+          "ticks": {
+            "elapsed": 36425522,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 20203221,
+            "draw": 15975702,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 497664000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 479574,
+            "maxraster": 850130,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 245,
+            "waits": 240,
+            "bootpolls": 741,
+            "failed": 0
+          },
+          "stages": {
+            "move": 14463813,
+            "copy_ms": 1242,
+            "transfer_ms": 218,
+            "flush_ms": 99,
+            "copied": 497664000,
+            "gpudraws": 60
+          },
+          "damage": "full",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 298385,
+              "draw": 352680,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 394107,
+              "draw": 316320,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 429075,
+              "draw": 371248,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 403367,
+              "draw": 297526,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 458774,
+              "draw": 282374,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 505858,
+              "draw": 335549,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 421937,
+              "draw": 273386,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 404237,
+              "draw": 304934,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 336091,
+              "draw": 320003,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 224301,
+              "draw": 251952,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 249938,
+              "draw": 390155,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 471479,
+              "draw": 312729,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 380520,
+              "draw": 305537,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 394364,
+              "draw": 447473,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 757852,
+              "draw": 276684,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 300519,
+              "draw": 210067,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 215720,
+              "draw": 235094,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 221993,
+              "draw": 232310,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 235680,
+              "draw": 236384,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 230830,
+              "draw": 208004,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 223282,
+              "draw": 249848,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 244507,
+              "draw": 191502,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 221480,
+              "draw": 236701,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 248679,
+              "draw": 226420,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 294506,
+              "draw": 274910,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 305490,
+              "draw": 198420,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 269957,
+              "draw": 256313,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 354813,
+              "draw": 268688,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 305893,
+              "draw": 252521,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 319310,
+              "draw": 215577,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 317557,
+              "draw": 220342,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 297628,
+              "draw": 201429,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 289386,
+              "draw": 253724,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 278837,
+              "draw": 221624,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 313485,
+              "draw": 210313,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 319435,
+              "draw": 244110,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 357937,
+              "draw": 213856,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 271916,
+              "draw": 191756,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 288897,
+              "draw": 197588,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 285232,
+              "draw": 218342,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 308761,
+              "draw": 223784,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 309292,
+              "draw": 256356,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 264551,
+              "draw": 258944,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 367643,
+              "draw": 266792,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 340383,
+              "draw": 290318,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 461925,
+              "draw": 479574,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 457366,
+              "draw": 226158,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 318527,
+              "draw": 237042,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 437026,
+              "draw": 340384,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 214146,
+              "draw": 221864,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 222495,
+              "draw": 225286,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 850130,
+              "draw": 355305,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 347268,
+              "draw": 240143,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 301558,
+              "draw": 318811,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 307604,
+              "draw": 257995,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 210148,
+              "draw": 319689,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 317168,
+              "draw": 230987,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 298207,
+              "draw": 209058,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 385300,
+              "draw": 256967,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 340469,
+              "draw": 255852,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        }
+      ]
+    },
+    "word-trimmed": {
+      "status": "passed",
+      "lines": 500,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 8.490541169012431,
+          "qemu_cpu_s": 11.770000000000001,
+          "ticks": {
+            "elapsed": 23268436,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 12956551,
+            "draw": 10058167,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 127008000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 335705,
+            "maxraster": 453195,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 123,
+            "waits": 117,
+            "bootpolls": 121,
+            "failed": 0
+          },
+          "stages": {
+            "move": 7597266,
+            "copy_ms": 622,
+            "transfer_ms": 253,
+            "flush_ms": 91,
+            "copied": 127008000,
+            "gpudraws": 60
+          },
+          "damage": "trimmed",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 201510,
+              "draw": 199130,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 188010,
+              "draw": 159499,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 158377,
+              "draw": 187109,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 151074,
+              "draw": 174977,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 205731,
+              "draw": 265921,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 196131,
+              "draw": 198444,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 219258,
+              "draw": 173674,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 195748,
+              "draw": 138437,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 196702,
+              "draw": 181413,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 164056,
+              "draw": 178454,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 197565,
+              "draw": 154793,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 152604,
+              "draw": 186606,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 232841,
+              "draw": 192125,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 240277,
+              "draw": 183354,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 252128,
+              "draw": 237380,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 291434,
+              "draw": 190480,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 282632,
+              "draw": 174457,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 327531,
+              "draw": 180228,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 297618,
+              "draw": 335705,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 235182,
+              "draw": 144792,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 237179,
+              "draw": 166583,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 269459,
+              "draw": 171422,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 246549,
+              "draw": 187354,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 207240,
+              "draw": 227478,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 326263,
+              "draw": 195169,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 427158,
+              "draw": 183650,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 207445,
+              "draw": 245054,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 453195,
+              "draw": 274981,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 224609,
+              "draw": 116977,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 246499,
+              "draw": 121852,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 188653,
+              "draw": 137468,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 171069,
+              "draw": 128920,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 204004,
+              "draw": 120630,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 135570,
+              "draw": 132008,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 181220,
+              "draw": 157714,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 219129,
+              "draw": 172914,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 177805,
+              "draw": 162912,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 167589,
+              "draw": 145158,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 178509,
+              "draw": 138678,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 165008,
+              "draw": 128399,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 167269,
+              "draw": 153131,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 175364,
+              "draw": 120592,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 169663,
+              "draw": 156158,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 215035,
+              "draw": 149149,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 211620,
+              "draw": 139848,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 150310,
+              "draw": 147136,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 233528,
+              "draw": 160730,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 229133,
+              "draw": 133863,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 190876,
+              "draw": 132897,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 230274,
+              "draw": 137569,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 231002,
+              "draw": 136304,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 181164,
+              "draw": 130953,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 196143,
+              "draw": 150870,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 245039,
+              "draw": 129931,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 170518,
+              "draw": 119706,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 112861,
+              "draw": 146128,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 180161,
+              "draw": 164255,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 179890,
+              "draw": 130956,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 224467,
+              "draw": 210142,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 241673,
+              "draw": 155550,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": true,
+          "host_wall_s": 8.523635904013645,
+          "qemu_cpu_s": 11.66,
+          "ticks": {
+            "elapsed": 27601044,
+            "poll": 0,
+            "read": 0,
+            "feed": 0,
+            "raster": 15750912,
+            "draw": 11578653,
+            "mirror": 0,
+            "bytes": 0,
+            "mirrored": 0,
+            "pixels": 127008000,
+            "polls": 0,
+            "reads": 0,
+            "writes": 0,
+            "frames": 60,
+            "draws": 60,
+            "maxdraw": 325980,
+            "maxraster": 514274,
+            "rasterrows": 120,
+            "reusedrows": 3120,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 245,
+            "waits": 237,
+            "bootpolls": 121,
+            "failed": 0
+          },
+          "stages": {
+            "move": 9063535,
+            "copy_ms": 730,
+            "transfer_ms": 275,
+            "flush_ms": 110,
+            "copied": 127008000,
+            "gpudraws": 60
+          },
+          "damage": "trimmed",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": true,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 235286,
+              "draw": 310956,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 1,
+              "raster": 254642,
+              "draw": 153781,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 2,
+              "raster": 201114,
+              "draw": 122813,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 3,
+              "raster": 182498,
+              "draw": 179500,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 4,
+              "raster": 284135,
+              "draw": 220708,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 5,
+              "raster": 308269,
+              "draw": 249004,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 6,
+              "raster": 322378,
+              "draw": 155034,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 7,
+              "raster": 254555,
+              "draw": 131193,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 8,
+              "raster": 246109,
+              "draw": 121550,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 9,
+              "raster": 166980,
+              "draw": 135994,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 10,
+              "raster": 201274,
+              "draw": 169763,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 11,
+              "raster": 158360,
+              "draw": 146639,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 12,
+              "raster": 190349,
+              "draw": 181130,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 13,
+              "raster": 221349,
+              "draw": 178606,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 14,
+              "raster": 236054,
+              "draw": 175976,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 15,
+              "raster": 324356,
+              "draw": 221882,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 16,
+              "raster": 394207,
+              "draw": 220600,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 17,
+              "raster": 202056,
+              "draw": 111651,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 18,
+              "raster": 225913,
+              "draw": 170127,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 19,
+              "raster": 245044,
+              "draw": 325980,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 20,
+              "raster": 350768,
+              "draw": 197551,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 21,
+              "raster": 386340,
+              "draw": 199893,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 22,
+              "raster": 319817,
+              "draw": 167677,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 23,
+              "raster": 165427,
+              "draw": 139804,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 24,
+              "raster": 229227,
+              "draw": 153727,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 25,
+              "raster": 192459,
+              "draw": 171993,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 26,
+              "raster": 319007,
+              "draw": 264372,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 27,
+              "raster": 279564,
+              "draw": 161457,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 28,
+              "raster": 254559,
+              "draw": 230232,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 29,
+              "raster": 185132,
+              "draw": 156385,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 30,
+              "raster": 194529,
+              "draw": 120173,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 31,
+              "raster": 198435,
+              "draw": 217821,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 32,
+              "raster": 394911,
+              "draw": 172588,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 33,
+              "raster": 230177,
+              "draw": 217778,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 34,
+              "raster": 196410,
+              "draw": 229530,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 35,
+              "raster": 259536,
+              "draw": 196738,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 36,
+              "raster": 222305,
+              "draw": 200029,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 37,
+              "raster": 214473,
+              "draw": 257301,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 38,
+              "raster": 247995,
+              "draw": 219444,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 39,
+              "raster": 312978,
+              "draw": 203685,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 40,
+              "raster": 261683,
+              "draw": 161622,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 41,
+              "raster": 240206,
+              "draw": 216908,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 42,
+              "raster": 243617,
+              "draw": 221484,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 43,
+              "raster": 328325,
+              "draw": 309765,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 44,
+              "raster": 478139,
+              "draw": 307315,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 45,
+              "raster": 233205,
+              "draw": 162485,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 46,
+              "raster": 214688,
+              "draw": 165455,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 47,
+              "raster": 203678,
+              "draw": 213433,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 48,
+              "raster": 241832,
+              "draw": 127906,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 49,
+              "raster": 222705,
+              "draw": 172802,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 50,
+              "raster": 404964,
+              "draw": 230525,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 51,
+              "raster": 238256,
+              "draw": 233611,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 52,
+              "raster": 290272,
+              "draw": 218939,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 53,
+              "raster": 342309,
+              "draw": 151335,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 54,
+              "raster": 219187,
+              "draw": 189411,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 55,
+              "raster": 326638,
+              "draw": 169253,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 56,
+              "raster": 353411,
+              "draw": 280393,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 57,
+              "raster": 514274,
+              "draw": 223729,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 58,
+              "raster": 239360,
+              "draw": 159823,
+              "rows": 2,
+              "reused": 52
+            },
+            {
+              "index": 59,
+              "raster": 145186,
+              "draw": 101394,
+              "rows": 2,
+              "reused": 52
+            }
+          ]
+        }
+      ]
+    },
+    "final-sync-burst": {
+      "status": "passed",
+      "lines": 2000,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 3.5609508250490762,
+          "qemu_cpu_s": 5.0,
+          "ticks": {
+            "elapsed": 16128226,
+            "poll": 2203007,
+            "read": 3512538,
+            "feed": 3957991,
+            "raster": 4019313,
+            "draw": 1319672,
+            "mirror": 0,
+            "bytes": 88013,
+            "mirrored": 0,
+            "pixels": 14515200,
+            "polls": 116,
+            "reads": 116,
+            "writes": 0,
+            "frames": 8,
+            "draws": 8,
+            "maxdraw": 262111,
+            "maxraster": 2689644,
+            "rasterrows": 432,
+            "reusedrows": 0,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 19,
+            "waits": 17,
+            "bootpolls": 211,
+            "failed": 0
+          },
+          "stages": {
+            "move": 0,
+            "copy_ms": 87,
+            "transfer_ms": 29,
+            "flush_ms": 11,
+            "copied": 14515200,
+            "gpudraws": 8
+          },
+          "damage": "trimmed",
+          "display": "sync",
+          "raster": "cached",
+          "benchmark_scroll": false,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 2689644,
+              "draw": 262111,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 1,
+              "raster": 180378,
+              "draw": 102851,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 2,
+              "raster": 172964,
+              "draw": 95773,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 3,
+              "raster": 188948,
+              "draw": 163834,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 4,
+              "raster": 242125,
+              "draw": 156240,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 5,
+              "raster": 177052,
+              "draw": 154806,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 6,
+              "raster": 190702,
+              "draw": 171398,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 7,
+              "raster": 177500,
+              "draw": 212659,
+              "rows": 54,
+              "reused": 0
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 3.0085983800236136,
+          "qemu_cpu_s": 4.279999999999999,
+          "ticks": {
+            "elapsed": 13024578,
+            "poll": 2135530,
+            "read": 3002709,
+            "feed": 3250408,
+            "raster": 3008107,
+            "draw": 844763,
+            "mirror": 0,
+            "bytes": 88013,
+            "mirrored": 0,
+            "pixels": 12700800,
+            "polls": 110,
+            "reads": 109,
+            "writes": 0,
+            "frames": 7,
+            "draws": 7,
+            "maxdraw": 132067,
+            "maxraster": 2094043,
+            "rasterrows": 378,
+            "reusedrows": 0,
+            "busybytes": 0
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 35,
+            "waits": 32,
+            "bootpolls": 211,
+            "failed": 0
+          },
+          "stages": {
+            "move": 0,
+            "copy_ms": 52,
+            "transfer_ms": 20,
+            "flush_ms": 10,
+            "copied": 12700800,
+            "gpudraws": 7
+          },
+          "damage": "trimmed",
+          "display": "sync",
+          "raster": "cached",
+          "benchmark_scroll": false,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 2094043,
+              "draw": 124964,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 1,
+              "raster": 135728,
+              "draw": 100806,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 2,
+              "raster": 163112,
+              "draw": 125270,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 3,
+              "raster": 172939,
+              "draw": 111936,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 4,
+              "raster": 147416,
+              "draw": 129715,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 5,
+              "raster": 148538,
+              "draw": 120005,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 6,
+              "raster": 146331,
+              "draw": 132067,
+              "rows": 54,
+              "reused": 0
+            }
+          ]
+        }
+      ]
+    },
+    "final-async-burst": {
+      "status": "passed",
+      "lines": 2000,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": null,
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 3.262747626984492,
+          "qemu_cpu_s": 4.930000000000001,
+          "ticks": {
+            "elapsed": 14918606,
+            "poll": 3670220,
+            "read": 3946086,
+            "feed": 4561510,
+            "raster": 4465306,
+            "draw": 735546,
+            "mirror": 0,
+            "bytes": 88013,
+            "mirrored": 0,
+            "pixels": 7257600,
+            "polls": 115,
+            "reads": 112,
+            "writes": 0,
+            "frames": 4,
+            "draws": 4,
+            "maxdraw": 295943,
+            "maxraster": 3619917,
+            "rasterrows": 216,
+            "reusedrows": 0,
+            "busybytes": 45613
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 11,
+            "waits": 8,
+            "bootpolls": 44,
+            "failed": 0
+          },
+          "stages": {
+            "move": 0,
+            "copy_ms": 49,
+            "transfer_ms": 16,
+            "flush_ms": 6,
+            "copied": 7257600,
+            "gpudraws": 4
+          },
+          "damage": "trimmed",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": false,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 3619917,
+              "draw": 156488,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 1,
+              "raster": 336711,
+              "draw": 295943,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 2,
+              "raster": 190165,
+              "draw": 128028,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 3,
+              "raster": 318513,
+              "draw": 155087,
+              "rows": 54,
+              "reused": 0
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": false,
+          "serial_mirror": false,
+          "host_wall_s": 2.784734421991743,
+          "qemu_cpu_s": 4.18,
+          "ticks": {
+            "elapsed": 11936123,
+            "poll": 2757883,
+            "read": 2850920,
+            "feed": 3520930,
+            "raster": 3827252,
+            "draw": 493863,
+            "mirror": 0,
+            "bytes": 88013,
+            "mirrored": 0,
+            "pixels": 7257600,
+            "polls": 106,
+            "reads": 106,
+            "writes": 0,
+            "frames": 4,
+            "draws": 4,
+            "maxdraw": 150216,
+            "maxraster": 3315653,
+            "rasterrows": 186,
+            "reusedrows": 30,
+            "busybytes": 42434
+          },
+          "vnc_bytes": 0,
+          "vnc_updates": 0,
+          "gpu": {
+            "interrupts": 21,
+            "waits": 16,
+            "bootpolls": 44,
+            "failed": 0
+          },
+          "stages": {
+            "move": 68206,
+            "copy_ms": 31,
+            "transfer_ms": 13,
+            "flush_ms": 2,
+            "copied": 7257600,
+            "gpudraws": 4
+          },
+          "damage": "trimmed",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": false,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 3315653,
+              "draw": 110218,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 1,
+              "raster": 149859,
+              "draw": 116944,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 2,
+              "raster": 169503,
+              "draw": 150216,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 3,
+              "raster": 192237,
+              "draw": 116485,
+              "rows": 24,
+              "reused": 30
+            }
+          ]
+        }
+      ]
+    },
+    "final-vnc-burst": {
+      "status": "passed",
+      "lines": 2000,
+      "resolution": [
+        1920,
+        1080
+      ],
+      "timebase_hz": 10000000,
+      "vnc_encoding": "raw",
+      "results": [
+        {
+          "round": 1,
+          "mode": "frames",
+          "cpus": 5,
+          "vnc_client": true,
+          "serial_mirror": false,
+          "host_wall_s": 2.9300037199864164,
+          "qemu_cpu_s": 4.5,
+          "ticks": {
+            "elapsed": 12529987,
+            "poll": 2770458,
+            "read": 3428438,
+            "feed": 3786959,
+            "raster": 4000613,
+            "draw": 521764,
+            "mirror": 0,
+            "bytes": 88013,
+            "mirrored": 0,
+            "pixels": 6652800,
+            "polls": 106,
+            "reads": 106,
+            "writes": 0,
+            "frames": 4,
+            "draws": 4,
+            "maxdraw": 144143,
+            "maxraster": 2428567,
+            "rasterrows": 168,
+            "reusedrows": 30,
+            "busybytes": 45479
+          },
+          "vnc_bytes": 17819836,
+          "vnc_updates": 5,
+          "gpu": {
+            "interrupts": 11,
+            "waits": 9,
+            "bootpolls": 154,
+            "failed": 0
+          },
+          "stages": {
+            "move": 49360,
+            "copy_ms": 34,
+            "transfer_ms": 11,
+            "flush_ms": 4,
+            "copied": 6652800,
+            "gpudraws": 4
+          },
+          "damage": "trimmed",
+          "display": "async",
+          "raster": "cached",
+          "benchmark_scroll": false,
+          "frame_samples": [
+            {
+              "index": 0,
+              "raster": 2428567,
+              "draw": 120706,
+              "rows": 36,
+              "reused": 0
+            },
+            {
+              "index": 1,
+              "raster": 1262668,
+              "draw": 144143,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 2,
+              "raster": 146321,
+              "draw": 140661,
+              "rows": 54,
+              "reused": 0
+            },
+            {
+              "index": 3,
+              "raster": 163057,
+              "draw": 116254,
+              "rows": 24,
+              "reused": 30
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

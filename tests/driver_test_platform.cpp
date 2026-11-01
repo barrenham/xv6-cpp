@@ -872,6 +872,16 @@ void gpu_contract()
   effective_user = 1000;
   check(gpu.ioctl(XV_FB_GET_STATS, stats_buffer) == -1, "GPU stats recheck root");
   effective_user = 0;
+  FramebufferTiming timing{};
+  IoBuffer timing_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&timing)};
+  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == 0 &&
+            timing.draws == 2 && timing.copied_bytes == 8 &&
+            timing.transfer_ms > 0 && timing.flush_ms > 0 && timing.copy_ms > 0,
+        "GPU stage timings count successful copies and both submission stages");
+  effective_user = 1000;
+  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == -1,
+        "GPU timings recheck root");
+  effective_user = 0;
   update.width=2;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects rectangle overrun");update.width=1;
   update.pixels=~0UL-1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects source address wrap");update.pixels=reinterpret_cast<unsigned long>(pixels);
   update.reserved=1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU validates reserved ABI fields");update.reserved=0;
