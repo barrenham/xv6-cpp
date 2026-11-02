@@ -77,6 +77,7 @@ cmake --build build/dev --target qemu
 - [rootfs 创建与程序更新](docs/rootfs-tools.md)：新使用者设置自己的密码，离线更新现有系统程序。
 - [开发指南](docs/development.md)：构建选项、调试和 clangd 配置。
 - [系统开发文档](docs/README.md)：模块设计、网络协议与用户态接口。
+- [通用 FS 桥接插件与动态注册](docs/user-filesystems.md)：具名注册、统一挂载、SDK 与独立归档后端。
 - [块缓存哈希索引、锁拆分与前后对照](docs/block-cache.md)。
 - [ps/free 列宽与真实 Tab 验证](docs/terminal-columns.md)。
 - [截止时间队列与网络超时任务](docs/deadline-timers.md)：一次性唤醒、协议超时后台处理及延迟/CPU 实测。

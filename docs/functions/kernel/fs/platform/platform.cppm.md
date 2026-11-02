@@ -44,3 +44,7 @@
 - [`xv::fs::detail::system_counts`](kernel_platform.cpp.md#fn-6abeacd13b8bf534)
 
 - [`xv::fs::detail::cache_ticks`](kernel_platform.cpp.md#fn-60ae58748deef7d6)
+
+- [`xv::fs::detail::monotonic_milliseconds`](kernel_platform.cpp.md#fn-8f0467631cdc2672)
+
+- [`xv::fs::detail::wait_until`](kernel_platform.cpp.md#fn-c8a6fd995a02aad2)

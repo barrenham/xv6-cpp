@@ -314,3 +314,45 @@ int VirtualFileSystem::mount_disk(const char *path,const char *type)
 }
 
 } // namespace xv::fs
+
+namespace xv::fs
+{
+bool VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
+{
+  if (!path || path[0] != '/' || !path[1]) return false;
+  unsigned length = 0, start = 1;
+  for (; path[length]; ++length)
+  {
+    if (length >= 127) return false;
+    if (length && path[length] == '/')
+    {
+      unsigned size = length - start;
+      if (!size || (size == 1 && path[start] == '.') ||
+          (size == 2 && path[start] == '.' && path[start + 1] == '.')) return false;
+      start = length + 1;
+    }
+  }
+  unsigned size = length - start;
+  if (!size || (size == 1 && path[start] == '.') ||
+      (size == 2 && path[start] == '.' && path[start + 1] == '.')) return false;
+  Transaction transaction;
+  xv::sync::ScopedLock guard(namespace_);
+  if (mount_count_ == 8) return false;
+  char name[256];
+  auto *covered = walk(path, false, name);
+  if (!covered) return false;
+  bool valid = covered->kind() == T_DIR;
+  for (unsigned i = 0; i < mount_count_; ++i)
+    if (same(covered, mounts_[i].root)) valid = false;
+  auto *parent = valid ? walk(path, true, name) : nullptr;
+  if (!parent) { release(covered); return false; }
+  auto &record = mounts_[mount_count_++];
+  record.covered = covered;
+  record.parent = parent;
+  record.root = backend.root();
+  record.dynamic = -3;
+  detail::copy_fixed(record.path, path, sizeof(record.path));
+  publish_mount_snapshot();
+  return true;
+}
+}

@@ -62,6 +62,7 @@ private:
   friend class DevFileSystem;
   friend class ProcFileSystem;
   friend class RamFileSystem;
+  friend class UserFileSystem;
   void *context_ = nullptr;
   FileSystem *owner_ = nullptr;
   unsigned dev = 0;

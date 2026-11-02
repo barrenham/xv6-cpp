@@ -32,6 +32,7 @@ function(xv_add_fs_internals target)
       "${module_root}/procfs/provider_registry.cppm"
       "${module_root}/buffer/snapshot_text.cppm"
       "${module_root}/ramfs/ramfs.cppm"
+      "${module_root}/userfs/userfs.cppm"
       "${module_root}/file/file_operations.cppm"
       "${module_root}/buffer/flow.cppm"
       "${module_root}/journal/flow.cppm"

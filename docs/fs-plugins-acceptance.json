@@ -1,0 +1,158 @@
+{
+  "status": "verified_generic_plugin_framework",
+  "architecture": "Versioned named registration -> generic mount selection -> VFS proxy -> common user SDK -> independent storage backend",
+  "independent_build": {
+    "kernel_before": "aa10ab9a67b30c6cdccd0ca04b34743681a6ad17fdd00bb8a90fad6be6882446",
+    "kernel_after": "aa10ab9a67b30c6cdccd0ca04b34743681a6ad17fdd00bb8a90fad6be6882446",
+    "user_service_recompiled": true,
+    "command": "cmake --build build/dev --target user_tarfsd -j4",
+    "source_contents_unchanged": true
+  },
+  "sha256": {
+    "build/dev/kernel.elf": "aa10ab9a67b30c6cdccd0ca04b34743681a6ad17fdd00bb8a90fad6be6882446",
+    "build/dev/fs-test.img": "ef93a9679c2b7e97e9789064267cafed6648685c15c9c9efe347deb6522f8489",
+    "build/dev/fs.img": "6af61adaa07ce8d9a5756a53a799ec37191518a08e9ca6582286057a7909c012",
+    "build/dev/user/_memfsd": "534b4213d357f496a8b4aebbbe5311710667e28eb63ae55956a03847c95282b2",
+    "build/dev/user/_tarfsd": "2bde4bf18541e2179955b4e9985f0990498344c0f267a48a69382cdf14d1c053",
+    "build/dev/user/_fsplugintest": "e3306c49f53954211290fba511545df7da3d4f7b19afe30f04dd2e98fbb9e10d",
+    "build/dev/fs-plugin-sample.tar": "dd87323e1853dd0bd6c74b7b9a6b394f9c454596a3a3f327cbc73260939557e3"
+  },
+  "regressions": {
+    "tests": [
+      "image_layout",
+      "fs_contract",
+      "boot_smoke",
+      "procfs_1cpu",
+      "ramfs_1cpu",
+      "userfs_1cpu",
+      "fsplugins_1cpu",
+      "permissions_1cpu",
+      "procfs_5cpu",
+      "ramfs_5cpu",
+      "userfs_5cpu",
+      "fsplugins_5cpu",
+      "permissions_5cpu",
+      "rootfs_update_contract",
+      "ext3_jbd_contract",
+      "ext3_volume_contract"
+    ],
+    "result": "all 16 passed on final kernel; includes nested dead-parent cleanup, negotiation and packaged archive"
+  },
+  "native": {
+    "result": "filesystem contracts passed",
+    "allocation_fault_budgets": "0 through 9 pages; failure and success exercised; allocated page count restored in every case",
+    "sanitizer": "ASan+UBSan with leak detection, passed after final kernel-source changes"
+  },
+  "contracts": [
+    "Structure size, version, root, type names, flags, capabilities and payload bounds validated",
+    "Administrator-only registration and reserved type rejection",
+    "Type names longer than 16 bytes work through generic mount tool",
+    "Same type multiple instances have isolated identity and data",
+    "Failed mount restores registered provider claim",
+    "16-provider capacity fails cleanly and recovers after service exit",
+    "More than provider capacity register/close cycles reuse resources",
+    "5000-byte read/write succeeds with backend enforcing negotiated 128-byte request maximum",
+    "Kernel enforces readonly opens and metadata policy",
+    "User archive service reads persistent source through a preopened file descriptor",
+    "Archive remains readable after service exit and registration with another arbitrary name",
+    "Packaged demo archive mounted and read",
+    "Parent provider death does not prevent child and parent unmount cleanup",
+    "No example backend implementation or name cases in kernel bridge sources",
+    "User service independently compiled and linked without changing kernel ELF"
+  ],
+  "documentation": {
+    "coverage": {
+      "kernel_files": 409,
+      "default_unique_symbols": 5305,
+      "all_cpp_symbols": 5376,
+      "documentation_entries": 5379,
+      "indexable_entries": 5290,
+      "documentation_only": 89,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "flows": {
+      "source_files": 409,
+      "reviewed_non_network_non_boot": 286,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 230,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 227,
+      "internal_bindings": 7,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "initial_hover": {
+      "external-doxygen": 38,
+      "native-documentation-priority-or-index-limit": 5,
+      "cross-module-doxygen": 5
+    },
+    "final_changed_hover": {
+      "external-doxygen": 8,
+      "cross-module-doxygen": 5
+    }
+  },
+  "installation": {
+    "installed": [
+      "/bin/memfsd",
+      "/bin/tarfsd",
+      "/bin/mount",
+      "/usr/tests/userfstest",
+      "/usr/tests/fsplugintest",
+      "/usr/share/doc/xv6/plugin.tar"
+    ],
+    "protected_contents_and_attributes_unchanged": true,
+    "protected_entries": 7,
+    "update_output": "prepared: /usr/tests/fsplugintest\nrootfs updated: 1 files, 0 system directories\nbackup: /home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261102T023758Z-16f138bf.img\n",
+    "selected_manifest": true
+  },
+  "limits": [
+    "One endpoint represents one mount instance; multiple providers can register the same type",
+    "Provider capacity 16, global mount capacity 8, 64 active inode slots per instance",
+    "Maximum payload 512 bytes, negotiable downward; one outstanding request per instance",
+    "Existing namespace lock can delay other path operations; backends should prepare descriptors before registration",
+    "Native 64-bit project ABI, not Linux FUSE binary compatibility",
+    "USTAR example is readonly and indexes up to 128 objects in a documented format subset",
+    "Current inode protocol covers regular files, directories and symlinks; special kernel objects use native mechanisms"
+  ],
+  "completion_audit": [
+    {
+      "requirement": "Kernel generic plugin accepts independent filesystem implementations",
+      "evidence": [
+        "generic registry.cpp and proxy contain no example backend cases",
+        "memfsd and tarfsd use same Backend SDK"
+      ]
+    },
+    {
+      "requirement": "Register and mount without recompiling kernel",
+      "evidence": [
+        "fsregister and generic MountFlow fallback",
+        "arbitrary and long runtime type names tested",
+        "real user-only compilation preserves kernel SHA256"
+      ]
+    },
+    {
+      "requirement": "Reusable extension interface and instance lifecycle",
+      "evidence": [
+        "static SDK archive provides common transport and dispatch",
+        "dynamic object and inode-page allocation with fault rollback",
+        "multi-instance, claim rollback, provider capacity, exit, nested unmount and reuse verified"
+      ]
+    },
+    {
+      "requirement": "Verification beyond an in-memory service",
+      "evidence": [
+        "disk-root USTAR fixture read by independent service",
+        "provider restarted under new name using same stored archive",
+        "bundled archive demo uses same registry and bridge"
+      ]
+    }
+  ]
+}

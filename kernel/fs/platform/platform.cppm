@@ -19,7 +19,7 @@ struct CpuTime {unsigned long user=0,system=0,idle=0,interrupts=0;};
 struct SystemCounts {unsigned long switches=0,processes=0;};
 bool cpu_time(unsigned index,CpuTime &record);
 SystemCounts system_counts();
-struct FileSystemType {const char *name=nullptr;bool nodev=false;};
+struct FileSystemType {const char *name=nullptr;bool nodev=false;char storage[32]{};};
 bool cpu_record(unsigned index,CpuRecord &record);
 bool registered_filesystem(unsigned index,FileSystemType &record);
 const char *kernel_version();
@@ -40,6 +40,9 @@ bool process_exec_text(unsigned pid,bool environment,PageBuffer &buffer);
 unsigned long uptime_ticks();
 // Raw monotonic ticks: QEMU timebase 10MHz; native contracts use nanoseconds.
 unsigned long cache_ticks();
+unsigned long monotonic_milliseconds();
+// Caller holds lock; subscribe before releasing, sleep, return with lock held.
+bool wait_until(void *channel, xv::sync::SpinLock &lock, unsigned long deadline);
 unsigned long epoch_seconds();
 unsigned long boot_epoch_seconds();
 void memory_info(unsigned long &total_kib, unsigned long &free_kib);

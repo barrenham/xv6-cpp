@@ -1,0 +1,124 @@
+#include "kernel/fs/stat.h"
+#include "user/runtime/user.h"
+#include "user/runtime/userfs/server.h"
+
+namespace userfs
+{
+int register_backend(const char *type, Backend &backend, unsigned payload)
+{
+  if (!type || !*type || strlen(type) >= 32)
+  {
+    return -1;
+  }
+  xv::userfs::Registration registration;
+  strcpy(registration.type, type);
+  registration.root = backend.root();
+  registration.flags = backend.flags();
+  registration.operations = backend.operations();
+  registration.max_payload = payload;
+  return fsregister(&registration);
+}
+
+namespace
+{
+void dispatch(xv::userfs::Message &m, Backend &backend)
+{
+  using xv::userfs::Operation;
+  m.result = -1;
+  if (m.version != xv::userfs::Version || !m.node || m.count > DataSize ||
+      m.name[NameSize - 1] || m.target[NameSize - 1])
+  {
+    return;
+  }
+  switch (m.operation)
+  {
+  case Operation::Lookup:
+    m.result = backend.lookup(m.node, m.name, m.attributes);
+    break;
+  case Operation::Getattr:
+    m.result = backend.getattr(m.node, m.attributes);
+    break;
+  case Operation::Create:
+  {
+    auto requested = m.attributes;
+    m.result = backend.create(m.node, m.name, requested, m.attributes);
+    break;
+  }
+  case Operation::Read:
+  {
+    unsigned limit = m.count;
+    m.result = backend.read(m.node, m.offset, m.data, limit);
+    if (m.result > int(limit))
+    {
+      m.result = -1;
+    }
+    m.count = m.result >= 0 ? unsigned(m.result) : 0;
+    break;
+  }
+  case Operation::Write:
+    m.result = backend.write(m.node, m.offset, m.data, m.count);
+    if (m.result > int(m.count))
+    {
+      m.result = -1;
+    }
+    break;
+  case Operation::Resize:
+    m.result = backend.resize(m.node, m.attributes.size);
+    break;
+  case Operation::Setattr:
+    m.result = backend.setattr(m.node, m.attributes);
+    break;
+  case Operation::Link:
+    m.result = backend.link(m.node, m.name, m.other);
+    break;
+  case Operation::Unlink:
+    m.result = backend.unlink(m.node, m.name, m.attributes);
+    break;
+  case Operation::Rename:
+    m.result = backend.rename(m.node, m.name, m.other, m.target);
+    break;
+  case Operation::Sync:
+    m.result = backend.sync(m.node);
+    break;
+  case Operation::Forget:
+    backend.forget(m.node);
+    m.result = 0;
+    break;
+  case Operation::Readdir:
+  {
+    Entry entry;
+    m.result = backend.readdir(m.node, m.offset, entry);
+    if (m.result == 1)
+    {
+      m.attributes = entry.attributes;
+      m.offset = entry.next;
+      memmove(m.name, entry.name, NameSize);
+    }
+    break;
+  }
+  }
+}
+} // namespace
+
+int serve(int descriptor, Backend &backend)
+{
+  xv::userfs::Message message;
+  for (;;)
+  {
+    int count = ::read(descriptor, &message, sizeof(message));
+    if (!count)
+    {
+      return 0;
+    }
+    if (count != sizeof(message))
+    {
+      return -1;
+    }
+    dispatch(message, backend);
+    if (::write(descriptor, &message, sizeof(message)) != sizeof(message))
+    {
+      return -1;
+    }
+  }
+}
+} // namespace userfs

@@ -411,3 +411,15 @@
 - [`xv::fs::VirtualFileSystem::snapshot_mounts`](vfs.cpp.md#fn-49863f7ed2744744)
 
 - [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-f77a31b05fc26086)
+
+<a id="fn-0ca0821ecfb5ad49"></a>
+
+## `xv::fs::VirtualFileSystem::mount_service`
+
+```doxygen
+@fn bool xv::fs::VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
+@brief 在命名空间锁下挂载已准备好的用户态文件系统代理。
+@details mount_service 校验规范绝对路径、已有目录与总容量，在 namespace 锁下固定覆盖点、父目录及后端根，发布 -3 服务挂载并更新快照；挂载本身不向尚未进入接收循环的服务发请求。
+```
+
+- [`xv::fs::VirtualFileSystem::mount_service`](vfs.cpp.md#fn-0ca0821ecfb5ad49)

@@ -14,6 +14,7 @@ module;
 #include "kernel/support/param.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/stat.h"
+#include "kernel/fs/userfs/protocol.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/io_status.h"
@@ -32,6 +33,7 @@ import :vfs;
 import :devfs;
 import :procfs;
 import :ramfs;
+import :userfs;
 import :platform;
 
 namespace xv::fs::test
@@ -439,6 +441,43 @@ File *open_node(const char *path, bool create = false, short type = T_FILE,
   check(file_table.bind_inode(*file, *node, true, true), "bind inode");
   vfs.unlock(node);
   return file;
+}
+
+void plugin_allocation_contract()
+{
+  const auto before = allocated_pages.load();
+  xv::userfs::Registration registration;
+  std::strcpy(registration.type, "allocation-contract");
+  registration.flags = xv::userfs::ReadOnly;
+  registration.max_payload = 128;
+  bool failed = false, succeeded = false;
+  for (int budget = 0; budget < 10; ++budget)
+  {
+    page_budget = budget;
+    auto *instance = UserFileSystem::create(0x3030, registration, false);
+    page_budget = -1;
+    if (!instance) failed = true;
+    else
+    {
+      succeeded = true;
+      xv::userfs::ProviderInfo info;
+      check(instance->read_only() && instance->describe_provider(info) &&
+            !std::strcmp(info.type, registration.type) && info.device == 0x3030 &&
+            info.state == xv::userfs::ProviderState::Registered, "dynamic plugin initialization");
+      auto *root = instance->root();
+      check(root->number() == 1 && root->kind() == T_DIR, "registered initial root");
+      instance->release(root);
+      check(instance->claim_mount() && !instance->claim_mount(), "exclusive plugin selection");
+      instance->attached(false);
+      check(instance->claim_mount(), "failed mount releases provider claim");
+      instance->attached(false);
+      instance->endpoint().close();
+      check(instance->retired(), "closed unmounted provider retires");
+      instance->destroy();
+    }
+    check(allocated_pages == before, "partial plugin allocation and teardown leak no pages");
+  }
+  check(failed && succeeded, "all plugin allocation failure boundaries exercised");
 }
 
 void file_contract()
@@ -1521,6 +1560,18 @@ void initialize_cache()
 
 namespace xv::fs::detail
 {
+unsigned long monotonic_milliseconds()
+{
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+bool wait_until(void *, xv::sync::SpinLock &lock, unsigned long)
+{
+  lock.release();
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  lock.acquire();
+  return true;
+}
 unsigned long cache_ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
 bool cpu_record(unsigned index,CpuRecord &record)
 {if(index>=2)return false;record={index,(2UL<<62)|(1UL<<8)|(1UL<<12),0,1,1};return true;}
@@ -1677,11 +1728,13 @@ void report(const char *, int, int)
 
 extern "C" int run_fs_contracts(const char *image)
 {
+  xv::fs::initialize_userfs_plugins();
   using namespace xv::fs::test;
   load_image(image);
   block_cache.initialize();
   cache_contract();
   cache_concurrency_contract();
+  plugin_allocation_contract();
   journal_contract();
   page_buffer_contract();
   registry.attach("console", 5, 0, character,0600);
@@ -1728,6 +1781,7 @@ extern "C" int run_fs_contracts(const char *image)
 
 extern "C" int run_ext3_fs_contracts(const char *image)
 {
+  xv::fs::initialize_userfs_plugins();
   using namespace xv::fs;
   using namespace xv::fs::test;
   load_image(image);block_cache.initialize();

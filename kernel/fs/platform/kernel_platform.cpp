@@ -16,6 +16,21 @@ import xv.arch;
 namespace xv::fs::detail
 {
 unsigned long cache_ticks() { return xv::arch::r_time(); }
+unsigned long monotonic_milliseconds() { return xv::arch::r_time() / 10000; }
+bool wait_until(void *channel, xv::sync::SpinLock &lock, unsigned long deadline)
+{
+  bool valid;
+  {
+    auto wait = xv::process::make_poll_wait();
+    wait.watch(channel);
+    wait.set_deadline(deadline);
+    valid = !wait.failed();
+    lock.release();
+    if (valid) wait.sleep();
+  }
+  lock.acquire();
+  return valid;
+}
 bool cpu_record(unsigned index,CpuRecord &record)
 {
   xv::arch::CpuHardware hardware;if(!xv::arch::cpu_hardware(index,hardware))return false;

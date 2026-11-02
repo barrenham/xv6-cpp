@@ -18,6 +18,8 @@ target_sources(kernel PRIVATE
   procfs/procfs.cpp
   procfs/system_providers.cpp
   ramfs/ramfs.cpp
+  userfs/userfs.cpp
+  userfs/registry.cpp
   permissions.cpp
   ext3/jbd.cpp
   ext3/volume.cpp

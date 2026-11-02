@@ -23,8 +23,8 @@ public:
   virtual const char *type_name() const {return name();}
   virtual void initialize(int device) = 0;
   virtual void initialize_inodes() = 0;
-  void attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
-  { node->uid_ = uid; node->gid_ = gid; node->mode_ = mode; update(node); }
+  virtual bool attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
+  { node->uid_ = uid; node->gid_ = gid; node->mode_ = mode; update(node); return true; }
   virtual bool initialize_mount(unsigned) { return false; }
   virtual bool busy() { return true; }
   virtual void shutdown() {}
@@ -45,12 +45,14 @@ public:
   virtual void truncate(Inode *node) = 0;
   virtual int resize(Inode *, unsigned) { return -1; }
   virtual void flush() {}
+  virtual int synchronize(Inode *) { flush(); return 0; }
   virtual Journal *transaction_log() { return nullptr; }
   virtual int read(Inode *node, int user, unsigned long destination, unsigned offset,
                    unsigned count) = 0;
   virtual int write(Inode *node, int user, unsigned long source, unsigned offset,
                     unsigned count) = 0;
   virtual void stat(Inode *node, Stat *result) = 0;
+  virtual int status(Inode *node, Stat *result) { stat(node, result); return 0; }
   virtual xv::drivers::CharacterDevice *open_device(Inode *, bool) { return nullptr; }
   virtual xv::drivers::BlockDevice *open_block_device(Inode *, bool) { return nullptr; }
   // Cookie is backend-specific. Returns 1 entry, 0 EOF, or -1 on failure.

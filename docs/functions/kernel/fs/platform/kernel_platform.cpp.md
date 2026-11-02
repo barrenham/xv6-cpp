@@ -392,3 +392,27 @@
 ```
 
 - [`xv::fs::detail::cache_ticks`](kernel_platform.cpp.md#fn-60ae58748deef7d6)
+
+<a id="fn-8f0467631cdc2672"></a>
+
+## `xv::fs::detail::monotonic_milliseconds`
+
+```doxygen
+@fn unsigned long xv::fs::detail::monotonic_milliseconds() { return xv::arch::r_time() / 10000; }
+@brief userfs 的等待先建立 PollWait 订阅及绝对毫秒截止时间，再释放调用者通道自旋锁；睡眠返回并析构订阅后重新持锁。时基由 RISC-V 10MHz 原始时钟转换为单调毫秒，订阅分配失败返回 false。
+@details userfs 的等待先建立 PollWait 订阅及绝对毫秒截止时间，再释放调用者通道自旋锁；睡眠返回并析构订阅后重新持锁。时基由 RISC-V 10MHz 原始时钟转换为单调毫秒，订阅分配失败返回 false。
+```
+
+<a id="fn-c8a6fd995a02aad2"></a>
+
+## `xv::fs::detail::wait_until`
+
+```doxygen
+@fn bool xv::fs::detail::wait_until(void *channel, xv::sync::SpinLock &lock, unsigned long deadline)
+@brief 订阅通道和截止时间后释放自旋锁睡眠，返回时重新持锁。
+@details userfs 的等待先建立 PollWait 订阅及绝对毫秒截止时间，再释放调用者通道自旋锁；睡眠返回并析构订阅后重新持锁。时基由 RISC-V 10MHz 原始时钟转换为单调毫秒，订阅分配失败返回 false。
+```
+
+- [`xv::fs::detail::monotonic_milliseconds`](kernel_platform.cpp.md#fn-8f0467631cdc2672)
+
+- [`xv::fs::detail::wait_until`](kernel_platform.cpp.md#fn-c8a6fd995a02aad2)

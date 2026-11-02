@@ -452,7 +452,7 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cpp",
-      "sha256": "fb2fc2871d17c5451b4c738c4ed0aabd92559e8a159ca4713fbd61fbe7e93c16",
+      "sha256": "0186392da682f2f5aa4479051c982573ac4da183028c71967600ae8d020d6d65",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -470,7 +470,7 @@
     },
     {
       "source": "kernel/fs/file/inode_backend_flow.cppm",
-      "sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213",
+      "sha256": "13e4f37326ab82a4601d2333fd16886c0d96ee70d46de0b25b0e3d4c2c7257d4",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -482,7 +482,7 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "9489cb24f541df6e88b78f1ec511bef867e88683a6562ce74d95874e3a79a262",
+      "sha256": "e3a94864db840763771a8464f78c6fd7d8e08173db1b6bb160ccf978b8768801",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -518,7 +518,7 @@
     },
     {
       "source": "kernel/fs/inode/filesystem.cppm",
-      "sha256": "3a628f4786ff7f2749257bfabe60bb4fc506dacd145845f5b13b6fc0e0f943dd",
+      "sha256": "8e6699f1bc179a6965de73381938f602eab020c72f5fd19c59795c2e094a02f9",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -530,7 +530,7 @@
     },
     {
       "source": "kernel/fs/inode/inode.cppm",
-      "sha256": "dd90cb6ee097336401f9d6c55fe5993f484bcf61e6e4efedb8722e0b9a451e2b",
+      "sha256": "fb05f5f843bee07bd58c93f9e907978cdbec84a6b0a54e387950cb8d3030e8da",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -626,13 +626,13 @@
     },
     {
       "source": "kernel/fs/platform/kernel_platform.cpp",
-      "sha256": "f6fc7796c9217739660125a52aec3ae623b6e54671cbbc36e43366e24fc8222e",
+      "sha256": "42304e6498fbc17fbe557cc4f58dbbd55f199ed07d6616035305b6206dda9603",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/platform/platform.cppm",
-      "sha256": "255e84d034f278bbdcdcf7bf0c5f31faa49ea6c3269a8180133576ff9ca82dab",
+      "sha256": "80330f2bba38e9c1d8242d867ea0a086e3c0c980fb3c1f98efcbb4f8a0ddbfd8",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -662,7 +662,7 @@
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
-      "sha256": "1cb211d43316a92889bd3ef449d8f0e447f72944a8f0ae8714e9f3b6f3b26680",
+      "sha256": "25cb5863ca8fb5684744dd2daf3c448cb0f7648e6463d4ef1e9db6900146f294",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -686,13 +686,37 @@
     },
     {
       "source": "kernel/fs/service.cpp",
-      "sha256": "b4bd89db0d6b351ecd5cc5265ecf0da39f03f9c40b8218cb82e29bf1512934b4",
+      "sha256": "4ab2026f043549b3daa519e92f56d2141c644223bfa42e6a49a0be92edccc854",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/stat.h",
       "sha256": "60a0b80769c240165fe1e74c7adaa5584cc4d92ba65800e00518e9ad829bbb95",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/userfs/protocol.h",
+      "sha256": "414ccc4bbc2819a825f8be16cea3b4e4ea571648b8931c8575408b6c5c07019b",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/userfs/registry.cpp",
+      "sha256": "c948e5d61110404d585c4ffd8ae342f9504d6f7ab961941f4746ac96edd1aff7",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/userfs/userfs.cpp",
+      "sha256": "a2a8ecdb8734a2390dec2b48b03dd79acc0339466c59057e65c2dd1a26022d1d",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/userfs/userfs.cppm",
+      "sha256": "e8a7eda75ea250e81aa1ae9f205de8fec5212ebcddffbd2d31f810e72231c42a",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -704,7 +728,7 @@
     },
     {
       "source": "kernel/fs/vfs/mount_flow.cppm",
-      "sha256": "25e9b69aed3156e39972d59a4805370a5bbd381be82527c88d83f0ca815e9d8c",
+      "sha256": "f77259abff0647e1974298a01dd2fa09d84fac0c3d8cce3013d7c1a73fc71bfd",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -716,13 +740,13 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cpp",
-      "sha256": "11dfc318ddc44e4828a7da14d92697ba60fbe29c801bb29a813b07d94b09ffef",
+      "sha256": "9903d0cb9140c3053e0972530df7f840702dfa8ebdaa22fc7e083a4bee690a74",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/vfs/vfs.cppm",
-      "sha256": "9d6fc9bab0a5a6ffee2c9ae52776bcb3025876afd2c29aeb0c2a41b2569f1d6b",
+      "sha256": "27735aa2a4a592763da8c761f03ea11e725cf586a0593170feb4b03694a76e85",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -2240,13 +2264,13 @@
     },
     {
       "source": "kernel/syscall/handlers.cppm",
-      "sha256": "7cfc5910499b9d0764b431754610caa22173f7494f97bca5f5a15ff5e4f46941",
+      "sha256": "f180fe5a1410b41f6943d7d17ff4a9c95a69ed6a25659165d16e1dadb24ede5c",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
     {
       "source": "kernel/syscall/syscall.cpp",
-      "sha256": "72e96567dec9dce1c5c7f60e0c1013adbdde4e82f227ee10c6104b57c356324f",
+      "sha256": "afe2c1e48b653f64f0f0b2f5d9bff123adeaf521eb6dab54ef52cd8637b20f7d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
@@ -2258,13 +2282,13 @@
     },
     {
       "source": "kernel/syscall/syscall.h",
-      "sha256": "fb42e7e55b1c33877aab7c45d0e62ebc51b6bc44ce7e370bdf74812a4dd2a76c",
+      "sha256": "4f1fe6a1e8df4e220884f23648462c74b6ef782d6f20fcaccd596f61a358977c",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "26668571d8f0c6485a28cfc8f3958f5d2446674ce7280e0b9a9627d678815056",
+      "sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },

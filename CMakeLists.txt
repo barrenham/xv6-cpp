@@ -191,7 +191,7 @@ endforeach()
 set_tests_properties(ram_2048MiB ram_2049MiB PROPERTIES RUN_SERIAL TRUE)
 
 foreach(cpus 1 5)
-  foreach(feature named-pty procfs ramfs environment permissions workflow session)
+  foreach(feature named-pty procfs ramfs userfs fsplugins environment permissions workflow session)
     add_test(NAME ${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
       --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"

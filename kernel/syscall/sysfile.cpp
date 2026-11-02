@@ -11,6 +11,7 @@ module;
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/mount.h"
+#include "kernel/fs/userfs/protocol.h"
 #include "kernel/fs/stat.h"
 #include "kernel/support/param.h"
 #include "kernel/support/types.h"
@@ -610,7 +611,7 @@ struct AttributesFlow
   static bool valid(Context &c) noexcept { return c.valid; }
   static void commit(Context &c) noexcept
   {
-    c.node->owner().attributes(c.node, c.uid, c.gid, c.mode);
+    c.valid = c.node->owner().attributes(c.node, c.uid, c.gid, c.mode);
   }
   static void release(Context &c) noexcept
   {
@@ -692,7 +693,7 @@ struct StatFlow
   }
   static void snapshot(Context &c) noexcept
   {
-    xv::fs::filesystem().stat(c.inode, &c.value);
+    c.result = c.inode->owner().status(c.inode, &c.value);
   }
   static void release(Context &c) noexcept
   {
@@ -700,8 +701,8 @@ struct StatFlow
   }
   static void copy(Context &c) noexcept
   {
-    c.result =
-        xv::process::current()->memory().copy_out(c.address, &c.value, sizeof(c.value));
+    if (c.result == 0)
+      c.result = xv::process::current()->memory().copy_out(c.address, &c.value, sizeof(c.value));
   }
   struct Lookup;
   struct Lock;
@@ -742,6 +743,11 @@ struct MountFlow
   {
     c.result = xv::fs::filesystem().mount_ram(c.path);
   }
+  static void mount_plugin(Context &c) noexcept
+  {
+    c.result = xv::fs::mount_registered_userfs(c.type, c.path);
+  }
+  struct Plugin;
   struct Disk;
   struct Ram;
   struct MountDisk;
@@ -752,7 +758,8 @@ struct MountFlow
                                                 flow::go<MountDisk>, flow::go<Ram>>>,
                         flow::node<Ram, flow::noop,
                                    flow::branch<flow::condition<&ram>,
-                                                flow::go<MountRam>, flow::stop>>,
+                                                flow::go<MountRam>, flow::go<Plugin>>>,
+                        flow::node<Plugin, flow::action<&mount_plugin>, flow::stop>,
                         flow::node<MountDisk, flow::action<&mount_disk>, flow::stop>,
                         flow::node<MountRam, flow::action<&mount_ram>, flow::stop>>>;
 };
@@ -1200,13 +1207,44 @@ uint64 sys_rename()
   }
   return xv::fs::filesystem().rename(old, next);
 }
+uint64 sys_fsregister()
+{
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+  uint64 address;
+  argument_address(0, &address);
+  xv::userfs::Registration registration;
+  if (xv::process::copy_in(&registration, true, address, sizeof(registration)) < 0) return -1;
+  auto *file = xv::fs::register_userfs(registration);
+  if (!file) return -1;
+  int fd = fdalloc(file);
+  if (fd < 0) xv::fs::files().release(file);
+  return fd;
+}
+
+uint64 sys_fsserve()
+{
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+  char path[MAXPATH];
+  if (argument_string(0, path, sizeof(path)) <= 0) return -1;
+  auto *file = xv::fs::create_userfs();
+  if (!file) return -1;
+  int fd = fdalloc(file);
+  if (fd < 0) { xv::fs::files().release(file); return -1; }
+  if (!xv::fs::mount_userfs(*file, path))
+  {
+    xv::process::current()->files().close(fd);
+    return -1;
+  }
+  return fd;
+}
+
 uint64 sys_mount()
 {
   if (xv::process::current()->credentials().snapshot().effective_uid != 0)
   {
     return -1;
   }
-  char path[MAXPATH], type[16];
+  char path[MAXPATH], type[32];
   if (argument_string(0, type, sizeof(type)) < 0 ||
       argument_string(1, path, sizeof(path)) < 0 || !type[0])
   {

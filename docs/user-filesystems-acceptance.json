@@ -1,0 +1,117 @@
+{
+  "architecture": "Kernel VFS and native backends coexist with generic user-mode filesystem services; fsserve returns a bidirectional service descriptor.",
+  "sha256": {
+    "build/dev/kernel.elf": "184220210a2fde0c8604adddc22ad3d4cee98157943973cbec9c486f2c1abb2f",
+    "build/dev/fs-test.img": "8d3a2df38fb4f86221404e60a7ba35b46e3233b810477371ced6d90b7d794729",
+    "build/dev/user/_memfsd": "1cabacebd330ab941983cdeae7a6676d19c8b99ba8d1f25ee798160763278dcf",
+    "build/dev/user/_userfstest": "ea4561fca193d79e44a90931473272cbd8e6ae470cced40c6d67d34aa5791ebc"
+  },
+  "regressions": {
+    "tests": [
+      "image_layout",
+      "fs_contract",
+      "boot_smoke",
+      "procfs_1cpu",
+      "ramfs_1cpu",
+      "userfs_1cpu",
+      "permissions_1cpu",
+      "procfs_5cpu",
+      "ramfs_5cpu",
+      "userfs_5cpu",
+      "permissions_5cpu",
+      "rootfs_update_contract",
+      "ext3_jbd_contract",
+      "ext3_volume_contract"
+    ],
+    "result": "14 related regressions passed; after final wire initialization and object lifetime changes, complete userfs_1cpu and userfs_5cpu rerun and both passed",
+    "final_tests": [
+      "userfs_1cpu",
+      "userfs_5cpu"
+    ],
+    "final_native": {
+      "tests": [
+        "fs_contract",
+        "image_layout"
+      ],
+      "result": "both passed after rebuilding native filesystem code with final object lifetime implementation"
+    }
+  },
+  "contracts": [
+    "Real user-mode memfsd mounted through fsserve",
+    "4097-byte segmented read/write, payload validation and resize",
+    "fresh stat, mode permissions, fsserve administrator restriction",
+    "directories, getdents64, symlink, hardlink, rename and open-unlinked file",
+    "four concurrent clients with independent payloads",
+    "open-handle and cwd references prevent unmount",
+    "dup endpoint lifetime and final close notification",
+    "invalid lengths, pointers, version, request ID and oversized reply count",
+    "closed/killed service wakes blocked client",
+    "five-second request timeout measured in raw ticks",
+    "explicit Sync error and disconnected fstat error propagation",
+    "ten fault mount/unmount cycles exceed four-slot pool and prove reuse",
+    "Forget on final inode release and rollback of remote borrow when local cache is full",
+    "160 create/unlink/stat/close cycles exceed example object capacity and reuse object IDs and memory"
+  ],
+  "documentation": {
+    "coverage": {
+      "kernel_files": 408,
+      "default_unique_symbols": 5286,
+      "all_cpp_symbols": 5357,
+      "documentation_entries": 5360,
+      "indexable_entries": 5271,
+      "documentation_only": 89,
+      "missing_files": 0,
+      "missing_function_symbols": 0
+    },
+    "flows": {
+      "source_files": 408,
+      "reviewed_non_network_non_boot": 285,
+      "preserved_network_source_files": 117,
+      "excluded_boot_source_files": 6,
+      "graphs": 230,
+      "additional_conditional_graph_definitions": 3,
+      "original_entries": 227,
+      "internal_bindings": 7,
+      "prior_network_graphs": 110,
+      "preserved_subtree_files": {
+        "kernel/boot/": 8,
+        "kernel/net/": 118
+      },
+      "pending_sources": 0,
+      "unregistered_runners": 0,
+      "caveat": "Source/binding integrity is evidence of reviewed coverage, not proof of runtime semantics or every build profile."
+    },
+    "hover": {
+      "external-doxygen": 65,
+      "native-documentation-priority-or-index-limit": 3,
+      "cross-module-doxygen": 5
+    }
+  },
+  "rootfs_install": {
+    "installed": [
+      "/bin/memfsd",
+      "/usr/tests/userfstest"
+    ],
+    "protected_contents_and_attributes_unchanged": true,
+    "protected_entries": 7,
+    "update_output": "prepared: /bin/memfsd\nprepared: /usr/tests/userfstest\nrootfs updated: 2 files, 0 system directories\nbackup: /home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261101T164736Z-f24e01a8.img\n",
+    "selected_manifest": true
+  },
+  "limits": [
+    "One in-flight request per mount; 512-byte payloads",
+    "Four service slots and 64 live cached inodes per slot",
+    "Existing namespace lock can delay unrelated path lookup until timeout; backend descriptors should be opened before serving",
+    "memfsd is a nonpersistent example with 128 concurrent objects, 256 entries, 1MiB per file",
+    "No FUSE wire compatibility, automatic restart recovery, or shared-buffer path"
+  ],
+  "completion_audit": {
+    "independent_address_space": "memfsd exec in real QEMU; data and directory state allocated in the user process",
+    "generic_extensibility": "kernel knows only versioned Message operations, not memfsd object layout or storage strategy",
+    "normal_file_interface": "existing VFS, inode backend and syscalls route operations to mounted proxy",
+    "lifecycle_and_failure": "last descriptor close, kill, malformed replies, timeout, busy unmount and slot reuse tested",
+    "existing_filesystems": "ext3, RAMFS, permissions, procfs and native filesystem regressions passed",
+    "object_lifetime": "Final reference release sends Forget; deleted objects survive open handles and are reclaimed afterwards; 160-cycle runtime contract passed on 1/5 CPUs"
+  },
+  "status": "historical_bridge_prototype",
+  "superseded_by": "fs-plugins-acceptance.json"
+}

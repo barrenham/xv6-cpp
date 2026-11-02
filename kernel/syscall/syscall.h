@@ -119,3 +119,7 @@
 #define SYS_lstat 92
 
 #define SYS_getdents64 93
+
+#define SYS_fsserve 94
+
+#define SYS_fsregister 95

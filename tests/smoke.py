@@ -21,6 +21,8 @@ parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--without-entropy',action='store_true')
 parser.add_argument('--named-pty', action='store_true')
 parser.add_argument('--procfs', action='store_true')
+parser.add_argument('--userfs', action='store_true')
+parser.add_argument('--fsplugins', action='store_true')
 parser.add_argument('--ramfs', action='store_true')
 parser.add_argument('--session', action='store_true')
 parser.add_argument('--workflow', action='store_true')
@@ -73,7 +75,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIP
 selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
-log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"fsplugins-{args.cpus}cpu.log" if args.fsplugins else f"userfs-{args.cpus}cpu.log" if args.userfs else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 log_file = log_path.open("wb")
 cursor = 0
 
@@ -99,6 +101,10 @@ def expect(token, timeout=30):
                     position = transcript.find(failure)
                     if position >= 0 and b'\n' in transcript[position:]:
                         raise RuntimeError('environment or permission contract failed')
+                if b'fsplugintest: FAIL:' in transcript:
+                    raise RuntimeError('filesystem plugin contract failed')
+                if b'userfstest: FAIL:' in transcript:
+                    raise RuntimeError('userspace filesystem contract failed')
                 if b'ramfstest: FAIL:' in transcript:
                     raise RuntimeError('RAM filesystem contract failed')
                 if b'namedptytest: FAIL:' in transcript or b'procfstest: FAIL:' in transcript:
@@ -712,6 +718,10 @@ try:
                   ('free', 'Mem:'), ('cat /proc/bcache', 'tick_hz 10000000'),
                   ('cat /proc/uptime', '.'),
                   ('cat /proc/cpuinfo', 'processor\t: 0'), ('cat /proc/stat', 'btime ')]
+    if args.fsplugins:
+        checks = [('fsplugintest', 'fsplugintest: all tests succeeded')]
+    if args.userfs:
+        checks = [('userfstest', 'userfstest: all tests succeeded')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
     for cmd, token in checks:

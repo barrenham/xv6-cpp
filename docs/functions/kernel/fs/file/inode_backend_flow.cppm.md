@@ -508,3 +508,15 @@
 - [`xv::fs::InodeBackend::DirectoryFlow::success`](inode_backend_flow.cppm.md#fn-bb246eeef9552be8)
 
 - [`xv::fs::InodeBackend::DirectoryFlow::valid`](inode_backend_flow.cppm.md#fn-aaa0d174a5e59f6a)
+
+<a id="fn-fb554d2ed97cb1dc"></a>
+
+## `xv::fs::InodeBackend::SyncFlow::local`
+
+```doxygen
+@fn static void xv::fs::InodeBackend::SyncFlow::local(Context &c) noexcept
+@brief SyncFlow 对非持久后端调用 synchronize 并保留返回值，使 userfs 的 fsync 等待服务 Sync 回复并传播失败；持久磁盘后端保留日志同步及设备 flush 顺序。
+@details SyncFlow 对非持久后端调用 synchronize 并保留返回值，使 userfs 的 fsync 等待服务 Sync 回复并传播失败；持久磁盘后端保留日志同步及设备 flush 顺序。
+```
+
+- [`xv::fs::InodeBackend::SyncFlow::local`](inode_backend_flow.cppm.md#fn-fb554d2ed97cb1dc)

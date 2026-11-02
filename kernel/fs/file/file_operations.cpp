@@ -101,7 +101,7 @@ int InodeBackend::sync()
 int InodeBackend::stat(xv::io::Metadata &value)
 {
   LockedInode guard(node_->owner(), *node_);
-  filesystem().stat(node_, &value);
+  if (node_->owner().status(node_, &value) < 0) return -1;
   if (snapshot_)
   {
     value.size = contents_.size();
@@ -203,7 +203,7 @@ int DeviceBackend::write(xv::io::Buffer source, int count)
 int DeviceBackend::stat(xv::io::Metadata &value)
 {
   LockedInode guard(node_->owner(), *node_);
-  filesystem().stat(node_, &value);
+  if (node_->owner().status(node_, &value) < 0) return -1;
   return 0;
 }
 

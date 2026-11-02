@@ -36,7 +36,13 @@ constinit DeviceRegistry system_devices;
 bool detail::registered_filesystem(unsigned index,detail::FileSystemType &record)
 {
   FileSystem *const backends[]={&legacy_disk_filesystem,&ext3_disk_filesystem,&device_filesystem,&process_filesystem,&temporary_filesystem};
-  if(index>=sizeof(backends)/sizeof(backends[0]))return false;
+  constexpr unsigned count=sizeof(backends)/sizeof(backends[0]);
+  if(index>=count)
+  {
+    if(index==count){record={"userfs",true};return true;}
+    if(!userfs_type(index-count-1,record.storage))return false;
+    record.name=record.storage;record.nodev=true;return true;
+  }
   record={backends[index]->type_name(),!backends[index]->persistent()};return true;
 }
 
@@ -67,6 +73,7 @@ DeviceRegistry &devices()
 
 void initialize_cache()
 {
+  initialize_userfs_plugins();
   devices().attach_block("vda",8,0,xv::drivers::block_device());
   system_cache.attach(xv::drivers::block_device());
   ext3_disk_filesystem.attach(xv::drivers::block_device());

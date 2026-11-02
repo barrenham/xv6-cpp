@@ -1,5 +1,7 @@
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
+add_library(user_fs STATIC runtime/userfs/server.cpp)
+target_link_libraries(user_fs PRIVATE xv_options)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
@@ -9,7 +11,7 @@ target_link_libraries(user_http PRIVATE xv_options PUBLIC user_dns)
 function(xv_add_program source)
   get_filename_component(name "${source}" NAME_WE)
   add_executable(user_${name} "${source}" $<TARGET_OBJECTS:user_runtime>)
-  target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns)
+  target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns user_fs)
   target_link_options(user_${name} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
@@ -27,6 +29,8 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/memfsd/memfsd.cpp
+  apps/tarfsd/tarfsd.cpp
   apps/fbterm/fbterm.cpp
   apps/fbdemo/fbdemo.cpp
   apps/userdel/userdel.cpp
@@ -52,6 +56,8 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/userfstest.cpp
+  tests/fsplugintest.cpp
   tests/cachebench.cpp
   tests/timerbench.cpp
   tests/schedulercheck.cpp
@@ -119,7 +125,14 @@ endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
 string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/fbfont.txt\t${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt\n")
 set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
-set(XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt" PARENT_SCOPE)
+set(plugin_sample "${PROJECT_BINARY_DIR}/fs-plugin-sample.tar")
+add_custom_command(OUTPUT "${plugin_sample}"
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/make_fs_plugin_sample.py" --output "${plugin_sample}"
+  DEPENDS "${PROJECT_SOURCE_DIR}/tools/make_fs_plugin_sample.py" VERBATIM)
+add_custom_target(fs-plugin-sample DEPENDS "${plugin_sample}")
+string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/plugin.tar\t${plugin_sample}\n")
+set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
+set(XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt" "${plugin_sample}" PARENT_SCOPE)
 
 target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp apps/sh/editor.cpp)
 

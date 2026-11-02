@@ -117,3 +117,7 @@
 ```
 
 - [`xv::syscall::sys_getdents64`](sysfile.cpp.md#fn-fb210246732bc020)
+
+- [`xv::syscall::sys_fsserve`](sysfile.cpp.md#fn-68bfdbb98d082fde)
+
+- [`xv::syscall::sys_fsregister`](sysfile.cpp.md#fn-cc3ab8ebf1366e1d)

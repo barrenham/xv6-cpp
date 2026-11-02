@@ -487,3 +487,15 @@ getdents64:
  li a7, SYS_getdents64
  ecall
  ret
+
+.global fsserve
+fsserve:
+ li a7, SYS_fsserve
+ ecall
+ ret
+
+.global fsregister
+fsregister:
+ li a7, SYS_fsregister
+ ecall
+ ret

@@ -476,8 +476,7 @@
 ```doxygen
 @fn uint64 xv::syscall::sys_mount()
 @brief 仅允许 root 挂载 RAM 或数据卷。
-@details 精确接受 ramfs/xv6 两种类型，复制路径后调用对应服务；xv6 仅指已连接的数据卷，不接受任意设备或分区输入。
-@details 流程由 MountFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@details fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。
 ```
 
 <a id="fn-103761d03e7af163"></a>
@@ -702,7 +701,7 @@
 ```doxygen
 @fn static void xv::syscall::AttributesFlow::commit(Context &c) noexcept
 @brief 提交已验证的 UID、GID 和权限模式。
-@details chmod/chown 共用本图；凭据快照和标量权限策略在 inode 锁内计算，合法才提交，所有已锁分支汇合到解锁归还。 下一节点由图策略声明，业务结果与控制信号分离。
+@details fsserve 仅允许有效 uid 0：分配服务 File、安装描述符后挂载，任一失败都关闭并回收。属性变更依据后端确认返回成功，stat/lstat 使用可失败 status 并避免在失败时复制缓存属性。其他系统调用流程保持。
 ```
 
 <a id="fn-77562edf156a550b"></a>
@@ -1312,7 +1311,7 @@
 ```doxygen
 @fn static void xv::syscall::StatFlow::copy(Context &c) noexcept
 @brief 把统计快照复制给用户并保留原返回值。
-@details stat/lstat 仅通过跟随策略区分，复制前先解锁归还 inode，原入口 Transaction 保持到复制结束。 下一节点由图策略声明，业务结果与控制信号分离。
+@details fsserve 仅允许有效 uid 0：分配服务 File、安装描述符后挂载，任一失败都关闭并回收。属性变更依据后端确认返回成功，stat/lstat 使用可失败 status 并避免在失败时复制缓存属性。其他系统调用流程保持。
 ```
 
 <a id="fn-c14adbd10597827e"></a>
@@ -1352,7 +1351,7 @@
 ```doxygen
 @fn static void xv::syscall::StatFlow::snapshot(Context &c) noexcept
 @brief 在 inode 锁内读取统计快照。
-@details stat/lstat 仅通过跟随策略区分，复制前先解锁归还 inode，原入口 Transaction 保持到复制结束。 下一节点由图策略声明，业务结果与控制信号分离。
+@details fsserve 仅允许有效 uid 0：分配服务 File、安装描述符后挂载，任一失败都关闭并回收。属性变更依据后端确认返回成功，stat/lstat 使用可失败 status 并避免在失败时复制缓存属性。其他系统调用流程保持。
 ```
 
 <a id="fn-8d5cf746df533b95"></a>
@@ -1407,3 +1406,39 @@
 - [`xv::syscall::sys_getdents64`](sysfile.cpp.md#fn-fb210246732bc020)
 
 - [`xv::syscall::OpenFlow::unlock_bound`](sysfile.cpp.md#fn-7643707c0f28dddb)
+
+<a id="fn-68bfdbb98d082fde"></a>
+
+## `xv::syscall::sys_fsserve`
+
+```doxygen
+@fn uint64 xv::syscall::sys_fsserve()
+@brief 为管理员创建服务端点并挂载，失败时回收描述符。
+@details fsserve 仅允许有效 uid 0：分配服务 File、安装描述符后挂载，任一失败都关闭并回收。属性变更依据后端确认返回成功，stat/lstat 使用可失败 status 并避免在失败时复制缓存属性。其他系统调用流程保持。
+```
+
+- [`xv::syscall::sys_fsserve`](sysfile.cpp.md#fn-68bfdbb98d082fde)
+
+<a id="fn-cc3ab8ebf1366e1d"></a>
+
+## `xv::syscall::sys_fsregister`
+
+```doxygen
+@fn uint64 xv::syscall::sys_fsregister()
+@brief 校验管理员权限及用户注册结构，创建并安装服务描述符。
+@details fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。
+```
+
+<a id="fn-b2252cbdd7c55b3e"></a>
+
+## `xv::syscall::MountFlow::mount_plugin`
+
+```doxygen
+@fn static void xv::syscall::MountFlow::mount_plugin(Context &c) noexcept
+@brief 把非内建类型统一交给插件注册表挂载。
+@details fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。
+```
+
+- [`xv::syscall::sys_fsregister`](sysfile.cpp.md#fn-cc3ab8ebf1366e1d)
+
+- [`xv::syscall::MountFlow::mount_plugin`](sysfile.cpp.md#fn-b2252cbdd7c55b3e)

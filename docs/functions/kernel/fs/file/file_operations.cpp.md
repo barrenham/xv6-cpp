@@ -74,7 +74,7 @@
 ```doxygen
 @fn int xv::fs::InodeBackend::stat(xv::io::Metadata &value)
 @brief 读取节点元数据，并用动态快照长度覆盖打开文件大小。
-@details 快照大小与本次打开的内容和 EOF 一致，不重新生成内容；普通 RAM/磁盘文件大小来自所属节点。
+@details 普通文件 stat 改用可失败 status，用户态服务断开时传播错误；inode 内容锁与快照大小的既有协议保持。
 ```
 
 <a id="fn-5fada80fee636ddb"></a>
@@ -124,7 +124,7 @@
 ```doxygen
 @fn int xv::fs::DeviceBackend::stat(xv::io::Metadata &value)
 @brief 在所属文件系统节点锁内读取设备元数据。
-@details 统计来自被本 File 引用的节点，动态设备名撤下后已有 fd 仍保留原节点身份。
+@details 普通文件 stat 改用可失败 status，用户态服务断开时传播错误；inode 内容锁与快照大小的既有协议保持。
 ```
 
 <a id="fn-efd08a89bd78b547"></a>

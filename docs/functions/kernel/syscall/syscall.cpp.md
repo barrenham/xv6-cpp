@@ -26,7 +26,7 @@
 ```doxygen
 @fn static SyscallHandler xv::syscall::lookup_syscall(int number)
 @brief 把共享 ABI 调用号映射到处理函数。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 新增 SYS_fsregister 到注册处理器分派，旧系统调用号与具名挂载 ABI 保持。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>

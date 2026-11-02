@@ -15,6 +15,8 @@ typedef long int off_t;
 struct stat;
 struct mount_info;
 int mount(const char *type, const char *path);
+int fsserve(const char *path);
+int fsregister(const void *registration);
 int umount(const char *path);
 int mountinfo(int index, struct mount_info *info);
 struct termios;

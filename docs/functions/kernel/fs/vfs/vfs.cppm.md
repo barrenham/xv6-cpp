@@ -78,3 +78,5 @@
 - [`xv::fs::VirtualFileSystem::snapshot_mounts`](vfs.cpp.md#fn-49863f7ed2744744)
 
 - [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-f77a31b05fc26086)
+
+- [`xv::fs::VirtualFileSystem::mount_service`](vfs.cpp.md#fn-0ca0821ecfb5ad49)

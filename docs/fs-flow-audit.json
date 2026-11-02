@@ -163,8 +163,8 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cpp",
-      "sha256": "fb2fc2871d17c5451b4c738c4ed0aabd92559e8a159ca4713fbd61fbe7e93c16",
-      "review": "InodeBackend 的读/写/seek/resize/sync 运行图；close 以原 Transaction 范围释放 inode 后析构，DeviceBackend 保留关闭 session→事务释放→析构的固定销毁原语，简单 I/O 能力委托不增空图。 新增裸块后端受容量/挂载只读限制，块传输走 TransferFlow；getdents64 走 DirectoryFlow。独立 open 初次成功 read/getdents 选择编码，dup/fork 共享模式和游标；legacy_next_directory 保留16字节目录ABI。",
+      "sha256": "0186392da682f2f5aa4479051c982573ac4da183028c71967600ae8d020d6d65",
+      "review": "普通文件 stat 改用可失败 status，用户态服务断开时传播错误；inode 内容锁与快照大小的既有协议保持。",
       "graph_entries": [
         {
           "qualified": "xv::fs::InodeBackend::read",
@@ -245,8 +245,8 @@
     },
     {
       "source": "kernel/fs/file/inode_backend_flow.cppm",
-      "sha256": "5c30b4ed8b9c5c9ab63811bf25278061c483b0a688e3d67a4397d847c7d58213",
-      "review": "inode 读写/seek/resize/sync 图，事务/锁/快照状态通过原 owner 引用共享。 新增 BlockBackend TransferFlow：512字节边缘读改写和复制成功后才发布；DirectoryFlow：整条 getdents64 记录、8字节对齐清零、失败记录不推进 cookie，先前完整记录可返回。",
+      "sha256": "13e4f37326ab82a4601d2333fd16886c0d96ee70d46de0b25b0e3d4c2c7257d4",
+      "review": "SyncFlow 对非持久后端调用 synchronize 并保留返回值，使 userfs 的 fsync 等待服务 Sync 回复并传播失败；持久磁盘后端保留日志同步及设备 flush 顺序。",
       "graph_entries": []
     },
     {
@@ -294,8 +294,8 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "9489cb24f541df6e88b78f1ec511bef867e88683a6562ce74d95874e3a79a262",
-      "review": "文件引用/身份、固定后端存储与文件表/设备注册接口；保留 ready/status 原子发布。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "e3a94864db840763771a8464f78c6fd7d8e08173db1b6bb160ccf978b8768801",
+      "review": "导出通用注册、具名挂载、实例和类型快照接口；File 端点通过已有描述符引用管理。注册描述符与挂载解耦，同名服务可多个实例，旧 create_userfs/mount_userfs 保留匿名兼容。",
       "graph_entries": []
     },
     {
@@ -318,8 +318,8 @@
     },
     {
       "source": "kernel/fs/inode/filesystem.cppm",
-      "sha256": "3a628f4786ff7f2749257bfabe60bb4fc506dacd145845f5b13b6fc0e0f943dd",
-      "review": "原 inode/文件系统契约及默认不支持操作，无运行时图注册。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "8e6699f1bc179a6965de73381938f602eab020c72f5fd19c59795c2e094a02f9",
+      "review": "FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。",
       "graph_entries": []
     },
     {
@@ -330,8 +330,8 @@
     },
     {
       "source": "kernel/fs/inode/inode.cppm",
-      "sha256": "dd90cb6ee097336401f9d6c55fe5993f484bcf61e6e4efedb8722e0b9a451e2b",
-      "review": "inode 元数据值/安全字段、原锁/引用借用与 LockedInode RAII 原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "fb05f5f843bee07bd58c93f9e907978cdbec84a6b0a54e387950cb8d3030e8da",
+      "review": "固定地址 inode 保留所属后端与引用；UserFileSystem 作为受控代理可填充服务确认后的标量属性，跨进程协议不暴露此对象地址。",
       "graph_entries": []
     },
     {
@@ -723,14 +723,14 @@
     },
     {
       "source": "kernel/fs/platform/kernel_platform.cpp",
-      "sha256": "f6fc7796c9217739660125a52aec3ae623b6e54671cbbc36e43366e24fc8222e",
-      "review": "cache_ticks 读取 RISC-V 原始时钟，根缓存 proc 标注 10MHz；只用于替换时间戳及竞争后的等待测量，不改等待唤醒协议。",
+      "sha256": "42304e6498fbc17fbe557cc4f58dbbd55f199ed07d6616035305b6206dda9603",
+      "review": "userfs 的等待先建立 PollWait 订阅及绝对毫秒截止时间，再释放调用者通道自旋锁；睡眠返回并析构订阅后重新持锁。时基由 RISC-V 10MHz 原始时钟转换为单调毫秒，订阅分配失败返回 false。",
       "graph_entries": []
     },
     {
       "source": "kernel/fs/platform/platform.cppm",
-      "sha256": "255e84d034f278bbdcdcf7bf0c5f31faa49ea6c3269a8180133576ff9ca82dab",
-      "review": "cache_ticks 提供平台缓存时钟：内核为 10MHz 原始 tick，原生契约为单调纳秒；统计消费者必须区分时基。",
+      "sha256": "80330f2bba38e9c1d8242d867ea0a086e3c0c980fb3c1f98efcbb4f8a0ddbfd8",
+      "review": "FileSystemType 增加调用者拥有的名称存储，动态类型枚举把名称复制到该数组后返回 name，避免插件实例退役回收导致 proc 渲染读取悬挂字符串。原有文件系统平台等待原语保持。",
       "graph_entries": []
     },
     {
@@ -881,8 +881,8 @@
     },
     {
       "source": "kernel/fs/service.cpp",
-      "sha256": "b4bd89db0d6b351ecd5cc5265ecf0da39f03f9c40b8218cb82e29bf1512934b4",
-      "review": "constinit 缓存/日志/后端/VFS/表的固定接线和 getter，初始化缓存与可选固定 data-device 委托保持启动业务原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "4ab2026f043549b3daa519e92f56d2141c644223bfa42e6a49a0be92edccc854",
+      "review": "移除预置 UserFileSystem 对象数组和类型专用创建逻辑，启动初始化通用插件注册锁。内建后端照常建立；/proc/filesystems 在内建类型和 userfs 入口后枚举动态类型，使用调用者的名称缓冲区。实际实例注册与选择委托独立 registry.cpp。",
       "graph_entries": []
     },
     {
@@ -899,8 +899,8 @@
     },
     {
       "source": "kernel/fs/vfs/mount_flow.cppm",
-      "sha256": "25e9b69aed3156e39972d59a4805370a5bbd381be82527c88d83f0ca815e9d8c",
-      "review": "动态挂载/卸载/候选回收与 namespace 锁协议图。 持久磁盘由 MountDiskFlow 管理；发布前限制 mount ABI 路径127字节，避免长路径信息被截断。",
+      "sha256": "f77259abff0647e1974298a01dd2fa09d84fac0c3d8cce3013d7c1a73fc71bfd",
+      "review": "卸载在 namespace 锁下先匹配已登记的挂载路径，避免父用户态 FS 断开后必须向它发 lookup 才能卸载子挂载；相对路径或别名仍走原路径解析。内建挂载保护、busy 检查、覆盖点/父引用释放及后端 shutdown 顺序保持。",
       "graph_entries": []
     },
     {
@@ -921,8 +921,8 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cpp",
-      "sha256": "11dfc318ddc44e4828a7da14d92697ba60fbe29c801bb29a813b07d94b09ffef",
-      "review": "初始化/路径/挂载等入口运行图；mounts 为一个 namespace 锁内的固定表索引/输出投影，inode retain/release/lock 和文件系统委托保持原语。 新增挂载信息专用发布快照锁，proc 读取不进入拓扑锁；磁盘 mount 事务接入被选后端；路径缓冲在可增长内核栈，失败不改变所有权。",
+      "sha256": "9903d0cb9140c3053e0972530df7f840702dfa8ebdaa22fc7e083a4bee690a74",
+      "review": "mount_service 校验规范绝对路径、已有目录与总容量，在 namespace 锁下固定覆盖点、父目录及后端根，发布 -3 服务挂载并更新快照；挂载本身不向尚未进入接收循环的服务发请求。",
       "graph_entries": [
         {
           "qualified": "xv::fs::VirtualFileSystem::walk",
@@ -1055,8 +1055,8 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cppm",
-      "sha256": "9d6fc9bab0a5a6ffee2c9ae52776bcb3025876afd2c29aeb0c2a41b2569f1d6b",
-      "review": "原固定挂载/后端/namespace 状态、接口和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "27735aa2a4a592763da8c761f03ea11e725cf586a0593170feb4b03694a76e85",
+      "review": "增加 mount_service，将已准备好的通用用户态代理接入 VFS；挂载记录用 -3 区分服务实例。仍使用现有 namespace 锁，服务处理请求时应避免重入路径查找，限制见 docs/user-filesystems.md。",
       "graph_entries": []
     },
     {
@@ -1162,8 +1162,36 @@
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
-      "sha256": "1cb211d43316a92889bd3ef449d8f0e447f72944a8f0ae8714e9f3b6f3b26680",
-      "review": "新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。",
+      "sha256": "25cb5863ca8fb5684744dd2daf3c448cb0f7648e6463d4ef1e9db6900146f294",
+      "review": "新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/userfs/protocol.h",
+      "sha256": "414ccc4bbc2819a825f8be16cea3b4e4ea571648b8931c8575408b6c5c07019b",
+      "review": "通用 FS 插件注册 ABI：Registration 包含 size/version、最长 31 字节类型名、初始根属性、只读标志、操作能力及 1..512 字节载荷；ProviderInfo 描述运行时实例状态。必需读操作集合与可选写操作以位图表达，原消息 ABI 与聚合 Forget 保留。见 docs/user-filesystems.md 与 docs/fs-plugin-authoring.md。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/userfs/userfs.cppm",
+      "sha256": "e8a7eda75ea250e81aa1ae9f205de8fec5212ebcddffbd2d31f810e72231c42a",
+      "review": "通用 VFS 代理从注册描述符获取类型名、根和只读策略，不包含存储算法。实例本体及 inode 页按需分配；每实例 64 个 inode 地址在引用期间固定。mounted/mounting/endpoint_open/completed 状态保护挂载与描述符分别固定的生命周期。旧 fsserve 使用匿名兼容实例；具名插件经注册表接入。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/userfs/userfs.cpp",
+      "sha256": "a2a8ecdb8734a2390dec2b48b03dd79acc0339466c59057e65c2dd1a26022d1d",
+      "review": "消息、inode 及引用协议保留；初始根和名称来自注册配置，读写分段按协商载荷限制，不支持能力在发布前失败。注册端点在挂载前可以阻塞接收；发布窗口的 mounting 状态也允许请求，避免挂载可见后服务误收 EOF。实例和固定地址 inode 页由页分配器创建/销毁，只有端点关闭且无挂载或选择占用时可回收；只读注册限制可发送修改操作。busy 先取得元数据锁，等待已减引用但仍在发送 Forget 的最后归还结束，防止卸载后提前回收实例。详细锁序、5 秒失败及聚合 Forget 见 docs/user-filesystems.md。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/userfs/registry.cpp",
+      "sha256": "c948e5d61110404d585c4ffd8ae342f9504d6f7ab961941f4746ac96edd1aff7",
+      "review": "通用运行时插件注册表，不按 memfsd/tarfsd 等具体实现分支。校验长度/版本/类型名/根/能力后按需分配实例；最多 16 个活动或尚未清理实例，同名端点可承载独立挂载。注册表自旋锁仅保护选择、快照与摘除，不持锁查路径或做 I/O。claim_mount 固定候选，失败后恢复待挂载；关闭且未挂载、未被选择的实例才可摘除，锁外释放所有页。名称快照复制到调用者缓冲区，避免回收后的悬挂指针。",
       "graph_entries": [],
       "pending": []
     }

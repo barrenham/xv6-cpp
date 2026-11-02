@@ -139,3 +139,17 @@
 - [`xv::fs::DeviceRegistry::block`](open_file.cpp.md#fn-ea2cf7655166476a)
 
 - [`xv::fs::OpenFileTable::getdents64`](open_file.cpp.md#fn-86a5102557e07ad5)
+
+- [`xv::fs::create_userfs`](../service.cpp.md#fn-9da4875b4cc7f28f)
+
+- [`xv::fs::mount_userfs`](../service.cpp.md#fn-382424c9e0c25947)
+
+- [`xv::fs::initialize_userfs_plugins`](../userfs/registry.cpp.md#fn-f30bd6e2ab01ca2c)
+
+- [`xv::fs::mount_registered_userfs`](../userfs/registry.cpp.md#fn-cd43bdd5477a298a)
+
+- [`xv::fs::register_userfs`](../userfs/registry.cpp.md#fn-882968ffadba4034)
+
+- [`xv::fs::userfs_provider`](../userfs/registry.cpp.md#fn-0c4cc1076e132b14)
+
+- [`xv::fs::userfs_type`](../userfs/registry.cpp.md#fn-50e3b4205e956533)

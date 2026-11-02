@@ -1,5 +1,6 @@
 module;
 #include "kernel/support/param.h"
+#include "kernel/fs/userfs/protocol.h"
 
 export module xv.fs:file;
 export import :filesystem;
@@ -147,4 +148,11 @@ DeviceRegistry &devices();
 xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking);
 xv::drivers::BlockDevice *open_registered_block(Inode *node, bool writable);
 bool create_pipe(File **read_end, File **write_end);
+void initialize_userfs_plugins();
+File *create_userfs();
+File *register_userfs(const xv::userfs::Registration &);
+int mount_registered_userfs(const char *type, const char *path);
+bool userfs_provider(unsigned index, xv::userfs::ProviderInfo &);
+bool userfs_type(unsigned index, char *name);
+bool mount_userfs(File &endpoint, const char *path);
 } // namespace xv::fs

@@ -4,21 +4,21 @@
 
 | 子系统 | 文件数 | 函数/入口条目数 |
 | --- | ---: | ---: |
-| [arch](#arch) | 4 | 6 |
-| [boot](#boot) | 5 | 12 |
+| [arch](#arch) | 5 | 6 |
+| [boot](#boot) | 6 | 12 |
 | [drivers](#drivers) | 42 | 760 |
-| [fs](#fs) | 66 | 1753 |
+| [fs](#fs) | 70 | 1869 |
 | [io](#io) | 6 | 21 |
 | [memory](#memory) | 28 | 601 |
 | [net](#net) | 117 | 1648 |
-| [process](#process) | 66 | 1010 |
+| [process](#process) | 67 | 1010 |
 | [support](#support) | 19 | 132 |
 | [sync](#sync) | 13 | 79 |
-| [syscall](#syscall) | 12 | 348 |
-| [trap](#trap) | 21 | 211 |
+| [syscall](#syscall) | 12 | 353 |
+| [trap](#trap) | 23 | 211 |
 | [tty](#tty) | 1 | 0 |
 
-范围：405 个文件；默认 5233 个唯一 C++ 函数，连同条件接口与汇编入口共 5307 条文档。实际 hover 能力以当前 clangd 验证报告为准。
+范围：409 个文件；默认 5305 个唯一 C++ 函数，连同条件接口与汇编入口共 5379 条文档。实际 hover 能力以当前 clangd 验证报告为准。
 
 <a id="arch"></a>
 
@@ -156,6 +156,14 @@
 - [`kernel/fs/vfs/path_flow.cppm`](fs/vfs/path_flow.cppm.md)
 - [`kernel/fs/vfs/vfs.cpp`](fs/vfs/vfs.cpp.md)
 - [`kernel/fs/vfs/vfs.cppm`](fs/vfs/vfs.cppm.md)
+
+- [`kernel/fs/userfs/protocol.h`](fs/userfs/protocol.h.md)
+
+- [`kernel/fs/userfs/userfs.cppm`](fs/userfs/userfs.cppm.md)
+
+- [`kernel/fs/userfs/userfs.cpp`](fs/userfs/userfs.cpp.md)
+
+- [`kernel/fs/userfs/registry.cpp`](fs/userfs/registry.cpp.md)
 
 <a id="io"></a>
 

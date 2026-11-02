@@ -141,6 +141,8 @@ add_executable(fs_contract
   "${XV_ROOT}/kernel/fs/procfs/procfs.cpp"
   "${XV_ROOT}/kernel/fs/procfs/system_providers.cpp"
   "${XV_ROOT}/kernel/fs/ramfs/ramfs.cpp"
+  "${XV_ROOT}/kernel/fs/userfs/userfs.cpp"
+  "${XV_ROOT}/kernel/fs/userfs/registry.cpp"
   "${XV_ROOT}/kernel/fs/permissions.cpp"
   "${XV_ROOT}/kernel/fs/vfs/vfs.cpp"
   "${XV_ROOT}/kernel/fs/devfs/devfs.cpp"

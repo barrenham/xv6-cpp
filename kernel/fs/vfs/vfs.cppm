@@ -58,6 +58,7 @@ public:
   int rename(const char *old_path, const char *new_path);
   int symlink(const char *target, const char *path);
   int mount_ram(const char *path);
+  bool mount_service(const char *path, FileSystem &backend);
   int mount_disk(const char *path,const char *type=nullptr);
   int unmount(const char *path);
   int mounts(unsigned index, char *path, char *type,bool canonical=false,bool *readonly=nullptr);

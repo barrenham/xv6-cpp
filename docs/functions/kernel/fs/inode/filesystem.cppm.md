@@ -419,9 +419,9 @@
 ## `xv::fs::FileSystem::attributes`
 
 ```doxygen
-@fn void xv::fs::FileSystem::attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode)
+@fn virtual bool xv::fs::FileSystem::attributes(Inode *node, unsigned uid, unsigned gid, unsigned mode) { node->uid_ = uid; node->gid_ = gid; node->mode_ = mode; update(node); return true; }
 @brief 在所属节点锁内更新安全属性。
-@details 同时写入 uid/gid/mode 并调用后端 update。调用者先完成权限和范围验证，磁盘后端还需要日志事务；不自行获取节点锁。
+@details FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。
 ```
 
 <a id="fn-8aa1e36910af03a6"></a>
@@ -545,3 +545,27 @@
 - [`xv::fs::FileSystem::open_block_device`](filesystem.cppm.md#fn-c9c3cbf1e3e7c7a6)
 
 - [`xv::fs::FileSystem::type_name`](filesystem.cppm.md#fn-762a351c7c181688)
+
+<a id="fn-4b2526b4ff044302"></a>
+
+## `xv::fs::FileSystem::status`
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::status(Inode *node, Stat *result) { stat(node, result); return 0; }
+@brief FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。
+@details FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。
+```
+
+<a id="fn-2f44c90de89e9e53"></a>
+
+## `xv::fs::FileSystem::synchronize`
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::synchronize(Inode *) { flush(); return 0; }
+@brief FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。
+@details FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。
+```
+
+- [`xv::fs::FileSystem::status`](filesystem.cppm.md#fn-4b2526b4ff044302)
+
+- [`xv::fs::FileSystem::synchronize`](filesystem.cppm.md#fn-2f44c90de89e9e53)

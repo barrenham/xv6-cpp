@@ -349,16 +349,27 @@ struct VirtualFileSystem::UnmountFlow
 
   static void lookup(Context &c) noexcept
   {
+    // Resolve an exact registered mount path without asking its parent FS.
+    // A crashed userspace ancestor must not prevent its children being removed.
+    for (unsigned i = 0; i < c.owner.mount_count_; ++i)
+    {
+      if (!detail::compare(c.path, c.owner.mounts_[i].path, 128))
+      {
+        c.index = i;
+        return;
+      }
+    }
     c.node = c.owner.walk(c.path, false, c.name);
   }
 
   static bool found(Context &c) noexcept
   {
-    return c.node != nullptr;
+    return c.index >= 0 || c.node != nullptr;
   }
 
   static void select(Context &c) noexcept
   {
+    if (c.index >= 0) return;
     for (unsigned i = 0; i < c.owner.mount_count_; ++i)
     {
       if (same(c.node, c.owner.mounts_[i].root))
@@ -381,7 +392,7 @@ struct VirtualFileSystem::UnmountFlow
     c.parent = record.parent;
     c.root = record.root;
     c.dynamic = record.dynamic;
-    c.backend = c.dynamic == -2 ? c.owner.storage_ : c.owner.dynamic_[c.dynamic];
+    c.backend = &c.root->owner();
   }
 
   static bool busy(Context &c) noexcept
@@ -415,7 +426,7 @@ struct VirtualFileSystem::UnmountFlow
   static void shutdown(Context &c) noexcept
   {
     c.backend->shutdown();
-    c.owner.used_[c.dynamic] = false;
+    if (c.dynamic >= 0) c.owner.used_[c.dynamic] = false;
   }
 
   static void success(Context &c) noexcept

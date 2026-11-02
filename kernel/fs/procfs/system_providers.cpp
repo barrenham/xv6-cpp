@@ -1,6 +1,7 @@
 module;
 #include "kernel/fs/format/layout.h"
 #include "kernel/support/param.h"
+#include "kernel/fs/userfs/protocol.h"
 module xv.fs;
 import :procfs;
 import :snapshot_text;
@@ -68,6 +69,23 @@ bool filesystems(PageBuffer &buffer)
   SnapshotText text(buffer);detail::FileSystemType record;
   for(unsigned i=0;detail::registered_filesystem(i,record);++i)
   {text.append(record.nodev ? "nodev\t":"\t");text.append(record.name);text.append("\n");}
+  return text.good();
+}
+bool plugins(PageBuffer &buffer)
+{
+  SnapshotText text(buffer);
+  text.append("TYPE PID STATE VERSION FLAGS DEVICE\n");
+  xv::userfs::ProviderInfo info;
+  for (unsigned i = 0; userfs_provider(i, info); ++i)
+  {
+    const char *state = info.state == xv::userfs::ProviderState::Registered ? "registered" :
+                        info.state == xv::userfs::ProviderState::Mounting ? "mounting" :
+                        info.state == xv::userfs::ProviderState::Mounted ? "mounted" :
+                        info.state == xv::userfs::ProviderState::Disconnected ? "disconnected" : "stopped";
+    text.append(info.type);text.append(" ");text.number(info.pid);
+    text.append(" ");text.append(state);text.append(" ");text.number(info.version);
+    text.append(" ");text.number(info.flags);text.append(" ");text.number(info.device);text.append("\n");
+  }
   return text.good();
 }
 bool mounts(PageBuffer &buffer)
@@ -138,7 +156,7 @@ bool command_name(unsigned pid,PageBuffer &buffer)
 void install_proc_providers(ProcFileSystem &filesystem)
 {
   const struct {const char *name;ProcProviderRegistry::Render render;} entries[]={
-    {"bcache",&block_cache_statistics},{"meminfo",&memory},{"uptime",&uptime},{"stat",&statistics},{"cpuinfo",&cpuinfo},{"filesystems",&filesystems},
+    {"fsplugins",&plugins},{"bcache",&block_cache_statistics},{"meminfo",&memory},{"uptime",&uptime},{"stat",&statistics},{"cpuinfo",&cpuinfo},{"filesystems",&filesystems},
     {"mounts",&mounts},{"devices",&devices_list},{"partitions",&partitions},{"version",&version}};
   for(const auto &entry:entries)
     if(!filesystem.register_file(entry.name,entry.render))detail::fail("procfs: provider registration failed");

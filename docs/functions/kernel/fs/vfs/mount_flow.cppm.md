@@ -307,7 +307,7 @@
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::UnmountFlow::found(Context &c) noexcept
 @brief 检查路径是否存在。
-@details 入口持 Transaction 与 namespace 锁；检查 busy 前已归还路径解析产生的引用。先删除表记录再归还挂载点引用，磁盘 flush 后归还根，RAM shutdown 后释放动态槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 卸载在 namespace 锁下先匹配已登记的挂载路径，避免父用户态 FS 断开后必须向它发 lookup 才能卸载子挂载；相对路径或别名仍走原路径解析。内建挂载保护、busy 检查、覆盖点/父引用释放及后端 shutdown 顺序保持。
 ```
 
 <a id="fn-951c139144c1136a"></a>
@@ -317,7 +317,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::UnmountFlow::lookup(Context &c) noexcept
 @brief 解析待卸载路径并取得节点引用。
-@details 入口持 Transaction 与 namespace 锁；检查 busy 前已归还路径解析产生的引用。先删除表记录再归还挂载点引用，磁盘 flush 后归还根，RAM shutdown 后释放动态槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 卸载在 namespace 锁下先匹配已登记的挂载路径，避免父用户态 FS 断开后必须向它发 lookup 才能卸载子挂载；相对路径或别名仍走原路径解析。内建挂载保护、busy 检查、覆盖点/父引用释放及后端 shutdown 顺序保持。
 ```
 
 <a id="fn-fff72cb805d06198"></a>
@@ -357,7 +357,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::UnmountFlow::select(Context &c) noexcept
 @brief 选择匹配的最后挂载记录并归还临时路径引用。
-@details 入口持 Transaction 与 namespace 锁；检查 busy 前已归还路径解析产生的引用。先删除表记录再归还挂载点引用，磁盘 flush 后归还根，RAM shutdown 后释放动态槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 卸载在 namespace 锁下先匹配已登记的挂载路径，避免父用户态 FS 断开后必须向它发 lookup 才能卸载子挂载；相对路径或别名仍走原路径解析。内建挂载保护、busy 检查、覆盖点/父引用释放及后端 shutdown 顺序保持。
 ```
 
 <a id="fn-f82c2b63b27b86b0"></a>
@@ -367,7 +367,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::UnmountFlow::shutdown(Context &c) noexcept
 @brief 关闭动态 RAM 后端并标记动态槽空闲。
-@details 入口持 Transaction 与 namespace 锁；检查 busy 前已归还路径解析产生的引用。先删除表记录再归还挂载点引用，磁盘 flush 后归还根，RAM shutdown 后释放动态槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 卸载按根 inode 的 owner 取得后端，兼容 userfs 的 -3 标记；先执行 busy 检查，再移除挂载和覆盖点引用、调用 shutdown。只有非负 RAM 槽位索引访问 used_，避免服务标记被当数组下标。
 ```
 
 <a id="fn-e186658154c0ff91"></a>
@@ -377,7 +377,7 @@
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::UnmountFlow::snapshot(Context &c) noexcept
 @brief 只保存删除记录后仍需使用的引用、动态槽和后端。
-@details 入口持 Transaction 与 namespace 锁；检查 busy 前已归还路径解析产生的引用。先删除表记录再归还挂载点引用，磁盘 flush 后归还根，RAM shutdown 后释放动态槽。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@details 卸载按根 inode 的 owner 取得后端，兼容 userfs 的 -3 标记；先执行 busy 检查，再移除挂载和覆盖点引用、调用 shutdown。只有非负 RAM 槽位索引访问 used_，避免服务标记被当数组下标。
 ```
 
 <a id="fn-64b6324b5ef10a54"></a>

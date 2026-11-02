@@ -7,7 +7,7 @@
 ```doxygen
 @fn void xv::fs::install_proc_providers(ProcFileSystem &filesystem)
 @brief 初始化时登记系统及PID文本提供者，失败终止启动。
-@details 新增只读 /proc/bcache，展示根缓存实例的累计命中、未命中、淘汰、查找、物理 I/O 和锁等待计数及 10MHz 时基；不合并第二块盘，快照不冻结并发访问。其余 proc 提供器保留原行为。
+@details 新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。
 ```
 
 <a id="fn-db10a975ebb747b4"></a>
@@ -191,3 +191,15 @@
 ```
 
 - [`xv::fs::block_cache_statistics`](system_providers.cpp.md#fn-3b55e24fadddceba)
+
+<a id="fn-656ee1ea45cf66e6"></a>
+
+## `xv::fs::plugins`
+
+```doxygen
+@fn bool xv::fs::plugins(PageBuffer &buffer)
+@brief 新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。
+@details 新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。
+```
+
+- [`xv::fs::plugins`](system_providers.cpp.md#fn-656ee1ea45cf66e6)

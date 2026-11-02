@@ -388,6 +388,11 @@ struct InodeBackend::SyncFlow
   {
     c.result = 0;
   }
+  static void local(Context &c) noexcept
+  {
+    c.result = c.owner.node_->owner().synchronize(c.owner.node_);
+  }
+  struct Local;
   struct Validate;
   struct Persistent;
   struct Primary;
@@ -396,12 +401,13 @@ struct InodeBackend::SyncFlow
   struct Success;
   using Graph = flow::graph<
       Validate,
-      flow::types<flow::node<Validate, flow::noop,
+      flow::types<flow::node<Local, flow::action<&local>, flow::stop>,
+                  flow::node<Validate, flow::noop,
                              flow::branch<flow::condition<&valid>, flow::go<Persistent>,
                                           flow::stop>>,
                   flow::node<Persistent, flow::noop,
                              flow::branch<flow::condition<&persistent>,
-                                          flow::go<Primary>, flow::go<Success>>>,
+                                          flow::go<Primary>, flow::go<Local>>>,
                   flow::node<Primary, flow::action<&primary>,
                              flow::branch<flow::condition<&has_secondary>,
                                           flow::go<Secondary>, flow::go<Flush>>>,
