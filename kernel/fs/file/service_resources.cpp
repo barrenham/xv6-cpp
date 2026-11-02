@@ -37,6 +37,18 @@ public:
 
   int ioctl(unsigned request, xv::io::Buffer address) override
   {
+    if (request == StorageIoctl || request == ManagerIoctl)
+    {
+      if (xv::process::current()->credentials().snapshot().effective_uid ||
+          !filesystem().services()) return -1;
+      if (request == StorageIoctl && address.address > 1) return -1;
+      auto *file = request == StorageIoctl ? create_boot_disk(address.address)
+                                           : create_mount_manager();
+      if (!file) return -1;
+      int fd = xv::process::current()->files().install(file);
+      if (fd < 0) files().release(file);
+      return fd;
+    }
     if (request == CloneIoctl)
     {
       auto *file = create_fs_resources();

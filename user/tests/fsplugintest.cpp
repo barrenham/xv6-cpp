@@ -38,10 +38,11 @@ unsigned providers(const char *type)
   {
     return 0;
   }
-  unsigned count = 0, n = strlen(type);
+  unsigned count = 0, n = type ? strlen(type) : 0;
   for (char *line = buffer; line && *line;)
   {
-    if (strlen(line) >= n && !memcmp(line, type, n) && line[n] == ' ')
+    if (type ? (strlen(line) >= n && !memcmp(line, type, n) && line[n] == ' ')
+             : (strlen(line) >= 5 && memcmp(line, "TYPE ", 5) != 0))
     {
       ++count;
     }
@@ -160,26 +161,31 @@ void capacity_contract()
   xv::userfs::Registration registration;
   strcpy(registration.type, "capacity");
   int held[8], ready_pipe[2], release_pipe[2];
-  for (auto &fd : held)
+  unsigned baseline = providers(nullptr);
+  check(baseline < xv::userfs::ProviderCapacity, "registry has available slots");
+  unsigned available = xv::userfs::ProviderCapacity - baseline;
+  unsigned parent_count = (available + 1) / 2, child_count = available - parent_count;
+  check(parent_count <= 8 && child_count <= 8 && child_count, "capacity fixture split");
+  for (unsigned i = 0; i < parent_count; ++i)
   {
-    fd = fsregister(&registration);
-    check(fd >= 0, "capacity initial providers");
+    held[i] = fsregister(&registration);
+    check(held[i] >= 0, "capacity initial providers");
   }
   check(pipe(ready_pipe) == 0 && pipe(release_pipe) == 0, "capacity barriers");
   int child = fork();
   check(child >= 0, "capacity child");
   if (!child)
   {
-    for (int fd : held)
+    for (unsigned i = 0; i < parent_count; ++i)
     {
-      close(fd);
+      close(held[i]);
     }
     close(ready_pipe[0]);
     close(release_pipe[1]);
     int own[8];
-    for (auto &fd : own)
+    for (unsigned i = 0; i < child_count; ++i)
     {
-      if ((fd = fsregister(&registration)) < 0)
+      if ((own[i] = fsregister(&registration)) < 0)
       {
         exit(1);
       }
@@ -189,9 +195,9 @@ void capacity_contract()
     {
       exit(2);
     }
-    for (int fd : own)
+    for (unsigned i = 0; i < child_count; ++i)
     {
-      close(fd);
+      close(own[i]);
     }
     exit(0);
   }
@@ -199,7 +205,7 @@ void capacity_contract()
   close(release_pipe[0]);
   char byte;
   check(read(ready_pipe[0], &byte, 1) == 1 &&
-            providers("capacity") == xv::userfs::ProviderCapacity,
+            providers("capacity") == available && providers(nullptr) == xv::userfs::ProviderCapacity,
         "all provider slots occupied");
   check(fsregister(&registration) < 0, "registry capacity failure is clean");
   check(write(release_pipe[1], "!", 1) == 1, "release capacity child");
@@ -209,9 +215,9 @@ void capacity_contract()
   int fd = fsregister(&registration);
   check(fd >= 0, "capacity available after provider exit");
   close(fd);
-  for (int old : held)
+  for (unsigned i = 0; i < parent_count; ++i)
   {
-    close(old);
+    close(held[i]);
   }
   check(providers("capacity") == 0, "all capacity providers gone");
 }
@@ -300,7 +306,10 @@ extern "C" int main()
   check(fsregister(&r) < 0, "invalid root identity");
   r.root.node = 1;
   strcpy(r.type, "ext3");
-  check(fsregister(&r) < 0, "builtin name collision");
+  bool service_boot = providers("ramfs") > 0;
+  int named = fsregister(&r);
+  check(service_boot ? named >= 0 : named < 0, "backend names follow active deployment mode");
+  if (named >= 0) close(named);
   strcpy(r.type, "not/a/type");
   check(fsregister(&r) < 0, "type name validation");
   strcpy(r.type, "close-cycle");

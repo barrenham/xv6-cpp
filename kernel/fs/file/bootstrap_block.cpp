@@ -14,14 +14,16 @@ namespace xv::fs
 {
 namespace
 {
-// A descriptor is the capability. Only the boot supervisor receives one; fork
-// deliberately shares its offset and lock until it transfers ownership.
+unsigned disk_leases[2]{};
+// A descriptor is the capability. The supervisor receives the boot disk;
+// authorized resource holders may claim optional disks. Fork shares the
+// offset, lock and exclusive lease until the last descriptor closes.
 class BootDisk final : public xv::io::IoObject, public xv::io::DeviceControl
 {
 public:
 
-  BootDisk(BlockCache &cache, xv::drivers::BlockDevice &disk, unsigned device)
-      : cache_(cache), disk_(disk), device_(device)
+  BootDisk(BlockCache &cache, xv::drivers::BlockDevice &disk, unsigned index)
+      : cache_(cache), disk_(disk), device_(ROOTDEV + index), index_(index)
   {
     lock_.init("boot block descriptor");
   }
@@ -101,6 +103,7 @@ public:
 
   void close() override
   {
+    __atomic_store_n(&disk_leases[index_], 0U, __ATOMIC_RELEASE);
     this->~BootDisk();
     detail::free_page(this);
   }
@@ -142,6 +145,7 @@ private:
   BlockCache &cache_;
   xv::drivers::BlockDevice &disk_;
   const unsigned device_;
+  const unsigned index_;
   xv::sync::SleepLock lock_;
   unsigned long offset_ = 0;
   unsigned char scratch_[BlockSize]{};
@@ -150,23 +154,31 @@ private:
 
 File *create_boot_disk(unsigned index)
 {
-  // Additional disks will receive separate cache/device capabilities as their
-  // backends migrate. No filesystem service can obtain this through a pathname.
-  if (index) return nullptr;
-  auto &disk = xv::drivers::block_device();
-  auto sectors = disk.capacity_sectors();
+  if (index > 1) return nullptr;
+  auto *disk = index ? xv::drivers::data_device() : &xv::drivers::block_device();
+  auto *blocks = bootstrap_cache(index);
+  if (!disk || !blocks) return nullptr;
+  auto sectors = disk->capacity_sectors();
   if (!sectors || sectors % 2 || sectors > 0x100000000UL * (BlockSize / 512))
     return nullptr;
+  unsigned expected = 0;
+  if (!__atomic_compare_exchange_n(&disk_leases[index], &expected, 1U, false,
+                                    __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) return nullptr;
   auto *file = files().allocate();
-  if (!file) return nullptr;
+  if (!file)
+  {
+    __atomic_store_n(&disk_leases[index], 0U, __ATOMIC_RELEASE);
+    return nullptr;
+  }
   auto *page = detail::allocate_page();
   if (!page)
   {
     files().release(file);
+    __atomic_store_n(&disk_leases[index], 0U, __ATOMIC_RELEASE);
     return nullptr;
   }
   static_assert(sizeof(BootDisk) <= 4096);
-  auto *object = new (page) BootDisk(cache(), disk, ROOTDEV);
+  auto *object = new (page) BootDisk(*blocks, *disk, index);
   files().bind_object(*file, *object);
   return file;
 }

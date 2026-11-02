@@ -112,10 +112,10 @@ def expect(token, timeout=30):
                     position = transcript.find(failure)
                     if position >= 0 and b'\n' in transcript[position:]:
                         raise RuntimeError('environment or permission contract failed')
-                if b'fsplugintest: FAIL:' in transcript:
-                    raise RuntimeError('filesystem plugin contract failed')
-                if b'userfstest: FAIL:' in transcript:
-                    raise RuntimeError('userspace filesystem contract failed')
+                for failure in (b'fsplugintest: FAIL:', b'userfstest: FAIL:'):
+                    position = transcript.find(failure)
+                    if position >= 0 and b'\n' in transcript[position:]:
+                        raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
                 position = transcript.find(b'ramfsservicetest: FAIL:')
                 if position >= 0 and b'\n' in transcript[position:]:
                     raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))

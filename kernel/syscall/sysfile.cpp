@@ -1256,6 +1256,10 @@ uint64 sys_mount()
   }
   if (xv::fs::filesystem().services())
   {
+    // Once installed, the manager serializes selection and creation together.
+    // A concurrent client must not claim a backend between registration and
+    // the manager publishing it at the intended mountpoint.
+    if (xv::fs::managed_mounts_available()) return xv::fs::request_managed_mount(type, path);
     return xv::fs::mount_registered_userfs(type, path);
   }
   MountFlow::Context context{path, type};

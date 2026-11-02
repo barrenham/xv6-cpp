@@ -23,6 +23,7 @@ target_sources(kernel PRIVATE
   ramfs/ramfs.cpp
   userfs/userfs.cpp
   userfs/registry.cpp
+  userfs/mount_manager.cpp
   permissions.cpp
   ext3/jbd.cpp
   ext3/volume.cpp

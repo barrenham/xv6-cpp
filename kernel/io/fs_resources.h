@@ -7,6 +7,9 @@ namespace xv::fsservice
 inline constexpr unsigned Version = 2;
 inline constexpr unsigned QueryIoctl = 0x58560002U;
 inline constexpr unsigned CloneIoctl = 0x58560003U;
+// Scalar disk index (0 = boot disk, 1 = optional data disk), returns a new fd.
+inline constexpr unsigned StorageIoctl = 0x58560004U;
+inline constexpr unsigned ManagerIoctl = 0x58560005U;
 inline constexpr unsigned PayloadSize = 512;
 enum class Operation : unsigned
 {

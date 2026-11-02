@@ -19,6 +19,12 @@ def boot(args, directory, image, expected):
                '-global', 'virtio-mmio.force-legacy=false',
                '-drive', f'file={disk},if=none,format=raw,id=x0',
                '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+    if args.data_disk:
+        data = directory / 'data.img'
+        with data.open('wb') as file:
+            file.truncate(8 * 1024 * 1024)
+        command += ['-drive', f'file={data},if=none,format=raw,id=x1',
+                    '-device', 'virtio-blk-device,drive=x1,bus=virtio-mmio-bus.1']
     process = subprocess.Popen(command, stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                env=dict(os.environ, TMPDIR=str(directory)))
@@ -63,6 +69,7 @@ def main():
     parser.add_argument('--kernel', type=Path, required=True)
     parser.add_argument('--program', type=Path, required=True)
     parser.add_argument('--cpus', type=int, required=True)
+    parser.add_argument('--data-disk', action='store_true')
     parser.add_argument('--expected', default='fsboottest: PASS: userspace bootstrap without a mounted filesystem')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='xv-fsbootstrap-') as path:

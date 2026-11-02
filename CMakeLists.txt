@@ -591,6 +591,40 @@ add_test(NAME xv6_volume_contract COMMAND "${Python3_EXECUTABLE}"
 set_tests_properties(xv6_volume_contract PROPERTIES TIMEOUT 60 LABELS fs)
 
 foreach(cpus 1 5)
+  add_test(NAME fs_mount_manager_rpc_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_bootstrap.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --program $<TARGET_FILE:user_fsmgrboottest>
+    --cpus ${cpus} --expected "fsmgrboottest: PASS: generic mount RPC, validation, recursion and disconnect")
+  set_tests_properties(fs_mount_manager_rpc_${cpus}cpu PROPERTIES TIMEOUT 100 LABELS "fs;boot")
+  add_test(NAME fs_storage_capability_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_bootstrap.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --program $<TARGET_FILE:user_fsdiskboot>
+    --cpus ${cpus} --data-disk
+    --expected "fsdiskboot: PASS: optional disk IO, exclusivity, inheritance and cleanup")
+  set_tests_properties(fs_storage_capability_${cpus}cpu PROPERTIES TIMEOUT 100 LABELS "fs;boot")
+  foreach(feature userfs fsplugins)
+    add_test(NAME fs_service_${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+      --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --${feature})
+    set_tests_properties(fs_service_${feature}_${cpus}cpu PROPERTIES TIMEOUT 160 LABELS "fs;boot")
+  endforeach()
+  foreach(data_format none ext3 xv6)
+    set(manager_root "${PROJECT_BINARY_DIR}/fs-test.img")
+    if(data_format STREQUAL "ext3")
+      set(manager_root "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
+    endif()
+    add_test(NAME fs_mount_services_${data_format}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/fs_mount_services.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --image "${manager_root}" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
+      --data-format ${data_format} --cpus ${cpus})
+    set_tests_properties(fs_mount_services_${data_format}_${cpus}cpu PROPERTIES TIMEOUT 260 LABELS "fs;boot")
+  endforeach()
+endforeach()
+
+foreach(cpus 1 5)
   add_test(NAME fs_service_xv6_boot_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>

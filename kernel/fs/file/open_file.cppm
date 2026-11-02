@@ -153,6 +153,11 @@ bool create_pipe(File **read_end, File **write_end);
 void initialize_userfs_plugins();
 // Bootstrap capability: no path lookup and no dependency on a mounted FS.
 File *create_boot_disk(unsigned index);
+BlockCache *bootstrap_cache(unsigned index);
+void initialize_mount_manager();
+File *create_mount_manager();
+int request_managed_mount(const char *type, const char *path);
+bool managed_mounts_available();
 File *create_userfs();
 File *register_userfs(const xv::userfs::Registration &);
 int mount_registered_userfs(const char *type, const char *path);

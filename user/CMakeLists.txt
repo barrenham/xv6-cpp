@@ -82,6 +82,9 @@ set(programs
   tests/xv6fstest.cpp
   tests/fsboottest.cpp
   tests/fsresourcesboottest.cpp
+  tests/fsmgrboottest.cpp
+  tests/fsmgrtest.cpp
+  tests/fsdiskboot.cpp
   tests/fssnapshottest.cpp
   tests/userfstest.cpp
   tests/fsplugintest.cpp

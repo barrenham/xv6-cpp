@@ -139,6 +139,8 @@ void fault_contract(unsigned mode)
 extern "C" int main()
 {
   mkdir("/tmp/ufs");
+  struct stat covered{};
+  check(stat("/tmp/ufs", &covered) == 0, "covered mountpoint metadata");
   int server = fork();
   check(server >= 0, "fork server");
   if (!server)
@@ -152,7 +154,7 @@ extern "C" int main()
   bool ready = false;
   for (unsigned i = 0; i < 30; ++i)
   {
-    if (stat("/tmp/ufs", &st) == 0 && st.dev >= 0x10000)
+    if (stat("/tmp/ufs", &st) == 0 && st.dev >= 0x10000 && st.dev != covered.dev)
     {
       ready = true;
       break;

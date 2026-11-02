@@ -23,6 +23,9 @@ PID 1 获得不依赖 `/dev` 的控制台描述符 0..2 和原始系统磁盘描
 磁盘描述符提供有界读写、seek、容量查询、刷新以及用于文件时间戳的时钟查询；
 它不解析 ext3，也不替用户后端提交文件系统日志。
 服务经 fork 取得磁盘能力后，监督进程关闭自己的引用。
+资源能力的 `StorageIoctl` 按设备索引获取有界的可写块描述符（0 系统盘，1 可选数据盘），只允许服务模式下的有效 uid 0 使用。
+每块磁盘只有一个可写租约；dup/fork 共用租约，直到最后一个描述符关闭才释放。
+获取能力时的内存、文件槽或描述符安装失败不会泄漏租约。普通 `/dev/vda`、`/dev/vdb` 保持只读。
 监督进程在用户态读取磁盘签名，选择 ext3 或 xv6 服务。服务先恢复对应日志与孤儿对象，注册类型；PID 1 随后使用 `mount(type, "/")`
 一次性发布根后端。只有启用服务引导时的 PID 1 可以发布第一个根；已发布的根不能被覆盖。
 
@@ -43,7 +46,28 @@ PID 1 获得不依赖 `/dev` 的控制台描述符 0..2 和原始系统磁盘描
 PID 1 保持监督和回收职责；init 退出时重启 init，FS 服务退出时报告该挂载不可用。
 它不在故障后静默切回内核 FS，也没有声称能够透明重启已有根连接。
 只有 FS 服务保留相应磁盘/资源能力；init、登录程序和普通应用不会继承这些能力描述符。
-该程序尚未接入默认交互 QEMU 目标，因为其余后端及挂载管理还在迁移。
+该程序尚未接入默认交互 QEMU 目标；默认切换及移除内核后端仍在迁移范围内。
+
+## 通用挂载管理
+
+fsboot 启动独立的用户态挂载管理进程，并通过资源能力的 `ManagerIoctl` 取得控制端点。
+内核只转交类型、绝对挂载路径、请求序号和原始调用者 PID，不根据 ext3、xv6、ramfs 等名称选择实现。
+控制消息定义在 `kernel/io/fs_mount.h`。读写、poll、版本/序号检查、30 秒截止时间和断开唤醒由通道机制负责。
+管理进程对同一通道的递归请求会立即失败；等待期间不持有 VFS 命名空间、inode 或提供者注册表锁。
+取消或超时可能发生在服务已产生副作用之后，因此会退休该连接，避免迟到回复完成另一次请求。
+
+管理通道有效期间，普通 mount 请求统一交给用户态管理进程；只有管理进程自己的 mount 直接查通用注册表。
+实例选择、注册和发布因而不会被另一个 mount 请求抢占。管理进程先尝试使用已注册的实例，支持独立安装的新插件；
+没有实例时，由用户态策略为 ramfs、proc/procfs、devfs 创建新服务，为 ext3/xv6 获取可选数据盘并校验实际格式。
+服务端通过 fork 继承预先取得的设备能力，不在回调中通过被挂载的路径获取自身资源。
+注册就绪与挂载发布使用双向管道确认；新服务在收到发布确认前等待，父进程中途死亡则因 EOF 退出，关闭未发布端点与设备租约。
+默认 init 和普通应用不继承磁盘、资源或管理端点。
+
+例如，`mount -t ramfs /tmp/new` 创建一个独立内存实例；第二块磁盘存在且格式匹配时，
+`mount -t ext3 /tmp/data` 或 `mount -t xv6 /tmp/data` 创建独立磁盘服务。
+目标目录必须已经存在。忙挂载无法卸载；空闲卸载使服务收到 EOF 并退出，管理进程回收子进程。
+管理进程死亡时不能自动创建新实例，已有挂载继续工作；已经独立注册的插件仍可直接挂载。
+没有透明重启管理进程的承诺。
 
 ## 用户态 ramfs
 
@@ -65,7 +89,7 @@ umount /tmp/layer
 
 服务可以先用 `ramfsd --register custom-ram` 注册，再由另一个进程挂载。
 卸载令 SDK 收到 EOF，服务退出并释放整个实例；覆盖前的目录内容恢复可见。
-通用的自动挂载服务管理仍未完成，不能把此命令当作 `mount -t ramfs` 自动创建新实例的完成证明。
+独立程序与通用自动挂载使用同一后端实现；自定义类型也可先注册，再由管理进程挂载已有实例。
 
 ## 用户态 procfs
 
@@ -115,20 +139,23 @@ VFS 原有的禁止从已删除 cwd 解析相对路径规则继续生效，进�
 - `fs_service_xv6_boot_[15]cpu`：真实 xv6 用户态根启动、账户设置、登录、执行程序及页表回归。
 - `fs_service_xv6_persistence_[15]cpu`：真实监督进程在同一份私有 xv6 磁盘连续启动两次，验证文件模式/所有权、间接块、稀疏文件、最大长度、打开后删除、目录改名和删除 cwd 释放；每次启动由四个并发客户端完成共 80 轮创建、读写、删除及孤儿关闭，覆盖 inode 重用；根文件持久化，ramfs 文件在重启后消失。
 - `fs_service_xv6_{procfs,permissions,ramfs}_[15]cpu`：将原有完整进程信息、权限和内存文件系统回归运行于用户态 xv6 根之上。
+- `fs_mount_manager_rpc_[15]cpu`：不挂载任何 FS 的控制通道验证，包括原始调用者、poll、非阻塞、错误指针、版本/序号/状态校验、递归拒绝、挂起请求的断开唤醒和重新注册。
+- `fs_storage_capability_[15]cpu`：未格式化的私有第二磁盘，有界及非对齐读写、容量、互斥租约、dup/fork 生命周期、非 root 拒绝，以及描述符耗尽后的租约回收。
+- `fs_mount_services_{none,ext3,xv6}_[15]cpu`：真实 shell 自动创建多个 ramfs，覆盖忙卸载、cwd、权限、嵌套挂载、24 次实例回收、四个并发 mount 客户端、错误类型/路径和管理进程死亡。混合使用 xv6 根/ext3 数据盘或 ext3 根/xv6 数据盘，在同一私有磁盘上连续启动两次，验证卸载重挂、写租约释放和持久化；ext3 数据盘另经 e2fsck 检查。
+- 同组挂载测试还自动创建 devfs/procfs 实例，验证设备代理、原始调用者解析和只读策略；在新 ramfs 已注册但挂载路径查询尚未完成时终止管理进程，验证等待客户端返回错误、未发布服务关闭，以及已断开的父 FS 仍能卸载。
+- `fs_service_{userfs,fsplugins}_[15]cpu`：完整原有匿名桥接/独立插件回归运行在服务引导模式下；注册表容量用例将已运行的系统服务计入基线，仍验证全部 16 个槽被占满及容量回收。旧模式的同组测试保留作对照。
 
 构建和运行：
 
 ```sh
-cmake --build build/dev --target kernel user_fsboot user_ramfsd user_fsboottest user_fsrootboottest user_fsresourcesboottest host_mkfs test-image
-ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_root_[15]cpu|fs_service_boot_[15]cpu|fs_service_ramfs(_lifecycle)?_[15]cpu|fs_service_permissions_[15]cpu|fs_service_procfs_[15]cpu|fs_resources_[15]cpu|fs_service_snapshots_[15]cpu|userfs_memory_contract|allocator_contract_(buddy|freelist))$' --output-on-failure
+cmake --build build/dev --target kernel test-image legacy-test-image
+ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_.*_[15]cpu|fs_mount_manager_rpc_[15]cpu|fs_storage_capability_[15]cpu|fs_mount_services_.*_[15]cpu|fs_resources_[15]cpu|xv6_volume_contract|userfs_memory_contract|allocator_contract_(buddy|freelist))$' --output-on-failure
 ```
 
 测试仅访问各自的临时磁盘副本，不更新交互会话的 `data/rootfs.img`，也不运行 fork 性能门禁。
 
 ## 尚未完成
 
-- 监督程序中的通用挂载管理与额外磁盘后端实例启动。
-- 第二块磁盘能力及用户态磁盘后端的实例管理。
 - 所有旧回归的完整服务模式覆盖，以及内存压力下各后端的进展保证。
 - 将交互启动和测试默认切至服务模式，移除内核中的各 FS 算法及日志实现。
 - RPC 批量传输优化、文档索引与流程审计的最终重建，以及全范围验收。

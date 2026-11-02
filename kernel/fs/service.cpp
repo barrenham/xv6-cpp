@@ -75,6 +75,12 @@ BlockCache &cache()
   return system_cache;
 }
 
+BlockCache *bootstrap_cache(unsigned index)
+{
+  if (!index) return &system_cache;
+  return index == 1 && xv::drivers::data_device() ? &data_cache : nullptr;
+}
+
 Journal &journal()
 {
   return xv::memory::boot_image().empty() ? *disk_filesystem.transaction_log()
@@ -103,6 +109,7 @@ void initialize_cache()
     system_filesystem.use_services();
   }
   initialize_userfs_plugins();
+  initialize_mount_manager();
   devices().attach_block("vda",8,0,xv::drivers::block_device());
   system_cache.attach(xv::drivers::block_device());
   ext3_disk_filesystem.attach(xv::drivers::block_device());
