@@ -209,6 +209,12 @@ foreach(cpus 1 5)
       --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
       --cpus ${cpus} --usertest partial_write)
     set_tests_properties(fs_partial_write_${format}_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS fs)
+    add_test(NAME fs_mount_snapshot_${format}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --image "${partial_image}"
+      --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+      --cpus ${cpus} --usertest fourteen --command-timeout 120)
+    set_tests_properties(fs_mount_snapshot_${format}_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS fs)
   endforeach()
 endforeach()
 foreach(kind buddy freelist)

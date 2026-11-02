@@ -250,6 +250,14 @@ unsigned VirtualFileSystem::snapshot_mounts(MountSnapshot *records,unsigned capa
   for(unsigned i=0;i<count;++i)records[i]=mount_snapshots_[i];return count;
 }
 
+bool VirtualFileSystem::snapshot_mount(unsigned index, MountSnapshot &record) const
+{
+  xv::sync::ScopedLock guard(mount_snapshot_lock_);
+  if (index >= snapshot_count_) return false;
+  record = mount_snapshots_[index];
+  return true;
+}
+
 int VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
 {
   xv::sync::ScopedLock guard(namespace_);

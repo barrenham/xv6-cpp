@@ -25,7 +25,8 @@ link = shlex.split(link.split(' && ')[1])
 expectations = {1: b'kernel stack locked growth: OK', 2: b'kernel stack: protection fault',
                 3: b'kernel stack: emergency frames exhausted', 4: b'kernel stack: guard overflow',
                 5: b'kernel virtual pool: 1000 stacks, fragmentation and reuse OK',
-                6: b'kernel virtual pool: OOM rollback and recovery OK'}
+                6: b'kernel virtual pool: OOM rollback and recovery OK',
+                8: b'kernel stack trim: release, regrowth and ownership OK'}
 with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
     root = Path(temporary)
     image = root / 'fs.img'
@@ -59,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
                 assert guest.poll() is None and time.monotonic() < deadline, transcript.decode(errors='replace')
                 for key, _ in selector.select(.1):
                     transcript.extend(os.read(key.fd, 65536))
-                if mode in (1, 5, 6):
+                if mode in (1, 5, 6, 8):
                     assert b'panic:' not in transcript, transcript.decode(errors='replace')
             print(f'VM kernel probe {mode}: passed', flush=True)
         finally:

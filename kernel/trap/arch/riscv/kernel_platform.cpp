@@ -125,6 +125,48 @@ void run_vm_kernel_probe()
   auto base = xv::process::current()->kernel_stack();
 #if XV_VM_SELF_TEST == 7
   slab_kernel_probe(base);
+#elif XV_VM_SELF_TEST == 8
+  (void)base;
+  // Isolate fixture accounting from timer-driven growth of the probe's stack.
+  bool interrupts = xv::arch::intr_get();
+  xv::arch::intr_off();
+  auto &table = xv::memory::kernel_page_table();
+  auto initial = xv::memory::allocator().free_pages();
+  auto fixture = table.allocate_process_stack();
+  if (!fixture) xv::print::panic("kernel stack trim: allocation failed");
+  auto warm = xv::memory::allocator().free_pages();
+  auto top = fixture + KSTACK_BYTES;
+  if (!table.grow_process_stack(fixture, top - 24 * PGSIZE))
+    xv::print::panic("kernel stack trim: growth failed");
+  for (unsigned i = 1; i <= 24; ++i)
+    *reinterpret_cast<volatile unsigned long *>(top - i * PGSIZE) = i;
+  if (table.trim_process_stack(fixture, top - 12 * PGSIZE) != 12)
+    xv::print::panic("kernel stack trim: active suffix not retained");
+  for (unsigned i = 1; i <= 12; ++i)
+    if (*reinterpret_cast<volatile unsigned long *>(top - i * PGSIZE) != i)
+      xv::print::panic("kernel stack trim: retained data changed");
+  if (table.trim_process_stack(fixture, top - PGSIZE) != 12 - KSTACK_INITIAL_PAGES ||
+      xv::memory::allocator().free_pages() != warm ||
+      table.trim_process_stack(fixture, top - PGSIZE) != 0 ||
+      table.trim_process_stack(fixture + 1, top - PGSIZE) != 0 ||
+      table.trim_process_stack(fixture, fixture - 1) != 0 ||
+      table.trim_process_stack(fixture, top) != 0 ||
+      table.trim_process_stack(fixture - KSTACK_BYTES, top - PGSIZE) != 0)
+    xv::print::panic("kernel stack trim: retained suffix or ownership failed");
+  xv::memory::VirtualRegion region;
+  if (!table.region(fixture, region) ||
+      region.kind != xv::memory::RegionKind::KernelStack ||
+      !table.region(fixture - 1, region) ||
+      region.kind != xv::memory::RegionKind::Guard ||
+      !table.grow_process_stack(fixture, top - 24 * PGSIZE) ||
+      table.trim_process_stack(fixture, top - PGSIZE) != 24 - KSTACK_INITIAL_PAGES ||
+      xv::memory::allocator().free_pages() != warm)
+    xv::print::panic("kernel stack trim: reservation or regrowth failed");
+  table.free_process_stack(fixture);
+  if (xv::memory::allocator().free_pages() != initial)
+    xv::print::panic("kernel stack trim: frame leak");
+  if (interrupts) xv::arch::intr_on();
+  xv::print::printk("kernel stack trim: release, regrowth and ownership OK\n");
 #elif XV_VM_SELF_TEST == 6
   (void)base;
   auto &table = xv::memory::kernel_page_table();
@@ -413,9 +455,13 @@ struct UserReturnFlow
     xv::process::TrapFrame *frame = nullptr;
   };
 
-  static void mask(Context &) noexcept
+  static void mask(Context &c) noexcept
   {
     xv::arch::intr_off();
+    // Syscall/trap subscriptions have unwound. Keep the active call chain plus
+    // one page of headroom and release cold interrupt-margin pages below it.
+    xv::memory::kernel_page_table().trim_process_stack(
+        c.process->kernel_stack(), xv::arch::r_sp() - PGSIZE);
   }
 
   static void vector(Context &c) noexcept

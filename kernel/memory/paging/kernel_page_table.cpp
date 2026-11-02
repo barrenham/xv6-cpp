@@ -747,6 +747,34 @@ bool KernelPageTable::grow_process_stack(unsigned long address, unsigned long lo
   return commit_stack(address, lowest);
 }
 
+unsigned KernelPageTable::trim_process_stack(unsigned long address, unsigned long lowest)
+{
+  if (!in_stack_window(address) || address % KSTACK_BYTES ||
+      address > KSTACK_TOP - KSTACK_BYTES || lowest < address ||
+      lowest >= address + KSTACK_BYTES || !owns_stack(address))
+    return 0;
+  auto initial = address + KSTACK_BYTES - KSTACK_INITIAL_PAGES * PageSize;
+  if (lowest > initial) lowest = initial;
+  lowest &= ~(PageSize - 1);
+  unsigned released = 0;
+  // Committed stacks are contiguous suffixes. Stop at the first absent page,
+  // so an ordinary user return checks only the page below the retained suffix.
+  // Ownership pins the page-table levels; no region or table is removed here.
+  while (lowest > address)
+  {
+    lowest -= PageSize;
+    auto *entry = walk_entry(static_cast<PageTable>(root_), lowest, 0);
+    if (!entry || !(__atomic_load_n(entry, __ATOMIC_ACQUIRE) & PTE_V)) break;
+    auto previous = __atomic_exchange_n(entry, 0UL, __ATOMIC_ACQ_REL);
+    // Flush before returning the frame. Another hart cannot run this process
+    // concurrently; a later user/kernel transition flushes its local TLB.
+    xv::arch::sfence_vma();
+    allocator().deallocate(reinterpret_cast<void *>(PTE2PA(previous)));
+    ++released;
+  }
+  return released;
+}
+
 void KernelPageTable::free_process_stack(unsigned long address)
 {
   xv::sync::ScopedLock guard(stacks_);

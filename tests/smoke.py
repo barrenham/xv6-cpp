@@ -22,6 +22,7 @@ parser.add_argument('--regression', action='store_true')
 parser.add_argument('--memory-pressure', action='store_true')
 parser.add_argument('--large-unlink', action='store_true')
 parser.add_argument('--usertest')
+parser.add_argument('--command-timeout', type=int)
 parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--without-entropy',action='store_true')
 parser.add_argument('--named-pty', action='store_true')
@@ -54,6 +55,8 @@ parser.add_argument('--allocator', choices=['buddy', 'freelist'], default='buddy
 args = parser.parse_args()
 if args.usertest and not re.fullmatch(r'[a-z][a-z0-9_]{0,39}', args.usertest):
     parser.error('--usertest must be a test name')
+if args.command_timeout is not None and args.command_timeout <= 0:
+    parser.error('--command-timeout must be positive')
 temporary = tempfile.TemporaryDirectory(prefix='xv-qemu-')
 test_image = Path(temporary.name) / "fs.img"
 shutil.copyfile(args.image, test_image)
@@ -788,7 +791,10 @@ try:
         process.stdin.flush()
         expect(cmd + '\n', timeout=10)
         if token:
-            expect(token, timeout=1800 if args.regression else (300 if args.memory_pressure else 45))
+            timeout = args.command_timeout
+            if timeout is None:
+                timeout = 1800 if args.regression else (300 if args.memory_pressure else 45)
+            expect(token, timeout=timeout)
         expect('$ ')
     if args.procfs:
         cache_fields = {key.decode(): int(value) for key, value in

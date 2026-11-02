@@ -1,10 +1,12 @@
 module;
 #include "kernel/support/flow.h"
+#include "kernel/arch/riscv/register_constants.h"
 
 module xv.process;
 
 import :scheduler_context;
 import xv.arch;
+import xv.memory;
 import xv.print;
 
 namespace xv::process
@@ -89,6 +91,11 @@ struct SchedulerContext::SuspendFlow
 
   static void switch_context(Context &c) noexcept
   {
+    // A service can sleep inside poll/read indefinitely. Reclaim unused stack
+    // margin here as well as at user return, while its lock excludes dispatch
+    // on another hart and interrupts are masked. Live wait records remain above SP.
+    xv::memory::kernel_page_table().trim_process_stack(
+        c.process.kernel_stack(), xv::arch::r_sp() - PGSIZE);
     swtch(&c.process.context, &current_cpu()->context);
     // The resumed process may run on another hart. Never cache CpuState across swtch.
     current_cpu()->intena = c.intena;

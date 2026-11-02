@@ -78,6 +78,7 @@ public:
   int synchronize_services();
   int mounts(unsigned index, char *path, char *type,bool canonical=false,bool *readonly=nullptr);
   unsigned snapshot_mounts(MountSnapshot *records,unsigned capacity) const;
+  bool snapshot_mount(unsigned index, MountSnapshot &record) const;
   Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset);
   Inode *create_at(Inode *directory, const char *name, short type, short major,
                    short minor);

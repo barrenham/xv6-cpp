@@ -1149,6 +1149,24 @@ void ramfs_contract()
 
 void dynamic_mount_contract()
 {
+  MountSnapshot published[9]{};
+  unsigned published_count = vfs.snapshot_mounts(published, 9);
+  check(published_count == 4, "initial mount snapshot contains root and system mounts");
+  for (unsigned i = 0; i < published_count; ++i)
+  {
+    MountSnapshot selected;
+    check(vfs.snapshot_mount(i, selected) &&
+              !std::strcmp(selected.path, published[i].path) &&
+              !std::strcmp(selected.type, published[i].type) &&
+              selected.readonly == published[i].readonly &&
+              selected.nodev == published[i].nodev,
+          "single mount snapshot matches the published table");
+  }
+  MountSnapshot absent{};
+  std::strcpy(absent.path, "unchanged");
+  check(!vfs.snapshot_mount(published_count, absent) &&
+            !vfs.snapshot_mount(~0U, absent) && !std::strcmp(absent.path, "unchanged"),
+        "mount snapshot EOF and invalid index preserve the output");
   {
     Transaction transaction;
     auto *directory = vfs.create(const_cast<char *>("/tmp/mount-native"), T_DIR, 0, 0);
@@ -1162,6 +1180,10 @@ void dynamic_mount_contract()
   for (int round = 0; round < 10; ++round)
   {
     check(vfs.mount_ram("/tmp/mount-native") == 0, "native dynamic mount");
+    MountSnapshot added;
+    check(vfs.snapshot_mount(published_count, added) &&
+              !std::strcmp(added.path, "/tmp/mount-native"),
+          "single mount snapshot sees a newly published mount");
     check(vfs.mount_ram("/tmp/mount-native") < 0, "reject stacked mount");
     auto *file = open_node("/tmp/mount-native/data", true);
     char contents[9000]{};

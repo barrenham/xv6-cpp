@@ -25,6 +25,9 @@ public:
   // Virtual regions are owned independently of physical page allocation.
   unsigned long allocate_process_stack();
   bool grow_process_stack(unsigned long address, unsigned long lowest);
+  // Caller exclusively owns the stack and masks interrupts. Keep the initial
+  // suffix and every page at or above lowest; retain the virtual reservation.
+  unsigned trim_process_stack(unsigned long address, unsigned long lowest);
   void free_process_stack(unsigned long address);
   FaultResult handle_stack_fault(unsigned long base, unsigned long stack,
                                  unsigned long fault, FaultAccess access,

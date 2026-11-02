@@ -19,3 +19,7 @@ target_sources(kernel PRIVATE
   permissions.cpp
   service.cpp
 )
+# Typed resource queries run on long-lived service stacks. Keep each handler's
+# own frame bounded; copying complete tables here can permanently grow a stack.
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/file/service_resources.cpp"
+  TARGET_DIRECTORY kernel PROPERTIES COMPILE_OPTIONS "-Wframe-larger-than=1024")

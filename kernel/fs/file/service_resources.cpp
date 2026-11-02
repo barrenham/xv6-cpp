@@ -58,10 +58,12 @@ public:
       return fd;
     }
     if (request != QueryIoctl) return -1;
-    Query query;
+    // Every query is serialized already. Keep its wire buffer in the owned
+    // capability page, rather than retaining another large syscall stack frame.
+    xv::sync::ScopedLock guard(lock_);
+    auto &query = query_;
     if (detail::copy_in(&query, true, address.address, sizeof(query)) < 0 ||
         query.size != sizeof(query) || query.version != Version) return -1;
-    xv::sync::ScopedLock guard(lock_);
     detail::fill(query.data, 0, sizeof(query.data));
     query.result = -1;
     unsigned requested = query.count;
@@ -238,10 +240,14 @@ private:
 
   static void mount(Query &query)
   {
-    MountSnapshot records[9]{};
-    unsigned count = filesystem().snapshot_mounts(records, 9);
-    if (query.index >= count) { query.result = 0; return; }
-    const auto &source = records[query.index];
+    // The request asks for one record. Avoid copying the complete mount table
+    // onto a long-lived service's kernel stack for every item in an enumeration.
+    MountSnapshot source;
+    if (!filesystem().snapshot_mount(query.index, source))
+    {
+      query.result = 0;
+      return;
+    }
     xv::fsservice::Mount record;
     detail::fill(&record, 0, sizeof(record));
     detail::copy_fixed(record.path, source.path, sizeof(record.path));
@@ -356,6 +362,7 @@ private:
     owner(query, numbers[query.index]);
   }
 
+  Query query_;
   PageBuffer exec_;
   FileInfo files_[NOFILE]{};
   bool exec_ready_ = false, descriptors_ready_ = false;
