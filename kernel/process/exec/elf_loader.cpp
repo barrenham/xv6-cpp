@@ -24,7 +24,23 @@ namespace
 {
 constinit ElfLoader loader;
 
-class ExecutableFile final
+class ExecutableImage
+{
+public:
+
+  virtual explicit operator bool() const = 0;
+  virtual unsigned uid() const = 0;
+  virtual unsigned gid() const = 0;
+  virtual unsigned mode() const = 0;
+  virtual bool read(unsigned long offset, void *destination, unsigned count) = 0;
+  virtual void close() = 0;
+
+protected:
+
+  ~ExecutableImage() = default;
+};
+
+class ExecutableFile final : public ExecutableImage
 {
 public:
 
@@ -103,6 +119,44 @@ private:
   bool active_ = true;
 };
 
+// This source performs no path lookup and acquires no filesystem transaction.
+// Its backing physical pages remain reserved for the lifetime of the kernel.
+class ExecutableMemory final : public ExecutableImage
+{
+public:
+
+  ExecutableMemory(const void *bytes, unsigned long count)
+      : bytes_(static_cast<const unsigned char *>(bytes)), count_(count)
+  {
+  }
+
+  explicit operator bool() const override
+  {
+    return bytes_ && count_;
+  }
+
+  unsigned uid() const override { return 0; }
+  unsigned gid() const override { return 0; }
+  unsigned mode() const override { return 0755; }
+
+  bool read(unsigned long offset, void *destination, unsigned count) override
+  {
+    if (!bytes_ || offset > count_ || count > count_ - offset)
+    {
+      return false;
+    }
+    xv::runtime::move(destination, bytes_ + offset, count);
+    return true;
+  }
+
+  void close() override {}
+
+private:
+
+  const unsigned char *bytes_;
+  unsigned long count_;
+};
+
 class PendingImage final
 {
 public:
@@ -133,7 +187,7 @@ int permissions(unsigned flags)
   return permission;
 }
 
-bool load_segment(AddressSpace &image, ExecutableFile &file, const proghdr &segment)
+bool load_segment(AddressSpace &image, ExecutableImage &file, const proghdr &segment)
 {
   for (unsigned long offset = 0; offset < segment.filesz; offset += PGSIZE)
   {
@@ -168,7 +222,7 @@ struct ElfLoader::LoadFlow
     char *const *arguments;
     char *const *environment;
     PendingImage &candidate;
-    ExecutableFile &file;
+    ExecutableImage &file;
     ExecSnapshot &snapshot;
     unsigned long *user_environment, *user_arguments;
     elfhdr header{};
@@ -464,6 +518,20 @@ int ElfLoader::load(Process &process, const char *path, char *const *arguments,
                             candidate, file,snapshot, user_environment, user_arguments};
   (void)LoadFlow::Graph::run<1>(context);
   // On success candidate owns the old image; on failure it owns the partial one.
+  return context.result;
+}
+
+int ElfLoader::load_memory(Process &process, const void *bytes, unsigned long length,
+                           const char *path, char *const *arguments,
+                           char *const *environment)
+{
+  PendingImage candidate;
+  ExecutableMemory file(bytes, length);
+  ExecSnapshot snapshot;
+  unsigned long user_environment[MAXENV], user_arguments[MAXARG];
+  LoadFlow::Context context{process, path, arguments, environment, candidate,
+                            file, snapshot, user_environment, user_arguments};
+  (void)LoadFlow::Graph::run<1>(context);
   return context.result;
 }
 

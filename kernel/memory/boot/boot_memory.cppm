@@ -45,6 +45,23 @@ public:
     return ram_;
   }
 
+  // The boot executable is reserved like firmware memory, but remains mapped.
+  bool set_boot_image(PhysicalMemoryRange image)
+  {
+    if (!boot_image_.empty() || image.empty() || !ram_.contains(image) ||
+        !reserve(image))
+    {
+      return false;
+    }
+    boot_image_ = image;
+    return true;
+  }
+
+  PhysicalMemoryRange boot_image() const
+  {
+    return boot_image_;
+  }
+
   unsigned reservation_count() const
   {
     return count_;
@@ -62,9 +79,13 @@ public:
 private:
 
   PhysicalMemoryRange ram_;
+  PhysicalMemoryRange boot_image_;
   Reservation reserved_[MaxReservations]{};
   unsigned count_ = 0;
 };
+
+// Reserved physical bytes of the separately supplied boot executable.
+PhysicalMemoryRange boot_image();
 
 // A source describes hardware; it does not initialize an allocator or map RAM.
 class BootMemorySource

@@ -18,6 +18,10 @@ public:
   int load(Process &process, const char *path, char *const *arguments,
            char *const *environment) override;
 
+  int load_memory(Process &process, const void *bytes, unsigned long length,
+                  const char *path, char *const *arguments,
+                  char *const *environment) override;
+
 private:
 
   struct LoadFlow;

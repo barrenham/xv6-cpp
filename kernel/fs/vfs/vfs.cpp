@@ -232,8 +232,8 @@ void VirtualFileSystem::publish_mount_snapshot()
   // before taking the snapshot spinlock; readers never acquire namespace_.
   MountSnapshot records[9]{};
   detail::copy_fixed(records[0].path,"/",128);
-  detail::copy_fixed(records[0].type,disk_.type_name(),32);
-  records[0].readonly=disk_.read_only();records[0].nodev=!disk_.persistent();
+  detail::copy_fixed(records[0].type,root_backend().type_name(),32);
+  records[0].readonly=root_backend().read_only();records[0].nodev=!root_backend().persistent();
   for(unsigned i=0;i<mount_count_;++i)
   {
     auto &backend=mounts_[i].root->owner();auto &record=records[i+1];
@@ -256,8 +256,8 @@ int VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canoni
   if (!index)
   {
     detail::copy_fixed(path, "/", 128);
-    detail::copy_fixed(type, canonical ? disk_.type_name():disk_.name(), 32);
-    if(readonly)*readonly=disk_.read_only();
+    detail::copy_fixed(type, canonical ? root_backend().type_name():root_backend().name(), 32);
+    if(readonly)*readonly=root_backend().read_only();
     return 1;
   }
   --index;
@@ -319,7 +319,16 @@ namespace xv::fs
 {
 bool VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
 {
-  if (!path || path[0] != '/' || !path[1]) return false;
+  if (!path || path[0] != '/') return false;
+  if (!path[1])
+  {
+    // Only the initial boot supervisor can publish the first root service.
+    xv::sync::ScopedLock guard(namespace_);
+    if (!service_mode_ || service_root_ || detail::current_pid() != 1) return false;
+    service_root_ = &backend;
+    publish_mount_snapshot();
+    return true;
+  }
   unsigned length = 0, start = 1;
   for (; path[length]; ++length)
   {
@@ -356,3 +365,21 @@ bool VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
   return true;
 }
 }
+
+namespace xv::fs
+{
+int VirtualFileSystem::synchronize_services()
+{
+  xv::sync::ScopedLock guard(namespace_);
+  if (!service_mode_ || !service_root_) return -1;
+  auto *node = service_root_->root();
+  int result = service_root_->synchronize(node);
+  service_root_->release(node);
+  for (unsigned i = 0; i < mount_count_; ++i)
+  {
+    auto *root = mounts_[i].root;
+    if (root->owner().synchronize(root) < 0) result = -1;
+  }
+  return result;
+}
+} // namespace xv::fs

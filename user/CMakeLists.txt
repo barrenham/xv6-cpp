@@ -1,6 +1,8 @@
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
-add_library(user_fs STATIC runtime/userfs/server.cpp)
+add_library(user_fs STATIC runtime/userfs/server.cpp runtime/userfs/block_io.cpp
+  runtime/userfs/ext3.cpp runtime/userfs/devices.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
+  ../kernel/fs/ext3/jbd.cpp)
 target_link_libraries(user_fs PRIVATE xv_options)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
@@ -16,7 +18,7 @@ function(xv_add_program source)
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
     set(destination "/usr/tests/${name}")
-  elseif(name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
+  elseif(name STREQUAL "fsboot" OR name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
     set(destination "/sbin/${name}")
   else()
     set(destination "/bin/${name}")
@@ -29,6 +31,7 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/fsboot/fsboot.cpp
   apps/memfsd/memfsd.cpp
   apps/tarfsd/tarfsd.cpp
   apps/fbterm/fbterm.cpp
@@ -56,6 +59,8 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/fsrootboottest.cpp
+  tests/fsboottest.cpp
   tests/userfstest.cpp
   tests/fsplugintest.cpp
   tests/cachebench.cpp

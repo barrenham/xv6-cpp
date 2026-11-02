@@ -40,7 +40,7 @@ bool valid(const xv::userfs::Registration &r)
   const char *reserved_names[] = {"ext3", "xv6", "ramfs", "procfs", "devfs", "userfs"};
   for (const char *reserved : reserved_names)
   {
-    if (!detail::compare(r.type, reserved, 32))
+    if (!filesystem().services() && !detail::compare(r.type, reserved, 32))
     {
       return false;
     }

@@ -102,7 +102,15 @@ void dispatch(xv::userfs::Message &m, Backend &backend)
 
 int serve(int descriptor, Backend &backend)
 {
-  xv::userfs::Message message;
+  auto *storage = malloc(sizeof(xv::userfs::Message));
+  if (!storage) return -1;
+  struct Storage
+  {
+    void *pointer;
+    ~Storage() { free(pointer); }
+  } allocation{storage};
+  auto &message = *static_cast<xv::userfs::Message *>(storage);
+  memset(&message, 0, sizeof(message));
   for (;;)
   {
     int count = ::read(descriptor, &message, sizeof(message));

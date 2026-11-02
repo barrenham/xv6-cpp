@@ -269,7 +269,10 @@ struct ProcessManager::InitialFlow
 
   static void directory(Context &c) noexcept
   {
-    c.process->directory_.replace(xv::fs::filesystem().root());
+    if (xv::memory::boot_image().empty())
+    {
+      c.process->directory_.replace(xv::fs::filesystem().root());
+    }
   }
 
   static void publish(Context &c) noexcept

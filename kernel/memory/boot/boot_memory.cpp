@@ -75,7 +75,7 @@ struct Node
   MemorySize reg_size = 0;
   unsigned parent_address = 2, parent_size = 1;
   unsigned child_address = 2, child_size = 1;
-  bool memory = false, reserved_container = false, reserved = false;
+  bool chosen = false, memory = false, reserved_container = false, reserved = false;
   bool disabled = false, no_map = false, children_started = false;
 };
 
@@ -179,6 +179,8 @@ struct FdtMemorySource::DiscoverFlow
     BootMemoryInfo &found, &output;
     Node *nodes;
     unsigned depth = 0, token = 0;
+    MemorySize image_start = 0, image_end = 0;
+    bool chosen_seen = false, image_start_seen = false, image_end_seen = false;
     bool root_seen = false, root_closed = false, reservation_end = false,
          finished = false, ok = false, result = false;
   };
@@ -291,6 +293,16 @@ struct FdtMemorySource::DiscoverFlow
       }
       c.root_seen = true;
     }
+    node.chosen = c.depth == 1 && same(name, "chosen");
+    if (node.chosen)
+    {
+      if (c.chosen_seen)
+      {
+        c.ok = false;
+        return;
+      }
+      c.chosen_seen = true;
+    }
     node.memory = c.depth == 1 && node_name(name, "memory");
     node.reserved_container = c.depth == 1 && same(name, "reserved-memory");
     c.nodes[c.depth++] = node;
@@ -348,7 +360,21 @@ struct FdtMemorySource::DiscoverFlow
     }
     const char *name = reinterpret_cast<const char *>(c.blob + c.strings + name_offset);
     auto &node = c.nodes[c.depth - 1];
-    if (same(name, "#address-cells"))
+    if (node.chosen &&
+        (same(name, "linux,initrd-start") || same(name, "linux,initrd-end")))
+    {
+      bool start = same(name, "linux,initrd-start");
+      auto &seen = start ? c.image_start_seen : c.image_end_seen;
+      auto &address = start ? c.image_start : c.image_end;
+      if (seen || (size != 4 && size != 8) ||
+          !cells(c.blob + c.cursor, size / 4, address))
+      {
+        c.ok = false;
+        return;
+      }
+      seen = true;
+    }
+    else if (same(name, "#address-cells"))
     {
       if (size != 4)
       {
@@ -444,6 +470,19 @@ struct FdtMemorySource::DiscoverFlow
   static void blob(Context &c) noexcept
   {
     c.ok = true;
+    if (c.image_start_seen != c.image_end_seen)
+    {
+      c.ok = false;
+      return;
+    }
+    if (c.image_start_seen &&
+        (c.image_end <= c.image_start ||
+         !c.found.set_boot_image(PhysicalMemoryRange(
+             PhysicalAddress(c.image_start), PhysicalAddress(c.image_end)))))
+    {
+      c.ok = false;
+      return;
+    }
     auto blob_address = PhysicalAddress::from_pointer(c.blob);
     // Only reserve the blob when it actually resides in the physical RAM bank.
     // Host tests deliberately supply a separate native buffer.

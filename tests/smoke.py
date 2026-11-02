@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--qemu', required=True)
 parser.add_argument('--kernel', required=True)
 parser.add_argument('--image', required=True)
+parser.add_argument('--initrd')
 parser.add_argument('--regression', action='store_true')
 parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--without-entropy',action='store_true')
@@ -68,6 +69,8 @@ command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kerne
            '-global', 'virtio-mmio.force-legacy=false',
            '-drive', f'file={test_image},if=none,format=raw,id=x0',
            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+if args.initrd:
+    command += ['-initrd', args.initrd]
 if not args.without_entropy:
     command += ['-object','rng-random,id=rng0,filename=/dev/urandom','-device','virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2']
 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -76,6 +79,8 @@ selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
 log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"fsplugins-{args.cpus}cpu.log" if args.fsplugins else f"userfs-{args.cpus}cpu.log" if args.userfs else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+if args.initrd:
+    log_path = log_path.with_name(f'fs-services-{log_path.stem}-{args.cpus}cpu.log')
 log_file = log_path.open("wb")
 cursor = 0
 

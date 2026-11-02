@@ -1118,6 +1118,10 @@ uint64 sys_ioctl(void)
 
 uint64 sys_sync(void)
 {
+  if (xv::fs::filesystem().services())
+  {
+    return xv::fs::filesystem().synchronize_services();
+  }
   xv::fs::journal().sync();
   if (xv::fs::Transaction::secondary)
   {
@@ -1249,6 +1253,10 @@ uint64 sys_mount()
       argument_string(1, path, sizeof(path)) < 0 || !type[0])
   {
     return -1;
+  }
+  if (xv::fs::filesystem().services())
+  {
+    return xv::fs::mount_registered_userfs(type, path);
   }
   MountFlow::Context context{path, type};
   (void)MountFlow::Graph::run<0>(context);

@@ -145,10 +145,14 @@ private:
 };
 
 DeviceRegistry &devices();
+void initialize_device_registry();
+File *create_fs_resources();
 xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking);
 xv::drivers::BlockDevice *open_registered_block(Inode *node, bool writable);
 bool create_pipe(File **read_end, File **write_end);
 void initialize_userfs_plugins();
+// Bootstrap capability: no path lookup and no dependency on a mounted FS.
+File *create_boot_disk(unsigned index);
 File *create_userfs();
 File *register_userfs(const xv::userfs::Registration &);
 int mount_registered_userfs(const char *type, const char *path);

@@ -8,6 +8,9 @@ target_sources(kernel PRIVATE
   inode/xv6_filesystem.cpp
   inode/disk_filesystem.cpp
   path/path_operations.cpp
+  file/device_registry.cpp
+  file/service_resources.cpp
+  file/bootstrap_block.cpp
   file/open_file.cpp
   file/file_operations.cpp
   pipe/pipe.cpp

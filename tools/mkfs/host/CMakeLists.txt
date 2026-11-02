@@ -146,6 +146,7 @@ add_executable(fs_contract
   "${XV_ROOT}/kernel/fs/permissions.cpp"
   "${XV_ROOT}/kernel/fs/vfs/vfs.cpp"
   "${XV_ROOT}/kernel/fs/devfs/devfs.cpp"
+  "${XV_ROOT}/kernel/fs/file/device_registry.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"

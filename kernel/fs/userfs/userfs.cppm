@@ -58,6 +58,21 @@ public:
     return endpoint_;
   }
 
+  xv::drivers::CharacterDevice *open_device(Inode *node, bool nonblocking) override
+  {
+    if (node->device_major() == 5 &&
+        !devices().get(node->device_major(), node->device_minor()))
+    {
+      return xv::drivers::open_named_pty(node->device_minor());
+    }
+    return open_registered_device(node, nonblocking);
+  }
+
+  xv::drivers::BlockDevice *open_block_device(Inode *node, bool writable) override
+  {
+    return open_registered_block(node, writable);
+  }
+
   Inode *root() override;
 
   Inode *allocate(unsigned, short) override

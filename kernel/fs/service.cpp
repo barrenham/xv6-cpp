@@ -8,11 +8,29 @@ import :vfs;
 import :procfs;
 import :ramfs;
 import :platform;
+import xv.memory;
+import xv.print;
 
 namespace xv::fs
 {
 namespace
 {
+// With user backends, transaction boundaries belong to the serving process.
+// Existing VFS callers may still bracket operations, but reserve no disk log.
+class ServiceJournal final : public Journal
+{
+public:
+
+  void begin() override {}
+  void end() override {}
+  void sync() override {}
+  void record(Buffer &) override
+  {
+    xv::print::panic("userfs: kernel attempted a disk journal mutation");
+  }
+};
+
+constinit ServiceJournal service_journal;
 constinit LruBlockCache system_cache;
 constinit Xv6Journal system_journal(system_cache);
 constinit LruBlockCache data_cache;
@@ -53,7 +71,8 @@ BlockCache &cache()
 
 Journal &journal()
 {
-  return *disk_filesystem.transaction_log();
+  return xv::memory::boot_image().empty() ? *disk_filesystem.transaction_log()
+                                         : service_journal;
 }
 
 VirtualFileSystem &filesystem()
@@ -73,6 +92,10 @@ DeviceRegistry &devices()
 
 void initialize_cache()
 {
+  if (!xv::memory::boot_image().empty())
+  {
+    system_filesystem.use_services();
+  }
   initialize_userfs_plugins();
   devices().attach_block("vda",8,0,xv::drivers::block_device());
   system_cache.attach(xv::drivers::block_device());

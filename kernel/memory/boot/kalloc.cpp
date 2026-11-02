@@ -31,6 +31,8 @@ AllocatorKind configured_allocator_kind()
 
 namespace
 {
+PhysicalMemoryRange reserved_boot_image;
+
 namespace flow = xv::flow;
 
 struct BootInitializeFlow
@@ -71,6 +73,13 @@ struct BootInitializeFlow
 
   static void initialize(Context &c) noexcept
   {
+    // QEMU must place the image beyond the kernel/SBI boot region.
+    auto image = c.memory.boot_image();
+    if (!image.empty() && image.begin() < PhysicalAddress::from_pointer(::end))
+    {
+      c.ok = false;
+      return;
+    }
     c.ok =
         xv::memory::initialize(c.kind, c.memory, PhysicalAddress::from_pointer(::end));
   }
@@ -119,6 +128,12 @@ void boot_initialize(AllocatorKind kind, PhysicalAddress device_tree)
   FdtMemorySource source(device_tree.pointer(), FdtMemorySource::MaxBlobSize);
   BootInitializeFlow::Context context{kind, device_tree, memory, source};
   (void)BootInitializeFlow::Graph::run<0>(context);
+  reserved_boot_image = memory.boot_image();
+}
+
+PhysicalMemoryRange boot_image()
+{
+  return reserved_boot_image;
 }
 
 namespace detail

@@ -15,6 +15,11 @@ public:
   // Failure preserves the process's old address space and saved registers.
   virtual int load(Process &process, const char *path, char *const *arguments, char *const *environment) = 0;
 
+  // Load the separately supplied boot executable without consulting a filesystem.
+  virtual int load_memory(Process &process, const void *bytes, unsigned long length,
+                          const char *path, char *const *arguments,
+                          char *const *environment) = 0;
+
 protected:
 
   constexpr ExecutableLoader() = default;

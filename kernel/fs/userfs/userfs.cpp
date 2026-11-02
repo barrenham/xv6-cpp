@@ -61,13 +61,16 @@ void UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a)
   n->gid_ = a.gid;
   n->mode_ = a.mode & 07777;
   n->nlink = a.links;
+  n->major = a.major;
+  n->minor = a.minor;
   n->valid = 1;
 }
 
 Inode *UserFileSystem::node(const xv::userfs::Attributes &a)
 {
-  if (!a.node || (a.type != T_DIR && a.type != T_FILE && a.type != T_SYMLINK) ||
-      a.links > 32767 || a.mode > 07777)
+  if (!a.node || (a.type != T_DIR && a.type != T_FILE && a.type != T_SYMLINK &&
+                  a.type != T_DEVICE && a.type != T_BLOCK) ||
+      a.links > 32767 || a.mode > 07777 || a.major > 32767 || a.minor > 32767)
   {
     return nullptr;
   }
@@ -338,10 +341,11 @@ Inode *UserFileSystem::lookup_entry(Inode *directory, const char *name,
   return exchange() ? node(response_.attributes) : nullptr;
 }
 
-Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type, short,
-                                 short)
+Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type, short major,
+                                 short minor)
 {
-  if (type != T_FILE && type != T_DIR && type != T_SYMLINK)
+  if (type != T_FILE && type != T_DIR && type != T_SYMLINK &&
+      type != T_DEVICE && type != T_BLOCK)
   {
     return nullptr;
   }
@@ -355,13 +359,19 @@ Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type,
   begin(Operation::Create, directory->inum);
   detail::copy_fixed(request_.name, name, sizeof(request_.name));
   auto identity = detail::identity();
+  if ((type == T_DEVICE || type == T_BLOCK) && identity.uid)
+  {
+    serial_.release();
+    tree_.release();
+    return nullptr;
+  }
   request_.attributes = {0,
                          0,
                          identity.uid,
                          identity.gid,
                          unsigned((type == T_DIR ? 0777 : 0666) & ~identity.mask),
                          unsigned(type),
-                         1};
+                         1, unsigned(major), unsigned(minor)};
   auto *result = exchange() ? node(response_.attributes) : nullptr;
   serial_.release();
   if (!result)
@@ -496,7 +506,9 @@ int UserFileSystem::next_directory(Inode *n, unsigned long &cookie,
   entry.inode = response_.attributes.node;
   entry.type = response_.attributes.type == T_DIR       ? 4
                : response_.attributes.type == T_SYMLINK ? 10
-                                                        : 8;
+               : response_.attributes.type == T_DEVICE  ? 2
+               : response_.attributes.type == T_BLOCK   ? 6
+               : response_.attributes.type == T_SOCKET  ? 12 : 8;
   detail::copy_fixed(entry.name, response_.name, sizeof(entry.name));
   cookie = response_.offset;
   return 1;

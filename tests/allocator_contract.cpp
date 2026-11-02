@@ -303,6 +303,63 @@ static void test_boot_memory_and_layout()
           "reject unsupported banks, cell counts, and overflow");
   }
 
+  // Boot executables are supplied independently of the root filesystem.
+  for (unsigned width : {4U, 8U})
+  {
+    for (unsigned scenario = 0; scenario < 9; ++scenario)
+    {
+      FdtFixture tree;
+      tree.begin("");
+      tree.number("#address-cells", 2);
+      tree.number("#size-cells", 2);
+      tree.region("memory@80000000", KERNBASE, TestRamBytes);
+      tree.begin("chosen");
+      uint64 start = KERNBASE + 20 * 1024 * 1024 + 17;
+      uint64 end = start + PageSize + 3;
+      if (scenario == 3) end = start;
+      if (scenario == 4) end = start - 1;
+      if (scenario == 5) end = KERNBASE + TestRamBytes + 1;
+      if (scenario == 6) start = KERNBASE - 1;
+      auto address = [&](const char *name, uint64 value)
+      {
+        std::vector<Byte> data;
+        if (width == 8) FdtFixture::wide(data, value);
+        else FdtFixture::word(data, value);
+        if (scenario == 7) data.push_back(0);
+        tree.property(name, data);
+      };
+      if (scenario != 2) address("linux,initrd-start", start);
+      if (scenario != 1) address("linux,initrd-end", end);
+      if (scenario == 8) address("linux,initrd-start", start);
+      tree.end();
+      tree.end();
+      auto blob = tree.finish();
+      BootMemoryInfo memory;
+      auto previous = PhysicalMemoryRange(PhysicalAddress(KERNBASE),
+                                          PhysicalAddress(KERNBASE + PageSize));
+      check(memory.set_ram(previous), "seed boot-image parser output");
+      FdtMemorySource source(blob.data(), blob.size());
+      check(source.discover(memory) == (scenario == 0),
+            "validate paired boot-image addresses, bounds, width and uniqueness");
+      if (scenario)
+      {
+        check(memory.ram().size() == PageSize && memory.boot_image().empty() &&
+              memory.reservation_count() == 0,
+              "invalid boot image preserves complete parser output");
+        continue;
+      }
+      check(memory.boot_image().begin().raw() == start &&
+            memory.boot_image().end().raw() == end &&
+            memory.reservation_count() == 1 && !memory.reservation(0).no_map,
+            "boot image retains exact bytes and mapped reservation");
+      PhysicalMemoryLayout layout;
+      check(layout.configure(memory.ram(), PhysicalAddress(KERNBASE + 2 * PageSize)) &&
+            layout.reserve(memory.reservation(0).range), "apply boot-image reservation");
+      check(!layout.contains_usable_block(PhysicalAddress(start & ~(PageSize - 1)), PageSize) &&
+            !layout.contains_usable_block(PhysicalAddress((end - 1) & ~(PageSize - 1)), PageSize),
+            "every page touched by the image is excluded from allocations");
+    }
+  }
   for (unsigned nesting : {23U, 24U})
   {
     FdtFixture tree;

@@ -8,6 +8,8 @@ module xv.process;
 import xv.fs;
 import xv.trap;
 import xv.print;
+import xv.memory;
+import xv.drivers;
 
 namespace xv::process
 {
@@ -34,7 +36,10 @@ struct Process::FirstReturnFlow
 
   static void initialize(Context &) noexcept
   {
-    xv::fs::filesystem().initialize(ROOTDEV);
+    if (xv::memory::boot_image().empty())
+    {
+      xv::fs::filesystem().initialize(ROOTDEV);
+    }
   }
 
   static void publish(Context &c) noexcept
@@ -44,6 +49,43 @@ struct Process::FirstReturnFlow
 
   static void execute_init(Context &c) noexcept
   {
+    auto image = xv::memory::boot_image();
+    if (!image.empty())
+    {
+      xv::fs::initialize_device_registry();
+      // Bootstrap console descriptors require neither /dev nor a root directory.
+      for (int descriptor = 0; descriptor < 3; ++descriptor)
+      {
+        auto *file = xv::fs::files().allocate();
+        if (!file)
+        {
+          xv::print::panic("boot console: no file slot");
+        }
+        xv::fs::files().bind_endpoint(*file, xv::drivers::console());
+        if (c.owner.files().install(file) != descriptor)
+        {
+          xv::fs::files().release(file);
+          xv::print::panic("boot console: descriptor allocation");
+        }
+      }
+      auto *disk = xv::fs::create_boot_disk(0);
+      if (!disk || c.owner.files().install(disk) != 3)
+      {
+        if (disk) xv::fs::files().release(disk);
+        xv::print::panic("boot disk: descriptor allocation");
+      }
+      auto *resources = xv::fs::create_fs_resources();
+      if (!resources || c.owner.files().install(resources) != 4)
+      {
+        if (resources) xv::fs::files().release(resources);
+        xv::print::panic("boot resources: descriptor allocation");
+      }
+      char *arguments[] = {const_cast<char *>("/boot/fsboot"), nullptr};
+      c.owner.trapframe->a0 = executable_loader().load_memory(
+          c.owner, image.begin().pointer(), image.size(), arguments[0], arguments,
+          nullptr);
+      return;
+    }
     char *arguments[] = {const_cast<char *>(XV_INIT_PATH), nullptr};
     c.owner.trapframe->a0 = execute(XV_INIT_PATH, arguments);
   }

@@ -48,9 +48,9 @@ tarfsd 为只读后端；归档源文件在服务退出后仍然保留。重新�
 
 [用户态 SDK](../user/runtime/userfs/server.h) 提供 `userfs::Backend` 操作接口；[公共服务循环](../user/runtime/userfs/server.cpp) 负责消息接收、校验、操作分派和回复。只读后端通常实现 root、lookup、getattr、readdir、read，并声明 ReadOnly/ReadOperations；可写后端实现 create/write/resize/setattr/link/unlink/rename/sync。存储算法不需要理解内核 inode 指针或 VFS 挂载表。
 
-服务通过 `userfs::register_backend(type, backend)` 注册，取得描述符后调用 `userfs::serve(fd, backend)`。开发者也可直接使用 `fsregister(Registration*)` 和 read/write/poll 实现其他语言的等价协议客户端。具体开发与独立构建说明见 [插件开发接口](fs-plugin-authoring.md)。
+服务通过 `userfs::register_backend(type, backend)` 注册，取得描述符后调用 `userfs::serve(fd, backend)`。开发者也可直接使用 `fsregister(Registration*)` 和 read/write/poll 实现其他语言的等价协议客户端。具体开发与独立构建说明见 [插件开发接口](fs-plugin-authoring.md)。全部系统 FS 的迁移进度和独立引导路径见 [FS 服务迁移](fs-service-migration.md)。
 
-类型名是以小写字母开头、最长 31 字节的 ASCII 名称，后续允许小写字母、数字、短横线、下划线。禁止覆盖内建类型名。注册仅允许有效 uid 0；结构长度、版本、标志、根节点和必需操作能力必须通过内核校验。每条消息的版本、请求编号、操作、数据长度也会检查。协议是本项目的 64 位本地 ABI，不是 Linux FUSE 二进制协议。
+类型名是以小写字母开头、最长 31 字节的 ASCII 名称，后续允许小写字母、数字、短横线、下划线。旧启动方式禁止覆盖内建类型名；独立服务引导方式允许系统服务注册这些类型。注册仅允许有效 uid 0；结构长度、版本、标志、根节点和必需操作能力必须通过内核校验。每条消息的版本、请求编号、操作、数据长度也会检查。协议是本项目的 64 位本地 ABI，不是 Linux FUSE 二进制协议。
 
 每实例的 `max_payload` 可在 1..512 字节之间协商，较大读写由桥接层拆分；未声明的操作在内核直接失败。只读标志同时约束 VFS 写权限和桥接层可发送的修改操作，不依靠服务自觉拒绝写入。
 

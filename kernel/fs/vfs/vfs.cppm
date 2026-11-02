@@ -30,9 +30,20 @@ public:
   void initialize(int device);
   void initialize_inodes();
 
+  void use_services()
+  {
+    service_mode_ = true;
+  }
+
+  bool services() const
+  {
+    return service_mode_;
+  }
+
   Inode *root()
   {
-    return disk_.root();
+    return service_mode_ ? (service_root_ ? service_root_->root() : nullptr)
+                         : disk_.root();
   }
 
   Inode *allocate(unsigned device, short type);
@@ -61,6 +72,7 @@ public:
   bool mount_service(const char *path, FileSystem &backend);
   int mount_disk(const char *path,const char *type=nullptr);
   int unmount(const char *path);
+  int synchronize_services();
   int mounts(unsigned index, char *path, char *type,bool canonical=false,bool *readonly=nullptr);
   unsigned snapshot_mounts(MountSnapshot *records,unsigned capacity) const;
   Inode *lookup_entry(Inode *directory, const char *name, unsigned *offset);
@@ -101,6 +113,13 @@ private:
   Inode *walk(const char *path, bool parent, char *name, bool real = false,
               bool follow = true, bool creating = false,unsigned capacity=256,bool exact_names=false);
   Inode *enter_mount(Inode *node);
+  FileSystem &root_backend() const
+  {
+    return service_root_ ? *service_root_ : disk_;
+  }
+
+  bool service_mode_ = false;
+  FileSystem *service_root_ = nullptr;
   FileSystem &disk_;
   FileSystem &devices_;
   FileSystem *processes_;
