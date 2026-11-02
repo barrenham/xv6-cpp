@@ -171,6 +171,8 @@ void UserFileSystem::begin(Operation operation, unsigned node)
   request_.id = ++sequence_;
   request_.operation = operation;
   request_.node = node;
+  auto caller = detail::identity();
+  request_.context = {unsigned(detail::current_pid()), caller.uid, caller.gid};
 }
 
 bool UserFileSystem::exchange()
@@ -658,7 +660,8 @@ UserFileSystem *UserFileSystem::create(unsigned device,
   fs->registration_ = registration;
   if (registration.flags & xv::userfs::ReadOnly)
   {
-    fs->registration_.operations &= xv::userfs::ReadOperations;
+    fs->registration_.operations &= xv::userfs::ReadOperations |
+        ((registration.flags & xv::userfs::Snapshots) ? xv::userfs::SnapshotOperations : 0);
   }
   fs->provider_pid_ = detail::current_pid();
   fs->anonymous_ = anonymous;
@@ -736,5 +739,34 @@ bool UserFileSystem::describe_provider(xv::userfs::ProviderInfo &info)
                                           : xv::userfs::ProviderState::Disconnected)
                             : xv::userfs::ProviderState::Registered;
   return true;
+}
+} // namespace xv::fs
+
+namespace xv::fs
+{
+bool UserFileSystem::snapshot(Inode *node, PageBuffer &buffer)
+{
+  // One contiguous transaction keeps the backend capture stable. Each open
+  // receives its own kernel-owned bytes, which outlive process exit and fd reuse.
+  xv::sync::ScopedLock guard(serial_);
+  begin(Operation::SnapshotBegin, node->inum);
+  bool good = exchange();
+  unsigned size = good ? response_.attributes.size : 0;
+  unsigned offset = 0;
+  while (good && offset < size)
+  {
+    begin(Operation::SnapshotRead, node->inum);
+    request_.offset = offset;
+    request_.count = size - offset;
+    if (request_.count > registration_.max_payload) request_.count = registration_.max_payload;
+    good = exchange() && response_.result > 0 &&
+           response_.result == int(response_.count) && response_.count <= request_.count &&
+           buffer.append(response_.data, response_.count);
+    if (good) offset += response_.count;
+  }
+  begin(Operation::SnapshotEnd, node->inum);
+  bool ended = exchange();
+  if (!good || !ended) buffer.clear();
+  return good && ended;
 }
 } // namespace xv::fs

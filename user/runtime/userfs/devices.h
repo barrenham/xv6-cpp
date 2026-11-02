@@ -9,6 +9,7 @@ class DeviceBackend final : public Backend
 public:
 
   explicit DeviceBackend(int resources) : resources_(resources) {}
+  bool ready() const { return resources_.ready(); }
   unsigned flags() override { return xv::userfs::ReadOnly; }
   int lookup(unsigned, const char *, Attributes &) override;
   int getattr(unsigned, Attributes &) override;

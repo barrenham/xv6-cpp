@@ -34,7 +34,7 @@ def boot(args, directory, image, expected):
                         transcript.extend(data)
                 if expected in transcript:
                     break
-                if b'fsboottest: FAIL:' in transcript or process.poll() is not None:
+                if b': FAIL:' in transcript or process.poll() is not None:
                     raise RuntimeError('bootstrap failed or QEMU exited')
             else:
                 raise RuntimeError('bootstrap timeout')
@@ -63,11 +63,12 @@ def main():
     parser.add_argument('--kernel', type=Path, required=True)
     parser.add_argument('--program', type=Path, required=True)
     parser.add_argument('--cpus', type=int, required=True)
+    parser.add_argument('--expected', default='fsboottest: PASS: userspace bootstrap without a mounted filesystem')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='xv-fsbootstrap-') as path:
         directory = Path(path)
         boot(args, directory, args.program,
-             b'fsboottest: PASS: userspace bootstrap without a mounted filesystem\n')
+             args.expected.encode() + b'\n')
         for name, contents in [('bad-magic', b'not an ELF executable'),
                                ('truncated-elf', args.program.read_bytes()[:64])]:
             image = directory / name

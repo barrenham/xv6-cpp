@@ -282,6 +282,11 @@ extern "C" int main()
   ++r.size;
   r.flags = 128;
   check(fsregister(&r) < 0, "unsupported flags");
+  r.flags = xv::userfs::Snapshots;
+  check(fsregister(&r) < 0, "snapshot capture requires a read-only backend");
+  r.flags |= xv::userfs::ReadOnly;
+  r.operations = xv::userfs::ReadOperations;
+  check(fsregister(&r) < 0, "snapshot capture requires complete operation capabilities");
   r.flags = 0;
   r.operations = 0;
   check(fsregister(&r) < 0, "required operations");

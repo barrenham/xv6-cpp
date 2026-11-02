@@ -46,6 +46,8 @@ void worker(int ready)
 void device_worker(int ready)
 {
   userfs::DeviceBackend backend(4);
+  close(4);
+  require(backend.ready(), "clone device resources");
   int endpoint = userfs::register_backend("devfs", backend);
   require(endpoint >= 0, "register device backend");
   require(write(ready, "D", 1) == 1, "announce device backend");

@@ -54,8 +54,8 @@ unsigned long next_timer_deadline();
 void create_kernel_task(const char *name, void (*entry)());
 void dump();
 bool snapshot_after(int after, ProcessInfo &result);
-int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
-bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result);
+int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector = ~0U);
+bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector = ~0U);
 int copy_in(void *destination, bool user, unsigned long source, unsigned long count);
 int copy_out(bool user, unsigned long destination, const void *source,
              unsigned long count);

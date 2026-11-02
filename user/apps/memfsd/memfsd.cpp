@@ -427,6 +427,10 @@ void process(Message &m)
     m.attributes = node.attributes;
     m.result = 0;
     return;
+  case Operation::SnapshotBegin:
+  case Operation::SnapshotRead:
+  case Operation::SnapshotEnd:
+    return;
   case Operation::Sync:
     m.result = 0;
     return;

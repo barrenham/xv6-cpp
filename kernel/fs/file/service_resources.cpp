@@ -2,9 +2,13 @@ module;
 #include "kernel/support/placement_new.hpp"
 #include "kernel/io/fs_resources.h"
 #include "kernel/fs/poll.h"
+#include "kernel/support/param.h"
+#include "kernel/fs/userfs/protocol.h"
 module xv.fs;
 import :file;
 import :platform;
+import :vfs;
+import xv.process;
 
 namespace xv::fs
 {
@@ -33,6 +37,14 @@ public:
 
   int ioctl(unsigned request, xv::io::Buffer address) override
   {
+    if (request == CloneIoctl)
+    {
+      auto *file = create_fs_resources();
+      if (!file) return -1;
+      int fd = xv::process::current()->files().install(file);
+      if (fd < 0) files().release(file);
+      return fd;
+    }
     if (request != QueryIoctl) return -1;
     Query query;
     if (detail::copy_in(&query, true, address.address, sizeof(query)) < 0 ||
@@ -40,10 +52,71 @@ public:
     xv::sync::ScopedLock guard(lock_);
     detail::fill(query.data, 0, sizeof(query.data));
     query.result = -1;
+    unsigned requested = query.count;
     query.count = 0;
     bool acquired = false;
     switch (query.operation)
     {
+    case Operation::ProcessAfter:
+      process(query);
+      break;
+    case Operation::Cpu:
+      cpu(query);
+      break;
+    case Operation::System:
+      system(query);
+      break;
+    case Operation::Mount:
+      mount(query);
+      break;
+    case Operation::Provider:
+      provider(query);
+      break;
+    case Operation::Filesystem:
+      filesystem_type(query);
+      break;
+    case Operation::Cache:
+      cache_statistics(query);
+      break;
+    case Operation::KernelVersion:
+    {
+      const char *version = detail::kernel_version();
+      unsigned count = 0;
+      while (version[count] && count + 1 < PayloadSize) ++count;
+      detail::move(query.data, version, count);
+      query.count = count;
+      query.result = 1;
+      break;
+    }
+    case Operation::CaptureDescriptors:
+      descriptors_ready_ = xv::process::inspect_files(query.pid, files_, NOFILE, query.inspector) >= 0;
+      query.result = descriptors_ready_ ? 1 : -1;
+      break;
+    case Operation::Descriptor:
+      descriptor(query);
+      break;
+    case Operation::CaptureExec:
+      exec_.clear();
+      exec_ready_ = xv::process::inspect_exec(query.pid,
+          query.index ? xv::process::ExecSnapshot::Field::Environment
+                      : xv::process::ExecSnapshot::Field::CommandLine,
+          exec_, query.inspector);
+      query.offset = exec_.size();
+      query.result = exec_ready_ ? 1 : -1;
+      break;
+    case Operation::ReadExec:
+      if (exec_ready_ && requested <= PayloadSize && query.offset <= ~0U)
+      {
+        query.result = exec_.read(query.offset, false,
+                                  reinterpret_cast<unsigned long>(query.data), requested);
+        query.count = query.result < 0 ? 0 : unsigned(query.result);
+      }
+      break;
+    case Operation::EndExec:
+      exec_.clear();
+      exec_ready_ = false;
+      query.result = 0;
+      break;
     case Operation::Device:
       device(query);
       break;
@@ -99,6 +172,130 @@ public:
 
 private:
 
+  template <class Record> static void reply(Query &query, const Record &record)
+  {
+    static_assert(sizeof(record) <= PayloadSize);
+    detail::move(query.data, &record, sizeof(record));
+    query.count = sizeof(record);
+    query.result = 1;
+  }
+
+  static void process(Query &query)
+  {
+    detail::ProcessRecord source;
+    if (query.index > 0x7fffffffU || !detail::process_after(query.index, source))
+    { query.result = 0; return; }
+    xv::fsservice::Process record;
+    detail::fill(&record, 0, sizeof(record));
+    record.pid = source.pid; record.parent = source.parent;
+    record.group = source.group; record.session = source.session;
+    record.uid = source.uid; record.effective_uid = source.effective_uid;
+    record.gid = source.gid; record.effective_gid = source.effective_gid;
+    record.bytes = source.bytes; record.state = source.state;
+    detail::move(record.name, source.name, sizeof(record.name));
+    reply(query, record);
+  }
+
+  static void cpu(Query &query)
+  {
+    detail::CpuRecord hardware;
+    detail::CpuTime time;
+    if (!detail::cpu_record(query.index, hardware) || !detail::cpu_time(query.index, time))
+    { query.result = 0; return; }
+    xv::fsservice::Cpu record;
+    detail::fill(&record, 0, sizeof(record));
+    record.hart = hardware.hart; record.isa = hardware.isa;
+    record.vendor = hardware.vendor; record.architecture = hardware.architecture;
+    record.implementation = hardware.implementation;
+    record.user = time.user; record.system = time.system;
+    record.idle = time.idle; record.interrupts = time.interrupts;
+    reply(query, record);
+  }
+
+  static void system(Query &query)
+  {
+    xv::fsservice::System record;
+    detail::fill(&record, 0, sizeof(record));
+    detail::memory_info(record.total_kib, record.free_kib);
+    record.uptime = detail::uptime_ticks(); record.boot_epoch = detail::boot_epoch_seconds();
+    record.epoch = detail::epoch_seconds();
+    auto counts = detail::system_counts();
+    record.switches = counts.switches; record.processes = counts.processes;
+    reply(query, record);
+  }
+
+  static void mount(Query &query)
+  {
+    MountSnapshot records[9]{};
+    unsigned count = filesystem().snapshot_mounts(records, 9);
+    if (query.index >= count) { query.result = 0; return; }
+    const auto &source = records[query.index];
+    xv::fsservice::Mount record;
+    detail::fill(&record, 0, sizeof(record));
+    detail::copy_fixed(record.path, source.path, sizeof(record.path));
+    detail::copy_fixed(record.type, source.type, sizeof(record.type));
+    record.readonly = source.readonly; record.nodev = source.nodev;
+    reply(query, record);
+  }
+
+  static void provider(Query &query)
+  {
+    xv::userfs::ProviderInfo source;
+    if (!userfs_provider(query.index, source)) { query.result = 0; return; }
+    xv::fsservice::Provider record;
+    detail::fill(&record, 0, sizeof(record));
+    detail::copy_fixed(record.type, source.type, sizeof(record.type));
+    record.pid = source.pid; record.device = source.device; record.version = source.version;
+    record.flags = source.flags; record.state = unsigned(source.state);
+    reply(query, record);
+  }
+
+  static void filesystem_type(Query &query)
+  {
+    detail::FileSystemType source;
+    if (!detail::registered_filesystem(query.index, source)) { query.result = 0; return; }
+    xv::fsservice::Filesystem record;
+    detail::fill(&record, 0, sizeof(record));
+    detail::copy_fixed(record.name, source.name, sizeof(record.name));
+    record.nodev = source.nodev;
+    reply(query, record);
+  }
+
+  static void cache_statistics(Query &query)
+  {
+    auto source = cache().statistics();
+    xv::fsservice::Cache record;
+    detail::fill(&record, 0, sizeof(record));
+    detail::copy_fixed(record.name, cache().name(), sizeof(record.name));
+#define FIELD(name) record.name = source.name
+    FIELD(hits); FIELD(misses); FIELD(evictions); FIELD(lookup_steps);
+    FIELD(reads); FIELD(writes); FIELD(eviction_steps); FIELD(locks);
+    FIELD(contentions); FIELD(spins); FIELD(wait_ticks);
+#undef FIELD
+    record.tick_hz = 10000000;
+    reply(query, record);
+  }
+
+  void descriptor(Query &query)
+  {
+    if (!descriptors_ready_) return;
+    unsigned position = 0;
+    for (unsigned i = 0; i < NOFILE; ++i)
+    {
+      const auto &file = files_[i];
+      if (!file.identity || position++ != query.index) continue;
+      xv::fsservice::Descriptor record;
+      detail::fill(&record, 0, sizeof(record));
+      record.number = i; record.identity = file.identity;
+      record.flags = file.flags; record.kind = unsigned(file.kind);
+      record.type = file.type; record.device = file.device; record.inode = file.inode;
+      record.position = file.position;
+      reply(query, record);
+      return;
+    }
+    query.result = 0;
+  }
+
   static void device(Query &query)
   {
     unsigned position = 0;
@@ -147,6 +344,9 @@ private:
     owner(query, numbers[query.index]);
   }
 
+  PageBuffer exec_;
+  FileInfo files_[NOFILE]{};
+  bool exec_ready_ = false, descriptors_ready_ = false;
   xv::sync::SleepLock lock_;
   bool pinned_[xv::drivers::MaxNamedPtys]{};
 };

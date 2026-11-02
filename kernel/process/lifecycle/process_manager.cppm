@@ -42,8 +42,8 @@ public:
   void wakeup(void *channel);
   void dump();
   bool snapshot_after(int after, ProcessInfo &result);
-  int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity);
-  bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result);
+  int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector = ~0U);
+  bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector = ~0U);
   int get_process_group();
   int set_process_group(int pid, int group);
   int get_session(int pid);

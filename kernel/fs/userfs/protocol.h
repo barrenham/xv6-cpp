@@ -3,7 +3,7 @@
 // Versioned wire format: fixed-width scalar fields, object IDs, no pointers.
 namespace xv::userfs
 {
-inline constexpr unsigned Version = 2;
+inline constexpr unsigned Version = 3;
 inline constexpr unsigned DataSize = 512;
 inline constexpr unsigned NameSize = 256;
 enum class Operation : unsigned
@@ -20,7 +20,10 @@ enum class Operation : unsigned
   Rename,
   Sync,
   Getattr,
-  Forget
+  Forget,
+  SnapshotBegin,
+  SnapshotRead,
+  SnapshotEnd
 };
 
 struct Attributes
@@ -28,6 +31,11 @@ struct Attributes
   unsigned node = 0, size = 0, uid = 0, gid = 0, mode = 0;
   unsigned type = 0, links = 0;
   unsigned major = 0, minor = 0;
+};
+
+struct RequestContext
+{
+  unsigned pid = 0, uid = 0, gid = 0;
 };
 
 struct Message
@@ -39,6 +47,7 @@ struct Message
   unsigned long offset = 0;
   int result = -1;
   unsigned count = 0;
+  RequestContext context;
   Attributes attributes;
   char name[NameSize]{};
   char target[NameSize]{};
@@ -46,16 +55,19 @@ struct Message
 };
 
 inline constexpr unsigned ReadOnly = 1;
+inline constexpr unsigned Snapshots = 2;
 inline constexpr unsigned ProviderCapacity = 16;
 constexpr unsigned long operation_bit(Operation operation)
 {
   return 1UL << static_cast<unsigned>(operation);
 }
-inline constexpr unsigned long AllOperations = (operation_bit(Operation::Forget) << 1) - 2;
+inline constexpr unsigned long AllOperations = (operation_bit(Operation::SnapshotEnd) << 1) - 2;
 inline constexpr unsigned long ReadOperations = operation_bit(Operation::Lookup) |
     operation_bit(Operation::Read) | operation_bit(Operation::Readdir) |
     operation_bit(Operation::Sync) | operation_bit(Operation::Getattr) |
     operation_bit(Operation::Forget);
+inline constexpr unsigned long SnapshotOperations = operation_bit(Operation::SnapshotBegin) |
+    operation_bit(Operation::SnapshotRead) | operation_bit(Operation::SnapshotEnd);
 struct Registration
 {
   unsigned size = sizeof(Registration), version = Version;

@@ -557,3 +557,30 @@ foreach(cpus 1 5)
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --permissions)
   set_tests_properties(fs_service_permissions_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
 endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_procfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --procfs)
+  set_tests_properties(fs_service_procfs_${cpus}cpu PROPERTIES TIMEOUT 200 LABELS "fs;boot")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_resources_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_bootstrap.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --program $<TARGET_FILE:user_fsresourcesboottest>
+    --cpus ${cpus} --expected
+    "fsresourcesboottest: PASS: typed capabilities, isolation and delegated permissions")
+  set_tests_properties(fs_resources_${cpus}cpu PROPERTIES TIMEOUT 100 LABELS "fs;boot")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_snapshots_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --snapshots)
+  set_tests_properties(fs_service_snapshots_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
+endforeach()

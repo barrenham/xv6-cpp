@@ -30,8 +30,28 @@ void dispatch(xv::userfs::Message &m, Backend &backend)
   {
     return;
   }
+  backend.context(m.context);
   switch (m.operation)
   {
+  case Operation::SnapshotBegin:
+  {
+    unsigned size = 0;
+    m.result = backend.snapshot(m.node, size);
+    m.attributes.size = size;
+    break;
+  }
+  case Operation::SnapshotRead:
+  {
+    unsigned limit = m.count;
+    m.result = backend.snapshot_read(m.offset, m.data, limit);
+    if (m.result > int(limit)) m.result = -1;
+    m.count = m.result < 0 ? 0 : unsigned(m.result);
+    break;
+  }
+  case Operation::SnapshotEnd:
+    backend.snapshot_end();
+    m.result = 0;
+    break;
   case Operation::Lookup:
     m.result = backend.lookup(m.node, m.name, m.attributes);
     break;

@@ -22,6 +22,13 @@ public:
     return registration_.flags & xv::userfs::ReadOnly;
   }
 
+  bool snapshot_reads() const override
+  {
+    return registration_.flags & xv::userfs::Snapshots;
+  }
+
+  bool snapshot(Inode *, PageBuffer &) override;
+
   unsigned name_max() const override
   {
     return 255;

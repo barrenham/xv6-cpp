@@ -7,10 +7,11 @@
 #include "user/runtime/userfs/ext3.h"
 #include "user/runtime/userfs/devices.h"
 #include "user/runtime/userfs/memory.h"
+#include "user/runtime/userfs/processes.h"
 
 namespace
 {
-enum class Service { Root, Devices, Memory };
+enum class Service { Root, Devices, Memory, Processes };
 
 [[noreturn]] void fatal(const char *message)
 {
@@ -44,11 +45,21 @@ enum class Service { Root, Devices, Memory };
   }
   if (kind == Service::Memory)
   {
+    close(4);
     userfs::MemoryBackend backend(userfs::heap_storage(), 01777);
     if (!backend.ready()) fatal("ramfs allocation failed");
     serve(ready, type, backend);
   }
+  if (kind == Service::Processes)
+  {
+    userfs::ProcessBackend backend(4);
+    close(4);
+    if (!backend.ready()) fatal("process resource allocation failed");
+    serve(ready, type, backend);
+  }
   userfs::DeviceBackend backend(4);
+  close(4);
+  if (!backend.ready()) fatal("device resource allocation failed");
   serve(ready, type, backend);
 }
 
@@ -98,9 +109,10 @@ extern "C" int main(int, char **)
   close(3);
   if (chdir("/") < 0) fatal("cannot select root cwd");
   int devices = start(Service::Devices, "devfs", "/dev");
-  close(4);
+  int processes = start(Service::Processes, "proc", "/proc");
   int memory = start(Service::Memory, "ramfs", "/tmp");
-  // procfs and the alternate disk format are added in the next migration
+  close(4);
+  // The alternate disk format is added in the next migration
   // steps; this executable is not the default QEMU boot path until all are ready.
   int init = start_init();
   for (;;)
@@ -112,10 +124,10 @@ extern "C" int main(int, char **)
       fprintf(2, "fsboot: init exited status=%d; restarting\n", status);
       init = start_init();
     }
-    else if (pid == root || pid == devices || pid == memory)
+    else if (pid == root || pid == devices || pid == memory || pid == processes)
     {
       fprintf(2, "fsboot: %s service pid=%d exited status=%d; mount unavailable\n",
-              pid == root ? "root" : pid == devices ? "device" : "memory", pid, status);
+              pid == root ? "root" : pid == devices ? "device" : pid == processes ? "process" : "memory", pid, status);
     }
     else if (pid < 0) pause(1);
   }

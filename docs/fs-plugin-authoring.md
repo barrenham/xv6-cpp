@@ -55,7 +55,7 @@ cmake --build build/dev --target user_tarfsd
 - size/version 标识完整结构及公共协议版本；不匹配则注册失败。
 - type 是唯一的类型名称标识，可以存在多个同名实例，注册不自动挂载。
 - root 提供初始根属性，根对象编号必须为 1 且为目录。
-- flags 当前支持 ReadOnly；内核独立执行只读策略。
+- flags 支持 ReadOnly 和 Snapshots；内核独立执行只读策略，Snapshots 必须同时设置 ReadOnly。
 - operations 声明服务支持的操作位；Lookup/Getattr/Read/Readdir/Forget/Sync 是基础集合。
 - max_payload 在 1..512 范围内，决定该实例每条读写请求的最大数据载荷。
 
@@ -73,7 +73,24 @@ Readdir 只是枚举，不建立引用。Getattr 查询已有编号，不建立�
 
 ## 用户态系统后端迁移中的 ABI 变更
 
-当前源码的协议版本为 **2**。`Attributes` 在原有字段后增加 `major`、`minor`；
+当前源码的协议版本为 **3**。`Attributes` 包含 `major`、`minor`；
 桥接层据此将字符设备、块设备节点绑定到内核设备机制。普通文件与目录应将这两个字段置零。
-版本 1 的服务需要用当前头文件及 SDK 重新编译，不可把旧消息布局直接用于版本 2。
+版本 1/2 的服务需要用当前头文件及 SDK 重新编译，不可混用旧消息布局。
+每个请求携带内核填写的 `RequestContext{pid, uid, gid}`，其中 uid/gid 是原始客户端的有效身份，
+不是服务进程自身身份。SDK 在分派前调用 `Backend::context()`；需要跨回调保留时应复制该记录。
 用户态根服务的引导及验证进度见 [FS 服务迁移](fs-service-migration.md)。
+
+## 每次打开的独立快照
+
+只读合成文件系统可设置 `ReadOnly | Snapshots`，并声明完整的 `SnapshotOperations`。
+内核每次 open 使用以下回调构造独立字节流：
+
+1. `snapshot(node, size)` 捕获内容并返回准确长度。
+2. `snapshot_read(offset, data, count)` 按协商载荷传输，返回实际字节数。
+3. `snapshot_end()` 释放临时捕获；捕获或传输失败时也会调用，因此必须允许清理未完成状态。
+
+内核在整个捕获期间串行化该连接。提前 EOF、负返回值、超过请求长度或本地缓冲分配失败会令这次 open 失败，
+并回收文件槽；普通错误不应污染后续捕获。成功后，每个打开文件拥有独立的只读缓冲，
+dup/fork 仍共享该打开文件的偏移。目标进程退出、fd 复用或后来再次打开文件都不会替换既有缓冲。
+目录快照沿用项目的 16 字节 dirent 字节流，原有 read(dir)/getdents64 的不可混用约束继续生效。
+`user/runtime/userfs/processes.cpp` 提供完整实现，`fssnapshottest` 验证捕获失败、独立打开和客户端身份。

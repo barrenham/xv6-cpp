@@ -19,6 +19,11 @@ class Backend
 {
 public:
 
+  virtual void context(const xv::userfs::RequestContext &) {}
+  virtual int snapshot(unsigned, unsigned &) { return -1; }
+  virtual int snapshot_read(unsigned long, void *, unsigned) { return -1; }
+  virtual void snapshot_end() {}
+
   virtual Attributes root()
   {
     return {1, 0, 0, 0, 0755, 1, 2};

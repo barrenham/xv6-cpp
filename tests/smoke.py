@@ -22,6 +22,7 @@ parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--without-entropy',action='store_true')
 parser.add_argument('--named-pty', action='store_true')
 parser.add_argument('--procfs', action='store_true')
+parser.add_argument('--snapshots', action='store_true')
 parser.add_argument('--userfs', action='store_true')
 parser.add_argument('--fsplugins', action='store_true')
 parser.add_argument('--ramfs', action='store_true')
@@ -80,6 +81,8 @@ selector = selectors.DefaultSelector()
 selector.register(process.stdout, selectors.EVENT_READ)
 transcript = bytearray()
 log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"fsplugins-{args.cpus}cpu.log" if args.fsplugins else f"userfs-{args.cpus}cpu.log" if args.userfs else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
+if args.snapshots:
+    log_path = log_path.with_name(f'snapshots-{args.cpus}cpu.log')
 if args.ramfs_service:
     log_path = log_path.with_name(f'ramfs-lifecycle-{args.cpus}cpu.log')
 if args.initrd:
@@ -114,6 +117,9 @@ def expect(token, timeout=30):
                 if b'userfstest: FAIL:' in transcript:
                     raise RuntimeError('userspace filesystem contract failed')
                 position = transcript.find(b'ramfsservicetest: FAIL:')
+                if position >= 0 and b'\n' in transcript[position:]:
+                    raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
+                position = transcript.find(b'fssnapshottest: FAIL:')
                 if position >= 0 and b'\n' in transcript[position:]:
                     raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
                 if b'ramfstest: FAIL:' in transcript:
@@ -725,6 +731,8 @@ try:
         checks = [('ramfstest', 'ramfstest: all tests succeeded')]
     if args.ramfs_service:
         checks = [('ramfsservicetest', 'ramfsservicetest: independent daemon, overlay and lifecycle passed')]
+    if args.snapshots:
+        checks = [('fssnapshottest', 'fssnapshottest: capture errors, independent opens and actor identity passed')]
     if args.procfs:
         checks = [('procfstest', 'procfstest: all tests succeeded'),
                   ('ps', f"{'PID':>6} {'PPID':>6} {'PGID':>6} {'SID':>6} {'STATE':<5} {'KiB':>8} NAME"),

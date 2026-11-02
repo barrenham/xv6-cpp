@@ -17,7 +17,10 @@ unsigned next_device = 0x10000;
 bool valid(const xv::userfs::Registration &r)
 {
   if (r.size != sizeof(r) || r.version != xv::userfs::Version ||
-      (r.flags & ~xv::userfs::ReadOnly) || !r.max_payload ||
+      (r.flags & ~(xv::userfs::ReadOnly | xv::userfs::Snapshots)) || !r.max_payload ||
+      ((r.flags & xv::userfs::Snapshots) &&
+       (!(r.flags & xv::userfs::ReadOnly) ||
+        (r.operations & xv::userfs::SnapshotOperations) != xv::userfs::SnapshotOperations)) ||
       r.max_payload > xv::userfs::DataSize || r.root.node != 1 ||
       r.root.type != T_DIR || !r.root.links || r.root.links > 32767 ||
       r.root.mode > 07777 || (r.operations & ~xv::userfs::AllOperations) ||

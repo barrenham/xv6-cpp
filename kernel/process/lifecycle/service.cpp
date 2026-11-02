@@ -288,13 +288,13 @@ bool snapshot_after(int after, ProcessInfo &result)
   return process_manager.snapshot_after(after, result);
 }
 
-bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
+bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector)
 {
-  return process_manager.inspect_exec(pid, field, result);
+  return process_manager.inspect_exec(pid, field, result, inspector);
 }
 
-int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
+int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector)
 {
-  return process_manager.inspect_files(pid, entries, capacity);
+  return process_manager.inspect_files(pid, entries, capacity, inspector);
 }
 } // namespace xv::process

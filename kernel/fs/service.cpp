@@ -53,6 +53,12 @@ constinit DeviceRegistry system_devices;
 
 bool detail::registered_filesystem(unsigned index,detail::FileSystemType &record)
 {
+  if (filesystem().services())
+  {
+    if (!index) { record = {"userfs", true}; return true; }
+    if (!userfs_type(index - 1, record.storage)) return false;
+    record.name = record.storage; record.nodev = true; return true;
+  }
   FileSystem *const backends[]={&legacy_disk_filesystem,&ext3_disk_filesystem,&device_filesystem,&process_filesystem,&temporary_filesystem};
   constexpr unsigned count=sizeof(backends)/sizeof(backends[0]);
   if(index>=count)

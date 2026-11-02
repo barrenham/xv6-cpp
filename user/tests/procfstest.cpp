@@ -161,7 +161,8 @@ extern "C" int main(int argc,char **argv)
   exec_information(argc,argv);
   static char system[4096];
   check(proc::read("/proc/cpuinfo",system,sizeof(system))>0 && proc::field(system,"processor") && proc::field(system,"misa"),"observed CPU hardware");
-  check(proc::read("/proc/filesystems",system,sizeof(system))>0 && contains(system,"ext3") && contains(system,"xv6"),"registered disk backends");
+  check(proc::read("/proc/filesystems",system,sizeof(system))>0 && (contains(system,"ext3") || contains(system,"xv6")) && contains(system,"ramfs") &&
+        contains(system,"proc"),"registered root and system backends");
   check(proc::read("/proc/mounts",system,sizeof(system))>0 && contains(system," / ") && contains(system," /proc proc ro "),"mount snapshot");
   check(proc::read("/proc/devices",system,sizeof(system))>0 && contains(system,"Character devices:"),"device registration snapshot");
   check(proc::read("/proc/version",system,sizeof(system))>0 && contains(system,"xv6-cpp version"),"kernel build version");

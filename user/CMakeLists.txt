@@ -2,7 +2,8 @@ add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_c
 target_link_libraries(user_runtime PRIVATE xv_options)
 add_library(user_fs STATIC runtime/userfs/server.cpp runtime/userfs/block_io.cpp
   runtime/userfs/ext3.cpp runtime/userfs/devices.cpp
-  runtime/userfs/memory.cpp runtime/userfs/memory_heap.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
+  runtime/userfs/memory.cpp runtime/userfs/memory_heap.cpp
+  runtime/userfs/processes.cpp runtime/userfs/process_system.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
   ../kernel/fs/ext3/jbd.cpp)
 target_link_libraries(user_fs PRIVATE xv_options)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
@@ -64,6 +65,8 @@ set(programs
   tests/ramfsservicetest.cpp
   tests/fsrootboottest.cpp
   tests/fsboottest.cpp
+  tests/fsresourcesboottest.cpp
+  tests/fssnapshottest.cpp
   tests/userfstest.cpp
   tests/fsplugintest.cpp
   tests/cachebench.cpp

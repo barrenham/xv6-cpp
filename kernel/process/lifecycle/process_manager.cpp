@@ -608,6 +608,7 @@ struct ProcessManager::InspectFlow
     int result = -1;
     xv::fs::PageBuffer *text = nullptr;
     ExecSnapshot::Field field = ExecSnapshot::Field::CommandLine;
+    unsigned inspector = ~0U;
   };
 
   static void find(Context &c) noexcept
@@ -624,7 +625,8 @@ struct ProcessManager::InspectFlow
   {
     auto caller = current()->credentials().snapshot(),
          target = c.process->credentials().snapshot();
-    c.permitted = caller.effective_uid == 0 || (caller.effective_uid == target.uid &&
+    unsigned inspector = c.inspector == ~0U ? caller.effective_uid : c.inspector;
+    c.permitted = inspector == 0 || (inspector == target.uid &&
                                                 target.uid == target.effective_uid);
   }
 
@@ -916,26 +918,29 @@ bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
   return snapshot.found;
 }
 
-int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
+int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector)
 {
-  if (pid < 1 || capacity < DescriptorTable::Capacity)
+  if (pid < 1 || capacity < DescriptorTable::Capacity ||
+      (inspector != ~0U && current()->credentials().snapshot().effective_uid != 0))
   {
     return -1;
   }
 
   InspectFlow::Context context{*this, pid, entries, capacity};
+  context.inspector = inspector;
   (void)InspectFlow::Graph::run<0>(context);
   return context.result;
 }
 
 bool ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field,
-                                  xv::fs::PageBuffer &result)
+                                  xv::fs::PageBuffer &result, unsigned inspector)
 {
-  if (pid < 1)
+  if (pid < 1 || (inspector != ~0U && current()->credentials().snapshot().effective_uid != 0))
   {
     return false;
   }
   InspectFlow::Context context{*this, pid, nullptr, 0};
+  context.inspector = inspector;
   context.text = &result;
   context.field = field;
   (void)InspectFlow::Graph::run<0>(context);

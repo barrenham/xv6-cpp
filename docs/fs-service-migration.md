@@ -12,10 +12,13 @@ QEMU 仍使用 `-kernel kernel.elf` 启动内核。`-initrd` 额外装载一个�
 不提供 `-initrd` 时保留原有启动流程，方便迁移期间进行对照回归。
 
 PID 1 获得不依赖 `/dev` 的控制台描述符 0..2 和原始系统磁盘描述符 3。
-描述符 4 是受控的内核资源能力，当前提供设备枚举和 PTY 枚举、保留、已保留对象属性及释放。
+描述符 4 是受控的内核资源能力，提供设备与 PTY 枚举、保留、已保留对象属性、释放，以及原始进程、CPU、系统计数和描述符记录。
 服务处理的全是类型化记录，目录布局、节点编号和名称处理均在用户态 devfs。
 每次新的 PTY 路径查询都验证主端仍发布该名称；已打开从端的属性查询允许在主端挂断后继续工作。
 服务死亡时资源描述符释放全部保留，避免编号泄漏。
+`CloneIoctl` 创建独立资源能力；每个 devfs/procfs 后端持有自己的副本。
+原始 exec 字节捕获与描述符捕获按副本隔离，一个消费者的重新捕获、释放或退出不会覆盖另一个消费者的数据。
+对 fd/exec 的代理检查在进程锁内按原始客户端 uid 执行；只有有效 uid 0 的代理可以指定检查身份。
 
 磁盘描述符提供有界读写、seek、容量查询、刷新以及用于文件时间戳的时钟查询；
 它不解析 ext3，也不替用户后端提交文件系统日志。
@@ -35,8 +38,8 @@ PID 1 获得不依赖 `/dev` 的控制台描述符 0..2 和原始系统磁盘描
 
 ## 用户态引导监督进程
 
-`user/apps/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3 根服务、devfs 服务和 ramfs 服务，
-将根目录、`/dev` 和 `/tmp` 分别挂到三个独立服务进程，再启动原有 `/sbin/init`。
+`user/apps/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3 根服务、devfs、procfs 和 ramfs 服务，
+将根目录、`/dev`、`/proc` 和 `/tmp` 分别挂到四个独立服务进程，再启动原有 `/sbin/init`。
 PID 1 保持监督和回收职责；init 退出时重启 init，FS 服务退出时报告该挂载不可用。
 它不在故障后静默切回内核 FS，也没有声称能够透明重启已有根连接。
 只有 FS 服务保留相应磁盘/资源能力；init、登录程序和普通应用不会继承这些能力描述符。
@@ -64,6 +67,22 @@ umount /tmp/layer
 卸载令 SDK 收到 EOF，服务退出并释放整个实例；覆盖前的目录内容恢复可见。
 通用的自动挂载服务管理仍未完成，不能把此命令当作 `mount -t ramfs` 自动创建新实例的完成证明。
 
+## 用户态 procfs
+
+`processes.cpp` 管理动态目录、进程身份、fd/fdinfo、命令行、环境和每次打开的内容；
+`process_system.cpp` 在用户态生成 meminfo、uptime、stat、cpuinfo、filesystems、mounts、devices、partitions、bcache、fsplugins 和 version。
+内核资源接口返回类型化数值与原始 argv/env 字节，不生成这些文件的路径、目录项或格式化文本。
+`self` 保留项目原有的当前进程目录别名语义，由桥接层传入的客户端 PID 解析。
+
+协议版本 3 增加原始客户端身份与快照回调。
+进程退出、fd 复用后，原已打开的文件保留自己的字节流；新的 open 重新捕获并检查当前目标与权限。
+目录捕获也独立保存，300 个子进程的枚举不受内核 inode 缓存数量约束。
+进程记录的原始采集与私有信息的身份检查仍由内核进程机制负责，目录、文本与缓存策略在用户态。
+
+服务模式下 `/proc/filesystems` 枚举通用桥接和实际注册的用户态类型，不把未启用的旧内核实现冒充为可用服务。
+因此 procfstest 检查实际根类型（ext3/xv6 之一）及已注册系统服务，而不是强制同时存在两个磁盘后端实例。
+xv6 用户态后端仍属于后续必须完成的范围，此处的断言调整不能作为其完成证明。
+
 ## 已加入的实际验证
 
 - `fs_bootstrap_1cpu`、`fs_bootstrap_5cpu`：未格式化临时磁盘上的用户态入口、fork/wait/exit，拒绝无效与截断 ELF。
@@ -74,23 +93,25 @@ umount /tmp/layer
 - `userfs_memory_contract`：分配失败回滚、跨页原子失败、2 GiB 稀疏洞、截断后零填充、400 个目录项、跨记录部分读取、打开后的改名替换、删除 cwd 的父链与全部释放；相同源码通过 ASan/UBSan 和泄漏检查。
 - `fs_service_ramfs_1cpu`、`fs_service_ramfs_5cpu`：在真实用户态 `/tmp` 上运行原有 ramfstest，包括 1 MiB 文件、220 个目录项、并发、截断、硬链接和 orphan cwd。
 - `fs_service_ramfs_lifecycle_1cpu`、`fs_service_ramfs_lifecycle_5cpu`：独立 exec ramfsd，三轮注册/覆盖挂载/拒绝忙卸载/空闲卸载/服务退出/原目录恢复。
-- `fs_service_permissions_1cpu`、`fs_service_permissions_5cpu`：在用户态根、devfs 和 ramfs 上运行权限、账户及 su 回归。此时 procfs 尚未接入，这些用例不能证明用户态 procfs 的隐私检查。
+- `fs_service_permissions_1cpu`、`fs_service_permissions_5cpu`：在用户态根、devfs 和 ramfs 上运行权限、账户及 su 回归。procfs 接入后已重新运行；其私有信息检查另由完整 procfstest 和资源身份用例覆盖。
+- `fs_service_procfs_1cpu`、`fs_service_procfs_5cpu`：原有完整 procfstest、ps/free、缓存/时钟/CPU 文本回归，包含 cmdline/environ 权限、fdinfo 偏移、旧快照在退出/复用后的保持、重复读取和 300 子进程枚举。
+- `fs_resources_1cpu`、`fs_resources_5cpu`：未挂载 FS 的资源能力验证，覆盖版本/长度/无效地址、两个独立捕获者、委托 uid 拒绝、原始 exec 字节、fd 表捕获和 dup 身份。
+- `fs_service_snapshots_1cpu`、`fs_service_snapshots_5cpu`：合成后端故意提前 EOF，验证失败 open 回收及下一次捕获恢复；8193 字节独立打开、dup 偏移、无效目的地址及子进程 uid/PID 的实际传递。
 - 同一份私有磁盘连续启动两次，验证持久文件；关机后执行 `e2fsck -fn` 检查元数据及孤儿回收一致性。
 
 构建和运行：
 
 ```sh
-cmake --build build/dev --target kernel user_fsboot user_ramfsd user_fsboottest user_fsrootboottest host_mkfs test-image
-ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_root_[15]cpu|fs_service_boot_[15]cpu|fs_service_ramfs(_lifecycle)?_[15]cpu|fs_service_permissions_[15]cpu|userfs_memory_contract|allocator_contract_(buddy|freelist))$' --output-on-failure
+cmake --build build/dev --target kernel user_fsboot user_ramfsd user_fsboottest user_fsrootboottest user_fsresourcesboottest host_mkfs test-image
+ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_root_[15]cpu|fs_service_boot_[15]cpu|fs_service_ramfs(_lifecycle)?_[15]cpu|fs_service_permissions_[15]cpu|fs_service_procfs_[15]cpu|fs_resources_[15]cpu|fs_service_snapshots_[15]cpu|userfs_memory_contract|allocator_contract_(buddy|freelist))$' --output-on-failure
 ```
 
 测试仅访问各自的临时磁盘副本，不更新交互会话的 `data/rootfs.img`，也不运行 fork 性能门禁。
 
 ## 尚未完成
 
-- 用户态 xv6、procfs 后端，以及监督程序中的全部后端启动与通用挂载管理。
-- 第二块磁盘能力，以及进程/系统信息的受控资源接口。
-- procfs 每次打开的快照与调用者身份，以及所有旧回归的服务模式覆盖；内核只提供原始记录，文本与目录策略由用户态生成。
-- 多个资源消费者的独立能力、故障清理和共享引用寿命，避免不同服务之间的捕获状态或 PTY pin 相互干扰。
+- 用户态 xv6 后端，以及监督程序中的全部后端启动与通用挂载管理。
+- 第二块磁盘能力及用户态磁盘后端的实例管理。
+- 所有旧回归的完整服务模式覆盖，以及内存压力下各后端的进展保证。
 - 将交互启动和测试默认切至服务模式，移除内核中的各 FS 算法及日志实现。
 - RPC 批量传输优化、文档索引与流程审计的最终重建，以及全范围验收。
