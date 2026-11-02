@@ -527,3 +527,33 @@ foreach(cpus 1 5)
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus})
   set_tests_properties(fs_service_boot_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
 endforeach()
+
+add_test(NAME userfs_memory_contract COMMAND "${PROJECT_BINARY_DIR}/userfs_memory_contract")
+set_tests_properties(userfs_memory_contract PROPERTIES TIMEOUT 30 LABELS fs)
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_ramfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --ramfs)
+  set_tests_properties(fs_service_ramfs_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_ramfs_lifecycle_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --ramfs-service)
+  set_tests_properties(fs_service_ramfs_lifecycle_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_permissions_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --permissions)
+  set_tests_properties(fs_service_permissions_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
+endforeach()

@@ -446,3 +446,10 @@ target_include_directories(user_printf_contract PRIVATE "${XV_ROOT}")
 target_compile_features(user_printf_contract PRIVATE cxx_std_20)
 target_compile_options(user_printf_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-builtin -Wno-format)
 set_target_properties(user_printf_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(userfs_memory_contract "${XV_ROOT}/tests/userfs_memory_contract.cpp"
+  "${XV_ROOT}/user/runtime/userfs/memory.cpp")
+target_include_directories(userfs_memory_contract PRIVATE "${XV_ROOT}")
+target_compile_features(userfs_memory_contract PRIVATE cxx_std_20)
+target_compile_options(userfs_memory_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(userfs_memory_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

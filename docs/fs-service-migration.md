@@ -35,12 +35,34 @@ PID 1 获得不依赖 `/dev` 的控制台描述符 0..2 和原始系统磁盘描
 
 ## 用户态引导监督进程
 
-`user/apps/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3 根服务和 devfs 服务，
-将根目录与 `/dev` 分别挂到两个独立服务进程，再启动原有 `/sbin/init`。
+`user/apps/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3 根服务、devfs 服务和 ramfs 服务，
+将根目录、`/dev` 和 `/tmp` 分别挂到三个独立服务进程，再启动原有 `/sbin/init`。
 PID 1 保持监督和回收职责；init 退出时重启 init，FS 服务退出时报告该挂载不可用。
 它不在故障后静默切回内核 FS，也没有声称能够透明重启已有根连接。
 只有 FS 服务保留相应磁盘/资源能力；init、登录程序和普通应用不会继承这些能力描述符。
 该程序尚未接入默认交互 QEMU 目标，因为其余后端及挂载管理还在迁移。
+
+## 用户态 ramfs
+
+`user/runtime/userfs/memory.cpp` 实现 ramfs 的 inode、目录、稀疏页、属性、链接、改名和对象寿命。
+目录项和数据页独立按需增长，没有示例 memfsd 的固定 128 个节点、256 个目录项与 1 MiB 文件限制。
+扩展文件只改变逻辑长度；读取未分配的洞返回零。一次写请求先准备所需页面，失败时撤销新分配且保留旧内容与长度。
+打开但已删除的对象在最后一次 Forget 后回收；已删除的 cwd 会保留父目录链，直到不再需要该链。
+目录项按递增 cookie 保存，删除不会把后续 cookie 改成别的记录；旧 `read(dir)` 接口也支持跨记录的部分读取。
+
+fsboot 将独立 ramfs 服务挂到 `/tmp`，其根模式为 `01777`。
+还提供独立可执行程序 ramfsd，使用同一个后端实现。示例：
+
+```sh
+mkdir /tmp/layer
+ramfsd --mount custom-ram /tmp/layer &
+# 关闭该挂载下的文件后：
+umount /tmp/layer
+```
+
+服务可以先用 `ramfsd --register custom-ram` 注册，再由另一个进程挂载。
+卸载令 SDK 收到 EOF，服务退出并释放整个实例；覆盖前的目录内容恢复可见。
+通用的自动挂载服务管理仍未完成，不能把此命令当作 `mount -t ramfs` 自动创建新实例的完成证明。
 
 ## 已加入的实际验证
 
@@ -49,21 +71,26 @@ PID 1 保持监督和回收职责；init 退出时重启 init，FS 服务退出�
 - `fs_service_root_1cpu`、`fs_service_root_5cpu`：真实 ext3 根由独立用户进程提供；跨消息/跨页读写、打开后删除、目录改名、链接、非 root 权限和所有权、从根加载 ELF、同步、后端被杀后的错误返回。
 - 根服务测试同时挂载独立用户态 devfs，验证 null/zero、PTY 创建/收发、关闭后名称消失、服务被杀后的错误返回；执行原有完整 `namedptytest`，包括挂断、编号复用、描述符耗尽与并发。
 - `fs_service_boot_1cpu`、`fs_service_boot_5cpu`：实际 fsboot → FS 服务 → init → 首次账户设置 → 登录 → shell → C++/页表回归，不经过内核根 FS 初始化。
+- `userfs_memory_contract`：分配失败回滚、跨页原子失败、2 GiB 稀疏洞、截断后零填充、400 个目录项、跨记录部分读取、打开后的改名替换、删除 cwd 的父链与全部释放；相同源码通过 ASan/UBSan 和泄漏检查。
+- `fs_service_ramfs_1cpu`、`fs_service_ramfs_5cpu`：在真实用户态 `/tmp` 上运行原有 ramfstest，包括 1 MiB 文件、220 个目录项、并发、截断、硬链接和 orphan cwd。
+- `fs_service_ramfs_lifecycle_1cpu`、`fs_service_ramfs_lifecycle_5cpu`：独立 exec ramfsd，三轮注册/覆盖挂载/拒绝忙卸载/空闲卸载/服务退出/原目录恢复。
+- `fs_service_permissions_1cpu`、`fs_service_permissions_5cpu`：在用户态根、devfs 和 ramfs 上运行权限、账户及 su 回归。此时 procfs 尚未接入，这些用例不能证明用户态 procfs 的隐私检查。
 - 同一份私有磁盘连续启动两次，验证持久文件；关机后执行 `e2fsck -fn` 检查元数据及孤儿回收一致性。
 
 构建和运行：
 
 ```sh
-cmake --build build/dev --target kernel user_fsboot user_fsboottest user_fsrootboottest test-image
-ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_root_[15]cpu|fs_service_boot_[15]cpu|allocator_contract_(buddy|freelist))$' --output-on-failure
+cmake --build build/dev --target kernel user_fsboot user_ramfsd user_fsboottest user_fsrootboottest host_mkfs test-image
+ctest --test-dir build/dev -R '^(fs_bootstrap_[15]cpu|fs_service_root_[15]cpu|fs_service_boot_[15]cpu|fs_service_ramfs(_lifecycle)?_[15]cpu|fs_service_permissions_[15]cpu|userfs_memory_contract|allocator_contract_(buddy|freelist))$' --output-on-failure
 ```
 
 测试仅访问各自的临时磁盘副本，不更新交互会话的 `data/rootfs.img`，也不运行 fork 性能门禁。
 
 ## 尚未完成
 
-- 用户态 xv6、ramfs、procfs 后端，以及监督程序中的全部后端启动与通用挂载管理。
+- 用户态 xv6、procfs 后端，以及监督程序中的全部后端启动与通用挂载管理。
 - 第二块磁盘能力，以及进程/系统信息的受控资源接口。
-- procfs 每次打开的快照与调用者身份、完整设备语义及所有旧回归的服务模式覆盖。
+- procfs 每次打开的快照与调用者身份，以及所有旧回归的服务模式覆盖；内核只提供原始记录，文本与目录策略由用户态生成。
+- 多个资源消费者的独立能力、故障清理和共享引用寿命，避免不同服务之间的捕获状态或 PTY pin 相互干扰。
 - 将交互启动和测试默认切至服务模式，移除内核中的各 FS 算法及日志实现。
 - RPC 批量传输优化、文档索引与流程审计的最终重建，以及全范围验收。

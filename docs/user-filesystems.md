@@ -6,7 +6,7 @@
 
 ## 使用已有插件
 
-镜像包含 SDK 驱动的可写内存后端 memfsd、磁盘归档后端 tarfsd，以及可直接使用的 USTAR 样本。以内存后端为例，先注册：
+镜像包含 SDK 驱动的可写内存示例 memfsd、按需增长的 ramfsd、磁盘归档后端 tarfsd，以及可直接使用的 USTAR 样本。以内存后端为例，先注册：
 
 ```sh
 memfsd --register my-memory &

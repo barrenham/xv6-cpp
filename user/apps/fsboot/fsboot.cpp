@@ -6,10 +6,11 @@
 #include "user/runtime/userfs/block_io.h"
 #include "user/runtime/userfs/ext3.h"
 #include "user/runtime/userfs/devices.h"
+#include "user/runtime/userfs/memory.h"
 
 namespace
 {
-enum class Service { Root, Devices };
+enum class Service { Root, Devices, Memory };
 
 [[noreturn]] void fatal(const char *message)
 {
@@ -40,6 +41,12 @@ enum class Service { Root, Devices };
     auto *backend = new (storage) userfs::Ext3Backend(io);
     if (!backend->initialize()) fatal("ext3 mount or recovery failed");
     serve(ready, type, *backend);
+  }
+  if (kind == Service::Memory)
+  {
+    userfs::MemoryBackend backend(userfs::heap_storage(), 01777);
+    if (!backend.ready()) fatal("ramfs allocation failed");
+    serve(ready, type, backend);
   }
   userfs::DeviceBackend backend(4);
   serve(ready, type, backend);
@@ -92,7 +99,8 @@ extern "C" int main(int, char **)
   if (chdir("/") < 0) fatal("cannot select root cwd");
   int devices = start(Service::Devices, "devfs", "/dev");
   close(4);
-  // procfs, ramfs and the alternate disk format are added in the next migration
+  int memory = start(Service::Memory, "ramfs", "/tmp");
+  // procfs and the alternate disk format are added in the next migration
   // steps; this executable is not the default QEMU boot path until all are ready.
   int init = start_init();
   for (;;)
@@ -104,10 +112,10 @@ extern "C" int main(int, char **)
       fprintf(2, "fsboot: init exited status=%d; restarting\n", status);
       init = start_init();
     }
-    else if (pid == root || pid == devices)
+    else if (pid == root || pid == devices || pid == memory)
     {
       fprintf(2, "fsboot: %s service pid=%d exited status=%d; mount unavailable\n",
-              pid == root ? "root" : "device", pid, status);
+              pid == root ? "root" : pid == devices ? "device" : "memory", pid, status);
     }
     else if (pid < 0) pause(1);
   }

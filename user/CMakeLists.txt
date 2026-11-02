@@ -1,7 +1,8 @@
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 add_library(user_fs STATIC runtime/userfs/server.cpp runtime/userfs/block_io.cpp
-  runtime/userfs/ext3.cpp runtime/userfs/devices.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
+  runtime/userfs/ext3.cpp runtime/userfs/devices.cpp
+  runtime/userfs/memory.cpp runtime/userfs/memory_heap.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
   ../kernel/fs/ext3/jbd.cpp)
 target_link_libraries(user_fs PRIVATE xv_options)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
@@ -32,6 +33,7 @@ function(xv_add_program source)
 endfunction()
 set(programs
   apps/fsboot/fsboot.cpp
+  apps/ramfsd/ramfsd.cpp
   apps/memfsd/memfsd.cpp
   apps/tarfsd/tarfsd.cpp
   apps/fbterm/fbterm.cpp
@@ -59,6 +61,7 @@ set(programs
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
+  tests/ramfsservicetest.cpp
   tests/fsrootboottest.cpp
   tests/fsboottest.cpp
   tests/userfstest.cpp
