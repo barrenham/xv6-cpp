@@ -1,12 +1,12 @@
 # `kernel/fs/service.cpp`
 
-开发职责：文件描述、inode、路径、块缓存与日志事务。
+开发职责：装配通用 VFS、文件表、设备注册表及原始块缓存；文件系统算法由用户态服务实现。
 
 源码：[打开实际文件](../../../../kernel/fs/service.cpp)。文档不会加入源码或生成额外 C++ 声明。
 
 模块身份：`xv.fs`。
 
-直接模块依赖：`:lru`, `:xv6`。依赖仅表示可见接口，不代表所有服务都在初始化时调用。
+直接模块依赖：`:lru`, `:vfs`, `:platform`, `xv.print`。生产内核不再装配 ext3/xv6、ramfs、procfs 或 devfs 的旧内核后端。
 
 ## 函数导航
 
@@ -34,7 +34,7 @@
 ```doxygen
 @fn void xv::fs::initialize_cache()
 @brief 装配系统缓存和可选数据盘缓存。
-@details 移除预置 UserFileSystem 对象数组和类型专用创建逻辑，启动初始化通用插件注册锁。内建后端照常建立；/proc/filesystems 在内建类型和 userfs 入口后枚举动态类型，使用调用者的名称缓冲区。实际实例注册与选择委托独立 registry.cpp。
+@details 初始化通用 FS 插件注册表和挂载管理通道，登记 vda 并建立根盘原始块缓存；存在辅助设备时初始化 vdb 和独立缓存。这里不识别磁盘格式、不恢复文件系统日志，也不创建文件系统后端；这些步骤由用户态 fsboot 和服务完成。
 ```
 
 <a id="fn-f6456e38e2f03d00"></a>
@@ -64,7 +64,7 @@
 ```doxygen
 @fn VirtualFileSystem &xv::fs::filesystem()
 @brief 取得统一路径命名空间的 VFS 实例。
-@details 返回类型为 VirtualFileSystem，具体磁盘、devfs 与 procfs 通过节点 owner 分发。VFS 不再继承文件系统后端接口，后端无需提供独立路径包装。
+@details 返回默认处于服务模式的 VirtualFileSystem。根服务在用户态引导期间发布；节点 owner 指向通用桥接实例，经协议转交独立服务。VFS 只负责路径、挂载与通用节点契约。
 ```
 
 <a id="fn-fde437052d31cdd9"></a>
@@ -73,8 +73,8 @@
 
 ```doxygen
 @fn Journal &xv::fs::journal()
-@brief 文件描述、inode、路径、块缓存与日志事务：读取或计算 `system_journal`，返回当前查询结果。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@brief 返回服务模式下不预留磁盘日志的事务边界对象。
+@details ServiceJournal 的 begin/end/sync 为空操作，record 显式触发错误。持久日志属于各用户态后端，不能通过此对象写入内核日志或回退到旧文件系统。
 ```
 
 <a id="fn-2764ac52db897bd0"></a>
@@ -83,8 +83,8 @@
 
 ```doxygen
 @fn bool xv::fs::detail::registered_filesystem(unsigned index,detail::FileSystemType &record)
-@brief 按索引读取已注册文件系统类型及nodev属性。
-@details 移除预置 UserFileSystem 对象数组和类型专用创建逻辑，启动初始化通用插件注册锁。内建后端照常建立；/proc/filesystems 在内建类型和 userfs 入口后枚举动态类型，使用调用者的名称缓冲区。实际实例注册与选择委托独立 registry.cpp。
+@brief 枚举通用桥接入口及实际注册的用户态类型。
+@details 索引 0 返回 userfs，后续名称从通用注册表复制到调用者的存储，再把 name 指向这份副本。所有类型的 nodev 均表示无需路径形式的设备参数；不把未运行的旧内核后端列为可用类型。
 ```
 
 - [`xv::fs::detail::registered_filesystem`](service.cpp.md#fn-2764ac52db897bd0)
@@ -92,6 +92,8 @@
 <a id="fn-9da4875b4cc7f28f"></a>
 
 ## `xv::fs::create_userfs`
+
+此函数已移至 [通用注册表](userfs/registry.cpp.md)；保留本锚点供旧链接访问。实际源码是 [registry.cpp](../../../../kernel/fs/userfs/registry.cpp)。
 
 ```doxygen
 @fn File *xv::fs::create_userfs()
@@ -102,6 +104,8 @@
 <a id="fn-382424c9e0c25947"></a>
 
 ## `xv::fs::mount_userfs`
+
+此函数已移至 [通用注册表](userfs/registry.cpp.md)；保留本锚点供旧链接访问。实际源码是 [registry.cpp](../../../../kernel/fs/userfs/registry.cpp)。
 
 ```doxygen
 @fn bool xv::fs::mount_userfs(File &file, const char *path)

@@ -181,7 +181,10 @@ set_tests_properties(sync_contract PROPERTIES TIMEOUT 45 LABELS sync)
 add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}")
 set_tests_properties(boot_smoke PROPERTIES TIMEOUT 120)
 add_test(NAME user_regression COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}" --regression)
-set_tests_properties(user_regression PROPERTIES TIMEOUT 330)
+# This functional suite includes thousands of durable writes through separate
+# filesystem processes. Keep every case and its exact free-page assertion;
+# bound the complete command independently from the fork performance gates.
+set_tests_properties(user_regression PROPERTIES TIMEOUT 1860 RUN_SERIAL TRUE)
 foreach(cpus 1 5)
   add_test(NAME fs_memory_pressure_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"

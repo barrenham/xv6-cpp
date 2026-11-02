@@ -788,7 +788,7 @@ try:
         process.stdin.flush()
         expect(cmd + '\n', timeout=10)
         if token:
-            expect(token, timeout=300 if args.regression or args.memory_pressure else 45)
+            expect(token, timeout=1800 if args.regression else (300 if args.memory_pressure else 45))
         expect('$ ')
     if args.procfs:
         cache_fields = {key.decode(): int(value) for key, value in

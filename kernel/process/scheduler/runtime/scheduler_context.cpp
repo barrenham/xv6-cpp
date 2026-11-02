@@ -149,8 +149,11 @@ void SchedulerContext::begin_round()
 
 void SchedulerContext::idle()
 {
-  // A periodic timer bounds idle latency if another hart publishes work here.
-  xv::arch::intr_on();
+  // begin_round() keeps interrupts disabled from the empty-queue check through
+  // WFI. Enabling them here could handle the wakeup, then sleep despite runnable
+  // work. RISC-V WFI resumes for locally enabled pending interrupts even with
+  // sstatus.SIE clear; the next begin_round() enables and handles them. A timer
+  // still bounds latency when another hart queues work without sending an IPI.
 #ifndef LAB_FS
   asm volatile("wfi");
 #endif

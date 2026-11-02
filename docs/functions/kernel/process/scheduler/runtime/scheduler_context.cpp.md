@@ -55,11 +55,13 @@
 
 ```doxygen
 @fn void xv::process::SchedulerContext::idle()
-@brief 调度与汇编切换边界：在无就绪任务时允许中断并等待事件。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::arch::intr_on` → `volatile`。
+@brief 在检查空就绪队列后，保持全局中断关闭并执行 WFI。
+@details begin_round 在查询队列前关闭全局中断，idle 不能再次开启，否则可能先处理唤醒中断、再误入 WFI。RISC-V 规定 WFI 在局部使能的中断变为挂起时恢复执行，不受 sstatus.SIE 影响；下一轮 begin_round 再开启并处理中断。跨 hart 无 IPI 的入队仍由周期定时器约束等待时间。
 @note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
 @return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
 ```
+
+体系结构依据：[RISC-V 特权规范中的 WFI](https://docs.riscv.org/reference/isa/priv/machine.html)。
 
 <a id="fn-717e81da3f2d8fa2"></a>
 
