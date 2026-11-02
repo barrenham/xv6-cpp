@@ -3,7 +3,7 @@
   "scope": "kernel/process in the current dev configuration",
   "limitations": [
     "This is an explicit source/ownership audit, not proof of zero overhead or of alternate LAB_LOCK build success.",
-    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ],
   "files": [
     {
@@ -50,8 +50,8 @@
     },
     {
       "source": "kernel/process/exec/elf_loader.cpp",
-      "sha256": "1ab74c31dad80a4eccd08cdd7e749f516bfc8cf9231c585fafbce7a9c07ba1f1",
-      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives. LoadFlow在新映像提交前构造argv/env/path不可变候选；失败保留旧快照，成功commit一次交接。",
+      "sha256": "29a4e13c359c6b5af8f503bf23bf2be87cb52680960e10d8330becc5104c5b41",
+      "review": "文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。",
       "graph_entries": [
         {
           "qualified": "xv::process::ElfLoader::load",
@@ -61,19 +61,28 @@
           "graphs": [
             "LoadFlow::Graph"
           ]
+        },
+        {
+          "qualified": "xv::process::ElfLoader::load_memory",
+          "usr": "c:@N@xv@N@process@S@ElfLoader@F@load_memory#&$@N@xv@N@process@S@Process#*1v#l#*1C#*1*C#S4_#",
+          "source": "kernel/process/exec/elf_loader.cpp",
+          "source_sha256": "b7d6c0b0a206f9ae16f742561471e8ee7d3e4afac61816d9ff06d28a7d5f89a6",
+          "graphs": [
+            "LoadFlow::Graph"
+          ]
         }
       ]
     },
     {
       "source": "kernel/process/exec/elf_loader.cppm",
-      "sha256": "d4442ab4527052cc93de852dccc5eb82155d49c0288545451f54ba894a34b693",
-      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "sha256": "2d9a13171de9b5d35a63c270b51f6f8bc9108a49fc8e43c20394ab935a1eef36",
+      "review": "ElfLoader 声明路径及内存加载入口，两者共用 LoadFlow 对临时映像的校验、提交和失败回收。仅扩展接口，不引入内核 FS 后端或在 QEMU 中执行第二个引导入口。",
       "graph_entries": []
     },
     {
       "source": "kernel/process/exec/executable_loader.cppm",
-      "sha256": "d211e893711a8d1586ae47ee73ec39710d5f19c3a8accc13a2a65692f80215ff",
-      "review": "ElfLoader::LoadFlow owns load validation, mapping, rollback, stack construction and commit. ExecutableFile/PendingImage retain lexical lifetime ownership; ELF permission conversion and page-wise translated reads remain bounded data primitives.",
+      "sha256": "81b7cbc18a42bd5ba5b88e21b5c154894a7956e5d9f1234f966d315b9d82c372",
+      "review": "可执行加载接口新增有界内存源，以便根挂载前创建用户态引导进程；默认实现拒绝该入口，实际 ElfLoader 负责共用校验与原子映像交接。普通路径 exec 接口保留。",
       "graph_entries": []
     },
     {
@@ -176,8 +185,8 @@
     },
     {
       "source": "kernel/process/lifecycle/first_return.cpp",
-      "sha256": "d2bfed7003c5898a3f82ec10eaff5ba92983772d47e90a416b05675013ecde62",
-      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol.",
+      "sha256": "d975a2df336bcd572b45288bf3969d11a6a2b606b9a454c2246df8448a0a5e32",
+      "review": "首次调度 PID 1 时要求有效引导镜像，缺少 -initrd 明确 panic，不回退到内核文件系统。无需 /dev 或 cwd 即安装控制台 fd0..2、独占原始启动盘 fd3 与类型化资源 fd4，再从内存装载 /boot/fsboot；普通 init 由用户态服务挂好根后启动。",
       "graph_entries": [
         {
           "qualified": "xv::process::first_return",
@@ -208,8 +217,8 @@
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cpp",
-      "sha256": "c541d07f9c217e7ca0ab5db6875a7c0f20ef491fb220eb3b8b90f97fc0957b01",
-      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol. ForkFlow只retain不可变exec快照，ReapFlow释放；InspectFlow在已锁定目标和权限检查下复制快照。 本轮复核：启动后可创建永久内核任务：借用正常描述符、空地址空间、内核栈与就绪队列，设置内核入口后发布，第一轮调度释放进程锁再进入入口；入口不可返回，用户 kill 不得终止该任务。PID 1 的初始化与普通 fork/exit 协议保留。",
+      "sha256": "b5193892c64525a1acbb5f21ded37b302a624d2af241180e541f4098a39dad66",
+      "review": "PID 1 初始没有依赖根目录的 cwd；引导进程完成根挂载后再通过路径进入常规 init。进程/fd/exec 检视按传入原请求 UID 执行权限检查，未授权不能利用 procfs 服务自身的 root 身份读取私有信息；固定目标锁后才复制快照。",
       "graph_entries": [
         {
           "qualified": "xv::process::ProcessManager::allocate",
@@ -276,18 +285,18 @@
         },
         {
           "qualified": "xv::process::ProcessManager::inspect_files",
-          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "77ba03127404f0661df4b61ae8fc849b2dfd2b3f73ed0f37a11110d3a058f6f7",
+          "source_sha256": "3166202cc20f9f4436643de42aca94bf1858d7329c03b0aafeaf5d4194f579ac",
           "graphs": [
             "InspectFlow::Graph"
           ]
         },
         {
           "qualified": "xv::process::ProcessManager::inspect_exec",
-          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "af17727feae3180f4091c52053fc37825ff1138c896a1a755d32cbd16b15a1b1",
+          "source_sha256": "b8fb60232516cb5e8723850f0b44a5d775d24331d11575e2d6d16e20899ed7b1",
           "graphs": [
             "InspectFlow::Graph"
           ]
@@ -296,14 +305,14 @@
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cppm",
-      "sha256": "1efa1a2e17cd7e8e20db6bd4a73f054c38cddc3ade9a2fd49e23daf8b7ef6674",
-      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：启动后可创建永久内核任务：借用正常描述符、空地址空间、内核栈与就绪队列，设置内核入口后发布，第一轮调度释放进程锁再进入入口；入口不可返回，用户 kill 不得终止该任务。PID 1 的初始化与普通 fork/exit 协议保留。",
+      "sha256": "f1939e7362958482a57e106dd805549a6b359674fdd2d499786cee5815a6e75d",
+      "review": "进程检视入口接收原请求 inspector UID；普通内核调用可使用默认当前身份，procfs 服务必须转交原身份，防止用服务器 root 身份替代调用者权限。",
       "graph_entries": []
     },
     {
       "source": "kernel/process/lifecycle/service.cpp",
-      "sha256": "1bdc4e870a771dbf7cb56c26fb5261bb6f5af31fefcbe60d4fc86dca42662141",
-      "review": "Manager lifecycle and query graphs, Process::CommitFlow and FirstReturnFlow own complex protocols. PID allocation, family list links, diagnostics, stable snapshots, names and platform/service wrappers remain direct primitives. Snapshot uses family ownership plus store enumeration and copies observations; it adds no resource acquisition protocol. Follow-up: fair/RR/MLFQ ready queues and shared run engine are statically constructed; initialize(kind) validates before CAS, binds once, initializes original services, then release-publishes the selected kind. Subsequent or invalid attempts do not replace active state. The no-argument compatibility wrapper uses the build default. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：新增截止时间查询与启动期内核任务创建委托；任务计入进程创建统计，定时器通知仍经统一 WaitChannels。",
+      "sha256": "c1e4ce12662c4c8b323e90ab82cae2deed4c6a29aed0f7756256735134f009da",
+      "review": "导出原请求身份参与检查的进程快照与等待唤醒机制。wakeup_one 只选择一个普通进程等待者，但仍通知所有 poll 观察者；现有 wakeup 的广播语义保留，其他锁默认不改变策略。",
       "graph_entries": []
     },
     {
@@ -387,8 +396,8 @@
     },
     {
       "source": "kernel/process/process_module.cppm",
-      "sha256": "f30d6e92e0823d59cd5c9237a2264f686906948d484991d3553b8a1a64b76d6d",
-      "review": "Module composition and exports only; no execution protocol. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：接口/对象布局接入统一截止时间队列与永久网络定时任务；节点生命周期、取消同步和多核栈映射访问约定见 docs/deadline-timers.md。",
+      "sha256": "a1f901c084c949ed9929cae6867bda90fed61a2f3e1bdf9fd3a718c955626f7e",
+      "review": "公开进程 fd/exec 检视时携带原请求 UID，并导出单等待者唤醒接口；其余生命周期与等待通道由既有对象管理。",
       "graph_entries": []
     },
     {
@@ -473,8 +482,8 @@
     },
     {
       "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
-      "sha256": "e2e6bf00af2d338f8c1bcd86f74e1705fa771ab9e6a561fe9621ef9cc5b5690c",
-      "review": "Run/Dispatch/Suspend/Yield graphs own loop and context handoff. FIFO selection/unlink and affinity checks stay compact locked queue primitives. CSR, WFI and make_runnable assertions/state publication remain direct; no graph machinery is inserted into swtch assembly. Follow-up: DispatchFlow starts selected-policy accounting under the held process lock before setting Running/current. Context and TLB fence ordering is unchanged. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "4463642ce3ef5f14013dc441ae6c407e65f24c8df0e1dede2282e6a777a6daeb",
+      "review": "调度器在查空就绪队列到 WFI 期间保持中断屏蔽，下一轮打开中断处理 pending，避免处理唤醒后仍进入睡眠。挂起前持有进程锁且屏蔽中断，按当前 SP 回收不用的栈余量，保留活跃等待记录；swtch 前后刷新本地 TLB，恢复时重新获取所在 hart 的 CpuState。",
       "graph_entries": [
         {
           "qualified": "xv::process::SchedulerContext::dispatch",
@@ -694,14 +703,14 @@
     },
     {
       "source": "kernel/process/wait/poll_entry.cppm",
-      "sha256": "aa6fd05cca8dfde4370f8e63529d0c997233e5b1c53cf1c03d10259492311f68",
-      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch.",
+      "sha256": "ecb34116145351cd02289d871e4d4fdbbbe266d8053e3c16ff9923e3d3ddb7eb",
+      "review": "poll 表允许绑定所有者指针和 watch 回调，使同一个表处理内嵌和扩展订阅；回调及所有者生命周期由 PollWait 固定，接口不分配页。",
       "graph_entries": []
     },
     {
       "source": "kernel/process/wait/poll_wait.cpp",
-      "sha256": "12c5ee268634c7475f40ef3f5b36ba07f174c39f71f46ebc32c378d8998ca94c",
-      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch. 本轮复核：等待节点改由统一截止时间树管理；队列锁固定 PollWait 生命周期，跨 hart 访问可复用栈窗口前刷新本地 TLB。缓存最早数值截止时间，未到期检查不访问其他进程栈；每次到期最多通知 64 个等待者。set_deadline 支持重设，取消与析构同步完成通知。",
+      "sha256": "bacb649ed83ba6d4272794ff0f6dc755cc959871ee5785d49a037da6364256d1",
+      "review": "PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。",
       "graph_entries": [
         {
           "qualified": "xv::process::PollWait::watch",
@@ -734,8 +743,8 @@
     },
     {
       "source": "kernel/process/wait/poll_wait.cppm",
-      "sha256": "2ce01da44bb5b8f4bf217b2d389939c7128230ebf071da2e10ba807d4c8f0e85",
-      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch. 本轮复核：PollWait 嵌入稳定地址的截止时间节点，重设及显式 cancel_deadline 由 WaitChannels 的统一锁串行；析构先取消定时器再撤销订阅。",
+      "sha256": "a570cf6215ae5ab6a0f623a7822396f3c7ffd21ed3f29d8956715ec02e988094",
+      "review": "PollWait 统一 Table 保存 watch 回调及其所有者，内嵌四个订阅和定时节点，扩展页仅在订阅较多时按需创建。节点地址在订阅期间稳定，析构先取消定时器再撤销所有订阅。",
       "graph_entries": []
     },
     {
@@ -752,8 +761,8 @@
     },
     {
       "source": "kernel/process/wait/wait_channels.cpp",
-      "sha256": "7201b0217ec9cab3331e677bbce1411ae5f6e5cd1964f749265489d056fcbeaa",
-      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch. 本轮复核：bucket 锁固定订阅与 PollWait 生命周期；通知前刷新本地 TLB，避免空闲 hart 沿等待指针读到已被复用内核栈的旧物理页。普通进程等待链与订阅遍历协议保留。",
+      "sha256": "f7910259db3a911e8db20d4da98e3340f8042ffcf0775c2a85b8c49f04b9b590",
+      "review": "队列锁固定等待者与 poll 节点生命周期，跨 hart 访问栈前刷新本地 TLB。wake 可限制普通进程匹配数以实现单等待者唤醒，但 poll 通知仍覆盖全部匹配观察者；广播入口使用不受限模式。",
       "graph_entries": [
         {
           "qualified": "xv::process::WaitChannels::cancel",
@@ -775,9 +784,9 @@
         },
         {
           "qualified": "xv::process::WaitChannels::wake",
-          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#b#",
           "source": "kernel/process/wait/wait_channels.cpp",
-          "source_sha256": "60c7b5e126fa65dfc0370c22d3f8da9e9fb8d64f7f1a03d33f685c4aecd31ebb",
+          "source_sha256": "6dce8c268d68d3123fc2d5e38eb9c8f2c83e709e930f909c863b3bd321fb3dd1",
           "graphs": [
             "WakeFlow::Graph"
           ]
@@ -786,8 +795,8 @@
     },
     {
       "source": "kernel/process/wait/wait_channels.cppm",
-      "sha256": "54134a2658fff2165be0d91e712fa2da9ff11163c8709ecdcf17fd116e495025",
-      "review": "Wait-child, channel cancel/prepare/wake/expiry, and PollWait subscription/destruction/sleep use graphs. Bucket hash/list mutations, timer links, simple notification predicates and the final locked sleep handoff remain direct primitives; scans avoid per-comparison dispatch. 本轮复核：bucket 锁固定订阅与 PollWait 生命周期；通知前刷新本地 TLB，避免空闲 hart 沿等待指针读到已被复用内核栈的旧物理页。普通进程等待链与订阅遍历协议保留。",
+      "sha256": "07a391d4b262aa110fca06ed321d3b18db509c470236efa879e39f43b1b639c8",
+      "review": "wake 增加普通进程匹配上限；默认广播，单等待者入口传入限制，poll 观察者不受该上限限制。接口仍由等待桶锁串行订阅、取消与唤醒。",
       "graph_entries": []
     },
     {

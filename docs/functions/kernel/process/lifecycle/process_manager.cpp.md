@@ -116,9 +116,9 @@
 ## `xv::process::ProcessManager::inspect_files`
 
 ```doxygen
-@fn int xv::process::ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
-@brief 按 PID 索引取得已锁定对象，核对凭据后复制文件描述符快照，不遍历其他进程。
-@note 锁交接、复杂度与验证边界见 docs/process-index-wait.md。
+@fn int xv::process::ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector)
+@brief 按原请求身份检查权限并复制目标进程 fd 快照。
+@details PID 1 初始没有依赖根目录的 cwd；引导进程完成根挂载后再通过路径进入常规 init。进程/fd/exec 检视按传入原请求 UID 执行权限检查，未授权不能利用 procfs 服务自身的 root 身份读取私有信息；固定目标锁后才复制快照。
 ```
 
 <a id="fn-a16d407c78d63bf0"></a>
@@ -419,7 +419,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InitialFlow::allocate(Context &c) noexcept
 @brief 分配首个进程的带锁描述符及映像。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-fe08e6b39fac243f"></a>
@@ -429,18 +429,12 @@
 ```doxygen
 @fn static bool xv::process::ProcessManager::InitialFlow::allocated(Context &c) noexcept
 @brief 检查初始进程是否成功分配。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-b9b3200789e6e1ee"></a>
 
-## `xv::process::ProcessManager::InitialFlow::directory`
-
-```doxygen
-@fn static void xv::process::ProcessManager::InitialFlow::directory(Context &c) noexcept
-@brief 取得文件系统根引用并安装为初始当前目录。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../../fs-service-migration.md)。
 
 <a id="fn-33605f16debf7bd3"></a>
 
@@ -449,7 +443,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InitialFlow::group(Context &c) noexcept
 @brief 发布 initial 指针并尝试创建初始进程组和会话。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-ae313aa67ea5471f"></a>
@@ -459,7 +453,7 @@
 ```doxygen
 @fn static bool xv::process::ProcessManager::InitialFlow::grouped(Context &c) noexcept
 @brief 检查初始会话创建是否成功。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-c574a4529a9f24aa"></a>
@@ -469,7 +463,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InitialFlow::no_session(Context &) noexcept
 @brief 诊断初始会话内存不足。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-0f5d45a7ee2c1423"></a>
@@ -479,7 +473,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InitialFlow::no_slot(Context &) noexcept
 @brief 诊断没有可用的初始进程描述符。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-c58964ca5af4446e"></a>
@@ -489,7 +483,7 @@
 ```doxygen
 @fn static void xv::process::ProcessManager::InitialFlow::publish(Context &c) noexcept
 @brief 标记初始进程可运行，再释放其进程锁。
-@details 启动分配或会话创建失败保留原 panic 语义；取得根目录引用后发布 Runnable，最后释放新进程锁。 下一节点由图策略声明，业务结果与控制信号分离。
+@details 启动分配或会话创建失败保留原 panic 语义；在无 cwd 的状态下发布 Runnable，最后释放新进程锁。用户态 fsboot 随后完成根挂载。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
 
 <a id="fn-d824cfabdc71584f"></a>
@@ -498,8 +492,8 @@
 
 ```doxygen
 @fn static void xv::process::ProcessManager::InspectFlow::credentials(Context &c) noexcept
-@brief 按调用者、目标次序读取凭据并计算读取文件表的权限。
-@details 入口验证 PID 和容量。查找后持目标进程锁；先读取调用者和目标两份凭据快照，即使调用者为 root 也不合并或省略读取，再按原权限判断决定是否检查文件表。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 核对原请求 UID 对目标进程私有信息的访问权限。
+@details PID 1 初始没有依赖根目录的 cwd；引导进程完成根挂载后再通过路径进入常规 init。进程/fd/exec 检视按传入原请求 UID 执行权限检查，未授权不能利用 procfs 服务自身的 root 身份读取私有信息；固定目标锁后才复制快照。
 ```
 
 <a id="fn-38c35c5d91a24af3"></a>
@@ -766,9 +760,9 @@
 ## `xv::process::ProcessManager::inspect_exec`
 
 ```doxygen
-@fn bool xv::process::ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
-@brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@fn bool xv::process::ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector)
+@brief 按原请求身份检查权限并固定目标进程 exec 快照。
+@details PID 1 初始没有依赖根目录的 cwd；引导进程完成根挂载后再通过路径进入常规 init。进程/fd/exec 检视按传入原请求 UID 执行权限检查，未授权不能利用 procfs 服务自身的 root 身份读取私有信息；固定目标锁后才复制快照。
 ```
 
 <a id="fn-ba62a68053e8bff4"></a>

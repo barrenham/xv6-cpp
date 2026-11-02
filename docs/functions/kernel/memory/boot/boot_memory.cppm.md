@@ -140,3 +140,29 @@
 @brief 设备树内存信息读取器：读取或计算 `"`，返回当前查询结果。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+<a id="fn-d606e9c53b0be9c5"></a>
+
+## `xv::memory::BootMemoryInfo::boot_image`
+
+```doxygen
+@fn PhysicalMemoryRange xv::memory::BootMemoryInfo::boot_image() const
+@brief 读取可选的预留用户态引导镜像范围。
+@details BootMemoryInfo 同时保存 RAM 与可选用户态引导镜像范围，暴露已校验的物理区间；引导范围必须由调用方预留，不能被普通物理页分配重用。
+```
+
+<a id="fn-51e91435b66c412b"></a>
+
+## `xv::memory::BootMemoryInfo::set_boot_image`
+
+```doxygen
+@fn bool xv::memory::BootMemoryInfo::set_boot_image(PhysicalMemoryRange image)
+@brief 记录经引导发现流程验证的用户态镜像范围。
+@details BootMemoryInfo 同时保存 RAM 与可选用户态引导镜像范围，暴露已校验的物理区间；引导范围必须由调用方预留，不能被普通物理页分配重用。
+```
+
+- [`xv::memory::boot_image`](kalloc.cpp.md#fn-26fa51309bf9b644)
+
+- [`xv::memory::BootMemoryInfo::boot_image`](boot_memory.cppm.md#fn-d606e9c53b0be9c5)
+
+- [`xv::memory::BootMemoryInfo::set_boot_image`](boot_memory.cppm.md#fn-51e91435b66c412b)

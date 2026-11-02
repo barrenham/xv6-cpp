@@ -1,5 +1,7 @@
 # `kernel/fs/procfs/procfs.cppm`
 
+> 主机参考实现：此文件仅用于主机合同测试，不链接生产 `kernel.elf`。运行时后端见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 ## 函数导航
 
 - [`xv::fs::ProcFileSystem::ProcFileSystem`](procfs.cppm.md#fn-9a4171e62a306030)

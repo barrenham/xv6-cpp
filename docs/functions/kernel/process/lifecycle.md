@@ -57,8 +57,8 @@
 
 ```doxygen
 @fn void xv::process::ProcessManager::create_initial_process(void)
-@brief 建立 init 进程并取得无需进程上下文的初始根引用。
-@details 初始 cwd 直接调用 filesystem().root()，不再经需要进程所有者的 VFS 命名空间睡眠锁。其余地址空间、进程组和调度发布流程保持原有约定。
+@brief 建立尚无 cwd 的 PID 1，引导用户态服务挂载根文件系统。
+@details InitialFlow 创建初始地址空间、进程组和会话后发布 Runnable，此时没有根挂载，不取得 cwd。首次调度由 FirstReturnFlow 安装能力并从已预留内存加载 fsboot，根及系统服务由用户态建立。
 @details 流程由 InitialFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
 

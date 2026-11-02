@@ -200,14 +200,9 @@
 ## `xv::process::load_segment`
 
 ```doxygen
-@fn bool xv::process::load_segment(AddressSpace &image, ExecutableFile &file, const proghdr &segment)
-@brief 进程对象生命周期、组身份、调度、等待与信号：从可执行文件把一个 ELF 段装入候选映像。
-@param image 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@param file 打开文件对象，访问权限和共享偏移由该对象管理。
-@param segment 指向或引用的对象/缓冲；其生命周期必须覆盖本次调用。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`image.translate` → `xv::print::panic` → `file.read`。
-@details 需要特别跟踪的条件：`!physical`；`count > PGSIZE`；`segment.off + offset < segment.off || !file.read(segment.off + offset, reinterpret_cast<void *>(physical), count)`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`false`；`true`。应结合上面的条件检查区分正常值、空值和错误值。
+@fn bool xv::process::load_segment(AddressSpace &image, ExecutableImage &file, const proghdr &segment)
+@brief 经可执行数据源接口把有界 ELF 段复制到临时地址空间。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
 ```
 
 <a id="fn-8a4db1fa5d5b6b13"></a>
@@ -560,3 +555,183 @@
 ```
 
 - [`xv::process::ElfLoader::LoadFlow::snapshot`](elf_loader.cpp.md#fn-aab803e89745a022)
+
+<a id="fn-84a204ae66249b72"></a>
+
+## `xv::process::ElfLoader::load_memory`
+
+```doxygen
+@fn int xv::process::ElfLoader::load_memory(Process &process, const void *bytes, unsigned long length, const char *path, char *const *arguments, char *const *environment)
+@brief 从有界内存源执行共用 ELF 装载和映像提交。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-45acaf9a6e115a7a"></a>
+
+## `xv::process::ExecutableImage::close`
+
+```doxygen
+@fn virtual void xv::process::ExecutableImage::close() = 0
+@brief 结束可执行数据源的装载访问。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-85cecc4e5527c7fc"></a>
+
+## `xv::process::ExecutableImage::gid`
+
+```doxygen
+@fn virtual unsigned xv::process::ExecutableImage::gid() const = 0
+@brief 查询映像属组 GID，供装载提交使用。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-65fa1cdce6cb24a0"></a>
+
+## `xv::process::ExecutableImage::mode`
+
+```doxygen
+@fn virtual unsigned xv::process::ExecutableImage::mode() const = 0
+@brief 查询映像执行模式，供装载提交使用。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-efc30d35adf392d0"></a>
+
+## `xv::process::ExecutableImage::operator bool`
+
+```doxygen
+@fn virtual explicit xv::process::ExecutableImage::operator bool() const = 0
+@brief 检查可执行数据源是否有效。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-7f82ec358bb5c3c2"></a>
+
+## `xv::process::ExecutableImage::read`
+
+```doxygen
+@fn virtual bool xv::process::ExecutableImage::read(unsigned long offset, void *destination, unsigned count) = 0
+@brief 从可执行数据源读取指定范围。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-60f787e217c99fdc"></a>
+
+## `xv::process::ExecutableImage::uid`
+
+```doxygen
+@fn virtual unsigned xv::process::ExecutableImage::uid() const = 0
+@brief 查询映像属主 UID，供装载提交使用。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-baf48dbc268f3cb2"></a>
+
+## `xv::process::ExecutableImage::~ExecutableImage`
+
+```doxygen
+@fn xv::process::ExecutableImage::~ExecutableImage() = default
+@brief 销毁可执行数据源接口。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-908e2c50b7ea515c"></a>
+
+## `xv::process::ExecutableMemory::ExecutableMemory`
+
+```doxygen
+@fn xv::process::ExecutableMemory::ExecutableMemory(const void *bytes, unsigned long count)
+@brief 绑定已预留引导字节的指针与完整长度。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-e4e727acdd09597e"></a>
+
+## `xv::process::ExecutableMemory::close`
+
+```doxygen
+@fn void xv::process::ExecutableMemory::close() override
+@brief 结束内存源访问，预留引导页面仍由内核保有。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-2122b5d6811a8e8a"></a>
+
+## `xv::process::ExecutableMemory::gid`
+
+```doxygen
+@fn unsigned xv::process::ExecutableMemory::gid() const override
+@brief 为初始内存映像提供 root GID。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-1cddd50d92901673"></a>
+
+## `xv::process::ExecutableMemory::mode`
+
+```doxygen
+@fn unsigned xv::process::ExecutableMemory::mode() const override
+@brief 为初始内存映像提供 0755 执行模式。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-6e3ef5856a06c0c2"></a>
+
+## `xv::process::ExecutableMemory::operator bool`
+
+```doxygen
+@fn explicit xv::process::ExecutableMemory::operator bool() const override
+@brief 检查有界内存映像是否存在。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-46348b779500d5ac"></a>
+
+## `xv::process::ExecutableMemory::read`
+
+```doxygen
+@fn bool xv::process::ExecutableMemory::read(unsigned long offset, void *destination, unsigned count) override
+@brief 边界校验后从预留引导镜像复制指定字节。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+<a id="fn-f82035903b098fa0"></a>
+
+## `xv::process::ExecutableMemory::uid`
+
+```doxygen
+@fn unsigned xv::process::ExecutableMemory::uid() const override
+@brief 为初始内存映像提供 root UID。
+@details 文件和内存引导载荷共用 ELF 校验、段装载及地址空间提交协议。内存源严格检查 offset/count，不查路径、不获取文件系统事务，并使用 root/0755 初始身份；路径源继续检查 inode 类型、执行权限与所有权。任何装载失败保留旧进程映像并释放临时资源。
+```
+
+- [`xv::process::ElfLoader::load_memory`](elf_loader.cpp.md#fn-84a204ae66249b72)
+
+- [`xv::process::ExecutableImage::close`](elf_loader.cpp.md#fn-45acaf9a6e115a7a)
+
+- [`xv::process::ExecutableImage::gid`](elf_loader.cpp.md#fn-85cecc4e5527c7fc)
+
+- [`xv::process::ExecutableImage::mode`](elf_loader.cpp.md#fn-65fa1cdce6cb24a0)
+
+- [`xv::process::ExecutableImage::operator bool`](elf_loader.cpp.md#fn-efc30d35adf392d0)
+
+- [`xv::process::ExecutableImage::read`](elf_loader.cpp.md#fn-7f82ec358bb5c3c2)
+
+- [`xv::process::ExecutableImage::uid`](elf_loader.cpp.md#fn-60f787e217c99fdc)
+
+- [`xv::process::ExecutableImage::~ExecutableImage`](elf_loader.cpp.md#fn-baf48dbc268f3cb2)
+
+- [`xv::process::ExecutableMemory::ExecutableMemory`](elf_loader.cpp.md#fn-908e2c50b7ea515c)
+
+- [`xv::process::ExecutableMemory::close`](elf_loader.cpp.md#fn-e4e727acdd09597e)
+
+- [`xv::process::ExecutableMemory::gid`](elf_loader.cpp.md#fn-2122b5d6811a8e8a)
+
+- [`xv::process::ExecutableMemory::mode`](elf_loader.cpp.md#fn-1cddd50d92901673)
+
+- [`xv::process::ExecutableMemory::operator bool`](elf_loader.cpp.md#fn-6e3ef5856a06c0c2)
+
+- [`xv::process::ExecutableMemory::read`](elf_loader.cpp.md#fn-46348b779500d5ac)
+
+- [`xv::process::ExecutableMemory::uid`](elf_loader.cpp.md#fn-f82035903b098fa0)

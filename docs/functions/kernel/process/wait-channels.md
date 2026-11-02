@@ -89,14 +89,7 @@
 ## `xv::process::WaitChannels::wake`
 
 ```doxygen
-@fn void xv::process::WaitChannels::wake(void *channel)
-@brief 唤醒指定对象通道的普通等待者，并通知该通道的 poll 订阅。
-@param channel 完整通道地址；为空时不执行任何操作。
-@return 无返回值，允许没有等待者。
-@pre 可以在不能睡眠的上下文调用；调用者不能已持有目标桶锁或将被通知的进程锁。
-@details 获取桶锁后遍历普通链，只处理 wait_key_ 与 channel 完整相等的进程。取得对应进程锁，先 unlink；只有状态已为 Sleeping 时才调用 scheduler_.make_runnable。
-@details 对还没真正睡眠的进程，清空 chan 已足够。随后遍历同桶 pollers，按完整地址通知 PollWait；poll 回调在进程锁下记录 triggered，防止通知早于睡眠被遗忘。
-@note 哈希碰撞不会误唤醒其他对象；节点先保存 next 再摘除。全过程不执行用户处理函数，也不直接切换到被唤醒进程。
-@see WaitChannels::prepare
-@details 流程由 WakeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@fn void xv::process::WaitChannels::wake(void *channel, bool one_process)
+@brief 按指定匹配数限制唤醒普通进程，poll 通知仍覆盖全部观察者。
+@details 队列锁固定等待者与 poll 节点生命周期，跨 hart 访问栈前刷新本地 TLB。wake 可限制普通进程匹配数以实现单等待者唤醒，但 poll 通知仍覆盖全部匹配观察者；广播入口使用不受限模式。
 ```

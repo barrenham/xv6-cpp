@@ -18,3 +18,5 @@
 - [`xv::sync::detail::push_interrupts_off`](kernel_bridge.cpp.md#fn-a6d34f68b527071c)
 - [`xv::sync::detail::sleep_process`](kernel_bridge.cpp.md#fn-42fc3192bb67c511)
 - [`xv::sync::detail::wake_processes`](kernel_bridge.cpp.md#fn-fed502f24b271bac)
+
+- [`xv::sync::detail::wake_one_process`](kernel_bridge.cpp.md#fn-bd1298274be9b3d7)

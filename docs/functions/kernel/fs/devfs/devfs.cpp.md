@@ -1,5 +1,7 @@
 # `kernel/fs/devfs/devfs.cpp`
 
+> 主机参考实现：此文件仅用于主机合同测试，不链接生产 `kernel.elf`。运行时后端见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 ## 函数导航
 
 - [`xv::fs::DevFileSystem::allocate`](devfs.cpp.md#fn-c5abadcff72de9ca)
@@ -34,7 +36,7 @@
 ```doxygen
 @fn const char *xv::fs::MemoryDevice::name() const override
 @brief 取得内置虚拟设备名称。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-7ea96491bdf7a542"></a>
@@ -44,7 +46,7 @@
 ```doxygen
 @fn void xv::fs::MemoryDevice::initialize() override
 @brief 保留无额外初始化工作的字符设备接口。
-@details null/zero 不依赖硬件和队列，构造时确定的行为可直接使用。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-2b92efdd15790e32"></a>
@@ -54,7 +56,7 @@
 ```doxygen
 @fn void xv::fs::MemoryDevice::put_sync(int) override
 @brief 丢弃同步输出的单个字符。
-@details null 与 zero 的输出方向都没有存储和硬件副作用。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-78dcb885ab7432e2"></a>
@@ -64,7 +66,7 @@
 ```doxygen
 @fn int xv::fs::MemoryDevice::read(xv::drivers::IoBuffer destination, int count) override
 @brief 按设备类型返回 EOF 或向目标复制零字节。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-eecfc6d4b67d727b"></a>
@@ -74,7 +76,7 @@
 ```doxygen
 @fn int xv::fs::MemoryDevice::write(xv::drivers::IoBuffer, int count) override
 @brief 丢弃写入并返回消费的字节数。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-1ee610cc543a4533"></a>
@@ -84,7 +86,7 @@
 ```doxygen
 @fn unsigned xv::fs::MemoryDevice::poll(xv::sync::PollTable *) override
 @brief 报告内置设备可立即读写。
-@details 始终返回 POLLIN|POLLOUT；null 的可读事件对应立即 EOF，不登记等待通道。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-00243c5ab4dcd922"></a>
@@ -102,9 +104,9 @@
 ## `xv::fs::DevFileSystem::initialize`
 
 ```doxygen
-@fn void DevFileSystem::xv::fs::DevFileSystem::initialize(int device)
-@brief 初始化只读设备命名空间及节点权限。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@fn void xv::fs::DevFileSystem::initialize(int device)
+@brief 初始化供主机合同测试使用的原生 devfs 参考夹具。
+@details 旧原生 devfs 仅供主机参考合同测试，不链接生产内核。内存设备实现与设备注册已移到独立内核设备机制中；实际系统目录和设备属性由独立用户态 DeviceBackend 提供。
 ```
 
 <a id="fn-e24bb911f90a0865"></a>
@@ -275,9 +277,9 @@
 ## `xv::fs::MemoryDevice::MemoryDevice`
 
 ```doxygen
-@fn constexpr explicit xv::fs::MemoryDevice::MemoryDevice(Kind kind) : kind_(kind)
+@fn constexpr explicit xv::fs::MemoryDevice::MemoryDevice(Kind kind)
 @brief 选择 null 或 zero 的静态设备行为。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@details 仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。
 ```
 
 <a id="fn-01655ad066617f5c"></a>

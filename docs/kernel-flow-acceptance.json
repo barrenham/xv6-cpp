@@ -144,5 +144,6 @@
   ],
   "checkpoint_commit": "c88c9be29477b2fe563eb8639d60a78dfd8b1020",
   "follow_up_acceptance": "docs/virtual-address-pool-acceptance.json",
-  "latest_follow_up_acceptance": "docs/scheduler-runtime-acceptance.json"
+  "latest_follow_up_acceptance": "docs/scheduler-runtime-acceptance.json",
+  "historical_baseline": "本报告记录此前流程图迁移的验收结果，不证明后续文件系统用户态迁移的运行语义。当前源码审查见 docs/kernel-flow-source-manifest.json、docs/kernel-flow-coverage.json；当前运行验证状态见 docs/fs-service-migration.md。"
 }

@@ -33,8 +33,8 @@
 
 ```doxygen
 @fn void xv::fs::initialize_cache()
-@brief 装配系统缓存和可选数据盘缓存。
-@details 初始化通用 FS 插件注册表和挂载管理通道，登记 vda 并建立根盘原始块缓存；存在辅助设备时初始化 vdb 和独立缓存。这里不识别磁盘格式、不恢复文件系统日志，也不创建文件系统后端；这些步骤由用户态 fsboot 和服务完成。
+@brief 初始化原始块缓存、设备机制和通用用户态 VFS 装配。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
 ```
 
 <a id="fn-f6456e38e2f03d00"></a>
@@ -73,8 +73,8 @@
 
 ```doxygen
 @fn Journal &xv::fs::journal()
-@brief 返回服务模式下不预留磁盘日志的事务边界对象。
-@details ServiceJournal 的 begin/end/sync 为空操作，record 显式触发错误。持久日志属于各用户态后端，不能通过此对象写入内核日志或回退到旧文件系统。
+@brief 返回仅保留调用边界的服务模式事务适配器。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
 ```
 
 <a id="fn-2764ac52db897bd0"></a>
@@ -83,11 +83,9 @@
 
 ```doxygen
 @fn bool xv::fs::detail::registered_filesystem(unsigned index,detail::FileSystemType &record)
-@brief 枚举通用桥接入口及实际注册的用户态类型。
-@details 索引 0 返回 userfs，后续名称从通用注册表复制到调用者的存储，再把 name 指向这份副本。所有类型的 nodev 均表示无需路径形式的设备参数；不把未运行的旧内核后端列为可用类型。
+@brief 枚举通用桥接和已注册用户态类型。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
 ```
-
-- [`xv::fs::detail::registered_filesystem`](service.cpp.md#fn-2764ac52db897bd0)
 
 <a id="fn-9da4875b4cc7f28f"></a>
 
@@ -116,3 +114,65 @@
 - [`xv::fs::create_userfs`](service.cpp.md#fn-9da4875b4cc7f28f)
 
 - [`xv::fs::mount_userfs`](service.cpp.md#fn-382424c9e0c25947)
+
+<a id="fn-9d2848029ed8f189"></a>
+
+## `xv::fs::bootstrap_cache`
+
+```doxygen
+@fn BlockCache *xv::fs::bootstrap_cache(unsigned index)
+@brief 查询供原始块能力使用的指定盘缓存。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
+```
+
+<a id="fn-cf5815fec1a8ac11"></a>
+
+## `xv::fs::ServiceJournal::begin`
+
+```doxygen
+@fn void xv::fs::ServiceJournal::begin() override
+@brief 保留调用方事务边界，不启动内核磁盘日志。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
+```
+
+<a id="fn-ef5b68e12b33e47f"></a>
+
+## `xv::fs::ServiceJournal::end`
+
+```doxygen
+@fn void xv::fs::ServiceJournal::end() override
+@brief 结束兼容事务边界，不提交用户态日志。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
+```
+
+<a id="fn-ae6d52335f798732"></a>
+
+## `xv::fs::ServiceJournal::record`
+
+```doxygen
+@fn void xv::fs::ServiceJournal::record(Buffer &) override
+@brief 拒绝把生产磁盘修改记录到已移除的内核日志。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
+```
+
+<a id="fn-a60de63cfa230518"></a>
+
+## `xv::fs::ServiceJournal::sync`
+
+```doxygen
+@fn void xv::fs::ServiceJournal::sync() override
+@brief 不在内核执行后端日志同步。
+@details 生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。
+```
+
+- [`xv::fs::bootstrap_cache`](service.cpp.md#fn-9d2848029ed8f189)
+
+- [`xv::fs::detail::registered_filesystem`](service.cpp.md#fn-2764ac52db897bd0)
+
+- [`xv::fs::ServiceJournal::begin`](service.cpp.md#fn-cf5815fec1a8ac11)
+
+- [`xv::fs::ServiceJournal::end`](service.cpp.md#fn-ef5b68e12b33e47f)
+
+- [`xv::fs::ServiceJournal::record`](service.cpp.md#fn-ae6d52335f798732)
+
+- [`xv::fs::ServiceJournal::sync`](service.cpp.md#fn-a60de63cfa230518)

@@ -43,8 +43,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::VirtualFileSystem::root()
-@brief 取得根磁盘节点的未锁定引用。
-@details 不读取磁盘内容，支持首个进程创建时取得工作目录；VFS 是路径服务，不是一个节点所属文件系统。
+@brief 查询已发布根挂载的根 inode。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
 ```
 
 <a id="fn-882ab7feab1cf456"></a>
@@ -53,8 +53,8 @@
 
 ```doxygen
 @fn constexpr xv::fs::VirtualFileSystem::VirtualFileSystem(FileSystem &disk, FileSystem &devices, FileSystem *processes = nullptr, FileSystem *temporary = nullptr, FileSystem **dynamic = nullptr, FileSystem *storage = nullptr)
-@brief 借用固定后端、四槽 RAM 池与可选数据后端。
-@details 构造只保存系统生命周期指针；后端同步初始化、磁盘恢复和挂载发布在显式阶段执行。
+@brief 构造指定原生夹具或服务模式的 VFS 初始状态。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
 ```
 
 <a id="fn-d4a420a6654ac25b"></a>
@@ -80,3 +80,55 @@
 - [`xv::fs::VirtualFileSystem::walk`](vfs.cpp.md#fn-f77a31b05fc26086)
 
 - [`xv::fs::VirtualFileSystem::mount_service`](vfs.cpp.md#fn-0ca0821ecfb5ad49)
+
+<a id="fn-5337d9331f5daf83"></a>
+
+## `xv::fs::VirtualFileSystem::VirtualFileSystem`
+
+```doxygen
+@fn constexpr xv::fs::VirtualFileSystem::VirtualFileSystem()
+@brief 构造指定原生夹具或服务模式的 VFS 初始状态。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
+```
+
+<a id="fn-17bb94e69050343f"></a>
+
+## `xv::fs::VirtualFileSystem::root_backend`
+
+```doxygen
+@fn FileSystem &xv::fs::VirtualFileSystem::root_backend() const
+@brief 从已发布根挂载取得实际后端。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
+```
+
+<a id="fn-0b9153e89a385d2f"></a>
+
+## `xv::fs::VirtualFileSystem::services`
+
+```doxygen
+@fn bool xv::fs::VirtualFileSystem::services() const
+@brief 检查 VFS 是否处于用户态服务模式。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
+```
+
+<a id="fn-e57d4e023513aaf0"></a>
+
+## `xv::fs::VirtualFileSystem::use_services`
+
+```doxygen
+@fn void xv::fs::VirtualFileSystem::use_services()
+@brief 选择无需原生后端的用户态服务装配。
+@details 显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。
+```
+
+- [`xv::fs::VirtualFileSystem::VirtualFileSystem`](vfs.cppm.md#fn-5337d9331f5daf83)
+
+- [`xv::fs::VirtualFileSystem::root_backend`](vfs.cppm.md#fn-17bb94e69050343f)
+
+- [`xv::fs::VirtualFileSystem::services`](vfs.cppm.md#fn-0b9153e89a385d2f)
+
+- [`xv::fs::VirtualFileSystem::snapshot_mount`](vfs.cpp.md#fn-ba24647a48f9b85c)
+
+- [`xv::fs::VirtualFileSystem::synchronize_services`](vfs.cpp.md#fn-fee003f2c6b32003)
+
+- [`xv::fs::VirtualFileSystem::use_services`](vfs.cppm.md#fn-e57d4e023513aaf0)

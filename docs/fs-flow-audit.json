@@ -1,6 +1,6 @@
 {
   "status": "identified_complex_paths_connected",
-  "scope": "kernel/fs current source files; interfaces, scalar and bounded data primitives intentionally direct",
+  "scope": "Production kernel VFS/IPC/device/resource boundaries plus separately classified native filesystem host-test references; storage and namespace backends execute in userspace.",
   "files": [
     {
       "source": "kernel/fs/buffer/flow.cppm",
@@ -102,8 +102,8 @@
     },
     {
       "source": "kernel/fs/devfs/devfs.cpp",
-      "sha256": "bf88f8235251a117b3b743d90f8980d04556796e87a4e1c66651fda97dfdb5d4",
-      "review": "Lookup/Read 图负责静态/命名 PTY 选择与目录输出；initialize 固定注册 null/zero、seal 后枚举构建节点表，没有可回滚分配；MemoryDevice 的空/零字节生成与复制为设备数据原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "182fdd068bfc4004f6cafc9d530eba660352b50e2f52a9dfef710e4c637dcd9c",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。旧原生 devfs 仅供主机参考合同测试，不链接生产内核。内存设备实现与设备注册已移到独立内核设备机制中；实际系统目录和设备属性由独立用户态 DeviceBackend 提供。",
       "graph_entries": [
         {
           "qualified": "xv::fs::DevFileSystem::release",
@@ -141,19 +141,22 @@
             "CreateFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/devfs/devfs.cppm",
       "sha256": "436180bee735a28ea621da15c21e562cdb3a24e465f1d29478aaf5f5a048d57f",
-      "review": "固定节点布局、引用/锁和私有图声明；不支持的修改返回原错误。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。固定节点布局、引用/锁和私有图声明；不支持的修改返回原错误。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/devfs/flow.cppm",
       "sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36",
-      "review": "DevFS 候选获取与目录读取/复制图定义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。DevFS 候选获取与目录读取/复制图定义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/fcntl.h",
@@ -294,8 +297,8 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "e3a94864db840763771a8464f78c6fd7d8e08173db1b6bb160ccf978b8768801",
-      "review": "导出通用注册、具名挂载、实例和类型快照接口；File 端点通过已有描述符引用管理。注册描述符与挂载解耦，同名服务可多个实例，旧 create_userfs/mount_userfs 保留匿名兼容。",
+      "sha256": "cadcf2c374fa9cecc91017090783be5c2c8205b6e18a2e67668447967794a59e",
+      "review": "内核导出原始块能力、类型化资源能力与通用挂载管理端点；文件系统格式、目录策略及服务进程创建在用户态。原有 File 引用与 dup/fork 共享寿命规则继续生效。",
       "graph_entries": []
     },
     {
@@ -325,8 +328,9 @@
     {
       "source": "kernel/fs/inode/flow.cppm",
       "sha256": "a039f24318e82584dfaa31bf3bf4020995a630d2d03de723283501f1e649942c",
-      "review": "Xv6 inode/块/路径修改各图定义，原事务/缓冲回收边界保留。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。Xv6 inode/块/路径修改各图定义，原事务/缓冲回收边界保留。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/inode/inode.cppm",
@@ -337,7 +341,7 @@
     {
       "source": "kernel/fs/inode/xv6_filesystem.cpp",
       "sha256": "e7345865b1ac0a8e7beac1ad3ebc3b1e7de2396e480d183b0a542cd205f7e2a8",
-      "review": "本轮已识别 allocate/release/lock/truncate/map/read/write/lookup/link/unlink/rename 等复杂入口运行图；update/free_block/stat 为单块读改写/字段投影原语，固定路径名/块字段扫描不逐字节分派。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。本轮已识别 allocate/release/lock/truncate/map/read/write/lookup/link/unlink/rename 等复杂入口运行图；update/free_block/stat 为单块读改写/字段投影原语，固定路径名/块字段扫描不逐字节分派。",
       "graph_entries": [
         {
           "qualified": "xv::fs::Xv6FileSystem::initialize",
@@ -447,13 +451,15 @@
             "ResizeFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/inode/xv6_filesystem.cppm",
       "sha256": "64f52b29c88b2cf29a23c364586594fefa59d6550e00f4684eefd330373b5ad0",
-      "review": "磁盘 inode 缓存/根/锁字段、原虚接口与私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。磁盘 inode 缓存/根/锁字段、原虚接口与私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/io_status.h",
@@ -464,13 +470,14 @@
     {
       "source": "kernel/fs/journal/flow.cppm",
       "sha256": "e5888348cc9324b4c9d34e1a63eb2ce46fdc138f99bcecc32d7a126cca4da283",
-      "review": "begin/end/write/recover/commit 等事务图，等待/提交公共路径保持原义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。begin/end/write/recover/commit 等事务图，等待/提交公共路径保持原义。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/journal/journal.cpp",
       "sha256": "8b8a6de9e406087cdd1d5570129bb459dc8b92259988ea1399da9f8b2f436b88",
-      "review": "图连接事务准入、提交和恢复；install 为每个日志块的固定 read-log/read-destination/copy/write/unpin/reset 顺序，两个 BlockHandle 的释放顺序保留，作为一次不可分块安装业务原语；固定 header 编解码/锁内字段为原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。图连接事务准入、提交和恢复；install 为每个日志块的固定 read-log/read-destination/copy/write/unpin/reset 顺序，两个 BlockHandle 的释放顺序保留，作为一次不可分块安装业务原语；固定 header 编解码/锁内字段为原语。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
       "graph_entries": [
         {
           "qualified": "xv::fs::Xv6Journal::begin",
@@ -525,87 +532,15 @@
           "graphs": [
             "SyncFlow::Graph"
           ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::begin",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
-          "graphs": [
-            "BeginFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::end",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
-          "graphs": [
-            "EndFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::record",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
-          "graphs": [
-            "RecordFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::sync",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
-          "graphs": [
-            "SyncFlow::Graph"
-          ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/journal/journal.cppm",
       "sha256": "406406ef33d7648010fc2871714ba7035741c1d6f102fba2821a61c97b295039",
       "review": "原日志字段、虚/持久化能力和 Transaction RAII 接口。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": [
-        {
-          "qualified": "xv::fs::Xv6Journal::begin",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@begin#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "d4aed5c9699be4ecfba5e5bc3c7c703969e60e054929638c841e081c3520c8ac",
-          "graphs": [
-            "BeginFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::end",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@end#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "70a1903002dd8f530e3710d0b90036e4321f7509e1693c68aaf91b7e45c92158",
-          "graphs": [
-            "EndFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::record",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@record#&$@N@xv@N@fs@S@Buffer#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "0ae6198f25a58335a7cd18ed8863ae4a07fdfa8850a549ae67584a2de22559fc",
-          "graphs": [
-            "RecordFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::fs::Xv6Journal::sync",
-          "usr": "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
-          "source": "kernel/fs/journal/journal.cpp",
-          "source_sha256": "7806ca1f866a63e3a125a79c2c0680747b34ce7ecfc9732140b4df826cbdfd29",
-          "graphs": [
-            "SyncFlow::Graph"
-          ]
-        }
-      ]
+      "graph_entries": []
     },
     {
       "source": "kernel/fs/mount.h",
@@ -616,13 +551,14 @@
     {
       "source": "kernel/fs/path/flow.cppm",
       "sha256": "6e4cb15e7a2e39a285b2fb0a54a8cbcfcf71d4d94638b39af10a56edf3cea98a",
-      "review": "普通创建/目录修改图，RegularGraph 仍在原 namespace 锁作用域内部执行。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。普通创建/目录修改图，RegularGraph 仍在原 namespace 锁作用域内部执行。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/path/path_operations.cpp",
       "sha256": "46d14c29a245064d499971dd22ab5da40da7adea83df59e7a941b602b89553f8",
-      "review": "路径创建和原 namespace/transaction 所有权边界接入图；固定路径/节点映射为业务动作。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。路径创建和原 namespace/transaction 所有权边界接入图；固定路径/节点映射为业务动作。",
       "graph_entries": [
         {
           "qualified": "xv::fs::Xv6FileSystem::link_at",
@@ -660,7 +596,8 @@
             "RenameFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/permissions.cpp",
@@ -742,7 +679,7 @@
     {
       "source": "kernel/fs/procfs/procfs.cpp",
       "sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091",
-      "review": "动态枚举/lookup/read/快照填充运行图；固定 PID/文件号格式转换、节点元数据/权限和单属性访问保持紧凑原语。 Get/Lookup/Snapshot 图按统一 provider 编号生成系统/PID内容；fdinfo 显示共享偏移/标志/inode，environ沿用凭据访问检查，打开后独立快照。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。动态枚举/lookup/read/快照填充运行图；固定 PID/文件号格式转换、节点元数据/权限和单属性访问保持紧凑原语。 Get/Lookup/Snapshot 图按统一 provider 编号生成系统/PID内容；fdinfo 显示共享偏移/标志/inode，environ沿用凭据访问检查，打开后独立快照。",
       "graph_entries": [
         {
           "qualified": "xv::fs::ProcFileSystem::get",
@@ -771,24 +708,27 @@
             "SnapshotFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/procfs/procfs.cppm",
       "sha256": "d8844587ae9ae68b3c1ed7fb2ca54a6844e9cae402fc72a1e726d5992b1465ca",
-      "review": "ProcFS 路径/节点接口、锁和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。ProcFS 路径/节点接口、锁和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/ramfs/flow.cppm",
       "sha256": "839af99d35a0e34e4a0591315eb262fdcd3b2414b348a0dbb85ff83d29cc9334",
-      "review": "RamFS 初始化候选、创建/链接/删除/回收/读/重命名图，失败资源和引用边界保留。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。RamFS 初始化候选、创建/链接/删除/回收/读/重命名图，失败资源和引用边界保留。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/ramfs/ramfs.cpp",
       "sha256": "f936133347c3028c776230f30754ee58017e3e712bf7543656b055f347134d6f",
-      "review": "复杂入口运行图；slot/find/insert 为固定页/槽扫描及局部表更新，lookup_entry 为 . / .. /普通表项单次引用选择；shutdown 为持树锁的节点/目录页析构回收循环（与析构原语同类），不引入反复图调用。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。复杂入口运行图；slot/find/insert 为固定页/槽扫描及局部表更新，lookup_entry 为 . / .. /普通表项单次引用选择；shutdown 为持树锁的节点/目录页析构回收循环（与析构原语同类），不引入反复图调用。",
       "graph_entries": [
         {
           "qualified": "xv::fs::RamFileSystem::initialize_mount",
@@ -871,18 +811,20 @@
             "RenameFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/ramfs/ramfs.cppm",
       "sha256": "7048faecb8e20c257372ba00614b2315f2a11c2fb4387d29fa73245254cb9460",
-      "review": "固定节点编号池/树状态与原接口、私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
-      "graph_entries": []
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。固定节点编号池/树状态与原接口、私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "graph_entries": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/service.cpp",
-      "sha256": "4ab2026f043549b3daa519e92f56d2141c644223bfa42e6a49a0be92edccc854",
-      "review": "移除预置 UserFileSystem 对象数组和类型专用创建逻辑，启动初始化通用插件注册锁。内建后端照常建立；/proc/filesystems 在内建类型和 userfs 入口后枚举动态类型，使用调用者的名称缓冲区。实际实例注册与选择委托独立 registry.cpp。",
+      "sha256": "6cb6cbd5fe72f43ece6208067a9c4a9b0f80c32050a3699f332afdd6300fdd41",
+      "review": "生产配置仅装配 VFS、通用用户态桥接、设备能力和原始块缓存。ServiceJournal 保留内核调用点的事务边界但不实现磁盘日志，record 误用触发 panic；ext3 JBD 和 xv6 redo 在各自用户进程提交。旧内核文件系统类仅作为主机合同测试参考实现编译。",
       "graph_entries": []
     },
     {
@@ -893,8 +835,8 @@
     },
     {
       "source": "kernel/fs/vfs/initialize_flow.cppm",
-      "sha256": "860633bb8e1bae800ac3d7bc505d7039b8a085537518945d781689f5a7a97642",
-      "review": "VFS 启动/根/固定挂载连接图。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "e60dbd52ce6ef04202d9d1a715d507916a6476b987b846bd2569819874072d07",
+      "review": "生产 VFS 使用 service_mode：初始化命名空间、通用提供者和挂载管理机制，根由用户态启动服务注册后发布，不初始化原生磁盘、ramfs、procfs 或 devfs 后端。旧分支仅保留给主机参考合同测试，不进入生产 kernel.elf 的后端装配。",
       "graph_entries": []
     },
     {
@@ -921,8 +863,8 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cpp",
-      "sha256": "9903d0cb9140c3053e0972530df7f840702dfa8ebdaa22fc7e083a4bee690a74",
-      "review": "mount_service 校验规范绝对路径、已有目录与总容量，在 namespace 锁下固定覆盖点、父目录及后端根，发布 -3 服务挂载并更新快照；挂载本身不向尚未进入接收循环的服务发请求。",
+      "sha256": "2c78a8bacfa3763d5fafd0138ec7325273ebc8e8f1c4d1a8d785276dd9f10e60",
+      "review": "VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。",
       "graph_entries": [
         {
           "qualified": "xv::fs::VirtualFileSystem::walk",
@@ -1055,8 +997,8 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cppm",
-      "sha256": "27735aa2a4a592763da8c761f03ea11e725cf586a0593170feb4b03694a76e85",
-      "review": "增加 mount_service，将已准备好的通用用户态代理接入 VFS；挂载记录用 -3 区分服务实例。仍使用现有 namespace 锁，服务处理请求时应避免重入路径查找，限制见 docs/user-filesystems.md。",
+      "sha256": "e1062c63c3f1c7a9154886a12eedd7f94fd851727a73f6016266e3062abaad07",
+      "review": "显式 service_mode 构造用于生产装配，根后端从已发布根挂载获取；原生对象参数构造仅支持主机参考夹具。服务模式初始没有根，用户启动程序挂载根后才执行依赖路径的 init。",
       "graph_entries": []
     },
     {
@@ -1083,7 +1025,7 @@
     {
       "source": "kernel/fs/ext3/ext3_filesystem.cpp",
       "sha256": "bdf957d94ee9b0486b50115503bb1bf130072165d9e85ca59882e2d99a75775a",
-      "review": "模块适配原语在 inode锁→core睡眠锁 内执行一个磁盘原子操作，rename 按inode号排序锁，失败遵循原返回/解锁协议；用户复制按页和1KiB分段且不持自旋锁。引用表扫描受 NINODE 限制，release 不分配；CollectFlow 在最后事务提交后跳过打开 inode、分批回收并提交，OOM 保留 orphan 供重试。Log 自旋锁只管理参与者/credits，释放后才 core锁和I/O；sync 不从自身事务等待。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。模块适配原语在 inode锁→core睡眠锁 内执行一个磁盘原子操作，rename 按inode号排序锁，失败遵循原返回/解锁协议；用户复制按页和1KiB分段且不持自旋锁。引用表扫描受 NINODE 限制，release 不分配；CollectFlow 在最后事务提交后跳过打开 inode、分批回收并提交，OOM 保留 orphan 供重试。Log 自旋锁只管理参与者/credits，释放后才 core锁和I/O；sync 不从自身事务等待。",
       "graph_entries": [
         {
           "qualified": "xv::fs::Ext3FileSystem::collect_orphans",
@@ -1095,14 +1037,16 @@
           ]
         }
       ],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/ext3/ext3_filesystem.cppm",
       "sha256": "579ce41480b410ca41ea68782e5aba319aa9816feaf28fd6fedba389e9383545",
-      "review": "xv.fs 内部后端实现 FileSystem，封装块缓存适配、inode 引用/睡眠锁和独立 Journal，3页提交储备及 CollectFlow；公开接口不暴露 ext3 类型。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。xv.fs 内部后端实现 FileSystem，封装块缓存适配、inode 引用/睡眠锁和独立 Journal，3页提交储备及 CollectFlow；公开接口不暴露 ext3 类型。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/ext3/volume.h",
@@ -1128,70 +1072,104 @@
     {
       "source": "kernel/fs/buffer/snapshot_text.cppm",
       "sha256": "426f8f41953f3e4afb16c09494f1f8d5ad40e20418a85e5c7be381cbfe1e7eae",
-      "review": "页缓冲文本格式化原语，粘性分配错误、无动态字符串；十进制/十六进制数值循环有65字符上界。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。页缓冲文本格式化原语，粘性分配错误、无动态字符串；十进制/十六进制数值循环有65字符上界。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/journal/xv6_journal.cppm",
       "sha256": "258add99ddfa84d39bc0facd01427f74aacb96317104aa4fd901175f3a1c63f0",
-      "review": "原 xv6 日志状态移入内部 Xv6Journal，公共 Journal 只保留虚协议；原 Begin/End/Commit/Recover/Record/Sync 图继续控制生命周期。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。原 xv6 日志状态移入内部 Xv6Journal，公共 Journal 只保留虚协议；原 Begin/End/Commit/Recover/Record/Sync 图继续控制生命周期。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/inode/disk_filesystem.cppm",
       "sha256": "3478eb05f975dc9c93cc9fca5e84b38066de3ca23a501c39898417b1d6e90c7c",
-      "review": "内部格式路由，所有真实 inode 归属具体后端；接口只做选择后委托，事务日志随根盘格式变化。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。内部格式路由，所有真实 inode 归属具体后端；接口只做选择后委托，事务日志随根盘格式变化。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/inode/disk_filesystem.cpp",
       "sha256": "42a235741ebebabbf52f209da1d7847c668b3fa40f05e5fb49591b956f6adc92",
-      "review": "单次读取超级块 magic 选择 xv6 或 ext3 后初始化；设备 attach 与缓存由服务层提供，不创建第二条 VFS 入口。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。单次读取超级块 magic 选择 xv6 或 ext3 后初始化；设备 attach 与缓存由服务层提供，不创建第二条 VFS 入口。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/procfs/provider_registry.cppm",
       "sha256": "483f682bca0a658da96683303318aea01610d169c2c88e4540ec7025a2917919",
-      "review": "固定容量只读 provider 表，启动登记并 seal；校验名字、重复、保留命名和只读权限，运行期按稳定编号读取。注册表算法保留直接实现。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。固定容量只读 provider 表，启动登记并 seal；校验名字、重复、保留命名和只读权限，运行期按稳定编号读取。注册表算法保留直接实现。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
       "sha256": "25cb5863ca8fb5684744dd2daf3c448cb0f7648e6463d4ef1e9db6900146f294",
-      "review": "新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。",
+      "review": "主机参考夹具，不链接生产 kernel.elf；以下记录只说明参考实现的原有流程与所有权。新增只读 /proc/fsplugins，逐实例展示类型、注册进程 PID、生命周期状态、协议版本、只读标志和设备号。/proc/filesystems 的动态类型名称已由调用者持有的存储固定，挂载快照展示具名类型与只读状态；其余提供器行为保留。",
       "graph_entries": [],
-      "pending": []
+      "pending": [],
+      "profile": "host-reference"
     },
     {
       "source": "kernel/fs/userfs/protocol.h",
-      "sha256": "414ccc4bbc2819a825f8be16cea3b4e4ea571648b8931c8575408b6c5c07019b",
-      "review": "通用 FS 插件注册 ABI：Registration 包含 size/version、最长 31 字节类型名、初始根属性、只读标志、操作能力及 1..512 字节载荷；ProviderInfo 描述运行时实例状态。必需读操作集合与可选写操作以位图表达，原消息 ABI 与聚合 Forget 保留。见 docs/user-filesystems.md 与 docs/fs-plugin-authoring.md。",
+      "sha256": "6973f522867b8e946b665da2143962895dcaa835905cbd5f2e5817347ded5dfa",
+      "review": "Version 3 通用消息 ABI：属性增加设备号和逐次打开只读快照，消息保留原调用者 PID/effective UID/GID。名称 256 字节，载荷 512 字节；操作位、结构和固定常量是数据边界，不包含文件系统格式策略。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/userfs.cppm",
-      "sha256": "e8a7eda75ea250e81aa1ae9f205de8fec5212ebcddffbd2d31f810e72231c42a",
-      "review": "通用 VFS 代理从注册描述符获取类型名、根和只读策略，不包含存储算法。实例本体及 inode 页按需分配；每实例 64 个 inode 地址在引用期间固定。mounted/mounting/endpoint_open/completed 状态保护挂载与描述符分别固定的生命周期。旧 fsserve 使用匿名兼容实例；具名插件经注册表接入。",
+      "sha256": "4613d08834f752ff66c90973d12fdd277a28151d0484d6b503b78ca0c25d79fa",
+      "review": "通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/userfs.cpp",
-      "sha256": "a2a8ecdb8734a2390dec2b48b03dd79acc0339466c59057e65c2dd1a26022d1d",
-      "review": "消息、inode 及引用协议保留；初始根和名称来自注册配置，读写分段按协商载荷限制，不支持能力在发布前失败。注册端点在挂载前可以阻塞接收；发布窗口的 mounting 状态也允许请求，避免挂载可见后服务误收 EOF。实例和固定地址 inode 页由页分配器创建/销毁，只有端点关闭且无挂载或选择占用时可回收；只读注册限制可发送修改操作。busy 先取得元数据锁，等待已减引用但仍在发送 Forget 的最后归还结束，防止卸载后提前回收实例。详细锁序、5 秒失败及聚合 Forget 见 docs/user-filesystems.md。",
+      "sha256": "8d9404b0bd455030b2e2acff309e4ca56479fec307ac39cb34f445b43c13a1e9",
+      "review": "通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/registry.cpp",
-      "sha256": "c948e5d61110404d585c4ffd8ae342f9504d6f7ab961941f4746ac96edd1aff7",
-      "review": "通用运行时插件注册表，不按 memfsd/tarfsd 等具体实现分支。校验长度/版本/类型名/根/能力后按需分配实例；最多 16 个活动或尚未清理实例，同名端点可承载独立挂载。注册表自旋锁仅保护选择、快照与摘除，不持锁查路径或做 I/O。claim_mount 固定候选，失败后恢复待挂载；关闭且未挂载、未被选择的实例才可摘除，锁外释放所有页。名称快照复制到调用者缓冲区，避免回收后的悬挂指针。",
+      "sha256": "8268a667631c9d9dd7d28fd7c8baefd67a5d71ca2356e7387e79a414475b0f98",
+      "review": "注册校验 Version=3、类型名、根属性、操作能力和载荷限制；属性支持设备号及只读逐次打开快照。注册表仅管理通用实例，不解释 ext3/xv6/ramfs/procfs/devfs 的存储策略；实例选择、端点和挂载分别固定生命周期。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/file/bootstrap_block.cpp",
+      "sha256": "0119e58cfc09a97296cac914a803abe7d97998ae18f670afa03ae5963030aebd",
+      "review": "原始块设备能力，不解释目录或磁盘文件系统。每块盘仅允许一个可写租约，dup/fork 共享偏移和锁，最后一个 File 引用关闭后释放租约。读写经内核块缓存，复制成功后才发布本段修改，sync 刷新设备；容量、扇区与时间查询使用标量 ABI。普通 /dev 块节点仍只读。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/file/device_registry.cpp",
+      "sha256": "c73df7a143580f2781e7c503999bab40f08ed2e143f27d9cc3420213979ffbe9",
+      "review": "仅注册内核设备机制与设备号，不生成 devfs 目录。内存设备和普通设备 I/O 留在内核；用户态 DeviceBackend 根据版本化资源记录生成名称和属性，再由通用 VFS 代理绑定实际端点。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/file/service_resources.cpp",
+      "sha256": "bd9d634897a25ec387443866910aa7f429c439d0a4e64d431a5b84679a4f9191",
+      "review": "资源描述符通过 Version=2 的 QueryIoctl 提供设备、PTY、进程、CPU、挂载、插件与系统原始记录，不解释文件系统路径或生成 /proc 文本。查询由对象 SleepLock 串行，消息缓冲位于对象已有页面；挂载只复制一个已发布记录。进程私有信息按原请求 inspector UID 检查，fd/exec 捕获状态由能力对象持有；关闭释放所有 PTY 固定引用。Clone 创建独立捕获状态，Storage/Manager 仅允许 root 取得。",
+      "graph_entries": [],
+      "pending": []
+    },
+    {
+      "source": "kernel/fs/userfs/mount_manager.cpp",
+      "sha256": "1be59aae9c5fd6e997a8ee3e89f587a1714028946d5e0b9eff64d62df96933e9",
+      "review": "单个受控服务描述符接收版本化挂载请求，只允许登记的进程读写。请求在不持有 namespace/inode/注册锁时串行发送，最多等待 30 秒；非阻塞 read 返回 EAGAIN，poll 暴露消息方向。响应核对版本和请求号；取消或关闭使连接退役并唤醒双方，旧通道完成后才可重新 claim。用户态管理器负责选择、启动及挂载后端，内核不按格式创建服务。",
       "graph_entries": [],
       "pending": []
     }
@@ -1200,6 +1178,7 @@
   "original_entry_count": 72,
   "limitations": [
     "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
-    "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."
+    "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch.",
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ]
 }

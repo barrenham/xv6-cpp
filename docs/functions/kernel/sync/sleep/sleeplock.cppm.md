@@ -40,3 +40,5 @@
 @brief 睡眠锁：读取或计算 `LockKind::Sleep`，返回当前查询结果。
 @return 各分支实际返回：`LockKind::Sleep`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+- [`xv::sync::SleepLock::init_single_waiter`](sleeplock.cpp.md#fn-364409cc59bc4b56)

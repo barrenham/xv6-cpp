@@ -137,3 +137,15 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`xv::print::panic`。
 @return 不返回正常调用点；后续执行流由异常终止、调度或特权级切换接管。
 ```
+
+<a id="fn-bd1298274be9b3d7"></a>
+
+## `xv::sync::detail::wake_one_process`
+
+```doxygen
+@fn void xv::sync::detail::wake_one_process(void *channel)
+@brief 向进程等待队列委托单等待者唤醒。
+@details 把 SleepLock 的单等待者唤醒委托给进程等待队列；不把普通 wakeup 的广播语义替换掉。底层队列仍通知所有匹配 poll 观察者，并在访问跨 hart 栈节点前同步本地映射。
+```
+
+- [`xv::sync::detail::wake_one_process`](kernel_bridge.cpp.md#fn-bd1298274be9b3d7)

@@ -22,8 +22,8 @@
         },
         {
           "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-          "sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72",
-          "review": "RefillReserve/KernelStackPrepare/SchedulerStack/UserReturn 四图连接补储备、故障/余量准备、永久调度栈与返回协议。take_stack_frame 的 noff 分配选择/无锁弹出为紧凑业务原语；CSR、快照、固定 IRQ/timer 委托及故意递归的 XV_VM_SELF_TEST 栈探针保持直接实现。 Follow-up: stack-window diagnostics use the runtime pool bounds; private diagnostic modes add 1000-stack reuse and OOM rollback checks. The noff frame-selection and lock-free fault protocol remain unchanged. Follow-up: the scheduler timer callback delegates to the selected policy with interrupts disabled; it does not acquire the process lock. 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮复核：到期通知由统一等待队列处理，按周期边界与最早截止时间的较小值装载硬件比较寄存器。TTY 仍由 hart 0 按 100ms 周期服务；网络超时已移交 net-timers 任务，短截止时间中断不推进 CPU 时间采样。",
+          "sha256": "41bbb7244cafb1c58ffb75dfc6fb17d852cda1df8c8123705e9b1a45901fd2d0",
+          "review": "返回用户态前屏蔽中断，按当前 SP 回收不再活跃的栈余量；保留初始页和调用链以下一页空间。内核中断仍按原有独立入口栈与紧急页机制处理缺页、预留安全余量；VM 诊断覆盖回收、内容保留、再次增长、保护及 OOM。定时器和用户映像切换协议保留。",
           "graph_entries": [
             {
               "qualified": "xv::trap::detail::refill_stack_reserve",
@@ -265,8 +265,8 @@
         },
         {
           "source": "kernel/sync/platform/kernel_bridge.cpp",
-          "sha256": "e0df605529d82b1726953fea5b4de9ddd062c7ba5cd6d0416245eba4f3b43df2",
-          "review": "CPU/进程标识、等待/唤醒、中断开关和 panic 的单次平台委托。",
+          "sha256": "13861a2247b668aa46501618189bc16b78489b5a1da73da3016c1880292a1695",
+          "review": "把 SleepLock 的单等待者唤醒委托给进程等待队列；不把普通 wakeup 的广播语义替换掉。底层队列仍通知所有匹配 poll 观察者，并在访问跨 hart 栈节点前同步本地映射。",
           "graph_entries": [],
           "pending": []
         },
@@ -279,8 +279,8 @@
         },
         {
           "source": "kernel/sync/platform/platform.cppm",
-          "sha256": "1561ab77e98a2823a040c65bb7df758aca90dd4858fb9f4b92cc97da33e1da9f",
-          "review": "私有平台函数声明。",
+          "sha256": "d7ba9a13cfe22c8d730bcf7f34b549d9209c96ac58eee4fa225f034dbf7299bf",
+          "review": "声明单等待者唤醒的平台委托，与原有广播函数并存；低层等待队列负责普通进程选择及全量 poll 通知。",
           "graph_entries": [],
           "pending": []
         },
@@ -307,8 +307,8 @@
         },
         {
           "source": "kernel/sync/sleep/sleeplock.cpp",
-          "sha256": "fd669c4d5748e16e13fc5888fd04034ea4db6fa74f902955b251465915952723",
-          "review": "阻塞入口接入共享图；available/try_acquire/holding/release 为同一状态锁内的固定状态读/写和一次 wake 原语。",
+          "sha256": "d87332e0126f4065957f52bfe1d18ca8d37be3bf20b7e7f047443a7dddc4792d",
+          "review": "普通 init 保留广播唤醒；init_single_waiter 仅供明确选择该策略的锁使用。release 先撤销持有状态再唤醒一个普通进程等待者，poll 观察者全部通知；VFS namespace 使用此策略减少大量 fork 进程同时争抢锁。",
           "graph_entries": [
             {
               "qualified": "xv::sync::SleepLock::acquire",
@@ -333,8 +333,8 @@
         },
         {
           "source": "kernel/sync/sleep/sleeplock.cppm",
-          "sha256": "19a37f1b81b223f958ade0327d986180033cd1663f463ea4c7603207a95b96f7",
-          "review": "锁状态、原虚接口与私有 AcquireFlow 声明。",
+          "sha256": "05724808eb56f79774d809bcd79859257db7425451913a66a4b1f3121f820c7f",
+          "review": "SleepLock 显式保存是否单等待者唤醒的策略，普通初始化保持广播，VFS namespace 主动选择单等待者。对象的锁持有与睡眠规则不变。",
           "graph_entries": [],
           "pending": []
         },
@@ -446,6 +446,27 @@
           "sha256": "a84b725d807ebea7948becfbf765c157d0902e30c02c8dcc09128b20a696f861",
           "review": "项目8字节键盘事件ABI与SYN/KEY/SYN_DROPPED常量；只含固定宽度布局，无可调用函数或流程图。 保留8字节事件布局，增加EV_REL/REL_WHEEL常量供独立鼠标实例使用。",
           "graph_entries": []
+        },
+        {
+          "source": "kernel/io/fs_mount.h",
+          "sha256": "97621b7413ea9fb72dc68035f2e27c337a3ca67ddaac124a751b8cd1ebdc7be9",
+          "review": "Version 1 挂载管理 Request 数据布局，含序号、原请求 PID、类型名、路径和结果；只作为通用内核/用户态协议边界，不决定后端实现。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/fs_resources.h",
+          "sha256": "d204ad890ff485378e2993bc2b8aed139301ca8d419b23fb1dc30a36e0b7d3f8",
+          "review": "Version 2 类型化资源 ABI；QueryIoctl 使用有界结构与 512 字节原始记录，Clone 返回独立快照状态，Storage 的参数为盘索引标量，Manager 返回控制端点。无内核指针、路径解释或 /proc 文本格式化；私有信息检查由内核执行。",
+          "graph_entries": [],
+          "pending": []
+        },
+        {
+          "source": "kernel/io/fs_service.h",
+          "sha256": "6db5cf2df4f959dc7a761f9d7b2e418b64a9ae14a409020f5464c69d21fd9702",
+          "review": "特权原始块能力的时间 ioctl 常量；按用户指针复制实时时钟秒数，不读取路径或磁盘格式。",
+          "graph_entries": [],
+          "pending": []
         }
       ]
     },
@@ -544,7 +565,8 @@
               "source_sha256": "488b124201dd28e0797181084aaf58d58d1bdae21d6a46c1c685c86062c2a8f2",
               "graphs": [
                 "StatsReadFlow::Graph"
-              ]
+              ],
+              "configuration": "LAB_LOCK/LAB_NET"
             }
           ],
           "pending": []
@@ -619,6 +641,7 @@
   ],
   "limitations": [
     "原完整 LAB_LOCK 仍缺 STATS 与实验统计服务/读写锁测试实现；该条件源以测试专用选择值完成 RISC-V 编译及实际源宿主契约，不等同完整实验配置构建通过。",
-    "Current configured tests do not establish throughput or worst-case stack usage."
+    "Current configured tests do not establish throughput or worst-case stack usage.",
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ]
 }

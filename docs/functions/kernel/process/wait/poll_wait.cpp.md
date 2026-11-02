@@ -44,39 +44,15 @@
 
 <a id="fn-6646ab2c1e744b7a"></a>
 
-## `xv::process::PollWait::Page::Table::Table`
-
-```doxygen
-@fn explicit xv::process::PollWait::Page::Table::Table(PollWait &wait)
-@brief 构造单次 poll 等待上下文，建立本重载要求的成员初值和借用关系。
-@param wait 本次 poll 等待上下文。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`owner`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../../fs-service-migration.md)。
 
 <a id="fn-b7811a5bb7845e0b"></a>
 
-## `xv::process::PollWait::Page::Table::watch`
-
-```doxygen
-@fn void xv::process::PollWait::Page::Table::watch(void *channel) override
-@brief 单次 poll 等待上下文：登记一个影响就绪条件的对象通道。
-@param channel 等待条件或通知对象的地址键；不能在未结束登记时销毁对应对象。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`owner.watch`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../../fs-service-migration.md)。
 
 <a id="fn-f4be9d404d94855a"></a>
 
-## `xv::process::PollWait::Page::Page`
-
-```doxygen
-@fn explicit xv::process::PollWait::Page::Page(PollWait &wait)
-@brief 构造单次 poll 等待上下文，建立本重载要求的成员初值和借用关系。
-@param wait 本次 poll 等待上下文。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`table`。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../../fs-service-migration.md)。
 
 <a id="fn-a6b19002bbc8ed4b"></a>
 
@@ -84,11 +60,8 @@
 
 ```doxygen
 @fn PollWait::Page *xv::process::PollWait::allocate_page()
-@brief 单次 poll 等待上下文：取得一个物理页或内部节点页。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`detail::allocate_process_page` → `new` → `Page`。
-@details 本函数可见的状态更新包括：`failed_ = true;`；`page->next = pages_;`；`pages_ = page;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!storage`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`nullptr`；`page`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 仅在内嵌订阅容量不足时创建扩展订阅页。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
 ```
 
 <a id="fn-ef1952a6c3f61b5f"></a>
@@ -97,10 +70,8 @@
 
 ```doxygen
 @fn xv::sync::PollTable *xv::process::PollWait::table()
-@brief 单次 poll 等待上下文：读取或计算 `nullptr`，返回当前查询结果。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`allocate_page`。
-@details 需要特别跟踪的条件：`!pages_ && !allocate_page()`。这些条件决定检查、重试或提前返回路径。
-@return 各分支实际返回：`nullptr`；`&pages_->table`。应结合上面的条件检查区分正常值、空值和错误值。
+@brief 取得绑定到当前等待对象的通用 poll 表。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
 ```
 
 <a id="fn-c0a508d830521c5d"></a>
@@ -334,8 +305,8 @@
 
 ```doxygen
 @fn static bool xv::process::PollWait::WatchFlow::duplicate(Context &c) noexcept
-@brief 直接检查本次 poll 已有订阅以去重。
-@details 空通道和已有失败在入口返回；重复登记不新增订阅，空间不足先分配页，失败不发布新条目。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 在内嵌槽和扩展页中去重通道订阅。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
 ```
 
 <a id="fn-0547d132ea818e60"></a>
@@ -394,3 +365,39 @@
 - [`xv::process::PollWait::cancel_deadline`](poll_wait.cpp.md#fn-9002ff18c51bbfce)
 
 - [`xv::process::WaitChannels::next_timer`](poll_wait.cpp.md#fn-315f7e5b92c30289)
+
+<a id="fn-ee784bee23285a1b"></a>
+
+## `xv::process::PollWait::ReleaseFlow::unsubscribe_inline`
+
+```doxygen
+@fn static void xv::process::PollWait::ReleaseFlow::unsubscribe_inline(Context &c) noexcept
+@brief 同步撤销所有内嵌订阅，避免等待节点逃逸。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
+```
+
+<a id="fn-99deb7dbbdfa1365"></a>
+
+## `xv::process::PollWait::WatchFlow::inline_space`
+
+```doxygen
+@fn static bool xv::process::PollWait::WatchFlow::inline_space(Context &c) noexcept
+@brief 检查固定的内嵌订阅槽是否尚有空位。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
+```
+
+<a id="fn-6af686f3d01726e2"></a>
+
+## `xv::process::PollWait::WatchFlow::subscribe_inline`
+
+```doxygen
+@fn static void xv::process::PollWait::WatchFlow::subscribe_inline(Context &c) noexcept
+@brief 直接在等待对象内登记无需额外页的订阅。
+@details PollWait 内嵌四个订阅槽，普通 RPC 等待不分配整页。去重同时检查内嵌槽和扩展页，超过容量才分配扩展；统一 Table 回调绑定所有者，析构同步取消截止时间并撤销两类订阅，扩展分配失败可明确返回。
+```
+
+- [`xv::process::PollWait::ReleaseFlow::unsubscribe_inline`](poll_wait.cpp.md#fn-ee784bee23285a1b)
+
+- [`xv::process::PollWait::WatchFlow::inline_space`](poll_wait.cpp.md#fn-99deb7dbbdfa1365)
+
+- [`xv::process::PollWait::WatchFlow::subscribe_inline`](poll_wait.cpp.md#fn-6af686f3d01726e2)

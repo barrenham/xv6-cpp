@@ -336,9 +336,9 @@
 ## `xv::process::inspect_files`
 
 ```doxygen
-@fn int xv::process::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity)
-@brief 向文件系统提供目标进程的描述符观测服务。
-@details 委托 ProcessManager，容量不足或 PID 无效/消失返回 -1；成功返回有效项数量，数组按 fd 下标保存，无效项 identity 为零。
+@fn int xv::process::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector)
+@brief 向进程管理器委托带原请求身份的 fd 快照捕获。
+@details 导出原请求身份参与检查的进程快照与等待唤醒机制。wakeup_one 只选择一个普通进程等待者，但仍通知所有 poll 观察者；现有 wakeup 的广播语义保留，其他锁默认不改变策略。
 ```
 
 <a id="fn-240ae2cde13fe9dd"></a>
@@ -427,9 +427,9 @@
 ## `xv::process::inspect_exec`
 
 ```doxygen
-@fn bool xv::process::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result)
-@brief 按PID取得稳定目标，完成凭据检查后把不可变exec快照写入sink。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@fn bool xv::process::inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector)
+@brief 向进程管理器委托带原请求身份的 exec 快照捕获。
+@details 导出原请求身份参与检查的进程快照与等待唤醒机制。wakeup_one 只选择一个普通进程等待者，但仍通知所有 poll 观察者；现有 wakeup 的广播语义保留，其他锁默认不改变策略。
 ```
 
 <a id="fn-88c6c45fee594eeb"></a>
@@ -469,3 +469,15 @@
 - [`xv::process::pin_controlling_terminal`](service.cpp.md#fn-a80386bf7a0d6e46)
 
 - [`xv::process::system_statistics`](service.cpp.md#fn-6da719ed0fea92a2)
+
+<a id="fn-2eb706af68e1c843"></a>
+
+## `xv::process::wakeup_one`
+
+```doxygen
+@fn void xv::process::wakeup_one(void *channel)
+@brief 唤醒一个普通匹配等待者并通知全部匹配 poll 观察者。
+@details 导出原请求身份参与检查的进程快照与等待唤醒机制。wakeup_one 只选择一个普通进程等待者，但仍通知所有 poll 观察者；现有 wakeup 的广播语义保留，其他锁默认不改变策略。
+```
+
+- [`xv::process::wakeup_one`](service.cpp.md#fn-2eb706af68e1c843)

@@ -1,5 +1,7 @@
 # `kernel/fs/journal/flow.cppm`
 
+> 主机参考实现：此文件仅用于主机合同测试，不链接生产 `kernel.elf`。运行时后端见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 流程与资源约定见 [内核流程迁移](../../../../kernel-flows.md).
 
 ## 函数导航

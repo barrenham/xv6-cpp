@@ -34,3 +34,5 @@
 @brief ELF 映像加载器：读取或计算 `"`，返回当前查询结果。
 @return 各分支实际返回：无值返回。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+- [`xv::process::ElfLoader::load_memory`](elf_loader.cpp.md#fn-84a204ae66249b72)

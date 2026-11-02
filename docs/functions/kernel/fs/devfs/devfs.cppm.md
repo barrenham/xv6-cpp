@@ -1,5 +1,7 @@
 # `kernel/fs/devfs/devfs.cppm`
 
+> 主机参考实现：此文件仅用于主机合同测试，不链接生产 `kernel.elf`。运行时后端见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 ## 函数导航
 
 - [`xv::fs::DevFileSystem::DevFileSystem`](devfs.cppm.md#fn-6236a1917c8e409c)

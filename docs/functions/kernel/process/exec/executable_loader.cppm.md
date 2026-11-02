@@ -82,3 +82,15 @@
 @brief 定义参数及环境的可执行映像装载契约。
 @details 实现必须在全部验证和用户栈复制成功后一次提交；输入向量由调用者拥有，装载器不接管字符串页。失败不能改变当前映像与凭据。
 ```
+
+<a id="fn-f874e314fb995ad9"></a>
+
+## `xv::process::ExecutableLoader::load_memory`
+
+```doxygen
+@fn virtual int xv::process::ExecutableLoader::load_memory(Process &process, const void *bytes, unsigned long length, const char *path, char *const *arguments, char *const *environment) = 0
+@brief 为不支持内存装载的实现返回明确失败。
+@details 可执行加载接口新增有界内存源，以便根挂载前创建用户态引导进程；默认实现拒绝该入口，实际 ElfLoader 负责共用校验与原子映像交接。普通路径 exec 接口保留。
+```
+
+- [`xv::process::ExecutableLoader::load_memory`](executable_loader.cppm.md#fn-f874e314fb995ad9)

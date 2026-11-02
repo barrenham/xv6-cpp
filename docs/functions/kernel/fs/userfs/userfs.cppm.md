@@ -242,3 +242,41 @@
 - [`xv::fs::UserFileSystem::read_only`](userfs.cppm.md#fn-ae37b877397ebebc)
 
 - [`xv::fs::UserFileSystem::retired`](userfs.cpp.md#fn-355e01b2c468377a)
+
+<a id="fn-42c0a47d71362909"></a>
+
+## `xv::fs::UserFileSystem::open_block_device`
+
+```doxygen
+@fn xv::drivers::BlockDevice *xv::fs::UserFileSystem::open_block_device(Inode *node, bool writable) override
+@brief 按服务返回的设备号连接内核块设备机制。
+@details 通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。
+```
+
+<a id="fn-db09ffe1a2c6f2c8"></a>
+
+## `xv::fs::UserFileSystem::open_device`
+
+```doxygen
+@fn xv::drivers::CharacterDevice *xv::fs::UserFileSystem::open_device(Inode *node, bool nonblocking) override
+@brief 按服务返回的设备号连接内核字符设备端点。
+@details 通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。
+```
+
+<a id="fn-c5a9023b677d40df"></a>
+
+## `xv::fs::UserFileSystem::snapshot_reads`
+
+```doxygen
+@fn bool xv::fs::UserFileSystem::snapshot_reads() const override
+@brief 检查 inode 是否请求按打开捕获只读快照。
+@details 通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。
+```
+
+- [`xv::fs::UserFileSystem::open_block_device`](userfs.cppm.md#fn-42c0a47d71362909)
+
+- [`xv::fs::UserFileSystem::open_device`](userfs.cppm.md#fn-db09ffe1a2c6f2c8)
+
+- [`xv::fs::UserFileSystem::snapshot`](userfs.cpp.md#fn-3370dfa7623315f5)
+
+- [`xv::fs::UserFileSystem::snapshot_reads`](userfs.cppm.md#fn-c5a9023b677d40df)

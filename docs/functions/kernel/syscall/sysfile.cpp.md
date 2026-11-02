@@ -321,8 +321,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_sync(void)
-@brief 等待系统盘与可选数据盘完成提交。
-@details 分别同步两个独立日志，屏障由日志和设备后端执行；不提供跨卷原子事务。
+@brief 请求 VFS 同步全部已挂载用户态文件系统。
+@details mount 只处理权限/参数并通过通用管理通道或已注册实例挂载，不按格式调用内核后端。sync 委托 VFS 同步已挂载用户服务；原始块的 flush 和后端日志提交由相应能力/服务完成，调用者仍获得失败结果。
 ```
 
 <a id="fn-868f8327fa5e0719"></a>
@@ -475,8 +475,8 @@
 
 ```doxygen
 @fn uint64 xv::syscall::sys_mount()
-@brief 仅允许 root 挂载 RAM 或数据卷。
-@details fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。
+@brief 检查挂载参数及权限后委托通用管理器或已注册服务。
+@details mount 只处理权限/参数并通过通用管理通道或已注册实例挂载，不按格式调用内核后端。sync 委托 VFS 同步已挂载用户服务；原始块的 flush 和后端日志提交由相应能力/服务完成，调用者仍获得失败结果。
 ```
 
 <a id="fn-103761d03e7af163"></a>
@@ -846,43 +846,19 @@
 
 <a id="fn-9f1803f1faaeda14"></a>
 
-## `xv::syscall::MountFlow::disk`
-
-```doxygen
-@fn static bool xv::syscall::MountFlow::disk(Context &c) noexcept
-@brief 检查请求类型是否为 xv6 磁盘文件系统。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../fs-service-migration.md)。
 
 <a id="fn-c5f23a8f6399d80f"></a>
 
-## `xv::syscall::MountFlow::mount_disk`
-
-```doxygen
-@fn static void xv::syscall::MountFlow::mount_disk(Context &c) noexcept
-@brief 使用MountDiskFlow挂载已选择磁盘后端，保留事务和失败回滚。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../fs-service-migration.md)。
 
 <a id="fn-cb43cf73881a02ed"></a>
 
-## `xv::syscall::MountFlow::mount_ram`
-
-```doxygen
-@fn static void xv::syscall::MountFlow::mount_ram(Context &c) noexcept
-@brief 执行原内存文件系统挂载并保存结果。
-@details 权限及参数读取仍由入口按原顺序检查，图选择固定文件系统类型并交由原挂载业务执行。 下一节点由图策略声明，业务结果与控制信号分离。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../fs-service-migration.md)。
 
 <a id="fn-1c62b766d8985c01"></a>
 
-## `xv::syscall::MountFlow::ram`
-
-```doxygen
-@fn static bool xv::syscall::MountFlow::ram(Context &c) noexcept
-@brief 检查请求类型是否为 ramfs。
-@details 权限及参数读取仍由入口按原顺序检查，图选择固定文件系统类型并交由原挂载业务执行。 下一节点由图策略声明，业务结果与控制信号分离。
-```
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../fs-service-migration.md)。
 
 <a id="fn-b43515f5dc5f0274"></a>
 
@@ -1431,14 +1407,7 @@
 
 <a id="fn-b2252cbdd7c55b3e"></a>
 
-## `xv::syscall::MountFlow::mount_plugin`
+旧实现已由用户态文件系统服务迁移替代，保留历史链接；当前边界见[文件系统服务迁移](../../../fs-service-migration.md)。
 
-```doxygen
-@fn static void xv::syscall::MountFlow::mount_plugin(Context &c) noexcept
-@brief 把非内建类型统一交给插件注册表挂载。
-@details fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。
-```
 
 - [`xv::syscall::sys_fsregister`](sysfile.cpp.md#fn-cc3ab8ebf1366e1d)
-
-- [`xv::syscall::MountFlow::mount_plugin`](sysfile.cpp.md#fn-b2252cbdd7c55b3e)

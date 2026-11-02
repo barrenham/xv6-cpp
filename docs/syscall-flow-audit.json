@@ -56,8 +56,8 @@
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934",
-      "review": "fsregister 仅允许有效 uid 0，复制并验证完整版本化注册结构，分配服务 File 并安装描述符，失败回收引用。mount 保留内建后端入口，其他类型统一委托插件注册表；类型参数扩大为 32 字节，支持 31 字节动态名称。fsserve 保留旧匿名兼容方式，不作为具名扩展入口。",
+      "sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "review": "mount 只处理权限/参数并通过通用管理通道或已注册实例挂载，不按格式调用内核后端。sync 委托 VFS 同步已挂载用户服务；原始块的 flush 和后端日志提交由相应能力/服务完成，调用者仍获得失败结果。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::sys_open",
@@ -147,15 +147,6 @@
           "source_sha256": "e6781118096c1a6a201ad015d2692475e731ef018a9419f421c077ad88a086cf",
           "graphs": [
             "StatFlow::Graph"
-          ]
-        },
-        {
-          "qualified": "xv::syscall::sys_mount",
-          "usr": "c:@N@xv@N@syscall@F@sys_mount#",
-          "source": "kernel/syscall/sysfile.cpp",
-          "source_sha256": "e0ca6038c92e217affbd875f1a02ecc4bc3f6e50538aad031b009e2d9e8904ae",
-          "graphs": [
-            "MountFlow::Graph"
           ]
         },
         {
@@ -374,11 +365,11 @@
       "pending": []
     }
   ],
-  "graph_count": 30,
-  "bound_entries": 31,
+  "graph_count": 29,
+  "bound_entries": 30,
   "limitations": [
     "当前 dev 接口和实际 QEMU 系统调用已验证，不扩展为全部实验配置或宿主 ASan 覆盖。",
     "LAB_LOCK 的 sys_rwlktest 仅有原声明/ABI 映射，当前树无实现；统计文件还缺 STATS 定义，见本批条件编译检查。",
-    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ]
 }

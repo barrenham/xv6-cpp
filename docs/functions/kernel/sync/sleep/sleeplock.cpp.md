@@ -24,11 +24,8 @@
 
 ```doxygen
 @fn void xv::sync::SleepLock::init(const char *label)
-@brief 睡眠锁：init。
-@param label 保存在对象中的调试标签，字符串需在使用期间有效。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`state_lock_.init`。
-@details 本函数可见的状态更新包括：`name_ = label;`；`locked_ = false;`；`pid_ = 0;`。局部临时变量与对象字段应按作用域区分。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 初始化默认广播唤醒策略的可睡眠锁。
+@details 普通 init 保留广播唤醒；init_single_waiter 仅供明确选择该策略的锁使用。release 先撤销持有状态再唤醒一个普通进程等待者，poll 观察者全部通知；VFS namespace 使用此策略减少大量 fork 进程同时争抢锁。
 ```
 
 <a id="fn-0df6c25631ea54c1"></a>
@@ -91,11 +88,8 @@
 
 ```doxygen
 @fn void xv::sync::SleepLock::release()
-@brief 睡眠锁：释放当前引用或归还对象占用的资源。
-@details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard` → `detail::current_pid` → `detail::fail` → `detail::wake_processes`。
-@details 本函数可见的状态更新包括：`locked_ = false;`；`pid_ = 0;`。局部临时变量与对象字段应按作用域区分。
-@details 需要特别跟踪的条件：`!locked_ || pid_ != detail::current_pid()`。这些条件决定检查、重试或提前返回路径。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 清除持有状态并按该锁的策略唤醒等待者。
+@details 普通 init 保留广播唤醒；init_single_waiter 仅供明确选择该策略的锁使用。release 先撤销持有状态再唤醒一个普通进程等待者，poll 观察者全部通知；VFS namespace 使用此策略减少大量 fork 进程同时争抢锁。
 ```
 
 <a id="fn-d8314f38391b20f3"></a>
@@ -108,3 +102,15 @@
 @details 调用/构造表达式的文本次序（分支内不一定全部执行）：`guard` → `detail::current_pid`。
 @return 各分支实际返回：`locked_ && pid_ == detail::current_pid()`。应结合上面的条件检查区分正常值、空值和错误值。
 ```
+
+<a id="fn-364409cc59bc4b56"></a>
+
+## `xv::sync::SleepLock::init_single_waiter`
+
+```doxygen
+@fn void xv::sync::SleepLock::init_single_waiter(const char *label)
+@brief 初始化仅唤醒一个普通竞争者的可睡眠锁。
+@details 普通 init 保留广播唤醒；init_single_waiter 仅供明确选择该策略的锁使用。release 先撤销持有状态再唤醒一个普通进程等待者，poll 观察者全部通知；VFS namespace 使用此策略减少大量 fork 进程同时争抢锁。
+```
+
+- [`xv::sync::SleepLock::init_single_waiter`](sleeplock.cpp.md#fn-364409cc59bc4b56)

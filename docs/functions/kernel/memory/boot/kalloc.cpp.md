@@ -65,11 +65,8 @@
 
 ```doxygen
 @fn void xv::memory::boot_initialize(AllocatorKind kind, PhysicalAddress device_tree)
-@brief 物理页所有权、地址范围、页表和用户内存复制：引导初始化。
-@param kind 本次操作使用的 种类 值。
-@param device_tree 固件传入的设备树物理地址。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
-@details 流程由 BootInitializeFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
+@brief 发现 RAM 并预留用户态引导镜像后初始化物理页分配器。
+@details 启动时先发现并验证 RAM 与引导镜像，物理布局预留内核、分配器元数据和引导镜像覆盖的完整页。镜像范围跨越不完整首尾页也不可分配；后续用户 ELF 读取使用内核直接映射。
 ```
 
 <a id="fn-ca094a83ada9f57d"></a>
@@ -88,8 +85,8 @@
 
 ```doxygen
 @fn static void xv::memory::BootInitializeFlow::initialize(Context &c) noexcept
-@brief 使用原内核末尾符号初始化选定分配器。
-@details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 把内核、元数据及引导镜像覆盖页标记为不可分配。
+@details 启动时先发现并验证 RAM 与引导镜像，物理布局预留内核、分配器元数据和引导镜像覆盖的完整页。镜像范围跨越不完整首尾页也不可分配；后续用户 ELF 读取使用内核直接映射。
 ```
 
 <a id="fn-92da10524e4a727d"></a>
@@ -151,3 +148,15 @@
 @brief 检查固件 DTB 起点位于发现的 RAM 内。
 @details 属于 memory/boot，未扩大排除范围；候选内存描述与源保持原函数局部所有权，保留发现、DTB 居住范围、初始化失败诊断和原报告顺序。 下一节点由图策略声明，业务结果与控制信号分离。
 ```
+
+<a id="fn-26fa51309bf9b644"></a>
+
+## `xv::memory::boot_image`
+
+```doxygen
+@fn PhysicalMemoryRange xv::memory::boot_image()
+@brief 读取当前启动采用的已预留引导镜像范围。
+@details 启动时先发现并验证 RAM 与引导镜像，物理布局预留内核、分配器元数据和引导镜像覆盖的完整页。镜像范围跨越不完整首尾页也不可分配；后续用户 ELF 读取使用内核直接映射。
+```
+
+- [`xv::memory::boot_image`](kalloc.cpp.md#fn-26fa51309bf9b644)

@@ -1,5 +1,7 @@
 # `kernel/fs/path/path_operations.cpp`
 
+> 主机参考实现：此文件仅用于主机合同测试，不链接生产 `kernel.elf`。运行时后端见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 开发职责：文件描述、inode、路径、块缓存与日志事务。
 
 源码：[打开实际文件](../../../../../kernel/fs/path/path_operations.cpp)。文档不会加入源码或生成额外 C++ 声明。

@@ -641,6 +641,7 @@
   "original_entry_count": 38,
   "limitations": [
     "Source audit plus current configured tests does not prove throughput or worst-case stack use.",
-    "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch."
+    "Preserved production virtual device/FS interfaces do not imply the include-free flow utility depends on virtual dispatch.",
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ]
 }

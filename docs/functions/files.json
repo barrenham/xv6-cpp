@@ -121,8 +121,8 @@
       "c:@N@xv@N@process@F@get_session#I#",
       "c:@N@xv@N@process@F@initialize#",
       "c:@N@xv@N@process@F@initialize#$@N@xv@N@scheduling@E@Kind#",
-      "c:@N@xv@N@process@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
-      "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
+      "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
       "c:@N@xv@N@process@F@may_read_terminal#*v#",
@@ -143,7 +143,8 @@
       "c:@N@xv@N@process@F@terminal_foreground#*v#",
       "c:@N@xv@N@process@F@wait#l#",
       "c:@N@xv@N@process@F@wait_for_child#I#l#I#",
-      "c:@N@xv@N@process@F@wakeup#*v#"
+      "c:@N@xv@N@process@F@wakeup#*v#",
+      "c:@N@xv@N@process@F@wakeup_one#*v#"
     ]
   },
   {
@@ -411,13 +412,18 @@
     "source": "kernel/fs/service.cpp",
     "document": "docs/functions/kernel/fs/service.cpp.md",
     "function_usrs": [
+      "c:@N@xv@N@fs@F@bootstrap_cache#i#",
       "c:@N@xv@N@fs@F@cache#",
       "c:@N@xv@N@fs@F@devices#",
       "c:@N@xv@N@fs@F@files#",
       "c:@N@xv@N@fs@F@filesystem#",
       "c:@N@xv@N@fs@F@initialize_cache#",
       "c:@N@xv@N@fs@F@journal#",
-      "c:@N@xv@N@fs@N@detail@F@registered_filesystem#i#&$@N@xv@N@fs@N@detail@S@FileSystemType#"
+      "c:@N@xv@N@fs@N@detail@F@registered_filesystem#i#&$@N@xv@N@fs@N@detail@S@FileSystemType#",
+      "c:service.cpp@N@xv@N@fs@aN@S@ServiceJournal@F@begin#",
+      "c:service.cpp@N@xv@N@fs@aN@S@ServiceJournal@F@end#",
+      "c:service.cpp@N@xv@N@fs@aN@S@ServiceJournal@F@record#&$@N@xv@N@fs@S@Buffer#",
+      "c:service.cpp@N@xv@N@fs@aN@S@ServiceJournal@F@sync#"
     ]
   },
   {
@@ -722,11 +728,6 @@
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@ExecuteImageFlow@F@arguments#&$@N@xv@N@syscall@aN@S@ExecuteImageFlow@S@Context#S",
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@ExecuteImageFlow@F@environment#&$@N@xv@N@syscall@aN@S@ExecuteImageFlow@S@Context#S",
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@ExecuteImageFlow@F@execute#&$@N@xv@N@syscall@aN@S@ExecuteImageFlow@S@Context#S",
-      "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountFlow@F@disk#&$@N@xv@N@syscall@aN@S@MountFlow@S@Context#S",
-      "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountFlow@F@mount_disk#&$@N@xv@N@syscall@aN@S@MountFlow@S@Context#S",
-      "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountFlow@F@mount_plugin#&$@N@xv@N@syscall@aN@S@MountFlow@S@Context#S",
-      "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountFlow@F@mount_ram#&$@N@xv@N@syscall@aN@S@MountFlow@S@Context#S",
-      "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountFlow@F@ram#&$@N@xv@N@syscall@aN@S@MountFlow@S@Context#S",
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountInfoFlow@F@bad_copy#&$@N@xv@N@syscall@aN@S@MountInfoFlow@S@Context#S",
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountInfoFlow@F@copy#&$@N@xv@N@syscall@aN@S@MountInfoFlow@S@Context#S",
       "c:sysfile.cpp@N@xv@N@syscall@aN@S@MountInfoFlow@F@describe#&$@N@xv@N@syscall@aN@S@MountInfoFlow@S@Context#S",
@@ -1119,6 +1120,7 @@
     "source": "kernel/memory/boot/kalloc.cpp",
     "document": "docs/functions/kernel/memory/boot/kalloc.cpp.md",
     "function_usrs": [
+      "c:@N@xv@N@memory@F@boot_image#",
       "c:@N@xv@N@memory@F@boot_initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalAddress#",
       "c:@N@xv@N@memory@F@configured_allocator_kind#",
       "c:@N@xv@N@memory@N@detail@F@fail#*1C#",
@@ -1137,10 +1139,13 @@
     "source": "kernel/memory/boot/boot_memory.cppm",
     "document": "docs/functions/kernel/memory/boot/boot_memory.cppm.md",
     "function_usrs": [
+      "c:@N@xv@N@memory@F@boot_image#",
+      "c:@N@xv@N@memory@S@BootMemoryInfo@F@boot_image#1",
       "c:@N@xv@N@memory@S@BootMemoryInfo@F@ram#1",
       "c:@N@xv@N@memory@S@BootMemoryInfo@F@reservation#i#1",
       "c:@N@xv@N@memory@S@BootMemoryInfo@F@reservation_count#1",
       "c:@N@xv@N@memory@S@BootMemoryInfo@F@reserve#$@N@xv@N@memory@S@PhysicalMemoryRange#b#",
+      "c:@N@xv@N@memory@S@BootMemoryInfo@F@set_boot_image#$@N@xv@N@memory@S@PhysicalMemoryRange#",
       "c:@N@xv@N@memory@S@BootMemoryInfo@F@set_ram#$@N@xv@N@memory@S@PhysicalMemoryRange#",
       "c:@N@xv@N@memory@S@BootMemorySource@F@discover#&$@N@xv@N@memory@S@BootMemoryInfo#",
       "c:@N@xv@N@memory@S@BootMemorySource@F@name#1",
@@ -1299,7 +1304,8 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@release_stack#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@stack_directory#l#1",
-      "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#"
+      "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@trim_process_stack#l#l#"
     ]
   },
   {
@@ -1390,6 +1396,7 @@
       "c:@N@xv@N@memory@S@KernelPageTable@F@root#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@stack_directory#l#1",
       "c:@N@xv@N@memory@S@KernelPageTable@F@statistics#",
+      "c:@N@xv@N@memory@S@KernelPageTable@F@trim_process_stack#l#l#",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@available#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@commit#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
       "c:@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@F@erase_guard#&$@N@xv@N@memory@S@KernelPageTable@S@AllocateFlow@S@Context#S",
@@ -1588,6 +1595,7 @@
       "c:@N@xv@N@sync@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@sync@N@detail@F@push_interrupts_off#",
       "c:@N@xv@N@sync@N@detail@F@sleep_process#",
+      "c:@N@xv@N@sync@N@detail@F@wake_one_process#*v#",
       "c:@N@xv@N@sync@N@detail@F@wake_processes#*v#"
     ]
   },
@@ -1604,6 +1612,7 @@
       "c:@N@xv@N@sync@N@detail@F@prepare_sleep#*v#",
       "c:@N@xv@N@sync@N@detail@F@push_interrupts_off#",
       "c:@N@xv@N@sync@N@detail@F@sleep_process#",
+      "c:@N@xv@N@sync@N@detail@F@wake_one_process#*v#",
       "c:@N@xv@N@sync@N@detail@F@wake_processes#*v#"
     ]
   },
@@ -1624,6 +1633,7 @@
       "c:@N@xv@N@sync@S@SleepLock@F@available#*$@N@xv@N@sync@S@PollTable#1",
       "c:@N@xv@N@sync@S@SleepLock@F@holding#1",
       "c:@N@xv@N@sync@S@SleepLock@F@init#*1C#",
+      "c:@N@xv@N@sync@S@SleepLock@F@init_single_waiter#*1C#",
       "c:@N@xv@N@sync@S@SleepLock@F@release#",
       "c:@N@xv@N@sync@S@SleepLock@F@try_acquire#"
     ]
@@ -1638,6 +1648,7 @@
       "c:@N@xv@N@sync@S@SleepLock@F@available#*$@N@xv@N@sync@S@PollTable#1",
       "c:@N@xv@N@sync@S@SleepLock@F@holding#1",
       "c:@N@xv@N@sync@S@SleepLock@F@init#*1C#",
+      "c:@N@xv@N@sync@S@SleepLock@F@init_single_waiter#*1C#",
       "c:@N@xv@N@sync@S@SleepLock@F@kind#1",
       "c:@N@xv@N@sync@S@SleepLock@F@release#",
       "c:@N@xv@N@sync@S@SleepLock@F@try_acquire#"
@@ -1779,16 +1790,24 @@
     "source": "kernel/fs/file/open_file.cppm",
     "document": "docs/functions/kernel/fs/file/open_file.cppm.md",
     "function_usrs": [
+      "c:@N@xv@N@fs@F@bootstrap_cache#i#",
+      "c:@N@xv@N@fs@F@create_boot_disk#i#",
+      "c:@N@xv@N@fs@F@create_fs_resources#",
+      "c:@N@xv@N@fs@F@create_mount_manager#",
       "c:@N@xv@N@fs@F@create_pipe#**$@N@xv@N@fs@S@File#S0_#",
       "c:@N@xv@N@fs@F@create_userfs#",
       "c:@N@xv@N@fs@F@devices#",
       "c:@N@xv@N@fs@F@files#",
+      "c:@N@xv@N@fs@F@initialize_device_registry#",
+      "c:@N@xv@N@fs@F@initialize_mount_manager#",
       "c:@N@xv@N@fs@F@initialize_userfs_plugins#",
+      "c:@N@xv@N@fs@F@managed_mounts_available#",
       "c:@N@xv@N@fs@F@mount_registered_userfs#*1C#S0_#",
       "c:@N@xv@N@fs@F@mount_userfs#&$@N@xv@N@fs@S@File#*1C#",
       "c:@N@xv@N@fs@F@open_registered_block#*$@N@xv@N@fs@S@Inode#b#",
       "c:@N@xv@N@fs@F@open_registered_device#*$@N@xv@N@fs@S@Inode#b#",
       "c:@N@xv@N@fs@F@register_userfs#&1$@N@xv@N@userfs@S@Registration#",
+      "c:@N@xv@N@fs@F@request_managed_mount#*1C#S0_#",
       "c:@N@xv@N@fs@F@userfs_provider#i#&$@N@xv@N@userfs@S@ProviderInfo#",
       "c:@N@xv@N@fs@F@userfs_type#i#*C#",
       "c:@N@xv@N@fs@S@DeviceRegistry@F@DeviceRegistry#",
@@ -1843,7 +1862,8 @@
       "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
       "c:@N@xv@N@fs@S@Xv6Journal@F@write_header#",
       "c:@N@xv@N@fs@S@Xv6Journal@F@write_log#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/journal/journal.cppm",
@@ -1997,7 +2017,8 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@lookup_entry#*$@N@xv@N@fs@S@Inode#*1C#*i#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@rename_at#*$@N@xv@N@fs@S@Inode#*1C#S0_#S2_#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/cache/lru_block_cache.cpp",
@@ -2116,7 +2137,8 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@zero_block#I#I#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/inode/filesystem.cppm",
@@ -2220,7 +2242,8 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
       "c:@N@xv@N@fs@S@Xv6FileSystem@F@zero_block#I#I#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/arch/riscv/register_operations.inc",
@@ -3598,21 +3621,21 @@
       "c:@N@xv@N@process@S@PollWait@F@triggered#1",
       "c:@N@xv@N@process@S@PollWait@F@watch#*v#",
       "c:@N@xv@N@process@S@PollWait@F@~PollWait#",
-      "c:@N@xv@N@process@S@PollWait@S@Page@F@Page#&$@N@xv@N@process@S@PollWait#",
-      "c:@N@xv@N@process@S@PollWait@S@Page@S@Table@F@Table#&$@N@xv@N@process@S@PollWait#",
-      "c:@N@xv@N@process@S@PollWait@S@Page@S@Table@F@watch#*v#",
       "c:@N@xv@N@process@S@PollWait@S@ReleaseFlow@F@free_page#&$@N@xv@N@process@S@PollWait@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@ReleaseFlow@F@pages#&$@N@xv@N@process@S@PollWait@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@ReleaseFlow@F@timer#&$@N@xv@N@process@S@PollWait@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@ReleaseFlow@F@unsubscribe#&$@N@xv@N@process@S@PollWait@S@ReleaseFlow@S@Context#S",
+      "c:@N@xv@N@process@S@PollWait@S@ReleaseFlow@F@unsubscribe_inline#&$@N@xv@N@process@S@PollWait@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@SleepFlow@F@finish#&$@N@xv@N@process@S@PollWait@S@SleepFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@SleepFlow@F@prepare#&$@N@xv@N@process@S@PollWait@S@SleepFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@SleepFlow@F@ready#&$@N@xv@N@process@S@PollWait@S@SleepFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@SleepFlow@F@suspend#&$@N@xv@N@process@S@PollWait@S@SleepFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@allocate#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@duplicate#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
+      "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@inline_space#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@needs_page#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
       "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@subscribe#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
+      "c:@N@xv@N@process@S@PollWait@S@WatchFlow@F@subscribe_inline#&$@N@xv@N@process@S@PollWait@S@WatchFlow@S@Context#S",
       "c:@N@xv@N@process@S@WaitChannels@F@arm_timer#&$@N@xv@N@process@S@PollWait#l#",
       "c:@N@xv@N@process@S@WaitChannels@F@expire_timers#l#",
       "c:@N@xv@N@process@S@WaitChannels@F@next_timer#",
@@ -3637,7 +3660,9 @@
       "c:@N@xv@N@process@S@PollWait@F@table#",
       "c:@N@xv@N@process@S@PollWait@F@triggered#1",
       "c:@N@xv@N@process@S@PollWait@F@watch#*v#",
-      "c:@N@xv@N@process@S@PollWait@F@~PollWait#"
+      "c:@N@xv@N@process@S@PollWait@F@~PollWait#",
+      "c:@N@xv@N@process@S@PollWait@S@Table@F@bind#&$@N@xv@N@process@S@PollWait#*Fv(#S0_#*v)#",
+      "c:@N@xv@N@process@S@PollWait@S@Table@F@watch#*v#"
     ]
   },
   {
@@ -3677,7 +3702,7 @@
       "c:@N@xv@N@process@S@WaitChannels@F@initialize#",
       "c:@N@xv@N@process@S@WaitChannels@F@prepare#&$@N@xv@N@process@S@Process#*v#b#",
       "c:@N@xv@N@process@S@WaitChannels@F@unlink#&$@N@xv@N@process@S@WaitChannels@S@Bucket#&$@N@xv@N@process@S@Process#S",
-      "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#",
+      "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#b#",
       "c:@N@xv@N@process@S@WaitChannels@S@CancelFlow@F@attempt#&$@N@xv@N@process@S@WaitChannels@S@CancelFlow@S@Context#S",
       "c:@N@xv@N@process@S@WaitChannels@S@CancelFlow@F@done#&$@N@xv@N@process@S@WaitChannels@S@CancelFlow@S@Context#S",
       "c:@N@xv@N@process@S@WaitChannels@S@CancelFlow@F@registered#&$@N@xv@N@process@S@WaitChannels@S@CancelFlow@S@Context#S",
@@ -3713,7 +3738,7 @@
       "c:@N@xv@N@process@S@WaitChannels@F@subscribe#&$@N@xv@N@process@S@PollEntry#*v#",
       "c:@N@xv@N@process@S@WaitChannels@F@unlink#&$@N@xv@N@process@S@WaitChannels@S@Bucket#&$@N@xv@N@process@S@Process#S",
       "c:@N@xv@N@process@S@WaitChannels@F@unsubscribe#&$@N@xv@N@process@S@PollEntry#",
-      "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#"
+      "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#b#"
     ]
   },
   {
@@ -3856,6 +3881,7 @@
     "function_usrs": [
       "c:@N@xv@N@process@S@ElfLoader@F@ElfLoader#",
       "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
+      "c:@N@xv@N@process@S@ElfLoader@F@load_memory#&$@N@xv@N@process@S@Process#*1v#l#*1C#*1*C#S4_#",
       "c:@N@xv@N@process@S@ElfLoader@F@name#1"
     ]
   },
@@ -3868,6 +3894,7 @@
       "c:@N@xv@N@process@S@ExecutableLoader@F@ExecutableLoader#",
       "c:@N@xv@N@process@S@ExecutableLoader@F@ExecutableLoader#&1$@N@xv@N@process@S@ExecutableLoader#",
       "c:@N@xv@N@process@S@ExecutableLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
+      "c:@N@xv@N@process@S@ExecutableLoader@F@load_memory#&$@N@xv@N@process@S@Process#*1v#l#*1C#*1*C#S4_#",
       "c:@N@xv@N@process@S@ExecutableLoader@F@name#1",
       "c:@N@xv@N@process@S@ExecutableLoader@F@operator=#&1$@N@xv@N@process@S@ExecutableLoader#",
       "c:@N@xv@N@process@S@ExecutableLoader@F@~ExecutableLoader#"
@@ -3880,6 +3907,7 @@
       "c:@N@xv@N@process@F@executable_loader#",
       "c:@N@xv@N@process@F@execute#*1C#*1*C#S1_#",
       "c:@N@xv@N@process@S@ElfLoader@F@load#&$@N@xv@N@process@S@Process#*1C#*1*C#S3_#",
+      "c:@N@xv@N@process@S@ElfLoader@F@load_memory#&$@N@xv@N@process@S@Process#*1v#l#*1C#*1*C#S4_#",
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@align_stack#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@argument#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@argument_array#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
@@ -3909,7 +3937,7 @@
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@store_argument#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@store_environment#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
       "c:@N@xv@N@process@S@ElfLoader@S@LoadFlow@F@valid_segment#&$@N@xv@N@process@S@ElfLoader@S@LoadFlow@S@Context#S",
-      "c:elf_loader.cpp@N@xv@N@process@aN@F@load_segment#&$@N@xv@N@process@S@AddressSpace#&$@N@xv@N@process@aN@S@ExecutableFile#&1$@N@xv@N@process@S@proghdr#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@F@load_segment#&$@N@xv@N@process@S@AddressSpace#&$@N@xv@N@process@aN@S@ExecutableImage#&1$@N@xv@N@process@S@proghdr#",
       "c:elf_loader.cpp@N@xv@N@process@aN@F@permissions#i#",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@ExecutableFile#&1$@N@xv@N@process@aN@S@ExecutableFile#",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@ExecutableFile#*1C#",
@@ -3921,6 +3949,20 @@
       "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@read#l#*v#i#",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@uid#1",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableFile@F@~ExecutableFile#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@close#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@gid#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@mode#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@operator bool#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@read#l#*v#i#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@uid#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableImage@F@~ExecutableImage#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@ExecutableMemory#*1v#l#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@close#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@gid#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@mode#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@operator bool#1",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@read#l#*v#i#",
+      "c:elf_loader.cpp@N@xv@N@process@aN@S@ExecutableMemory@F@uid#1",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@PendingImage@F@PendingImage#",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@PendingImage@F@PendingImage#&1$@N@xv@N@process@aN@S@PendingImage#",
       "c:elf_loader.cpp@N@xv@N@process@aN@S@PendingImage@F@operator=#&1$@N@xv@N@process@aN@S@PendingImage#",
@@ -4213,8 +4255,8 @@
       "c:@N@xv@N@process@F@get_session#I#",
       "c:@N@xv@N@process@F@initialize#",
       "c:@N@xv@N@process@F@initialize#$@N@xv@N@scheduling@E@Kind#",
-      "c:@N@xv@N@process@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
-      "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
+      "c:@N@xv@N@process@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
       "c:@N@xv@N@process@F@kill#I#",
       "c:@N@xv@N@process@F@make_poll_wait#",
       "c:@N@xv@N@process@F@may_read_terminal#*v#",
@@ -4234,7 +4276,8 @@
       "c:@N@xv@N@process@F@wait#l#",
       "c:@N@xv@N@process@F@wait_channels#",
       "c:@N@xv@N@process@F@wait_for_child#I#l#I#",
-      "c:@N@xv@N@process@F@wakeup#*v#"
+      "c:@N@xv@N@process@F@wakeup#*v#",
+      "c:@N@xv@N@process@F@wakeup_one#*v#"
     ]
   },
   {
@@ -4291,8 +4334,8 @@
       "c:@N@xv@N@process@S@ProcessManager@F@get_process_group#",
       "c:@N@xv@N@process@S@ProcessManager@F@get_session#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@initialize#",
-      "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
-      "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
       "c:@N@xv@N@process@S@ProcessManager@F@kernel_task_return#S",
       "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@may_read_terminal#*v#",
@@ -4335,8 +4378,8 @@
       "c:@N@xv@N@process@S@ProcessManager@F@exit_process#I#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@fork_process#",
       "c:@N@xv@N@process@S@ProcessManager@F@initialize#",
-      "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
-      "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
+      "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
       "c:@N@xv@N@process@S@ProcessManager@F@kernel_task_return#S",
       "c:@N@xv@N@process@S@ProcessManager@F@kill#I#",
       "c:@N@xv@N@process@S@ProcessManager@F@reap#*$@N@xv@N@process@S@Process#",
@@ -4372,7 +4415,6 @@
       "c:@N@xv@N@process@S@ProcessManager@S@ForkFlow@F@signal_state#&$@N@xv@N@process@S@ProcessManager@S@ForkFlow@S@Context#S",
       "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@allocate#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
       "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@allocated#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
-      "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@directory#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
       "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@group#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
       "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@grouped#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
       "c:@N@xv@N@process@S@ProcessManager@S@InitialFlow@F@no_session#&$@N@xv@N@process@S@ProcessManager@S@InitialFlow@S@Context#S",
@@ -5500,7 +5542,8 @@
       "c:@N@xv@N@fs@S@DevFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DevFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DevFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/devfs/devfs.cpp",
@@ -5524,15 +5567,9 @@
       "c:@N@xv@N@fs@S@DevFileSystem@F@unlock#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DevFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DevFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
-      "c:@N@xv@N@fs@S@DevFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@MemoryDevice#$@N@xv@N@fs@aN@S@MemoryDevice@E@Kind#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@initialize#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@name#1",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@poll#*$@N@xv@N@sync@S@PollTable#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@put_sync#I#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
-      "c:devfs.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@write#$@N@xv@N@drivers@S@IoBuffer#I#"
-    ]
+      "c:@N@xv@N@fs@S@DevFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/vfs/vfs.cpp",
@@ -5563,9 +5600,11 @@
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@rename#*1C#S0_#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@retain#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@same#*$@N@xv@N@fs@S@Inode#S0_#S",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@snapshot_mount#i#&$@N@xv@N@fs@S@MountSnapshot#1",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@snapshot_mounts#*$@N@xv@N@fs@S@MountSnapshot#i#1",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@stat#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@synchronize_services#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@truncate#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink#*C#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
@@ -5582,6 +5621,7 @@
     "document": "docs/functions/kernel/fs/vfs/vfs.cppm.md",
     "function_usrs": [
       "c:@N@xv@N@fs@F@filesystem#",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@VirtualFileSystem#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@VirtualFileSystem#&$@N@xv@N@fs@S@FileSystem#S0_#*S1_#S2_#*S2_#S2_#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@allocate#i#S#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@allowed#*$@N@xv@N@fs@S@Inode#i#b#",
@@ -5609,10 +5649,14 @@
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@rename#*1C#S0_#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@retain#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@root#",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@root_backend#1",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@same#*$@N@xv@N@fs@S@Inode#S0_#S",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@services#1",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@snapshot_mount#i#&$@N@xv@N@fs@S@MountSnapshot#1",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@snapshot_mounts#*$@N@xv@N@fs@S@MountSnapshot#i#1",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@stat#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@symlink#*1C#S0_#",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@synchronize_services#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@truncate#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink#*C#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
@@ -5620,6 +5664,7 @@
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@unmount#*1C#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
+      "c:@N@xv@N@fs@S@VirtualFileSystem@F@use_services#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@walk#*1C#b#*C#b#b#b#i#b#",
       "c:@N@xv@N@fs@S@VirtualFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
     ]
@@ -5690,7 +5735,8 @@
       "c:procfs.cpp@N@xv@N@fs@aN@F@component_number#*1C#b#",
       "c:procfs.cpp@N@xv@N@fs@aN@F@file_kind#&1$@N@xv@N@fs@S@FileInfo#",
       "c:procfs.cpp@N@xv@N@fs@aN@F@number_name#i#*C#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/procfs/procfs.cppm",
@@ -5726,7 +5772,8 @@
       "c:@N@xv@N@fs@S@ProcFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@ProcFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@ProcFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/buffer/page_buffer.cpp",
@@ -5791,7 +5838,8 @@
       "c:@N@xv@N@fs@S@RamFileSystem@F@unlink_at#*$@N@xv@N@fs@S@Inode#*1C#",
       "c:@N@xv@N@fs@S@RamFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@RamFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/ramfs/ramfs.cppm",
@@ -5831,7 +5879,8 @@
       "c:@N@xv@N@fs@S@RamFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@RamFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@RamFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/permissions.cpp",
@@ -7522,7 +7571,8 @@
       "c:@N@xv@N@fs@S@Xv6Journal@S@SyncFlow@F@waiting#&$@N@xv@N@fs@S@Xv6Journal@S@SyncFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6Journal@S@WaitProtocol@F@unlock#&$@N@xv@N@fs@S@Xv6Journal@S@WaitProtocol@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6Journal@S@WaitProtocol@F@wait#&$@N@xv@N@fs@S@Xv6Journal@S@WaitProtocol@S@Context#S"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/cache/flow.cppm",
@@ -7598,7 +7648,8 @@
       "c:@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@F@release_pty#&$@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@F@unlock#&$@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@S@Context#S",
       "c:@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@F@unpin#&$@N@xv@N@fs@S@DevFileSystem@S@ReleaseFlow@S@Context#S"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/vfs/initialize_flow.cppm",
@@ -7829,7 +7880,8 @@
       "c:@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@F@removable#&$@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@S@Context#S",
       "c:@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@F@unlink#&$@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@S@Context#S",
       "c:@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@F@valid#&$@N@xv@N@fs@S@RamFileSystem@S@UnlinkFlow@S@Context#S"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/path/flow.cppm",
@@ -7899,7 +7951,8 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@F@removable#&$@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@F@unlock_parent#&$@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@F@write_failed#&$@N@xv@N@fs@S@Xv6FileSystem@S@UnlinkFlow@S@Context#S"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/inode/flow.cppm",
@@ -7998,7 +8051,8 @@
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@F@read#&$@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@F@record_release#&$@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@S@Context#S",
       "c:@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@F@valid#&$@N@xv@N@fs@S@Xv6FileSystem@S@WriteFlow@S@Context#S"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/support/rb_tree.h",
@@ -8376,7 +8430,8 @@
       "c:@N@xv@N@fs@S@SnapshotText@F@hexadecimal#*1C#l#",
       "c:@N@xv@N@fs@S@SnapshotText@F@number#l#i#",
       "c:@N@xv@N@fs@S@SnapshotText@F@raw#*1v#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/ext3/ext3_filesystem.cpp",
@@ -8443,7 +8498,8 @@
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@record#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@sync#",
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@wait#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/ext3/ext3_filesystem.cppm",
@@ -8507,7 +8563,8 @@
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@record#&$@N@xv@N@fs@S@Buffer#",
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@sync#",
       "c:@N@xv@N@fs@S@Ext3FileSystem@S@Log@F@wait#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/ext3/format.h",
@@ -8775,7 +8832,8 @@
     "document": "docs/functions/kernel/fs/inode/disk_filesystem.cpp.md",
     "function_usrs": [
       "c:@N@xv@N@fs@S@DiskFileSystem@F@initialize#I#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/inode/disk_filesystem.cppm",
@@ -8811,7 +8869,8 @@
       "c:@N@xv@N@fs@S@DiskFileSystem@F@unlock_release#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DiskFileSystem@F@update#*$@N@xv@N@fs@S@Inode#",
       "c:@N@xv@N@fs@S@DiskFileSystem@F@write#*$@N@xv@N@fs@S@Inode#I#l#i#i#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/journal/xv6_journal.cppm",
@@ -8831,7 +8890,8 @@
       "c:@N@xv@N@fs@S@Xv6Journal@F@sync#",
       "c:@N@xv@N@fs@S@Xv6Journal@F@write_header#",
       "c:@N@xv@N@fs@S@Xv6Journal@F@write_log#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/procfs/provider_registry.cppm",
@@ -8842,7 +8902,8 @@
       "c:@N@xv@N@fs@ST>1#pT@ProcRegistry@F@count#1",
       "c:@N@xv@N@fs@ST>1#pT@ProcRegistry@F@find#*1C#1",
       "c:@N@xv@N@fs@ST>1#pT@ProcRegistry@F@seal#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/fs/procfs/system_providers.cpp",
@@ -8865,7 +8926,8 @@
       "c:system_providers.cpp@N@xv@N@fs@aN@F@statistics#&$@N@xv@N@fs@S@PageBuffer#",
       "c:system_providers.cpp@N@xv@N@fs@aN@F@uptime#&$@N@xv@N@fs@S@PageBuffer#",
       "c:system_providers.cpp@N@xv@N@fs@aN@F@version#&$@N@xv@N@fs@S@PageBuffer#"
-    ]
+    ],
+    "profile": "host-reference"
   },
   {
     "source": "kernel/io/block.h",
@@ -9107,6 +9169,7 @@
       "c:@N@xv@N@fs@S@UserFileSystem@F@retired#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@root#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@shutdown#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@snapshot#*$@N@xv@N@fs@S@Inode#&$@N@xv@N@fs@S@PageBuffer#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@stat#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@status#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@synchronize#*$@N@xv@N@fs@S@Inode#",
@@ -9149,6 +9212,8 @@
       "c:@N@xv@N@fs@S@UserFileSystem@F@name_max#1",
       "c:@N@xv@N@fs@S@UserFileSystem@F@next_directory#*$@N@xv@N@fs@S@Inode#&l#&$@N@xv@N@fs@S@DirectoryRecord#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@node#&1$@N@xv@N@userfs@S@Attributes#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@open_block_device#*$@N@xv@N@fs@S@Inode#b#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@open_device#*$@N@xv@N@fs@S@Inode#b#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@persistent#1",
       "c:@N@xv@N@fs@S@UserFileSystem@F@read#*$@N@xv@N@fs@S@Inode#I#l#i#i#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@read_only#1",
@@ -9160,6 +9225,8 @@
       "c:@N@xv@N@fs@S@UserFileSystem@F@retired#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@root#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@shutdown#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@snapshot#*$@N@xv@N@fs@S@Inode#&$@N@xv@N@fs@S@PageBuffer#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@snapshot_reads#1",
       "c:@N@xv@N@fs@S@UserFileSystem@F@stat#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@status#*$@N@xv@N@fs@S@Inode#*$@S@stat#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@synchronize#*$@N@xv@N@fs@S@Inode#",
@@ -9190,6 +9257,102 @@
       "c:registry.cpp@N@xv@N@fs@aN@F@collect#",
       "c:registry.cpp@N@xv@N@fs@aN@F@create#&1$@N@xv@N@userfs@S@Registration#b#",
       "c:registry.cpp@N@xv@N@fs@aN@F@valid#&1$@N@xv@N@userfs@S@Registration#"
+    ]
+  },
+  {
+    "source": "kernel/io/fs_service.h",
+    "document": "docs/functions/kernel/io/fs_service.h.md",
+    "function_usrs": []
+  },
+  {
+    "source": "kernel/io/fs_resources.h",
+    "document": "docs/functions/kernel/io/fs_resources.h.md",
+    "function_usrs": []
+  },
+  {
+    "source": "kernel/io/fs_mount.h",
+    "document": "docs/functions/kernel/io/fs_mount.h.md",
+    "function_usrs": []
+  },
+  {
+    "source": "kernel/fs/userfs/mount_manager.cpp",
+    "document": "docs/functions/kernel/fs/userfs/mount_manager.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@fs@F@create_mount_manager#",
+      "c:@N@xv@N@fs@F@initialize_mount_manager#",
+      "c:@N@xv@N@fs@F@managed_mounts_available#",
+      "c:@N@xv@N@fs@F@request_managed_mount#*1C#S0_#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@MountManager#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@available#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@claim#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@disconnect#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@endpoint#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@initialize#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@F@request#*1C#S0_#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@S@Endpoint@F@Endpoint#&$@N@xv@N@fs@aN@S@MountManager#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@S@Endpoint@F@close#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@S@Endpoint@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@S@Endpoint@F@read#$@N@xv@N@io@S@Buffer#I#",
+      "c:mount_manager.cpp@N@xv@N@fs@aN@S@MountManager@S@Endpoint@F@write#$@N@xv@N@io@S@Buffer#I#"
+    ]
+  },
+  {
+    "source": "kernel/fs/file/service_resources.cpp",
+    "document": "docs/functions/kernel/fs/file/service_resources.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@fs@F@create_fs_resources#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@ServiceResources#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@cache_statistics#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@capability#$@N@xv@N@io@E@CapabilityId#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@close#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@cpu#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@descriptor#&$@N@xv@N@fsservice@S@Query#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@device#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@filesystem_type#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@ioctl#i#$@N@xv@N@io@S@Buffer#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@mount#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@owner#&$@N@xv@N@fsservice@S@Query#i#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@process#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@provider#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@pty#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@read#$@N@xv@N@io@S@Buffer#I#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@system#&$@N@xv@N@fsservice@S@Query#S",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@F@write#$@N@xv@N@io@S@Buffer#I#",
+      "c:service_resources.cpp@N@xv@N@fs@aN@S@ServiceResources@FT@>1#Treply#&$@N@xv@N@fsservice@S@Query#&1t0.0#v#S"
+    ]
+  },
+  {
+    "source": "kernel/fs/file/device_registry.cpp",
+    "document": "docs/functions/kernel/fs/file/device_registry.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@fs@F@initialize_device_registry#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@MemoryDevice#$@N@xv@N@fs@aN@S@MemoryDevice@E@Kind#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@initialize#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@name#1",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@put_sync#I#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@read#$@N@xv@N@drivers@S@IoBuffer#I#",
+      "c:device_registry.cpp@N@xv@N@fs@aN@S@MemoryDevice@F@write#$@N@xv@N@drivers@S@IoBuffer#I#"
+    ]
+  },
+  {
+    "source": "kernel/fs/file/bootstrap_block.cpp",
+    "document": "docs/functions/kernel/fs/file/bootstrap_block.cpp.md",
+    "function_usrs": [
+      "c:@N@xv@N@fs@F@create_boot_disk#i#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@BootDisk#&$@N@xv@N@fs@S@BlockCache#&$@N@xv@N@drivers@S@BlockDevice#i#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@capability#$@N@xv@N@io@E@CapabilityId#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@close#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@ioctl#i#$@N@xv@N@io@S@Buffer#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@poll#*$@N@xv@N@sync@S@PollTable#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@position#1",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@read#$@N@xv@N@io@S@Buffer#I#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@seek#L#I#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@stat#&$@S@stat#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@sync#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@transfer#$@N@xv@N@io@S@Buffer#I#b#",
+      "c:bootstrap_block.cpp@N@xv@N@fs@aN@S@BootDisk@F@write#$@N@xv@N@io@S@Buffer#I#"
     ]
   }
 ]

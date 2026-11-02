@@ -167,8 +167,8 @@
 
 ```doxygen
 @fn static void xv::memory::FdtMemorySource::DiscoverFlow::begin(Context &c) noexcept
-@brief 验证节点名称和深度，继承父状态并压入固定栈。
-@details 头部验证仍先执行；局部 BootMemoryInfo 和固定 24 层 Node 栈由原函数持有，模板策略连接 token 分派与循环，全部解析和 blob 预留成功才写回输出。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 初始化 FDT 遍历和可选引导载荷解析状态。
+@details FDT 除 RAM 外解析 /chosen 的 linux,initrd-start/end；拒绝缺失配对、重复属性、错误宽度或越界范围。有效引导载荷必须完整位于受支持 RAM，交给 BootMemoryInfo 后由物理分配器预留其覆盖页面。该步骤只描述数据地址，不执行用户 ELF。
 ```
 
 <a id="fn-a6e9dc633bec966e"></a>
@@ -187,8 +187,8 @@
 
 ```doxygen
 @fn static void xv::memory::FdtMemorySource::DiscoverFlow::blob(Context &c) noexcept
-@brief 仅在 DTB 实际位于 RAM 时验证其完整跨度并加入预留。
-@details 头部验证仍先执行；局部 BootMemoryInfo 和固定 24 层 Node 栈由原函数持有，模板策略连接 token 分派与循环，全部解析和 blob 预留成功才写回输出。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 校验 FDT 整体边界后开始遍历 RAM 与 chosen 属性。
+@details FDT 除 RAM 外解析 /chosen 的 linux,initrd-start/end；拒绝缺失配对、重复属性、错误宽度或越界范围。有效引导载荷必须完整位于受支持 RAM，交给 BootMemoryInfo 后由物理分配器预留其覆盖页面。该步骤只描述数据地址，不执行用户 ELF。
 ```
 
 <a id="fn-97dde30630541980"></a>
@@ -267,8 +267,8 @@
 
 ```doxygen
 @fn static void xv::memory::FdtMemorySource::DiscoverFlow::property(Context &c) noexcept
-@brief 验证属性边界与顺序并应用 cell、reg、状态及 no-map 字段。
-@details 头部验证仍先执行；局部 BootMemoryInfo 和固定 24 层 Node 栈由原函数持有，模板策略连接 token 分派与循环，全部解析和 blob 预留成功才写回输出。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 解析 RAM 和 initrd 属性，拒绝重复、不成对及无效范围。
+@details FDT 除 RAM 外解析 /chosen 的 linux,initrd-start/end；拒绝缺失配对、重复属性、错误宽度或越界范围。有效引导载荷必须完整位于受支持 RAM，交给 BootMemoryInfo 后由物理分配器预留其覆盖页面。该步骤只描述数据地址，不执行用户 ELF。
 ```
 
 <a id="fn-449a595049de81c7"></a>

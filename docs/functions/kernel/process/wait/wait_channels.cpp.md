@@ -124,8 +124,8 @@
 
 ```doxygen
 @fn static void xv::process::WaitChannels::WakeFlow::scan(Context &c) noexcept
-@brief 直接扫描至下一匹配登记并保存摘链前的 successor。
-@details 入口桶锁固定链表和 successor；每个匹配进程在进程锁下摘链并按原睡眠状态唤醒，之后通知同通道 poll 订阅。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 依序选择受限数量的匹配进程并转为可运行。
+@details 队列锁固定等待者与 poll 节点生命周期，跨 hart 访问栈前刷新本地 TLB。wake 可限制普通进程匹配数以实现单等待者唤醒，但 poll 通知仍覆盖全部匹配观察者；广播入口使用不受限模式。
 ```
 
 <a id="fn-63c6213baed158ac"></a>

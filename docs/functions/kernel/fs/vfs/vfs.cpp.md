@@ -110,8 +110,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::VirtualFileSystem::allocate(unsigned device, short type)
-@brief 将显式磁盘 inode 分配请求交给根文件系统。
-@details 保留现有低层磁盘分配接口；普通路径创建应调用 create/create_at，devfs 不通过此入口分配设备。
+@brief 从实际根后端取得 inode，而非硬编码原生磁盘对象。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
 ```
 
 <a id="fn-8e0bbe0879ea9c9e"></a>
@@ -365,9 +365,9 @@
 ## `xv::fs::VirtualFileSystem::publish_mount_snapshot`
 
 ```doxygen
-@fn void VirtualFileSystem::xv::fs::VirtualFileSystem::publish_mount_snapshot()
-@brief 在挂载变更后通过独立锁发布只读挂载信息。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@fn void xv::fs::VirtualFileSystem::publish_mount_snapshot()
+@brief 在挂载变更后发布当前根及服务挂载的只读记录。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
 ```
 
 <a id="fn-49863f7ed2744744"></a>
@@ -385,9 +385,9 @@
 ## `xv::fs::VirtualFileSystem::mounts`
 
 ```doxygen
-@fn int VirtualFileSystem::xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
-@brief 输出独立发布的挂载快照，避免与VFS拓扑锁递归。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@fn int xv::fs::VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
+@brief 读取挂载信息并保持动态类型名称与只读状态。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
 ```
 
 <a id="fn-d081694eae1d34f0"></a>
@@ -418,8 +418,33 @@
 
 ```doxygen
 @fn bool xv::fs::VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
-@brief 在命名空间锁下挂载已准备好的用户态文件系统代理。
-@details mount_service 校验规范绝对路径、已有目录与总容量，在 namespace 锁下固定覆盖点、父目录及后端根，发布 -3 服务挂载并更新快照；挂载本身不向尚未进入接收循环的服务发请求。
+@brief 发布通用用户态后端挂载，支持初始根与常规挂载点。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
+```
+
+
+<a id="fn-ba24647a48f9b85c"></a>
+
+## `xv::fs::VirtualFileSystem::snapshot_mount`
+
+```doxygen
+@fn bool xv::fs::VirtualFileSystem::snapshot_mount(unsigned index, MountSnapshot &record) const
+@brief 按索引复制已发布挂载项，越界不修改调用者输出。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
+```
+
+<a id="fn-fee003f2c6b32003"></a>
+
+## `xv::fs::VirtualFileSystem::synchronize_services`
+
+```doxygen
+@fn int xv::fs::VirtualFileSystem::synchronize_services()
+@brief 依次同步当前已挂载的用户态文件系统服务。
+@details VFS 保留路径、权限、挂载拓扑和 inode 引用机制。生产根及所有系统挂载均绑定用户态提供者；namespace SleepLock 使用单等待者唤醒并继续通知 poll 观察者。挂载快照通过独立锁发布，资源查询不递归取得 namespace；全服务同步逐一调用已挂载的用户后端。
 ```
 
 - [`xv::fs::VirtualFileSystem::mount_service`](vfs.cpp.md#fn-0ca0821ecfb5ad49)
+
+- [`xv::fs::VirtualFileSystem::snapshot_mount`](vfs.cpp.md#fn-ba24647a48f9b85c)
+
+- [`xv::fs::VirtualFileSystem::synchronize_services`](vfs.cpp.md#fn-fee003f2c6b32003)

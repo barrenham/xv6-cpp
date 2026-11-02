@@ -54,3 +54,5 @@
 - [`xv::process::pin_controlling_terminal`](lifecycle/service.cpp.md#fn-a80386bf7a0d6e46)
 
 - [`xv::process::system_statistics`](lifecycle/service.cpp.md#fn-6da719ed0fea92a2)
+
+- [`xv::process::wakeup_one`](lifecycle/service.cpp.md#fn-2eb706af68e1c843)

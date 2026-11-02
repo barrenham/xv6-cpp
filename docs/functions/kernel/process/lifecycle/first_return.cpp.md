@@ -40,8 +40,8 @@
 
 ```doxygen
 @fn static void xv::process::Process::FirstReturnFlow::execute_init(Context &c) noexcept
-@brief 按原初始化参数执行 init 并保存 argc 返回寄存器。
-@details swtch 首次进入时持进程锁，先释放；首次文件系统初始化必须在可睡眠进程上下文执行，release 发布完成后才执行 init，最后进入用户态。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 安装初始能力并从内存加载用户态 fsboot。
+@details 首次调度 PID 1 时要求有效引导镜像，缺少 -initrd 明确 panic，不回退到内核文件系统。无需 /dev 或 cwd 即安装控制台 fd0..2、独占原始启动盘 fd3 与类型化资源 fd4，再从内存装载 /boot/fsboot；普通 init 由用户态服务挂好根后启动。
 ```
 
 <a id="fn-cdd848d8b9145137"></a>
@@ -70,8 +70,8 @@
 
 ```doxygen
 @fn static void xv::process::Process::FirstReturnFlow::initialize(Context &) noexcept
-@brief 在普通进程上下文初始化根文件系统。
-@details swtch 首次进入时持进程锁，先释放；首次文件系统初始化必须在可睡眠进程上下文执行，release 发布完成后才执行 init，最后进入用户态。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 要求存在用户态引导载荷，缺少时终止启动。
+@details 首次调度 PID 1 时要求有效引导镜像，缺少 -initrd 明确 panic，不回退到内核文件系统。无需 /dev 或 cwd 即安装控制台 fd0..2、独占原始启动盘 fd3 与类型化资源 fd4，再从内存装载 /boot/fsboot；普通 init 由用户态服务挂好根后启动。
 ```
 
 <a id="fn-7fe729c767e95db2"></a>

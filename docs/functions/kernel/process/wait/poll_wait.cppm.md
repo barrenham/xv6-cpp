@@ -69,3 +69,27 @@
 ```
 
 - [`xv::process::PollWait::cancel_deadline`](poll_wait.cpp.md#fn-9002ff18c51bbfce)
+
+<a id="fn-269c974b6c155a59"></a>
+
+## `xv::process::PollWait::Table::bind`
+
+```doxygen
+@fn void xv::process::PollWait::Table::bind(PollWait &owner, void (*subscribe)(PollWait &, void *))
+@brief 将通用 poll 表绑定到稳定地址的等待对象。
+@details PollWait 统一 Table 保存 watch 回调及其所有者，内嵌四个订阅和定时节点，扩展页仅在订阅较多时按需创建。节点地址在订阅期间稳定，析构先取消定时器再撤销所有订阅。
+```
+
+<a id="fn-29b3087570f58aa0"></a>
+
+## `xv::process::PollWait::Table::watch`
+
+```doxygen
+@fn void xv::process::PollWait::Table::watch(void *channel) override
+@brief 通过绑定的 PollWait 所有者登记通道订阅。
+@details PollWait 统一 Table 保存 watch 回调及其所有者，内嵌四个订阅和定时节点，扩展页仅在订阅较多时按需创建。节点地址在订阅期间稳定，析构先取消定时器再撤销所有订阅。
+```
+
+- [`xv::process::PollWait::Table::bind`](poll_wait.cppm.md#fn-269c974b6c155a59)
+
+- [`xv::process::PollWait::Table::watch`](poll_wait.cppm.md#fn-29b3087570f58aa0)

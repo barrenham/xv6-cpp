@@ -153,3 +153,19 @@
 - [`xv::fs::userfs_provider`](../userfs/registry.cpp.md#fn-0c4cc1076e132b14)
 
 - [`xv::fs::userfs_type`](../userfs/registry.cpp.md#fn-50e3b4205e956533)
+
+- [`xv::fs::bootstrap_cache`](../service.cpp.md#fn-9d2848029ed8f189)
+
+- [`xv::fs::create_boot_disk`](bootstrap_block.cpp.md#fn-7fcaabef60aa884d)
+
+- [`xv::fs::create_fs_resources`](service_resources.cpp.md#fn-590f98370bf80022)
+
+- [`xv::fs::create_mount_manager`](../userfs/mount_manager.cpp.md#fn-595c0678c1279512)
+
+- [`xv::fs::initialize_device_registry`](device_registry.cpp.md#fn-52bfca3b8cd3eb39)
+
+- [`xv::fs::initialize_mount_manager`](../userfs/mount_manager.cpp.md#fn-ab350520a2c38313)
+
+- [`xv::fs::managed_mounts_available`](../userfs/mount_manager.cpp.md#fn-35d7f25e98afdc8e)
+
+- [`xv::fs::request_managed_mount`](../userfs/mount_manager.cpp.md#fn-3ea101f5d38e440d)

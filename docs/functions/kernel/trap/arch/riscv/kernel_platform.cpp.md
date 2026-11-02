@@ -659,9 +659,9 @@
 ## `xv::trap::detail::UserReturnFlow::mask`
 
 ```doxygen
-@fn static void xv::trap::detail::UserReturnFlow::mask(Context &) noexcept
-@brief 按原位置关闭中断。
-@details 自检仍在原入口，随后保持关中断、切换向量、准备内核帧和提交用户状态/PC 的原顺序；不更改汇编入口。 下一节点由图策略声明，业务结果与控制信号分离。
+@fn static void xv::trap::detail::UserReturnFlow::mask(Context &c) noexcept
+@brief 屏蔽中断并回收当前活跃调用链以下的空闲栈余量。
+@details 返回用户态前屏蔽中断，按当前 SP 回收不再活跃的栈余量；保留初始页和调用链以下一页空间。内核中断仍按原有独立入口栈与紧急页机制处理缺页、预留安全余量；VM 诊断覆盖回收、内容保留、再次增长、保护及 OOM。定时器和用户映像切换协议保留。
 ```
 
 <a id="fn-915b47969452a327"></a>

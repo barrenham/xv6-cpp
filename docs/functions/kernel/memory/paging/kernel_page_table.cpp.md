@@ -775,3 +775,15 @@
 @details 所有设备、内核文本/数据、可用 RAM 与 trampoline 映射先进入共享 VirtualAddressPool，再由最大页策略建立 PTE；原有文本权限、RAM 边界与映射统计自检保留。
 @details 流程由 KernelBuildFlow::Graph 的编译期策略连接；保留原资源、锁、返回值及事件消费协议。
 ```
+
+<a id="fn-eea355ca94ba4e64"></a>
+
+## `xv::memory::KernelPageTable::trim_process_stack`
+
+```doxygen
+@fn unsigned xv::memory::KernelPageTable::trim_process_stack(unsigned long address, unsigned long lowest)
+@brief 归还初始及活跃后缀以下已不用的栈物理页，保留虚拟预留。
+@details 共享内核页表保留独立栈虚拟区域与保护区，按需提交连续物理页后缀。trim 仅由独占栈且屏蔽中断的所有者调用，保留初始页数及指定活跃后缀，清除 PTE 并刷新本 hart TLB 后归还物理页，不撤销区域/页表所有权；后续缺页可再次增长。
+```
+
+- [`xv::memory::KernelPageTable::trim_process_stack`](kernel_page_table.cpp.md#fn-eea355ca94ba4e64)

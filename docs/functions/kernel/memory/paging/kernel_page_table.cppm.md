@@ -59,3 +59,5 @@
 @details 该成员显式声明为 deleted，不存在可在运行期调用的实现。它阻止绕开对象的引用/锁/所有权规则创建第二个拥有者。
 @return 无运行期返回路径；使用该操作会导致编译失败。
 ```
+
+- [`xv::memory::KernelPageTable::trim_process_stack`](kernel_page_table.cpp.md#fn-eea355ca94ba4e64)

@@ -1,5 +1,5 @@
 {
-  "scope": "Every kernel source is inventoried. Boot remains excluded from graph conversion; startup task publication is reviewed. Current non-network coverage has 230 graph identities plus 3 conditional alternatives. The 110 network protocol graphs are preserved while deadline queries and notifications move timeout execution into a schedulable kernel task. The old WaitChannels expiry scan is replaced by a bounded intrusive-tree primitive. Ownership, cancellation, TLB synchronization and runtime evidence are documented in docs/deadline-timers.md.",
+  "scope": "Every kernel source is inventoried. Boot and network subtrees remain unchanged. Current non-network coverage has 229 graph identities plus 3 conditional alternatives. Production FS format/policy backends run in userspace; excluded native backends are host-test references. New raw device/resource/mount protocol boundaries and exclusive stack trimming are explicitly reviewed primitives. Runtime migration verification remains separate in docs/fs-service-migration.md. Graph totals include 190 production identities and 39 host-reference identities; native fixture graphs do not establish production runtime coverage.",
   "files": [
     {
       "source": "kernel/arch/arch.cppm",
@@ -351,7 +351,7 @@
     {
       "source": "kernel/fs/buffer/snapshot_text.cppm",
       "sha256": "426f8f41953f3e4afb16c09494f1f8d5ad40e20418a85e5c7be381cbfe1e7eae",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -380,32 +380,32 @@
     },
     {
       "source": "kernel/fs/devfs/devfs.cpp",
-      "sha256": "bf88f8235251a117b3b743d90f8980d04556796e87a4e1c66651fda97dfdb5d4",
-      "classification": "reviewed_workflow_or_primitive",
+      "sha256": "182fdd068bfc4004f6cafc9d530eba660352b50e2f52a9dfef710e4c637dcd9c",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/devfs/devfs.cppm",
       "sha256": "436180bee735a28ea621da15c21e562cdb3a24e465f1d29478aaf5f5a048d57f",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/devfs/flow.cppm",
       "sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/ext3/ext3_filesystem.cpp",
       "sha256": "bdf957d94ee9b0486b50115503bb1bf130072165d9e85ca59882e2d99a75775a",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/ext3/ext3_filesystem.cppm",
       "sha256": "579ce41480b410ca41ea68782e5aba319aa9816feaf28fd6fedba389e9383545",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -451,6 +451,18 @@
       "review": "docs/fs-flow-audit.json"
     },
     {
+      "source": "kernel/fs/file/bootstrap_block.cpp",
+      "sha256": "0119e58cfc09a97296cac914a803abe7d97998ae18f670afa03ae5963030aebd",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/file/device_registry.cpp",
+      "sha256": "c73df7a143580f2781e7c503999bab40f08ed2e143f27d9cc3420213979ffbe9",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
       "source": "kernel/fs/file/file_operations.cpp",
       "sha256": "0186392da682f2f5aa4479051c982573ac4da183028c71967600ae8d020d6d65",
       "classification": "reviewed_workflow_or_primitive",
@@ -482,7 +494,13 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "e3a94864db840763771a8464f78c6fd7d8e08173db1b6bb160ccf978b8768801",
+      "sha256": "cadcf2c374fa9cecc91017090783be5c2c8205b6e18a2e67668447967794a59e",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
+      "source": "kernel/fs/file/service_resources.cpp",
+      "sha256": "bd9d634897a25ec387443866910aa7f429c439d0a4e64d431a5b84679a4f9191",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -507,13 +525,13 @@
     {
       "source": "kernel/fs/inode/disk_filesystem.cpp",
       "sha256": "42a235741ebebabbf52f209da1d7847c668b3fa40f05e5fb49591b956f6adc92",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/inode/disk_filesystem.cppm",
       "sha256": "3478eb05f975dc9c93cc9fca5e84b38066de3ca23a501c39898417b1d6e90c7c",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -525,7 +543,7 @@
     {
       "source": "kernel/fs/inode/flow.cppm",
       "sha256": "a039f24318e82584dfaa31bf3bf4020995a630d2d03de723283501f1e649942c",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -537,13 +555,13 @@
     {
       "source": "kernel/fs/inode/xv6_filesystem.cpp",
       "sha256": "e7345865b1ac0a8e7beac1ad3ebc3b1e7de2396e480d183b0a542cd205f7e2a8",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/inode/xv6_filesystem.cppm",
       "sha256": "64f52b29c88b2cf29a23c364586594fefa59d6550e00f4684eefd330373b5ad0",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -555,13 +573,13 @@
     {
       "source": "kernel/fs/journal/flow.cppm",
       "sha256": "e5888348cc9324b4c9d34e1a63eb2ce46fdc138f99bcecc32d7a126cca4da283",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/journal/journal.cpp",
       "sha256": "8b8a6de9e406087cdd1d5570129bb459dc8b92259988ea1399da9f8b2f436b88",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -573,7 +591,7 @@
     {
       "source": "kernel/fs/journal/xv6_journal.cppm",
       "sha256": "258add99ddfa84d39bc0facd01427f74aacb96317104aa4fd901175f3a1c63f0",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -585,13 +603,13 @@
     {
       "source": "kernel/fs/path/flow.cppm",
       "sha256": "6e4cb15e7a2e39a285b2fb0a54a8cbcfcf71d4d94638b39af10a56edf3cea98a",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/path/path_operations.cpp",
       "sha256": "46d14c29a245064d499971dd22ab5da40da7adea83df59e7a941b602b89553f8",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
@@ -645,48 +663,48 @@
     {
       "source": "kernel/fs/procfs/procfs.cpp",
       "sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/procfs/procfs.cppm",
       "sha256": "d8844587ae9ae68b3c1ed7fb2ca54a6844e9cae402fc72a1e726d5992b1465ca",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/procfs/provider_registry.cppm",
       "sha256": "483f682bca0a658da96683303318aea01610d169c2c88e4540ec7025a2917919",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/procfs/system_providers.cpp",
       "sha256": "25cb5863ca8fb5684744dd2daf3c448cb0f7648e6463d4ef1e9db6900146f294",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/ramfs/flow.cppm",
       "sha256": "839af99d35a0e34e4a0591315eb262fdcd3b2414b348a0dbb85ff83d29cc9334",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/ramfs/ramfs.cpp",
       "sha256": "f936133347c3028c776230f30754ee58017e3e712bf7543656b055f347134d6f",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/ramfs/ramfs.cppm",
       "sha256": "7048faecb8e20c257372ba00614b2315f2a11c2fb4387d29fa73245254cb9460",
-      "classification": "reviewed_workflow_or_primitive",
+      "classification": "host_reference_fixture",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/service.cpp",
-      "sha256": "4ab2026f043549b3daa519e92f56d2141c644223bfa42e6a49a0be92edccc854",
+      "sha256": "6cb6cbd5fe72f43ece6208067a9c4a9b0f80c32050a3699f332afdd6300fdd41",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -697,32 +715,38 @@
       "review": "docs/fs-flow-audit.json"
     },
     {
+      "source": "kernel/fs/userfs/mount_manager.cpp",
+      "sha256": "1be59aae9c5fd6e997a8ee3e89f587a1714028946d5e0b9eff64d62df96933e9",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
       "source": "kernel/fs/userfs/protocol.h",
-      "sha256": "414ccc4bbc2819a825f8be16cea3b4e4ea571648b8931c8575408b6c5c07019b",
+      "sha256": "6973f522867b8e946b665da2143962895dcaa835905cbd5f2e5817347ded5dfa",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/userfs/registry.cpp",
-      "sha256": "c948e5d61110404d585c4ffd8ae342f9504d6f7ab961941f4746ac96edd1aff7",
+      "sha256": "8268a667631c9d9dd7d28fd7c8baefd67a5d71ca2356e7387e79a414475b0f98",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/userfs/userfs.cpp",
-      "sha256": "a2a8ecdb8734a2390dec2b48b03dd79acc0339466c59057e65c2dd1a26022d1d",
+      "sha256": "8d9404b0bd455030b2e2acff309e4ca56479fec307ac39cb34f445b43c13a1e9",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/userfs/userfs.cppm",
-      "sha256": "e8a7eda75ea250e81aa1ae9f205de8fec5212ebcddffbd2d31f810e72231c42a",
+      "sha256": "4613d08834f752ff66c90973d12fdd277a28151d0484d6b503b78ca0c25d79fa",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/vfs/initialize_flow.cppm",
-      "sha256": "860633bb8e1bae800ac3d7bc505d7039b8a085537518945d781689f5a7a97642",
+      "sha256": "e60dbd52ce6ef04202d9d1a715d507916a6476b987b846bd2569819874072d07",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -740,13 +764,13 @@
     },
     {
       "source": "kernel/fs/vfs/vfs.cpp",
-      "sha256": "9903d0cb9140c3053e0972530df7f840702dfa8ebdaa22fc7e083a4bee690a74",
+      "sha256": "2c78a8bacfa3763d5fafd0138ec7325273ebc8e8f1c4d1a8d785276dd9f10e60",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/vfs/vfs.cppm",
-      "sha256": "27735aa2a4a592763da8c761f03ea11e725cf586a0593170feb4b03694a76e85",
+      "sha256": "e1062c63c3f1c7a9154886a12eedd7f94fd851727a73f6016266e3062abaad07",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -767,6 +791,24 @@
       "sha256": "08577efa72738c558926a3e5dbba24fe3defaa8647a115d0e5c1416195050030",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。"
+    },
+    {
+      "source": "kernel/io/fs_mount.h",
+      "sha256": "97621b7413ea9fb72dc68035f2e27c337a3ca67ddaac124a751b8cd1ebdc7be9",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
+      "source": "kernel/io/fs_resources.h",
+      "sha256": "d204ad890ff485378e2993bc2b8aed139301ca8d419b23fb1dc30a36e0b7d3f8",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
+      "source": "kernel/io/fs_service.h",
+      "sha256": "6db5cf2df4f959dc7a761f9d7b2e418b64a9ae14a409020f5464c69d21fd9702",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
       "source": "kernel/io/keyboard.h",
@@ -842,19 +884,19 @@
     },
     {
       "source": "kernel/memory/boot/boot_memory.cpp",
-      "sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af",
+      "sha256": "0aacd162dfe75c3750d9e8d94e4943af446bcd42ada015acbc3154b2f2341443",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
     {
       "source": "kernel/memory/boot/boot_memory.cppm",
-      "sha256": "b0ced327215d3b8ccfd42d1edd7b3c914ceaeac0114eaab41acc32e91add5c29",
+      "sha256": "2f997819d804129d74688805a502f164470d278582e6cc1f9bcf51a378aac060",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
     {
       "source": "kernel/memory/boot/kalloc.cpp",
-      "sha256": "98fd3224a179a18b81645451acb53560f7f2e78b859078cfdd3e030bfdff9fdd",
+      "sha256": "2b5cc306bca99c97d58019eb8c2953bcd956257e12419942579702d5d9813129",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -896,13 +938,13 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15",
+      "sha256": "8f3e3255997424cb52bd8b6836a4eca3fb850467d121f39331c5760e74b403a6",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。"
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cppm",
-      "sha256": "e582d78367964300c89014e3535330e9f0605227bae035564e4e8b9fd4a4540f",
+      "sha256": "3a160f69ece6a4406d702cddae6e6363fb5f99b1712de6cc8cafba33b2cbf0c7",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/memory-flow-audit.json"
     },
@@ -1700,13 +1742,13 @@
     },
     {
       "source": "kernel/process/exec/elf_loader.cpp",
-      "sha256": "1ab74c31dad80a4eccd08cdd7e749f516bfc8cf9231c585fafbce7a9c07ba1f1",
+      "sha256": "29a4e13c359c6b5af8f503bf23bf2be87cb52680960e10d8330becc5104c5b41",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/exec/elf_loader.cppm",
-      "sha256": "d4442ab4527052cc93de852dccc5eb82155d49c0288545451f54ba894a34b693",
+      "sha256": "2d9a13171de9b5d35a63c270b51f6f8bc9108a49fc8e43c20394ab935a1eef36",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1718,7 +1760,7 @@
     },
     {
       "source": "kernel/process/exec/executable_loader.cppm",
-      "sha256": "d211e893711a8d1586ae47ee73ec39710d5f19c3a8accc13a2a65692f80215ff",
+      "sha256": "81b7cbc18a42bd5ba5b88e21b5c154894a7956e5d9f1234f966d315b9d82c372",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1766,7 +1808,7 @@
     },
     {
       "source": "kernel/process/lifecycle/first_return.cpp",
-      "sha256": "d2bfed7003c5898a3f82ec10eaff5ba92983772d47e90a416b05675013ecde62",
+      "sha256": "d975a2df336bcd572b45288bf3969d11a6a2b606b9a454c2246df8448a0a5e32",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1778,19 +1820,19 @@
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cpp",
-      "sha256": "c541d07f9c217e7ca0ab5db6875a7c0f20ef491fb220eb3b8b90f97fc0957b01",
+      "sha256": "b5193892c64525a1acbb5f21ded37b302a624d2af241180e541f4098a39dad66",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/lifecycle/process_manager.cppm",
-      "sha256": "1efa1a2e17cd7e8e20db6bd4a73f054c38cddc3ade9a2fd49e23daf8b7ef6674",
+      "sha256": "f1939e7362958482a57e106dd805549a6b359674fdd2d499786cee5815a6e75d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/lifecycle/service.cpp",
-      "sha256": "1bdc4e870a771dbf7cb56c26fb5261bb6f5af31fefcbe60d4fc86dca42662141",
+      "sha256": "c1e4ce12662c4c8b323e90ab82cae2deed4c6a29aed0f7756256735134f009da",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1820,7 +1862,7 @@
     },
     {
       "source": "kernel/process/process_module.cppm",
-      "sha256": "f30d6e92e0823d59cd5c9237a2264f686906948d484991d3553b8a1a64b76d6d",
+      "sha256": "a1f901c084c949ed9929cae6867bda90fed61a2f3e1bdf9fd3a718c955626f7e",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -1910,7 +1952,7 @@
     },
     {
       "source": "kernel/process/scheduler/runtime/scheduler_context.cpp",
-      "sha256": "e2e6bf00af2d338f8c1bcd86f74e1705fa771ab9e6a561fe9621ef9cc5b5690c",
+      "sha256": "4463642ce3ef5f14013dc441ae6c407e65f24c8df0e1dede2282e6a777a6daeb",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2012,19 +2054,19 @@
     },
     {
       "source": "kernel/process/wait/poll_entry.cppm",
-      "sha256": "aa6fd05cca8dfde4370f8e63529d0c997233e5b1c53cf1c03d10259492311f68",
+      "sha256": "ecb34116145351cd02289d871e4d4fdbbbe266d8053e3c16ff9923e3d3ddb7eb",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/wait/poll_wait.cpp",
-      "sha256": "12c5ee268634c7475f40ef3f5b36ba07f174c39f71f46ebc32c378d8998ca94c",
+      "sha256": "bacb649ed83ba6d4272794ff0f6dc755cc959871ee5785d49a037da6364256d1",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/wait/poll_wait.cppm",
-      "sha256": "2ce01da44bb5b8f4bf217b2d389939c7128230ebf071da2e10ba807d4c8f0e85",
+      "sha256": "a570cf6215ae5ab6a0f623a7822396f3c7ffd21ed3f29d8956715ec02e988094",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2042,13 +2084,13 @@
     },
     {
       "source": "kernel/process/wait/wait_channels.cpp",
-      "sha256": "7201b0217ec9cab3331e677bbce1411ae5f6e5cd1964f749265489d056fcbeaa",
+      "sha256": "f7910259db3a911e8db20d4da98e3340f8042ffcf0775c2a85b8c49f04b9b590",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
     {
       "source": "kernel/process/wait/wait_channels.cppm",
-      "sha256": "54134a2658fff2165be0d91e712fa2da9ff11163c8709ecdcf17fd116e495025",
+      "sha256": "07a391d4b262aa110fca06ed321d3b18db509c470236efa879e39f43b1b639c8",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/process-flow-audit.json"
     },
@@ -2186,7 +2228,7 @@
     },
     {
       "source": "kernel/sync/platform/kernel_bridge.cpp",
-      "sha256": "e0df605529d82b1726953fea5b4de9ddd062c7ba5cd6d0416245eba4f3b43df2",
+      "sha256": "13861a2247b668aa46501618189bc16b78489b5a1da73da3016c1880292a1695",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2198,7 +2240,7 @@
     },
     {
       "source": "kernel/sync/platform/platform.cppm",
-      "sha256": "1561ab77e98a2823a040c65bb7df758aca90dd4858fb9f4b92cc97da33e1da9f",
+      "sha256": "d7ba9a13cfe22c8d730bcf7f34b549d9209c96ac58eee4fa225f034dbf7299bf",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2222,13 +2264,13 @@
     },
     {
       "source": "kernel/sync/sleep/sleeplock.cpp",
-      "sha256": "fd669c4d5748e16e13fc5888fd04034ea4db6fa74f902955b251465915952723",
+      "sha256": "d87332e0126f4065957f52bfe1d18ca8d37be3bf20b7e7f047443a7dddc4792d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
       "source": "kernel/sync/sleep/sleeplock.cppm",
-      "sha256": "19a37f1b81b223f958ade0327d986180033cd1663f463ea4c7603207a95b96f7",
+      "sha256": "05724808eb56f79774d809bcd79859257db7425451913a66a4b1f3121f820c7f",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2288,7 +2330,7 @@
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934",
+      "sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
@@ -2336,7 +2378,7 @@
     },
     {
       "source": "kernel/trap/arch/riscv/kernel_platform.cpp",
-      "sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72",
+      "sha256": "41bbb7244cafb1c58ffb75dfc6fb17d852cda1df8c8123705e9b1a45901fd2d0",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },

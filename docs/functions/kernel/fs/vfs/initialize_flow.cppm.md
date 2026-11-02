@@ -37,8 +37,8 @@
 
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::InitializeFlow::disk(Context &c) noexcept
-@brief 初始化主磁盘文件系统。
-@details inode 初始化、后端初始化和启动挂载使用三个独立图；启动挂载图在入口局部 Transaction 中执行，原可选后端顺序和诊断消息保留。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 按服务模式选择通用根装配，参考模式才初始化原生磁盘夹具。
+@details 生产 VFS 使用 service_mode：初始化命名空间、通用提供者和挂载管理机制，根由用户态启动服务注册后发布，不初始化原生磁盘、ramfs、procfs 或 devfs 后端。旧分支仅保留给主机参考合同测试，不进入生产 kernel.elf 的后端装配。
 ```
 
 <a id="fn-dfb991f040857443"></a>
@@ -77,8 +77,8 @@
 
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::InitializeFlow::initialize_namespace(Context &c) noexcept
-@brief 初始化 namespace 锁并直接初始化可选动态后端的 inode 表。
-@details 模块依赖、接口与当前限制见 docs/ext3.md、docs/devfs.md、docs/procfs.md 及 docs/directories.md；该函数的实际声明与实现由编译器USR绑定。
+@brief 初始化 VFS 命名空间锁并明确选择单等待者策略。
+@details 生产 VFS 使用 service_mode：初始化命名空间、通用提供者和挂载管理机制，根由用户态启动服务注册后发布，不初始化原生磁盘、ramfs、procfs 或 devfs 后端。旧分支仅保留给主机参考合同测试，不进入生产 kernel.elf 的后端装配。
 ```
 
 <a id="fn-f96b42a9668a1957"></a>
@@ -87,8 +87,8 @@
 
 ```doxygen
 @fn static void xv::fs::VirtualFileSystem::InitializeFlow::inode_backends(Context &c) noexcept
-@brief 按磁盘、设备次序初始化 inode 表。
-@details inode 初始化、后端初始化和启动挂载使用三个独立图；启动挂载图在入口局部 Transaction 中执行，原可选后端顺序和诊断消息保留。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 初始化代理与通用服务机制，参考模式才初始化原生对象。
+@details 生产 VFS 使用 service_mode：初始化命名空间、通用提供者和挂载管理机制，根由用户态启动服务注册后发布，不初始化原生磁盘、ramfs、procfs 或 devfs 后端。旧分支仅保留给主机参考合同测试，不进入生产 kernel.elf 的后端装配。
 ```
 
 <a id="fn-a7a111bf4bdec4b4"></a>
@@ -97,8 +97,8 @@
 
 ```doxygen
 @fn static bool xv::fs::VirtualFileSystem::InitializeFlow::mount_devices(Context &c) noexcept
-@brief 尝试挂载设备后端并报告成功与否。
-@details inode 初始化、后端初始化和启动挂载使用三个独立图；启动挂载图在入口局部 Transaction 中执行，原可选后端顺序和诊断消息保留。 下一节点由图类型策略声明，业务状态与控制信号分离。
+@brief 服务模式不挂原生系统目录，由用户态 fsboot 逐一发布。
+@details 生产 VFS 使用 service_mode：初始化命名空间、通用提供者和挂载管理机制，根由用户态启动服务注册后发布，不初始化原生磁盘、ramfs、procfs 或 devfs 后端。旧分支仅保留给主机参考合同测试，不进入生产 kernel.elf 的后端装配。
 ```
 
 <a id="fn-e4315a4ea43212ef"></a>

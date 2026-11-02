@@ -1,5 +1,5 @@
 {
-  "status": "complete",
+  "status": "source_reviewed_remaining_runtime_regressions_pending",
   "excluded": [
     "kernel/boot"
   ],
@@ -36,7 +36,8 @@
           ]
         }
       ],
-      "definition_sha256": "946bcc1cabf5248c3c466ee26c22389d144af56970a6e5620051a4c1da689cbb"
+      "definition_sha256": "946bcc1cabf5248c3c466ee26c22389d144af56970a6e5620051a4c1da689cbb",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -70,7 +71,8 @@
           ]
         }
       ],
-      "definition_sha256": "dc8f0c2ab0628267edd9d8ecbbab50bb9a8acc7c2b164d221178fa4a1479f464"
+      "definition_sha256": "dc8f0c2ab0628267edd9d8ecbbab50bb9a8acc7c2b164d221178fa4a1479f464",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -93,7 +95,8 @@
           ]
         }
       ],
-      "definition_sha256": "e8c22269ab593a4d2f9a62cef66e3840eb10afe68797a37f05a36238d0947a40"
+      "definition_sha256": "e8c22269ab593a4d2f9a62cef66e3840eb10afe68797a37f05a36238d0947a40",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -116,7 +119,8 @@
           ]
         }
       ],
-      "definition_sha256": "e88f968202f8d8a93dc9eb5202293ca2df070c3ba11b0719798381fc831c4fc4"
+      "definition_sha256": "e88f968202f8d8a93dc9eb5202293ca2df070c3ba11b0719798381fc831c4fc4",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -183,13 +187,15 @@
           ]
         }
       ],
-      "definition_sha256": "621472f9828967773e1ebf8bae588a1310c9f2469c1340e1fda50b40d3ec0834"
+      "definition_sha256": "621472f9828967773e1ebf8bae588a1310c9f2469c1340e1fda50b40d3ec0834",
+      "profile": "production"
     },
     {
       "module": "process",
       "owner": "ElfLoader",
       "methods": [
-        "load"
+        "load",
+        "load_memory"
       ],
       "definition": "kernel/process/exec/elf_loader.cpp",
       "graphs": [
@@ -204,9 +210,19 @@
           "graphs": [
             "LoadFlow::Graph"
           ]
+        },
+        {
+          "qualified": "xv::process::ElfLoader::load_memory",
+          "usr": "c:@N@xv@N@process@S@ElfLoader@F@load_memory#&$@N@xv@N@process@S@Process#*1v#l#*1C#*1*C#S4_#",
+          "source": "kernel/process/exec/elf_loader.cpp",
+          "source_sha256": "b7d6c0b0a206f9ae16f742561471e8ee7d3e4afac61816d9ff06d28a7d5f89a6",
+          "graphs": [
+            "LoadFlow::Graph"
+          ]
         }
       ],
-      "definition_sha256": "1ab74c31dad80a4eccd08cdd7e749f516bfc8cf9231c585fafbce7a9c07ba1f1"
+      "definition_sha256": "29a4e13c359c6b5af8f503bf23bf2be87cb52680960e10d8330becc5104c5b41",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -240,7 +256,8 @@
           ]
         }
       ],
-      "definition_sha256": "9f752f9e053574bd720f3c1bc9414cff38b53a93647db19fe512c5e06fb50f22"
+      "definition_sha256": "9f752f9e053574bd720f3c1bc9414cff38b53a93647db19fe512c5e06fb50f22",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -274,7 +291,8 @@
           ]
         }
       ],
-      "definition_sha256": "e2ae806f8aedf5de4e8d1cf726428400780b34242b8c272fd6db5c5df1092fb1"
+      "definition_sha256": "e2ae806f8aedf5de4e8d1cf726428400780b34242b8c272fd6db5c5df1092fb1",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -297,7 +315,8 @@
           ]
         }
       ],
-      "definition_sha256": "270a7e902a6371705469235efb91a53a365dc8e9897e7c97dc71a7add25729ee"
+      "definition_sha256": "270a7e902a6371705469235efb91a53a365dc8e9897e7c97dc71a7add25729ee",
+      "profile": "production"
     },
     {
       "module": "support",
@@ -320,7 +339,8 @@
           ]
         }
       ],
-      "definition_sha256": "ccfb0d3450a191daeddce0ea49151b4118a2cb8e96c00d1ccd3f2a4012e68549"
+      "definition_sha256": "ccfb0d3450a191daeddce0ea49151b4118a2cb8e96c00d1ccd3f2a4012e68549",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -376,7 +396,8 @@
           ]
         }
       ],
-      "definition_sha256": "cc3532cb26f6a0b486beb7d4809f8078e9cab5f0d2afa6135c22db360c851960"
+      "definition_sha256": "cc3532cb26f6a0b486beb7d4809f8078e9cab5f0d2afa6135c22db360c851960",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -492,7 +513,8 @@
             "SyncFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -526,7 +548,8 @@
           ]
         }
       ],
-      "definition_sha256": "c596104e277e45728464f2b20d1e70556594c5fd083788e318aa88ba7bd8c710"
+      "definition_sha256": "c596104e277e45728464f2b20d1e70556594c5fd083788e318aa88ba7bd8c710",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -560,7 +583,8 @@
             "AttachFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -627,7 +651,8 @@
           ]
         }
       ],
-      "definition_sha256": "13e4f37326ab82a4601d2333fd16886c0d96ee70d46de0b25b0e3d4c2c7257d4"
+      "definition_sha256": "13e4f37326ab82a4601d2333fd16886c0d96ee70d46de0b25b0e3d4c2c7257d4",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -661,7 +686,8 @@
           ]
         }
       ],
-      "definition_sha256": "1dd12580eff0bac0ea80d834c5b76d8e085d4a46024dddeae686d85c9764d428"
+      "definition_sha256": "1dd12580eff0bac0ea80d834c5b76d8e085d4a46024dddeae686d85c9764d428",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -684,7 +710,8 @@
           ]
         }
       ],
-      "definition_sha256": "cdf2552f2f67dc69c08b94e3440aba8a60bfbb10aea41816c16a692b0bbdae26"
+      "definition_sha256": "cdf2552f2f67dc69c08b94e3440aba8a60bfbb10aea41816c16a692b0bbdae26",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -796,7 +823,8 @@
           ]
         }
       ],
-      "definition_sha256": "959dde8b1ae641c7876e3070a0b98bdc734dbe34008eb427263218f7cd2477e1"
+      "definition_sha256": "959dde8b1ae641c7876e3070a0b98bdc734dbe34008eb427263218f7cd2477e1",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -852,7 +880,8 @@
           ]
         }
       ],
-      "definition_sha256": "f77259abff0647e1974298a01dd2fa09d84fac0c3d8cce3013d7c1a73fc71bfd"
+      "definition_sha256": "f77259abff0647e1974298a01dd2fa09d84fac0c3d8cce3013d7c1a73fc71bfd",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -888,7 +917,8 @@
           ]
         }
       ],
-      "definition_sha256": "860633bb8e1bae800ac3d7bc505d7039b8a085537518945d781689f5a7a97642"
+      "definition_sha256": "e60dbd52ce6ef04202d9d1a715d507916a6476b987b846bd2569819874072d07",
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -999,7 +1029,8 @@
           ]
         }
       ],
-      "definition_sha256": "839af99d35a0e34e4a0591315eb262fdcd3b2414b348a0dbb85ff83d29cc9334"
+      "definition_sha256": "839af99d35a0e34e4a0591315eb262fdcd3b2414b348a0dbb85ff83d29cc9334",
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -1055,7 +1086,8 @@
           ]
         }
       ],
-      "definition_sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36"
+      "definition_sha256": "9b6bd5df070b181ddd2a9c57351662cf5e762f9a620a4e7c2967532dcf238e36",
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -1100,7 +1132,8 @@
           ]
         }
       ],
-      "definition_sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091"
+      "definition_sha256": "f751337e0c472d2ab59a4d480e77ad84439809f985f51b88eec18d4112594091",
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -1244,7 +1277,8 @@
           ]
         }
       ],
-      "definition_sha256": "a039f24318e82584dfaa31bf3bf4020995a630d2d03de723283501f1e649942c"
+      "definition_sha256": "a039f24318e82584dfaa31bf3bf4020995a630d2d03de723283501f1e649942c",
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -1300,7 +1334,8 @@
           ]
         }
       ],
-      "definition_sha256": "6e4cb15e7a2e39a285b2fb0a54a8cbcfcf71d4d94638b39af10a56edf3cea98a"
+      "definition_sha256": "6e4cb15e7a2e39a285b2fb0a54a8cbcfcf71d4d94638b39af10a56edf3cea98a",
+      "profile": "host-reference"
     },
     {
       "module": "process",
@@ -1313,7 +1348,8 @@
         "reparent",
         "exit_process",
         "kill",
-        "inspect_files"
+        "inspect_files",
+        "inspect_exec"
       ],
       "definition": "kernel/process/lifecycle/process_manager.cpp",
       "graphs": [
@@ -1392,26 +1428,36 @@
         },
         {
           "qualified": "xv::process::ProcessManager::inspect_files",
-          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_files#I#*$@N@xv@N@fs@S@FileInfo#i#i#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "77ba03127404f0661df4b61ae8fc849b2dfd2b3f73ed0f37a11110d3a058f6f7",
+          "source_sha256": "3166202cc20f9f4436643de42aca94bf1858d7329c03b0aafeaf5d4194f579ac",
+          "graphs": [
+            "InspectFlow::Graph"
+          ]
+        },
+        {
+          "qualified": "xv::process::ProcessManager::inspect_exec",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
+          "source": "kernel/process/lifecycle/process_manager.cpp",
+          "source_sha256": "b8fb60232516cb5e8723850f0b44a5d775d24331d11575e2d6d16e20899ed7b1",
           "graphs": [
             "InspectFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "c541d07f9c217e7ca0ab5db6875a7c0f20ef491fb220eb3b8b90f97fc0957b01",
+      "definition_sha256": "b5193892c64525a1acbb5f21ded37b302a624d2af241180e541f4098a39dad66",
       "internal_bindings": [
         {
           "qualified": "xv::process::ProcessManager::inspect_exec",
-          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#",
+          "usr": "c:@N@xv@N@process@S@ProcessManager@F@inspect_exec#I#$@N@xv@N@exec@S@Snapshot@E@Field#&$@N@xv@N@fs@S@PageBuffer#i#",
           "source": "kernel/process/lifecycle/process_manager.cpp",
-          "source_sha256": "af17727feae3180f4091c52053fc37825ff1138c896a1a755d32cbd16b15a1b1",
+          "source_sha256": "b8fb60232516cb5e8723850f0b44a5d775d24331d11575e2d6d16e20899ed7b1",
           "graphs": [
             "InspectFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1434,7 +1480,8 @@
           ]
         }
       ],
-      "definition_sha256": "d325f51e401fa337dc0af6311ad97b93c967b97d7624bbefa60ec47e176ce56c"
+      "definition_sha256": "d325f51e401fa337dc0af6311ad97b93c967b97d7624bbefa60ec47e176ce56c",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1490,7 +1537,8 @@
           ]
         }
       ],
-      "definition_sha256": "648600a16c8449720d6a6697292207066800d47743ed55d69fadb08c0c5974c2"
+      "definition_sha256": "648600a16c8449720d6a6697292207066800d47743ed55d69fadb08c0c5974c2",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1524,7 +1572,8 @@
           ]
         }
       ],
-      "definition_sha256": "4cbeff7918839e8fa192593cd8e0471c7c384650950786b213e02e4f9800ca44"
+      "definition_sha256": "4cbeff7918839e8fa192593cd8e0471c7c384650950786b213e02e4f9800ca44",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1591,7 +1640,8 @@
           ]
         }
       ],
-      "definition_sha256": "0811482c4fb21aeb4f107ddd26e68d6af73b28ca252436f9bc28ed708eb64168"
+      "definition_sha256": "0811482c4fb21aeb4f107ddd26e68d6af73b28ca252436f9bc28ed708eb64168",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1649,7 +1699,8 @@
           ]
         }
       ],
-      "definition_sha256": "839278c343ea1534ac4ca9c3a5473ddf4e3704ec0283d8f9721a661def803b13"
+      "definition_sha256": "839278c343ea1534ac4ca9c3a5473ddf4e3704ec0283d8f9721a661def803b13",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1672,7 +1723,8 @@
           ]
         }
       ],
-      "definition_sha256": "3620dad0e6bc3f074de8855cc605686b59435f378ab512ab3e3f9a318825a858"
+      "definition_sha256": "3620dad0e6bc3f074de8855cc605686b59435f378ab512ab3e3f9a318825a858",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1717,7 +1769,8 @@
           ]
         }
       ],
-      "definition_sha256": "e2e6bf00af2d338f8c1bcd86f74e1705fa771ab9e6a561fe9621ef9cc5b5690c"
+      "definition_sha256": "4463642ce3ef5f14013dc441ae6c407e65f24c8df0e1dede2282e6a777a6daeb",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1754,15 +1807,16 @@
         },
         {
           "qualified": "xv::process::WaitChannels::wake",
-          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#",
+          "usr": "c:@N@xv@N@process@S@WaitChannels@F@wake#*v#b#",
           "source": "kernel/process/wait/wait_channels.cpp",
-          "source_sha256": "60c7b5e126fa65dfc0370c22d3f8da9e9fb8d64f7f1a03d33f685c4aecd31ebb",
+          "source_sha256": "6dce8c268d68d3123fc2d5e38eb9c8f2c83e709e930f909c863b3bd321fb3dd1",
           "graphs": [
             "WakeFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "7201b0217ec9cab3331e677bbce1411ae5f6e5cd1964f749265489d056fcbeaa"
+      "definition_sha256": "f7910259db3a911e8db20d4da98e3340f8042ffcf0775c2a85b8c49f04b9b590",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1807,7 +1861,8 @@
           ]
         }
       ],
-      "definition_sha256": "12c5ee268634c7475f40ef3f5b36ba07f174c39f71f46ebc32c378d8998ca94c"
+      "definition_sha256": "bacb649ed83ba6d4272794ff0f6dc755cc959871ee5785d49a037da6364256d1",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1841,7 +1896,8 @@
           ]
         }
       ],
-      "definition_sha256": "5fd70429983c7a5eb03ff64431eb0f71c3605a15f98b7a0764ebae5cccbaabbc"
+      "definition_sha256": "5fd70429983c7a5eb03ff64431eb0f71c3605a15f98b7a0764ebae5cccbaabbc",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1864,7 +1920,8 @@
           ]
         }
       ],
-      "definition_sha256": "be0eae8889099a4822b94609bca5d101a5b1e933d8daa6da839dd872c242cdc2"
+      "definition_sha256": "be0eae8889099a4822b94609bca5d101a5b1e933d8daa6da839dd872c242cdc2",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1887,7 +1944,8 @@
           ]
         }
       ],
-      "definition_sha256": "3073bdbe6ab65dacaf809eb8248f027a73a5ef401bebbe5e6ec4a5c3821d5725"
+      "definition_sha256": "3073bdbe6ab65dacaf809eb8248f027a73a5ef401bebbe5e6ec4a5c3821d5725",
+      "profile": "production"
     },
     {
       "module": "process",
@@ -1910,7 +1968,8 @@
           ]
         }
       ],
-      "definition_sha256": "d2bfed7003c5898a3f82ec10eaff5ba92983772d47e90a416b05675013ecde62"
+      "definition_sha256": "d975a2df336bcd572b45288bf3969d11a6a2b606b9a454c2246df8448a0a5e32",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -1933,7 +1992,8 @@
           ]
         }
       ],
-      "definition_sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+      "definition_sha256": "8f3e3255997424cb52bd8b6836a4eca3fb850467d121f39331c5760e74b403a6",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2011,7 +2071,8 @@
           ]
         }
       ],
-      "definition_sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+      "definition_sha256": "8f3e3255997424cb52bd8b6836a4eca3fb850467d121f39331c5760e74b403a6",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2045,7 +2106,8 @@
           ]
         }
       ],
-      "definition_sha256": "f77f79791fe14446bf8e2e1bc4ff9114941d5fee461714ac23cf8575da13208d"
+      "definition_sha256": "f77f79791fe14446bf8e2e1bc4ff9114941d5fee461714ac23cf8575da13208d",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2171,7 +2233,8 @@
           ],
           "additional_validation": "compile-only with LAB_COW/SOL_COW and LAB_PGTBL/SOL_PGTBL undefined"
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2216,7 +2279,8 @@
           ]
         }
       ],
-      "definition_sha256": "fdfbb88b6565f4792038421a845a8732970bb8e8240e29790a9c25e8149fd609"
+      "definition_sha256": "fdfbb88b6565f4792038421a845a8732970bb8e8240e29790a9c25e8149fd609",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2239,7 +2303,8 @@
           ]
         }
       ],
-      "definition_sha256": "53cceffaa5e029e0870344bf2f5e606c5110a030ba5f2f3212bf26f1076153ec"
+      "definition_sha256": "53cceffaa5e029e0870344bf2f5e606c5110a030ba5f2f3212bf26f1076153ec",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2284,7 +2349,8 @@
           ]
         }
       ],
-      "definition_sha256": "923ace2bd0624589972c1c4a7520be1d5f1ddc1852d1933290ef96cceb5dbf31"
+      "definition_sha256": "923ace2bd0624589972c1c4a7520be1d5f1ddc1852d1933290ef96cceb5dbf31",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2307,7 +2373,8 @@
           ]
         }
       ],
-      "definition_sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af"
+      "definition_sha256": "0aacd162dfe75c3750d9e8d94e4943af446bcd42ada015acbc3154b2f2341443",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2330,7 +2397,8 @@
           ]
         }
       ],
-      "definition_sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af"
+      "definition_sha256": "0aacd162dfe75c3750d9e8d94e4943af446bcd42ada015acbc3154b2f2341443",
+      "profile": "production"
     },
     {
       "module": "memory",
@@ -2347,13 +2415,14 @@
           "qualified": "xv::memory::boot_initialize",
           "usr": "c:@N@xv@N@memory@F@boot_initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalAddress#",
           "source": "kernel/memory/boot/kalloc.cpp",
-          "source_sha256": "06246f1c9aea52a7911111f7cbef82d51e684bd410d07124d73f8c2215365fc3",
+          "source_sha256": "7957e20405e7314f6eba651229b0cb1ea5bdfc50415faaca0d8585cb2d4b5e78",
           "graphs": [
             "BootInitializeFlow::Graph"
           ]
         }
       ],
-      "definition_sha256": "98fd3224a179a18b81645451acb53560f7f2e78b859078cfdd3e030bfdff9fdd"
+      "definition_sha256": "2b5cc306bca99c97d58019eb8c2953bcd956257e12419942579702d5d9813129",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2420,7 +2489,8 @@
           ]
         }
       ],
-      "definition_sha256": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931"
+      "definition_sha256": "5365bc75a69e668742292e6d4444d5b2e260c6542b87aa2aa8a6ab091e84c931",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2443,7 +2513,8 @@
           ]
         }
       ],
-      "definition_sha256": "7016038f1c39ba4f0737004708e15b33e156097c5830a6463b7b27cfee57f541"
+      "definition_sha256": "7016038f1c39ba4f0737004708e15b33e156097c5830a6463b7b27cfee57f541",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2477,7 +2548,8 @@
           ]
         }
       ],
-      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2533,7 +2605,8 @@
           ]
         }
       ],
-      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2567,7 +2640,8 @@
           ]
         }
       ],
-      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2601,7 +2675,8 @@
           ]
         }
       ],
-      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2624,7 +2699,8 @@
           ]
         }
       ],
-      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291"
+      "definition_sha256": "f4a114698a4ae8f20e5589d3fa359f54a209850f49b919a21e7c9867afc27291",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2680,7 +2756,8 @@
           ]
         }
       ],
-      "definition_sha256": "717e205de2a049ae2ac67c70d4a1fbaaed54a5c7528965f79e466cde8f45f8f7"
+      "definition_sha256": "717e205de2a049ae2ac67c70d4a1fbaaed54a5c7528965f79e466cde8f45f8f7",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2714,7 +2791,8 @@
           ]
         }
       ],
-      "definition_sha256": "631fe1766096d15661034bb0ec8ffe95b751e4b5e61c08c63224e0dde8118446"
+      "definition_sha256": "631fe1766096d15661034bb0ec8ffe95b751e4b5e61c08c63224e0dde8118446",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2759,7 +2837,8 @@
           ]
         }
       ],
-      "definition_sha256": "7fc51479db2280fff5b8152e41b39f1e9c4e6aeb14b18ce6daab11728c7e36e7"
+      "definition_sha256": "7fc51479db2280fff5b8152e41b39f1e9c4e6aeb14b18ce6daab11728c7e36e7",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2782,7 +2861,8 @@
           ]
         }
       ],
-      "definition_sha256": "bf0a636616478228ce185b8c8698a014cdda4b2c2a088bed6793da4282d1ba16"
+      "definition_sha256": "bf0a636616478228ce185b8c8698a014cdda4b2c2a088bed6793da4282d1ba16",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -2816,7 +2896,8 @@
           ]
         }
       ],
-      "definition_sha256": "644a16dd9e0664b82b0338b58e3fc4322d1bda514c6cf71f225b4f96dfa9bce5"
+      "definition_sha256": "644a16dd9e0664b82b0338b58e3fc4322d1bda514c6cf71f225b4f96dfa9bce5",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2841,7 +2922,8 @@
           ]
         }
       ],
-      "definition_sha256": "2bfd7c56b6822138db7c112bba7d6a379fb4492b9512b45ea3692098972e9943"
+      "definition_sha256": "2bfd7c56b6822138db7c112bba7d6a379fb4492b9512b45ea3692098972e9943",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2864,7 +2946,8 @@
           ]
         }
       ],
-      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627"
+      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2887,7 +2970,8 @@
           ]
         }
       ],
-      "definition_sha256": "7b4373a8f1dbf50a023e9f9be23ea1db1fe6b3eebe7babbf9de72a3fb21e9b2b"
+      "definition_sha256": "7b4373a8f1dbf50a023e9f9be23ea1db1fe6b3eebe7babbf9de72a3fb21e9b2b",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2910,7 +2994,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2943,7 +3028,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2966,7 +3052,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -2989,7 +3076,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3012,7 +3100,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3035,7 +3124,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3058,7 +3148,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3091,30 +3182,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
-    },
-    {
-      "module": "syscall",
-      "owner": "",
-      "methods": [
-        "sys_mount"
-      ],
-      "definition": "kernel/syscall/sysfile.cpp",
-      "graphs": [
-        "MountFlow::Graph"
-      ],
-      "bindings": [
-        {
-          "qualified": "xv::syscall::sys_mount",
-          "usr": "c:@N@xv@N@syscall@F@sys_mount#",
-          "source": "kernel/syscall/sysfile.cpp",
-          "source_sha256": "e0ca6038c92e217affbd875f1a02ecc4bc3f6e50538aad031b009e2d9e8904ae",
-          "graphs": [
-            "MountFlow::Graph"
-          ]
-        }
-      ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3137,7 +3206,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3160,7 +3230,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3183,7 +3254,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3206,7 +3278,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3229,7 +3302,8 @@
           ]
         }
       ],
-      "definition_sha256": "6bd78fca9cecec226c4d80c255697513ae34829ad5294e188d171a06d1021934"
+      "definition_sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3252,7 +3326,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3275,7 +3350,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3298,7 +3374,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3321,7 +3398,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3344,7 +3422,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3367,7 +3446,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3390,7 +3470,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3413,7 +3494,8 @@
           ]
         }
       ],
-      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4"
+      "definition_sha256": "72c4bcdd8680345706c8c959fb1217ad76dd7ae8b49c94afa34150a9cbb172d4",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3436,7 +3518,8 @@
           ]
         }
       ],
-      "definition_sha256": "afe2c1e48b653f64f0f0b2f5d9bff123adeaf521eb6dab54ef52cd8637b20f7d"
+      "definition_sha256": "afe2c1e48b653f64f0f0b2f5d9bff123adeaf521eb6dab54ef52cd8637b20f7d",
+      "profile": "production"
     },
     {
       "module": "syscall",
@@ -3470,7 +3553,8 @@
           ]
         }
       ],
-      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627"
+      "definition_sha256": "2aa57e00039f92aa5290f93415dddad2fba1b48119d282aa34f17d1911268627",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -3504,7 +3588,8 @@
           ]
         }
       ],
-      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
+      "definition_sha256": "41bbb7244cafb1c58ffb75dfc6fb17d852cda1df8c8123705e9b1a45901fd2d0",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -3528,7 +3613,8 @@
           ]
         }
       ],
-      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
+      "definition_sha256": "41bbb7244cafb1c58ffb75dfc6fb17d852cda1df8c8123705e9b1a45901fd2d0",
+      "profile": "production"
     },
     {
       "module": "trap",
@@ -3551,7 +3637,8 @@
           ]
         }
       ],
-      "definition_sha256": "40b3df99042697ac79cebd92023e288127728cba15584bfe54167f3037683b72"
+      "definition_sha256": "41bbb7244cafb1c58ffb75dfc6fb17d852cda1df8c8123705e9b1a45901fd2d0",
+      "profile": "production"
     },
     {
       "module": "support",
@@ -3577,7 +3664,8 @@
           ]
         }
       ],
-      "definition_sha256": "fa23d4903a724a1f135042fadf351a8c2433f9d58207500f479a54c8fccd0c8f"
+      "definition_sha256": "fa23d4903a724a1f135042fadf351a8c2433f9d58207500f479a54c8fccd0c8f",
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3600,7 +3688,8 @@
             "InitializeFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3623,7 +3712,8 @@
             "ReadFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -3646,7 +3736,8 @@
             "CollectFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "host-reference"
     },
     {
       "module": "fs",
@@ -3669,7 +3760,8 @@
             "DirectoryFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "fs",
@@ -3692,7 +3784,8 @@
             "TransferFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3715,7 +3808,8 @@
             "InitializeFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3742,7 +3836,8 @@
             "MappedPresentFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3765,7 +3860,8 @@
             "InitializeFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3788,7 +3884,8 @@
             "ReadFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3811,7 +3908,8 @@
             "InterruptFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "drivers",
@@ -3835,7 +3933,8 @@
             "DeviceWaitFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     },
     {
       "module": "process",
@@ -3858,7 +3957,8 @@
             "DeviceMapFlow::Graph"
           ]
         }
-      ]
+      ],
+      "profile": "production"
     }
   ],
   "reviewed_primitives": [
@@ -4241,135 +4341,170 @@
         "statsinit fixed fixture/ABI registration"
       ],
       "reason": "条件 StatsReadFlow 负责缓存首次填充、有序双服务、长度限制、复制/游标/EOF 与必经解锁；固定设备委托和原返回常量保持原语。生产配置不补造 STATS 或缺失实验服务，实际代码由隔离宿主夹具验证。"
+    },
+    {
+      "module": "fs",
+      "owner": "Userspace filesystem capability boundaries",
+      "scope": [
+        "BootDisk::transfer/seek/sync and lease close",
+        "ServiceResources typed query/snapshot dispatch",
+        "MountManager serialized read/write/poll and one-request deadline protocol",
+        "device registry and generic VFS published snapshot access"
+      ],
+      "reason": "逐项复核固定 ABI、锁与引用所有权。原始块分段复制、类型化记录转换、单个请求的 I/O 等待和连接状态转换保留直接边界原语；后端选择、服务创建、格式算法和目录策略移到用户进程，不复制旧原生 FS 编排。"
+    },
+    {
+      "module": "memory",
+      "owner": "Exclusive kernel stack trimming",
+      "scope": [
+        "KernelPageTable::trim_process_stack",
+        "SchedulerContext::SuspendFlow::switch_context",
+        "UserReturnFlow::mask"
+      ],
+      "reason": "独占且屏蔽中断的当前栈只能删除活跃 SP 后缀以下连续的未用数据页；固定页下限、逐 PTE 撤销/fence/free 是紧凑页管理原语，保留区域和页表所有权。挂起和返回的既有图仍负责周围时序，专门 VM 合同验证内容保留、重复回收、非法范围和再次增长。"
+    },
+    {
+      "module": "syscall",
+      "owner": "Generic filesystem service delegation",
+      "scope": [
+        "sys_mount",
+        "sys_sync"
+      ],
+      "reason": "移除格式专用 MountFlow 后，mount 只做参数/身份门槛并选择通用管理通道或已注册实例；实际后端创建与挂载编排在用户态。sync 单次委托 VFS 逐个服务同步，不在内核运行磁盘日志。"
     }
   ],
   "pending_fs": [],
   "module_audits": {
     "fs": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "process_lifecycle": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "process_groups_owner": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "process_signals": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "scheduler_wait": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "process_remaining": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "memory_kernel_paging": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "memory_user_vm": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "memory_remaining": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "drivers_tty": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "drivers_pty": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "drivers_virtio_irq": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "drivers_e1000_pci_board": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "syscall_control_vm": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "syscall_file_socket": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "syscall_remaining": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "trap_stack_return": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "sync_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "trap_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "arch_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "io_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "tty_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "support_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "本模块已识别复杂路径与保留原语已完成接入/源范围审查，并通过最终联合验证；逐文件记录及条件配置边界见最终验收清单。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "drivers_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "34 个源文件及 31 张图；逐文件理由见 docs/drivers-flow-audit.json，条件统计源按 support 审查。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     },
     "fs_final_scope": {
       "status": "verified_with_documented_scope",
-      "note": "52 个源文件、71 张图与 69 个原入口；固定初始化/扫描/析构/单锁操作的理由见 docs/fs-flow-audit.json。",
+      "note": "原流程迁移的验收记录保留为历史基线；本次 FS 用户态服务迁移已更新源码/语义审查，当前运行回归进度见 docs/fs-service-migration.md。",
       "final_verification": "docs/kernel-flow-acceptance.json"
     }
   },
-  "final_verification": "docs/kernel-flow-acceptance.json"
+  "final_verification": "docs/kernel-flow-acceptance.json",
+  "migration_verification": "docs/fs-service-migration.md",
+  "profile_graph_counts": {
+    "production": 190,
+    "host-reference": 39
+  }
 }

@@ -55,13 +55,9 @@
 
 ```doxygen
 @fn void xv::process::SchedulerContext::idle()
-@brief 在检查空就绪队列后，保持全局中断关闭并执行 WFI。
-@details begin_round 在查询队列前关闭全局中断，idle 不能再次开启，否则可能先处理唤醒中断、再误入 WFI。RISC-V 规定 WFI 在局部使能的中断变为挂起时恢复执行，不受 sstatus.SIE 影响；下一轮 begin_round 再开启并处理中断。跨 hart 无 IPI 的入队仍由周期定时器约束等待时间。
-@note 此实现包含原子操作或内联汇编；其内存序、特权级与屏障语义属于接口的一部分，不能用普通字段读写替换。
-@return 无普通返回值；调用效果体现在受保护状态、资源所有权或控制流的变化中。
+@brief 在中断屏蔽状态进入 WFI，消除查空到等待之间的唤醒窗口。
+@details 调度器在查空就绪队列到 WFI 期间保持中断屏蔽，下一轮打开中断处理 pending，避免处理唤醒后仍进入睡眠。挂起前持有进程锁且屏蔽中断，按当前 SP 回收不用的栈余量，保留活跃等待记录；swtch 前后刷新本地 TLB，恢复时重新获取所在 hart 的 CpuState。
 ```
-
-体系结构依据：[RISC-V 特权规范中的 WFI](https://docs.riscv.org/reference/isa/priv/machine.html)。
 
 <a id="fn-717e81da3f2d8fa2"></a>
 
@@ -158,8 +154,8 @@
 
 ```doxygen
 @fn static void xv::process::SchedulerContext::SuspendFlow::switch_context(Context &c) noexcept
-@brief 切回当前 CPU 调度上下文并在恢复核上还原中断恢复标志。
-@details 调用者已持进程锁；逐项核对锁、中断和进程状态，保存 intena，恢复后重新读取当前 CPU，支持跨核恢复。 下一节点由图策略声明，业务结果与控制信号分离。
+@brief 回收当前栈的空闲余量后保存上下文，恢复时使用所在 hart 的 CPU 状态。
+@details 调度器在查空就绪队列到 WFI 期间保持中断屏蔽，下一轮打开中断处理 pending，避免处理唤醒后仍进入睡眠。挂起前持有进程锁且屏蔽中断，按当前 SP 回收不用的栈余量，保留活跃等待记录；swtch 前后刷新本地 TLB，恢复时重新获取所在 hart 的 CpuState。
 ```
 
 <a id="fn-cab3e8017e65685d"></a>

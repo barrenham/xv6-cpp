@@ -4,7 +4,7 @@
   "limitations": [
     "This source/ownership audit does not prove all experimental kernel builds.",
     "The fixed physical RAM fixture is incompatible with ASan shadow layout; UBSan and functional evidence are reported separately.",
-    "最终全局源码/语义绑定核对和 91 项功能检查已通过，验证范围及条件配置限制见 docs/kernel-flow-acceptance.json。"
+    "原流程验收是历史基线；本次用户态 FS 边界的逐文件审查已更新，运行回归状态单独记录在 docs/fs-service-migration.md，不能用旧测试数量证明当前迁移完成。"
   ],
   "files": [
     {
@@ -101,8 +101,8 @@
     },
     {
       "source": "kernel/memory/boot/boot_memory.cpp",
-      "sha256": "6198e8789895142fb9cf7aa0546469d29f0afa88e30af4ebd2eba9e8241de2af",
-      "review": "DiscoverFlow owns bounded reservation/token/node loops and final output commit. RecordFlow owns reg tuple validation/iteration. Endian/string/cell/bounds and individual property-field decoding remain data primitives. Failed parsing modifies only local candidates.",
+      "sha256": "0aacd162dfe75c3750d9e8d94e4943af446bcd42ada015acbc3154b2f2341443",
+      "review": "FDT 除 RAM 外解析 /chosen 的 linux,initrd-start/end；拒绝缺失配对、重复属性、错误宽度或越界范围。有效引导载荷必须完整位于受支持 RAM，交给 BootMemoryInfo 后由物理分配器预留其覆盖页面。该步骤只描述数据地址，不执行用户 ELF。",
       "graph_entries": [
         {
           "qualified": "xv::memory::record",
@@ -126,20 +126,20 @@
     },
     {
       "source": "kernel/memory/boot/boot_memory.cppm",
-      "sha256": "b0ced327215d3b8ccfd42d1edd7b3c914ceaeac0114eaab41acc32e91add5c29",
-      "review": "Fixed-capacity BootMemoryInfo storage and existing source interfaces remain direct; only a private DiscoverFlow declaration was added.",
+      "sha256": "2f997819d804129d74688805a502f164470d278582e6cc1f9bcf51a378aac060",
+      "review": "BootMemoryInfo 同时保存 RAM 与可选用户态引导镜像范围，暴露已校验的物理区间；引导范围必须由调用方预留，不能被普通物理页分配重用。",
       "graph_entries": []
     },
     {
       "source": "kernel/memory/boot/kalloc.cpp",
-      "sha256": "98fd3224a179a18b81645451acb53560f7f2e78b859078cfdd3e030bfdff9fdd",
-      "review": "BootInitializeFlow owns discovery, DTB residency, allocator setup diagnostics and report order. Fill/panic and configured policy adapters stay direct. This file is memory/boot, not excluded kernel/boot.",
+      "sha256": "2b5cc306bca99c97d58019eb8c2953bcd956257e12419942579702d5d9813129",
+      "review": "启动时先发现并验证 RAM 与引导镜像，物理布局预留内核、分配器元数据和引导镜像覆盖的完整页。镜像范围跨越不完整首尾页也不可分配；后续用户 ELF 读取使用内核直接映射。",
       "graph_entries": [
         {
           "qualified": "xv::memory::boot_initialize",
           "usr": "c:@N@xv@N@memory@F@boot_initialize#$@N@xv@N@memory@E@AllocatorKind#$@N@xv@N@memory@S@PhysicalAddress#",
           "source": "kernel/memory/boot/kalloc.cpp",
-          "source_sha256": "06246f1c9aea52a7911111f7cbef82d51e684bd410d07124d73f8c2215365fc3",
+          "source_sha256": "7957e20405e7314f6eba651229b0cb1ea5bdfc50415faaca0d8585cb2d4b5e78",
           "graphs": [
             "BootInitializeFlow::Graph"
           ]
@@ -194,8 +194,8 @@
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cpp",
-      "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15",
-      "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
+      "sha256": "8f3e3255997424cb52bd8b6836a4eca3fb850467d121f39331c5760e74b403a6",
+      "review": "共享内核页表保留独立栈虚拟区域与保护区，按需提交连续物理页后缀。trim 仅由独占栈且屏蔽中断的所有者调用，保留初始页数及指定活跃后缀，清除 PTE 并刷新本 hart TLB 后归还物理页，不撤销区域/页表所有权；后续缺页可再次增长。",
       "graph_entries": [
         {
           "qualified": "xv::memory::make_kernel_page_table",
@@ -204,9 +204,7 @@
           "source_sha256": "c31ac58332134247ba415445ffde2766f3dadd92261b2a2c0c780c1cd0ecffaa",
           "graphs": [
             "KernelBuildFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::initialize",
@@ -215,9 +213,7 @@
           "source_sha256": "399b5fc7175d68d2403a454de23a29f044dcae3c460d8b54b791056bb9d167d1",
           "graphs": [
             "InitializeFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::commit_stack",
@@ -226,9 +222,7 @@
           "source_sha256": "95e1ce15ca6dc3687137f049a045779166c7dc90079cb4a2e7c85207284d5b1f",
           "graphs": [
             "CommitFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::release_stack",
@@ -237,9 +231,7 @@
           "source_sha256": "858cfdeade1c977bcf13a7ca637c4f09b459bd701f1c661455416740044e1ff2",
           "graphs": [
             "ReleaseFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::allocate_process_stack",
@@ -248,9 +240,7 @@
           "source_sha256": "1f611df664bee37e5eb791a0f2b820683c93cebb09bf2ebd72253e8f06606aa9",
           "graphs": [
             "AllocateFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::free_process_stack",
@@ -259,9 +249,7 @@
           "source_sha256": "2e3ad694c6f96b2396a793a565a6439de5eed57b7c30192b470fa43cec770464",
           "graphs": [
             "FreeFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         },
         {
           "qualified": "xv::memory::KernelPageTable::handle_stack_fault",
@@ -270,16 +258,14 @@
           "source_sha256": "675378046cb43023d0d5c2c4500b732fc63247476da28878b2dfbaa013f52324",
           "graphs": [
             "FaultFlow::Graph"
-          ],
-          "review": "KernelBuildFlow设备映射从4页VirtIO MMIO扩为5页，覆盖0x10005000键盘；其余地址范围、权限、页表所有权和direct-map构造保持。 VirtIO MMIO映射6页覆盖鼠标槽位，其他映射保持。",
-          "sha256": "eda6670c55f8a5e8954362cd21e3b03991051ac73ab4ceff95753b1ae25abf15"
+          ]
         }
       ]
     },
     {
       "source": "kernel/memory/paging/kernel_page_table.cppm",
-      "sha256": "e582d78367964300c89014e3535330e9f0605227bae035564e4e8b9fd4a4540f",
-      "review": "Shared kernel paging API owns one unified VirtualAddressPool for fixed mappings and stack allocation/attributes. Stack-window bounds remain immutable; stable page-table directory publication preserves lock-free stack faults.",
+      "sha256": "3a160f69ece6a4406d702cddae6e6363fb5f99b1712de6cc8cafba33b2cbf0c7",
+      "review": "内核栈的虚拟预留、按需物理提交与回收独立管理。trim 的调用者必须独占栈并屏蔽中断，lowest 以下页面不可含活跃对象；保留初始页数和虚拟保护区域，返回归还的物理页数量。完整释放仍只在进程栈不再运行时执行。",
       "graph_entries": []
     },
     {

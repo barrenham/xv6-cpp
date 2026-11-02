@@ -81,8 +81,8 @@
 
 ```doxygen
 @fn void xv::fs::UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a)
-@brief 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
-@details 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
+@brief 把服务返回属性写入代理 inode，包括设备号和快照标志。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-278a5df4c786740e"></a>
@@ -111,8 +111,8 @@
 
 ```doxygen
 @fn void xv::fs::UserFileSystem::begin(Operation operation, unsigned node)
-@brief 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
-@details 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
+@brief 构造含原调用者身份的通用请求。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-ad3d62ed5a9767c5"></a>
@@ -130,9 +130,9 @@
 ## `xv::fs::UserFileSystem::create_at`
 
 ```doxygen
-@fn Inode *xv::fs::UserFileSystem::create_at(Inode *directory, const char *name, short type, short, short)
-@brief 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
-@details 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
+@fn Inode *xv::fs::UserFileSystem::create_at(Inode *directory, const char *name, short type, short major, short minor)
+@brief 请求服务创建子项并发布对应代理 inode。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-6e4001252f9ddf7e"></a>
@@ -201,8 +201,8 @@
 
 ```doxygen
 @fn int xv::fs::UserFileSystem::next_directory(Inode *n, unsigned long &cookie, DirectoryRecord &entry)
-@brief 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
-@details 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
+@brief 请求服务枚举目录项并校验名称范围。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-224085493352d858"></a>
@@ -211,8 +211,8 @@
 
 ```doxygen
 @fn Inode *xv::fs::UserFileSystem::node(const xv::userfs::Attributes &a)
-@brief 校验远端属性并借用固定地址 inode；零引用缓存槽位可复用。
-@details 消息、inode 及引用协议保留；初始根和名称来自注册配置，读写分段按协商载荷限制，不支持能力在发布前失败。注册端点在挂载前可以阻塞接收；发布窗口的 mounting 状态也允许请求，避免挂载可见后服务误收 EOF。实例和固定地址 inode 页由页分配器创建/销毁，只有端点关闭且无挂载或选择占用时可回收；只读注册限制可发送修改操作。详细锁序、5 秒失败及聚合 Forget 见 docs/user-filesystems.md。
+@brief 查找或借用返回属性对应的稳定地址代理 inode。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-f99fcdc7246df9ce"></a>
@@ -351,8 +351,8 @@
 
 ```doxygen
 @fn int xv::fs::UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset, unsigned count)
-@brief 元数据由 tree_ 睡眠锁保护；serial_ 保证每实例一条在途消息，state_ 保护发布、交付和回复状态。等待回复前释放通道自旋锁，先订阅再睡眠且设 5 秒截止时间。关闭、被杀、中断或超时返回错误；中断/超时停用连接，防止迟到回复串入后续操作。根和活跃 inode 引用阻止槽位复用，忙卸载失败。详细协议、原有 namespace 锁限制和示例见 docs/user-filesystems.md。
-@details 消息、inode 及引用协议保留；初始根和名称来自注册配置，读写分段按协商载荷限制，不支持能力在发布前失败。注册端点在挂载前可以阻塞接收；发布窗口的 mounting 状态也允许请求，避免挂载可见后服务误收 EOF。实例和固定地址 inode 页由页分配器创建/销毁，只有端点关闭且无挂载或选择占用时可回收；只读注册限制可发送修改操作。详细锁序、5 秒失败及聚合 Forget 见 docs/user-filesystems.md。
+@brief 按既有错误段提交语义拆分写 RPC 并更新代理属性。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-8d4a060efdc8b80a"></a>
@@ -401,8 +401,8 @@
 
 ```doxygen
 @fn UserFileSystem *xv::fs::UserFileSystem::create(unsigned device, const xv::userfs::Registration &registration, bool anonymous)
-@brief 按需创建通用插件实例和固定地址 inode 页，分配失败释放全部已取得资源。
-@details 消息、inode 及引用协议保留；初始根和名称来自注册配置，读写分段按协商载荷限制，不支持能力在发布前失败。注册端点在挂载前可以阻塞接收；发布窗口的 mounting 状态也允许请求，避免挂载可见后服务误收 EOF。实例和固定地址 inode 页由页分配器创建/销毁，只有端点关闭且无挂载或选择占用时可回收；只读注册限制可发送修改操作。详细锁序、5 秒失败及聚合 Forget 见 docs/user-filesystems.md。
+@brief 按注册配置分配独立服务实例及固定地址 inode 存储。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
 ```
 
 <a id="fn-02e33bbbb44bae7d"></a>
@@ -444,3 +444,15 @@
 - [`xv::fs::UserFileSystem::destroy`](userfs.cpp.md#fn-3bc854bf55d0af33)
 
 - [`xv::fs::UserFileSystem::retired`](userfs.cpp.md#fn-355e01b2c468377a)
+
+<a id="fn-3370dfa7623315f5"></a>
+
+## `xv::fs::UserFileSystem::snapshot`
+
+```doxygen
+@fn bool xv::fs::UserFileSystem::snapshot(Inode *node, PageBuffer &buffer)
+@brief 向服务请求该次打开的不可变只读字节快照。
+@details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
+```
+
+- [`xv::fs::UserFileSystem::snapshot`](userfs.cpp.md#fn-3370dfa7623315f5)
