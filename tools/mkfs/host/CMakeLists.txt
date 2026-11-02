@@ -455,8 +455,9 @@ target_compile_options(userfs_memory_contract PRIVATE -O2 -Wall -Wextra -Werror 
 set_target_properties(userfs_memory_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 
 add_executable(xv6_volume_contract "${XV_ROOT}/tests/xv6_volume_contract.cpp"
+  "${XV_ROOT}/user/runtime/userfs/xv6.cpp"
   "${XV_ROOT}/user/runtime/userfs/xv6_volume.cpp")
 target_include_directories(xv6_volume_contract PRIVATE "${XV_ROOT}")
 target_compile_features(xv6_volume_contract PRIVATE cxx_std_20)
-target_compile_options(xv6_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+target_compile_options(xv6_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG -fno-builtin)
 set_target_properties(xv6_volume_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

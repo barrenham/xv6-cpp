@@ -5,6 +5,25 @@
 
 namespace userfs
 {
+namespace
+{
+// Preserve xv6's pathname ABI at the service boundary. The disk engine itself
+// accepts only canonical on-disk names, so offline callers retain strict checks.
+bool canonical_name(const char *source, char (&name)[DIRSIZ + 1])
+{
+  if (!source) return false;
+  unsigned length = 0;
+  while (source[length])
+  {
+    if (length == NameSize - 1 || source[length] == '/') return false;
+    if (length < DIRSIZ) name[length] = source[length];
+    ++length;
+  }
+  name[length < DIRSIZ ? length : DIRSIZ] = 0;
+  return length != 0;
+}
+} // namespace
+
 Xv6Backend::~Xv6Backend() { if (state_) free(state_); }
 bool Xv6Backend::initialize()
 {
@@ -77,8 +96,10 @@ bool Xv6Backend::collect()
 }
 int Xv6Backend::lookup(unsigned parent, const char *name, Attributes &out)
 {
+  char component[DIRSIZ + 1];
   xv6::Inode node;
-  if (!state_ || failed_ || !volume_.lookup(parent, name, node) || !borrow(node)) return -1;
+  if (!state_ || failed_ || !canonical_name(name, component) ||
+      !volume_.lookup(parent, component, node) || !borrow(node)) return -1;
   out = attributes(node); return 0;
 }
 int Xv6Backend::getattr(unsigned number, Attributes &out)
@@ -107,8 +128,10 @@ int Xv6Backend::write(unsigned number, unsigned long offset, const void *in, uns
 }
 int Xv6Backend::create(unsigned parent, const char *name, const Attributes &requested, Attributes &out)
 {
+  char component[DIRSIZ + 1];
   xv6::Inode node;
-  if (!state_ || failed_ || !volume_.create(parent, name, requested.type, requested.mode,
+  if (!state_ || failed_ || !canonical_name(name, component) ||
+      !volume_.create(parent, component, requested.type, requested.mode,
       requested.uid, requested.gid, requested.major, requested.minor, node)) return -1;
   state_[node.number] = {};
   if (!borrow(node)) return -1;
@@ -124,22 +147,29 @@ int Xv6Backend::setattr(unsigned number, const Attributes &requested)
 }
 int Xv6Backend::link(unsigned parent, const char *name, unsigned target)
 {
-  return state_ && !failed_ && volume_.link(parent, name, target) ? 0 : -1;
+  char component[DIRSIZ + 1];
+  return state_ && !failed_ && canonical_name(name, component) &&
+         volume_.link(parent, component, target) ? 0 : -1;
 }
 int Xv6Backend::unlink(unsigned parent, const char *name, Attributes &out)
 {
+  char component[DIRSIZ + 1];
   xv6::Inode removed;
-  if (!state_ || failed_ || !volume_.unlink(parent, name, removed)) return -1;
+  if (!state_ || failed_ || !canonical_name(name, component) ||
+      !volume_.unlink(parent, component, removed)) return -1;
   out = attributes(removed);
   if (!removed.value.nlink) state_[removed.number].orphan = true;
   return collect() ? 0 : -1;
 }
 int Xv6Backend::rename(unsigned from, const char *old_name, unsigned to, const char *new_name)
 {
+  char old_component[DIRSIZ + 1], new_component[DIRSIZ + 1];
   xv6::Inode source;
   unsigned replaced = 0;
-  if (!state_ || failed_ || !volume_.lookup(from, old_name, source) ||
-      !volume_.rename(from, old_name, to, new_name, replaced)) return -1;
+  if (!state_ || failed_ || !canonical_name(old_name, old_component) ||
+      !canonical_name(new_name, new_component) ||
+      !volume_.lookup(from, old_component, source) ||
+      !volume_.rename(from, old_component, to, new_component, replaced)) return -1;
   if (source.value.type == T_DIR) state_[source.number].parent = to;
   if (replaced)
   {

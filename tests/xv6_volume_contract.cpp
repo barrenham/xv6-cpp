@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include "kernel/fs/stat.h"
 #include "user/runtime/userfs/xv6_volume.h"
+#include "user/runtime/userfs/xv6.h"
 
 namespace
 {
@@ -57,6 +58,36 @@ Inode create(Volume &volume, unsigned parent, const char *name, unsigned type = 
   assert(volume.create(parent, name, type, 0640, 123, 456, 0, 0, node));
   assert(node.value.uid == 123 && node.value.gid == 456 && node.value.nlink == 1);
   return node;
+}
+void backend_names(const std::vector<unsigned char> &base)
+{
+  Disk disk(base);
+  {
+    userfs::Xv6Backend backend(disk);
+    assert(backend.initialize());
+    userfs::Attributes requested{0, 0, 0, 0, 0755, T_DIR, 1}, directory{}, file{}, alias{}, removed{};
+    assert(backend.create(ROOTINO, "12345678901234-directory", requested, directory) == 0);
+    assert(backend.lookup(ROOTINO, "12345678901234-alias", alias) == 0 && alias.node == directory.node);
+    requested.type = T_FILE;
+    assert(backend.create(directory.node, "abcdefghijklmn-original", requested, file) == 0);
+    assert(backend.lookup(directory.node, "abcdefghijklmn-alias", alias) == 0 && alias.node == file.node);
+    assert(backend.write(file.node, 0, "kept", 4) == 4);
+    assert(backend.link(directory.node, "link1234567890-long", file.node) == 0);
+    assert(backend.rename(directory.node, "abcdefghijklmn-old", directory.node,
+                          "opqrstuvwxyzab-new") == 0);
+    assert(backend.lookup(directory.node, "abcdefghijklmn", alias) < 0);
+    assert(backend.lookup(directory.node, "opqrstuvwxyzab-alias", alias) == 0 && alias.node == file.node);
+    assert(backend.unlink(directory.node, "link1234567890-alias", removed) == 0);
+    assert(backend.unlink(directory.node, "opqrstuvwxyzab-alias", removed) == 0);
+    char content[4];
+    assert(backend.read(file.node, 0, content, sizeof(content)) == 4 && !std::memcmp(content, "kept", 4));
+    assert(backend.create(directory.node, "12345678901234/slash", requested, alias) < 0);
+    backend.forget(file.node);
+    backend.forget(directory.node);
+    assert(backend.unlink(ROOTINO, "12345678901234-alias", removed) == 0);
+    assert(backend.sync(ROOTINO) == 0);
+  }
+  assert(disk.pages.empty() && !disk.outside);
 }
 void operations(const std::vector<unsigned char> &base)
 {
@@ -224,5 +255,6 @@ int main(int argc, char **argv)
   std::vector<unsigned char> base(size);
   assert(std::fread(base.data(), 1, base.size(), file) == base.size()); std::fclose(file);
   operations(base); preparation_faults(base); recovery(base); rename_recovery(base);
+  backend_names(base);
   std::puts("userspace xv6 volume: format, namespaces, rollback and durable redo recovery passed");
 }
