@@ -1,9 +1,11 @@
+find_program(XV_USER_OBJCOPY llvm-objcopy HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 add_library(user_fs STATIC runtime/userfs/server.cpp runtime/userfs/block_io.cpp
   runtime/userfs/ext3.cpp runtime/userfs/devices.cpp
   runtime/userfs/memory.cpp runtime/userfs/memory_heap.cpp
-  runtime/userfs/processes.cpp runtime/userfs/process_system.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
+  runtime/userfs/processes.cpp runtime/userfs/process_system.cpp
+  runtime/userfs/xv6_volume.cpp runtime/userfs/xv6.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
   ../kernel/fs/ext3/jbd.cpp)
 target_link_libraries(user_fs PRIVATE xv_options)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
@@ -18,8 +20,14 @@ function(xv_add_program source)
   target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns user_fs)
   target_link_options(user_${name} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
+  set(guest_name "${name}")
+  if(name STREQUAL "ramfsservicetest")
+    set(guest_name "ramfssvctest")
+  elseif(name STREQUAL "fsresourcesboottest")
+    set(guest_name "fsresboot")
+  endif()
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
-    set(destination "/usr/tests/${name}")
+    set(destination "/usr/tests/${guest_name}")
   elseif(name STREQUAL "fsboot" OR name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
     set(destination "/sbin/${name}")
   else()
@@ -29,8 +37,15 @@ function(xv_add_program source)
   if(name STREQUAL "passwd")
     set(mode 04755)
   endif()
-  set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t${mode}\t${destination}\t$<TARGET_FILE:user_${name}>\n" PARENT_SCOPE)
-  set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> PARENT_SCOPE)
+  # Guest loaders use program headers; keep full DWARF in the host executable
+  # while installing a regular stripped ELF within the legacy xv6 file limit.
+  set(guest_binary "${PROJECT_BINARY_DIR}/user/image/_${name}")
+  add_custom_command(TARGET user_${name} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${PROJECT_BINARY_DIR}/user/image"
+    COMMAND "${XV_USER_OBJCOPY}" --strip-debug $<TARGET_FILE:user_${name}> "${guest_binary}"
+    BYPRODUCTS "${guest_binary}" VERBATIM)
+  set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t${mode}\t${destination}\t${guest_binary}\n" PARENT_SCOPE)
+  set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
   apps/fsboot/fsboot.cpp
@@ -64,6 +79,7 @@ set(programs
   tests/ramfstest.cpp
   tests/ramfsservicetest.cpp
   tests/fsrootboottest.cpp
+  tests/xv6fstest.cpp
   tests/fsboottest.cpp
   tests/fsresourcesboottest.cpp
   tests/fssnapshottest.cpp

@@ -371,7 +371,8 @@ Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type,
                          0,
                          identity.uid,
                          identity.gid,
-                         unsigned((type == T_DIR ? 0777 : 0666) & ~identity.mask),
+                         unsigned((type == T_DIR ? 0777 :
+                                   (type == T_DEVICE || type == T_BLOCK) ? 0600 : 0666) & ~identity.mask),
                          unsigned(type),
                          1, unsigned(major), unsigned(minor)};
   auto *result = exchange() ? node(response_.attributes) : nullptr;

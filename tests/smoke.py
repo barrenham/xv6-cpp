@@ -730,7 +730,7 @@ try:
     if args.ramfs:
         checks = [('ramfstest', 'ramfstest: all tests succeeded')]
     if args.ramfs_service:
-        checks = [('ramfsservicetest', 'ramfsservicetest: independent daemon, overlay and lifecycle passed')]
+        checks = [('ramfssvctest', 'ramfsservicetest: independent daemon, overlay and lifecycle passed')]
     if args.snapshots:
         checks = [('fssnapshottest', 'fssnapshottest: capture errors, independent opens and actor identity passed')]
     if args.procfs:

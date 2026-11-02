@@ -584,3 +584,30 @@ foreach(cpus 1 5)
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --snapshots)
   set_tests_properties(fs_service_snapshots_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
 endforeach()
+
+add_test(NAME xv6_volume_contract COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/xv6_volume.py" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
+  --contract "${PROJECT_BINARY_DIR}/xv6_volume_contract")
+set_tests_properties(xv6_volume_contract PROPERTIES TIMEOUT 60 LABELS fs)
+
+foreach(cpus 1 5)
+  add_test(NAME fs_service_xv6_boot_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+    --ram-mib "${XV_RAM_MB}" --cpus ${cpus})
+  set_tests_properties(fs_service_xv6_boot_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
+  add_test(NAME fs_service_xv6_persistence_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_service_xv6.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --cpus ${cpus})
+  set_tests_properties(fs_service_xv6_persistence_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
+  foreach(contract procfs permissions ramfs)
+    add_test(NAME fs_service_xv6_${contract}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
+      --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --${contract})
+    set_tests_properties(fs_service_xv6_${contract}_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
+  endforeach()
+endforeach()

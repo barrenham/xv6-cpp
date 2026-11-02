@@ -5,6 +5,7 @@
 #include "user/runtime/user.h"
 #include "user/runtime/userfs/block_io.h"
 #include "user/runtime/userfs/ext3.h"
+#include "user/runtime/userfs/xv6.h"
 #include "user/runtime/userfs/devices.h"
 #include "user/runtime/userfs/memory.h"
 #include "user/runtime/userfs/processes.h"
@@ -37,6 +38,14 @@ enum class Service { Root, Devices, Memory, Processes };
   {
     close(4);
     userfs::BlockIo io(3);
+    if (!strcmp(type, "xv6"))
+    {
+      auto *storage = malloc(sizeof(userfs::Xv6Backend));
+      if (!storage) fatal("volume allocation failed");
+      auto *backend = new (storage) userfs::Xv6Backend(io);
+      if (!backend->initialize()) fatal("xv6 mount or recovery failed");
+      serve(ready, type, *backend);
+    }
     auto *storage = malloc(sizeof(userfs::Ext3Backend));
     if (!storage) fatal("volume allocation failed");
     auto *backend = new (storage) userfs::Ext3Backend(io);
@@ -105,15 +114,20 @@ int start_init()
 extern "C" int main(int, char **)
 {
   if (getpid() != 1) fatal("must run as the bootstrap process");
-  int root = start(Service::Root, "ext3", "/");
+  userfs::BlockIo disk(3);
+  unsigned char signature[64];
+  if (!disk.read(1024, signature, sizeof(signature))) fatal("cannot read root signature");
+  const char *root_type = xv::ext3::le32(signature) == FSMAGIC ? "xv6" :
+                          xv::ext3::le16(signature + 56) == xv::ext3::Magic ? "ext3" : nullptr;
+  if (!root_type) fatal("unsupported root filesystem format");
+  int root = start(Service::Root, root_type, "/");
   close(3);
   if (chdir("/") < 0) fatal("cannot select root cwd");
   int devices = start(Service::Devices, "devfs", "/dev");
   int processes = start(Service::Processes, "proc", "/proc");
   int memory = start(Service::Memory, "ramfs", "/tmp");
   close(4);
-  // The alternate disk format is added in the next migration
-  // steps; this executable is not the default QEMU boot path until all are ready.
+  // Full mount management is added in the next migration step; this executable is not the default QEMU boot path until all are ready.
   int init = start_init();
   for (;;)
   {
