@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Gate the original 1000-child fork/reap workload at five seconds per run."""
+from qemu_boot import bootstrap_args
 import argparse
 import json
 import os
@@ -39,7 +40,7 @@ def main():
         image = Path(tmp) / 'fs.img'
         shutil.copyfile(args.image, image)
         command = [args.qemu, '-machine', 'virt', '-bios', 'none',
-                   '-kernel', str(args.kernel), '-m', '128M', '-smp', str(args.cpus),
+                   '-kernel', str(args.kernel), *bootstrap_args(args.kernel), '-m', '128M', '-smp', str(args.cpus),
                    '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',
                    '-drive', f'file={image},if=none,format=raw,id=x0',
                    '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']

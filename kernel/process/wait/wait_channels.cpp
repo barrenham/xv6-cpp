@@ -112,10 +112,23 @@ struct WaitChannels::WakeFlow
     Bucket &bucket;
     void *channel;
     Process *process, *next = nullptr;
+    bool one_process = false;
   };
 
   static void scan(Context &c) noexcept
   {
+    if (c.one_process)
+    {
+      // prepare() inserts at the head. Select the oldest matching waiter so
+      // newly arriving RPC clients cannot continually bypass an older one.
+      Process *oldest = nullptr;
+      for (auto *candidate = c.process; candidate; candidate = candidate->wait_next_)
+        if (__atomic_load_n(&candidate->wait_key_, __ATOMIC_RELAXED) == c.channel)
+          oldest = candidate;
+      c.process = oldest;
+      c.next = nullptr;
+      return;
+    }
     while (c.process)
     {
       c.next = c.process->wait_next_;
@@ -228,7 +241,7 @@ void WaitChannels::prepare(Process &process, void *channel, bool interruptible)
   (void)PrepareFlow::Graph::run<0>(context);
 }
 
-void WaitChannels::wake(void *channel)
+void WaitChannels::wake(void *channel, bool one_process)
 {
   if (!channel)
   {
@@ -237,6 +250,7 @@ void WaitChannels::wake(void *channel)
   auto &bucket = buckets_[index(channel)];
   xv::sync::ScopedLock bucket_guard(bucket.lock);
   WakeFlow::Context context{*this, bucket, channel, bucket.head};
+  context.one_process = one_process;
   (void)WakeFlow::Graph::run<0>(context);
 }
 } // namespace xv::process

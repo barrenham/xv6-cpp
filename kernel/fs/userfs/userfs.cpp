@@ -425,31 +425,54 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
     return -1;
   }
   xv::sync::ScopedLock guard(serial_);
+  unsigned char bytes[BlockSize];
   unsigned done = 0;
   while (done < count)
   {
-    begin(Operation::Write, n->inum);
-    request_.offset = offset + done;
-    request_.count = count - done;
-    if (request_.count > registration_.max_payload)
+    unsigned part = BlockSize - (offset + done) % BlockSize;
+    if (part > count - done) part = count - done;
+    unsigned copied = 0;
+    while (copied < part)
     {
-      request_.count = registration_.max_payload;
+      unsigned take = part - copied;
+      if (user)
+      {
+        unsigned tail = 4096 - (in + done + copied) % 4096;
+        if (take > tail) take = tail;
+      }
+      if (detail::copy_in(bytes + copied, user, in + done + copied, take) < 0) break;
+      copied += take;
     }
-    if (detail::copy_in(request_.data, user, in + done, request_.count) < 0 ||
-        !exchange() || response_.result > int(request_.count))
+    bool fault = copied != part;
+    unsigned publish = copied;
+    if (fault)
     {
-      return done ? int(done) : -1;
+      // Preserve the existing block-write ABI: a faulted part contributes no
+      // count or file growth, but valid overwrites of existing bytes survive.
+      unsigned position = offset + done;
+      unsigned existing = position < n->size ? n->size - position : 0;
+      if (publish > existing) publish = existing;
     }
-    unsigned take = response_.result;
-    done += take;
-    if (offset + done > n->size)
+    unsigned sent = 0;
+    while (sent < publish)
     {
-      n->size = offset + done;
+      begin(Operation::Write, n->inum);
+      request_.offset = offset + done + sent;
+      request_.count = publish - sent;
+      if (request_.count > registration_.max_payload) request_.count = registration_.max_payload;
+      detail::move(request_.data, bytes + sent, request_.count);
+      if (!exchange() || response_.result > int(request_.count))
+      {
+        unsigned progress = done + (fault ? 0 : sent);
+        return progress ? int(progress) : -1;
+      }
+      unsigned take = response_.result;
+      sent += take;
+      if (offset + done + sent > n->size) n->size = offset + done + sent;
+      if (take < request_.count) return fault ? (done ? int(done) : -1) : int(done + sent);
     }
-    if (take < request_.count)
-    {
-      break;
-    }
+    if (fault) return done ? int(done) : -1;
+    done += part;
   }
   return done;
 }

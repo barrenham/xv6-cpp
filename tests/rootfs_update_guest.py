@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Boot upgraded and independently created root filesystems in real QEMU."""
+from qemu_boot import bootstrap_args
 import argparse
 import os
 from pathlib import Path
@@ -31,7 +32,7 @@ class Guest:
         self.label = label
         self.text = bytearray()
         self.cursor = 0
-        self.p = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', a.kernel,
+        self.p = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', a.kernel, *bootstrap_args(a.kernel),
             '-m', '128M', '-smp', str(a.cpus), '-nographic', '-global', 'virtio-mmio.force-legacy=false',
             '-drive', f'file={image},if=none,format=raw,id=x0', '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0'],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
@@ -78,7 +79,7 @@ class Guest:
         for secret in (PASSWORD, USERPASS, OTHERPASS): assert secret.encode() not in self.text, 'password echoed'
 
 
-with tempfile.TemporaryDirectory(prefix='rootfs-update-guest-', dir=a.image.parent) as temporary:
+with tempfile.TemporaryDirectory(prefix='rootfs-update-guest-') as temporary:
     root = Path(temporary)
     seed, disk = root / 'seed.img', root / 'rootfs.img'
     shutil.copyfile(a.image, seed)

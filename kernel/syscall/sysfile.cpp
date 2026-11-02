@@ -719,50 +719,6 @@ struct StatFlow
                   flow::node<Release, flow::action<&release>, flow::go<Copy>>,
                   flow::node<Copy, flow::action<&copy>, flow::stop>>>;
 };
-struct MountFlow
-{
-  struct Context
-  {
-    const char *path, *type;
-    uint64 result = static_cast<uint64>(-1);
-  };
-
-  static bool disk(Context &c) noexcept
-  {
-    return !xv::runtime::compare_text(c.type, "xv6", 16) || !xv::runtime::compare_text(c.type,"ext3",16);
-  }
-  static bool ram(Context &c) noexcept
-  {
-    return !xv::runtime::compare_text(c.type, "ramfs", 16);
-  }
-  static void mount_disk(Context &c) noexcept
-  {
-    c.result = xv::fs::filesystem().mount_disk(c.path,c.type);
-  }
-  static void mount_ram(Context &c) noexcept
-  {
-    c.result = xv::fs::filesystem().mount_ram(c.path);
-  }
-  static void mount_plugin(Context &c) noexcept
-  {
-    c.result = xv::fs::mount_registered_userfs(c.type, c.path);
-  }
-  struct Plugin;
-  struct Disk;
-  struct Ram;
-  struct MountDisk;
-  struct MountRam;
-  using Graph = flow::graph<
-      Disk, flow::types<flow::node<Disk, flow::noop,
-                                   flow::branch<flow::condition<&disk>,
-                                                flow::go<MountDisk>, flow::go<Ram>>>,
-                        flow::node<Ram, flow::noop,
-                                   flow::branch<flow::condition<&ram>,
-                                                flow::go<MountRam>, flow::go<Plugin>>>,
-                        flow::node<Plugin, flow::action<&mount_plugin>, flow::stop>,
-                        flow::node<MountDisk, flow::action<&mount_disk>, flow::stop>,
-                        flow::node<MountRam, flow::action<&mount_ram>, flow::stop>>>;
-};
 struct UnmountFlow
 {
   struct Context
@@ -1254,17 +1210,9 @@ uint64 sys_mount()
   {
     return -1;
   }
-  if (xv::fs::filesystem().services())
-  {
-    // Once installed, the manager serializes selection and creation together.
-    // A concurrent client must not claim a backend between registration and
-    // the manager publishing it at the intended mountpoint.
-    if (xv::fs::managed_mounts_available()) return xv::fs::request_managed_mount(type, path);
-    return xv::fs::mount_registered_userfs(type, path);
-  }
-  MountFlow::Context context{path, type};
-  (void)MountFlow::Graph::run<0>(context);
-  return context.result;
+  // The user manager serializes selection, creation and publication together.
+  if (xv::fs::managed_mounts_available()) return xv::fs::request_managed_mount(type, path);
+  return xv::fs::mount_registered_userfs(type, path);
 }
 uint64 sys_umount()
 {

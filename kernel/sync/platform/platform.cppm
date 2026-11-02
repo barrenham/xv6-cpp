@@ -11,5 +11,6 @@ void prepare_interruptible_sleep(void *channel);
 bool interrupted();
 void sleep_process();
 void wake_processes(void *channel);
+void wake_one_process(void *channel);
 [[noreturn]] void fail(const char *message);
 } // namespace xv::sync::detail

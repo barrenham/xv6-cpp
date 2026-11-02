@@ -17,6 +17,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tests'))
 from console_login import login_root
+from qemu_boot import bootstrap_args
 from create_rootfs import Image, FILE
 
 
@@ -73,7 +74,8 @@ def main():
         width = int(re.search(r'^XV_DISPLAY_WIDTH:STRING=(\d+)$', cache, re.M)[1])
         height = int(re.search(r'^XV_DISPLAY_HEIGHT:STRING=(\d+)$', cache, re.M)[1])
         command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel',
-                   str(args.kernel or args.build / 'kernel.elf'), '-m', '128M', '-smp', str(args.cpus),
+                   str(args.kernel or args.build / 'kernel.elf'),
+                   *bootstrap_args(args.kernel or args.build / 'kernel.elf'), '-m', '128M', '-smp', str(args.cpus),
                    '-display', 'none', '-serial', 'stdio', '-global',
                    'virtio-mmio.force-legacy=false', '-drive',
                    f'file={disk},if=none,format=raw,id=x0', '-device',

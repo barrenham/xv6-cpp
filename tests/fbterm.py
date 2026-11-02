@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise fbterm on an isolated root disk and inspect real GPU pixels via QMP."""
+from qemu_boot import bootstrap_args
 import argparse
 import json
 import os
@@ -45,7 +46,7 @@ for index, glyph in enumerate(font):
     assert mask not in lookup, (index, lookup.get(mask))
     lookup[mask] = chr(32 + index)
 
-with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
+with tempfile.TemporaryDirectory(prefix='xv-fbterm-') as directory:
     directory = Path(directory)
     disk = directory / 'fs.img'
     shutil.copyfile(args.image, disk)
@@ -60,7 +61,7 @@ with tempfile.TemporaryDirectory(prefix='xv-fbterm-', dir=output) as directory:
     disk.write_bytes(fixture.data)
     del fixture
     monitor = directory / 'qmp'
-    command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel,
+    command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel, *bootstrap_args(args.kernel),
                '-m', '128M', '-smp', str(args.cpus), '-display', 'none', '-serial', 'stdio',
                '-qmp', f'unix:{monitor},server=on,wait=off', '-global', 'virtio-mmio.force-legacy=false',
                '-drive', f'file={disk},if=none,format=raw,id=x0',

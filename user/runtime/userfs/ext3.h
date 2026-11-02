@@ -28,6 +28,8 @@ public:
   int rename(unsigned, const char *, unsigned, const char *) override;
   int sync(unsigned) override;
   void forget(unsigned) override;
+  bool maintenance_pending() const override { return cleanup_pending_; }
+  bool maintain() override;
 
 private:
 
@@ -43,5 +45,6 @@ private:
   xv::ext3::Io &io_;
   unsigned live_[128]{};
   bool ready_ = false, failed_ = false;
+  bool cleanup_pending_ = false;
 };
 } // namespace userfs

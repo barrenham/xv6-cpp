@@ -1,4 +1,5 @@
 #include "kernel/fs/ext3/volume.h"
+#include "user/runtime/userfs/ext3.h"
 #include <cassert>
 #include <algorithm>
 #include <cstdio>
@@ -32,6 +33,64 @@ struct Device final : Io
   void free_page(void *p) override {--live;std::free(p);}
 };
 struct OrphanExpected {u32 blocks,inodes,number;};
+void backend_reclamation(Device &device)
+{
+  unsigned baseline_blocks, baseline_inodes;
+  {
+    Volume volume(device);
+    assert(volume.mount());
+    baseline_blocks = volume.geometry().free_blocks;
+    baseline_inodes = volume.geometry().free_inodes;
+    volume.reset();
+  }
+  {
+    userfs::Ext3Backend backend(device);
+    assert(backend.initialize());
+    userfs::Attributes requested{0, 0, 0, 0, 0600, 2, 1}, large{}, opened{}, removed{};
+    assert(backend.create(1, "backend-large", requested, large) == 0);
+    unsigned char bytes[4096]{};
+    // More than one indirect block at every supported filesystem block size.
+    for (unsigned i = 0; i < 268; ++i)
+      assert(backend.write(large.node, i * sizeof(bytes), bytes, sizeof(bytes)) == sizeof(bytes));
+    backend.forget(large.node);
+    assert(backend.unlink(1, "backend-large", removed) == 0);
+    assert(backend.maintenance_pending());
+    assert(backend.create(1, "backend-open", requested, opened) == 0);
+    assert(backend.write(opened.node, 0, "held", 4) == 4);
+    assert(backend.unlink(1, "backend-open", removed) == 0);
+    unsigned batches = 0;
+    while (backend.maintenance_pending())
+    {
+      unsigned char before[4], after[4];
+      assert(device.read(1024 + 12, before, sizeof(before)));
+      assert(backend.maintain());
+      assert(device.read(1024 + 12, after, sizeof(after)));
+      assert(le32(after) >= le32(before) && le32(after) - le32(before) <= 4);
+      assert(++batches < 1024);
+    }
+    assert(batches > 1);
+    assert(backend.read(opened.node, 0, bytes, 4) == 4 && !std::memcmp(bytes, "held", 4));
+    backend.forget(opened.node);
+    assert(backend.maintenance_pending());
+    while (backend.maintenance_pending()) assert(backend.maintain());
+    assert(backend.sync(1) == 0);
+
+    // Simulate service exit after only one committed reclamation batch.
+    assert(backend.create(1, "backend-crash", requested, large) == 0);
+    for (unsigned i = 0; i < 20; ++i)
+      assert(backend.write(large.node, i * sizeof(bytes), bytes, sizeof(bytes)) == sizeof(bytes));
+    backend.forget(large.node);
+    assert(backend.unlink(1, "backend-crash", removed) == 0);
+    assert(backend.maintain() && backend.maintenance_pending());
+  }
+  Volume recovered(device);
+  assert(recovered.mount());
+  unsigned head;
+  assert(recovered.orphan_head(head) && !head);
+  assert(recovered.geometry().free_blocks == baseline_blocks);
+  assert(recovered.geometry().free_inodes == baseline_inodes);
+  recovered.reset();
+}
 OrphanExpected sparse_orphan(Volume &volume,unsigned leaves=300)
 {
   Inode inode;assert(volume.create(2,"large-orphan",Regular|0600,0,0,inode) && volume.journal().commit());
@@ -46,7 +105,14 @@ OrphanExpected sparse_orphan(Volume &volume,unsigned leaves=300)
 }
 int main(int argc,char **argv)
 {
-  assert(argc==2 || argc==4);Device device(argv[1]);Volume volume(device);
+  assert(argc==2 || argc==4);Device device(argv[1]);
+  if(argc==4 && !std::strcmp(argv[2],"--backend"))
+  {
+    backend_reclamation(device);
+    std::puts("ext3 userspace backend bounded reclamation: passed");
+    return 0;
+  }
+  Volume volume(device);
   if(argc==4 && !std::strcmp(argv[2],"--orphan-cut"))
   {
     device.cut=std::atoi(argv[3]);bool recovered=volume.mount();

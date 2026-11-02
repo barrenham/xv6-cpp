@@ -267,14 +267,6 @@ struct ProcessManager::InitialFlow
     xv::print::panic("process: no initial session memory");
   }
 
-  static void directory(Context &c) noexcept
-  {
-    if (xv::memory::boot_image().empty())
-    {
-      c.process->directory_.replace(xv::fs::filesystem().root());
-    }
-  }
-
   static void publish(Context &c) noexcept
   {
     c.owner.scheduler_.make_runnable(*c.process);
@@ -284,7 +276,6 @@ struct ProcessManager::InitialFlow
   struct NoSlot;
   struct Group;
   struct NoSession;
-  struct Directory;
   struct Publish;
   using Graph = flow::graph<
       Allocate,
@@ -294,9 +285,8 @@ struct ProcessManager::InitialFlow
                   flow::node<NoSlot, flow::action<&no_slot>, flow::stop>,
                   flow::node<Group, flow::action<&group>,
                              flow::branch<flow::condition<&grouped>,
-                                          flow::go<Directory>, flow::go<NoSession>>>,
+                                          flow::go<Publish>, flow::go<NoSession>>>,
                   flow::node<NoSession, flow::action<&no_session>, flow::stop>,
-                  flow::node<Directory, flow::action<&directory>, flow::go<Publish>>,
                   flow::node<Publish, flow::action<&publish>, flow::stop>>>;
 };
 

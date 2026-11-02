@@ -1,13 +1,9 @@
 include("${PROJECT_SOURCE_DIR}/cmake/fs-modules.cmake")
 xv_add_fs_interfaces(kernel)
-xv_add_fs_internals(kernel)
+xv_add_fs_internals(kernel SERVICES_ONLY)
 target_sources(kernel PRIVATE
   cache/lru_block_cache.cpp
   buffer/page_buffer.cpp
-  journal/journal.cpp
-  inode/xv6_filesystem.cpp
-  inode/disk_filesystem.cpp
-  path/path_operations.cpp
   file/device_registry.cpp
   file/service_resources.cpp
   file/bootstrap_block.cpp
@@ -17,17 +13,9 @@ target_sources(kernel PRIVATE
   pipe/pipe_factory.cpp
   platform/kernel_platform.cpp
   vfs/vfs.cpp
-  devfs/devfs.cpp
-  procfs/procfs.cpp
-  procfs/system_providers.cpp
-  ramfs/ramfs.cpp
   userfs/userfs.cpp
   userfs/registry.cpp
   userfs/mount_manager.cpp
   permissions.cpp
-  ext3/jbd.cpp
-  ext3/volume.cpp
-  ext3/mutate.cpp
-  ext3/ext3_filesystem.cpp
   service.cpp
 )

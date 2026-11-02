@@ -7,23 +7,85 @@
 
 namespace userfs
 {
+struct BlockIo::ReadCache
+{
+  static constexpr unsigned BlockSize = 1024;
+  struct Line
+  {
+    unsigned long block = 0, used = 0;
+    bool valid = false;
+    unsigned char bytes[BlockSize]{};
+  } lines[32]{};
+  unsigned long sequence = 0;
+};
+
 BlockIo::BlockIo(int descriptor) : descriptor_(descriptor)
 {
   if (ioctl(descriptor_, BLKGETSIZE64, reinterpret_cast<unsigned long>(&size_)) < 0)
     size_ = 0;
+  // Metadata lookups often revisit the same inode/directory block. Each backend
+  // owns its storage descriptor; all of its writes below invalidate overlaps.
+  if (size_)
+  {
+    cache_ = static_cast<ReadCache *>(malloc(sizeof(ReadCache)));
+    if (cache_) memset(cache_, 0, sizeof(ReadCache));
+  }
 }
+
+BlockIo::~BlockIo() { if (cache_) free(cache_); }
 
 bool BlockIo::read(xv::ext3::u64 offset, void *data, unsigned count)
 {
-  return offset <= size_ && count <= size_ - offset &&
-         lseek(descriptor_, offset, SEEK_SET) == static_cast<long>(offset) &&
-         ::read(descriptor_, data, count) == static_cast<int>(count);
+  if (offset > size_ || count > size_ - offset) return false;
+  if (!cache_)
+    return lseek(descriptor_, offset, SEEK_SET) == static_cast<long>(offset) &&
+           ::read(descriptor_, data, count) == static_cast<int>(count);
+  auto *output = static_cast<unsigned char *>(data);
+  while (count)
+  {
+    unsigned long block = offset / ReadCache::BlockSize;
+    unsigned begin = offset % ReadCache::BlockSize;
+    auto *selected = &cache_->lines[0];
+    for (auto &line : cache_->lines)
+    {
+      if (line.valid && line.block == block) { selected = &line; break; }
+      if ((!line.valid && selected->valid) ||
+          (line.valid == selected->valid && line.used < selected->used)) selected = &line;
+    }
+    if (!selected->valid || selected->block != block)
+    {
+      selected->valid = false;
+      unsigned long position = block * ReadCache::BlockSize;
+      unsigned length = size_ - position < ReadCache::BlockSize ? size_ - position : ReadCache::BlockSize;
+      if (lseek(descriptor_, position, SEEK_SET) != static_cast<long>(position) ||
+          ::read(descriptor_, selected->bytes, length) != int(length)) return false;
+      selected->block = block;
+      selected->valid = true;
+    }
+    selected->used = ++cache_->sequence;
+    unsigned take = ReadCache::BlockSize - begin;
+    if (take > count) take = count;
+    memmove(output, selected->bytes + begin, take);
+    offset += take; output += take; count -= take;
+  }
+  return true;
+}
+
+void BlockIo::invalidate(xv::ext3::u64 offset, unsigned count)
+{
+  if (!cache_ || !count) return;
+  unsigned long first = offset / ReadCache::BlockSize;
+  unsigned long last = (offset + count - 1) / ReadCache::BlockSize;
+  for (auto &line : cache_->lines)
+    if (line.valid && line.block >= first && line.block <= last) line.valid = false;
 }
 
 bool BlockIo::write(xv::ext3::u64 offset, const void *data, unsigned count)
 {
-  return offset <= size_ && count <= size_ - offset &&
-         lseek(descriptor_, offset, SEEK_SET) == static_cast<long>(offset) &&
+  if (offset > size_ || count > size_ - offset) return false;
+  // Invalidate before IO too: a failed write may have copied a partial prefix.
+  invalidate(offset, count);
+  return lseek(descriptor_, offset, SEEK_SET) == static_cast<long>(offset) &&
          ::write(descriptor_, data, count) == static_cast<int>(count);
 }
 

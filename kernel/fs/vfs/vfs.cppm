@@ -12,12 +12,15 @@ class VirtualFileSystem final
 {
 public:
 
+  // Production boot publishes its root through the generic userspace bridge.
+  constexpr VirtualFileSystem() : service_mode_(true) {}
+
   constexpr VirtualFileSystem(FileSystem &disk, FileSystem &devices,
                               FileSystem *processes = nullptr,
                               FileSystem *temporary = nullptr,
                               FileSystem **dynamic = nullptr,
                               FileSystem *storage = nullptr)
-      : disk_(disk), devices_(devices), processes_(processes), temporary_(temporary),
+      : disk_(&disk), devices_(&devices), processes_(processes), temporary_(temporary),
         dynamic_(dynamic), storage_(storage)
   {
   }
@@ -43,7 +46,7 @@ public:
   Inode *root()
   {
     return service_mode_ ? (service_root_ ? service_root_->root() : nullptr)
-                         : disk_.root();
+                         : disk_->root();
   }
 
   Inode *allocate(unsigned device, short type);
@@ -115,15 +118,15 @@ private:
   Inode *enter_mount(Inode *node);
   FileSystem &root_backend() const
   {
-    return service_root_ ? *service_root_ : disk_;
+    return service_root_ ? *service_root_ : *disk_;
   }
 
   bool service_mode_ = false;
   FileSystem *service_root_ = nullptr;
-  FileSystem &disk_;
-  FileSystem &devices_;
-  FileSystem *processes_;
-  FileSystem *temporary_;
+  FileSystem *disk_ = nullptr;
+  FileSystem *devices_ = nullptr;
+  FileSystem *processes_ = nullptr;
+  FileSystem *temporary_ = nullptr;
   xv::sync::SleepLock namespace_;
   mutable xv::sync::SpinLock mount_snapshot_lock_;
   MountSnapshot mount_snapshots_[9]{};

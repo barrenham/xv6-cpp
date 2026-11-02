@@ -10,7 +10,14 @@ void SleepLock::init(const char *label)
   state_lock_.init("sleep lock state");
   name_ = label;
   locked_ = false;
+  single_waiter_ = false;
   pid_ = 0;
+}
+
+void SleepLock::init_single_waiter(const char *label)
+{
+  init(label);
+  single_waiter_ = true;
 }
 
 void SleepLock::acquire()
@@ -59,7 +66,8 @@ void SleepLock::release()
   }
   locked_ = false;
   pid_ = 0;
-  detail::wake_processes(this);
+  if (single_waiter_) detail::wake_one_process(this);
+  else detail::wake_processes(this);
 }
 
 bool SleepLock::holding() const

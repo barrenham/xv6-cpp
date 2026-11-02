@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """File/account contracts, persistent rootfs, and legacy volume migration in QEMU."""
+from qemu_boot import bootstrap_args
 import argparse, hashlib, os, selectors, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--qemu',required=True);p.add_argument('--kernel',required=True);p.add_argument('--image',required=True);p.add_argument('--mkfs',required=True);p.add_argument('--cpus',type=int,default=5);p.add_argument('--persistent',action='store_true');a=p.parse_args()
@@ -9,7 +10,7 @@ from create_rootfs import Image
 PASSWORD='root-progress-42'; USERPASS='alice-progress-42'; NEWPASS='alice-new-secret-42'
 class Guest:
     def __init__(self, image, data=None):
-        command=[a.qemu,'-machine','virt','-bios','none','-kernel',a.kernel,'-m','128M','-smp',str(a.cpus),'-nographic','-global','virtio-mmio.force-legacy=false','-drive',f'file={image},if=none,format=raw,id=x0','-device','virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+        command=[a.qemu,'-machine','virt','-bios','none','-kernel',a.kernel, *bootstrap_args(a.kernel),'-m','128M','-smp',str(a.cpus),'-nographic','-global','virtio-mmio.force-legacy=false','-drive',f'file={image},if=none,format=raw,id=x0','-device','virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
         if data:command+=['-drive',f'file={data},if=none,format=raw,cache=writeback,id=x1','-device','virtio-blk-device,drive=x1,bus=virtio-mmio-bus.1']
         self.process=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=0)
         self.selector=selectors.DefaultSelector();self.selector.register(self.process.stdout,selectors.EVENT_READ);self.text=bytearray();self.cursor=0
@@ -39,7 +40,7 @@ class Guest:
         except Exception:self.process.kill();self.process.wait()
         self.selector.close();(Path(a.image).parent/f'{label}-{a.cpus}cpu.log').write_bytes(self.text)
         for secret in [PASSWORD,USERPASS,NEWPASS]:assert secret.encode() not in self.text,'password echoed'
-with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent) as temporary:
+with tempfile.TemporaryDirectory(prefix='xv-progress-') as temporary:
     root=Path(temporary);image=root/'fs.img';data=root/'data.img';seed=root/'seed.img';shutil.copyfile(a.image,seed)
     if a.persistent:
         subprocess.run(['python3',str(ROOT/'tools/create_rootfs.py'),'--seed',str(seed),'--output',str(image)],check=True)
@@ -53,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-',dir=Path(a.image).parent)
         home='/root'
         g.run('pwd',home+'\n')
         if a.persistent:
-            g.run('mount',('ext3' if Image(seed).filesystem=='ext3' else 'xv6 disk filesystem')+' on /\n')
+            g.run('mount',Image(seed).filesystem+' on /\n')
             g.run('echo $HOME','/root\n')
             g.run('echo PERSISTENT_CONTENT > /root/retained')
             g.run('useradd alice','uid=1000');g.password('alice',USERPASS)

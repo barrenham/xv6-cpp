@@ -2,6 +2,7 @@ module;
 #include "kernel/support/deadline_queue.h"
 export module xv.process:poll;
 import :process;
+import :poll_entry;
 import xv.sync;
 
 export namespace xv::process
@@ -10,6 +11,22 @@ class WaitChannels;
 
 class PollWait final
 {
+  class Table final : public xv::sync::PollTable
+  {
+  public:
+    void bind(PollWait &owner, void (*subscribe)(PollWait &, void *))
+    {
+      owner_ = &owner;
+      subscribe_ = subscribe;
+    }
+    void watch(void *channel) override
+    {
+      if (subscribe_) subscribe_(*owner_, channel);
+    }
+  private:
+    PollWait *owner_ = nullptr;
+    void (*subscribe_)(PollWait &, void *) = nullptr;
+  };
 public:
 
   constexpr PollWait(Process &process, WaitChannels &channels)
@@ -44,6 +61,10 @@ private:
   Page *allocate_page();
   Process &process_;
   WaitChannels &channels_;
+  Table table_;
+  // Single-channel RPC waits and small polls must work with no free pages.
+  PollEntry inline_entries_[4]{};
+  unsigned inline_used_ = 0;
   Page *pages_ = nullptr;
   bool failed_ = false;
   bool triggered_ = false;   // Protected by process_.lock.

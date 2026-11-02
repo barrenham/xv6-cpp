@@ -106,7 +106,7 @@ int VirtualFileSystem::unlink(char *path)
 
 Inode *VirtualFileSystem::allocate(unsigned device, short type)
 {
-  return disk_.allocate(device, type);
+  return disk_ ? disk_->allocate(device, type) : nullptr;
 }
 
 Inode *VirtualFileSystem::retain(Inode *node)

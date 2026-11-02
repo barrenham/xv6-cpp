@@ -205,19 +205,48 @@ int Ext3Backend::link(unsigned parent, const char *name, unsigned target)
   return volume_.link(number(parent), name, number(target)) && commit() ? 0 : -1;
 }
 
-// The orphan list is durable. Open-but-unlinked objects survive until Forget;
-// every bounded reclamation step is committed separately, including crash recovery.
+// Unlink commits the namespace and durable orphan list before replying. Reclaim
+// blocks between requests, so deleting a large file cannot time out its RPC.
 bool Ext3Backend::collect(unsigned node)
 {
   if (!node || retained(node)) return true;
   Inode wire;
   if (!inode(node, wire)) return false;
   if (wire.links()) return true;
-  bool complete = false;
-  do
+  cleanup_pending_ = true;
+  return true;
+}
+
+bool Ext3Backend::maintain()
+{
+  if (!ready_ || failed_) return false;
+  unsigned at;
+  if (!volume_.orphan_head(at)) { failed_ = true; return false; }
+  for (unsigned visited = 0; at; ++visited)
   {
-    if (!volume_.reclaim_step(number(node), complete) || !commit()) return false;
-  } while (!complete);
+    Inode wire;
+    if (visited >= volume_.geometry().inodes || !volume_.read_inode(at, wire))
+    {
+      failed_ = true;
+      return false;
+    }
+    if (!retained(identity(at)))
+    {
+      bool complete;
+      // The volume bounds each atomic batch to four freed blocks and commits
+      // their bitmap, parent paths and inode together. No in-memory work queue
+      // is needed; interrupted cleanup resumes from the on-disk orphan list.
+      if (wire.links() || !volume_.reclaim_step(at, complete) || !commit())
+      {
+        failed_ = true;
+        return false;
+      }
+      return true;
+    }
+    at = xv::ext3::le32(wire.raw + 20);
+  }
+  // Remaining orphans are open. Their final Forget schedules another scan.
+  cleanup_pending_ = false;
   return true;
 }
 

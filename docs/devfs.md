@@ -1,12 +1,13 @@
 # VFS 与 devfs
 
-根磁盘通过格式路由器选择 ext3 或原 xv6 日志后端，默认新建格式为 ext3，启动时挂载 `/dev`、`/proc` 和 `/tmp`。init 从 `/dev/console` 打开标准输入，再用 dup 建立标准输出和错误输出。
+用户态 fsboot 识别根盘格式并启动 ext3/xv6 根服务，再分别启动 devfs、procfs 和 ramfs 服务挂载 `/dev`、`/proc` 和 `/tmp`。devfs 的目录、节点属性和设备编号由用户态 `userfs::DeviceBackend` 管理；设备数据 I/O 和终端会话仍由内核驱动处理。init 从 `/dev/console` 打开标准输入，再用 dup 建立标准输出和错误输出。完整边界见 [文件系统服务迁移](fs-service-migration.md)。
 
 ```mermaid
 flowchart TD
   Path[open / stat / chdir / link / unlink] --> VFS[VirtualFileSystem：路径解析与挂载边界]
-  VFS --> Disk[DiskFileSystem：ext3 / xv6 格式路由]
-  VFS --> Dev[DevFileSystem：合成设备目录]
+  VFS --> Bridge[UserFileSystem：通用 RPC 桥接]
+  Bridge --> Disk[用户态 Ext3Backend / Xv6Backend]
+  Bridge --> Dev[用户态 DeviceBackend：合成设备目录]
   VFS --> Owner[Inode.owner：引用、锁、元数据与读写分发]
   Disk --> Owner
   Dev --> Owner
@@ -61,16 +62,16 @@ devfstest
 
 ## 初始化与资源
 
-1. 板级启动初始化 UART/TTY，登记 console 1/0 和 ptmx 4/0。
-2. 主核初始化磁盘、devfs 和 procfs 的节点锁及 owner，随后为初始进程取得尚未加载磁盘内容的根引用。
-3. 首个进程恢复磁盘日志并回收孤儿 inode，devfs 登记 null/zero/full 后封存 DeviceRegistry。
-4. VFS 复用或创建 `/dev`、`/proc` 覆盖目录，保留覆盖节点、后端根和父目录引用，建立固定挂载后执行 init。
+1. 板级启动初始化 UART/TTY，建立内核设备注册表和块设备机制。
+2. 内核从 QEMU 提供的引导载荷装载用户态 fsboot；此时没有根挂载和 cwd，标准描述符直接绑定控制台。
+3. fsboot 通过预开的磁盘能力启动根服务，在用户态恢复日志、回收孤儿并挂载 `/`。
+4. 独立 devfs 服务通过类型化设备能力取得名称和设备号并发布 `/dev`；内核桥接将设备节点打开交给实际驱动。procfs 和 ramfs 也分别挂载，之后执行 init。
 
 登记名称最多 13 字节，不能包含斜杠，不能使用点目录名称或保留的 pts 名称。重复名称、同类设备重复 major/minor、容量超限和封存后登记都会触发内核错误。注册表有 32 个槽，主设备号独立于槽下标；字符设备与块设备拥有独立的 major/minor 命名空间。一个 major 可以登记多个不同 minor；设备实例必须保持系统运行期有效。
 
-设备节点与根目录存放在固定内存表中。引用计数用自旋锁保护，节点操作沿用 inode 睡眠锁约定；引用降到零不销毁设备节点。设备 read/write 和 devfs 最后关闭不使用磁盘日志。路径系统调用仍保留外层磁盘事务，因为解析可能穿越磁盘目录并释放磁盘引用。
+设备目录和节点记录位于 devfs 服务的地址空间；内核保留通用 inode 引用、驱动注册表及 PTY 寿命能力。节点最后一个聚合引用的 Forget 撤销相应 PTY 固定。设备 read/write 和最后关闭直接访问驱动会话，不请求磁盘日志；路径事务边界在服务模式下也不预留内核磁盘日志。
 
-挂载表保留 `/dev`、`/proc` 和 `/tmp` 三个固定记录，运行期另外支持最多四个独立 RAM 挂载，见 [动态挂载](mounting.md)。静态设备注册表保持封存；动态 pts 名称来自驱动的发布状态。PTS inode 取得首个引用时固定 PTY，最后引用释放后解除固定，因此旧 fd 和临时路径引用都不会误指向复用编号的新会话。`/dev/tty` 的打开工厂查询当前会话；无控制终端时打开失败，
+默认挂载由独立用户态服务提供，运行期创建和卸载实例交给通用挂载管理进程，见 [文件系统服务迁移](fs-service-migration.md)。静态设备注册表保持封存；动态 pts 名称来自驱动的发布状态。PTS inode 取得首个引用时固定 PTY，最后引用释放后解除固定，因此旧 fd 和临时路径引用都不会误指向复用编号的新会话。`/dev/tty` 的打开工厂查询当前会话；无控制终端时打开失败，
 setsid 后也不会隐式绑定 console。成功打开固定当时的实际终端，
 后续 read/write/poll/ioctl 直接使用该会话；不会在每次 I/O 时重新解析。
 

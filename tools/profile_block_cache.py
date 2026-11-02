@@ -14,6 +14,7 @@ import tempfile
 import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tests'))
 from console_login import login_root
+from qemu_boot import bootstrap_args
 
 
 def cpu_seconds(pid):
@@ -26,6 +27,7 @@ def guest_run(qemu, kernel, seed, cpus, log):
         image = Path(temporary) / 'fs.img'
         shutil.copyfile(seed, image)
         command = [qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel),
+                   *bootstrap_args(kernel),
                    '-m', '128M', '-smp', str(cpus), '-nographic', '-snapshot',
                    '-global', 'virtio-mmio.force-legacy=false',
                    '-drive', f'file={image},if=none,format=raw,id=x0',

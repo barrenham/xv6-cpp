@@ -113,6 +113,18 @@ void wake_processes(void *channel)
   }
 }
 
+void wake_one_process(void *channel)
+{
+  std::lock_guard guard(wait_mutex);
+  for (auto *waiting : waiters)
+  {
+    if (waiting->channel != channel) continue;
+    waiting->channel = nullptr;
+    waiting->changed.notify_one();
+    break;
+  }
+}
+
 [[noreturn]] void fail(const char *)
 {
   std::_Exit(99);

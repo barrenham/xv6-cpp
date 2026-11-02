@@ -26,6 +26,7 @@ def main():
             commands.write_text(f'write {payload} /payload\nsymlink /shortlink payload\nmkdir /dev\nmkdir /proc\nmkdir /tmp\nmkdir /data\n')
             subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-w','-f',str(commands),str(image)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
             subprocess.run([args.contract,str(image)],check=True)
+            subprocess.run([args.contract,str(image),'--backend','0'],check=True)
             subprocess.run([shutil.which('e2fsck') or '/usr/sbin/e2fsck','-fn',str(image)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
             if args.fs_contract:
                 subprocess.run([args.fs_contract,'--ext3',str(image)],check=True)

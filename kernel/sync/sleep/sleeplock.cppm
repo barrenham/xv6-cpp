@@ -13,6 +13,8 @@ public:
   constexpr SleepLock() = default;
 
   void init(const char *label) override;
+  // For heavily contended exclusive locks: notify one queued process.
+  void init_single_waiter(const char *label);
   void acquire() override;
   // False leaves ownership unchanged when a fatal signal is pending.
   bool acquire_interruptible();
@@ -32,6 +34,7 @@ private:
 
   mutable SpinLock state_lock_;
   bool locked_ = false;
+  bool single_waiter_ = false;
   int pid_ = 0;
 };
 } // namespace xv::sync

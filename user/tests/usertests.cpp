@@ -1016,6 +1016,12 @@ forkfork(char *s)
 void
 forkforkfork(char *s)
 {
+  int original_group = getpgrp();
+  int workload_group = getpid();
+  if (setpgid(0, workload_group) < 0) {
+    printf("%s: cannot isolate descendant group\n", s);
+    exit(1);
+  }
   unlink("stopforking");
 
   int pid = fork();
@@ -1042,7 +1048,22 @@ forkforkfork(char *s)
   pause(20); // two seconds
   close(open("stopforking", O_CREATE | O_RDWR));
   wait(0);
-  pause(10); // one second
+  // Grandchildren are adopted by PID 1. A fixed one-second delay cannot
+  // prove they have exited and been reaped when path operations use RPC.
+  // Leave their group, then wait for that exact group to disappear before
+  // the runner performs its unchanged free-page leak check.
+  if (setpgid(0, original_group) < 0) {
+    printf("%s: cannot restore process group\n", s);
+    exit(1);
+  }
+  unsigned retry;
+  for (retry = 0; retry < 300 && sigsend(-workload_group, 0) == 0; ++retry)
+    pause(1);
+  if (retry == 300) {
+    printf("%s: descendants did not retire\n", s);
+    exit(1);
+  }
+  pause(1); // Let the final reaper finish freeing the retired descriptor.
 }
 
 // regression test. does reparent() violate the parent-then-child
@@ -2857,7 +2878,7 @@ partial_write(char *s)
   }
 
   char *p = sbrk(0);
-  sbrk(PGSIZE - ((uint64)p % PGSIZE));
+  sbrk(PGSIZE + PGSIZE - ((uint64)p % PGSIZE));
 
   p = sbrk(0);
   if ((uint64)p % PGSIZE != 0) {
@@ -2870,6 +2891,12 @@ partial_write(char *s)
   cc = write(fd, p - 1, 2);
   if (cc != -1) {
     printf("%s: write succeeded, should have failed\n", s);
+    exit(1);
+  }
+
+  struct stat faulted;
+  if (fstat(fd, &faulted) < 0 || faulted.size != 1 || lseek(fd, 0, SEEK_CUR) != 0) {
+    printf("%s: faulted overwrite changed size or position\n", s);
     exit(1);
   }
 
@@ -2928,6 +2955,32 @@ partial_write(char *s)
     exit(1);
   }
 
+  fd = open("testfile", O_RDWR | O_TRUNC);
+  memset(buf, 'A', BSIZE);
+  if (fd < 0 || write(fd, buf, BSIZE) != BSIZE || lseek(fd, 0, SEEK_SET) != 0) {
+    printf("%s: cannot prepare partial overwrite\n", s);
+    exit(1);
+  }
+  memset(p - 513, 'X', 513);
+  if (write(fd, p - 513, 514) != -1 || lseek(fd, 0, SEEK_CUR) != 0 ||
+      fstat(fd, &faulted) < 0 || faulted.size != BSIZE ||
+      read(fd, buf, BSIZE) != BSIZE) {
+    printf("%s: faulted block returned progress or changed size\n", s);
+    exit(1);
+  }
+  for (int i = 0; i < BSIZE; ++i) {
+    if (buf[i] != (i < 513 ? 'X' : 'A')) {
+      printf("%s: partial overwrite lost its valid prefix\n", s);
+      exit(1);
+    }
+  }
+  if (ftruncate(fd, 0) < 0 || lseek(fd, 0, SEEK_SET) != 0 ||
+      write(fd, p - 1, 2) != -1 || fstat(fd, &faulted) < 0 ||
+      faulted.size != 0 || lseek(fd, 0, SEEK_CUR) != 0) {
+    printf("%s: faulted write grew an empty file\n", s);
+    exit(1);
+  }
+  close(fd);
   unlink("testfile");
 }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Boot private diagnostic kernels for critical-section stack fault boundaries."""
+from qemu_boot import bootstrap_args
 import argparse
 import json
 import os
@@ -44,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
         # 1000 stacks also fit when each reservation uses the supported 64 MiB
         # capacity (32 leaf-table pages plus 8 initial data pages per stack).
         ram = '256M' if mode == 5 else '128M'
-        guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel),
+        guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel), *bootstrap_args(a.kernel),
             '-m', ram, '-smp', '1', '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',
             '-drive', f'file={image},if=none,format=raw,id=x0',
             '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0'],

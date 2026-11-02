@@ -89,7 +89,22 @@ def fingerprint(clangd):
              path.suffix in {'.cpp', '.cppm', '.h', '.hpp', '.inc', '.S'}}
     return {'files': files,
             'compile_commands': hashlib.sha256((ROOT/'build/dev/compile_commands.json').read_bytes()).hexdigest(),
+            'reference_compile_commands': hashlib.sha256((ROOT/'build/dev/host/compile_commands.json').read_bytes()).hexdigest(),
             'clangd': subprocess.check_output([clangd, '--version'], text=True).splitlines()[0]}
+
+
+def reference_sources():
+    """Parse excluded kernel fixtures using the host target that really builds them.
+
+    Never fabricate a production compile command for a removed FS backend.
+    Keep this profile visible so its symbols cannot imply runtime coverage.
+    """
+    production = {Path(item['file']).resolve() for item in
+                  json.loads((ROOT/'build/dev/compile_commands.json').read_text())}
+    host = {Path(item['file']).resolve() for item in
+            json.loads((ROOT/'build/dev/host/compile_commands.json').read_text())}
+    return {str(path.relative_to(ROOT)) for path in host - production
+            if path.is_relative_to(ROOT/'kernel')}
 
 
 def main():
@@ -99,12 +114,19 @@ def main():
     sources = sorted(str(path.relative_to(ROOT)) for path in (ROOT/'kernel').rglob('*')
                      if path.suffix in {'.cpp', '.cppm', '.h', '.hpp'})
     result = {'profile': fingerprint(args.clangd), 'files': [], 'functions': [], 'errors': []}
-    with Client(args.clangd, ROOT) as client:
+    references = reference_sources()
+    with Client(args.clangd, ROOT) as client, Client(
+            args.clangd, ROOT, compilation_database=ROOT/'build/dev/host') as reference:
         for index, source in enumerate(sources):
             try:
-                found = scan(client, source, strict=False)
+                owner = reference if source in references else client
+                found = scan(owner, source, strict=False)
+                profile = 'host-reference' if source in references else 'production'
+                for item in found:
+                    item['profile'] = profile
                 result['files'].append({'source': source, 'functions': len(found),
-                                        'diagnostics': client.last_diagnostics})
+                                        'profile': profile,
+                                        'diagnostics': owner.last_diagnostics})
                 result['functions'].extend(found)
             except Exception as error:
                 result['errors'].append({'source': source, 'error': str(error)})

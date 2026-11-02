@@ -1,7 +1,6 @@
 module;
 #include "kernel/support/param.h"
 #include "kernel/support/flow.h"
-#include "kernel/fs/image_paths.h"
 
 module xv.process;
 
@@ -38,7 +37,7 @@ struct Process::FirstReturnFlow
   {
     if (xv::memory::boot_image().empty())
     {
-      xv::fs::filesystem().initialize(ROOTDEV);
+      xv::print::panic("boot: missing userspace bootstrap (-initrd)");
     }
   }
 
@@ -86,8 +85,6 @@ struct Process::FirstReturnFlow
           nullptr);
       return;
     }
-    char *arguments[] = {const_cast<char *>(XV_INIT_PATH), nullptr};
-    c.owner.trapframe->a0 = execute(XV_INIT_PATH, arguments);
   }
 
   static bool loaded(Context &c) noexcept

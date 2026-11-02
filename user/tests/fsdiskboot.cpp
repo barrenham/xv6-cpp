@@ -4,6 +4,7 @@
 #include "kernel/io/block.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
+#include "user/runtime/userfs/block_io.h"
 
 namespace
 {
@@ -29,6 +30,21 @@ extern "C" int main()
         fsync(disk) == 0 && lseek(disk, 511, SEEK_SET) == 511 &&
         read(disk, output, sizeof(output)) == sizeof(output) && !memcmp(input, output, sizeof(input)),
         "unaligned data spanning cache blocks");
+  {
+    userfs::BlockIo io(disk);
+    check(io.read(511, output, sizeof(output)) && !memcmp(input, output, sizeof(input)),
+          "cached absolute block reads");
+    constexpr char replacement[] = "overlap-cache";
+    check(io.write(1020, replacement, sizeof(replacement)), "cached block boundary write");
+    memmove(input + 1020 - 511, replacement, sizeof(replacement));
+    check(io.read(511, output, sizeof(output)) && !memcmp(input, output, sizeof(input)),
+          "write invalidates every overlapping cache line");
+    for (unsigned block = 4; block < 52; ++block)
+      check(io.read(block * 1024, output, 1) && !output[0], "cache eviction reads correct backing blocks");
+    check(io.read(511, output, sizeof(output)) && !memcmp(input, output, sizeof(input)),
+          "evicted block reload keeps persisted data");
+    check(!io.write(size - 1, replacement, 2), "cached adapter preserves disk bounds");
+  }
   check(lseek(disk, size - 1, SEEK_SET) == long(size - 1) && write(disk, "XY", 2) == 1 &&
         write(disk, "X", 1) < 0 && read(disk, output, 1) == 0 &&
         lseek(disk, 1, SEEK_END) < 0 && lseek(disk, -long(size) - 1, SEEK_SET) < 0,

@@ -1,4 +1,5 @@
 #include "kernel/fs/stat.h"
+#include "kernel/fs/poll.h"
 #include "user/runtime/user.h"
 #include "user/runtime/userfs/server.h"
 
@@ -133,9 +134,22 @@ int serve(int descriptor, Backend &backend)
   memset(&message, 0, sizeof(message));
   for (;;)
   {
+    if (backend.maintenance_pending())
+    {
+      if (!backend.maintain()) return -1;
+      if (backend.maintenance_pending())
+      {
+        pollfd pending{descriptor, POLLIN, 0};
+        int ready = poll(&pending, 1, 0);
+        if (ready < 0) return -1;
+        if (!ready) continue;
+      }
+    }
     int count = ::read(descriptor, &message, sizeof(message));
     if (!count)
     {
+      while (backend.maintenance_pending())
+        if (!backend.maintain()) return -1;
       return 0;
     }
     if (count != sizeof(message))

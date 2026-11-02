@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Boot an isolated disk snapshot and exercise C++ ABI, shell, VM and SMP."""
 from console_login import login_root, PASSWORD
+from qemu_boot import bootstrap_args
 import argparse
 import os
 import selectors
@@ -18,6 +19,9 @@ parser.add_argument('--kernel', required=True)
 parser.add_argument('--image', required=True)
 parser.add_argument('--initrd')
 parser.add_argument('--regression', action='store_true')
+parser.add_argument('--memory-pressure', action='store_true')
+parser.add_argument('--large-unlink', action='store_true')
+parser.add_argument('--usertest')
 parser.add_argument('--devfs', action='store_true')
 parser.add_argument('--without-entropy',action='store_true')
 parser.add_argument('--named-pty', action='store_true')
@@ -48,9 +52,20 @@ parser.add_argument('--ram-mib', type=int, default=128)
 parser.add_argument('--boot-only', action='store_true')
 parser.add_argument('--allocator', choices=['buddy', 'freelist'], default='buddy')
 args = parser.parse_args()
-temporary = tempfile.TemporaryDirectory(prefix='xv-qemu-', dir=Path(args.image).parent)
+if args.usertest and not re.fullmatch(r'[a-z][a-z0-9_]{0,39}', args.usertest):
+    parser.error('--usertest must be a test name')
+temporary = tempfile.TemporaryDirectory(prefix='xv-qemu-')
 test_image = Path(temporary.name) / "fs.img"
 shutil.copyfile(args.image, test_image)
+if args.large_unlink:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+    from create_rootfs import Image, FILE
+    fixture = Image(test_image)
+    node = fixture.create(fixture.root, b'large-unlink', FILE, (0, 0, 0o600))
+    fixture.append(node, b'X' * (268 * 1024))
+    if hasattr(fixture, 'close'):
+        fixture.close()
+    test_image.write_bytes(fixture.data)
 truncate_fixture=False
 if args.devfs:
     with test_image.open('rb') as image:
@@ -71,8 +86,7 @@ command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kerne
            '-global', 'virtio-mmio.force-legacy=false',
            '-drive', f'file={test_image},if=none,format=raw,id=x0',
            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
-if args.initrd:
-    command += ['-initrd', args.initrd]
+command += bootstrap_args(args.kernel, args.initrd)
 if not args.without_entropy:
     command += ['-object','rng-random,id=rng0,filename=/dev/urandom','-device','virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2']
 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -83,6 +97,12 @@ transcript = bytearray()
 log_path = Path(args.image).parent / (f"scheduler-{args.cpus}cpu.log" if args.scheduler else f"session-{args.cpus}cpu.log" if args.session else f"workflow-{args.cpus}cpu.log" if args.workflow else f"environment-{args.cpus}cpu.log" if args.environment else f"permissions-{args.cpus}cpu.log" if args.permissions else f"fsplugins-{args.cpus}cpu.log" if args.fsplugins else f"userfs-{args.cpus}cpu.log" if args.userfs else f"ramfs-{args.cpus}cpu.log" if args.ramfs else f"named-pty-{args.cpus}cpu.log" if args.named_pty else f"procfs-{args.cpus}cpu.log" if args.procfs else f"devfs-{args.cpus}cpu.log" if args.devfs else f"sigchld-{args.cpus}cpu.log" if args.sigchld else f"nonblock-{args.cpus}cpu.log" if args.nonblock else f"poll-{args.cpus}cpu.log" if args.poll else f"pty-{args.cpus}cpu.log" if args.pty else f"jobs-{args.cpus}cpu.log" if args.jobs else f"foreground-{args.cpus}cpu.log" if args.foreground else f"signals-{args.cpus}cpu.log" if args.signals else f"process-groups-{args.cpus}cpu.log" if args.process_groups else f"tty-{args.cpus}cpu.log" if args.tty else f"process-scaling-{args.cpus}cpu.log" if args.process_scaling else "user-regression.log" if args.regression else f"boot-smoke-{args.ram_mib}MiB.log")
 if args.snapshots:
     log_path = log_path.with_name(f'snapshots-{args.cpus}cpu.log')
+if args.memory_pressure:
+    log_path = log_path.with_name(f'fs-memory-pressure-{args.cpus}cpu.log')
+if args.large_unlink:
+    log_path = log_path.with_name(f'fs-large-unlink-{args.cpus}cpu.log')
+if args.usertest:
+    log_path = log_path.with_name(f'user-{args.usertest}-{Path(args.image).stem}-{args.cpus}cpu.log')
 if args.ramfs_service:
     log_path = log_path.with_name(f'ramfs-lifecycle-{args.cpus}cpu.log')
 if args.initrd:
@@ -133,10 +153,15 @@ def expect(token, timeout=30):
                     raise RuntimeError('job control contract failed')
                 if b'fgtest: FAIL:' in transcript:
                     raise RuntimeError('foreground contract failed')
-                if b'SOME TESTS FAILED' in transcript or b'runtest: fork error' in transcript:
+                leaked = transcript.find(b'FAILED -- lost some free pages')
+                if (b'SOME TESTS FAILED' in transcript or b'runtest: fork error' in transcript or
+                        (leaked >= 0 and b'\n' in transcript[leaked:])):
                     raise RuntimeError('guest regression test failed')
                 if b'panic:' in transcript:
                     raise RuntimeError('kernel panic')
+                position = transcript.find(b'fsboot: root service ')
+                if position >= 0 and b'\n' in transcript[position:]:
+                    raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
     raise RuntimeError(f'timeout waiting for {token!r}')
 
 def foreground_checks():
@@ -745,12 +770,25 @@ try:
         checks = [('userfstest', 'userfstest: all tests succeeded')]
     if args.regression:
         checks = [('usertests -q', 'ALL TESTS PASSED')]
+    if args.memory_pressure:
+        checks = [('usertests forkforkfork', 'ALL TESTS PASSED'),
+                  ('usertests mem', 'ALL TESTS PASSED'),
+                  ('usertests sbrkfail', 'ALL TESTS PASSED'),
+                  ('echo FS_SURVIVED > /tmp/fs-pressure', None),
+                  ('cat /tmp/fs-pressure', 'FS_SURVIVED\n'),
+                  ('cat /etc/passwd', 'root:')]
+    if args.large_unlink:
+        checks = [('rm /large-unlink', None),
+                  ('cat /large-unlink', 'cat: cannot open /large-unlink'),
+                  ('cat /etc/passwd', 'root:')]
+    if args.usertest:
+        checks = [(f'usertests {args.usertest}', 'ALL TESTS PASSED')]
     for cmd, token in checks:
         process.stdin.write((cmd + '\n').encode())
         process.stdin.flush()
         expect(cmd + '\n', timeout=10)
         if token:
-            expect(token, timeout=300 if args.regression else 45)
+            expect(token, timeout=300 if args.regression or args.memory_pressure else 45)
         expect('$ ')
     if args.procfs:
         cache_fields = {key.decode(): int(value) for key, value in

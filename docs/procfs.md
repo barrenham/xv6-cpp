@@ -2,6 +2,8 @@
 
 系统在 `/proc` 挂载只读 procfs，把系统与进程信息提供给普通文件接口。`ps`、`free` 只读取 procfs，不新增专用系统调用。
 
+当前目录、文本格式和快照策略由独立用户态 `ProcessBackend` 服务实现。内核只提供类型化原始资源能力、进程身份与权限检查，服务通过桥接收到原始调用者 PID/uid/gid。旧内核 ProcFileSystem 和提供者注册表只保留在宿主机参考测试中，不链接进生产内核。架构与验收进度见 [文件系统服务迁移](fs-service-migration.md)。
+
 | 路径 | 内容 |
 | --- | --- |
 | `/proc/meminfo` | MemTotal、MemFree、MemAvailable、MemUsed，单位 kB |
@@ -39,22 +41,16 @@ ls /proc
 
 ## 信息提供者
 
-根目录信息文件通过 `ProcProviderRegistry` 注册名称、只读权限和快照生成
-函数。PID 下的信息文件通过相同模板的 `ProcProcessRegistry` 注册。注册表复制名称，拒绝重复名称及 PID/self 保留名称，并在挂载发布前
-封闭。增加信息文件无需修改逐个文件名判断的路径解析状态机。共同的
-`SnapshotText` 格式化器管理输出分配失败，动态 PID/fd 查找继续由 procfs
-自己的状态机处理。
+用户态 `processes.cpp` 管理 PID、fd、目录和每次打开的内容，`process_system.cpp` 生成系统信息文本。资源能力返回类型化数值及原始 argv/env 字节，不在内核生成文件名、目录项或格式化文本。私有信息捕获由内核根据原始调用者身份检查；服务持有资源描述符不等于可以替普通应用绕过这些检查。
 
 CPU 标识在机器模式读取，完成 supervisor 初始化的 hart 才标为在线；
 supervisor 下读取快照不会访问机器权限 CSR。misa 的单字母扩展位依据
 [RISC-V 特权规范](https://docs.riscv.org/reference/isa/priv/machine.html)，
-当前不补造多字母扩展或未知微架构名称。`filesystems` 取自服务层装配的
-后端对象；`mounts` 读取 VFS 发布的副本，不在持有 proc inode 锁时获取
-VFS 命名空间锁。挂载增删同步更新该副本，避免两类锁发生顺序反转。
+当前不补造多字母扩展或未知微架构名称。`filesystems` 枚举桥接及实际注册的用户态类型，不列出未启动的旧内核后端；`mounts` 通过资源能力读取 VFS 发布的副本。挂载增删同步更新该副本，读取不重入路径命名空间。
 
 ## 打开时快照
 
-每个独立 open 使用按需增长的 PageBuffer 页链生成内容，read 在固定内容上推进偏移。短读不会重复生成内容，复制失败不推进偏移，fstat 报告本次快照长度。dup/fork 共享同一份内容和偏移，最后关闭归还全部页面。
+每个独立 open 通过 SnapshotBegin/Read/End 捕获不可变内容，内核保存本次打开的页链，read 在固定内容上推进偏移。短读不会重复生成内容，复制失败不推进偏移，fstat 报告本次快照长度。dup/fork 共享同一份内容和偏移，最后关闭归还全部页面。失败捕获会释放服务端临时快照和已复制前缀。
 
 打开的 status 即使对应进程退出并被回收，也能读完原内容；后续新 open 会失败。快照只保存复制的数据，不保存 Process 指针。根目录同样按每次打开生成，ps 允许枚举到的进程在读取 status 前退出并跳过它。
 

@@ -47,6 +47,7 @@ void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
 void sleep();
 void wakeup(void *channel);
+void wakeup_one(void *channel);
 PollWait make_poll_wait();
 void poll_timer_tick(unsigned long milliseconds);
 unsigned long next_timer_deadline();

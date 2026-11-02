@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Measure real slab implementations against page allocation in a private RISC-V kernel."""
+from qemu_boot import bootstrap_args
 import argparse
 import json
 import os
@@ -33,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='slab-kernel-', dir=build) as tmp:
     link[link.index('-o') + 1] = str(kernel)
     subprocess.run(link, cwd=source['directory'], check=True)
     shutil.copyfile(a.image, image)
-    guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel),
+    guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel), *bootstrap_args(a.kernel),
         '-m', '128M', '-smp', '1', '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',
         '-drive', f'file={image},if=none,format=raw,id=x0',
         '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0'],

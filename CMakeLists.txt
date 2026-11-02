@@ -105,16 +105,18 @@ add_custom_target(rootfs-convert
     "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convert_rootfs.py"
     --image "${XV_ROOTFS_IMAGE}" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --filesystem "${XV_FILESYSTEM}"
   DEPENDS host_mkfs VERBATIM)
-set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel> -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${XV_ROOTFS_IMAGE},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
+set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel>
+  -initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+  -m ${XV_RAM_MB}M -smp ${XV_CPUS} -nographic -global virtio-mmio.force-legacy=false -drive file=${XV_ROOTFS_IMAGE},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0)
 list(APPEND XV_QEMU_OPTIONS -object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
-add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel rootfs-image USES_TERMINAL)
+add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel user_fsboot rootfs-image USES_TERMINAL)
 add_custom_target(qemu-graphics COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
   -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT}
   -device virtio-keyboard-device,bus=virtio-mmio-bus.4
   -device virtio-mouse-device,bus=virtio-mmio-bus.5 -display gtk
-  DEPENDS kernel rootfs-image USES_TERMINAL)
+  DEPENDS kernel user_fsboot rootfs-image USES_TERMINAL)
 set(XV_VNC_DISPLAY "1" CACHE STRING "VNC display number (TCP port 5900 + display)")
 if(NOT XV_VNC_DISPLAY MATCHES "^(0|[1-9][0-9]*)$" OR XV_VNC_DISPLAY GREATER 59635)
   message(FATAL_ERROR "XV_VNC_DISPLAY must be an integer from 0 to 59635")
@@ -127,9 +129,15 @@ add_custom_target(qemu-vnc
     -device virtio-keyboard-device,bus=virtio-mmio-bus.4
     -device virtio-mouse-device,bus=virtio-mmio-bus.5
     -vnc "0.0.0.0:${XV_VNC_DISPLAY}"
-  DEPENDS kernel rootfs-image USES_TERMINAL VERBATIM)
-add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel rootfs-image USES_TERMINAL)
+  DEPENDS kernel user_fsboot rootfs-image USES_TERMINAL VERBATIM)
+add_custom_target(qemu-gdb COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} -S -gdb tcp::${XV_GDB_PORT} DEPENDS kernel user_fsboot rootfs-image USES_TERMINAL)
 enable_testing()
+find_program(XV_NM llvm-nm HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
+find_program(XV_NINJA ninja REQUIRED)
+add_test(NAME fs_runtime_boundary COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/fs_runtime_boundary.py" --kernel $<TARGET_FILE:kernel>
+  --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot" --nm "${XV_NM}" --ninja "${XV_NINJA}")
+set_tests_properties(fs_runtime_boundary PROPERTIES TIMEOUT 30 LABELS fs)
 foreach(cpus IN ITEMS 1 5)
   add_test(NAME fork_progress_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/fork_progress.py" --qemu "${XV_QEMU}"
@@ -174,6 +182,32 @@ add_test(NAME boot_smoke COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/
 set_tests_properties(boot_smoke PROPERTIES TIMEOUT 120)
 add_test(NAME user_regression COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}" --regression)
 set_tests_properties(user_regression PROPERTIES TIMEOUT 330)
+foreach(cpus 1 5)
+  add_test(NAME fs_memory_pressure_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --cpus ${cpus} --memory-pressure)
+  set_tests_properties(fs_memory_pressure_${cpus}cpu PROPERTIES TIMEOUT 330 LABELS "fs;memory")
+  add_test(NAME fs_large_unlink_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --cpus ${cpus} --large-unlink)
+  set_tests_properties(fs_large_unlink_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS fs)
+  foreach(format ext3 xv6)
+    set(partial_image "${PROJECT_BINARY_DIR}/fs-test.img")
+    if(format STREQUAL "xv6")
+      set(partial_image "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
+    endif()
+    add_test(NAME fs_partial_write_${format}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --image "${partial_image}"
+      --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+      --cpus ${cpus} --usertest partial_write)
+    set_tests_properties(fs_partial_write_${format}_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS fs)
+  endforeach()
+endforeach()
 foreach(kind buddy freelist)
   add_test(NAME allocator_contract_${kind} COMMAND "${PROJECT_BINARY_DIR}/allocator_contract" ${kind})
   set_tests_properties(allocator_contract_${kind} PROPERTIES TIMEOUT 45 LABELS memory)

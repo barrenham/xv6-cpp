@@ -53,6 +53,8 @@ void wake_processes(void *channel)
   xv::process::wakeup(channel);
 }
 
+void wake_one_process(void *channel) { xv::process::wakeup_one(channel); }
+
 [[noreturn]] void fail(const char *message)
 {
   xv::print::panic(message);

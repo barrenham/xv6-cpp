@@ -14,11 +14,13 @@ def boot(args, directory, image, expected):
     with disk.open('wb') as file:
         file.truncate(8 * 1024 * 1024)
     command = [args.qemu, '-machine', 'virt', '-bios', 'none',
-               '-kernel', str(args.kernel), '-initrd', str(image),
+               '-kernel', str(args.kernel),
                '-m', '128M', '-smp', str(args.cpus), '-nographic',
                '-global', 'virtio-mmio.force-legacy=false',
                '-drive', f'file={disk},if=none,format=raw,id=x0',
                '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+    if image is not None:
+        command += ['-initrd', str(image)]
     if args.data_disk:
         data = directory / 'data.img'
         with data.open('wb') as file:
@@ -58,7 +60,8 @@ def boot(args, directory, image, expected):
             process.wait()
         process.stdin.close()
         process.stdout.close()
-        log = args.kernel.parent / f'fs-bootstrap-{args.cpus}cpu-{image.name}.log'
+        label = image.name if image is not None else 'no-initrd'
+        log = args.kernel.parent / f'fs-bootstrap-{args.cpus}cpu-{label}.log'
         log.write_bytes(transcript)
         print(transcript.decode(errors='replace'), end='')
 
@@ -76,6 +79,7 @@ def main():
         directory = Path(path)
         boot(args, directory, args.program,
              args.expected.encode() + b'\n')
+        boot(args, directory, None, b'panic: boot: missing userspace bootstrap (-initrd)')
         for name, contents in [('bad-magic', b'not an ELF executable'),
                                ('truncated-elf', args.program.read_bytes()[:64])]:
             image = directory / name

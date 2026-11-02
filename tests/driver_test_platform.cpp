@@ -1298,6 +1298,8 @@ void wake_processes(void *)
   ++test::wakeups;
 }
 
+void wake_one_process(void *channel) { wake_processes(channel); }
+
 void *pin_controlling_terminal(void *(*pin)(void *))
 {return test::controlling_tty ? pin(test::controlling_tty):nullptr;}
 

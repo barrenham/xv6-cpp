@@ -12,24 +12,6 @@ namespace xv::process
 {
 struct PollWait::Page
 {
-  struct Table final : public xv::sync::PollTable
-  {
-    explicit Table(PollWait &wait) : owner(wait)
-    {
-    }
-
-    void watch(void *channel) override
-    {
-      owner.watch(channel);
-    }
-
-    PollWait &owner;
-  } table;
-
-  explicit Page(PollWait &wait) : table(wait)
-  {
-  }
-
   Page *next = nullptr;
   unsigned used = 0;
   PollEntry entries[(4096 - 64) / sizeof(PollEntry)]{};
@@ -47,6 +29,8 @@ struct PollWait::WatchFlow
 
   static bool duplicate(Context &c) noexcept
   {
+    for (unsigned i = 0; i < c.owner.inline_used_; ++i)
+      if (c.owner.inline_entries_[i].channel == c.channel) return true;
     for (auto *page = c.owner.pages_; page; page = page->next)
     {
       for (unsigned i = 0; i < page->used; ++i)
@@ -58,6 +42,18 @@ struct PollWait::WatchFlow
       }
     }
     return false;
+  }
+
+  static bool inline_space(Context &c) noexcept
+  {
+    return c.owner.inline_used_ < sizeof(c.owner.inline_entries_) / sizeof(PollEntry);
+  }
+
+  static void subscribe_inline(Context &c) noexcept
+  {
+    auto &entry = c.owner.inline_entries_[c.owner.inline_used_++];
+    entry.owner = &c.owner;
+    c.owner.channels_.subscribe(entry, c.channel);
   }
 
   static bool needs_page(Context &c) noexcept
@@ -78,6 +74,8 @@ struct PollWait::WatchFlow
     c.owner.channels_.subscribe(entry, c.channel);
   }
   struct Duplicate;
+  struct Inline;
+  struct InlineSubscribe;
   struct Capacity;
   struct Allocate;
   struct Subscribe;
@@ -85,7 +83,11 @@ struct PollWait::WatchFlow
       Duplicate,
       flow::types<flow::node<Duplicate, flow::noop,
                              flow::branch<flow::condition<&duplicate>, flow::stop,
-                                          flow::go<Capacity>>>,
+                                          flow::go<Inline>>>,
+                  flow::node<Inline, flow::noop,
+                             flow::branch<flow::condition<&inline_space>,
+                                          flow::go<InlineSubscribe>, flow::go<Capacity>>>,
+                  flow::node<InlineSubscribe, flow::action<&subscribe_inline>, flow::stop>,
                   flow::node<Capacity, flow::noop,
                              flow::branch<flow::condition<&needs_page>,
                                           flow::go<Allocate>, flow::go<Subscribe>>>,
@@ -113,6 +115,13 @@ struct PollWait::ReleaseFlow
     return c.owner.pages_ != nullptr;
   }
 
+  static void unsubscribe_inline(Context &c) noexcept
+  {
+    for (unsigned i = 0; i < c.owner.inline_used_; ++i)
+      c.owner.channels_.unsubscribe(c.owner.inline_entries_[i]);
+    c.owner.inline_used_ = 0;
+  }
+
   static void unsubscribe(Context &c) noexcept
   {
     c.page = c.owner.pages_;
@@ -129,11 +138,13 @@ struct PollWait::ReleaseFlow
     detail::free_process_page(c.page);
   }
   struct Timer;
+  struct Inline;
   struct Unsubscribe;
   struct Free;
   using Graph = flow::graph<
       Timer,
-      flow::types<flow::node<Timer, flow::action<&timer>,
+      flow::types<flow::node<Timer, flow::action<&timer>, flow::go<Inline>>,
+                  flow::node<Inline, flow::action<&unsubscribe_inline>,
                              flow::branch<flow::condition<&pages>,
                                           flow::go<Unsubscribe>, flow::stop>>,
                   flow::node<Unsubscribe, flow::action<&unsubscribe>, flow::go<Free>>,
@@ -203,7 +214,7 @@ PollWait::Page *PollWait::allocate_page()
     failed_ = true;
     return nullptr;
   }
-  auto *page = new (storage) Page(*this);
+  auto *page = new (storage) Page{};
   page->next = pages_;
   pages_ = page;
   return page;
@@ -211,11 +222,8 @@ PollWait::Page *PollWait::allocate_page()
 
 xv::sync::PollTable *PollWait::table()
 {
-  if (!pages_ && !allocate_page())
-  {
-    return nullptr;
-  }
-  return &pages_->table;
+  table_.bind(*this, [](PollWait &wait, void *channel) { wait.watch(channel); });
+  return &table_;
 }
 
 void PollWait::watch(void *channel)

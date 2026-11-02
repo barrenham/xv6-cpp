@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """DNS resolver against deterministic host peers and QEMU's DHCP-selected DNS proxy."""
+from qemu_boot import bootstrap_args
 from console_login import login_root
 import argparse
 import os
@@ -146,10 +147,10 @@ def main():
     transcript = bytearray()
     log = Path(args.image).parent / f'dns-{args.cpus}cpu.log'
     try:
-        with tempfile.TemporaryDirectory(prefix='xv-dns-', dir=Path(args.image).parent) as temporary:
+        with tempfile.TemporaryDirectory(prefix='xv-dns-') as temporary:
             image = Path(temporary) / 'fs.img'
             shutil.copyfile(args.image, image)
-            command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel,
+            command = [args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', args.kernel, *bootstrap_args(args.kernel),
                        '-m', '128M', '-smp', str(args.cpus), '-nographic', '-snapshot',
                        '-global', 'virtio-mmio.force-legacy=false',
                        '-drive', f'file={image},if=none,format=raw,id=x0',

@@ -1,4 +1,4 @@
-module xv.process:poll_entry;
+export module xv.process:poll_entry;
 namespace xv::process
 {
 class PollWait;

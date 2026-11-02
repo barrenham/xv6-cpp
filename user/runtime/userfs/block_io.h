@@ -9,6 +9,9 @@ class BlockIo final : public xv::ext3::Io
 public:
 
   explicit BlockIo(int descriptor);
+  ~BlockIo();
+  BlockIo(const BlockIo &) = delete;
+  BlockIo &operator=(const BlockIo &) = delete;
   bool read(xv::ext3::u64 offset, void *data, unsigned count) override;
   bool write(xv::ext3::u64 offset, const void *data, unsigned count) override;
   bool flush() override;
@@ -19,7 +22,11 @@ public:
 
 private:
 
+  struct ReadCache;
+  void invalidate(xv::ext3::u64 offset, unsigned count);
+
   int descriptor_;
   unsigned long size_ = 0;
+  ReadCache *cache_ = nullptr;
 };
 } // namespace userfs

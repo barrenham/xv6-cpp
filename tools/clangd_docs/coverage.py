@@ -45,7 +45,11 @@ def main():
             assert destination.exists(), (str(path), link)
             if anchor and destination.suffix == '.md':
                 assert f'id="{anchor}"' in destination.read_text(), (str(path), link)
-    result = {'kernel_files': len(indexed_files), 'default_unique_symbols': len({item['info']['usr'] for item in inventory['functions']}),
+    result = {'kernel_files': len(indexed_files),
+              'default_unique_symbols': len({item['info']['usr'] for item in inventory['functions']
+                                             if item.get('profile', 'production') == 'production'}),
+              'host_reference_symbols': len({item['info']['usr'] for item in inventory['functions']
+                                             if item.get('profile') == 'host-reference'}),
               'all_cpp_symbols': len(expected), 'documentation_entries': len(entries),
               'indexable_entries': sum(entry.get('indexable', True) for entry in entries),
               'documentation_only': sum(not entry.get('indexable', True) for entry in entries),

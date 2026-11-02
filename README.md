@@ -30,6 +30,11 @@ cmake --build build/dev --target qemu
 
 已有自己的根盘时无需再次运行 `rootfs-create`，直接使用 `qemu` 目标启动。
 
+QEMU 通过 `-kernel kernel.elf` 进入内核，并用 `-initrd` 预加载用户态 `fsboot`。
+默认目标会自动提供该引导数据；根文件系统（ext3 或 xv6）、devfs、procfs 和 ramfs 均由独立用户进程服务，内核保留 VFS、IPC 和设备机制。
+手工启动时也需要 `-initrd build/dev/user/image/_fsboot`，缺少它不会回退到内核 FS。
+迁移验证与当前限制见 [FS 服务迁移](docs/fs-service-migration.md)。
+
 退出 QEMU：先按 `Ctrl-a`，再按 `x`。运行测试：
 
 ```sh

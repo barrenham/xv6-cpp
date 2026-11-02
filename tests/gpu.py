@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Verify the real VirtIO-GPU scanout via QMP, without a desktop session."""
+from qemu_boot import bootstrap_args
 import argparse,json,os,selectors,shutil,socket,struct,subprocess,tempfile,time
 from pathlib import Path
 from console_login import login_root
@@ -49,10 +50,10 @@ def vnc_pixels(port):
    if covered==width*height:return pixels
   raise RuntimeError('incomplete VNC framebuffer')
 output=Path(a.image).parent;transcript=bytearray();cursor=0
-with tempfile.TemporaryDirectory(prefix='xv-gpu-',dir=output) as directory:
+with tempfile.TemporaryDirectory(prefix='xv-gpu-') as directory:
  directory=Path(directory);disk=directory/'fs.img';shutil.copyfile(a.image,disk);monitor=directory/'qmp'
  console=['-nographic','-display','none'] if a.vnc else ['-display','none','-serial','stdio']
- command=[a.qemu,'-machine','virt','-bios','none','-kernel',a.kernel,'-m','128M','-smp',str(a.cpus),*console,'-qmp',f'unix:{monitor},server=on,wait=off','-global','virtio-mmio.force-legacy=false','-drive',f'file={disk},if=none,format=raw,id=x0','-device','virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
+ command=[a.qemu,'-machine','virt','-bios','none','-kernel',a.kernel, *bootstrap_args(a.kernel),'-m','128M','-smp',str(a.cpus),*console,'-qmp',f'unix:{monitor},server=on,wait=off','-global','virtio-mmio.force-legacy=false','-drive',f'file={disk},if=none,format=raw,id=x0','-device','virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0']
  if not a.without_gpu:command+=['-device',f'virtio-gpu-device,bus=virtio-mmio-bus.3,xres={a.width},yres={a.height}']
  if a.vnc:
   with socket.socket() as reservation:

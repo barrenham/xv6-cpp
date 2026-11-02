@@ -236,6 +236,8 @@ void wakeup(void *channel)
   process_manager.wakeup(channel);
 }
 
+void wakeup_one(void *channel) { waits.wake(channel, true); }
+
 PollWait make_poll_wait()
 {
   return PollWait(*current(), waits);

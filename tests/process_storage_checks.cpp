@@ -459,8 +459,8 @@ void poll_subscriptions()
     left.watch(&b);
     left.watch(&a);
     right.watch(&b);
-    check(xv_storage_live_pages() == baseline + 2,
-          "poll deduplicates subscriptions in per-call storage");
+    check(xv_storage_live_pages() == baseline,
+          "small polls deduplicate subscriptions without allocating pages");
     waits.wake(&unrelated);
     waits.expire_timers(~0UL);
     check(!left.triggered() && !right.triggered(),
@@ -493,6 +493,20 @@ void poll_subscriptions()
   waits.wake(&a);
   waits.wake(&b);
   waits.expire_timers(~0UL);
+  {
+    PollWait observer(*first, waits), other(*second, waits);
+    observer.watch(&a);
+    other.watch(&a);
+    waits.prepare(*first, &a);
+    waits.prepare(*second, &a);
+    waits.wake(&a, true);
+    check(!Access::registered(*first) && Access::registered(*second),
+          "single-process wake selects the oldest matching waiter");
+    check(observer.triggered() && other.triggered(),
+          "single-process wake still notifies all poll observers");
+    waits.wake(&a, true);
+    check(!Access::registered(*second), "next wake releases the remaining waiter");
+  }
   {
     int channels[400];
     PollWait many(*first, waits);
@@ -532,7 +546,18 @@ void poll_subscriptions()
   {
     PollWait failed(*first, waits);
     failed.watch(&a);
-    check(failed.failed(), "subscription allocation failure is reported");
+    failed.watch(&b);
+    check(failed.table() && !failed.failed() && xv_storage_live_pages() == baseline,
+          "small polls and RPC waits survive zero allocation budget");
+    failed.set_deadline(1000);
+    waits.wake(&a);
+    check(failed.triggered(), "OOM subscription still receives a wakeup");
+    failed.sleep();
+    waits.expire_timers(1000);
+    check(failed.triggered(), "OOM subscription still receives its deadline");
+    int extra[4];
+    for (auto &channel : extra) failed.watch(&channel);
+    check(failed.failed(), "large poll expansion failure is reported");
   }
   xv_storage_fail_after(-1);
   std::atomic<bool> stop{false};

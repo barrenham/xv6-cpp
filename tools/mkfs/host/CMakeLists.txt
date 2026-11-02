@@ -407,7 +407,7 @@ target_compile_features(ext3_jbd_contract PRIVATE cxx_std_20)
 target_compile_options(ext3_jbd_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
 set_target_properties(ext3_jbd_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 
-add_executable(ext3_volume_contract "${XV_ROOT}/tests/ext3_volume_contract.cpp" "${XV_ROOT}/kernel/fs/ext3/volume.cpp" "${XV_ROOT}/kernel/fs/ext3/mutate.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+add_executable(ext3_volume_contract "${XV_ROOT}/tests/ext3_volume_contract.cpp" "${XV_ROOT}/user/runtime/userfs/ext3.cpp" "${XV_ROOT}/kernel/fs/ext3/volume.cpp" "${XV_ROOT}/kernel/fs/ext3/mutate.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
 target_include_directories(ext3_volume_contract PRIVATE "${XV_ROOT}")
 target_compile_features(ext3_volume_contract PRIVATE cxx_std_20)
 target_compile_options(ext3_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)

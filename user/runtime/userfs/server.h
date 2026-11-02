@@ -24,6 +24,11 @@ public:
   virtual int snapshot_read(unsigned long, void *, unsigned) { return -1; }
   virtual void snapshot_end() {}
 
+  // Run one bounded batch between requests; no filesystem policy lives in the
+  // dispatcher. A backend with pending work must eventually clear this flag.
+  virtual bool maintenance_pending() const { return false; }
+  virtual bool maintain() { return true; }
+
   virtual Attributes root()
   {
     return {1, 0, 0, 0, 0755, 1, 2};

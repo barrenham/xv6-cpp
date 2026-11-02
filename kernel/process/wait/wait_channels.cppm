@@ -21,7 +21,7 @@ public:
   void initialize();
   void prepare(Process &process, void *channel, bool interruptible = false);
   void cancel(Process &process);
-  void wake(void *channel);
+  void wake(void *channel, bool one_process = false);
   void subscribe(PollEntry &entry, void *channel);
   void unsubscribe(PollEntry &entry);
   void arm_timer(PollWait &wait, unsigned long deadline);

@@ -18,7 +18,7 @@ struct VirtualFileSystem::InitializeFlow
 
   static void initialize_namespace(Context &c) noexcept
   {
-    c.owner.namespace_.init("vfs namespace");
+    c.owner.namespace_.init_single_waiter("vfs namespace");
     c.owner.mount_snapshot_lock_.init("mount snapshot");
     if (c.owner.dynamic_)
     {
@@ -31,8 +31,8 @@ struct VirtualFileSystem::InitializeFlow
 
   static void inode_backends(Context &c) noexcept
   {
-    c.owner.disk_.initialize_inodes();
-    c.owner.devices_.initialize_inodes();
+    if (c.owner.disk_) c.owner.disk_->initialize_inodes();
+    if (c.owner.devices_) c.owner.devices_->initialize_inodes();
   }
 
   static bool has_processes(Context &c) noexcept
@@ -93,7 +93,7 @@ struct VirtualFileSystem::InitializeFlow
 
   static void disk(Context &c) noexcept
   {
-    c.owner.disk_.initialize(c.device);
+    c.owner.disk_->initialize(c.device);
   }
 
   static void storage(Context &c) noexcept
@@ -113,7 +113,7 @@ struct VirtualFileSystem::InitializeFlow
 
   static bool mount_devices(Context &c) noexcept
   {
-    return c.owner.mount("/dev", c.owner.devices_, c.device + 1);
+    return c.owner.mount("/dev", *c.owner.devices_, c.device + 1);
   }
 
   static bool mount_processes(Context &c) noexcept
