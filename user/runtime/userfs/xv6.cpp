@@ -86,10 +86,22 @@ bool Xv6Backend::retained(unsigned number) const
 bool Xv6Backend::collect()
 {
   if (!state_ || failed_) return false;
+  cleanup_retry_ = false;
   for (unsigned i = 2; i < volume_.inodes(); ++i)
   {
     if (!state_[i].orphan || retained(i)) continue;
-    if (!volume_.reclaim(i)) { failed_ = true; return false; }
+    if (!volume_.reclaim(i))
+    {
+      // Failed preparation, including commit-header allocation, is discarded
+      // before any durable write. Keep the orphan for the SDK's delayed retry.
+      if (volume_.error() == xv6::Error::NoMemory)
+      {
+        cleanup_retry_ = true;
+        return true;
+      }
+      failed_ = true;
+      return false;
+    }
     state_[i] = {};
   }
   return true;

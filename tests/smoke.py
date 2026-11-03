@@ -102,6 +102,8 @@ if args.snapshots:
     log_path = log_path.with_name(f'snapshots-{args.cpus}cpu.log')
 if args.memory_pressure:
     log_path = log_path.with_name(f'fs-memory-pressure-{args.cpus}cpu.log')
+    if Path(args.image).stem != 'fs-test':
+        log_path = log_path.with_name(f'fs-memory-pressure-{Path(args.image).stem}-{args.cpus}cpu.log')
 if args.large_unlink:
     log_path = log_path.with_name(f'fs-large-unlink-{args.cpus}cpu.log')
 if args.usertest:

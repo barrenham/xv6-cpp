@@ -45,8 +45,17 @@ void file_contract()
   fd = open("/root/abcdefghijklmn", O_CREATE | O_RDWR);
   check(fd >= 0, "fourteen character name");
   close(fd);
-  check(open("/root/abcdefghijklmno", O_CREATE | O_RDWR) < 0,
-        "long name rejected without truncation alias");
+  struct stat canonical{};
+  check(stat("/root/abcdefghijklmn", &canonical) == 0, "canonical name attributes");
+  fd = open("/root/abcdefghijklmno", O_CREATE | O_RDWR);
+  check(fd >= 0 && fstat(fd, &info) == 0 && info.dev == canonical.dev &&
+        info.ino == canonical.ino && write(fd, "alias", 5) == 5,
+        "long name aliases the same fourteen character inode");
+  close(fd);
+  fd = open("/root/abcdefghijklmn", O_RDONLY);
+  check(fd >= 0 && read(fd, bytes, 5) == 5 && !memcmp(bytes, "alias", 5),
+        "canonical name sees writes through truncated alias");
+  close(fd);
   check(chmod("/root/abcdefghijklmn", 0640) == 0 &&
         chown("/root/abcdefghijklmn", 123, 456) == 0 &&
         stat("/root/abcdefghijklmn", &info) == 0 && info.uid == 123 &&

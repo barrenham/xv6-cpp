@@ -194,6 +194,12 @@ foreach(cpus 1 5)
   # Three separate commands each retain their 300s deadline and page assertions.
   # Leave room for their combined work under background scheduling.
   set_tests_properties(fs_memory_pressure_${cpus}cpu PROPERTIES TIMEOUT 600 LABELS "fs;memory" RUN_SERIAL TRUE)
+  add_test(NAME fs_memory_pressure_xv6_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
+    --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
+    --cpus ${cpus} --memory-pressure)
+  set_tests_properties(fs_memory_pressure_xv6_${cpus}cpu PROPERTIES TIMEOUT 600 LABELS "fs;memory" RUN_SERIAL TRUE)
   add_test(NAME fs_large_unlink_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"

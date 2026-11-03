@@ -25,6 +25,9 @@ public:
   int rename(unsigned, const char *, unsigned, const char *) override;
   int sync(unsigned) override;
   void forget(unsigned) override;
+  bool maintenance_pending() const override { return cleanup_retry_; }
+  unsigned maintenance_delay_ms() const override { return cleanup_retry_ ? 10 : 0; }
+  bool maintain() override { return collect(); }
 private:
   struct State { unsigned parent = 0; bool borrowed = false, orphan = false; };
   static Attributes attributes(const xv6::Inode &);
@@ -34,5 +37,6 @@ private:
   xv6::Volume volume_;
   State *state_ = nullptr;
   bool failed_ = false;
+  bool cleanup_retry_ = false;
 };
 } // namespace userfs

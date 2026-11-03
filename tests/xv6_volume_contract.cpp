@@ -89,6 +89,61 @@ void backend_names(const std::vector<unsigned char> &base)
   }
   assert(disk.pages.empty() && !disk.outside);
 }
+void backend_reclamation_faults(const std::vector<unsigned char> &base)
+{
+  Disk disk(base);
+  unsigned last_orphan = 0;
+  {
+    userfs::Xv6Backend backend(disk);
+    assert(backend.initialize());
+    userfs::Attributes requested{0, 0, 0, 0, 0600, T_FILE, 1}, file{}, removed{}, root{};
+    assert(backend.create(ROOTINO, "cleanup", requested, file) == 0);
+    assert(backend.write(file.node, NDIRECT * BSIZE, "held", 4) == 4);
+    assert(backend.unlink(ROOTINO, "cleanup", removed) == 0);
+    auto before = disk.bytes;
+    disk.allocation_budget = 0;
+    backend.forget(file.node);
+    disk.allocation_budget = -1;
+    assert(backend.getattr(ROOTINO, root) == 0);
+    assert(backend.maintenance_pending() && backend.maintenance_delay_ms() > 0);
+    assert(disk.bytes == before && disk.durable == before && disk.pages.empty());
+    bool reclaimed = false;
+    for (int budget = 1; budget < 64; ++budget)
+    {
+      disk.allocation_budget = budget;
+      assert(backend.maintain());
+      disk.allocation_budget = -1;
+      assert(disk.pages.empty() && backend.getattr(ROOTINO, root) == 0);
+      if (!backend.maintenance_pending()) { reclaimed = true; break; }
+      assert(disk.bytes == before && disk.durable == before);
+      assert(backend.maintenance_delay_ms() > 0);
+    }
+    assert(reclaimed && backend.getattr(file.node, removed) < 0);
+    assert(backend.sync(ROOTINO) == 0);
+
+    assert(backend.create(ROOTINO, "io-failure", requested, file) == 0);
+    last_orphan = file.node;
+    assert(backend.unlink(ROOTINO, "io-failure", removed) == 0);
+    disk.allocation_budget = 0;
+    backend.forget(file.node);
+    disk.allocation_budget = -1;
+    assert(backend.maintenance_pending());
+    disk.event_budget = 0;
+    assert(!backend.maintain());
+    disk.event_budget = -1;
+    assert(backend.getattr(ROOTINO, root) < 0);
+  }
+  assert(disk.pages.empty() && !disk.outside);
+  {
+    Volume recovered(disk);
+    assert(recovered.mount());
+    Inode node;
+    assert(!recovered.lookup(ROOTINO, "cleanup", node));
+    assert(!recovered.lookup(ROOTINO, "io-failure", node));
+    assert(!recovered.read_inode(last_orphan, node));
+  }
+  assert(disk.pages.empty());
+}
 void operations(const std::vector<unsigned char> &base)
 {
   Disk disk(base); unsigned orphan = 0;
@@ -256,5 +311,6 @@ int main(int argc, char **argv)
   assert(std::fread(base.data(), 1, base.size(), file) == base.size()); std::fclose(file);
   operations(base); preparation_faults(base); recovery(base); rename_recovery(base);
   backend_names(base);
+  backend_reclamation_faults(base);
   std::puts("userspace xv6 volume: format, namespaces, rollback and durable redo recovery passed");
 }
