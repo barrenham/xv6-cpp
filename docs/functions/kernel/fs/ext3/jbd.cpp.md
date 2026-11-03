@@ -1,5 +1,7 @@
 # `kernel/fs/ext3/jbd.cpp`
 
+> 生产执行位置：用户态格式库。此源码也供离线工具和主机参考夹具复用，`kernel.elf` 不链接此实现。见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 <a id="fn-2878ea6289c61dfd"></a>
 
 ## `xv::ext3::Scratch::Scratch`
@@ -95,9 +97,9 @@
 ## `xv::ext3::Jbd::mount`
 
 ```doxygen
-@fn bool Jbd::xv::ext3::Jbd::mount()
-@brief 实现 xv::ext3::Jbd::mount 的模块操作，按声明参数读写其封装状态。
-@details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
+@fn bool xv::ext3::Jbd::mount()
+@brief 校验日志并预留提交工作页，部分预留失败释放已取得页面。
+@details 生产执行位置为用户态格式库。挂载验证完成后预留三个提交工作页，部分分配失败立即回收；运行时 commit 与 write_super 复用这些页，不再在接受修改后分配临时缓冲。描述符/载荷/commit/home/super 的写入与 flush 顺序不变，真实 I/O 错误继续失败。reset 同时释放 dirty 与预留页，原恢复、撤销与序号回绕处理保留。
 ```
 
 <a id="fn-f45f99ea428df3fd"></a>
@@ -105,9 +107,9 @@
 ## `xv::ext3::Jbd::write_super`
 
 ```doxygen
-@fn bool Jbd::xv::ext3::Jbd::write_super(u32 start,u32 sequence)
-@brief 写入JBD超级块并执行持久化barrier。
-@details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
+@fn bool xv::ext3::Jbd::write_super(u32 start,u32 sequence)
+@brief 复用挂载时预留的日志头工作页，刷新日志起点和序号。
+@details 生产执行位置为用户态格式库。挂载验证完成后预留三个提交工作页，部分分配失败立即回收；运行时 commit 与 write_super 复用这些页，不再在接受修改后分配临时缓冲。描述符/载荷/commit/home/super 的写入与 flush 顺序不变，真实 I/O 错误继续失败。reset 同时释放 dirty 与预留页，原恢复、撤销与序号回绕处理保留。
 ```
 
 <a id="fn-5f83ab0e886b23b5"></a>
@@ -205,9 +207,9 @@
 ## `xv::ext3::Jbd::reset`
 
 ```doxygen
-@fn void Jbd::xv::ext3::Jbd::reset()
-@brief 释放持有的快照/暂存资源，最后引用才归还页面。
-@details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
+@fn void xv::ext3::Jbd::reset()
+@brief 撤销未接受修改并释放 dirty 与挂载期预留的所有工作页。
+@details 生产执行位置为用户态格式库。挂载验证完成后预留三个提交工作页，部分分配失败立即回收；运行时 commit 与 write_super 复用这些页，不再在接受修改后分配临时缓冲。描述符/载荷/commit/home/super 的写入与 flush 顺序不变，真实 I/O 错误继续失败。reset 同时释放 dirty 与预留页，原恢复、撤销与序号回绕处理保留。
 ```
 
 <a id="fn-fdb68219a2e1ea1f"></a>
@@ -215,10 +217,11 @@
 ## `xv::ext3::Jbd::commit`
 
 ```doxygen
-@fn bool Jbd::xv::ext3::Jbd::commit()
-@brief 提交暂存事务，提交记录落盘后再checkpoint并清理日志。
-@details 标准JBD磁盘事务算法。savepoint暂存采用COW，失败回滚；提交记录持久化后才写home blocks，恢复只重放已提交且未撤销的数据。由模块适配器提供串行化。
+@fn bool xv::ext3::Jbd::commit()
+@brief 用已预留缓冲执行原持久日志提交顺序，不再临时分配工作页。
+@details 生产执行位置为用户态格式库。挂载验证完成后预留三个提交工作页，部分分配失败立即回收；运行时 commit 与 write_super 复用这些页，不再在接受修改后分配临时缓冲。描述符/载荷/commit/home/super 的写入与 flush 顺序不变，真实 I/O 错误继续失败。reset 同时释放 dirty 与预留页，原恢复、撤销与序号回绕处理保留。
 ```
+
 
 - [`xv::ext3::Jbd::accept`](jbd.cpp.md#fn-3790d97f4098aeb2)
 

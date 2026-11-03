@@ -97,7 +97,8 @@ bool Volume::free_block(u32 block)
 {
   if(block<geometry_.first_data || block>=geometry_.blocks)return fail(Error::Corrupt);
   u32 number=(block-geometry_.first_data)/geometry_.blocks_per_group,bitmap,inode_bitmap,table;
-  if(!group(number,bitmap,inode_bitmap,table) || metadata_block(block,number,bitmap,inode_bitmap,table))return fail(Error::Corrupt);
+  if(!group(number,bitmap,inode_bitmap,table))return false;
+  if(metadata_block(block,number,bitmap,inode_bitmap,table))return fail(Error::Corrupt);
   auto *bits=edit(bitmap),*descriptor=edit_group(number),*super=edit_super();
   if(!bits || !descriptor || !super)return false;
   u32 bit=(block-geometry_.first_data)%geometry_.blocks_per_group;

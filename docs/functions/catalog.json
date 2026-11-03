@@ -63514,9 +63514,9 @@
     "usr": "c:@N@xv@N@ext3@S@Jbd@F@mount#",
     "hover_expectation": "observe",
     "signature": "bool Jbd::mount()",
-    "spelling": "mount",
-    "fn": "bool Jbd::xv::ext3::Jbd::mount()",
-    "source_sha256": "06e85b1fc0c28bac4b73f2d35959a8c190738643359bfb1f4097d466da1878d9"
+    "spelling": "Jbd::mount",
+    "fn": "bool xv::ext3::Jbd::mount()",
+    "source_sha256": "4d016d372d6b9f26124be2522a06575382e7d2474756d1d0ab220cf9ba4fcbed"
   },
   {
     "anchor": "fn-f45f99ea428df3fd",
@@ -63527,9 +63527,9 @@
     "usr": "c:@N@xv@N@ext3@S@Jbd@F@write_super#i#i#",
     "hover_expectation": "observe",
     "signature": "bool Jbd::write_super(u32 start,u32 sequence)",
-    "spelling": "write_super",
-    "fn": "bool Jbd::xv::ext3::Jbd::write_super(u32 start,u32 sequence)",
-    "source_sha256": "71ca476ce19949fd50c8a81389ade3e4a30897c54f3d460498bf6c242ebcbd26"
+    "spelling": "Jbd::write_super",
+    "fn": "bool xv::ext3::Jbd::write_super(u32 start,u32 sequence)",
+    "source_sha256": "89dfb6a325a607cbd1d120e1678f5c026804030324902be28bd099e20f73fbdc"
   },
   {
     "anchor": "fn-5f83ab0e886b23b5",
@@ -63657,9 +63657,9 @@
     "usr": "c:@N@xv@N@ext3@S@Jbd@F@reset#",
     "hover_expectation": "observe",
     "signature": "void Jbd::reset()",
-    "spelling": "reset",
-    "fn": "void Jbd::xv::ext3::Jbd::reset()",
-    "source_sha256": "c1dbe31288de4ac05dae86235ad21a7e2adfce28e175a3deaae803684196cf2e"
+    "spelling": "Jbd::reset",
+    "fn": "void xv::ext3::Jbd::reset()",
+    "source_sha256": "d4ad918f0deaad835d00f0cb02aa256d8266cae752c4c547a7da4e671792720f"
   },
   {
     "anchor": "fn-fdb68219a2e1ea1f",
@@ -63670,9 +63670,9 @@
     "usr": "c:@N@xv@N@ext3@S@Jbd@F@commit#",
     "hover_expectation": "observe",
     "signature": "bool Jbd::commit()",
-    "spelling": "commit",
-    "fn": "bool Jbd::xv::ext3::Jbd::commit()",
-    "source_sha256": "161b8be365784fc279954cd7cb9e2b074abb0b4b188954045a541a0da59fecf0"
+    "spelling": "Jbd::commit",
+    "fn": "bool xv::ext3::Jbd::commit()",
+    "source_sha256": "3d20599ef0344a0429f62cb84d28aec817a36ea4f779db7277c94349a0e52bb3"
   },
   {
     "anchor": "fn-540924a3a732f4a1",
@@ -64203,9 +64203,9 @@
     "usr": "c:@N@xv@N@ext3@S@Volume@F@free_block#i#",
     "hover_expectation": "observe",
     "signature": "bool Volume::free_block(u32 block)",
-    "spelling": "free_block",
-    "fn": "bool Volume::xv::ext3::Volume::free_block(u32 block)",
-    "source_sha256": "78033ba9329ae076d148e4b017005c919ea040c024ed4fa71bae742f79cb100a"
+    "spelling": "Volume::free_block",
+    "fn": "bool xv::ext3::Volume::free_block(u32 block)",
+    "source_sha256": "7e282e2c5a0e34933ba6231a501ba43e5ca78863727f5951fffa75dc56cde936"
   },
   {
     "anchor": "fn-30e83e529ffbf388",
@@ -64697,9 +64697,9 @@
     "usr": "c:@N@xv@N@ext3@S@Volume@F@journal_mapping#",
     "hover_expectation": "observe",
     "signature": "bool Volume::journal_mapping()",
-    "spelling": "journal_mapping",
-    "fn": "bool Volume::xv::ext3::Volume::journal_mapping()",
-    "source_sha256": "1ac0ab25a9e6d1df9556e6ec512550677daca295692f8c3eec5e5cc4733de35e"
+    "spelling": "Volume::journal_mapping",
+    "fn": "bool xv::ext3::Volume::journal_mapping()",
+    "source_sha256": "e033263830baa218a44e0cd053316cfc8e2bb708f9e8fa83af5cbf1709dca3f6"
   },
   {
     "anchor": "fn-3a66a7d2df1e0f9d",
@@ -64788,9 +64788,9 @@
     "usr": "c:@N@xv@N@ext3@S@Volume@F@set_recovery#b#",
     "hover_expectation": "observe",
     "signature": "bool Volume::set_recovery(bool enabled)",
-    "spelling": "set_recovery",
-    "fn": "bool Volume::xv::ext3::Volume::set_recovery(bool enabled)",
-    "source_sha256": "8d9a8d66bf059b481b550b1d199244752f0359da9253a790fb4d8c0225c51d7f"
+    "spelling": "Volume::set_recovery",
+    "fn": "bool xv::ext3::Volume::set_recovery(bool enabled)",
+    "source_sha256": "bf48b400476a3a6c8b3d48fb2d2c762ba360f354cd6a8baac6dec92f39e1bfe4"
   },
   {
     "anchor": "fn-86a45bd16f7ac115",
@@ -64801,9 +64801,9 @@
     "usr": "c:@N@xv@N@ext3@S@Volume@F@mount#",
     "hover_expectation": "observe",
     "signature": "bool Volume::mount()",
-    "spelling": "mount",
-    "fn": "bool Volume::xv::ext3::Volume::mount()",
-    "source_sha256": "293a17286592e2974df4d49f71c067591a8bdf571ab61d23b71a9b598a7c35cb"
+    "spelling": "Volume::mount",
+    "fn": "bool xv::ext3::Volume::mount()",
+    "source_sha256": "6d812dc8a28dabb123fdfa6205c386afb3844d4a7ba886a45c770dfa529d8949"
   },
   {
     "anchor": "fn-4f13e60f4c2125a4",
@@ -64814,9 +64814,9 @@
     "usr": "c:@N@xv@N@ext3@S@Volume@F@reset#",
     "hover_expectation": "observe",
     "signature": "void Volume::reset()",
-    "spelling": "reset",
-    "fn": "void Volume::xv::ext3::Volume::reset()",
-    "source_sha256": "3782027020bcf2871e79fd26e556e62d2f67f73bc2df03902cf0954502183b08"
+    "spelling": "Volume::reset",
+    "fn": "void xv::ext3::Volume::reset()",
+    "source_sha256": "1f9652a395a5b698682db112760eaee780d128e67cb24fac3cde0868b04dd403"
   },
   {
     "anchor": "fn-5dcfa6d563ecc56d",

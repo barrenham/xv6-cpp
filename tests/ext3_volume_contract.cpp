@@ -55,6 +55,39 @@ void backend_reclamation(Device &device)
     backend.forget(large.node);
     assert(backend.unlink(1, "backend-large", removed) == 0);
     assert(backend.maintenance_pending());
+    // Temporary allocation failure must defer work without retiring the root.
+    int pages_before_retry = device.live;
+    device.allocation_budget = 0;
+    assert(backend.maintain());
+    device.allocation_budget = -1;
+    assert(backend.maintenance_pending() && device.live == pages_before_retry);
+    assert(backend.maintenance_delay_ms() > 0 && backend.maintenance_delay_ms() <= 1000);
+    assert(backend.root().node == 1);
+    // Walk every preparation allocation boundary, then commit successfully with
+    // no allocation budget left. Failed batches must leave durable counters intact.
+    bool reclaimed = false;
+    for (int budget = 1; budget < 128; ++budget)
+    {
+      unsigned char before[4], after[4];
+      assert(device.read(1024 + 12, before, sizeof(before)));
+      int live = device.live;
+      device.allocation_budget = budget;
+      bool maintained = backend.maintain();
+      if (!maintained) std::fprintf(stderr, "maintenance budget=%d error=%u\n", budget, unsigned(backend.error()));
+      assert(maintained);
+      device.allocation_budget = -1;
+      assert(device.read(1024 + 12, after, sizeof(after)));
+      assert(device.live == live);
+      if (!backend.maintenance_delay_ms())
+      {
+        assert(le32(after) > le32(before) && le32(after) - le32(before) <= 4);
+        reclaimed = true;
+        break;
+      }
+      assert(le32(before) == le32(after) && backend.maintenance_pending());
+      assert(backend.root().node == 1);
+    }
+    assert(reclaimed);
     assert(backend.create(1, "backend-open", requested, opened) == 0);
     assert(backend.write(opened.node, 0, "held", 4) == 4);
     assert(backend.unlink(1, "backend-open", removed) == 0);
@@ -70,7 +103,10 @@ void backend_reclamation(Device &device)
     }
     assert(batches > 1);
     assert(backend.read(opened.node, 0, bytes, 4) == 4 && !std::memcmp(bytes, "held", 4));
+    device.allocation_budget = 0;
     backend.forget(opened.node);
+    device.allocation_budget = -1;
+    assert(backend.root().node == 1 && backend.maintenance_delay_ms() > 0);
     assert(backend.maintenance_pending());
     while (backend.maintenance_pending()) assert(backend.maintain());
     assert(backend.sync(1) == 0);
@@ -82,6 +118,9 @@ void backend_reclamation(Device &device)
     backend.forget(large.node);
     assert(backend.unlink(1, "backend-crash", removed) == 0);
     assert(backend.maintain() && backend.maintenance_pending());
+    device.cut = 0;
+    assert(!backend.maintain() && !backend.root().node);
+    device.cut = -1;
   }
   Volume recovered(device);
   assert(recovered.mount());
@@ -293,7 +332,14 @@ int main(int argc,char **argv)
   for(int budget=0;budget<128;++budget)
   {
     device.allocation_budget=budget;bool success=volume.reclaim_step(expected.number,complete);device.allocation_budget=-1;
-    if(success){assert(volume.journal().dirty_count()<=32 && volume.journal().commit());accepted=true;++batches;break;}
+    if(success)
+    {
+      assert(volume.journal().dirty_count()<=32);
+      device.allocation_budget=0;
+      assert(volume.journal().commit());
+      device.allocation_budget=-1;
+      accepted=true;++batches;break;
+    }
     ++failed_allocations;assert(!complete && !volume.journal().dirty_count());
     Inode current;assert(volume.read_inode(old.number,current) && !std::memcmp(old.raw,current.raw,sizeof(old.raw)));
     assert(volume.geometry().free_blocks==geometry.free_blocks);

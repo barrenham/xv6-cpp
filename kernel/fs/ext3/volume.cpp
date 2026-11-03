@@ -162,7 +162,8 @@ bool Volume::journal_mapping()
   if(journal_blocks_<8)return fail(Error::Corrupt);
   for(u32 i=0;i<journal_blocks_;++i)
   {
-    u32 physical;if(!map_block(journal_inode_,i,physical,true) || !physical)return fail(Error::Corrupt);
+    u32 physical;if(!map_block(journal_inode_,i,physical,true))return false;
+    if(!physical)return fail(Error::Corrupt);
     if(reserved_block(physical))return fail(Error::Corrupt);
     if(!reserve_block(physical))return false;
     if(!mapping_tail_ || mapping_tail_->count==sizeof(mapping_tail_->blocks)/sizeof(u32))
@@ -206,7 +207,7 @@ bool Volume::JournalDevice::valid_target(u32 block) const
 
 bool Volume::set_recovery(bool enabled)
 {
-  Page scratch(io_);auto *data=scratch.get();if(!data)return fail(Error::NoMemory);
+  auto *data=recovery_scratch_;if(!data)return fail(Error::Invalid);
   const u32 block=1024/geometry_.block_size;const unsigned offset=1024%geometry_.block_size;
   if(!read_block(block,data,true))return false;
   auto flags=le32(data+offset+96),changed=enabled ? flags|Recover:flags&~Recover;
@@ -220,14 +221,20 @@ bool Volume::set_recovery(bool enabled)
 bool Volume::mount()
 {
   reset();error_=Error::None;
-  if(!superblock() || !journal_mapping() || !journal_.mount() || !journal_.recover() || !superblock())return false;
+  if(!superblock() || !journal_mapping())return false;
+  recovery_scratch_=static_cast<u8 *>(io_.allocate_page());
+  if(!recovery_scratch_)return fail(Error::NoMemory);
+  if(!journal_.mount() || !journal_.recover() || !superblock())return false;
   ready_=true;
-  Inode root;if(!read_inode(2,root) || (root.mode()&0xf000)!=Directory)return fail(Error::Corrupt);
+  Inode root;if(!read_inode(2,root))return false;
+  if((root.mode()&0xf000)!=Directory)return fail(Error::Corrupt);
   return recover_orphans();
 }
 void Volume::reset()
 {
   journal_.reset();
+  if(recovery_scratch_)io_.free_page(recovery_scratch_);
+  recovery_scratch_=nullptr;
   while(mapping_){auto *next=mapping_->next;io_.free_page(mapping_);mapping_=next;}
   mapping_tail_=nullptr;
   while(reserved_){auto *next=reserved_->next;io_.free_page(reserved_);reserved_=next;}

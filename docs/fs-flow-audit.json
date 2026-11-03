@@ -1010,15 +1010,15 @@
     },
     {
       "source": "kernel/fs/ext3/volume.cpp",
-      "sha256": "5abe67663555f1a7bbd45c595c447fe7c6af06c3e0c66504888e4aa7d56e30eb",
-      "review": "只读格式校验、元数据保留区、journal 内部映射、三级间接/稀疏读和可变长目录游标算法；挂载拒绝不支持特性。递归深度受磁盘三级间接格式约束，内核同步由模块适配器提供。",
+      "sha256": "ae93c0fe70ae0f61b5e4796a95824eebb30184a1aece2f111ba25f849b3c94b8",
+      "review": "用户态格式引擎挂载时预留恢复标志工作页，set_recovery 复用该页，reset 归还。JBD 的原始映射、超级块位与持久写入协议不变；journal_mapping 与根 inode 读取失败保留原资源/I/O 诊断，不再把 NoMemory 误标为格式损坏。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/ext3/mutate.cpp",
-      "sha256": "753883b88f7df89adc456f89a60166958db234990cf8457f8ef8ce3eff4249f9",
-      "review": "ext3 数据结构修改算法：位图/组计数、目录变更、间接树修剪和持久 orphan 链；Operation savepoint 失败自动回滚，atomic resize 不部分提交，reclaim_step 每批最多释放4物理块且受32 dirty credits限制。树算法深度最多三级，原子磁盘变更作为模块动作保留直接实现。",
+      "sha256": "eaa4415b3f1a958dcca90e1677befaeda32bd7845b9db7982255dad7531fa999",
+      "review": "用户态 ext3 修改与回收仍由 Operation/savepoint 保护，准备失败回滚 dirty、undo 和内存几何计数。free_block 先检查块组查询，再单独检查元数据范围，使分配失败保留 NoMemory；真实损坏仍返回 Corrupt。孤儿每批最多四块，原提交信用、命名与持久孤儿规则不变。",
       "graph_entries": [],
       "pending": []
     },
@@ -1050,22 +1050,22 @@
     },
     {
       "source": "kernel/fs/ext3/volume.h",
-      "sha256": "06aa94de844c481a38079aaca23afa537950fcc4e7c47f322e3981018014395c",
-      "review": "共享 ext3 块级引擎、inode 值与 Io 抽象；提供受检查的原子修改及有界 orphan 回收；VFS 锁/引用不进入该层。",
+      "sha256": "74e196d923e7c6a382594ca22a4fe533b43d5fbcf574499afd86549e117f8201",
+      "review": "用户态 ext3 格式库的布局与接口，同样供离线工具和主机参考夹具复用。Volume 在挂载时持有一个恢复标志工作页，reset 归还；与 JBD 三页共同保证持久提交阶段不再临时申请缓冲，普通准备操作仍可返回 NoMemory 并由原 savepoint 回滚。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/ext3/jbd.h",
-      "sha256": "e3017643c968c5766397d7cbe22469c373c8401ad00de8ba6aa56a3f62f182d2",
-      "review": "共享 JBD 引擎及 JournalIo 抽象；固定一层 savepoint 暂存所有权、credit 容量和恢复接口，不含内核调度依赖。",
+      "sha256": "17756bd228970afd60c7c0261674811cf1ff5df1f63ba49e1a13b87425ce75cc",
+      "review": "生产构建把此格式库链接到用户态 FS 服务与离线工具，不链接 kernel.elf。JBD 由调用方串行，挂载时预留描述符、载荷及日志头三个 4 KiB 工作页，reset 全部归还；编辑阶段的 savepoint/rollback 与原日志格式、提交顺序保持。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/ext3/jbd.cpp",
-      "sha256": "4a0a67cb04eb53ebb8ea53232b13e0a10129fc84a9c77050a3896c4066927e80",
-      "review": "磁盘事务算法：标准大端 descriptor/revoke/commit 格式、转义、序号回绕、三阶段重放；提交记录先持久化后 checkpoint，逐次 I/O 故障切点核对 Linux 恢复。savepoint 对暂存块 COW，失败回滚。格式算法独立于内核锁与入口图，保留直接实现。",
+      "sha256": "a4e313db40b6eafd37294267748bc153c41d34e3ef0baaf3939587e2d65fc7ae",
+      "review": "生产执行位置为用户态格式库。挂载验证完成后预留三个提交工作页，部分分配失败立即回收；运行时 commit 与 write_super 复用这些页，不再在接受修改后分配临时缓冲。描述符/载荷/commit/home/super 的写入与 flush 顺序不变，真实 I/O 错误继续失败。reset 同时释放 dirty 与预留页，原恢复、撤销与序号回绕处理保留。",
       "graph_entries": [],
       "pending": []
     },

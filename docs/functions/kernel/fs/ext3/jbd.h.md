@@ -1,5 +1,7 @@
 # `kernel/fs/ext3/jbd.h`
 
+> 生产执行位置：用户态格式库。此源码也供离线工具和主机参考夹具复用，`kernel.elf` 不链接此实现。见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 <a id="fn-540924a3a732f4a1"></a>
 
 ## `xv::ext3::JournalIo::block_size`

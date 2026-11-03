@@ -28,6 +28,8 @@ public:
   // dispatcher. A backend with pending work must eventually clear this flag.
   virtual bool maintenance_pending() const { return false; }
   virtual bool maintain() { return true; }
+  // A deferred batch can request a bounded wait, interrupted by incoming RPCs.
+  virtual unsigned maintenance_delay_ms() const { return 0; }
 
   virtual Attributes root()
   {

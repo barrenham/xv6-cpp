@@ -59,6 +59,8 @@ private:
   bool mounted_=false,saving_=false;
   Error error_=Error::None;
   u8 uuid_[16]{};
+  // Runtime commit must not allocate after a mutation has been accepted.
+  u8 *commit_pages_[3]{};
   u32 next(u32 block) const { return block+1<length_ ? block+1:first_; }
   bool fail(Error error) { error_=error;return false; }
   bool write_super(u32 start,u32 sequence);

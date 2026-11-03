@@ -126,8 +126,30 @@ void torn_descriptor(bool committed)
   else assert(log.recover() && !device.recovery);
   log.reset();assert(!device.live);
 }
+void reserved_commit(unsigned block_size)
+{
+  Device device(block_size);
+  Jbd log(device);
+  bool mounted = false;
+  for (int budget = 0; budget < 16; ++budget)
+  {
+    device.alloc_budget = budget;
+    if (log.mount()) { mounted = true; break; }
+    assert(log.error() == Error::NoMemory && !device.live);
+  }
+  assert(mounted);
+  device.alloc_budget = -1;
+  stage(log);
+  // Descriptor, payload and journal-super writes must use mounted reservations.
+  device.alloc_budget = 0;
+  assert(log.commit() && !log.dirty_count() && !device.recovery);
+  device.alloc_budget = -1;
+  log.reset();
+  assert(!device.live);
+}
 int main()
 {
+  reserved_commit(1024);reserved_commit(2048);reserved_commit(4096);
   torn_descriptor(false);torn_descriptor(true);crashes(1024);crashes(2048);crashes(4096);rollback();multiple_descriptors();revocations(17);revocations(0xffffffffU);
   std::puts("ext3 JBD: commit cuts, escaped data, revokes, wraparound, savepoints and OOM passed");
 }

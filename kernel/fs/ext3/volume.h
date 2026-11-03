@@ -114,6 +114,7 @@ private:
   Mapping *mapping_=nullptr,*mapping_tail_=nullptr;
   Reserved *reserved_=nullptr;
   u32 journal_blocks_=0;
+  u8 *recovery_scratch_=nullptr;
   bool ready_=false;
   Error error_=Error::None;
   void clear_error() { error_=Error::None;journal_.clear_error(); }

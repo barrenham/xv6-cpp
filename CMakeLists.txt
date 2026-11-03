@@ -191,7 +191,9 @@ foreach(cpus 1 5)
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --cpus ${cpus} --memory-pressure)
-  set_tests_properties(fs_memory_pressure_${cpus}cpu PROPERTIES TIMEOUT 330 LABELS "fs;memory")
+  # Three separate commands each retain their 300s deadline and page assertions.
+  # Leave room for their combined work under background scheduling.
+  set_tests_properties(fs_memory_pressure_${cpus}cpu PROPERTIES TIMEOUT 600 LABELS "fs;memory" RUN_SERIAL TRUE)
   add_test(NAME fs_large_unlink_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
@@ -465,7 +467,9 @@ add_test(NAME ext3_jbd_contract COMMAND "${PROJECT_BINARY_DIR}/ext3_jbd_contract
 set_tests_properties(ext3_jbd_contract PROPERTIES TIMEOUT 30 LABELS "fs;ext3")
 
 add_test(NAME ext3_volume_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_volume.py" --contract "${PROJECT_BINARY_DIR}/ext3_volume_contract" --fs-contract "${PROJECT_BINARY_DIR}/fs_contract")
-set_tests_properties(ext3_volume_contract PROPERTIES TIMEOUT 120 LABELS "fs;ext3")
+# Three block sizes, allocation faults and native/Linux crash recovery checks
+# also run in a low-priority background session; keep every cut point and assert.
+set_tests_properties(ext3_volume_contract PROPERTIES TIMEOUT 420 LABELS "fs;ext3" RUN_SERIAL TRUE)
 
 add_test(NAME ext3_image_tools_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_image_tools.py"
   --mkfs "${PROJECT_BINARY_DIR}/mkfs" --legacy-seed "${PROJECT_BINARY_DIR}/fs-legacy-test.img"

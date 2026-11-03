@@ -1,5 +1,7 @@
 # `kernel/fs/ext3/mutate.cpp`
 
+> 生产执行位置：用户态格式库。此源码也供离线工具和主机参考夹具复用，`kernel.elf` 不链接此实现。见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 <a id="fn-2bc8f865a8d95715"></a>
 
 ## `xv::ext3::Page::Page`
@@ -195,9 +197,9 @@
 ## `xv::ext3::Volume::free_block`
 
 ```doxygen
-@fn bool Volume::xv::ext3::Volume::free_block(u32 block)
-@brief 清除块位图并更新组和超级块计数，拒绝释放保留元数据。
-@details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
+@fn bool xv::ext3::Volume::free_block(u32 block)
+@brief 查询块组后释放普通数据块，区分临时资源错误与元数据损坏。
+@details 用户态 ext3 修改与回收仍由 Operation/savepoint 保护，准备失败回滚 dirty、undo 和内存几何计数。free_block 先检查块组查询，再单独检查元数据范围，使分配失败保留 NoMemory；真实损坏仍返回 Corrupt。孤儿每批最多四块，原提交信用、命名与持久孤儿规则不变。
 ```
 
 <a id="fn-30e83e529ffbf388"></a>

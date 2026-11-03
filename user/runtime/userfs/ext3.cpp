@@ -211,37 +211,56 @@ bool Ext3Backend::collect(unsigned node)
 {
   if (!node || retained(node)) return true;
   Inode wire;
-  if (!inode(node, wire)) return false;
+  if (!inode(node, wire))
+  {
+    if (volume_.error() != xv::ext3::Error::NoMemory) return false;
+    cleanup_pending_ = cleanup_retry_ = true;
+    return true;
+  }
   if (wire.links()) return true;
   cleanup_pending_ = true;
   return true;
 }
 
+bool Ext3Backend::maintenance_failure()
+{
+  if (volume_.error() == xv::ext3::Error::NoMemory)
+  {
+    // No mutation has been accepted: Volume rolls back its failed batch.
+    // The durable orphan list remains the work queue; retry without retiring FS.
+    cleanup_retry_ = true;
+    return true;
+  }
+  failed_ = true;
+  return false;
+}
+
 bool Ext3Backend::maintain()
 {
   if (!ready_ || failed_) return false;
+  cleanup_retry_ = false;
   unsigned at;
-  if (!volume_.orphan_head(at)) { failed_ = true; return false; }
+  if (!volume_.orphan_head(at)) return maintenance_failure();
   for (unsigned visited = 0; at; ++visited)
   {
     Inode wire;
-    if (visited >= volume_.geometry().inodes || !volume_.read_inode(at, wire))
+    if (visited >= volume_.geometry().inodes)
     {
       failed_ = true;
       return false;
     }
+    if (!volume_.read_inode(at, wire)) return maintenance_failure();
     if (!retained(identity(at)))
     {
       bool complete;
       // The volume bounds each atomic batch to four freed blocks and commits
       // their bitmap, parent paths and inode together. No in-memory work queue
       // is needed; interrupted cleanup resumes from the on-disk orphan list.
-      if (wire.links() || !volume_.reclaim_step(at, complete) || !commit())
-      {
-        failed_ = true;
-        return false;
-      }
-      return true;
+      if (wire.links()) { failed_ = true; return false; }
+      if (!volume_.reclaim_step(at, complete)) return maintenance_failure();
+      // Commit scratch is reserved at mount; no allocation can fail after
+      // reclaim_step accepts its mutation. Durable I/O errors remain fatal.
+      return commit();
     }
     at = xv::ext3::le32(wire.raw + 20);
   }

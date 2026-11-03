@@ -69,12 +69,17 @@ bool Jbd::mount()
      (start_ && (start_<first_ || start_>=length_)))return fail(Error::Corrupt);
   if(type==JournalSuperV2 && (be32(data+36) || (be32(data+40)&~1U) || be32(data+44) || be32(data+64)>1))
     return fail(Error::Unsupported);
+  for(auto &page:commit_pages_)
+  {
+    page=static_cast<u8 *>(io_.allocate_page());
+    if(!page){reset();return fail(Error::NoMemory);}
+  }
   copy(uuid_,data+48,16);mounted_=true;return true;
 }
 
 bool Jbd::write_super(u32 start,u32 sequence)
 {
-  Scratch scratch(io_);auto *data=scratch.get();if(!data)return fail(Error::NoMemory);
+  auto *data=commit_pages_[2];if(!data)return fail(Error::Invalid);
   if(!io_.read_journal(0,data))return fail(Error::Io);
   put_be32(data+24,sequence);put_be32(data+28,start);
   return io_.write_journal(0,data) && io_.flush() ? true:fail(Error::Io);
@@ -231,6 +236,7 @@ void Jbd::rollback()
 void Jbd::reset()
 {
   rollback();while(count_)io_.free_page(dirty_[--count_].bytes);
+  for(auto &page:commit_pages_){if(page)io_.free_page(page);page=nullptr;}
   mounted_=false;first_=length_=start_=sequence_=0;
 }
 
@@ -238,8 +244,8 @@ bool Jbd::commit()
 {
   if(!mounted_ || saving_)return fail(Error::Invalid);
   if(!count_)return true;
-  Scratch descriptor(io_),payload(io_);auto *head=descriptor.get(),*bytes=payload.get();
-  if(!head || !bytes)return fail(Error::NoMemory);
+  auto *head=commit_pages_[0],*bytes=commit_pages_[1];
+  if(!head || !bytes)return fail(Error::Invalid);
   if(!io_.recovery_flag(true) || !write_super(first_,sequence_))return fail(Error::Io);
   u32 cursor=first_;unsigned done=0;
   while(done<count_)

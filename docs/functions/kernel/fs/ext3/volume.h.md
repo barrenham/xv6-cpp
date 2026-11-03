@@ -1,5 +1,7 @@
 # `kernel/fs/ext3/volume.h`
 
+> 生产执行位置：用户态格式库。此源码也供离线工具和主机参考夹具复用，`kernel.elf` 不链接此实现。见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 <a id="fn-8bb9790d15071e4c"></a>
 
 ## `xv::ext3::Io::read`

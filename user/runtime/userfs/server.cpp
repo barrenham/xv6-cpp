@@ -140,7 +140,9 @@ int serve(int descriptor, Backend &backend)
       if (backend.maintenance_pending())
       {
         pollfd pending{descriptor, POLLIN, 0};
-        int ready = poll(&pending, 1, 0);
+        unsigned delay = backend.maintenance_delay_ms();
+        if (delay > 1000) delay = 1000;
+        int ready = poll(&pending, 1, delay);
         if (ready < 0) return -1;
         if (!ready) continue;
       }
@@ -149,7 +151,13 @@ int serve(int descriptor, Backend &backend)
     if (!count)
     {
       while (backend.maintenance_pending())
+      {
         if (!backend.maintain()) return -1;
+        unsigned delay = backend.maintenance_delay_ms();
+        if (delay > 1000) delay = 1000;
+        if (backend.maintenance_pending() && delay && poll(nullptr, 0, delay) < 0)
+          return -1;
+      }
       return 0;
     }
     if (count != sizeof(message))

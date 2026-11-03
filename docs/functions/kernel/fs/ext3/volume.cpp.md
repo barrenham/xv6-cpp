@@ -1,5 +1,7 @@
 # `kernel/fs/ext3/volume.cpp`
 
+> 生产执行位置：用户态格式库。此源码也供离线工具和主机参考夹具复用，`kernel.elf` 不链接此实现。见[文件系统服务迁移](../../../../fs-service-migration.md)。
+
 <a id="fn-e16f68b2be2bdce3"></a>
 
 ## `xv::ext3::Page::Page`
@@ -125,9 +127,9 @@
 ## `xv::ext3::Volume::journal_mapping`
 
 ```doxygen
-@fn bool Volume::xv::ext3::Volume::journal_mapping()
-@brief 检查日志inode映射与元数据保留区关系。
-@details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
+@fn bool xv::ext3::Volume::journal_mapping()
+@brief 校验并固定日志映射，保留映射准备失败的资源诊断。
+@details 用户态格式引擎挂载时预留恢复标志工作页，set_recovery 复用该页，reset 归还。JBD 的原始映射、超级块位与持久写入协议不变；journal_mapping 与根 inode 读取失败保留原资源/I/O 诊断，不再把 NoMemory 误标为格式损坏。
 ```
 
 <a id="fn-3a66a7d2df1e0f9d"></a>
@@ -195,9 +197,9 @@
 ## `xv::ext3::Volume::set_recovery`
 
 ```doxygen
-@fn bool Volume::xv::ext3::Volume::set_recovery(bool enabled)
-@brief 更新ext3恢复特性位。
-@details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
+@fn bool xv::ext3::Volume::set_recovery(bool enabled)
+@brief 用预留工作页持久设置或清除恢复标志并同步 staged 超级块。
+@details 用户态格式引擎挂载时预留恢复标志工作页，set_recovery 复用该页，reset 归还。JBD 的原始映射、超级块位与持久写入协议不变；journal_mapping 与根 inode 读取失败保留原资源/I/O 诊断，不再把 NoMemory 误标为格式损坏。
 ```
 
 <a id="fn-86a45bd16f7ac115"></a>
@@ -205,9 +207,9 @@
 ## `xv::ext3::Volume::mount`
 
 ```doxygen
-@fn bool Volume::xv::ext3::Volume::mount()
-@brief 实现 xv::ext3::Volume::mount 的模块操作，按声明参数读写其封装状态。
-@details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
+@fn bool xv::ext3::Volume::mount()
+@brief 读取格式与映射，预留恢复工作页后恢复日志和孤儿。
+@details 用户态格式引擎挂载时预留恢复标志工作页，set_recovery 复用该页，reset 归还。JBD 的原始映射、超级块位与持久写入协议不变；journal_mapping 与根 inode 读取失败保留原资源/I/O 诊断，不再把 NoMemory 误标为格式损坏。
 ```
 
 <a id="fn-4f13e60f4c2125a4"></a>
@@ -215,9 +217,9 @@
 ## `xv::ext3::Volume::reset`
 
 ```doxygen
-@fn void Volume::xv::ext3::Volume::reset()
-@brief 释放持有的快照/暂存资源，最后引用才归还页面。
-@details ext3共享磁盘引擎。目录名最多255字节，支持稀疏及三级间接，操作savepoint失败回滚；不支持的特性拒绝挂载。底层Io由内核模块或宿主工具注入，未包含进程或VFS依赖。
+@fn void xv::ext3::Volume::reset()
+@brief 释放日志、恢复工作页和映射元数据并撤销已挂载状态。
+@details 用户态格式引擎挂载时预留恢复标志工作页，set_recovery 复用该页，reset 归还。JBD 的原始映射、超级块位与持久写入协议不变；journal_mapping 与根 inode 读取失败保留原资源/I/O 诊断，不再把 NoMemory 误标为格式损坏。
 ```
 
 <a id="fn-5dcfa6d563ecc56d"></a>

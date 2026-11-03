@@ -30,6 +30,7 @@ public:
   void forget(unsigned) override;
   bool maintenance_pending() const override { return cleanup_pending_; }
   bool maintain() override;
+  unsigned maintenance_delay_ms() const override { return cleanup_retry_ ? 10 : 0; }
 
 private:
 
@@ -41,10 +42,11 @@ private:
   bool retained(unsigned) const;
   bool commit();
   bool collect(unsigned);
+  bool maintenance_failure();
   xv::ext3::Volume volume_;
   xv::ext3::Io &io_;
   unsigned live_[128]{};
   bool ready_ = false, failed_ = false;
-  bool cleanup_pending_ = false;
+  bool cleanup_pending_ = false, cleanup_retry_ = false;
 };
 } // namespace userfs
