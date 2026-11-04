@@ -144,6 +144,10 @@ python3 tools/update_rootfs.py --seed build/hello-seed.img --image TARGET.img \
 管理器等待期间定期报告进度，续期内核 30 秒无响应期限；插件自身仍受 startup_ms 限制。
 这允许慢恢复，而不会永久等待从不就绪的插件。
 
+## 在内核运行后新增驱动
+
+无需重启或重编译内核。可以在运行期间独立构建 ELF，传入系统并最后发布清单，再执行 mount。具体步骤和不重启验收见 [运行时加载](fs-hot-loading.md)。
+
 ## 根插件也是 ELF
 
 QEMU 仍以 `-kernel kernel.elf` 引导；`-initrd` 提供用户态 fsboot ELF 及附加的不可变资产。

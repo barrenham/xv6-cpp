@@ -19,18 +19,25 @@ def digest(path):
 
 
 class Guest:
-    def __init__(self, args, image, log):
+    def __init__(self, args, image, log, data=None, network=False):
         self.output = bytearray()
         self.cursor = 0
         self.log = log
-        self.process = subprocess.Popen([
+        command = [
             args.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(args.kernel),
             '-initrd', str(args.bootstrap), '-m', '128M', '-smp', str(args.cpus),
             '-nographic', '-global', 'virtio-mmio.force-legacy=false',
             '-drive', f'file={image},if=none,format=raw,id=x0',
             '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0',
             '-object', 'rng-random,id=rng0,filename=/dev/urandom',
-            '-device', 'virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2'],
+            '-device', 'virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2']
+        if data is not None:
+            command += ['-drive', f'file={data},if=none,format=raw,id=x1',
+                        '-device', 'virtio-blk-device,drive=x1,bus=virtio-mmio-bus.1']
+        if network:
+            command += ['-netdev', 'user,id=net0,dhcpstart=10.0.2.100', '-device',
+                        'e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56']
+        self.process = subprocess.Popen(command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             env=dict(os.environ, TMPDIR=str(image.parent)))
         self.selector = selectors.DefaultSelector()

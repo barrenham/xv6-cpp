@@ -726,3 +726,27 @@ endforeach()
 
 add_test(NAME boot_assets_contract COMMAND "${PROJECT_BINARY_DIR}/boot_assets_contract")
 set_tests_properties(boot_assets_contract PROPERTIES TIMEOUT 10 LABELS "fs;boot")
+
+add_test(NAME ext4_volume_contract COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/ext4_volume.py" --contract "${PROJECT_BINARY_DIR}/ext4_volume_contract")
+set_tests_properties(ext4_volume_contract PROPERTIES TIMEOUT 180 LABELS "fs;ext4" RUN_SERIAL TRUE)
+
+foreach(cpus 1 5)
+  foreach(block 1024 4096)
+    add_test(NAME fs_ext4_${block}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/fs_ext4.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+      --image "${PROJECT_BINARY_DIR}/fs-test.img" --executable "${PROJECT_BINARY_DIR}/user/image/_cppdemo"
+      --cpus ${cpus} --block ${block})
+    set_tests_properties(fs_ext4_${block}_${cpus}cpu PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE LABELS "fs;ext4")
+  endforeach()
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_hotplug_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_hotplug.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --executable "${PROJECT_BINARY_DIR}/user/image/_cppdemo"
+    --cmake "${CMAKE_COMMAND}" --cpus ${cpus})
+  set_tests_properties(fs_hotplug_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "fs;plugin;hotplug")
+endforeach()

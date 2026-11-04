@@ -19,6 +19,7 @@ commands = json.loads((build / 'compile_commands.json').read_text())
 sources = [item['file'] for item in commands if 'kernel/CMakeFiles/kernel.dir/' in item['command']]
 assert sources, 'no kernel compilation records inspected'
 for source in sources:
+    assert '/user/fs/backends/' not in source, source
     assert not re.search(r'/kernel/fs/(ext3|devfs|procfs|ramfs)/', source), source
     assert not source.endswith('/kernel/fs/journal/journal.cpp'), source
     assert not re.search(r'/kernel/fs/(journal/flow|journal/xv6_journal|'
@@ -31,14 +32,14 @@ def symbols(image):
 
 
 kernel_symbols = symbols(args.kernel)
-for name in ('Xv6FileSystem', 'Ext3FileSystem', 'DevFileSystem', 'ProcFileSystem',
+for name in ('Ext4FileSystem', 'Ext4Backend', 'userfs::ext4::Volume', 'Xv6FileSystem', 'Ext3FileSystem', 'DevFileSystem', 'ProcFileSystem',
              'RamFileSystem', 'DiskFileSystem', 'Xv6Journal', 'xv::ext3::'):
     assert name not in kernel_symbols, f'filesystem algorithm linked into kernel: {name}'
 assert 'UserFileSystem' in kernel_symbols and 'create_mount_manager' in kernel_symbols
-backend_types = {'ext3': 'Ext3Backend', 'xv6': 'Xv6Backend', 'ramfs': 'MemoryBackend',
+backend_types = {'ext3': 'Ext3Backend', 'ext4': 'Ext4Backend', 'xv6': 'Xv6Backend', 'ramfs': 'MemoryBackend',
                  'procfs': 'ProcessBackend', 'devfs': 'DeviceBackend'}
 user_symbols = symbols(args.bootstrap)
-for name in (*backend_types.values(), 'xv::ext3::Volume', 'userfs::xv6::Volume'):
+for name in (*backend_types.values(), 'xv::ext3::Volume', 'userfs::xv6::Volume', 'userfs::ext4::Volume'):
     assert name not in user_symbols, f'filesystem algorithm linked into supervisor: {name}'
 for backend, expected in backend_types.items():
     image = build / f'user/image/_{backend}_plugin'
@@ -60,4 +61,4 @@ for target in ('qemu', 'qemu-vnc', 'qemu-graphics', 'qemu-gdb'):
     if not payload.is_absolute():
         payload = build / payload
     assert payload.resolve() == args.bootstrap.resolve(), (target, payload)
-print(f'FS runtime boundary: {len(sources)} kernel sources checked; five separate backend ELFs, supervisor contains no backend; four launch targets use the generic boot bundle')
+print(f'FS runtime boundary: {len(sources)} kernel sources checked; six separate backend ELFs, supervisor contains no backend; four launch targets use the generic boot bundle')

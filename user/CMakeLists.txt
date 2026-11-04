@@ -89,6 +89,7 @@ set(programs
   tests/ramfsservicetest.cpp
   tests/fsrootboottest.cpp
   tests/xv6fstest.cpp
+  tests/ext4test.cpp
   tests/fsdrivertest.cpp
   tests/fsboottest.cpp
   tests/fsresourcesboottest.cpp
@@ -205,6 +206,18 @@ foreach(backend ext3 xv6 devfs ramfs procfs)
     --executable "fsplugins/${backend}.elf=${PROJECT_BINARY_DIR}/user/image/_${plugin_program}")
   list(APPEND plugin_bundle_dependencies "${config}" "${PROJECT_BINARY_DIR}/user/image/_${plugin_program}")
 endforeach()
+# Optional drivers are independent artifacts, never built into the boot catalog.
+option(XV_INSTALL_EXT4_PLUGIN "Include the optional ext4 ELF in newly generated disk images" OFF)
+set(core_fs_entries "${XV_FS_ENTRIES}")
+set(core_user_binaries "${XV_USER_BINARIES}")
+xv_add_program("fs/plugins/ext4/main.cpp" "ext4_plugin" "/usr/lib/fsplugins/ext4.elf")
+target_link_libraries(user_ext4_plugin PRIVATE user_fs_ext4 user_fs_plugin user_fs_block)
+if(XV_INSTALL_EXT4_PLUGIN)
+  string(APPEND XV_FS_ENTRIES "file\t0644\t/etc/fsplugins/ext4.conf\t${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/ext4/ext4.conf\n")
+else()
+  set(XV_FS_ENTRIES "${core_fs_entries}")
+  set(XV_USER_BINARIES "${core_user_binaries}")
+endif()
 set(boot_bundle "${PROJECT_BINARY_DIR}/user/image/_fsboot")
 add_custom_command(OUTPUT "${boot_bundle}"
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/pack_boot_assets.py"
