@@ -26,15 +26,15 @@ constexpr unsigned PageSize = 4096;
 
 namespace flow = xv::flow;
 
-bool VirtioKeyboard::identify() const
-{
+bool
+VirtioKeyboard::identify() const {
   return registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) == VirtioMagic &&
          registers_.read32(VIRTIO_MMIO_VERSION) == 2 &&
          registers_.read32(VIRTIO_MMIO_DEVICE_ID) == InputDevice;
 }
 
-bool VirtioKeyboard::negotiate()
-{
+bool
+VirtioKeyboard::negotiate() {
   registers_.write32(VIRTIO_MMIO_STATUS, 0);
   if (registers_.read32(VIRTIO_MMIO_STATUS) != 0)
   {
@@ -76,8 +76,8 @@ bool VirtioKeyboard::negotiate()
   return (keys & (1U << (KeyA % 8))) && (keys & (1U << (KeyEnter % 8)));
 }
 
-bool VirtioKeyboard::allocate()
-{
+bool
+VirtioKeyboard::allocate() {
   for (auto &page : pages_)
   {
     page = detail::allocate_dma_page();
@@ -90,8 +90,8 @@ bool VirtioKeyboard::allocate()
   return true;
 }
 
-bool VirtioKeyboard::publish()
-{
+bool
+VirtioKeyboard::publish() {
   static_assert(sizeof(virtq_desc) * QueueEntries <= PageSize);
   static_assert(sizeof(AvailableRing) <= PageSize && sizeof(UsedRing) <= PageSize);
   static_assert(sizeof(KeyboardEvent) * QueueEntries <= PageSize);
@@ -106,8 +106,7 @@ bool VirtioKeyboard::publish()
       return false;
     }
     registers_.write32(VIRTIO_MMIO_QUEUE_NUM, QueueEntries);
-    auto address = [&](unsigned low, unsigned high, void *page)
-    {
+    auto address = [&](unsigned low, unsigned high, void *page) {
       auto value = reinterpret_cast<unsigned long>(page);
       registers_.write32(low, static_cast<unsigned>(value));
       registers_.write32(high, static_cast<unsigned>(value >> 32));
@@ -139,8 +138,8 @@ bool VirtioKeyboard::publish()
   return true;
 }
 
-void VirtioKeyboard::rollback()
-{
+void
+VirtioKeyboard::rollback() {
   ready_ = false;
   registers_.write32(VIRTIO_MMIO_STATUS, 0);
   detail::io_barrier();
@@ -170,33 +169,33 @@ struct VirtioKeyboard::InitializeFlow
     bool okay = false;
   };
 
-  static bool found(Context &context) noexcept
-  {
+  static bool
+  found(Context &context) noexcept {
     return context.owner.identify();
   }
 
-  static void negotiate(Context &context) noexcept
-  {
+  static void
+  negotiate(Context &context) noexcept {
     context.okay = context.owner.negotiate();
   }
 
-  static void allocate(Context &context) noexcept
-  {
+  static void
+  allocate(Context &context) noexcept {
     context.okay = context.owner.allocate();
   }
 
-  static void publish(Context &context) noexcept
-  {
+  static void
+  publish(Context &context) noexcept {
     context.okay = context.owner.publish();
   }
 
-  static bool okay(Context &context) noexcept
-  {
+  static bool
+  okay(Context &context) noexcept {
     return context.okay;
   }
 
-  static void fail(Context &context) noexcept
-  {
+  static void
+  fail(Context &context) noexcept {
     context.owner.rollback();
   }
 
@@ -222,21 +221,21 @@ struct VirtioKeyboard::InitializeFlow
           flow::node<Fail, flow::action<&fail>, flow::stop>>>;
 };
 
-void VirtioKeyboard::initialize_wheel()
-{
+void
+VirtioKeyboard::initialize_wheel() {
   wheel_ = true;
   initialize();
 }
 
-void VirtioKeyboard::initialize()
-{
+void
+VirtioKeyboard::initialize() {
   lock_.init("virtio keyboard");
   InitializeFlow::Context context{*this};
   (void)InitializeFlow::Graph::run<0>(context);
 }
 
-CharacterDevice *VirtioKeyboard::open(bool)
-{
+CharacterDevice *
+VirtioKeyboard::open(bool) {
   xv::sync::ScopedLock guard(lock_);
   if (!ready_ || opened_ || detail::effective_uid() != 0)
   {
@@ -247,15 +246,15 @@ CharacterDevice *VirtioKeyboard::open(bool)
   return this;
 }
 
-void VirtioKeyboard::close()
-{
+void
+VirtioKeyboard::close() {
   xv::sync::ScopedLock guard(lock_);
   opened_ = false;
   head_ = size_ = 0;
 }
 
-void VirtioKeyboard::enqueue(const KeyboardEvent &event)
-{
+void
+VirtioKeyboard::enqueue(const KeyboardEvent &event) {
   if (!opened_)
   {
     return;
@@ -270,8 +269,8 @@ void VirtioKeyboard::enqueue(const KeyboardEvent &event)
   ++size_;
 }
 
-bool VirtioKeyboard::drain()
-{
+bool
+VirtioKeyboard::drain() {
   auto *used = static_cast<volatile UsedRing *>(pages_[2]);
   unsigned short end = used->index;
   unsigned count = static_cast<unsigned short>(end - used_index_);
@@ -320,8 +319,8 @@ bool VirtioKeyboard::drain()
   return true;
 }
 
-void VirtioKeyboard::disable()
-{
+void
+VirtioKeyboard::disable() {
   ready_ = false;
   registers_.write32(VIRTIO_MMIO_STATUS, 0);
   detail::io_barrier();
@@ -337,36 +336,36 @@ struct VirtioKeyboard::InterruptFlow
     bool okay = false;
   };
 
-  static void acknowledge(Context &context) noexcept
-  {
+  static void
+  acknowledge(Context &context) noexcept {
     auto &registers = context.owner.registers_;
     registers.write32(VIRTIO_MMIO_INTERRUPT_ACK,
                       registers.read32(VIRTIO_MMIO_INTERRUPT_STATUS) & 3);
     detail::io_barrier();
   }
 
-  static bool ready(Context &context) noexcept
-  {
+  static bool
+  ready(Context &context) noexcept {
     return context.owner.ready_;
   }
 
-  static void drain(Context &context) noexcept
-  {
+  static void
+  drain(Context &context) noexcept {
     context.okay = context.owner.drain();
   }
 
-  static bool okay(Context &context) noexcept
-  {
+  static bool
+  okay(Context &context) noexcept {
     return context.okay;
   }
 
-  static void fail(Context &context) noexcept
-  {
+  static void
+  fail(Context &context) noexcept {
     context.owner.disable();
   }
 
-  static void wake(Context &context) noexcept
-  {
+  static void
+  wake(Context &context) noexcept {
     if (context.owner.size_)
     {
       detail::wake_processes(&context.owner.size_);
@@ -389,8 +388,8 @@ struct VirtioKeyboard::InterruptFlow
                               flow::node<Fail, flow::action<&fail>, flow::stop>>>;
 };
 
-void VirtioKeyboard::handle_interrupt()
-{
+void
+VirtioKeyboard::handle_interrupt() {
   xv::sync::ScopedLock guard(lock_);
   InterruptFlow::Context context{*this};
   (void)InterruptFlow::Graph::run<0>(context);
@@ -406,36 +405,36 @@ struct VirtioKeyboard::ReadFlow
     int result = -1;
   };
 
-  static bool stopped(Context &context) noexcept
-  {
+  static bool
+  stopped(Context &context) noexcept {
     return !context.owner.ready_ || !context.owner.opened_ || detail::process_killed();
   }
 
-  static bool available(Context &context) noexcept
-  {
+  static bool
+  available(Context &context) noexcept {
     return context.owner.size_ != 0;
   }
 
-  static bool nonblocking(Context &context) noexcept
-  {
+  static bool
+  nonblocking(Context &context) noexcept {
     return context.destination.nonblocking;
   }
 
-  static void again(Context &context) noexcept
-  {
+  static void
+  again(Context &context) noexcept {
     context.result = -EAGAIN;
   }
 
-  static void sleep(Context &context) noexcept
-  {
+  static void
+  sleep(Context &context) noexcept {
     detail::prepare_interruptible_sleep(&context.owner.size_);
     context.owner.lock_.release();
     detail::sleep_process();
     context.owner.lock_.acquire();
   }
 
-  static void copy(Context &context) noexcept
-  {
+  static void
+  copy(Context &context) noexcept {
     auto &owner = context.owner;
     unsigned count = static_cast<unsigned>(context.count) / sizeof(KeyboardEvent);
     if (count > owner.size_)
@@ -484,8 +483,8 @@ struct VirtioKeyboard::ReadFlow
                   flow::node<Copy, flow::action<&copy>, flow::stop>>>;
 };
 
-int VirtioKeyboard::read(IoBuffer destination, int count)
-{
+int
+VirtioKeyboard::read(IoBuffer destination, int count) {
   if (count == 0)
   {
     return 0;
@@ -500,8 +499,8 @@ int VirtioKeyboard::read(IoBuffer destination, int count)
   return context.result;
 }
 
-unsigned VirtioKeyboard::poll(xv::sync::PollTable *table)
-{
+unsigned
+VirtioKeyboard::poll(xv::sync::PollTable *table) {
   xv::sync::ScopedLock guard(lock_);
   if (table)
   {

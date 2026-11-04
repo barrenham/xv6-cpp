@@ -8,6 +8,7 @@ import subprocess
 import struct
 import tempfile
 import time
+import sys
 
 from console_login import login_root
 from fs_elf_plugins import Guest, digest
@@ -55,6 +56,15 @@ def main():
     originals = {p: digest(p) for p in (args.kernel, args.bootstrap, args.image)}
     with tempfile.TemporaryDirectory(prefix='xv-kernel-driver-') as temporary:
         directory = Path(temporary)
+        sys.path.insert(0, str(repo / 'tools'))
+        from pack_boot_assets import pack, unpack
+        base, assets = unpack(args.bootstrap.read_bytes())
+        boot_manifest = next(content for name, content, _ in assets if name == 'drivers/boot.list')
+        assets = [a for a in assets if a[0] != 'drivers/boot.list']
+        boot_manifest = boot_manifest.replace(b'drivers/vblk.elf\n', b'drivers/vblk.elf 0\n')
+        assets.append(('drivers/boot.list', boot_manifest, False))
+        args.bootstrap = directory / 'root-only.elf'
+        args.bootstrap.write_bytes(pack(base, assets))
         root = directory / 'root.img'
         shutil.copyfile(args.image, root)
         data = directory / 'data.img'
@@ -70,7 +80,8 @@ def main():
         try:
             login_root(guest.expect, guest.process)
             guest.command('cd /')
-            guest.command('drvctl list', '0 resident modules')
+            baseline = guest.command('drvctl list')
+            count = int(re.search(r'(\d+) resident modules', baseline)[1])
             guest.command('drvctl devices', 'bound=0')
             assert 'vdb' not in guest.command('ls /dev'), 'disk registered before loading driver'
             guest.command('mkdir /tmp/module-disk')
@@ -116,16 +127,16 @@ def main():
             for name in invalid:
                 guest.command(f'curl -fsS -m 30 -o /tmp/bad.elf {server.url}/{name}.elf', timeout=45)
                 guest.command('drvctl load /tmp/bad.elf', 'load failed')
-            guest.command('drvctl list', '0 resident modules')
-            guest.command('drvctl load /tmp/hotdisk.elf', 'loaded module 0')
+            guest.command('drvctl list', f'{count} resident modules')
+            guest.command('drvctl load /tmp/hotdisk.elf', f'loaded module {count}')
             guest.command('drvctl list', 'hotdisk bound=0')
             guest.command('drvctl load /tmp/hotdisk.elf', 'load failed')
-            guest.command('drvctl bind 0 1', 'bind failed')
+            guest.command(f'drvctl bind {count} 0', 'bind failed')
             guest.command(f'curl -fsS -m 30 -o /tmp/faildisk.elf {server.url}/faildisk.elf', timeout=45)
-            guest.command('drvctl load /tmp/faildisk.elf', 'loaded module 1')
-            guest.command('kmodtest --failed-bind 1', 'failed bind retries reclaim resources')
-            guest.command('drvctl bind 0 0', 'bound module 0 to device 0')
-            guest.command('drvctl bind 0 0', 'bind failed')
+            guest.command('drvctl load /tmp/faildisk.elf', f'loaded module {count + 1}')
+            guest.command(f'kmodtest --failed-bind {count + 1} 1', 'failed bind retries reclaim resources')
+            guest.command(f'drvctl bind {count} 1', f'bound module {count} to device 1')
+            guest.command(f'drvctl bind {count} 1', 'bind failed')
             guest.command('drvctl devices', 'bound=1')
             guest.command('ls /dev', 'vdb')
             guest.command('kmodtest', 'kmodtest: PASS:', timeout=80)
@@ -138,7 +149,7 @@ def main():
             guest.command('cat /tmp/module-disk/written', 'KERNEL_MODULE_PERSISTED')
             guest.command('umount /tmp/module-disk')
             stats = guest.command('drvctl list', 'hotdisk bound=1')
-            matched = re.search(r'transfers=(\d+) interrupts=(\d+)', stats)
+            matched = re.search(rf'{count} hotdisk bound=1 transfers=(\d+) interrupts=(\d+)', stats)
             assert matched and int(matched[1]) > 0 and int(matched[2]) > 0, stats
             assert 'hotdisk' not in guest.command('ps'), 'driver incorrectly runs as a user process'
             assert guest.process.pid == pid and guest.process.poll() is None

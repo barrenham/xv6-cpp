@@ -19,7 +19,7 @@ def digest(path):
 
 
 class Guest:
-    def __init__(self, args, image, log, data=None, network=False):
+    def __init__(self, args, image, log, data=None, network=False, extra=()):
         self.output = bytearray()
         self.cursor = 0
         self.log = log
@@ -37,6 +37,7 @@ class Guest:
         if network:
             command += ['-netdev', 'user,id=net0,dhcpstart=10.0.2.100', '-device',
                         'e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56']
+        command += list(extra)
         self.process = subprocess.Popen(command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             env=dict(os.environ, TMPDIR=str(image.parent)))

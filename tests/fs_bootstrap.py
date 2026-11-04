@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 import selectors
+import struct
 import subprocess
 import tempfile
 import time
@@ -78,20 +79,28 @@ def main():
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='xv-fsbootstrap-') as path:
         directory = Path(path)
-        program = args.program
-        if args.data_disk:
-            sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-            from pack_boot_assets import pack
-            driver = args.kernel.parent / 'modules/virtio_block.elf'
-            program = directory / 'disk-bootstrap.elf'
-            program.write_bytes(pack(args.program.read_bytes(), [('disk-driver.elf', driver.read_bytes(), False)]))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from pack_boot_assets import pack, unpack
+        _, default_assets = unpack((args.kernel.parent / 'user/image/_fsboot').read_bytes())
+        assets = [asset for asset in default_assets if asset[0].startswith('drivers/')]
+        program = directory / 'bootstrap.elf'
+        program.write_bytes(pack(args.program.read_bytes(), assets))
         boot(args, directory, program,
              args.expected.encode() + b'\n')
         boot(args, directory, None, b'panic: boot: missing userspace bootstrap (-initrd)')
         for name, contents in [('bad-magic', b'not an ELF executable'),
                                ('truncated-elf', args.program.read_bytes()[:64])]:
             image = directory / name
-            image.write_bytes(contents)
+            if name == 'bad-magic':
+                packed = pack(args.program.read_bytes(), assets)
+                packed[:len(contents)] = contents
+            else:
+                packed = pack(contents, assets)
+                # Appended assets would otherwise fill the missing program
+                # headers with unrelated bytes. Keep the program-header table
+                # outside the file so this remains a truncated ELF fixture.
+                struct.pack_into('<Q', packed, 32, len(packed))
+            image.write_bytes(packed)
             boot(args, directory, image, b'panic: exec')
     print(f'filesystem bootstrap ({args.cpus} CPUs): passed')
 

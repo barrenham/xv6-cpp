@@ -2,7 +2,9 @@
 
 2026-11-01，在当前1920×1080配置下使用独立测试镜像。排查阶段未更新主系统镜像。
 
-本页保留优化前数据；后续实现和复测见[串口镜像与批量输出优化](terminal-output-optimization.md)。
+本页保留优化前数据及当时的源码路径；目前硬件实现已迁至
+`drivers/backends/`，见[设备 ELF](kernel-driver-modules.md)。
+后续性能变化见下文；后续实现和复测见[串口镜像与批量输出优化](terminal-output-optimization.md)。
 
 ## 结论
 

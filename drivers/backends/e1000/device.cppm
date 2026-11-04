@@ -11,48 +11,47 @@ class E1000 final : public InterruptDevice, public EthernetDevice
 public:
 
   constexpr E1000(unsigned long base, unsigned irq)
-      : registers_(base), base_(base), irq_(irq)
-  {
+      : registers_(base), base_(base), irq_(irq) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "Intel 82540EM Ethernet";
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return irq_;
   }
 
   void initialize() override;
 
-  void locate(unsigned slot)
-  {
+  void
+  locate(unsigned slot) {
     slot_ = slot;
     irq_ = 32 + slot % 4;
   }
 
-  void mac_address(unsigned char *destination) const override
-  {
+  void
+  mac_address(unsigned char *destination) const override {
     for (unsigned i = 0; i < 6; ++i)
     {
       destination[i] = mac_[i];
     }
   }
 
-  void attach(EthernetReceiver &receiver)
-  {
+  void
+  attach(EthernetReceiver &receiver) {
     receiver_ = &receiver;
   }
 
-  bool online() const override
-  {
+  bool
+  online() const override {
     return ready_;
   }
 
-  bool carrier() const override
-  {
+  bool
+  carrier() const override {
     return ready_ && (registers_.read32(8) & 2);
   }
 

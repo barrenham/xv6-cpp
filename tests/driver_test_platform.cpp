@@ -29,7 +29,6 @@ import :entropy;
 import :gpu;
 import :keyboard;
 import :plic;
-import :virtio;
 import :protocol;
 import :e1000;
 import :pci;
@@ -42,11 +41,10 @@ static_assert(std::is_abstract_v<Device>);
 static_assert(std::is_abstract_v<SerialPort>);
 static_assert(std::is_abstract_v<BlockDevice>);
 static_assert(std::is_abstract_v<InterruptController>);
-static_assert(!std::is_copy_constructible_v<VirtioBlock>);
 static_assert(!std::is_destructible_v<Device>);
 
-void check(bool condition, const char *message)
-{
+void
+check(bool condition, const char *message) {
   if (!condition)
   {
     std::fprintf(stderr, "FAIL: %s\n", message);
@@ -54,8 +52,9 @@ void check(bool condition, const char *message)
   }
 }
 
-template <class Operation> void expect_panic(Operation operation)
-{
+template <class Operation>
+void
+expect_panic(Operation operation) {
   auto child = fork();
   check(child >= 0, "fork");
   if (child == 0)
@@ -71,8 +70,8 @@ template <class Operation> void expect_panic(Operation operation)
 std::function<void()> on_sleep;
 unsigned long milliseconds = 0;
 std::function<void()> gpu_barrier;
-bool gpu_clock=false;
-unsigned effective_user=1000;
+bool gpu_clock = false;
+unsigned effective_user = 1000;
 bool killed = false;
 bool fail_copy = false;
 bool copied_user = false;
@@ -82,9 +81,9 @@ unsigned interrupts = 0;
 std::vector<void *> dma_pages;
 std::vector<void *> mapped_gpu_pages, retired_gpu_pages;
 bool fail_dma = false;
-int dma_budget=-1;
+int dma_budget = -1;
 unsigned hangups = 0, signal_services = 0;
-Tty *controlling_tty=nullptr;
+Tty *controlling_tty = nullptr;
 
 class FakeSerial final : public SerialPort
 {
@@ -92,8 +91,8 @@ public:
 
   unsigned drains = 0;
 
-  void drain() override
-  {
+  void
+  drain() override {
     ++drains;
   }
 
@@ -101,91 +100,108 @@ public:
   std::function<void()> on_transmit;
   InputReceiver *receiver = nullptr;
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "test serial";
   }
 
-  void initialize() override
-  {
+  void
+  initialize() override {
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return 10;
   }
 
-  void handle_interrupt() override
-  {
+  void
+  handle_interrupt() override {
   }
 
-  void attach(InputReceiver &input) override
-  {
+  void
+  attach(InputReceiver &input) override {
     receiver = &input;
   }
 
-  void write(const char *data, int count) override
-  {
+  void
+  write(const char *data, int count) override {
     output.append(data, count);
   }
 
-  int transmit(const char *data, int count, bool = false) override
-  {
-    if (on_transmit) on_transmit();
+  int
+  transmit(const char *data, int count, bool = false) override {
+    if (on_transmit)
+    {
+      on_transmit();
+    }
     write(data, count);
     return count;
   }
 
-  void put_sync(int character) override
-  {
+  void
+  put_sync(int character) override {
     output.push_back(character);
   }
 };
 
-void rtc_contract()
-{
-  alignas(8) unsigned registers[2]={0xf1234567U,0x12345678U};
-  GoldfishRtc rtc(reinterpret_cast<unsigned long>(registers));rtc.initialize();
-  check(rtc.nanoseconds()==0x12345678f1234567UL,"RTC combines all 64 timestamp bits");
-  check(rtc.seconds()==0x12345678f1234567UL/1000000000UL,"RTC converts nanoseconds to epoch seconds");
-  registers[0]=1;registers[1]=0;check(rtc.nanoseconds()==1,"RTC reads fresh device values");
+void
+rtc_contract() {
+  alignas(8) unsigned registers[2] = {0xf1234567U, 0x12345678U};
+  GoldfishRtc rtc(reinterpret_cast<unsigned long>(registers));
+  rtc.initialize();
+  check(rtc.nanoseconds() == 0x12345678f1234567UL,
+        "RTC combines all 64 timestamp bits");
+  check(rtc.seconds() == 0x12345678f1234567UL / 1000000000UL,
+        "RTC converts nanoseconds to epoch seconds");
+  registers[0] = 1;
+  registers[1] = 0;
+  check(rtc.nanoseconds() == 1, "RTC reads fresh device values");
 }
 
-void controlling_contract()
-{
-  FakeSerial serial;NttyDiscipline discipline;Tty tty(serial,discipline);tty.initialize();
+void
+controlling_contract() {
+  FakeSerial serial;
+  NttyDiscipline discipline;
+  Tty tty(serial, discipline);
+  tty.initialize();
   ControllingTerminal device;
-  check(!device.open(false),"controlling tty requires a session binding");
-  controlling_tty=&tty;auto *session=device.open(false);
-  check(session==&tty,"console controlling tty resolves actual session");
-  char value='Q';check(session->write({AddressSpace::Kernel,reinterpret_cast<unsigned long>(&value)},1)==1 && serial.output=="Q","controlling tty forwards to its open session");
-  session->close();controlling_tty=nullptr;
+  check(!device.open(false), "controlling tty requires a session binding");
+  controlling_tty = &tty;
+  auto *session = device.open(false);
+  check(session == &tty, "console controlling tty resolves actual session");
+  char value = 'Q';
+  check(session->write({AddressSpace::Kernel, reinterpret_cast<unsigned long>(&value)},
+                       1) == 1 &&
+            serial.output == "Q",
+        "controlling tty forwards to its open session");
+  session->close();
+  controlling_tty = nullptr;
 }
 
-void console_contract()
-{
+void
+console_contract() {
   FakeSerial serial;
   NttyDiscipline discipline;
   Tty console(serial, discipline);
   console.initialize();
   char input[256]{};
-  auto buffer = [](void *p)
-  { return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p)}; };
+  auto buffer = [](void *p) {
+    return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p)};
+  };
   auto destination = buffer(input);
   termios settings{};
   check(console.ioctl(TCGETS, buffer(&settings)) == 0, "get termios");
   auto defaults = settings;
-  auto set = [&]
-  { check(console.ioctl(TCSETS, buffer(&settings)) == 0, "set termios"); };
-  auto feed = [&](const std::string &text)
-  {
+  auto set = [&] {
+    check(console.ioctl(TCSETS, buffer(&settings)) == 0, "set termios");
+  };
+  auto feed = [&](const std::string &text) {
     for (unsigned char c : text)
     {
       console.receive(c);
     }
   };
-  auto queued = [&]
-  {
+  auto queued = [&] {
     int n = -1;
     check(console.ioctl(FIONREAD, buffer(&n)) == 0, "FIONREAD");
     return n;
@@ -263,16 +279,14 @@ void console_contract()
   settings.c_cc[VMIN] = 3;
   set();
   int sleeps = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     ++sleeps;
     feed(sleeps == 1 ? "a" : "bc");
   };
   check(console.read(destination, 256) == 3 && sleeps == 2, "MIN blocks for bytes");
   feed("m");
   sleeps = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     check(++sleeps == 1, "configuration change must complete a partial read");
     settings.c_cc[VMIN] = 200;
     set();
@@ -282,8 +296,7 @@ void console_contract()
   settings.c_cc[VMIN] = 200;
   set();
   sleeps = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     ++sleeps;
     feed(std::string(100, 'v'));
   };
@@ -293,8 +306,7 @@ void console_contract()
   settings.c_cc[VTIME] = 2;
   set();
   sleeps = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     ++sleeps;
     milliseconds += 100;
     if (sleeps == 1 || sleeps == 2)
@@ -308,22 +320,27 @@ void console_contract()
   settings.c_cc[VMIN] = 0;
   set();
   sleeps = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     ++sleeps;
     milliseconds += 100;
     console.timer_tick();
   };
   check(console.read(destination, 256) == 0 && sleeps == 2, "read timer expires");
-  on_sleep = [&] { feed("x"); };
+  on_sleep = [&] {
+    feed("x");
+  };
   check(console.read(destination, 256) == 1 && input[0] == 'x',
         "MIN=0 TIME>0 returns on first byte");
   settings.c_cc[VMIN] = 2;
   settings.c_cc[VTIME] = 0;
   set();
-  on_sleep = [&] { feed("y"); };
+  on_sleep = [&] {
+    feed("y");
+  };
   check(console.read(destination, 1) == 1 && input[0] == 'y', "MIN clamps to count");
-  on_sleep = [&] { killed = true; };
+  on_sleep = [&] {
+    killed = true;
+  };
   check(console.read(destination, 256) == -1, "killed waiting reader");
   killed = false;
   on_sleep = nullptr;
@@ -351,13 +368,15 @@ void console_contract()
   termios proxy_settings{};
   check(console.ioctl(TCSETS, buffer(&settings)) == 0 &&
             console.ioctl(TCGETS, buffer(&proxy_settings)) == 0 &&
-            (proxy_settings.c_lflag & XV_PROXY), "proxy ownership flag round trip");
+            (proxy_settings.c_lflag & XV_PROXY),
+        "proxy ownership flag round trip");
   static_assert(!(XV_PROXY & 0x20000000U));
   settings.c_lflag |= 0x20000000U;
   check(console.ioctl(TCSETS, buffer(&settings)) == -1, "unsupported flags rejected");
   check(console.ioctl(TCGETS, buffer(&proxy_settings)) == 0 &&
             !(proxy_settings.c_lflag & 0x20000000U) &&
-            (proxy_settings.c_lflag & XV_PROXY), "invalid setter preserves proxy ownership");
+            (proxy_settings.c_lflag & XV_PROXY),
+        "invalid setter preserves proxy ownership");
   settings = defaults;
   check(console.ioctl(TCSETSF, buffer(&settings)) == 0 && serial.drains == 1,
         "flush setter drains");
@@ -371,15 +390,14 @@ void console_contract()
   nonblocking.nonblocking = true;
   check(console.read(nonblocking, sizeof(input)) == -EAGAIN,
         "empty nonblocking TTY does not sleep");
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     check(console.read(nonblocking, sizeof(input)) == -EAGAIN,
           "nonblocking TTY reader never waits for another reader lock");
     feed("ready\n");
   };
-  check(console.read(destination, sizeof(input)) == 6, "blocking reader survives contention");
-  serial.on_transmit = [&]
-  {
+  check(console.read(destination, sizeof(input)) == 6,
+        "blocking reader survives contention");
+  serial.on_transmit = [&] {
     check(console.write(nonblocking, 1) == -EAGAIN,
           "nonblocking TTY writer never waits for another writer lock");
   };
@@ -388,8 +406,11 @@ void console_contract()
   char chunks[65];
   std::memset(chunks, 'x', sizeof(chunks));
   serial.output.clear();
-  serial.on_transmit = [&] { fail_copy = true; };
-  check(console.write(buffer(chunks), sizeof(chunks)) == 32 && serial.output.size() == 32,
+  serial.on_transmit = [&] {
+    fail_copy = true;
+  };
+  check(console.write(buffer(chunks), sizeof(chunks)) == 32 &&
+            serial.output.size() == 32,
         "later source-copy failure preserves the completed source-byte count");
   fail_copy = false;
   serial.on_transmit = nullptr;
@@ -422,31 +443,38 @@ void console_contract()
   check(interrupts == 3 && queued() == 0, "VSUSP posts stop action");
 }
 
-
-void pty_contract()
-{
+void
+pty_contract() {
   initialize_ptys();
   auto baseline = dma_pages.size();
-  auto buffer = [](void *p, bool nonblocking = false)
-  { return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p), nonblocking}; };
+  auto buffer = [](void *p, bool nonblocking = false) {
+    return IoBuffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(p),
+                    nonblocking};
+  };
   CharacterDevice *master = nullptr, *slave = nullptr;
   fail_dma = true;
-  check(!create_pty(&master, &slave) && !master && !slave && dma_pages.size() == baseline,
+  check(!create_pty(&master, &slave) && !master && !slave &&
+            dma_pages.size() == baseline,
         "PTY allocation failure publishes no endpoints");
   fail_dma = false;
   check(create_pty(&master, &slave) && master && slave, "create actual PTY endpoints");
   termios raw{};
   check(slave->ioctl(TCGETS, buffer(&raw)) == 0, "PTY termios snapshot");
-  raw.c_iflag = 0; raw.c_lflag = 0; raw.c_oflag = OPOST | ONLCR;
-  raw.c_cc[VMIN] = 0; raw.c_cc[VTIME] = 0;
+  raw.c_iflag = 0;
+  raw.c_lflag = 0;
+  raw.c_oflag = OPOST | ONLCR;
+  raw.c_cc[VMIN] = 0;
+  raw.c_cc[VTIME] = 0;
   check(slave->ioctl(TCSETS, buffer(&raw)) == 0, "PTY raw input with CRLF output");
   char input[1100]{};
   char message[] = "abc";
   check(master->write(buffer(message), 3) == 3 && slave->read(buffer(input), 3) == 3 &&
-        std::string(input, 3) == "abc", "master input reaches actual TTY");
+            std::string(input, 3) == "abc",
+        "master input reaches actual TTY");
   char newline[] = "q\n";
   check(slave->write(buffer(newline), 2) == 2 && master->read(buffer(input), 3) == 3 &&
-        std::string(input, 3) == "q\r\n", "PTY output expands newline atomically");
+            std::string(input, 3) == "q\r\n",
+        "PTY output expands newline atomically");
   std::memset(input, 'x', 1023);
   check(slave->write(buffer(input), 1023) == 1023, "fill all but one output slot");
   check(slave->write(buffer(newline + 1, true), 1) == -EAGAIN,
@@ -460,27 +488,39 @@ void pty_contract()
   fail_copy = true;
   check(master->read(buffer(input), 1) == -1, "PTY copy failure reported");
   fail_copy = false;
-  check(master->read(buffer(input), 1) == 1 && input[0] == 'z', "PTY fault retains byte");
+  check(master->read(buffer(input), 1) == 1 && input[0] == 'z',
+        "PTY fault retains byte");
   std::memset(input, 'a', 128);
-  check(master->write(buffer(input), 128) == 128 && master->write(buffer(&value, true), 1) == -EAGAIN,
+  check(master->write(buffer(input), 128) == 128 &&
+            master->write(buffer(&value, true), 1) == -EAGAIN,
         "full software input uses nonblocking backpressure");
   unsigned sleeps = 0;
-  on_sleep = [&]
-  { check(++sleeps == 1, "PTY input retry should wake once"); char byte; check(slave->read(buffer(&byte), 1) == 1, "consume input while writer sleeps"); };
+  on_sleep = [&] {
+    check(++sleeps == 1, "PTY input retry should wake once");
+    char byte;
+    check(slave->read(buffer(&byte), 1) == 1, "consume input while writer sleeps");
+  };
   check(master->write(buffer(&value), 1) == 1 && sleeps == 1,
         "software input registers before unlocking and retries after wake");
   on_sleep = nullptr;
-  check(slave->read(buffer(input), 128) == 128 && input[127] == 'z', "retry preserves input order");
+  check(slave->read(buffer(input), 128) == 128 && input[127] == 'z',
+        "retry preserves input order");
   sleeps = 0;
-  on_sleep = [&]
-  { check(++sleeps == 1, "PTY output reader wakes once"); check(slave->write(buffer(&value), 1) == 1, "publish output before reader resumes"); };
-  check(master->read(buffer(input), 1) == 1 && input[0] == 'z', "blocking master read resumes");
+  on_sleep = [&] {
+    check(++sleeps == 1, "PTY output reader wakes once");
+    check(slave->write(buffer(&value), 1) == 1, "publish output before reader resumes");
+  };
+  check(master->read(buffer(input), 1) == 1 && input[0] == 'z',
+        "blocking master read resumes");
   on_sleep = nullptr;
   check(slave->write(buffer(&value), 1) == 1, "queue output before termios drain");
   sleeps = 0;
-  on_sleep = [&]
-  { check(++sleeps == 1, "PTY drain wakes once"); check(master->read(buffer(input), 1) == 1, "drain callback holds no output lock"); };
-  check(slave->ioctl(TCSETSW, buffer(&raw)) == 0 && sleeps == 1, "termios drain releases pair lock while sleeping");
+  on_sleep = [&] {
+    check(++sleeps == 1, "PTY drain wakes once");
+    check(master->read(buffer(input), 1) == 1, "drain callback holds no output lock");
+  };
+  check(slave->ioctl(TCSETSW, buffer(&raw)) == 0 && sleeps == 1,
+        "termios drain releases pair lock while sleeping");
   on_sleep = nullptr;
   master->close();
   check(slave->read(buffer(input), 1) == 0 && slave->write(buffer(&value), 1) == -1,
@@ -493,16 +533,19 @@ void pty_contract()
   unsigned number = MaxNamedPtys;
   check(master && master->ioctl(TIOCGPTN, buffer(&number)) == 0, "create named master");
   unsigned uid = 0, gid = 0;
-  check(named_pty_owner(number, uid, gid) && uid == 1000 && gid == 100 && !open_named_pty(number),
+  check(named_pty_owner(number, uid, gid) && uid == 1000 && gid == 100 &&
+            !open_named_pty(number),
         "named ownership is captured before publication and slave starts locked");
   int unlocked = 0;
-  check(master->ioctl(TIOCSPTLCK, buffer(&unlocked)) == 0 && retain_named_pty(number), "unlock and pin named node");
+  check(master->ioctl(TIOCSPTLCK, buffer(&unlocked)) == 0 && retain_named_pty(number),
+        "unlock and pin named node");
   slave = open_named_pty(number);
   check(slave, "open named slave");
   master->close();
   unsigned ids[3]{};
-  check(!open_named_pty(number) && !retain_named_pty(number) && named_pty_ids(ids, 3) == 0 &&
-        named_pty_owner(number, uid, gid), "unpublished pair survives only through existing references");
+  check(!open_named_pty(number) && !retain_named_pty(number) &&
+            named_pty_ids(ids, 3) == 0 && named_pty_owner(number, uid, gid),
+        "unpublished pair survives only through existing references");
   slave->close();
   check(dma_pages.size() == baseline + 1, "node pin survives endpoint closes");
   release_named_pty(number);
@@ -511,47 +554,64 @@ void pty_contract()
   CharacterDevice *masters[MaxNamedPtys]{};
   for (unsigned i = 0; i < MaxNamedPtys; ++i)
   {
-    masters[i] = ptmx().open(false); number = MaxNamedPtys;
-    check(masters[i] && masters[i]->ioctl(TIOCGPTN, buffer(&number)) == 0 && number == i,
+    masters[i] = ptmx().open(false);
+    number = MaxNamedPtys;
+    check(masters[i] && masters[i]->ioctl(TIOCGPTN, buffer(&number)) == 0 &&
+              number == i,
           "named allocation chooses lowest unused ID");
   }
   check(named_pty_ids(ids, 3) == 3 && ids[0] == 0 && ids[1] == 1 && ids[2] == 2,
         "named enumeration is sorted and capacity bounded");
   check(!ptmx().open(false) && dma_pages.size() == baseline + MaxNamedPtys,
         "named ID exhaustion destroys only the unpublished candidate");
-  for (auto *endpoint : masters) endpoint->close();
+  for (auto *endpoint : masters)
+  {
+    endpoint->close();
+  }
   check(dma_pages.size() == baseline, "all named endpoints reclaim their pages");
 }
 
-
-void pci_contract()
-{
+void
+pci_contract() {
   constexpr unsigned long base = 0x30000000UL;
   constexpr unsigned long span = 32UL << 15;
   auto *arena = mmap(reinterpret_cast<void *>(base), span, PROT_READ | PROT_WRITE,
                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
   check(arena != MAP_FAILED, "map isolated PCI config fixture without replacement");
-  auto config = [&](unsigned slot) { return reinterpret_cast<unsigned *>(base + (static_cast<unsigned long>(slot) << 15)); };
-  for (unsigned slot : {1U, 5U, 29U}) config(slot)[0] = 0x100e8086;
-  unsigned slots[4]{};
-  check(detail::find_e1000(nullptr, 0) == 0 && detail::find_e1000(slots, 2) == 2 &&
-        slots[0] == 1 && slots[1] == 5, "PCI discovery honors output capacity and slot order");
-  check(detail::find_e1000(slots, 4) == 3 && slots[2] == 29, "PCI discovery scans all 32 slots");
-  config(0)[1] = 0x12345678; config(0)[4] = 0x98765432;
+  auto config = [&](unsigned slot) {
+    return reinterpret_cast<unsigned *>(base +
+                                        (static_cast<unsigned long>(slot) << 15));
+  };
+  config(5)[0] = 0x100e8086;
+  config(0)[1] = 0x12345678;
+  config(0)[4] = 0x98765432;
   check(!detail::configure_e1000(0x40000000, 32) &&
-        !detail::configure_e1000(0x40000000, 0) && config(0)[1] == 0x12345678 &&
-        config(0)[4] == 0x98765432, "invalid PCI slot/vendor leaves command and BAR untouched");
+            !detail::configure_e1000(0x40000000, 0) && config(0)[1] == 0x12345678 &&
+            config(0)[4] == 0x98765432,
+        "invalid PCI slot/vendor leaves command and BAR untouched");
   config(5)[1] = 0xabcd0403;
-  check(detail::configure_e1000(0x40020000, 5) && config(5)[4] == 0x40020000 &&
-        config(5)[1] == 7, "PCI configuration preserves low command bits and enables memory/bus master IRQ");
+  check(
+      detail::configure_e1000(0x40020000, 5) && config(5)[4] == 0x40020000 &&
+          config(5)[1] == 7,
+      "PCI configuration preserves low command bits and enables memory/bus master IRQ");
+
   struct Receiver final : EthernetReceiver
-  { void receive_frame(void *, unsigned) override { check(false, "unready NIC must not deliver frames"); } } receiver;
+  {
+    void
+    receive_frame(void *, unsigned) override {
+      check(false, "unready NIC must not deliver frames");
+    }
+  } receiver;
+
   unsigned registers[0x6000 / 4]{};
   E1000 nic(reinterpret_cast<unsigned long>(registers), 0);
   nic.initialize();
   check(!nic.online() && !nic.carrier(), "NIC without receiver remains offline");
-  nic.attach(receiver); nic.locate(0); nic.initialize();
-  check(!nic.online() && registers[0] == 0, "PCI rejection stops NIC before reset programming");
+  nic.attach(receiver);
+  nic.locate(0);
+  nic.initialize();
+  check(!nic.online() && registers[0] == 0,
+        "PCI rejection stops NIC before reset programming");
   auto before = dma_pages.size();
   auto *page = detail::allocate_dma_page();
   check(!nic.transmit(page, 64) && dma_pages.size() == before + 1,
@@ -574,41 +634,44 @@ public:
   int last_hart = -1;
   int *phase = nullptr;
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "test controller";
   }
 
-  void initialize() override
-  {
-    if (forbid_initialize) std::_Exit(98);
+  void
+  initialize() override {
+    if (forbid_initialize)
+    {
+      std::_Exit(98);
+    }
   }
 
-  void set_priority(unsigned irq, unsigned value) override
-  {
+  void
+  set_priority(unsigned irq, unsigned value) override {
     check(value == 1, "enabled source priority");
     priorities |= 1U << irq;
   }
 
-  void initialize_hart(int hart) override
-  {
+  void
+  initialize_hart(int hart) override {
     last_hart = hart;
   }
 
-  void enable(int hart, unsigned irq) override
-  {
+  void
+  enable(int hart, unsigned irq) override {
     check(hart == last_hart, "hart configured before enable");
     enabled |= 1U << irq;
   }
 
-  unsigned claim(int hart) override
-  {
+  unsigned
+  claim(int hart) override {
     check(hart == last_hart, "claim hart");
     return next;
   }
 
-  void complete(int hart, unsigned irq) override
-  {
+  void
+  complete(int hart, unsigned irq) override {
     check(hart == last_hart, "completion hart");
     if (phase)
     {
@@ -627,33 +690,32 @@ public:
   unsigned source;
   int &phase;
 
-  FakeInterrupt(unsigned irq, int &phase) : source(irq), phase(phase)
-  {
+  FakeInterrupt(unsigned irq, int &phase) : source(irq), phase(phase) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "test IRQ source";
   }
 
-  void initialize() override
-  {
+  void
+  initialize() override {
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return source;
   }
 
-  void handle_interrupt() override
-  {
+  void
+  handle_interrupt() override {
     check(phase == 0, "single dispatch");
     phase = 1;
   }
 };
 
-void interrupt_contract()
-{
+void
+interrupt_contract() {
   FakeController controller;
   int phase = 0;
   FakeInterrupt device(10, phase);
@@ -679,9 +741,14 @@ void interrupt_contract()
   guarded.forbid_initialize = true;
   InterruptDevice *duplicates[] = {&device, &device};
   InterruptDevice *missing[] = {nullptr};
-  expect_panic([&] { InterruptRouter invalid(guarded, duplicates, 2); invalid.initialize(); });
-  expect_panic([&] { InterruptRouter invalid(guarded, missing, 1); invalid.initialize(); });
-
+  expect_panic([&] {
+    InterruptRouter invalid(guarded, duplicates, 2);
+    invalid.initialize();
+  });
+  expect_panic([&] {
+    InterruptRouter invalid(guarded, missing, 1);
+    invalid.initialize();
+  });
 
   std::vector<unsigned> registers(0x208000 / 4, ~0U);
   Plic plic(reinterpret_cast<unsigned long>(registers.data()));
@@ -699,8 +766,8 @@ void interrupt_contract()
   check(registers[claim] == 10, "PLIC completion register");
 }
 
-void uart_contract()
-{
+void
+uart_contract() {
   alignas(4) unsigned char registers[8]{};
   Uart16550 uart(reinterpret_cast<unsigned long>(registers), 10);
   FakeSerial receiver_storage;
@@ -718,142 +785,155 @@ void uart_contract()
   uart.write("abc", 3);
   check(registers[0] == 'c', "UART process output");
   registers[5] = 0;
-  char fill[128]; std::memset(fill, 'q', sizeof(fill));
-  check(uart.transmit(fill, 127, true) == 127, "UART queues without waiting for hardware");
+  char fill[128];
+  std::memset(fill, 'q', sizeof(fill));
+  check(uart.transmit(fill, 127, true) == 127,
+        "UART queues without waiting for hardware");
   const char newline[] = "\r\n";
   check(uart.transmit(newline, 2, true) == -EAGAIN &&
-        uart.transmit("z", 1, true) == 1 && uart.transmit("x", 1, true) == -EAGAIN &&
-        !uart.writable(), "UART atomic transformed output and full EAGAIN");
+            uart.transmit("z", 1, true) == 1 &&
+            uart.transmit("x", 1, true) == -EAGAIN && !uart.writable(),
+        "UART atomic transformed output and full EAGAIN");
   registers[5] = (1U << 5) | (1U << 6);
   uart.handle_interrupt();
-  check(registers[0] == 'z' && uart.writable(), "UART TX interrupt drains queued bytes");
+  check(registers[0] == 'z' && uart.writable(),
+        "UART TX interrupt drains queued bytes");
   uart.drain();
-
 }
 
-VirtioBlock *active_disk = nullptr;
-unsigned *active_registers = nullptr;
-unsigned short device_used = 0;
-unsigned transfer_count = 0;
-unsigned long expected_sector = 0;
-bool expected_write = false;
-
-unsigned long address_register(unsigned low)
-{
-  return static_cast<unsigned long>(active_registers[low / 4]) |
-         (static_cast<unsigned long>(active_registers[(low + 4) / 4]) << 32);
-}
-
-void complete_transfer()
-{
-  auto *desc =
-      reinterpret_cast<virtq_desc *>(address_register(VIRTIO_MMIO_QUEUE_DESC_LOW));
-  auto *avail =
-      reinterpret_cast<virtq_avail *>(address_register(VIRTIO_MMIO_DRIVER_DESC_LOW));
-  auto *used =
-      reinterpret_cast<virtq_used *>(address_register(VIRTIO_MMIO_DEVICE_DESC_LOW));
-  const auto head = avail->ring[(avail->idx - 1) % QueueSize];
-  const auto middle = desc[head].next;
-  auto *request = reinterpret_cast<virtio_blk_req *>(desc[head].addr);
-  if (request->type == 4)
-  {
-    check(request->sector == 0 && desc[middle].len == 1 && (desc[middle].flags & VRING_DESC_F_WRITE) && !(desc[middle].flags & VRING_DESC_F_NEXT), "flush has only header and writable status");
-    *reinterpret_cast<unsigned char *>(desc[middle].addr) = 0;
-    used->ring[device_used % QueueSize].id = head; used->idx = ++device_used;
-    active_registers[VIRTIO_MMIO_INTERRUPT_STATUS / 4] = 1;
-    active_disk->handle_interrupt(); ++transfer_count; return;
-  }
-  const auto tail = desc[middle].next;
-  check(request->sector == expected_sector,
-        "sector is not coupled to filesystem block size");
-  check(request->type == (expected_write ? VIRTIO_BLK_T_OUT : VIRTIO_BLK_T_IN),
-        "block direction");
-  check(desc[head].len == sizeof(virtio_blk_req) && desc[tail].len == 1,
-        "request chain lengths");
-  check(bool(desc[middle].flags & VRING_DESC_F_WRITE) == !expected_write,
-        "DMA data direction");
-  check(desc[middle].len == 1024, "requested byte count");
-  auto *data = reinterpret_cast<unsigned char *>(desc[middle].addr);
-  if (expected_write)
-  {
-    check(data[0] == 0x5a, "device sees caller write data");
-  }
-  else
-  {
-    std::memset(data, 0x5a, desc[middle].len);
-  }
-  *reinterpret_cast<unsigned char *>(desc[tail].addr) = 0;
-  used->ring[device_used % QueueSize].id = head;
-  ++device_used;
-  used->idx = device_used;
-  active_registers[VIRTIO_MMIO_INTERRUPT_STATUS / 4] = 1;
-  active_disk->handle_interrupt();
-  ++transfer_count;
-}
-
-void gpu_contract()
-{
+void
+gpu_contract() {
   constexpr unsigned width = XV_DISPLAY_WIDTH, height = XV_DISPLAY_HEIGHT;
   constexpr unsigned frame_pages = (width * height * 8 + 4095) / 4096;
   constexpr unsigned request_pages = (32 + frame_pages * 16 + 4095) / 4096;
   constexpr unsigned dma_count = frame_pages + request_pages + 4;
   alignas(4096) unsigned registers[1024]{};
-  const auto baseline=dma_pages.size();gpu_clock=true;
-  auto setup=[&]
-  {std::memset(registers,0,sizeof(registers));registers[VIRTIO_MMIO_MAGIC_VALUE/4]=0x74726976;registers[VIRTIO_MMIO_VERSION/4]=2;registers[VIRTIO_MMIO_DEVICE_ID/4]=16;registers[VIRTIO_MMIO_DEVICE_FEATURES/4]=1;registers[VIRTIO_MMIO_QUEUE_NUM_MAX/4]=GpuQueueEntries;};
-  VirtioGpu absent(reinterpret_cast<unsigned long>(registers),4);absent.initialize();
-  check(!absent.open(false) && dma_pages.size()==baseline,"absent GPU is nonfatal and allocates nothing");
-  for(int budget=0;budget<int(dma_count);++budget)
-  {
-    setup();dma_budget=budget;VirtioGpu failed(reinterpret_cast<unsigned long>(registers),4);failed.initialize();dma_budget=-1;
-    check(!failed.open(false) && dma_pages.size()==baseline,"GPU rolls back every DMA allocation failure");
-  }
-  unsigned short consumed=0;unsigned commands=0,transfers=0;bool corrupt=false, deferred=false;
-  auto address=[&](unsigned low)
-  {return static_cast<unsigned long>(registers[low/4])|(static_cast<unsigned long>(registers[(low+4)/4])<<32);};
-  gpu_barrier=[&]
-  {
-    if(deferred || !registers[VIRTIO_MMIO_QUEUE_READY/4] || !registers[VIRTIO_MMIO_STATUS/4])return;
-    auto *available=reinterpret_cast<GpuAvailableRing *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
-    if(available->idx==consumed)return;
-    auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
-    alignas(8) unsigned char request[65536]{};unsigned count=0,index=available->ring[consumed%GpuQueueEntries];
-    for(unsigned step=0;;++step)
-    {
-      check(index<GpuQueueEntries && step<GpuQueueEntries,"GPU descriptor chain bounded");
-      auto &d=desc[index];
-      if(d.flags&VRING_DESC_F_WRITE)break;
-      check(d.flags==VRING_DESC_F_NEXT && d.len && d.len<=4096 && count+d.len<=sizeof(request),"GPU read-only bounded request descriptors");
-      std::memcpy(request+count,reinterpret_cast<void *>(d.addr),d.len);count+=d.len;index=d.next;
-    }
-    check(desc[index].flags==VRING_DESC_F_WRITE && desc[index].len==4096,"GPU response is device-writable only");
-    auto *response=reinterpret_cast<unsigned char *>(desc[index].addr);std::memcpy(response,request,24);
-    auto type=*reinterpret_cast<unsigned *>(request);*reinterpret_cast<unsigned *>(response)=type==0x100 ? 0x1101:0x1100;
-    unsigned length=24;
-    if(type==0x100){*reinterpret_cast<unsigned *>(response+40)=1;length=408;}
-    if(type==0x106)
-    {
-      check(count==32+frame_pages*16 && *reinterpret_cast<unsigned *>(request+28)==frame_pages,"GPU scatter backing spans all required request pages");
-      for(unsigned i=0;i<frame_pages;++i)check(*reinterpret_cast<unsigned *>(request+32+i*16+8)==4096,"GPU backing entry size");
-    }
-    if(type==0x105)++transfers;
-    check(*reinterpret_cast<unsigned *>(request+4)==1,"GPU commands require completion fences");
-    if(corrupt)*reinterpret_cast<unsigned long *>(response+8)^=1;
-    auto *used=reinterpret_cast<GpuUsedRing *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
-    used->ring[consumed%GpuQueueEntries]={0,length};used->idx=++consumed;++commands;
+  const auto baseline = dma_pages.size();
+  gpu_clock = true;
+  auto setup = [&] {
+    std::memset(registers, 0, sizeof(registers));
+    registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
+    registers[VIRTIO_MMIO_VERSION / 4] = 2;
+    registers[VIRTIO_MMIO_DEVICE_ID / 4] = 16;
+    registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1;
+    registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = GpuQueueEntries;
   };
-  setup();VirtioGpu gpu(reinterpret_cast<unsigned long>(registers),4);gpu.initialize();
-  check(gpu.open(false)==&gpu && commands==6 && dma_pages.size()==baseline+dma_count,"GPU initializes fenced 2D resource and scanout");
-  FramebufferInfo info{};IoBuffer buffer{AddressSpace::Kernel,reinterpret_cast<unsigned long>(&info)};
-  check(gpu.ioctl(XV_FB_GET_INFO,buffer)==0 && info.width==width && info.height==height && info.stride==width*4 && info.format==2,"GPU info ABI");
-  alignas(8) unsigned pixels[16];for(auto &pixel:pixels)pixel=0x00ff0000;
-  FramebufferUpdate update{width-1,height-1,1,1,4,0,reinterpret_cast<unsigned long>(pixels)};buffer.address=reinterpret_cast<unsigned long>(&update);
-  check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU draw requires root");effective_user=0;
-  check(gpu.ioctl(XV_FB_DRAW,buffer)==0 && transfers==2,"GPU bottom right pixel update transfer and flush");
+  VirtioGpu absent(reinterpret_cast<unsigned long>(registers), 4);
+  absent.initialize();
+  check(!absent.open(false) && dma_pages.size() == baseline,
+        "absent GPU is nonfatal and allocates nothing");
+  for (int budget = 0; budget < int(dma_count); ++budget)
+  {
+    setup();
+    dma_budget = budget;
+    VirtioGpu failed(reinterpret_cast<unsigned long>(registers), 4);
+    failed.initialize();
+    dma_budget = -1;
+    check(!failed.open(false) && dma_pages.size() == baseline,
+          "GPU rolls back every DMA allocation failure");
+  }
+  unsigned short consumed = 0;
+  unsigned commands = 0, transfers = 0;
+  bool corrupt = false, deferred = false;
+  auto address = [&](unsigned low) {
+    return static_cast<unsigned long>(registers[low / 4]) |
+           (static_cast<unsigned long>(registers[(low + 4) / 4]) << 32);
+  };
+  gpu_barrier = [&] {
+    if (deferred || !registers[VIRTIO_MMIO_QUEUE_READY / 4] ||
+        !registers[VIRTIO_MMIO_STATUS / 4])
+    {
+      return;
+    }
+    auto *available =
+        reinterpret_cast<GpuAvailableRing *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
+    if (available->idx == consumed)
+    {
+      return;
+    }
+    auto *desc = reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
+    alignas(8) unsigned char request[65536]{};
+    unsigned count = 0, index = available->ring[consumed % GpuQueueEntries];
+    for (unsigned step = 0;; ++step)
+    {
+      check(index < GpuQueueEntries && step < GpuQueueEntries,
+            "GPU descriptor chain bounded");
+      auto &d = desc[index];
+      if (d.flags & VRING_DESC_F_WRITE)
+      {
+        break;
+      }
+      check(d.flags == VRING_DESC_F_NEXT && d.len && d.len <= 4096 &&
+                count + d.len <= sizeof(request),
+            "GPU read-only bounded request descriptors");
+      std::memcpy(request + count, reinterpret_cast<void *>(d.addr), d.len);
+      count += d.len;
+      index = d.next;
+    }
+    check(desc[index].flags == VRING_DESC_F_WRITE && desc[index].len == 4096,
+          "GPU response is device-writable only");
+    auto *response = reinterpret_cast<unsigned char *>(desc[index].addr);
+    std::memcpy(response, request, 24);
+    auto type = *reinterpret_cast<unsigned *>(request);
+    *reinterpret_cast<unsigned *>(response) = type == 0x100 ? 0x1101 : 0x1100;
+    unsigned length = 24;
+    if (type == 0x100)
+    {
+      *reinterpret_cast<unsigned *>(response + 40) = 1;
+      length = 408;
+    }
+    if (type == 0x106)
+    {
+      check(count == 32 + frame_pages * 16 &&
+                *reinterpret_cast<unsigned *>(request + 28) == frame_pages,
+            "GPU scatter backing spans all required request pages");
+      for (unsigned i = 0; i < frame_pages; ++i)
+      {
+        check(*reinterpret_cast<unsigned *>(request + 32 + i * 16 + 8) == 4096,
+              "GPU backing entry size");
+      }
+    }
+    if (type == 0x105)
+    {
+      ++transfers;
+    }
+    check(*reinterpret_cast<unsigned *>(request + 4) == 1,
+          "GPU commands require completion fences");
+    if (corrupt)
+    {
+      *reinterpret_cast<unsigned long *>(response + 8) ^= 1;
+    }
+    auto *used = reinterpret_cast<GpuUsedRing *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
+    used->ring[consumed % GpuQueueEntries] = {0, length};
+    used->idx = ++consumed;
+    ++commands;
+  };
+  setup();
+  VirtioGpu gpu(reinterpret_cast<unsigned long>(registers), 4);
+  gpu.initialize();
+  check(gpu.open(false) == &gpu && commands == 6 &&
+            dma_pages.size() == baseline + dma_count,
+        "GPU initializes fenced 2D resource and scanout");
+  FramebufferInfo info{};
+  IoBuffer buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&info)};
+  check(gpu.ioctl(XV_FB_GET_INFO, buffer) == 0 && info.width == width &&
+            info.height == height && info.stride == width * 4 && info.format == 2,
+        "GPU info ABI");
+  alignas(8) unsigned pixels[16];
+  for (auto &pixel : pixels)
+  {
+    pixel = 0x00ff0000;
+  }
+  FramebufferUpdate update{
+      width - 1, height - 1, 1, 1, 4, 0, reinterpret_cast<unsigned long>(pixels)};
+  buffer.address = reinterpret_cast<unsigned long>(&update);
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1, "GPU draw requires root");
+  effective_user = 0;
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == 0 && transfers == 2,
+        "GPU bottom right pixel update transfer and flush");
   deferred = true;
   unsigned waited = 0;
-  on_sleep = [&]
-  {
+  on_sleep = [&] {
     ++waited;
     deferred = false;
     gpu_barrier();
@@ -874,22 +954,31 @@ void gpu_contract()
   check(gpu.ioctl(XV_FB_GET_STATS, stats_buffer) == -1, "GPU stats recheck root");
   effective_user = 0;
   FramebufferTiming timing{};
-  IoBuffer timing_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&timing)};
-  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == 0 &&
-            timing.draws == 2 && timing.copied_bytes == 8 &&
-            timing.transfer_ms > 0 && timing.flush_ms > 0 && timing.copy_ms > 0,
+  IoBuffer timing_buffer{AddressSpace::Kernel,
+                         reinterpret_cast<unsigned long>(&timing)};
+  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == 0 && timing.draws == 2 &&
+            timing.copied_bytes == 8 && timing.transfer_ms > 0 && timing.flush_ms > 0 &&
+            timing.copy_ms > 0,
         "GPU stage timings count successful copies and both submission stages");
   effective_user = 1000;
-  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == -1,
-        "GPU timings recheck root");
+  check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == -1, "GPU timings recheck root");
   effective_user = 0;
-  update.width=2;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects rectangle overrun");update.width=1;
-  update.pixels=~0UL-1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU rejects source address wrap");update.pixels=reinterpret_cast<unsigned long>(pixels);
-  update.reserved=1;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU validates reserved ABI fields");update.reserved=0;
-  fail_copy=true;check(gpu.ioctl(XV_FB_DRAW,buffer)==-1,"GPU request copy failure");fail_copy=false;
-  check(gpu.ioctl(0,buffer)==-1,"GPU rejects unknown ioctl");
+  update.width = 2;
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1, "GPU rejects rectangle overrun");
+  update.width = 1;
+  update.pixels = ~0UL - 1;
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1, "GPU rejects source address wrap");
+  update.pixels = reinterpret_cast<unsigned long>(pixels);
+  update.reserved = 1;
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1, "GPU validates reserved ABI fields");
+  update.reserved = 0;
+  fail_copy = true;
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1, "GPU request copy failure");
+  fail_copy = false;
+  check(gpu.ioctl(0, buffer) == -1, "GPU rejects unknown ioctl");
   FramebufferMapping mapping{};
-  IoBuffer mapping_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&mapping)};
+  IoBuffer mapping_buffer{AddressSpace::Kernel,
+                          reinterpret_cast<unsigned long>(&mapping)};
   effective_user = 1000;
   check(gpu.ioctl(XV_FB_MAP, mapping_buffer) == -1 && mapped_gpu_pages.empty(),
         "mapping requires root");
@@ -899,13 +988,16 @@ void gpu_contract()
         "failed mapping response rolls back a new mapping");
   fail_copy = false;
   check(gpu.ioctl(XV_FB_MAP, mapping_buffer) == 0 && mapping.version == 1 &&
-            mapping.backing_height == height * 2 && mapping.bytes == frame_pages * 4096UL,
+            mapping.backing_height == height * 2 &&
+            mapping.bytes == frame_pages * 4096UL,
         "mapping exposes exactly the pixel backing, including the second viewport");
   FramebufferPresent region{0, height - 20, width, 20, 20, 0};
-  IoBuffer present_buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(&region)};
+  IoBuffer present_buffer{AddressSpace::Kernel,
+                          reinterpret_cast<unsigned long>(&region)};
   auto copy_bytes_before = timing.copied_bytes;
   unsigned commands_before = commands;
-  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == 0 && commands == commands_before + 3,
+  check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == 0 &&
+            commands == commands_before + 3,
         "viewport present transfers damage, changes scanout and flushes");
   check(gpu.ioctl(XV_FB_GET_TIMING, timing_buffer) == 0 &&
             timing.copied_bytes == copy_bytes_before,
@@ -922,36 +1014,44 @@ void gpu_contract()
   check(gpu.ioctl(XV_FB_PRESENT, present_buffer) == 0,
         "viewport can move with no transfer when all rows are reused");
   corrupt = true;
-  check(gpu.ioctl(XV_FB_DRAW,buffer) == -1 && !gpu.open(false) &&
+  check(gpu.ioctl(XV_FB_DRAW, buffer) == -1 && !gpu.open(false) &&
             dma_pages.size() == baseline + frame_pages,
         "bad fence resets device, retains user-mapped pixel pages");
   check(gpu.ioctl(XV_FB_UNMAP, mapping_buffer) == 0 && dma_pages.size() == baseline,
         "offline device still permits unmap and final backing release");
-  gpu_barrier=nullptr;setup();VirtioGpu stalled(reinterpret_cast<unsigned long>(registers),4);stalled.initialize();
-  check(!stalled.open(false) && dma_pages.size()==baseline,"GPU timeout resets and frees safely");
-  gpu_clock=false;effective_user=1000;
+  gpu_barrier = nullptr;
+  setup();
+  VirtioGpu stalled(reinterpret_cast<unsigned long>(registers), 4);
+  stalled.initialize();
+  check(!stalled.open(false) && dma_pages.size() == baseline,
+        "GPU timeout resets and frees safely");
+  gpu_clock = false;
+  effective_user = 1000;
 }
 
-void keyboard_contract()
-{
+void
+keyboard_contract() {
   alignas(4096) unsigned registers[1024]{};
   constexpr unsigned queue_size = 64;
+
   struct Available
   {
     unsigned short flags, index, entries[queue_size], unused;
   };
+
   struct Used
   {
     unsigned short flags, index;
     virtq_used_elem entries[queue_size];
   };
+
   auto baseline = dma_pages.size();
   gpu_clock = true;
   VirtioKeyboard absent(reinterpret_cast<unsigned long>(registers), 5);
   absent.initialize();
-  check(!absent.open(false) && dma_pages.size() == baseline, "absent keyboard allocates nothing");
-  auto setup = [&]
-  {
+  check(!absent.open(false) && dma_pages.size() == baseline,
+        "absent keyboard allocates nothing");
+  auto setup = [&] {
     std::memset(registers, 0, sizeof(registers));
     registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
     registers[VIRTIO_MMIO_VERSION / 4] = 2;
@@ -964,17 +1064,24 @@ void keyboard_contract()
   };
   for (int budget = 0; budget < 7; ++budget)
   {
-    setup(); dma_budget = budget;
+    setup();
+    dma_budget = budget;
     VirtioKeyboard failed(reinterpret_cast<unsigned long>(registers), 5);
-    failed.initialize(); dma_budget = -1;
-    check(!failed.open(false) && dma_pages.size() == baseline, "keyboard DMA failure rolls back every partial allocation");
+    failed.initialize();
+    dma_budget = -1;
+    check(!failed.open(false) && dma_pages.size() == baseline,
+          "keyboard DMA failure rolls back every partial allocation");
   }
   setup();
   registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 0;
-  VirtioKeyboard legacy(reinterpret_cast<unsigned long>(registers), 5); legacy.initialize();
-  check(!legacy.open(false) && dma_pages.size() == baseline, "keyboard requires VERSION_1");
-  setup(); reinterpret_cast<unsigned char *>(registers)[VIRTIO_MMIO_CONFIG + 2] = 0;
-  VirtioKeyboard other(reinterpret_cast<unsigned long>(registers), 5); other.initialize();
+  VirtioKeyboard legacy(reinterpret_cast<unsigned long>(registers), 5);
+  legacy.initialize();
+  check(!legacy.open(false) && dma_pages.size() == baseline,
+        "keyboard requires VERSION_1");
+  setup();
+  reinterpret_cast<unsigned char *>(registers)[VIRTIO_MMIO_CONFIG + 2] = 0;
+  VirtioKeyboard other(reinterpret_cast<unsigned long>(registers), 5);
+  other.initialize();
   check(!other.open(false), "keyboard rejects non-keyboard input capabilities");
 
   setup();
@@ -982,13 +1089,11 @@ void keyboard_contract()
   virtq_desc *descriptors = nullptr;
   Available *available = nullptr;
   Used *used = nullptr;
-  auto address = [&](unsigned low)
-  {
+  auto address = [&](unsigned low) {
     return static_cast<unsigned long>(registers[low / 4]) |
            (static_cast<unsigned long>(registers[(low + 4) / 4]) << 32);
   };
-  auto emulate_queues = [&]
-  {
+  auto emulate_queues = [&] {
     unsigned queue = registers[VIRTIO_MMIO_QUEUE_SEL / 4];
     if (queue != selected)
     {
@@ -1004,26 +1109,37 @@ void keyboard_contract()
   };
   gpu_barrier = emulate_queues;
   VirtioKeyboard keyboard(reinterpret_cast<unsigned long>(registers), 5);
-  keyboard.initialize(); gpu_barrier = nullptr;
-  check(descriptors && available && used && available->index == queue_size && dma_pages.size() == baseline + 7,
+  keyboard.initialize();
+  gpu_barrier = nullptr;
+  check(descriptors && available && used && available->index == queue_size &&
+            dma_pages.size() == baseline + 7,
         "keyboard publishes 64 device-writable event buffers and both queues");
   check(!keyboard.open(false), "keyboard open requires root");
   effective_user = 0;
-  check(keyboard.open(true) == &keyboard && !keyboard.open(false), "nonblocking keyboard open is exclusive");
+  check(keyboard.open(true) == &keyboard && !keyboard.open(false),
+        "nonblocking keyboard open is exclusive");
   KeyboardEvent output[32]{};
   IoBuffer buffer{AddressSpace::Kernel, reinterpret_cast<unsigned long>(output), true};
+
   class KeyboardWatch final : public xv::sync::PollTable
   {
   public:
+
     void *channel = nullptr;
-    void watch(void *value) override { channel = value; }
+
+    void
+    watch(void *value) override {
+      channel = value;
+    }
   } watch;
-  check(keyboard.poll(&watch) == 0 && watch.channel && keyboard.read(buffer, 8) == -EAGAIN,
+
+  check(keyboard.poll(&watch) == 0 && watch.channel &&
+            keyboard.read(buffer, 8) == -EAGAIN,
         "keyboard registers poll before an empty nonblocking read");
-  check(keyboard.read(buffer, 1) == -1 && keyboard.read(buffer, 0) == 0, "keyboard only reads whole ABI events");
+  check(keyboard.read(buffer, 1) == -1 && keyboard.read(buffer, 0) == 0,
+        "keyboard only reads whole ABI events");
   unsigned short consumed = 0;
-  auto event = [&](KeyboardEvent value)
-  {
+  auto event = [&](KeyboardEvent value) {
     unsigned id = available->entries[consumed % queue_size];
     check(descriptors[id].len == 8 && descriptors[id].flags == VRING_DESC_F_WRITE,
           "keyboard DMA never targets user memory");
@@ -1035,18 +1151,29 @@ void keyboard_contract()
   event({1, 30, 1});
   check(keyboard.poll() == POLLIN, "keyboard IRQ wakes poll readers");
   fail_copy = true;
-  check(keyboard.read(buffer, 8) == -1, "keyboard rejects inaccessible user output without consuming event");
+  check(keyboard.read(buffer, 8) == -1,
+        "keyboard rejects inaccessible user output without consuming event");
   fail_copy = false;
   check(keyboard.read(buffer, 8) == 8 && output[0].code == 30 && output[0].value == 1,
         "keyboard event survives failed copy");
   effective_user = 1000;
-  check(keyboard.read(buffer, 8) == -1 && keyboard.poll() == POLLERR, "inherited keyboard fd rechecks effective uid");
+  check(keyboard.read(buffer, 8) == -1 && keyboard.poll() == POLLERR,
+        "inherited keyboard fd rechecks effective uid");
   effective_user = 0;
-  on_sleep = [&] { on_sleep = nullptr; event({1, 30, 0}); };
-  IoBuffer blocking = buffer; blocking.nonblocking = false;
-  check(keyboard.read(blocking, 8) == 8 && output[0].value == 0, "blocking keyboard read wakes on release event");
-  for (unsigned i = 0; i < 260; ++i) event({1, 31, 1});
-  check(keyboard.read(buffer, sizeof(output)) >= 8 && output[0].type == XV_KEY_SYN && output[0].code == XV_KEY_SYN_DROPPED,
+  on_sleep = [&] {
+    on_sleep = nullptr;
+    event({1, 30, 0});
+  };
+  IoBuffer blocking = buffer;
+  blocking.nonblocking = false;
+  check(keyboard.read(blocking, 8) == 8 && output[0].value == 0,
+        "blocking keyboard read wakes on release event");
+  for (unsigned i = 0; i < 260; ++i)
+  {
+    event({1, 31, 1});
+  }
+  check(keyboard.read(buffer, sizeof(output)) >= 8 && output[0].type == XV_KEY_SYN &&
+            output[0].code == XV_KEY_SYN_DROPPED,
         "keyboard overflow reports synchronization loss for modifier reset");
   keyboard.close();
   event({1, 30, 1});
@@ -1056,178 +1183,230 @@ void keyboard_contract()
   for (unsigned i = 0; i < 65540; ++i)
   {
     event({1, 30, i & 1});
-    check(keyboard.read(buffer, 8) == 8, "keyboard ring index wraps without losing ownership");
+    check(keyboard.read(buffer, 8) == 8,
+          "keyboard ring index wraps without losing ownership");
   }
   used->entries[consumed % queue_size] = {queue_size, 8};
   used->index = ++consumed;
   keyboard.handle_interrupt();
-  check(keyboard.poll() == POLLERR && !keyboard.open(false) && dma_pages.size() == baseline + 7,
-        "malformed keyboard completion takes device offline and retains DMA in IRQ context");
+  check(
+      keyboard.poll() == POLLERR && !keyboard.open(false) &&
+          dma_pages.size() == baseline + 7,
+      "malformed keyboard completion takes device offline and retains DMA in IRQ context");
   keyboard.close();
-  while (dma_pages.size() > baseline) detail::free_dma_page(dma_pages.back());
+  while (dma_pages.size() > baseline)
+  {
+    detail::free_dma_page(dma_pages.back());
+  }
   for (unsigned error = 0; error < 4; ++error)
   {
-    setup(); selected = 0;
+    setup();
+    selected = 0;
     gpu_barrier = emulate_queues;
     VirtioKeyboard malformed(reinterpret_cast<unsigned long>(registers), 5);
-    malformed.initialize(); gpu_barrier = nullptr;
-    check(malformed.open(false) == &malformed, "fresh keyboard for completion validation");
-    used->entries[0] = {0, 8}; used->index = 1;
-    if (error == 0) used->entries[0].id = queue_size;
-    if (error == 1) used->entries[0].len = 7;
-    if (error == 2) used->index = queue_size + 1;
-    if (error == 3) { used->entries[1] = {0, 8}; used->index = 2; }
-    malformed.handle_interrupt();
-    check(malformed.poll() == POLLERR, "keyboard rejects invalid id, length, delta and duplicate completion");
-    malformed.close();
-    while (dma_pages.size() > baseline) detail::free_dma_page(dma_pages.back());
-  }
-  setup(); registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = 8;
-  VirtioKeyboard small(reinterpret_cast<unsigned long>(registers), 5); small.initialize();
-  check(!small.open(false) && dma_pages.size() == baseline, "keyboard rejects undersized queues and rolls back DMA");
-  gpu_clock = false; effective_user = 1000;
-}
-
-void entropy_contract()
-{
-  unsigned registers[0x108/4]{};
-  VirtioEntropy missing(reinterpret_cast<unsigned long>(registers),3);missing.initialize();
-  char bytes[600]{};IoBuffer kernel{AddressSpace::Kernel,reinterpret_cast<unsigned long>(bytes),true};
-  check(missing.read(kernel,1)==-1 && missing.read(kernel,0)==0 && missing.poll()==POLLERR,"missing entropy never fabricates bytes or readiness");
-  auto setup=[&]{std::memset(registers,0,sizeof(registers));
-    registers[VIRTIO_MMIO_MAGIC_VALUE/4]=0x74726976;registers[VIRTIO_MMIO_VERSION/4]=2;
-    registers[VIRTIO_MMIO_DEVICE_ID/4]=4;registers[VIRTIO_MMIO_DEVICE_FEATURES/4]=1;
-    registers[VIRTIO_MMIO_QUEUE_NUM_MAX/4]=QueueSize;};
-  unsigned baseline=dma_pages.size();
-  for(int budget=0;budget<4;++budget)
-  {
-    setup();dma_budget=budget;VirtioEntropy failed(reinterpret_cast<unsigned long>(registers),3);failed.initialize();dma_budget=-1;
-    check(dma_pages.size()==baseline && failed.poll()==POLLERR && (registers[VIRTIO_MMIO_STATUS/4]&128),"entropy initialization rolls back each DMA allocation failure");
-  }
-  setup();VirtioEntropy rng(reinterpret_cast<unsigned long>(registers),3);rng.initialize();
-  auto address=[&](unsigned low){return registers[low/4]|(static_cast<unsigned long>(registers[(low+4)/4])<<32);};
-  auto *desc=reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
-  auto *avail=reinterpret_cast<virtq_avail *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
-  auto *used=reinterpret_cast<virtq_used *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
-  check(avail->idx==1 && desc[0].flags==VRING_DESC_F_WRITE && desc[0].len==4096,"entropy submits only writable buffers after modern feature negotiation");
-  auto complete=[&](unsigned length,unsigned id=0,unsigned char fill=0x5a){
-    std::memset(reinterpret_cast<void *>(desc[0].addr),fill,length<=4096 ? length:0);
-    used->ring[used->idx%QueueSize]={id,length};++used->idx;
-    registers[VIRTIO_MMIO_INTERRUPT_STATUS/4]=1;rng.handle_interrupt();};
-  class Watch final:public xv::sync::PollTable
-  {public:void *channel=nullptr;void watch(void *value) override {channel=value;}} watch;
-  check(rng.poll(&watch)==0 && watch.channel && rng.read(kernel,1)==-EAGAIN,"entropy poll registration precedes nonblocking empty read");
-  unsigned woke=wakeups;complete(17);
-  check(wakeups>woke && rng.poll()==POLLIN,"entropy completion wakes readers and poll waiters");
-  fail_copy=true;check(rng.read(kernel,17)==-1,"entropy copy failure");fail_copy=false;
-  check(rng.read(kernel,600)==17 && bytes[0]==0x5a && bytes[16]==0x5a && avail->idx==2,"entropy honors short used length and preserves bytes after copy failure");
-  expect_panic([&]{complete(0);});expect_panic([&]{complete(4097);});expect_panic([&]{complete(1,7);});
-  kernel.nonblocking=false;on_sleep=[&]{complete(4096,0,0x33);};
-  check(rng.read(kernel,600)==256 && bytes[255]==0x33,"blocking entropy read wakes and bounds interrupt-disabled copy");
-  kernel.nonblocking=true;unsigned total=256;
-  for(int result;(result=rng.read(kernel,sizeof(bytes)))>0;)total+=result;
-  check(total==4096 && rng.read(kernel,1)==-EAGAIN,"entropy consumes completed buffer once and requests a refill");
-  on_sleep=nullptr;
-  for(unsigned i=0;i<65537;++i)
-  {complete(1,0,static_cast<unsigned char>(i));check(rng.read(kernel,1)==1 && static_cast<unsigned char>(bytes[0])==static_cast<unsigned char>(i),"entropy ring indexes wrap without replay");}
-  check(rng.write(kernel,1)==-1 && rng.write(kernel,0)==0,"host entropy source cannot be overwritten through its device");
-  registers[VIRTIO_MMIO_STATUS/4]=0;
-  while(dma_pages.size()>baseline)detail::free_dma_page(dma_pages.back());
-}
-
-void block_contract()
-{
-  unsigned registers[0x108 / 4]{};
-  registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
-  registers[VIRTIO_MMIO_VERSION / 4] = 2;
-  registers[VIRTIO_MMIO_DEVICE_ID / 4] = 2;
-  registers[VIRTIO_MMIO_VENDOR_ID / 4] = 0x554d4551;
-  registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = QueueSize;
-  registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1U << VIRTIO_BLK_F_FLUSH;
-  registers[VIRTIO_MMIO_CONFIG / 4] = 0x89abcdefU;
-  registers[(VIRTIO_MMIO_CONFIG + 4) / 4] = 0x12345678U;
-  VirtioBlock disk(reinterpret_cast<unsigned long>(registers), 1);
-  disk.initialize();
-  check(disk.capacity_sectors() == 0x1234567889abcdefUL,
-        "VirtIO capacity preserves both halves of the 64-bit sector count");
-  check(registers[VIRTIO_MMIO_QUEUE_READY / 4] == 1, "VirtIO queue ready");
-  check((registers[VIRTIO_MMIO_STATUS / 4] & VIRTIO_CONFIG_S_DRIVER_OK) != 0,
-        "VirtIO driver ready");
-  active_registers = registers;
-  active_disk = &disk;
-  on_sleep = complete_transfer;
-  unsigned char data[1024]{};
-  for (unsigned i = 0; i < 24; ++i)
-  {
-    expected_sector = 7 + i;
-    expected_write = i % 2;
-    BlockDevice &device = disk;
-    device.transfer(expected_write ? BlockOperation::Write : BlockOperation::Read,
-                    expected_sector, data, sizeof(data));
-    check(data[0] == 0x5a && data[1023] == 0x5a, "DMA completes before return");
-  }
-  disk.flush();
-  check(transfer_count == 25, "queue wraps and descriptors are recycled");
-  for (unsigned i = 0; i < 16; ++i)
-  {
-    disk.flush();
-    expected_sector = 100 + i; expected_write = false;
-    disk.transfer(BlockOperation::Read, expected_sector, data, sizeof(data));
-  }
-  check(transfer_count == 57,
-        "repeated flush and data requests recycle all three allocated slots");
-  auto before_empty_irq = wakeups;
-  disk.handle_interrupt();
-  check(wakeups == before_empty_irq, "empty used queue does not repeat completion wakes");
-  expect_panic([&]
-  {
-    on_sleep = [&]
+    malformed.initialize();
+    gpu_barrier = nullptr;
+    check(malformed.open(false) == &malformed,
+          "fresh keyboard for completion validation");
+    used->entries[0] = {0, 8};
+    used->index = 1;
+    if (error == 0)
     {
-      auto *desc = reinterpret_cast<virtq_desc *>(address_register(VIRTIO_MMIO_QUEUE_DESC_LOW));
-      auto *avail = reinterpret_cast<virtq_avail *>(address_register(VIRTIO_MMIO_DRIVER_DESC_LOW));
-      auto *used = reinterpret_cast<virtq_used *>(address_register(VIRTIO_MMIO_DEVICE_DESC_LOW));
-      auto head = avail->ring[(avail->idx - 1) % QueueSize];
-      auto tail = desc[desc[head].next].next;
-      *reinterpret_cast<unsigned char *>(desc[tail].addr) = 1;
-      used->ring[device_used % QueueSize].id = head; used->idx = ++device_used;
-      disk.handle_interrupt();
-    };
-    disk.transfer(BlockOperation::Read, expected_sector, data, sizeof(data));
-  });
-
-  check(registers[VIRTIO_MMIO_INTERRUPT_ACK / 4] == 1, "VirtIO interrupt acknowledged");
-  expect_panic([&] { disk.transfer(BlockOperation::Read, 0, data, 513); });
-  auto *used =
-      reinterpret_cast<virtq_used *>(address_register(VIRTIO_MMIO_DEVICE_DESC_LOW));
-  used->ring[used->idx % QueueSize].id = QueueSize;
-  ++used->idx;
-  expect_panic([&] { disk.handle_interrupt(); });
-  on_sleep = nullptr;
-  for (auto *page : dma_pages)
-  {
-    std::free(page);
+      used->entries[0].id = queue_size;
+    }
+    if (error == 1)
+    {
+      used->entries[0].len = 7;
+    }
+    if (error == 2)
+    {
+      used->index = queue_size + 1;
+    }
+    if (error == 3)
+    {
+      used->entries[1] = {0, 8};
+      used->index = 2;
+    }
+    malformed.handle_interrupt();
+    check(malformed.poll() == POLLERR,
+          "keyboard rejects invalid id, length, delta and duplicate completion");
+    malformed.close();
+    while (dma_pages.size() > baseline)
+    {
+      detail::free_dma_page(dma_pages.back());
+    }
   }
-  dma_pages.clear();
+  setup();
+  registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = 8;
+  VirtioKeyboard small(reinterpret_cast<unsigned long>(registers), 5);
+  small.initialize();
+  check(!small.open(false) && dma_pages.size() == baseline,
+        "keyboard rejects undersized queues and rolls back DMA");
+  gpu_clock = false;
+  effective_user = 1000;
 }
+
+void
+entropy_contract() {
+  unsigned registers[0x108 / 4]{};
+  VirtioEntropy missing(reinterpret_cast<unsigned long>(registers), 3);
+  missing.initialize();
+  char bytes[600]{};
+  IoBuffer kernel{AddressSpace::Kernel, reinterpret_cast<unsigned long>(bytes), true};
+  check(missing.read(kernel, 1) == -1 && missing.read(kernel, 0) == 0 &&
+            missing.poll() == POLLERR,
+        "missing entropy never fabricates bytes or readiness");
+  auto setup = [&] {
+    std::memset(registers, 0, sizeof(registers));
+    registers[VIRTIO_MMIO_MAGIC_VALUE / 4] = 0x74726976;
+    registers[VIRTIO_MMIO_VERSION / 4] = 2;
+    registers[VIRTIO_MMIO_DEVICE_ID / 4] = 4;
+    registers[VIRTIO_MMIO_DEVICE_FEATURES / 4] = 1;
+    registers[VIRTIO_MMIO_QUEUE_NUM_MAX / 4] = QueueSize;
+  };
+  unsigned baseline = dma_pages.size();
+  for (int budget = 0; budget < 4; ++budget)
+  {
+    setup();
+    dma_budget = budget;
+    VirtioEntropy failed(reinterpret_cast<unsigned long>(registers), 3);
+    failed.initialize();
+    dma_budget = -1;
+    check(dma_pages.size() == baseline && failed.poll() == POLLERR &&
+              (registers[VIRTIO_MMIO_STATUS / 4] & 128),
+          "entropy initialization rolls back each DMA allocation failure");
+  }
+  setup();
+  VirtioEntropy rng(reinterpret_cast<unsigned long>(registers), 3);
+  rng.initialize();
+  auto address = [&](unsigned low) {
+    return registers[low / 4] |
+           (static_cast<unsigned long>(registers[(low + 4) / 4]) << 32);
+  };
+  auto *desc = reinterpret_cast<virtq_desc *>(address(VIRTIO_MMIO_QUEUE_DESC_LOW));
+  auto *avail = reinterpret_cast<virtq_avail *>(address(VIRTIO_MMIO_DRIVER_DESC_LOW));
+  auto *used = reinterpret_cast<virtq_used *>(address(VIRTIO_MMIO_DEVICE_DESC_LOW));
+  check(avail->idx == 1 && desc[0].flags == VRING_DESC_F_WRITE && desc[0].len == 4096,
+        "entropy submits only writable buffers after modern feature negotiation");
+  auto complete = [&](unsigned length, unsigned id = 0, unsigned char fill = 0x5a) {
+    std::memset(reinterpret_cast<void *>(desc[0].addr), fill,
+                length <= 4096 ? length : 0);
+    used->ring[used->idx % QueueSize] = {id, length};
+    ++used->idx;
+    registers[VIRTIO_MMIO_INTERRUPT_STATUS / 4] = 1;
+    rng.handle_interrupt();
+  };
+
+  class Watch final : public xv::sync::PollTable
+  {
+  public:
+
+    void *channel = nullptr;
+
+    void
+    watch(void *value) override {
+      channel = value;
+    }
+  } watch;
+
+  check(rng.poll(&watch) == 0 && watch.channel && rng.read(kernel, 1) == -EAGAIN,
+        "entropy poll registration precedes nonblocking empty read");
+  unsigned woke = wakeups;
+  complete(17);
+  check(wakeups > woke && rng.poll() == POLLIN,
+        "entropy completion wakes readers and poll waiters");
+  fail_copy = true;
+  check(rng.read(kernel, 17) == -1, "entropy copy failure");
+  fail_copy = false;
+  check(rng.read(kernel, 600) == 17 && bytes[0] == 0x5a && bytes[16] == 0x5a &&
+            avail->idx == 2,
+        "entropy honors short used length and preserves bytes after copy failure");
+  expect_panic([&] {
+    complete(0);
+  });
+  expect_panic([&] {
+    complete(4097);
+  });
+  expect_panic([&] {
+    complete(1, 7);
+  });
+  kernel.nonblocking = false;
+  on_sleep = [&] {
+    complete(4096, 0, 0x33);
+  };
+  check(rng.read(kernel, 600) == 256 && bytes[255] == 0x33,
+        "blocking entropy read wakes and bounds interrupt-disabled copy");
+  kernel.nonblocking = true;
+  unsigned total = 256;
+  for (int result; (result = rng.read(kernel, sizeof(bytes))) > 0;)
+  {
+    total += result;
+  }
+  check(total == 4096 && rng.read(kernel, 1) == -EAGAIN,
+        "entropy consumes completed buffer once and requests a refill");
+  on_sleep = nullptr;
+  for (unsigned i = 0; i < 65537; ++i)
+  {
+    complete(1, 0, static_cast<unsigned char>(i));
+    check(rng.read(kernel, 1) == 1 &&
+              static_cast<unsigned char>(bytes[0]) == static_cast<unsigned char>(i),
+          "entropy ring indexes wrap without replay");
+  }
+  check(rng.write(kernel, 1) == -1 && rng.write(kernel, 0) == 0,
+        "host entropy source cannot be overwritten through its device");
+  registers[VIRTIO_MMIO_STATUS / 4] = 0;
+  while (dma_pages.size() > baseline)
+  {
+    detail::free_dma_page(dma_pages.back());
+  }
+}
+
 } // namespace test
 
 namespace detail
 {
-unsigned effective_uid() { return test::effective_user; }
-unsigned effective_gid() { return 100; }
-void hangup_terminal(void *) { ++test::hangups; }
-void service_terminal_signals() { ++test::signal_services; }
-void free_terminal_page(void *page)
-{
+unsigned
+effective_uid() {
+  return test::effective_user;
+}
+
+unsigned
+effective_gid() {
+  return 100;
+}
+
+void
+hangup_terminal(void *) {
+  ++test::hangups;
+}
+
+void
+service_terminal_signals() {
+  ++test::signal_services;
+}
+
+void
+free_terminal_page(void *page) {
   auto &pages = test::dma_pages;
   for (auto it = pages.begin(); it != pages.end(); ++it)
-    if (*it == page) { pages.erase(it); std::free(page); return; }
+  {
+    if (*it == page)
+    {
+      pages.erase(it);
+      std::free(page);
+      return;
+    }
+  }
   test::check(false, "free terminal page exactly once");
 }
 
-void free_dma_page(void *page) { free_terminal_page(page); }
-void release_dma_page(void *page)
-{
+void
+free_dma_page(void *page) {
+  free_terminal_page(page);
+}
+
+void
+release_dma_page(void *page) {
   for (auto *mapped : test::mapped_gpu_pages)
   {
     if (mapped == page)
@@ -1238,21 +1417,24 @@ void release_dma_page(void *page)
   }
   free_terminal_page(page);
 }
-unsigned long map_dma_pages(void *const *pages, unsigned count)
-{
+
+unsigned long
+map_dma_pages(void *const *pages, unsigned count) {
   if (test::mapped_gpu_pages.empty())
   {
     test::mapped_gpu_pages.assign(pages, pages + count);
   }
   return 0x20000000UL;
 }
-bool mapped_dma_pages(void *const *pages, unsigned count)
-{
+
+bool
+mapped_dma_pages(void *const *pages, unsigned count) {
   return count && test::mapped_gpu_pages.size() == count &&
          test::mapped_gpu_pages[0] == pages[0];
 }
-bool unmap_dma_pages()
-{
+
+bool
+unmap_dma_pages() {
   bool existed = !test::mapped_gpu_pages.empty();
   for (auto *page : test::retired_gpu_pages)
   {
@@ -1263,14 +1445,14 @@ bool unmap_dma_pages()
   return existed;
 }
 
-unsigned long terminal_milliseconds()
-{
-  return test::gpu_clock ? ++test::milliseconds:test::milliseconds;
+unsigned long
+terminal_milliseconds() {
+  return test::gpu_clock ? ++test::milliseconds : test::milliseconds;
 }
 
-int wait_device_completion(void *, volatile unsigned short *index,
-                           unsigned short expected, unsigned long)
-{
+int
+wait_device_completion(void *, volatile unsigned short *index, unsigned short expected,
+                       unsigned long) {
   if (!test::on_sleep)
   {
     return 0;
@@ -1279,69 +1461,76 @@ int wait_device_completion(void *, volatile unsigned short *index,
   return *index != expected ? 1 : -1;
 }
 
-void prepare_interruptible_sleep(void *)
-{
+void
+prepare_interruptible_sleep(void *) {
 }
 
-void prepare_sleep(void *)
-{
+void
+prepare_sleep(void *) {
 }
 
-void sleep_process()
-{
+void
+sleep_process() {
   test::check(test::on_sleep != nullptr, "unexpected blocking path");
   test::on_sleep();
 }
 
-void wake_processes(void *)
-{
+void
+wake_processes(void *) {
   ++test::wakeups;
 }
 
-void wake_one_process(void *channel) { wake_processes(channel); }
+void
+wake_one_process(void *channel) {
+  wake_processes(channel);
+}
 
-void *pin_controlling_terminal(void *(*pin)(void *))
-{return test::controlling_tty ? pin(test::controlling_tty):nullptr;}
+void *
+pin_controlling_terminal(void *(*pin)(void *)) {
+  return test::controlling_tty ? pin(test::controlling_tty) : nullptr;
+}
 
-int claim_terminal(void *)
-{
+int
+claim_terminal(void *) {
   return 0;
 }
 
-int terminal_foreground(void *)
-{
+int
+terminal_foreground(void *) {
   return 1;
 }
 
-int set_terminal_foreground(void *, int group)
-{
+int
+set_terminal_foreground(void *, int group) {
   return group > 0 ? 0 : -1;
 }
 
-bool may_read_terminal(void *)
-{
+bool
+may_read_terminal(void *) {
   return true;
 }
 
-void post_terminal_interrupt(void *, bool)
-{
+void
+post_terminal_interrupt(void *, bool) {
   ++test::interrupts;
 }
 
-bool process_killed()
-{
+bool
+process_killed() {
   return test::killed;
 }
 
-void detach_terminal(void *) {}
+void
+detach_terminal(void *) {
+}
 
-void dump_processes()
-{
+void
+dump_processes() {
   ++test::dumps;
 }
 
-int copy_in(void *destination, bool user, unsigned long source, unsigned count)
-{
+int
+copy_in(void *destination, bool user, unsigned long source, unsigned count) {
   test::copied_user = user;
   if (test::fail_copy)
   {
@@ -1351,8 +1540,8 @@ int copy_in(void *destination, bool user, unsigned long source, unsigned count)
   return 0;
 }
 
-int copy_out(bool user, unsigned long destination, void *source, unsigned count)
-{
+int
+copy_out(bool user, unsigned long destination, void *source, unsigned count) {
   test::copied_user = user;
   if (test::fail_copy)
   {
@@ -1362,54 +1551,64 @@ int copy_out(bool user, unsigned long destination, void *source, unsigned count)
   return 0;
 }
 
-void push_interrupts_off()
-{
+void
+push_interrupts_off() {
 }
 
-void pop_interrupts_off()
-{
+void
+pop_interrupts_off() {
 }
 
-bool panicking()
-{
+bool
+panicking() {
   return false;
 }
 
-bool panicked()
-{
+bool
+panicked() {
   return false;
 }
 
-void io_barrier()
-{
+void
+io_barrier() {
   __atomic_thread_fence(__ATOMIC_SEQ_CST);
-  if(test::gpu_barrier)test::gpu_barrier();
+  if (test::gpu_barrier)
+  {
+    test::gpu_barrier();
+  }
 }
 
-void *allocate_dma_page()
-{
-  if (test::fail_dma || test::dma_budget==0) return nullptr;
-  if(test::dma_budget>0)--test::dma_budget;
+void *
+allocate_dma_page() {
+  if (test::fail_dma || test::dma_budget == 0)
+  {
+    return nullptr;
+  }
+  if (test::dma_budget > 0)
+  {
+    --test::dma_budget;
+  }
   void *page = std::aligned_alloc(4096, 4096);
   test::check(page != nullptr, "DMA page allocation");
   test::dma_pages.push_back(page);
   return page;
 }
 
-void zero_page(void *page)
-{
+void
+zero_page(void *page) {
   std::memset(page, 0, 4096);
 }
 
-[[noreturn]] void fail(const char *)
-{
+[[noreturn]]
+void
+fail(const char *) {
   std::_Exit(99);
 }
 } // namespace detail
 } // namespace xv::drivers
 
-extern "C" int run_driver_contracts()
-{
+extern "C" int
+run_driver_contracts() {
   xv::drivers::test::rtc_contract();
   xv::drivers::test::controlling_contract();
   xv::drivers::test::console_contract();
@@ -1417,7 +1616,6 @@ extern "C" int run_driver_contracts()
   xv::drivers::test::pci_contract();
   xv::drivers::test::interrupt_contract();
   xv::drivers::test::uart_contract();
-  xv::drivers::test::block_contract();
   xv::drivers::test::entropy_contract();
   xv::drivers::test::gpu_contract();
   xv::drivers::test::keyboard_contract();

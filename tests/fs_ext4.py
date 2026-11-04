@@ -33,8 +33,7 @@ def main():
         guest = Guest(args, root, args.kernel.parent / f'ext4-{args.block}-{args.cpus}cpu.log', data=data, network=True)
         try:
             login_root(guest.expect, guest.process)
-            guest.command('drvctl load /usr/lib/drivers/vblk.elf', 'loaded module 0')
-            guest.command('drvctl bind 0 0', 'bound module 0 to device 0')
+            guest.command('drvctl list', 'virtio_block bound=2')
             guest.command('cd /')
             guest.command('mkdir /tmp/ext4')
             guest.command('mount -t ext4 /tmp/ext4', failure=True)

@@ -1,5 +1,6 @@
 module;
 #include "kernel/io/kmodule.h"
+#include "kernel/io/kmodule_v2.h"
 export module xv.drivers;
 
 export import :device;
@@ -13,8 +14,8 @@ export import :ldisc;
 
 export namespace xv::drivers
 {
-// QEMU virt board services own static instances; no allocation/registration at
-// global startup. Serial/console are available before the page allocator.
+// Board services expose generic proxies. Resident ELF modules own concrete
+// drivers; early polling output is available before the page allocator.
 void initialize_console();
 unsigned long realtime_seconds();
 unsigned long boot_time_seconds();
@@ -40,6 +41,7 @@ void initialize_modules();
 void initialize_boot_modules();
 long module_control(unsigned operation, unsigned long argument, unsigned long value);
 bool module_device(unsigned index, xv_kmod_device &device);
+bool module_device_v2(unsigned index, xv_kmod_device_v2 &device);
 void module_interrupt(unsigned index);
 InterruptController &interrupt_controller();
 } // namespace xv::drivers

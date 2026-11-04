@@ -10,17 +10,16 @@ class Uart16550 final : public SerialPort
 {
 public:
 
-  constexpr Uart16550(unsigned long base, unsigned irq) : registers_(base), irq_(irq)
-  {
+  constexpr Uart16550(unsigned long base, unsigned irq) : registers_(base), irq_(irq) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "16550a UART";
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return irq_;
   }
 

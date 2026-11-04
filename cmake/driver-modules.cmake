@@ -5,7 +5,7 @@ function(xv_add_driver_interfaces target)
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/drivers")
   target_sources(${target} PRIVATE
     FILE_SET driver_interfaces TYPE CXX_MODULES
-    BASE_DIRS "${module_root}"
+    BASE_DIRS "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.."
     FILES
       "${module_root}/drivers.cppm"
       "${module_root}/device.cppm"
@@ -26,22 +26,25 @@ function(xv_add_driver_modules target)
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/drivers")
   target_sources(${target} PRIVATE
     FILE_SET driver_internals TYPE CXX_MODULES
-    BASE_DIRS "${module_root}"
+    BASE_DIRS "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.."
     FILES
-      "${module_root}/serial/uart16550.cppm"
-      "${module_root}/serial/flow.cppm"
       "${module_root}/tty/ldisc/n_tty.cppm"
       "${module_root}/tty/core/tty.cppm"
       "${module_root}/tty/core/controlling.cppm"
-      "${module_root}/block/virtio/virtio_block.cppm"
-      "${module_root}/block/virtio/protocol.cppm"
       "${module_root}/interrupt/plic.cppm"
       "${module_root}/platform/platform.cppm"
       "${module_root}/mmio.cppm"
       "${module_root}/rtc/goldfish.cppm"
-      "${module_root}/entropy/virtio_entropy.cppm"
-      "${module_root}/display/virtio_gpu.cppm"
-      "${module_root}/input/virtio_keyboard.cppm"
   )
+  if(NOT target STREQUAL "kernel")
+    target_sources(${target} PRIVATE FILE_SET driver_internals TYPE CXX_MODULES
+      BASE_DIRS "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.."
+      FILES "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/sdk/virtio.cppm"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/backends/serial/device.cppm"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/backends/serial/flow.cppm"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/backends/entropy/device.cppm"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/backends/gpu/device.cppm"
+        "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../drivers/backends/input/device.cppm")
+  endif()
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
 endfunction()

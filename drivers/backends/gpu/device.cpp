@@ -91,8 +91,8 @@ constexpr unsigned FeaturesAccepted = DriverPresent | VIRTIO_CONFIG_S_FEATURES_O
 constexpr unsigned DriverReady = FeaturesAccepted | VIRTIO_CONFIG_S_DRIVER_OK;
 } // namespace
 
-void VirtioGpu::packet(unsigned offset, const void *data, unsigned bytes)
-{
+void
+VirtioGpu::packet(unsigned offset, const void *data, unsigned bytes) {
   auto *source = static_cast<const unsigned char *>(data);
   while (bytes)
   {
@@ -113,8 +113,8 @@ void VirtioGpu::packet(unsigned offset, const void *data, unsigned bytes)
   }
 }
 
-bool VirtioGpu::negotiate()
-{
+bool
+VirtioGpu::negotiate() {
   auto &r = registers_;
   r.write32(VIRTIO_MMIO_STATUS, 0);
   if (r.read32(VIRTIO_MMIO_STATUS))
@@ -142,8 +142,8 @@ bool VirtioGpu::negotiate()
          r.read32(VIRTIO_MMIO_QUEUE_NUM_MAX) >= GpuQueueEntries;
 }
 
-bool VirtioGpu::allocate()
-{
+bool
+VirtioGpu::allocate() {
   for (auto &page : control_)
   {
     page = detail::allocate_dma_page();
@@ -164,8 +164,7 @@ bool VirtioGpu::allocate()
   }
   auto &r = registers_;
   r.write32(VIRTIO_MMIO_QUEUE_NUM, GpuQueueEntries);
-  auto address = [&](unsigned low, unsigned high, void *pointer)
-  {
+  auto address = [&](unsigned low, unsigned high, void *pointer) {
     auto value = reinterpret_cast<unsigned long>(pointer);
     r.write32(low, unsigned(value));
     r.write32(high, unsigned(value >> 32));
@@ -179,8 +178,8 @@ bool VirtioGpu::allocate()
   return true;
 }
 
-bool VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum)
-{
+bool
+VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum) {
   if (!bytes || bytes > RequestPages * 4096 || minimum > 4096)
   {
     return false;
@@ -253,8 +252,8 @@ bool VirtioGpu::submit(unsigned bytes, unsigned response_type, unsigned minimum)
   return true;
 }
 
-bool VirtioGpu::setup()
-{
+bool
+VirtioGpu::setup() {
   GpuHeader info{GetDisplayInfo, 0, 0, 0, 0, {}};
   packet(0, &info, sizeof(info));
   if (!submit(sizeof(info), Display, sizeof(GpuDisplay)))
@@ -297,9 +296,9 @@ bool VirtioGpu::setup()
   return submit(sizeof(scan), Okay) && present(0, 0, Width, Height);
 }
 
-bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height,
-                        unsigned origin_y)
-{
+bool
+VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height,
+                   unsigned origin_y) {
   const bool moved = origin_y != origin_y_;
   const unsigned physical_y = origin_y + y;
   if (!width && !height && !moved)
@@ -349,8 +348,8 @@ bool VirtioGpu::present(unsigned x, unsigned y, unsigned width, unsigned height,
   return flushed;
 }
 
-void VirtioGpu::offline()
-{
+void
+VirtioGpu::offline() {
   ready_ = false;
   registers_.write32(VIRTIO_MMIO_STATUS, 0);
   detail::io_barrier();
@@ -388,40 +387,40 @@ struct VirtioGpu::InitializeFlow
     bool okay = false;
   };
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     auto &r = c.owner.registers_;
     return r.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 &&
            r.read32(VIRTIO_MMIO_VERSION) == 2 && r.read32(VIRTIO_MMIO_DEVICE_ID) == 16;
   }
 
-  static void negotiate(Context &c) noexcept
-  {
+  static void
+  negotiate(Context &c) noexcept {
     c.okay = c.owner.negotiate();
   }
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.okay = c.owner.allocate();
   }
 
-  static void setup(Context &c) noexcept
-  {
+  static void
+  setup(Context &c) noexcept {
     c.okay = c.owner.setup();
   }
 
-  static bool okay(Context &c) noexcept
-  {
+  static bool
+  okay(Context &c) noexcept {
     return c.okay;
   }
 
-  static void fail(Context &c) noexcept
-  {
+  static void
+  fail(Context &c) noexcept {
     c.owner.offline();
   }
 
-  static void ready(Context &c) noexcept
-  {
+  static void
+  ready(Context &c) noexcept {
     c.owner.ready_ = true;
   }
   struct Found;
@@ -449,21 +448,21 @@ struct VirtioGpu::InitializeFlow
           xv::flow::node<Ready, xv::flow::action<&ready>, xv::flow::stop>>>;
 };
 
-void VirtioGpu::initialize()
-{
+void
+VirtioGpu::initialize() {
   io_.init("virtio gpu");
   InitializeFlow::Context c{*this};
   (void)InitializeFlow::Graph::run<0>(c);
 }
 
-CharacterDevice *VirtioGpu::open(bool)
-{
+CharacterDevice *
+VirtioGpu::open(bool) {
   xv::sync::ScopedLock guard(io_);
   return ready_ ? this : nullptr;
 }
 
-bool VirtioGpu::copy_pixels(const FramebufferUpdate &update, IoBuffer argument)
-{
+bool
+VirtioGpu::copy_pixels(const FramebufferUpdate &update, IoBuffer argument) {
   const unsigned row_bytes = update.width * 4;
   for (unsigned row = 0; row < update.height; ++row)
   {
@@ -502,14 +501,14 @@ struct VirtioGpu::DrawFlow
     bool okay = false;
   };
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     c.okay = detail::copy_in(&c.update, c.argument.space == AddressSpace::User,
                              c.argument.address, sizeof(c.update)) == 0;
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     const auto &u = c.update;
     return c.okay && !u.reserved && u.width && u.height && u.x < Width &&
            u.y < Height && u.width <= Width - u.x && u.height <= Height - u.y &&
@@ -518,8 +517,8 @@ struct VirtioGpu::DrawFlow
                ~0UL - u.pixels;
   }
 
-  static void copy(Context &c) noexcept
-  {
+  static void
+  copy(Context &c) noexcept {
     auto begin = detail::terminal_milliseconds();
     c.okay = c.owner.copy_pixels(c.update, c.argument);
     c.owner.timing_.copy_ms += detail::terminal_milliseconds() - begin;
@@ -531,13 +530,13 @@ struct VirtioGpu::DrawFlow
     }
   }
 
-  static bool okay(Context &c) noexcept
-  {
+  static bool
+  okay(Context &c) noexcept {
     return c.okay;
   }
 
-  static void present(Context &c) noexcept
-  {
+  static void
+  present(Context &c) noexcept {
     if (c.owner.present(c.update.x, c.update.y, c.update.width, c.update.height))
     {
       c.result = 0;
@@ -572,39 +571,39 @@ struct VirtioGpu::MapFlow
     int result = -1;
   };
 
-  static void acquire(Context &c) noexcept
-  {
+  static void
+  acquire(Context &c) noexcept {
     c.existed = detail::mapped_dma_pages(c.owner.frame_, FramePages);
     c.address = detail::map_dma_pages(c.owner.frame_, FramePages);
   }
 
-  static bool acquired(Context &c) noexcept
-  {
+  static bool
+  acquired(Context &c) noexcept {
     return c.address != 0;
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     FramebufferMapping mapping{c.address, FramePages * 4096UL, BackingHeight, 1};
     c.result = detail::copy_out(c.argument.space == AddressSpace::User,
                                 c.argument.address, &mapping, sizeof(mapping));
   }
 
-  static bool published(Context &c) noexcept
-  {
+  static bool
+  published(Context &c) noexcept {
     return c.result == 0;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     if (!c.existed)
     {
       detail::unmap_dma_pages();
     }
   }
 
-  static void count(Context &c) noexcept
-  {
+  static void
+  count(Context &c) noexcept {
     if (!c.existed)
     {
       ++c.owner.mapped_stats_.maps;
@@ -638,41 +637,41 @@ struct VirtioGpu::MappedPresentFlow
     int result = -1;
   };
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     c.okay = detail::mapped_dma_pages(c.owner.frame_, FramePages) &&
              detail::copy_in(&c.update, c.argument.space == AddressSpace::User,
                              c.argument.address, sizeof(c.update)) == 0;
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     const auto &u = c.update;
     return c.okay && !u.reserved && u.origin_y <= BackingHeight - Height &&
            u.x < Width && u.y < BackingHeight - u.origin_y && u.width <= Width - u.x &&
            u.height <= BackingHeight - u.origin_y - u.y && (!u.width == !u.height);
   }
 
-  static void present(Context &c) noexcept
-  {
+  static void
+  present(Context &c) noexcept {
     detail::io_barrier();
     const auto &u = c.update;
     c.okay = c.owner.present(u.x, u.y, u.width, u.height, u.origin_y);
   }
 
-  static bool okay(Context &c) noexcept
-  {
+  static bool
+  okay(Context &c) noexcept {
     return c.okay;
   }
 
-  static void commit(Context &c) noexcept
-  {
+  static void
+  commit(Context &c) noexcept {
     ++c.owner.mapped_stats_.presents;
     c.result = 0;
   }
 
-  static void fail(Context &c) noexcept
-  {
+  static void
+  fail(Context &c) noexcept {
     c.owner.offline();
   }
   struct Read;
@@ -692,8 +691,8 @@ struct VirtioGpu::MappedPresentFlow
           xv::flow::node<Fail, xv::flow::action<&fail>, xv::flow::stop>>>;
 };
 
-int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
-{
+int
+VirtioGpu::ioctl(unsigned request, IoBuffer argument) {
   xv::sync::ScopedLock guard(io_);
   if (request == XV_FB_UNMAP && detail::effective_uid() == 0)
   {
@@ -747,8 +746,8 @@ int VirtioGpu::ioctl(unsigned request, IoBuffer argument)
   return c.result;
 }
 
-void VirtioGpu::handle_interrupt()
-{
+void
+VirtioGpu::handle_interrupt() {
   unsigned status = registers_.read32(VIRTIO_MMIO_INTERRUPT_STATUS) & 3;
   if (status & 2)
   {

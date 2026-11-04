@@ -36,7 +36,7 @@ flowchart TD
 | `kernel/net/socket/` | 抽象 Socket、InetSocket 共性、具体 TCP/UDP socket 与注册表 |
 | `kernel/net/platform/` | 页分配、单调时间、用户复制、可中断等待 |
 | `kernel/syscall/syssocket.cpp` | socket ABI 校验、地址转换、File 安装和失败回滚 |
-| `kernel/drivers/net/e1000/` | 硬件 DMA 收发及完成页回收，不知道 TCP 或用户描述符 |
+| `drivers/backends/e1000/` | 独立内核态 ELF，硬件 DMA 收发及完成页回收，不知道 TCP 或用户描述符 |
 
 `EthernetProtocol`、`IpProtocol`、`DatagramSink`、`TcpSegmentSink` 明确每层接收契约，通过虚接口按 EtherType/IP 协议号分派；具体协议由启动服务静态装配。`Socket` 通过 `IoObject` 接入 File，TCP 与 UDP 独立实现传输语义，文件系统不依赖 TCP 状态机。
 

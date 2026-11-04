@@ -16,17 +16,16 @@ class VirtioKeyboard final : public CharacterDevice, public InterruptDevice
 public:
 
   constexpr VirtioKeyboard(unsigned long base, unsigned irq)
-      : registers_(base), irq_(irq)
-  {
+      : registers_(base), irq_(irq) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return wheel_ ? "VirtIO mouse wheel" : "VirtIO keyboard";
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return irq_;
   }
 
@@ -38,13 +37,13 @@ public:
   unsigned poll(xv::sync::PollTable *table = nullptr) override;
   void handle_interrupt() override;
 
-  int write(IoBuffer, int count) override
-  {
+  int
+  write(IoBuffer, int count) override {
     return count == 0 ? 0 : -1;
   }
 
-  void put_sync(int) override
-  {
+  void
+  put_sync(int) override {
   }
 
 private:

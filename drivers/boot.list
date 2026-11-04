@@ -1,0 +1,8 @@
+# Resident kernel drivers loaded from RAM before starting filesystem backends.
+drivers/vblk.elf
+drivers/serial.elf
+drivers/rng.elf
+drivers/mem.elf
+drivers/gpu.elf
+drivers/input.elf
+drivers/e1000.elf

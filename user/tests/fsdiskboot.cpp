@@ -2,7 +2,6 @@
 #include "kernel/support/param.h"
 #include "kernel/io/fs_resources.h"
 #include "kernel/io/block.h"
-#include "kernel/io/boot_assets.h"
 #include "kernel/io/kmodule.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
@@ -27,28 +26,10 @@ extern "C" int
 main() {
   using namespace xv::fsservice;
   check(getpid() == 1, "bootstrap identity");
-  check(ioctl(4, StorageIoctl, 1) < 0,
-        "optional disk unavailable before driver binding");
-  xv::bootdata::Request module;
-  strcpy(module.name, "disk-driver.elf");
-  int image =
-      ioctl(4, xv::bootdata::OpenIoctl, reinterpret_cast<unsigned long>(&module));
-  check(image >= 0 && module.bytes <= XV_KMOD_MAX_FILE,
-        "independent driver boot asset");
-  auto *bytes = static_cast<char *>(malloc(module.bytes));
-  check(bytes != nullptr, "driver staging memory");
-  unsigned done = 0;
-  while (done < module.bytes)
-  {
-    int count = read(image, bytes + done, module.bytes - done);
-    check(count > 0, "read driver ELF");
-    done += count;
-  }
-  close(image);
-  long driver = kmod(XV_KMOD_LOAD, reinterpret_cast<unsigned long>(bytes), done);
-  free(bytes);
-  check(driver >= 0 && kmod(XV_KMOD_BIND, driver, 0) == 0,
-        "load and bind kernel driver from userspace");
+  xv_kmod_info module{};
+  check(kmod(XV_KMOD_INFO, reinterpret_cast<unsigned long>(&module), 0) == 0 &&
+            module.bound_devices == 2,
+        "root and data disk drivers loaded before userspace");
   check(ioctl(4, StorageIoctl, 0) < 0 && ioctl(4, StorageIoctl, 2) < 0,
         "root lease and invalid index");
   int disk = ioctl(4, StorageIoctl, 1);

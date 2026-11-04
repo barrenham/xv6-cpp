@@ -41,35 +41,34 @@ class VirtioGpu final : public CharacterDevice, public InterruptDevice
 {
 public:
 
-  constexpr VirtioGpu(unsigned long base, unsigned irq) : registers_(base), irq_(irq)
-  {
+  constexpr VirtioGpu(unsigned long base, unsigned irq) : registers_(base), irq_(irq) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "VirtIO GPU 2D";
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return irq_;
   }
 
   void initialize() override;
   CharacterDevice *open(bool) override;
 
-  int read(IoBuffer, int count) override
-  {
+  int
+  read(IoBuffer, int count) override {
     return count == 0 ? 0 : -1;
   }
 
-  int write(IoBuffer, int count) override
-  {
+  int
+  write(IoBuffer, int count) override {
     return count == 0 ? 0 : -1;
   }
 
-  void put_sync(int) override
-  {
+  void
+  put_sync(int) override {
   }
 
   int ioctl(unsigned request, IoBuffer argument) override;

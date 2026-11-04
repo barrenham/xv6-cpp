@@ -40,14 +40,12 @@ target_compile_options(xv_options INTERFACE
 set(CMAKE_CXX_LINK_EXECUTABLE "${XV_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 option(XV_NET_DHCP "Acquire network addresses with DHCP at boot" ON)
 add_subdirectory(kernel)
-set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/drivers/display/virtio_gpu.cppm"
-  TARGET_DIRECTORY kernel PROPERTIES
-  COMPILE_DEFINITIONS "XV_DISPLAY_WIDTH=${XV_DISPLAY_WIDTH};XV_DISPLAY_HEIGHT=${XV_DISPLAY_HEIGHT}")
 target_compile_definitions(kernel PRIVATE XV_KERNEL_VERSION="${PROJECT_VERSION}" XV_KERNEL_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}>)
-add_subdirectory(user)
 add_subdirectory(examples/kernel-driver modules)
 set(XV_KMOD_ELF "${PROJECT_BINARY_DIR}/modules/virtio_block.elf")
+add_subdirectory(drivers)
+add_subdirectory(user)
 string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/lib/drivers/vblk.elf\t${XV_KMOD_ELF}\n")
 list(APPEND XV_USER_BINARIES "${XV_KMOD_ELF}")
 add_subdirectory(tools/mkfs)
@@ -75,6 +73,11 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
+add_test(NAME device_elf_boundary COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/device_elf_boundary.py"
+  --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+  --nm "$ENV{CONDA_PREFIX}/bin/llvm-nm")
+set_tests_properties(device_elf_boundary PROPERTIES TIMEOUT 30 LABELS "driver;module")
 foreach(kmod_cpus 1 5)
   add_test(NAME kernel_driver_boot_${kmod_cpus}cpu
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/kmod_boot.py"

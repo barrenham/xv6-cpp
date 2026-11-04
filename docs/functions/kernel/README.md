@@ -2,6 +2,10 @@
 
 函数说明与运行代码分离，按 USR 维护单一函数条目。
 
+此生成索引保留设备 ELF 迁移前的驱动源码路径，尚未重新生成。当前硬件实现
+位于 `drivers/backends/` 和 `examples/kernel-driver/`，原内核路径已移除；
+当前构建边界与入口见[设备 ELF 说明](../../kernel-driver-modules.md)。
+
 | 子系统 | 文件数 | 函数/入口条目数 |
 | --- | ---: | ---: |
 | [arch](#arch) | 5 | 6 |

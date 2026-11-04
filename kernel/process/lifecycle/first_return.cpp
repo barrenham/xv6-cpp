@@ -9,9 +9,35 @@ import xv.trap;
 import xv.print;
 import xv.memory;
 import xv.drivers;
+import xv.net;
 
 namespace xv::process
 {
+
+namespace
+{
+void
+initialize_network() {
+  xv::net::initialize();
+  xv::print::printk("network: %s\n",
+                    xv::drivers::network_device().online() ? "ready" : "not present");
+  for (unsigned i = 0; i < xv::net::interfaces().count(); ++i)
+  {
+    auto *interface = xv::net::interfaces().at(i);
+    xv::print::printk("net: %s mtu=%d %s\n", interface->name(), interface->mtu(),
+                      interface->up() && interface->carrier() ? "up" : "down");
+    for (unsigned n = 0; n < interface->address_count(); ++n)
+    {
+      auto address = interface->address(n);
+      xv::print::printk("net: %s %d.%d.%d.%d/%d\n", interface->name(),
+                        address.address >> 24, (address.address >> 16) & 255,
+                        (address.address >> 8) & 255, address.address & 255,
+                        address.prefix);
+    }
+  }
+  xv::net::start_timer_worker();
+}
+} // namespace
 
 namespace flow = xv::flow;
 
@@ -52,6 +78,7 @@ struct Process::FirstReturnFlow
     if (!image.empty())
     {
       xv::drivers::initialize_boot_modules();
+      initialize_network();
       xv::fs::initialize_device_registry();
       // Bootstrap console descriptors require neither /dev nor a root directory.
       for (int descriptor = 0; descriptor < 3; ++descriptor)

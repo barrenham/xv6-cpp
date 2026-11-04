@@ -117,7 +117,7 @@ def main():
                     run('netctl stats')
                     raise AssertionError((port, i, outputs, frames))
         try:
-            expect('e1000: ready'); login_root(expect, process)
+            expect('network: ready'); login_root(expect, process)
             for i in range(3):
                 status = run(f'netctl dhcp show eth{i}')
                 run(f'netctl dhcp stop eth{i}')

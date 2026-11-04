@@ -33,8 +33,9 @@ Ctrl-] 可主动退出 fbterm，原串口状态在退出时恢复。
 
 ## 内核接口与所有权
 
-- `kernel/drivers/input/virtio_keyboard.cppm/.cpp` 是 `xv.drivers:keyboard`
-  内部分区，实现现有 `CharacterDevice` 与 `InterruptDevice`。
+- `drivers/backends/input/device.cppm` 和 `device.cpp` 实现输入设备，编译为
+  独立内核态 `input.elf`，启动时从引导归档自动加载。ELF 内部使用
+  `xv.drivers:keyboard` 分区，经版本化 C ABI 接入内核字符代理与中断路由。
 - `/dev/kbd0` 是字符设备 `30:0`、root:root `0600`。每次只允许一个打开
   文件持有输入；dup/fork 引用共享打开文件，最后一个引用关闭时释放占用。
   read/poll 再检查当前有效 UID，降权继承描述符不能读取键盘事件。

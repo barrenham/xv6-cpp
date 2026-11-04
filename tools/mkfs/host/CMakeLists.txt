@@ -79,16 +79,15 @@ add_executable(driver_contract
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
-  "${XV_ROOT}/kernel/drivers/serial/uart16550.cpp"
+  "${XV_ROOT}/drivers/backends/serial/device.cpp"
   "${XV_ROOT}/kernel/drivers/tty/core/tty.cpp"
   "${XV_ROOT}/kernel/drivers/tty/pty/pty.cpp"
-  "${XV_ROOT}/kernel/drivers/net/e1000/e1000.cpp"
-  "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cpp"
+  "${XV_ROOT}/drivers/backends/e1000/device.cpp"
+  "${XV_ROOT}/drivers/backends/e1000/pci.cpp"
   "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
-  "${XV_ROOT}/kernel/drivers/entropy/virtio_entropy.cpp"
-  "${XV_ROOT}/kernel/drivers/display/virtio_gpu.cpp"
-  "${XV_ROOT}/kernel/drivers/input/virtio_keyboard.cpp"
-  "${XV_ROOT}/kernel/drivers/block/virtio/virtio_block.cpp"
+  "${XV_ROOT}/drivers/backends/entropy/device.cpp"
+  "${XV_ROOT}/drivers/backends/gpu/device.cpp"
+  "${XV_ROOT}/drivers/backends/input/device.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/plic.cpp"
   "${XV_ROOT}/kernel/drivers/interrupt/interrupt_router.cpp")
 target_include_directories(driver_contract PRIVATE "${XV_ROOT}")
@@ -103,9 +102,9 @@ xv_add_sync_modules(driver_contract)
 xv_add_driver_modules(driver_contract)
 
 target_sources(driver_contract PRIVATE FILE_SET driver_contract_internals TYPE CXX_MODULES
-  BASE_DIRS "${XV_ROOT}/kernel/drivers" FILES "${XV_ROOT}/kernel/drivers/tty/pty/pty.cppm"
-    "${XV_ROOT}/kernel/drivers/net/e1000/e1000.cppm"
-    "${XV_ROOT}/kernel/drivers/pci/qemu_pci.cppm")
+  BASE_DIRS "${XV_ROOT}" FILES "${XV_ROOT}/kernel/drivers/tty/pty/pty.cppm"
+    "${XV_ROOT}/drivers/backends/e1000/device.cppm"
+    "${XV_ROOT}/drivers/backends/e1000/pci.cppm")
 
 include("${XV_ROOT}/cmake/process-modules.cmake")
 add_executable(process_contract

@@ -51,17 +51,18 @@ boundaries() {
 
 extern "C" int
 main(int argc, char **argv) {
-  if (argc == 3 && !strcmp(argv[1], "--failed-bind"))
+  if (argc == 4 && !strcmp(argv[1], "--failed-bind"))
   {
     unsigned module = atoi(argv[2]);
-    check(kmod(XV_KMOD_BIND, module, 0) < 0, "warm failed bind");
+    unsigned device = atoi(argv[3]);
+    check(kmod(XV_KMOD_BIND, module, device) < 0, "warm failed bind");
     char memory[512];
     check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0,
           "read memory before retries");
     int before = proc::number(memory, "MemFree");
     for (unsigned i = 0; i < 64; ++i)
     {
-      check(kmod(XV_KMOD_BIND, module, 0) < 0, "failed bind retry");
+      check(kmod(XV_KMOD_BIND, module, device) < 0, "failed bind retry");
     }
     check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0,
           "read memory after retries");

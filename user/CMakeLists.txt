@@ -195,6 +195,19 @@ target_link_libraries(user_fsboot_executable PRIVATE user_fs_bootstrap)
 
 set(plugin_bundle_arguments --asset "boot.cfg=${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")
 set(plugin_bundle_dependencies "${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")
+list(APPEND plugin_bundle_arguments
+  --asset "drivers/boot.list=${PROJECT_SOURCE_DIR}/drivers/boot.list"
+  --asset "drivers/vblk.elf=${XV_KMOD_ELF}")
+list(APPEND plugin_bundle_dependencies "${PROJECT_SOURCE_DIR}/drivers/boot.list" "${XV_KMOD_ELF}")
+list(APPEND plugin_bundle_arguments --asset "drivers/rng.elf=${PROJECT_BINARY_DIR}/drivers/rng.elf")
+list(APPEND plugin_bundle_dependencies "${PROJECT_BINARY_DIR}/drivers/rng.elf")
+list(APPEND plugin_bundle_arguments --asset "drivers/mem.elf=${PROJECT_BINARY_DIR}/drivers/mem.elf")
+list(APPEND plugin_bundle_dependencies "${PROJECT_BINARY_DIR}/drivers/mem.elf")
+foreach(device_backend gpu input serial e1000)
+  list(APPEND plugin_bundle_arguments
+    --asset "drivers/${device_backend}.elf=${PROJECT_BINARY_DIR}/drivers/${device_backend}.elf")
+  list(APPEND plugin_bundle_dependencies "${PROJECT_BINARY_DIR}/drivers/${device_backend}.elf")
+endforeach()
 foreach(backend ext3 xv6 devfs ramfs procfs)
   set(plugin_program "${backend}_plugin")
   xv_add_program("fs/plugins/${backend}/main.cpp" "${plugin_program}" "/usr/lib/fsplugins/${backend}.elf")

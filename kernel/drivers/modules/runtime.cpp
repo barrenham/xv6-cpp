@@ -1,5 +1,6 @@
 module;
 #include "kernel/io/kmodule.h"
+#include "kernel/io/kmodule_v2.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/support/placement_new.hpp"
 #include "kernel/support/param.h"
@@ -10,13 +11,27 @@ import xv.process;
 import xv.runtime;
 import xv.print;
 import xv.fs;
+import :module_runtime;
 
 namespace xv::drivers
 {
 extern "C" void xv_kmod_synchronize();
 
+namespace modules
+{
+constinit Image images[MaxModules];
+constinit Binding bindings[MaxDevices];
+unsigned online[MaxDevices]{};
+} // namespace modules
+
 namespace
 {
+using modules::Binding;
+using modules::bindings;
+using modules::Image;
+using modules::images;
+using modules::online;
+
 // Self-contained ET_DYN images. External kernel symbols are deliberately not
 // resolved: the only kernel entry points are the versioned host function table.
 struct Elf
@@ -48,18 +63,10 @@ struct Rela
 };
 
 static_assert(sizeof(Elf) == 64 && sizeof(Segment) == 56 && sizeof(Rela) == 24);
-constexpr unsigned MaxModules = 8, MaxSegments = 12;
+constexpr unsigned MaxModules = modules::MaxModules, MaxSegments = 12;
+constexpr unsigned MaxDevices = modules::MaxDevices;
 constexpr unsigned long MaxImage = 1024 * 1024;
 
-struct Image
-{
-  unsigned long base = 0, bytes = 0;
-  const xv_kmod_driver *driver = nullptr;
-  unsigned bound = 0;
-  unsigned long transfers = 0, interrupts = 0;
-};
-
-constinit Image images[MaxModules];
 constinit xv::sync::SleepLock manager;
 unsigned long code_generation = 0;
 unsigned long observed_generation[NCPU]{};
@@ -224,12 +231,37 @@ public:
     __atomic_fetch_add(&code_generation, 1UL, __ATOMIC_RELEASE);
     instruction_barrier();
     auto entry = reinterpret_cast<xv_kmod_entry>(base_ + elf.entry);
-    auto *driver = entry(XV_KMOD_ABI);
+    auto *driver = entry(XV_KMOD_ABI_V2);
+    if (!driver)
+    {
+      driver = entry(XV_KMOD_ABI);
+    }
     auto address = reinterpret_cast<unsigned long>(driver);
     if (address < base_ || !range(address - base_, sizeof(*driver), 4) ||
-        driver->size != sizeof(*driver) || driver->abi != XV_KMOD_ABI ||
-        driver->bus != XV_KMOD_BUS_VIRTIO_MMIO || !driver->device_id ||
-        !code(reinterpret_cast<unsigned long>(driver->bind)))
+        !driver->device_id)
+    {
+      return false;
+    }
+    if (driver->abi == XV_KMOD_ABI)
+    {
+      if (driver->size != sizeof(*driver) || driver->bus != XV_KMOD_BUS_VIRTIO_MMIO ||
+          !code(reinterpret_cast<unsigned long>(driver->bind)))
+      {
+        return false;
+      }
+    }
+    else if (driver->abi == XV_KMOD_ABI_V2)
+    {
+      if (driver->size != sizeof(xv_kmod_driver_v2) ||
+          !range(address - base_, driver->size, 4) ||
+          driver->bus < XV_KMOD_BUS_VIRTIO_MMIO || driver->bus > XV_KMOD_BUS_PCI ||
+          !code(reinterpret_cast<unsigned long>(
+              reinterpret_cast<const xv_kmod_driver_v2 *>(driver)->attach)))
+      {
+        return false;
+      }
+    }
+    else
     {
       return false;
     }
@@ -369,19 +401,6 @@ private:
   bool user_;
 };
 
-struct Binding
-{
-  Image *image = nullptr;
-  unsigned irq = 0;
-  xv_kmod_host host{};
-  xv_kmod_block operations{};
-  void *pages[32]{};
-  unsigned page_count = 0;
-};
-
-constinit Binding binding;
-unsigned online = 0;
-
 void *
 allocate_binding_page(void *owner) {
   auto &b = *static_cast<Binding *>(owner);
@@ -437,7 +456,8 @@ class ModuleBlock final : public BlockDevice
 {
 public:
 
-  constexpr ModuleBlock() = default;
+  constexpr explicit ModuleBlock(unsigned index) : index_(index) {
+  }
 
   const char *
   name() const override {
@@ -446,7 +466,7 @@ public:
 
   unsigned
   irq() const override {
-    return binding.irq;
+    return bindings[index_].irq;
   }
 
   void
@@ -455,13 +475,14 @@ public:
 
   unsigned long
   capacity_sectors() const override {
-    return binding.operations.sectors;
+    return bindings[index_].operations.sectors;
   }
 
   void
   transfer(BlockOperation operation, unsigned long sector, void *data,
            unsigned count) override {
     instruction_barrier();
+    auto &binding = bindings[index_];
     auto &ops = binding.operations;
     if (!count || count % 512 || sector >= ops.sectors ||
         count / 512 > ops.sectors - sector ||
@@ -476,6 +497,7 @@ public:
   void
   flush() override {
     instruction_barrier();
+    auto &binding = bindings[index_];
     auto &ops = binding.operations;
     if (ops.flush(ops.context) < 0)
     {
@@ -485,44 +507,54 @@ public:
 
   void
   handle_interrupt() override {
-    module_interrupt(0);
+    module_interrupt(index_);
   }
+
+private:
+
+  unsigned index_;
 };
 
-constinit ModuleBlock block;
+constinit ModuleBlock root_block(0);
+constinit ModuleBlock data_block(1);
 
 bool
 module_callback(const Image &image, unsigned long address) {
-  // Validate against actual finalized page permissions rather than merely
-  // trusting an address somewhere inside the image.
-  if (address < image.base || address - image.base >= image.bytes || address & 1)
-  {
-    return false;
-  }
-  xv::memory::LargestPagePolicy policy;
-  xv::memory::Sv39PageTable table(
-      const_cast<void *>(xv::memory::kernel_page_table().root()),
-      xv::memory::allocator(), policy);
-  xv::memory::PageTranslation translation;
-  return table.translate(address, translation) && (translation.permissions & PTE_X);
+  return modules::callback(image, address);
 }
 
 int
 bind(unsigned id, unsigned device_index) {
   xv_kmod_device device{};
-  if (id >= MaxModules || !images[id].base ||
-      __atomic_load_n(&online, __ATOMIC_ACQUIRE) ||
+  if (id >= MaxModules || !images[id].base || device_index >= MaxDevices ||
+      __atomic_load_n(&online[device_index], __ATOMIC_ACQUIRE) ||
       !module_device(device_index, device))
   {
     return -1;
   }
   auto &image = images[id];
+  auto &binding = bindings[device_index];
   if (image.driver->bus != device.bus || image.driver->device_id != device.id)
   {
     return -1;
   }
   binding.image = &image;
   binding.irq = device.irq;
+  binding.index = device_index;
+  if (image.driver->abi == XV_KMOD_ABI_V2)
+  {
+    xv_kmod_device_v2 extended{};
+    if (!module_device_v2(device_index, extended))
+    {
+      return -1;
+    }
+    extended.binding = &binding;
+    return modules::attach(image, extended);
+  }
+  if (device_index > 1)
+  {
+    return -1;
+  }
   binding.host = {sizeof(xv_kmod_host),
                   XV_KMOD_ABI,
                   &binding,
@@ -549,15 +581,16 @@ bind(unsigned id, unsigned device_index) {
     {
       xv::memory::allocator().deallocate(binding.pages[--binding.page_count]);
     }
-    binding = {};
+    binding.image = nullptr;
+    binding.operations = {};
     return -1;
   }
-  if (!xv::fs::publish_data_device(block))
+  if (device_index == 1 && !xv::fs::publish_data_device(data_block))
   {
     xv::print::panic("module: device publication failed");
   }
-  image.bound = 1;
-  __atomic_store_n(&online, 1U, __ATOMIC_RELEASE);
+  ++image.bound;
+  __atomic_store_n(&online[device_index], 1U, __ATOMIC_RELEASE);
   return 0;
 }
 } // namespace
@@ -581,6 +614,10 @@ xv_kmod_synchronize() {
 void
 initialize_modules() {
   manager.init("kernel module manager");
+  for (auto &binding : bindings)
+  {
+    binding.interrupt_lock.init("driver interrupt publication");
+  }
 }
 
 void
@@ -628,6 +665,33 @@ initialize_boot_modules() {
     {
       continue;
     }
+    unsigned selected = MaxDevices;
+    unsigned word = 0;
+    while (word < length && name[word] != ' ' && name[word] != '\t')
+    {
+      ++word;
+    }
+    if (word < length)
+    {
+      name[word++] = 0;
+      while (word < length && (name[word] == ' ' || name[word] == '\t'))
+      {
+        ++word;
+      }
+      selected = 0;
+      for (; word < length; ++word)
+      {
+        if (name[word] < '0' || name[word] > '9' || selected >= MaxDevices)
+        {
+          xv::print::panic("boot drivers: invalid device selector");
+        }
+        selected = selected * 10 + name[word] - '0';
+      }
+      if (selected >= MaxDevices)
+      {
+        xv::print::panic("boot drivers: device selector out of range");
+      }
+    }
     xv::bootdata::Archive::Asset asset;
     if (!archive.get(0, name, asset))
     {
@@ -655,6 +719,10 @@ initialize_boot_modules() {
       {
         break;
       }
+      if (selected != MaxDevices && selected != device_index)
+      {
+        continue;
+      }
       if (device.bus != images[id].driver->bus ||
           device.id != images[id].driver->device_id)
       {
@@ -672,12 +740,34 @@ initialize_boot_modules() {
 
 BlockDevice *
 data_device() {
-  return __atomic_load_n(&online, __ATOMIC_ACQUIRE) ? &block : nullptr;
+  return __atomic_load_n(&online[1], __ATOMIC_ACQUIRE) ? &data_block : nullptr;
+}
+
+BlockDevice &
+block_device() {
+  return root_block;
 }
 
 void
 module_interrupt(unsigned index) {
-  if (index || !__atomic_load_n(&online, __ATOMIC_ACQUIRE))
+  if (index >= MaxDevices)
+  {
+    return;
+  }
+  auto &binding = bindings[index];
+  xv::sync::ScopedLock guard(binding.interrupt_lock);
+  if (__atomic_load_n(&binding.interrupt_active, __ATOMIC_ACQUIRE))
+  {
+    instruction_barrier();
+    binding.interrupt_handler(binding.interrupt_context);
+    __atomic_fetch_add(&binding.image->interrupts, 1UL, __ATOMIC_RELAXED);
+    return;
+  }
+  if (!__atomic_load_n(&online[index], __ATOMIC_ACQUIRE))
+  {
+    return;
+  }
+  if (binding.image->driver->abi == XV_KMOD_ABI_V2)
   {
     return;
   }
@@ -712,7 +802,7 @@ module_control(unsigned operation, unsigned long argument, unsigned long value) 
     }
     const auto &image = images[value];
     xv_kmod_info info{sizeof(info),
-                      XV_KMOD_ABI,
+                      image.driver->abi,
                       unsigned(value),
                       image.bound,
                       image.base,
@@ -729,7 +819,8 @@ module_control(unsigned operation, unsigned long argument, unsigned long value) 
     {
       return -1;
     }
-    device.bound = __atomic_load_n(&online, __ATOMIC_ACQUIRE);
+    device.bound =
+        value < MaxDevices ? __atomic_load_n(&online[value], __ATOMIC_ACQUIRE) : 0;
     return xv::process::copy_out(true, argument, &device, sizeof(device));
   }
   case XV_KMOD_BIND:

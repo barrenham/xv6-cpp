@@ -78,7 +78,7 @@ def main():
                                 raise RuntimeError(transcript.decode(errors='replace'))
                     raise TimeoutError(f'waiting for {token}: '+transcript.decode(errors='replace'))
                 try:
-                    expect('e1000: ready')
+                    expect('network: ready')
                     login_root(expect, process)
                     for i in range(2 if args.multi else 1):
                         start = cursor

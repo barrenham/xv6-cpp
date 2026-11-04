@@ -6,48 +6,40 @@ module;
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/drivers/device_numbers.h"
 #include "kernel/io/kmodule.h"
+#include "kernel/io/kmodule_v2.h"
 
 module xv.drivers;
 
 import xv.print;
+import xv.runtime;
 
 import xv.fs;
 
-import :uart;
+import :serial_proxy;
+import :module_runtime;
 import :rtc;
 import :n_tty;
 import :tty;
 import :controlling;
-import :entropy;
-import :gpu;
-import :keyboard;
 import :plic;
-import :virtio;
-import :e1000;
-import :pci;
 
 namespace xv::drivers
 {
 namespace
 {
-constinit VirtioGpu gpu(VIRTIO0 + 0x3000, VIRTIO0_IRQ + 3);
-constinit VirtioKeyboard keyboard(VIRTIO0 + 0x4000, VIRTIO0_IRQ + 4);
-constinit VirtioKeyboard mouse(VIRTIO0 + 0x5000, VIRTIO0_IRQ + 5);
 constinit ControllingTerminal controlling;
-constinit VirtioEntropy entropy(VIRTIO0 + 0x2000, VIRTIO0_IRQ + 2);
 constinit GoldfishRtc rtc(RTC0);
 unsigned long boot_epoch = 0;
-constinit Uart16550 uart(UART0, UART0_IRQ);
 constinit NttyDiscipline discipline;
-constinit Tty terminal(uart, discipline);
+constinit Tty terminal(modules::serial, discipline);
 constinit Plic plic(PLIC);
-constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
 
 class ModuleInterrupt final : public InterruptDevice
 {
 public:
 
-  constexpr ModuleInterrupt() = default;
+  constexpr explicit ModuleInterrupt(unsigned index) : index_(index) {
+  }
 
   const char *
   name() const override {
@@ -56,7 +48,7 @@ public:
 
   unsigned
   irq() const override {
-    return VIRTIO0_IRQ + 1;
+    return index_ == 6 ? UART0_IRQ : VIRTIO0_IRQ + index_;
   }
 
   void
@@ -65,25 +57,35 @@ public:
 
   void
   handle_interrupt() override {
-    module_interrupt(0);
+    module_interrupt(index_);
   }
+
+private:
+
+  unsigned index_;
 };
 
-constinit ModuleInterrupt data_interrupt;
-constinit E1000 ethernet[] = {
-    {0x40000000UL, 0}, {0x40020000UL, 0}, {0x40040000UL, 0}, {0x40060000UL, 0}};
-constinit unsigned ethernet_count = 0;
+constinit ModuleInterrupt disk_interrupt(0);
+constinit ModuleInterrupt data_interrupt(1);
+constinit ModuleInterrupt entropy_interrupt(2);
+constinit ModuleInterrupt gpu_interrupt(3);
+constinit ModuleInterrupt keyboard_interrupt(4);
+constinit ModuleInterrupt mouse_interrupt(5);
+constinit ModuleInterrupt serial_interrupt(6);
+unsigned pci_slots[4]{};
+unsigned pci_ids[4]{};
+unsigned pci_count = 0;
 
-class PciNetworkInterrupt final : public InterruptDevice
+class PciInterrupt final : public InterruptDevice
 {
 public:
 
-  constexpr explicit PciNetworkInterrupt(unsigned irq) : irq_(irq) {
+  constexpr explicit PciInterrupt(unsigned irq) : irq_(irq) {
   }
 
   const char *
   name() const override {
-    return "PCI Ethernet INTx";
+    return "PCI INTx";
   }
 
   unsigned
@@ -97,11 +99,11 @@ public:
 
   void
   handle_interrupt() override {
-    for (unsigned i = 0; i < ethernet_count; ++i)
+    for (unsigned i = 0; i < pci_count; ++i)
     {
-      if (ethernet[i].irq() == irq_)
+      if (32 + pci_slots[i] % 4 == irq_)
       {
-        ethernet[i].handle_interrupt();
+        module_interrupt(8 + i);
       }
     }
   }
@@ -111,12 +113,12 @@ private:
   unsigned irq_;
 };
 
-constinit PciNetworkInterrupt pci_lines[] = {
-    PciNetworkInterrupt(32), PciNetworkInterrupt(33), PciNetworkInterrupt(34),
-    PciNetworkInterrupt(35)};
+constinit PciInterrupt pci_lines[] = {PciInterrupt(32), PciInterrupt(33),
+                                      PciInterrupt(34), PciInterrupt(35)};
 constinit InterruptDevice *sources[] = {
-    &uart,  &disk,         &data_interrupt, &entropy,      &gpu,         &keyboard,
-    &mouse, &pci_lines[0], &pci_lines[1],   &pci_lines[2], &pci_lines[3]};
+    &serial_interrupt, &disk_interrupt,     &data_interrupt,  &entropy_interrupt,
+    &gpu_interrupt,    &keyboard_interrupt, &mouse_interrupt, &pci_lines[0],
+    &pci_lines[1],     &pci_lines[2],       &pci_lines[3]};
 constinit InterruptRouter router(plic, sources, 11);
 
 namespace flow = xv::flow;
@@ -137,8 +139,8 @@ struct ConsoleFlow
 
   static void
   serial(Context &) noexcept {
-    uart.attach(xv::drivers::terminal);
-    uart.initialize();
+    modules::serial.attach(xv::drivers::terminal);
+    modules::serial.initialize();
   }
 
   static void
@@ -146,11 +148,6 @@ struct ConsoleFlow
     xv::fs::devices().attach("console", CONSOLE, 0, xv::drivers::terminal, 0600);
     xv::fs::devices().attach("ptmx", 4, 0, ptmx());
     xv::fs::devices().attach("tty", 6, 0, controlling);
-    xv::fs::devices().attach("fb0", 29, 0, gpu, 0600);
-    xv::fs::devices().attach("kbd0", 30, 0, keyboard, 0600);
-    xv::fs::devices().attach("mouse0", 30, 1, mouse, 0600);
-    xv::fs::devices().attach("random", 7, 0, entropy, 0444);
-    xv::fs::devices().attach("urandom", 7, 1, entropy, 0444);
   }
   struct Terminal;
   struct Serial;
@@ -166,37 +163,34 @@ struct InterruptsFlow
 {
   struct Context
   {
-    unsigned (&slots)[4];
   };
 
   static void
   discover(Context &c) noexcept {
-    ethernet_count = detail::find_e1000(c.slots, 4);
-  }
-
-  static void
-  locate(Context &c) noexcept {
-    for (unsigned i = 0; i < ethernet_count; ++i)
+    for (unsigned slot = 0; slot < 32 && pci_count < 4; ++slot)
     {
-      ethernet[i].locate(c.slots[i]);
+      auto *config = reinterpret_cast<volatile unsigned *>(0x30000000UL + (slot << 15));
+      unsigned id = config[0];
+      unsigned vendor = id & 0xffff;
+      if (!vendor || vendor == 0xffff || (config[2] >> 24) == 6)
+      {
+        continue;
+      }
+      pci_slots[pci_count] = slot;
+      pci_ids[pci_count] = id;
+      ++pci_count;
     }
   }
 
   static void
   route(Context &) noexcept {
-    entropy.initialize();
-    gpu.initialize();
-    keyboard.initialize();
-    mouse.initialize_wheel();
     router.initialize();
   }
   struct Discover;
-  struct Locate;
   struct Route;
   using Graph = flow::graph<
       Discover,
-      flow::types<flow::node<Discover, flow::action<&discover>, flow::go<Locate>>,
-                  flow::node<Locate, flow::action<&locate>, flow::go<Route>>,
+      flow::types<flow::node<Discover, flow::action<&discover>, flow::go<Route>>,
                   flow::node<Route, flow::action<&route>, flow::stop>>>;
 };
 
@@ -221,8 +215,7 @@ initialize_console() {
 void
 initialize_interrupts() {
   initialize_modules();
-  unsigned slots[4];
-  InterruptsFlow::Context context{slots};
+  InterruptsFlow::Context context{};
   (void)InterruptsFlow::Graph::run<0>(context);
 }
 
@@ -242,26 +235,17 @@ handle_external_interrupt(int hart) {
 
 unsigned
 network_device_count() {
-  return ethernet_count;
+  return modules::network_count();
 }
 
 void
 initialize_network(EthernetReceiver &receiver, unsigned index) {
-  if (index >= ethernet_count)
-  {
-    return;
-  }
-  ethernet[index].attach(receiver);
-  ethernet[index].initialize();
+  modules::network_receiver(index, receiver);
 }
 
 EthernetDevice &
 network_device(unsigned index) {
-  if (index >= 4)
-  {
-    xv::print::panic("network device index");
-  }
-  return ethernet[index];
+  return modules::network_proxy(index);
 }
 
 CharacterDevice &
@@ -277,29 +261,55 @@ terminal_timer_tick() {
 
 SerialPort &
 serial_port() {
-  return uart;
+  return modules::serial;
 }
 
 bool
 module_device(unsigned index, xv_kmod_device &device) {
-  if (index)
+  if (index > 11)
   {
     return false;
   }
-  auto *registers = reinterpret_cast<volatile unsigned *>(VIRTIO0 + 0x1000UL);
-  if (registers[0] != 0x74726976 || !registers[2])
+  if (index >= 8)
   {
-    return false;
+    unsigned port = index - 8;
+    device = {};
+    device.size = sizeof(device);
+    device.bus = XV_KMOD_BUS_PCI;
+    device.id = port < pci_count ? pci_ids[port] >> 16 : 0;
+    device.vendor = port < pci_count ? pci_ids[port] & 0xffff : 0;
+    device.irq = port < pci_count ? 32 + pci_slots[port] % 4 : 0;
+    device.mmio = 0x40000000UL + port * 0x20000UL;
+    device.mmio_size = 0x20000;
+    char name[] = "pci.0";
+    name[4] += port;
+    xv::runtime::copy_fixed(device.name, name, sizeof(device.name));
+    return true;
   }
+  if (index == 6 || index == 7)
+  {
+    device = {};
+    device.size = sizeof(device);
+    device.bus = index == 6 ? XV_KMOD_BUS_PLATFORM : XV_KMOD_BUS_SOFTWARE;
+    device.id = 1;
+    device.irq = index == 6 ? UART0_IRQ : 0;
+    device.mmio = index == 6 ? UART0 : 0;
+    device.mmio_size = index == 6 ? 4096 : 0;
+    xv::runtime::copy_fixed(device.name, index == 6 ? "uart0" : "memory",
+                            sizeof(device.name));
+    return true;
+  }
+  auto *registers = reinterpret_cast<volatile unsigned *>(VIRTIO0 + index * 0x1000UL);
   device = {};
   device.size = sizeof(device);
   device.bus = XV_KMOD_BUS_VIRTIO_MMIO;
-  device.id = registers[2];
+  device.id = registers[0] == 0x74726976 ? registers[2] : 0;
   device.vendor = registers[3];
-  device.irq = VIRTIO0_IRQ + 1;
-  device.mmio = VIRTIO0 + 0x1000UL;
+  device.irq = VIRTIO0_IRQ + index;
+  device.mmio = VIRTIO0 + index * 0x1000UL;
   device.mmio_size = 4096;
-  const char name[] = "virtio-mmio.1";
+  char name[] = "virtio-mmio.0";
+  name[12] = '0' + index;
   for (unsigned i = 0; i < sizeof(name); ++i)
   {
     device.name[i] = name[i];
@@ -307,9 +317,18 @@ module_device(unsigned index, xv_kmod_device &device) {
   return true;
 }
 
-BlockDevice &
-block_device() {
-  return disk;
+bool
+module_device_v2(unsigned index, xv_kmod_device_v2 &device) {
+  device = {};
+  if (!module_device(index, device.base))
+  {
+    return false;
+  }
+  if (index >= 8 && index - 8 < pci_count)
+  {
+    device.slot = pci_slots[index - 8];
+  }
+  return true;
 }
 
 InterruptController &

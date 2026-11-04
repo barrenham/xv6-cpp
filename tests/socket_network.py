@@ -129,7 +129,7 @@ def main():
                     except Exception as error:
                         failures.append(error)
                 try:
-                    expect('e1000: ready')
+                    expect('network: ready')
                     login_root(expect, process)
                     start = cursor
                     process.stdin.write(b'netctl dhcp show eth0\n'); process.stdin.flush(); expect('$ ')

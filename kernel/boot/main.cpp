@@ -8,12 +8,13 @@ import xv.process;
 import xv.drivers;
 import xv.memory;
 import xv.arch;
-import xv.net;
 
-extern "C" [[noreturn]] void enter_scheduler_stack(unsigned long top);
+extern "C" [[noreturn]]
+void enter_scheduler_stack(unsigned long top);
 
-extern "C" [[noreturn]] void scheduler_on_stack()
-{
+extern "C" [[noreturn]]
+void
+scheduler_on_stack() {
   xv::process::scheduler().run();
 }
 
@@ -23,8 +24,8 @@ namespace
 {
 constinit int started = 0;
 
-void initialize_bootstrap_hart()
-{
+void
+initialize_bootstrap_hart() {
   xv::drivers::initialize_console();
   xv::print::initialize();
   xv::print::printk("\nxv6 kernel is booting\n\n");
@@ -45,29 +46,11 @@ void initialize_bootstrap_hart()
   xv::fs::filesystem().initialize_inodes();
   xv::fs::files().initialize();
   xv::drivers::block_device().initialize();
-  xv::net::initialize();
-  xv::print::printk("e1000: %s\n",
-                    xv::drivers::network_device().online() ? "ready" : "not present");
-  for (unsigned i = 0; i < xv::net::interfaces().count(); ++i)
-  {
-    auto *interface = xv::net::interfaces().at(i);
-    xv::print::printk("net: %s mtu=%d %s\n", interface->name(), interface->mtu(),
-                      interface->up() && interface->carrier() ? "up" : "down");
-    for (unsigned n = 0; n < interface->address_count(); ++n)
-    {
-      auto address = interface->address(n);
-      xv::print::printk("net: %s %d.%d.%d.%d/%d\n", interface->name(),
-                        address.address >> 24, (address.address >> 16) & 255,
-                        (address.address >> 8) & 255, address.address & 255,
-                        address.prefix);
-    }
-  }
   xv::process::create_initial_process();
-  xv::net::start_timer_worker();
 }
 
-void initialize_secondary_hart()
-{
+void
+initialize_secondary_hart() {
   // Pair with the bootstrap hart's release to observe initialized shared state.
   while (__atomic_load_n(&started, __ATOMIC_ACQUIRE) == 0)
   {
@@ -81,8 +64,9 @@ void initialize_secondary_hart()
 }
 } // namespace
 
-[[noreturn]] void run()
-{
+[[noreturn]]
+void
+run() {
   if (xv::process::cpu_id() == 0)
   {
     initialize_bootstrap_hart();

@@ -332,6 +332,47 @@ DeviceRegistry::attach_dynamic_block(const char *name, unsigned major, unsigned 
   return true;
 }
 
+bool
+DeviceRegistry::attach_dynamic_character(const char *name, unsigned major,
+                                         unsigned minor, unsigned mode,
+                                         xv::drivers::CharacterDevice &device) {
+  // Runtime writers are serialized by the module manager. Existing entries
+  // never move or disappear, so readers need only an acquire count snapshot.
+  auto length = 0U;
+  while (length < 14 && name[length])
+  {
+    if (name[length] == '/')
+    {
+      return false;
+    }
+    ++length;
+  }
+  auto index = count();
+  if (!length || length >= 14 || index == Capacity || major > 32767 || minor > 32767 ||
+      (mode & ~0777U) || detail::compare(name, ".", 14) == 0 ||
+      detail::compare(name, "..", 14) == 0 || detail::compare(name, "pts", 14) == 0)
+  {
+    return false;
+  }
+  for (unsigned i = 0; i < index; ++i)
+  {
+    if (detail::compare(entries_[i].name, name, 14) == 0 ||
+        (entries_[i].device && entries_[i].major == major &&
+         entries_[i].minor == minor))
+    {
+      return false;
+    }
+  }
+  auto &record = entries_[index];
+  detail::copy_fixed(record.name, name, 14);
+  record.major = major;
+  record.minor = minor;
+  record.device = &device;
+  record.mode = mode;
+  __atomic_store_n(&count_, index + 1, __ATOMIC_RELEASE);
+  return true;
+}
+
 int
 OpenFileTable::getdents64(File *file, unsigned long address, int count) {
   return file && file->readable && file->backend_

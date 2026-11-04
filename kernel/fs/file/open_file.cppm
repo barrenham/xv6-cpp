@@ -120,6 +120,8 @@ public:
                     xv::drivers::BlockDevice &device, bool read_only = true);
   bool attach_dynamic_block(const char *name, unsigned major, unsigned minor,
                             xv::drivers::BlockDevice &device);
+  bool attach_dynamic_character(const char *name, unsigned major, unsigned minor,
+                                unsigned mode, xv::drivers::CharacterDevice &device);
   const Entry *block(int major, int minor) const;
 
   unsigned

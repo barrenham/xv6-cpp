@@ -20,18 +20,18 @@ struct E1000::InitializeFlow
     bool ok = false;
   };
 
-  static void lock(Context &c) noexcept
-  {
+  static void
+  lock(Context &c) noexcept {
     c.owner.lock_.init("e1000");
   }
 
-  static bool configured(Context &c) noexcept
-  {
+  static bool
+  configured(Context &c) noexcept {
     return c.owner.receiver_ && detail::configure_e1000(c.owner.base_, c.owner.slot_);
   }
 
-  static void reset(Context &c) noexcept
-  {
+  static void
+  reset(Context &c) noexcept {
     c.owner.registers_.write32(0xd8, ~0U);
     c.owner.registers_.write32(0, c.owner.registers_.read32(0) | (1U << 26));
     unsigned tries = 100000;
@@ -41,13 +41,13 @@ struct E1000::InitializeFlow
     c.ok = tries != 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void mac(Context &c) noexcept
-  {
+  static void
+  mac(Context &c) noexcept {
     c.owner.registers_.write32(0xd8, ~0U);
     c.owner.registers_.read32(0xc0);
     for (unsigned word = 0; word < 3; ++word)
@@ -69,8 +69,8 @@ struct E1000::InitializeFlow
     c.ok = !(c.owner.mac_[0] & 1);
   }
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     for (; c.index < Count; ++c.index)
     {
       c.owner.received_[c.index] = detail::allocate_dma_page();
@@ -86,16 +86,16 @@ struct E1000::InitializeFlow
     c.ok = true;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     while (c.index)
     {
       detail::free_dma_page(c.owner.received_[--c.index]);
     }
   }
 
-  static void program(Context &c) noexcept
-  {
+  static void
+  program(Context &c) noexcept {
     auto tx = reinterpret_cast<unsigned long>(c.owner.tx_);
     auto rx = reinterpret_cast<unsigned long>(c.owner.rx_);
     c.owner.registers_.write32(0x3800, tx);
@@ -124,8 +124,8 @@ struct E1000::InitializeFlow
     c.owner.registers_.write32(0x282c, 0);
   }
 
-  static void start(Context &c) noexcept
-  {
+  static void
+  start(Context &c) noexcept {
     detail::io_barrier();
     c.owner.ready_ = true;
     c.owner.registers_.write32(0x100, 2 | (1 << 15) | (1 << 26));
@@ -168,20 +168,20 @@ struct E1000::TransmitFlow
     bool result = false;
   };
 
-  static void reclaim(Context &c) noexcept
-  {
+  static void
+  reclaim(Context &c) noexcept {
     c.owner.reclaim();
     c.descriptor = &c.owner.tx_[c.owner.tx_tail_];
   }
 
-  static bool space(Context &c) noexcept
-  {
+  static bool
+  space(Context &c) noexcept {
     return !c.owner.transmitted_[c.owner.tx_tail_] &&
            (c.owner.tx_tail_ + 1) % Count != c.owner.registers_.read32(0x3810);
   }
 
-  static void prepare(Context &c) noexcept
-  {
+  static void
+  prepare(Context &c) noexcept {
     c.descriptor->address = reinterpret_cast<unsigned long>(c.page);
     c.descriptor->length = c.length;
     c.descriptor->command = 1 | 2 | 8;
@@ -189,8 +189,8 @@ struct E1000::TransmitFlow
     c.owner.transmitted_[c.owner.tx_tail_] = c.page;
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     detail::io_barrier();
     c.owner.tx_tail_ = (c.owner.tx_tail_ + 1) % Count;
     c.owner.registers_.write32(0x3818, c.owner.tx_tail_);
@@ -218,31 +218,31 @@ struct E1000::InterruptFlow
     void *page = nullptr;
   };
 
-  static void acknowledge(Context &c) noexcept
-  {
+  static void
+  acknowledge(Context &c) noexcept {
     c.owner.registers_.read32(0xc0);
   }
 
-  static void inspect(Context &c) noexcept
-  {
+  static void
+  inspect(Context &c) noexcept {
     c.owner.lock_.acquire();
     c.owner.reclaim();
     c.descriptor = &c.owner.rx_[c.owner.rx_next_];
     c.status = __atomic_load_n(&c.descriptor->status, __ATOMIC_ACQUIRE);
   }
 
-  static bool done(Context &c) noexcept
-  {
+  static bool
+  done(Context &c) noexcept {
     return c.status & 1;
   }
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.owner.lock_.release();
   }
 
-  static void replace(Context &c) noexcept
-  {
+  static void
+  replace(Context &c) noexcept {
     detail::io_barrier();
     c.length = c.descriptor->length;
     bool valid =
@@ -260,8 +260,8 @@ struct E1000::InterruptFlow
     }
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.descriptor->status = 0;
     c.descriptor->errors = 0;
     detail::io_barrier();
@@ -270,13 +270,13 @@ struct E1000::InterruptFlow
     c.owner.lock_.release();
   }
 
-  static bool deliverable(Context &c) noexcept
-  {
+  static bool
+  deliverable(Context &c) noexcept {
     return c.page != nullptr;
   }
 
-  static void deliver(Context &c) noexcept
-  {
+  static void
+  deliver(Context &c) noexcept {
     c.owner.receiver_->receive_frame(c.page, c.length);
   }
   struct Acknowledge;
@@ -300,14 +300,14 @@ struct E1000::InterruptFlow
           flow::node<Deliver, flow::action<&deliver>, flow::go<Inspect>>>>;
 };
 
-void E1000::initialize()
-{
+void
+E1000::initialize() {
   InitializeFlow::Context context{*this};
   (void)InitializeFlow::Graph::run<0>(context);
 }
 
-void E1000::reclaim()
-{
+void
+E1000::reclaim() {
   for (unsigned i = 0; i < Count; ++i)
   {
     if (transmitted_[i] && (__atomic_load_n(&tx_[i].status, __ATOMIC_ACQUIRE) & 1))
@@ -318,8 +318,8 @@ void E1000::reclaim()
   }
 }
 
-bool E1000::transmit(void *page, unsigned length)
-{
+bool
+E1000::transmit(void *page, unsigned length) {
   if (!ready_ || !page || length < 14 || length > 1514)
   {
     return false;
@@ -330,8 +330,8 @@ bool E1000::transmit(void *page, unsigned length)
   return context.result;
 }
 
-void E1000::handle_interrupt()
-{
+void
+E1000::handle_interrupt() {
   if (!ready_)
   {
     return;
@@ -343,8 +343,8 @@ void E1000::handle_interrupt()
 
 namespace xv::drivers
 {
-bool E1000::promiscuous(bool enable)
-{
+bool
+E1000::promiscuous(bool enable) {
   xv::sync::ScopedLock guard(lock_);
   if (!ready_)
   {

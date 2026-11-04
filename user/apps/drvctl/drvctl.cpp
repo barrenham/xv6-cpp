@@ -79,15 +79,15 @@ main(int argc, char **argv) {
   if (argc == 2 && strcmp(argv[1], "list") == 0)
   {
     unsigned count = 0;
-    for (unsigned i = 0; i < 8; ++i)
+    for (unsigned i = 0; i < 32; ++i)
     {
       xv_kmod_info info{};
       if (kmod(XV_KMOD_INFO, reinterpret_cast<unsigned long>(&info), i) < 0)
       {
         continue;
       }
-      printf("%d %s bound=%d transfers=%lu interrupts=%lu\n", i, info.name,
-             info.bound_devices, info.transfers, info.interrupts);
+      printf("%d %s bound=%d transfers=%lu interrupts=%lu abi=%d\n", i, info.name,
+             info.bound_devices, info.transfers, info.interrupts, info.abi);
       ++count;
     }
     printf("drvctl: %d resident modules\n", count);
@@ -95,15 +95,27 @@ main(int argc, char **argv) {
   }
   if (argc == 2 && strcmp(argv[1], "devices") == 0)
   {
-    xv_kmod_device device{};
-    if (kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(&device), 0) < 0)
+    unsigned count = 0;
+    for (unsigned index = 0; index < 16; ++index)
     {
-      fprintf(2, "drvctl: no unreserved device present\n");
-      return 1;
+      xv_kmod_device device{};
+      if (kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(&device), index) < 0)
+      {
+        break;
+      }
+      if (!device.id)
+      {
+        continue;
+      }
+      printf("%d %s bus=%d device=%d irq=%d bound=%d\n", index, device.name, device.bus,
+             device.id, device.irq, device.bound);
+      ++count;
     }
-    printf("0 %s bus=%d device=%d irq=%d bound=%d\n", device.name, device.bus,
-           device.id, device.irq, device.bound);
-    return 0;
+    if (!count)
+    {
+      fprintf(2, "drvctl: no device present\n");
+    }
+    return count ? 0 : 1;
   }
   if (argc == 4 && strcmp(argv[1], "bind") == 0)
   {

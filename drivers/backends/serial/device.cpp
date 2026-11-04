@@ -28,13 +28,15 @@ constexpr unsigned LSR = 5;                   // line status register
 constexpr unsigned LSR_RX_READY = (1 << 0);   // input is waiting to be read from RHR
 constexpr unsigned LSR_TX_IDLE = (1 << 5); // THR can accept another character to send
 
-void Uart16550::attach(InputReceiver &receiver)
-{
+void
+Uart16550::attach(InputReceiver &receiver) {
   receiver_ = &receiver;
 }
 
-void Uart16550::initialize()
-{
+void
+Uart16550::initialize() {
+  tx_lock_.init("uart");
+  tx_state_.init("uart tx state");
   // disable interrupts.
   registers_.write8(IER, 0x00);
 
@@ -56,14 +58,11 @@ void Uart16550::initialize()
 
   // enable transmit and receive interrupts.
   registers_.write8(IER, IER_TX_ENABLE | IER_RX_ENABLE);
-
-  tx_lock_.init("uart");
-  tx_state_.init("uart tx state");
 }
 
 // Caller holds tx_state_. THR interrupts pump the queue after write returns.
-void Uart16550::pump()
-{
+void
+Uart16550::pump() {
   bool progressed = false;
   while (tx_read_ != tx_written_ && (registers_.read8(LSR) & LSR_TX_IDLE))
   {
@@ -76,8 +75,8 @@ void Uart16550::pump()
   }
 }
 
-int Uart16550::transmit(const char *data, int count, bool nonblocking)
-{
+int
+Uart16550::transmit(const char *data, int count, bool nonblocking) {
   if (count <= 0)
   {
     return count == 0 ? 0 : -1;
@@ -91,8 +90,8 @@ int Uart16550::transmit(const char *data, int count, bool nonblocking)
   return context.result;
 }
 
-void Uart16550::write(const char *data, int count)
-{
+void
+Uart16550::write(const char *data, int count) {
   int done = 0;
   while (done < count)
   {
@@ -109,8 +108,8 @@ void Uart16550::write(const char *data, int count)
   }
 }
 
-void Uart16550::put_sync(int character)
-{
+void
+Uart16550::put_sync(int character) {
   if (detail::panicked())
   {
     for (;;)
@@ -138,8 +137,8 @@ void Uart16550::put_sync(int character)
   registers_.write8(THR, character);
 }
 
-bool Uart16550::writable(xv::sync::PollTable *table)
-{
+bool
+Uart16550::writable(xv::sync::PollTable *table) {
   xv::sync::ScopedLock guard(tx_state_);
   if (table)
   {
@@ -150,8 +149,8 @@ bool Uart16550::writable(xv::sync::PollTable *table)
   return room && unlocked;
 }
 
-void Uart16550::drain()
-{
+void
+Uart16550::drain() {
   if (!tx_lock_.acquire_interruptible())
   {
     return;
@@ -164,8 +163,8 @@ void Uart16550::drain()
 
 // try to read one input character from the UART.
 // return -1 if none is waiting.
-int Uart16550::get()
-{
+int
+Uart16550::get() {
   // is input ready?
   if (registers_.read8(LSR) & LSR_RX_READY)
   {
@@ -180,8 +179,8 @@ int Uart16550::get()
 // handle a uart interrupt, raised because input has
 // arrived, or the uart is ready for more output, or
 // both. called by the external interrupt router.
-void Uart16550::handle_interrupt()
-{
+void
+Uart16550::handle_interrupt() {
   registers_.read8(ISR); // acknowledge the interrupt
 
   {

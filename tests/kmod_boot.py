@@ -24,9 +24,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='xv-boot-driver-') as temporary:
         directory = Path(temporary)
         base, assets = unpack(args.bootstrap.read_bytes())
-        driver = args.kernel.parent / 'modules/virtio_block.elf'
-        assets += [('drivers/boot.list', b'# RAM drivers\n drivers/vblk.elf # disk\n', False),
-                   ('drivers/vblk.elf', driver.read_bytes(), False)]
+        manifest = next(content for name, content, _ in assets if name == 'drivers/boot.list')
+        assets = [asset for asset in assets if asset[0] != 'drivers/boot.list']
+        commented = b'# RAM drivers\n' + b'\n'.join(b' ' + row for row in manifest.splitlines()) + b'\n'
+        assets.append(('drivers/boot.list', commented, False))
         bundle = directory / 'bootstrap.elf'
         bundle.write_bytes(pack(base, assets))
         args.bootstrap = bundle
@@ -34,12 +35,28 @@ def main():
         data = directory / 'data.img'
         shutil.copyfile(args.image, root)
         shutil.copyfile(args.image, data)
-        guest = Guest(args, root, args.kernel.parent / f'boot-driver-{args.cpus}cpu.log', data=data)
+        guest = Guest(args, root, args.kernel.parent / f'boot-driver-{args.cpus}cpu.log',
+                      data=data, network=True, extra=[
+                          '-display', 'none',
+                          '-device', 'virtio-gpu-device,bus=virtio-mmio-bus.3',
+                          '-device', 'virtio-keyboard-device,bus=virtio-mmio-bus.4',
+                          '-device', 'virtio-mouse-device,bus=virtio-mmio-bus.5'])
         try:
             login_root(guest.expect, guest.process)
-            guest.command('drvctl list', 'virtio_block bound=1')
+            listing = guest.command('drvctl list', 'virtio_block bound=2')
+            for name, abi in (('virtio_block', 1), ('uart16550', 2), ('virtio_rng', 2),
+                              ('memory', 2), ('virtio_gpu', 2), ('virtio_input', 2), ('e1000', 2)):
+                line = next(row for row in listing.splitlines() if f' {name} bound=' in row)
+                assert f'abi={abi}' in line, line
+                expected_bound = 2 if name in ('virtio_block', 'virtio_input') else 1
+                assert f'bound={expected_bound} ' in line, line
+                assert guest.output.index(f'driver: loaded {name} from boot archive'.encode()) < guest.output.index(b'fsboot:')
             guest.command('drvctl devices', 'bound=1')
-            guest.command('ls /dev', 'vdb')
+            nodes = guest.command('ls /dev', 'vdb')
+            for name in ('vda', 'vdb', 'random', 'urandom', 'null', 'zero', 'full',
+                         'fb0', 'kbd0', 'mouse0'):
+                assert name in nodes.split(), (name, nodes)
+            guest.command('netctl dhcp wait eth0', 'eth0 DHCP BOUND')
             guest.command('mkdir /tmp/boot-disk')
             guest.command('mount -t ext3 -s 1 /tmp/boot-disk')
             guest.command('echo BOOT_DRIVER_READY > /tmp/boot-disk/marker')

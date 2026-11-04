@@ -20,8 +20,8 @@ struct Uart16550::TransmitFlow
     int result = -1;
   };
 
-  static bool acquire_writer(Context &c) noexcept
-  {
+  static bool
+  acquire_writer(Context &c) noexcept {
     if (c.nonblocking)
     {
       if (!c.owner.tx_lock_.try_acquire())
@@ -34,35 +34,35 @@ struct Uart16550::TransmitFlow
     return c.owner.tx_lock_.acquire_interruptible();
   }
 
-  static void start(Context &c) noexcept
-  {
+  static void
+  start(Context &c) noexcept {
     c.owner.tx_state_.acquire();
     c.owner.pump();
   }
 
-  static bool waiting(Context &c) noexcept
-  {
+  static bool
+  waiting(Context &c) noexcept {
     return Uart16550::TxCapacity - (c.owner.tx_written_ - c.owner.tx_read_) <
            static_cast<unsigned>(c.count);
   }
 
-  static bool killed(Context &) noexcept
-  {
+  static bool
+  killed(Context &) noexcept {
     return detail::process_killed();
   }
 
-  static bool nonblocking(Context &c) noexcept
-  {
+  static bool
+  nonblocking(Context &c) noexcept {
     return c.nonblocking;
   }
 
-  static void again(Context &c) noexcept
-  {
+  static void
+  again(Context &c) noexcept {
     c.result = -EAGAIN;
   }
 
-  static void wait(Context &c) noexcept
-  {
+  static void
+  wait(Context &c) noexcept {
     detail::prepare_interruptible_sleep(&c.owner.tx_channel_);
     c.owner.tx_state_.release();
     detail::sleep_process();
@@ -70,8 +70,8 @@ struct Uart16550::TransmitFlow
     c.owner.pump();
   }
 
-  static void enqueue(Context &c) noexcept
-  {
+  static void
+  enqueue(Context &c) noexcept {
     for (int i = 0; i < c.count; ++i)
     {
       c.owner.tx_data_[c.owner.tx_written_++ % Uart16550::TxCapacity] = c.data[i];
@@ -80,13 +80,13 @@ struct Uart16550::TransmitFlow
     c.result = c.count;
   }
 
-  static void unlock_state(Context &c) noexcept
-  {
+  static void
+  unlock_state(Context &c) noexcept {
     c.owner.tx_state_.release();
   }
 
-  static void unlock_writer(Context &c) noexcept
-  {
+  static void
+  unlock_writer(Context &c) noexcept {
     c.owner.tx_lock_.release();
   }
   struct AcquireWriter;
@@ -133,37 +133,37 @@ struct Uart16550::DrainFlow
     Uart16550 &owner;
   };
 
-  static bool waiting(Context &c) noexcept
-  {
+  static bool
+  waiting(Context &c) noexcept {
     return c.owner.tx_read_ != c.owner.tx_written_ && !detail::process_killed();
   }
 
-  static void pump(Context &c) noexcept
-  {
+  static void
+  pump(Context &c) noexcept {
     c.owner.pump();
   }
 
-  static bool empty(Context &c) noexcept
-  {
+  static bool
+  empty(Context &c) noexcept {
     return c.owner.tx_read_ == c.owner.tx_written_;
   }
 
-  static void wait(Context &c) noexcept
-  {
+  static void
+  wait(Context &c) noexcept {
     detail::prepare_interruptible_sleep(&c.owner.tx_channel_);
     c.owner.tx_state_.release();
     detail::sleep_process();
     c.owner.tx_state_.acquire();
   }
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.owner.tx_state_.release();
   }
 
   // Hardware polling stays a tight direct loop after releasing the state lock.
-  static void hardware_drain(Context &c) noexcept
-  {
+  static void
+  hardware_drain(Context &c) noexcept {
     while (!(c.owner.registers_.read8(5) & (1U << 6)) && !detail::process_killed())
     {
     }
