@@ -166,8 +166,8 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cpp",
-      "sha256": "0186392da682f2f5aa4479051c982573ac4da183028c71967600ae8d020d6d65",
-      "review": "普通文件 stat 改用可失败 status，用户态服务断开时传播错误；inode 内容锁与快照大小的既有协议保持。",
+      "sha256": "56f9a3ff59ae60fe01d9aa0edc15b4aadf3c268764115befe892463f75b0cf1d",
+      "review": "普通文件 stat 改用可失败 status，用户态服务断开时传播错误；inode 内容锁与快照大小的既有协议保持。 本轮驱动契约复核：新增 InodeBackend::filesystem_control 在 inode 锁内转交文件系统；不解释驱动命令。",
       "graph_entries": [
         {
           "qualified": "xv::fs::InodeBackend::read",
@@ -236,8 +236,8 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cppm",
-      "sha256": "3a48a00588ac75821de29a077c3c016e2f5dcef0f1534d42367e402a41565bea",
-      "review": "inode/device/object/pipe 后端与原就地构造/析构存储、共享修改协议和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+      "sha256": "2d9beeca0a1d0f708ef5161b600d99ef2711f47f171422252f5269b3cda9e7a3",
+      "review": "inode/device/object/pipe 后端与原就地构造/析构存储、共享修改协议和私有图声明。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 本轮驱动契约复核：只增加通用命令虚方法覆盖，不扩大内嵌后端对象或改变描述符布局。",
       "graph_entries": []
     },
     {
@@ -254,8 +254,8 @@
     },
     {
       "source": "kernel/fs/file/open_file.cpp",
-      "sha256": "d7a3a7741837250cf37494d912e574d1b2f85b28875cf81c2852f3ced90fa3a3",
-      "review": "release/bind/registry attach 已图化；allocate 为一个文件表锁内固定槽扫描，configure 为字段/ready release 发布，fcntl 为一个状态锁内标量模式策略，其余原引用/能力/单次 I/O 委托保留。 设备注册表分离字符/块编号，权限来自注册记录，AttachFlow 统一校验和发布；fdinfo 用原子偏移观察，未在描述符锁内获取 I/O 睡眠锁。",
+      "sha256": "b1aba32ccca732e2c0a525ed5138e41bad80bf0a5cf0bb4845801e552d60a128",
+      "review": "release/bind/registry attach 已图化；allocate 为一个文件表锁内固定槽扫描，configure 为字段/ready release 发布，fcntl 为一个状态锁内标量模式策略，其余原引用/能力/单次 I/O 委托保留。 设备注册表分离字符/块编号，权限来自注册记录，AttachFlow 统一校验和发布；fdinfo 用原子偏移观察，未在描述符锁内获取 I/O 睡眠锁。 本轮驱动契约复核：先识别通用 FS Control 载体，从 File 的真实 readable/writable 标志构造访问权限并转交对象；其他请求仍通过 DeviceControl 能力分派。调用方不能伪造描述符权限。",
       "graph_entries": [
         {
           "qualified": "xv::fs::OpenFileTable::release",
@@ -321,8 +321,8 @@
     },
     {
       "source": "kernel/fs/inode/filesystem.cppm",
-      "sha256": "8e6699f1bc179a6965de73381938f602eab020c72f5fd19c59795c2e094a02f9",
-      "review": "FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。",
+      "sha256": "9fa142178e6c8d46eeea653adf9058adde6e7e0e512543aea609050caa18d0f3",
+      "review": "FileSystem 增加可失败的属性提交、status 和 synchronize 后端接口，默认实现保持现有内核后端行为；用户态后端必须等待服务确认并传播失败。普通 stat/flush/update 原接口保留，供现有缓存和内部观察路径使用。 本轮驱动契约复核：文件系统原生命令的可选后端接口；默认拒绝。参数为已引用 inode、用户态载体地址及内核产生的打开权限，调用时 inode 锁已持有。",
       "graph_entries": []
     },
     {
@@ -1119,22 +1119,22 @@
     },
     {
       "source": "kernel/fs/userfs/protocol.h",
-      "sha256": "6973f522867b8e946b665da2143962895dcaa835905cbd5f2e5817347ded5dfa",
-      "review": "Version 3 通用消息 ABI：属性增加设备号和逐次打开只读快照，消息保留原调用者 PID/effective UID/GID。名称 256 字节，载荷 512 字节；操作位、结构和固定常量是数据边界，不包含文件系统格式策略。",
+      "sha256": "5d7d7473aacc2be339c3abf73d3b70745c4b4b0b13b389d2cbc1b43a0577fc1d",
+      "review": "Version 3 通用消息 ABI：属性增加设备号和逐次打开只读快照，消息保留原调用者 PID/effective UID/GID。名称 256 字节，载荷 512 字节；操作位、结构和固定常量是数据边界，不包含文件系统格式策略。 本轮驱动契约复核：协议 3 布局不变；新增可协商 Control=17。AllOperations 可表达新位，旧 Registration 默认 StandardOperations 排除新位，不能暗示旧驱动实现原生命令。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/userfs.cppm",
-      "sha256": "4613d08834f752ff66c90973d12fdd277a28151d0484d6b503b78ca0c25d79fa",
-      "review": "通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。",
+      "sha256": "00406196a1f2ad6068aad5716ae2960c7ba5184ae75f9d7d389f4dd606543230",
+      "review": "通用 VFS 后端声明，属性含 major/minor 和逐次打开只读快照标志。设备节点由桥接查询到的设备号接入内核设备机制；服务端点、挂载和被借用 inode 各自持有实例寿命，实例关闭不假装重启或回退到原生 FS。 本轮驱动契约复核：声明通用原生命令入口，不增加专用格式处理与实例对象字段。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/userfs.cpp",
-      "sha256": "8d9404b0bd455030b2e2acff309e4ca56479fec307ac39cb34f445b43c13a1e9",
-      "review": "通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。",
+      "sha256": "1b6e2b974b626034f8531ff41cac2310c5bafaced4761260092f99d27f0e3def",
+      "review": "通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。 本轮驱动契约复核：显式 Control 能力才受理。分配临时页复制并验证版本、NUL 命名空间、输入及输出长度；在已有 inode 锁下串行发 RPC，附上真实调用者和描述符权限/只读状态，并将输出容量限制到协商载荷。验证回复长度、对象身份和属性范围，更新共享 inode 后清零尾部并复制输出，所有路径归还临时页。驱动自身授权原生命令；命令失败不承诺回滚已发生的副作用。 只读实例仍剔除标准修改操作，但保留驱动明确声明的 Control 位；每次命令通过内核设置的 ReadOnly 上下文交由驱动按命令语义限制。旧注册默认 StandardOperations 不包含 Control。",
       "graph_entries": [],
       "pending": []
     },

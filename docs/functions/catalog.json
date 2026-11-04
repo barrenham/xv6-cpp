@@ -3557,7 +3557,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@OpenFileTable@F@ioctl#*$@N@xv@N@fs@S@File#i#l#",
     "hover_expectation": "observe",
-    "source_sha256": "6547a88a1c98186cbb0a46faa3a39634ae6d0f0b72982b10a8e58dd0525fd3be"
+    "source_sha256": "f7e4b10336b0be31b0599c5529810384ca45b6fdaad5df849ad897c725860cca"
   },
   {
     "anchor": "fn-1565f5ef091ec77d",
@@ -71066,7 +71066,7 @@
     "kind": "InstanceMethod",
     "usr": "c:@N@xv@N@fs@S@UserFileSystem@F@create#i#&1$@N@xv@N@userfs@S@Registration#b#S",
     "hover_expectation": "observe",
-    "source_sha256": "ddbdd3edc81d41065b205f9fd238ce6cf613426365064252eb4c4479756f82e9"
+    "source_sha256": "1f5a505ba913b5a9e2992c570ef83b2c3c091066d1dad57d7cd2b9d2c19a4ee2"
   },
   {
     "anchor": "fn-02e33bbbb44bae7d",
@@ -72720,5 +72720,57 @@
     "spelling": "sys_mountfs",
     "qualified": "xv::syscall::sys_mountfs",
     "fn": "uint64 xv::syscall::sys_mountfs()"
+  },
+  {
+    "anchor": "fn-f61b20ed4fa6eaa0",
+    "document": "docs/functions/kernel/fs/file/file_operations.cpp.md",
+    "source": "kernel/fs/file/file_operations.cpp",
+    "qualified": "xv::fs::InodeBackend::filesystem_control",
+    "signature": "int InodeBackend::filesystem_control(unsigned long address, unsigned access)",
+    "spelling": "filesystem_control",
+    "fn": "int InodeBackend::xv::fs::InodeBackend::filesystem_control(unsigned long address, unsigned access)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@InodeBackend@F@filesystem_control#l#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "65516ec7de631f5b2769860a28928ed03fd9cff6209745185eb179c709013cbe"
+  },
+  {
+    "anchor": "fn-b168f43f8b788752",
+    "document": "docs/functions/kernel/fs/inode/filesystem.cppm.md",
+    "source": "kernel/fs/inode/filesystem.cppm",
+    "qualified": "xv::fs::FileSystem::control",
+    "signature": "virtual int control(Inode *, unsigned long, unsigned)",
+    "spelling": "control",
+    "fn": "virtual int xv::fs::FileSystem::control(Inode *, unsigned long, unsigned)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@FileSystem@F@control#*$@N@xv@N@fs@S@Inode#l#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "6a7d48f33144482d2e39dafa0b305aed12d63442c99f8ea67d3596c057f33e30"
+  },
+  {
+    "anchor": "fn-2aad75e7a347d7f4",
+    "document": "docs/functions/kernel/fs/userfs/userfs.cpp.md",
+    "source": "kernel/fs/userfs/userfs.cpp",
+    "qualified": "xv::fs::UserFileSystem::control",
+    "signature": "int UserFileSystem::control(Inode *node, unsigned long address, unsigned access)",
+    "spelling": "control",
+    "fn": "int UserFileSystem::xv::fs::UserFileSystem::control(Inode *node, unsigned long address, unsigned access)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@fs@S@UserFileSystem@F@control#*$@N@xv@N@fs@S@Inode#l#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "708164f03795c5226b34302b0e4fd5ea7e68666f3eeb906adc638a42d7c4045b"
+  },
+  {
+    "anchor": "fn-909e7cd5aba77ee6",
+    "document": "docs/functions/kernel/io/object.cppm.md",
+    "source": "kernel/io/object.cppm",
+    "qualified": "xv::io::IoObject::filesystem_control",
+    "signature": "virtual int filesystem_control(unsigned long, unsigned)",
+    "spelling": "filesystem_control",
+    "fn": "virtual int xv::io::IoObject::filesystem_control(unsigned long, unsigned)",
+    "kind": "InstanceMethod",
+    "usr": "c:@N@xv@N@io@S@IoObject@F@filesystem_control#l#i#",
+    "hover_expectation": "observe",
+    "source_sha256": "8dc3ca45b5046306f18b43e807a45e2c69bc791d4b23028e1d56fbe6742db363"
   }
 ]

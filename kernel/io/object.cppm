@@ -36,6 +36,8 @@ protected:
 class IoObject
 {
 public:
+  virtual int filesystem_control(unsigned long, unsigned) { return -1; }
+
   IoObject(const IoObject &) = delete;
   IoObject &operator=(const IoObject &) = delete;
   virtual int read(Buffer destination, int count) = 0;

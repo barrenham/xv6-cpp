@@ -1,5 +1,6 @@
 module;
 #include "kernel/fs/userfs/protocol.h"
+#include "kernel/io/fs_control.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/io_status.h"
@@ -685,6 +686,7 @@ UserFileSystem *UserFileSystem::create(unsigned device,
   if (registration.flags & xv::userfs::ReadOnly)
   {
     fs->registration_.operations &= xv::userfs::ReadOperations |
+        (registration.operations & xv::userfs::operation_bit(Operation::Control)) |
         ((registration.flags & xv::userfs::Snapshots) ? xv::userfs::SnapshotOperations : 0);
   }
   fs->provider_pid_ = detail::current_pid();
@@ -794,3 +796,43 @@ bool UserFileSystem::snapshot(Inode *node, PageBuffer &buffer)
   return good && ended;
 }
 } // namespace xv::fs
+
+namespace xv::fs
+{
+int UserFileSystem::control(Inode *node, unsigned long address, unsigned access)
+{
+  if (!(registration_.operations & xv::userfs::operation_bit(Operation::Control))) return -1;
+  auto *page = detail::allocate_page();
+  if (!page) return -1;
+  auto &control = *static_cast<xv::fscontrol::Request *>(page);
+  int result = -1;
+  if (detail::copy_in(&control, true, address, sizeof(control)) == 0 &&
+      control.size == sizeof(control) && control.version == xv::fscontrol::Version &&
+      control.driver_version && control.interface_name[0] && !control.interface_name[31] &&
+      control.input_size <= registration_.max_payload && control.capacity <= xv::fscontrol::DataSize)
+  {
+    xv::sync::ScopedLock guard(serial_);
+    begin(Operation::Control, node->inum);
+    request_.other = control.command;
+    request_.offset = control.driver_version;
+    request_.count = control.input_size;
+    request_.attributes.size = control.capacity < registration_.max_payload ? control.capacity : registration_.max_payload;
+    request_.attributes.mode = access | (read_only() ? xv::fscontrol::ReadOnly : 0);
+    detail::move(request_.name, control.interface_name, sizeof(control.interface_name));
+    detail::move(request_.data, control.data, control.input_size);
+    if (exchange() && response_.count <= request_.attributes.size && response_.result == int(response_.count) &&
+        response_.attributes.node == node->inum && response_.attributes.type == unsigned(node->type) &&
+        response_.attributes.links <= 32767 && response_.attributes.mode <= 07777 &&
+        response_.attributes.major <= 32767 && response_.attributes.minor <= 32767)
+    {
+      apply(node, response_.attributes);
+      control.output_size = response_.count;
+      detail::fill(control.data, 0, sizeof(control.data));
+      detail::move(control.data, response_.data, control.output_size);
+      if (detail::copy_out(true, address, &control, sizeof(control)) == 0) result = control.output_size;
+    }
+  }
+  detail::free_page(page);
+  return result;
+}
+}

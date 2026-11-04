@@ -430,6 +430,7 @@ void process(Message &m)
     return;
   case Operation::SnapshotBegin:
   case Operation::SnapshotRead:
+  case Operation::Control:
   case Operation::SnapshotEnd:
     return;
   case Operation::Sync:

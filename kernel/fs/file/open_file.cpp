@@ -5,6 +5,7 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/io/fs_control.h"
 #include "kernel/support/placement_new.hpp"
 
 module xv.fs;
@@ -197,6 +198,13 @@ int OpenFileTable::stat(File *file, unsigned long address)
 
 int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
 {
+  if (request == xv::fscontrol::Ioctl)
+  {
+    if (!file->backend_) return -1;
+    unsigned access = (file->readable ? xv::fscontrol::Readable : 0) |
+                      (file->writable ? xv::fscontrol::Writable : 0);
+    return file->backend_->filesystem_control(argument, access);
+  }
   auto *control = xv::io::query<xv::io::DeviceControl>(file->backend_);
   return control ? control->ioctl(request, {argument, file->nonblocking()}) : -1;
 }

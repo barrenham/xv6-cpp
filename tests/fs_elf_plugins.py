@@ -96,6 +96,13 @@ def build_plugin(args, directory):
         shutil.copytree(args.sdk / component, sdk / component)
     example = directory / 'external-source'
     shutil.copytree(args.example, example)
+    copied = example / 'hello.c'
+    source = copied.read_text().replace('registration.max_payload = XVFS_DATA_SIZE;',
+                                      'registration.max_payload = 64;')
+    malformed_reply = """    case XVFS_CONTROL:
+      if (equal(message.name, HELLO_INTERFACE) && message.other == 65535)
+      { message.count = 8; message.result = 8; break; }"""
+    copied.write_text(source.replace('    case XVFS_CONTROL:', malformed_reply))
     build = directory / 'external-build'
     subprocess.run([args.cmake, '-S', str(example), '-B', str(build), '-G', 'Ninja',
                     f'-DXVFS_SDK={sdk}',
@@ -241,13 +248,41 @@ def main():
                 guest.command('mount -t sdkmod /tmp/mod')
                 guest.command('cat /tmp/mod/hello', 'independently built ELF')
                 guest.command('umount /tmp/mod')
+            if b'fsboot: ext3 mounted at /,' in guest.output:
+                guest.command('fsdrivertest ext3 /', 'fsdrivertest: PASS: ext3')
+            else:
+                guest.command('fsdrivertest unsupported /', 'fsdrivertest: PASS: unsupported')
+            guest.command('fsdrivertest unsupported /tmp', 'fsdrivertest: PASS: unsupported')
+            guest.command('mount -t sdkmod /tmp/mod')
+            guest.command('fsctl /tmp/mod/hello', 'interface=example.file')
+            guest.command('fsdrivertest readonly /tmp/mod/hello', 'fsdrivertest: PASS: readonly')
+            guest.command('umount /tmp/mod')
+            guest.command('mount -t fileview -o rw /tmp/mod')
+            guest.command('fsdrivertest external /tmp/mod/hello', 'fsdrivertest: PASS: external')
+            guest.command('cat /usr/share/doc/xv6/modsrc', 'NATIVE_WRITE_PERSISTED')
+            guest.command('umount /tmp/mod')
             guest.command('sync')
+        finally:
+            guest.close()
+        guest = Guest(args, image, args.kernel.parent / f'elf-plugin-{args.cpus}cpu-native-reboot.log')
+        try:
+            guest.expect('login: ')
+            guest.send('root')
+            guest.expect('Password: ')
+            guest.send(PASSWORD)
+            guest.expect('root:/root$ ')
+            guest.command('cd /')
+            guest.command('mkdir /tmp/mod')
+            guest.command('mount -t fileview /tmp/mod')
+            guest.command('cat /tmp/mod/hello', 'NATIVE_WRITE_PERSISTED')
+            guest.command('fsdrivertest readonly /tmp/mod/hello', 'fsdrivertest: PASS: readonly')
+            guest.command('umount /tmp/mod')
         finally:
             guest.close()
     for path, value in unchanged.items():
         assert digest(path) == value, f'plugin installation changed {path}'
     print(f'ELF plugin ({args.cpus} CPUs): independent SDK build, runtime discovery, aliases, '
-          'options, source writes, lifecycle, startup progress/timeout, invalid ABI/ELF and unchanged kernel/bootstrap passed')
+          'options, native commands/persistence/identity/bounds, source writes, lifecycle, startup progress/timeout, invalid ABI/ELF and unchanged kernel/bootstrap passed')
 
 
 if __name__ == '__main__':

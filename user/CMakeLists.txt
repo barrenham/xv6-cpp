@@ -56,6 +56,7 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:${target}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
+  apps/fsctl/fsctl.cpp
   apps/fsboot/fsboot.cpp
   apps/ramfsd/ramfsd.cpp
   apps/memfsd/memfsd.cpp
@@ -88,6 +89,7 @@ set(programs
   tests/ramfsservicetest.cpp
   tests/fsrootboottest.cpp
   tests/xv6fstest.cpp
+  tests/fsdrivertest.cpp
   tests/fsboottest.cpp
   tests/fsresourcesboottest.cpp
   tests/fsmgrboottest.cpp

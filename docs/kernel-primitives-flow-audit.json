@@ -414,8 +414,8 @@
       "files": [
         {
           "source": "kernel/io/object.cppm",
-          "sha256": "42eb17e4953f7fc6a5cf78633c6d6d61b171a0919b406af8e70fbcda1395b28d",
-          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 新增 ExecutableData 能力仅描述不可变 ELF 字节、长度和名称，由对象显式授予，不提升执行身份。",
+          "sha256": "5a72c6561a4208f2ad19c48b80057365f589b07d68bb51a82f2ab17ca64d33bd",
+          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 新增 ExecutableData 能力仅描述不可变 ELF 字节、长度和名称，由对象显式授予，不提升执行身份。 本轮驱动契约复核：可选的文件系统原生命令入口。默认拒绝，普通设备、管道和其他对象不会自动获得此能力；address 是用户载体地址，access 由打开的 File 构造。",
           "graph_entries": [],
           "pending": []
         },
@@ -473,6 +473,12 @@
           "review": "特权原始块能力的时间 ioctl 常量；按用户指针复制实时时钟秒数，不读取路径或磁盘格式。",
           "graph_entries": [],
           "pending": []
+        },
+        {
+          "source": "kernel/io/fs_control.h",
+          "sha256": "1458d811fc842b54987b84915d9199a1a9050ccbf7d9b8a6c1d6dc2a4be2f692",
+          "review": "有界无指针的通用原生命令载体；没有驱动类型或命令策略。公开 C SDK 逐字段大小/偏移断言保持一致。",
+          "graph_entries": []
         }
       ]
     },

@@ -173,6 +173,7 @@
 @fn int xv::fs::OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
 @brief 通过 io::query<DeviceControl> 查询独立设备控制能力，存在时传递请求及用户参数 Buffer，不存在返回 -1；不判断 File 类型或直接查字符设备。
 @details 通过 io::query<DeviceControl> 查询独立设备控制能力，存在时传递请求及用户参数 Buffer，不存在返回 -1；不判断 File 类型或直接查字符设备。
+@note 驱动命令契约：先识别通用 FS Control 载体，从 File 的真实 readable/writable 标志构造访问权限并转交对象；其他请求仍通过 DeviceControl 能力分派。调用方不能伪造描述符权限。
 ```
 
 <a id="fn-1565f5ef091ec77d"></a>

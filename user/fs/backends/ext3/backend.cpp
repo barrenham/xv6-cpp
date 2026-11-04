@@ -3,6 +3,8 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/format/layout.h"
 #include "kernel/fs/ext3/volume.h"
+#include "user/fs/sdk/include/xvfs/ext3.h"
+#include "user/runtime/user.h"
 module xv.userfs.ext3;
 import xv.userfs;
 
@@ -306,3 +308,46 @@ void Ext3Backend::forget(unsigned node)
   if (!collect(node)) failed_ = true;
 }
 } // namespace userfs
+
+namespace userfs
+{
+int Ext3Backend::control(unsigned node, const char *interface_name, unsigned version,
+                        unsigned command, unsigned access, const void *, unsigned input_size,
+                        void *output, unsigned capacity)
+{
+  if (strcmp(interface_name, XVFS_EXT3_INTERFACE) || version != XVFS_EXT3_VERSION ||
+      input_size || !(access & XVFS_ACCESS_READABLE) || !ready_ || failed_) return -1;
+  if (command == XVFS_EXT3_GEOMETRY)
+  {
+    if (capacity < sizeof(xvfs_ext3_geometry)) return -1;
+    unsigned char super[256];
+    if (!io_.read(1024, super, sizeof(super))) return -1;
+    using xv::ext3::le32;
+    xvfs_ext3_geometry info{};
+    info.blocks = le32(super + 4); info.free_blocks = le32(super + 12);
+    info.inodes = le32(super); info.free_inodes = le32(super + 16);
+    info.block_size = volume_.geometry().block_size;
+    info.compatible = le32(super + 92); info.incompatible = le32(super + 96);
+    info.readonly_compatible = le32(super + 100); info.journal_inode = le32(super + 224);
+    memmove(info.uuid, super + 104, sizeof(info.uuid));
+    memmove(output, &info, sizeof(info));
+    return sizeof(info);
+  }
+  if (command == XVFS_EXT3_INODE)
+  {
+    if (capacity < sizeof(xvfs_ext3_inode)) return -1;
+    Inode wire;
+    if (!inode(node, wire)) return -1;
+    using xv::ext3::le32;
+    xvfs_ext3_inode info{};
+    info.size = wire.size(); info.inode = wire.number; info.flags = wire.flags();
+    info.sectors = wire.sectors(); info.access_time = le32(wire.raw + 8);
+    info.change_time = le32(wire.raw + 12); info.modification_time = le32(wire.raw + 16);
+    info.deletion_time = le32(wire.raw + 20); info.generation = le32(wire.raw + 100);
+    info.file_acl_block = le32(wire.raw + 104);
+    memmove(output, &info, sizeof(info));
+    return sizeof(info);
+  }
+  return -1;
+}
+}

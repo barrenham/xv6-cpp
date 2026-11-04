@@ -569,3 +569,11 @@
 - [`xv::fs::FileSystem::status`](filesystem.cppm.md#fn-4b2526b4ff044302)
 
 - [`xv::fs::FileSystem::synchronize`](filesystem.cppm.md#fn-2f44c90de89e9e53)
+
+<a id="fn-b168f43f8b788752"></a>
+
+```doxygen
+@fn virtual int xv::fs::FileSystem::control(Inode *, unsigned long, unsigned)
+@brief 文件系统原生命令的可选后端接口；默认拒绝。
+@details 文件系统原生命令的可选后端接口；默认拒绝。参数为已引用 inode、用户态载体地址及内核产生的打开权限，调用时 inode 锁已持有。
+```

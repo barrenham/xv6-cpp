@@ -6,6 +6,7 @@ module;
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/stat.h"
 #include "kernel/io/block.h"
+#include "kernel/io/fs_control.h"
 #include "kernel/io/dirent.h"
 module xv.fs;
 import :inode_backend_flow;
@@ -37,6 +38,12 @@ int FileSystem::legacy_next_directory(Inode *node,unsigned long &cookie,Director
     legacy_record(entry,record);cookie=next;return 1;
   }
 }
+int InodeBackend::filesystem_control(unsigned long address, unsigned access)
+{
+  LockedInode guard(node_->owner(), *node_);
+  return node_->owner().control(node_, address, access);
+}
+
 int InodeBackend::getdents64(xv::io::Buffer destination,int count)
 {
   LockedInode guard(node_->owner(),*node_);

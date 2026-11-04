@@ -126,6 +126,7 @@ public:
   int next_directory(Inode *, unsigned long &, DirectoryRecord &) override;
   int read(Inode *, int, unsigned long, unsigned, unsigned) override;
   int write(Inode *, int, unsigned long, unsigned, unsigned) override;
+  int control(Inode *, unsigned long, unsigned) override;
   void flush() override;
   bool busy() override;
   void shutdown() override;

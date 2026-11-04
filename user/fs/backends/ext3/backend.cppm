@@ -16,6 +16,11 @@ public:
   explicit Ext3Backend(xv::ext3::Io &io) : volume_(io), io_(io) {}
   ~Ext3Backend();
   bool initialize();
+  unsigned long operations() override { return xv::userfs::AllOperations & ~xv::userfs::SnapshotOperations; }
+  const char *extension_interface() const override { return "ext3.native"; }
+  unsigned extension_version() const override { return 1; }
+  int control(unsigned, const char *, unsigned, unsigned, unsigned,
+              const void *, unsigned, void *, unsigned) override;
   xv::ext3::Error error() const { return volume_.error(); }
   Attributes root() override;
   int lookup(unsigned, const char *, Attributes &) override;

@@ -476,13 +476,13 @@
     },
     {
       "source": "kernel/fs/file/file_operations.cpp",
-      "sha256": "0186392da682f2f5aa4479051c982573ac4da183028c71967600ae8d020d6d65",
+      "sha256": "56f9a3ff59ae60fe01d9aa0edc15b4aadf3c268764115befe892463f75b0cf1d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/file/file_operations.cppm",
-      "sha256": "3a48a00588ac75821de29a077c3c016e2f5dcef0f1534d42367e402a41565bea",
+      "sha256": "2d9beeca0a1d0f708ef5161b600d99ef2711f47f171422252f5269b3cda9e7a3",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -500,7 +500,7 @@
     },
     {
       "source": "kernel/fs/file/open_file.cpp",
-      "sha256": "d7a3a7741837250cf37494d912e574d1b2f85b28875cf81c2852f3ced90fa3a3",
+      "sha256": "b1aba32ccca732e2c0a525ed5138e41bad80bf0a5cf0bb4845801e552d60a128",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -548,7 +548,7 @@
     },
     {
       "source": "kernel/fs/inode/filesystem.cppm",
-      "sha256": "8e6699f1bc179a6965de73381938f602eab020c72f5fd19c59795c2e094a02f9",
+      "sha256": "9fa142178e6c8d46eeea653adf9058adde6e7e0e512543aea609050caa18d0f3",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -734,7 +734,7 @@
     },
     {
       "source": "kernel/fs/userfs/protocol.h",
-      "sha256": "6973f522867b8e946b665da2143962895dcaa835905cbd5f2e5817347ded5dfa",
+      "sha256": "5d7d7473aacc2be339c3abf73d3b70745c4b4b0b13b389d2cbc1b43a0577fc1d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -746,13 +746,13 @@
     },
     {
       "source": "kernel/fs/userfs/userfs.cpp",
-      "sha256": "8d9404b0bd455030b2e2acff309e4ca56479fec307ac39cb34f445b43c13a1e9",
+      "sha256": "1b6e2b974b626034f8531ff41cac2310c5bafaced4761260092f99d27f0e3def",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/userfs/userfs.cppm",
-      "sha256": "4613d08834f752ff66c90973d12fdd277a28151d0484d6b503b78ca0c25d79fa",
+      "sha256": "00406196a1f2ad6068aad5716ae2960c7ba5184ae75f9d7d389f4dd606543230",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -811,6 +811,12 @@
       "review": "docs/kernel-primitives-flow-audit.json 新增root只读XV_FB_GET_STATS和固定32字节诊断计数布局，既有ABI不变。"
     },
     {
+      "source": "kernel/io/fs_control.h",
+      "sha256": "1458d811fc842b54987b84915d9199a1a9050ccbf7d9b8a6c1d6dc2a4be2f692",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
       "source": "kernel/io/fs_mount.h",
       "sha256": "7f314a1e37669b383e7f0dcc4658127cbba37589310ecbb949fb32a59af03671",
       "classification": "reviewed_workflow_or_primitive",
@@ -836,7 +842,7 @@
     },
     {
       "source": "kernel/io/object.cppm",
-      "sha256": "42eb17e4953f7fc6a5cf78633c6d6d61b171a0919b406af8e70fbcda1395b28d",
+      "sha256": "5a72c6561a4208f2ad19c48b80057365f589b07d68bb51a82f2ab17ca64d33bd",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },

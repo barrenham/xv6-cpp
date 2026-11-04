@@ -23,7 +23,8 @@ enum class Operation : unsigned
   Forget,
   SnapshotBegin,
   SnapshotRead,
-  SnapshotEnd
+  SnapshotEnd,
+  Control
 };
 
 struct Attributes
@@ -61,7 +62,8 @@ constexpr unsigned long operation_bit(Operation operation)
 {
   return 1UL << static_cast<unsigned>(operation);
 }
-inline constexpr unsigned long AllOperations = (operation_bit(Operation::SnapshotEnd) << 1) - 2;
+inline constexpr unsigned long AllOperations = (operation_bit(Operation::Control) << 1) - 2;
+inline constexpr unsigned long StandardOperations = AllOperations & ~operation_bit(Operation::Control);
 inline constexpr unsigned long ReadOperations = operation_bit(Operation::Lookup) |
     operation_bit(Operation::Read) | operation_bit(Operation::Readdir) |
     operation_bit(Operation::Sync) | operation_bit(Operation::Getattr) |
@@ -72,7 +74,7 @@ struct Registration
 {
   unsigned size = sizeof(Registration), version = Version;
   unsigned flags = 0, max_payload = DataSize;
-  unsigned long operations = AllOperations;
+  unsigned long operations = StandardOperations;
   char type[32]{};
   Attributes root{1, 0, 0, 0, 0755, 1, 2};
 };

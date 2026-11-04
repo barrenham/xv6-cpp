@@ -1,4 +1,6 @@
 #include <xvfs/plugin.h>
+#include <xvfs/control.h>
+#include "driver.h"
 
 static int equal(const char *a, const char *b)
 {
@@ -41,7 +43,8 @@ int main(int argc, char **argv)
   registration.version = XVFS_WIRE_VERSION;
   registration.flags = writable ? 0 : XVFS_READ_ONLY;
   registration.max_payload = XVFS_DATA_SIZE;
-  registration.operations = XVFS_READ_OPERATIONS | (writable ? XVFS_OP_BIT(XVFS_WRITE) : 0);
+  registration.operations = XVFS_READ_OPERATIONS | XVFS_OP_BIT(XVFS_CONTROL) |
+                            (writable ? XVFS_OP_BIT(XVFS_WRITE) : 0);
   registration.root = attributes(1, 0);
   text(registration.type, argv[3]);
   int service = xvfs_register(&registration);
@@ -57,6 +60,45 @@ int main(int argc, char **argv)
     message.result = -1;
     switch (message.operation)
     {
+    case XVFS_CONTROL:
+      if (equal(message.name, XVFS_DRIVER_INTERFACE))
+      {
+        if (message.offset != 1 || message.other || message.count ||
+            message.attributes.size < sizeof(struct xvfs_driver_info)) break;
+        struct xvfs_driver_info info = {0};
+        info.size = sizeof(info); info.version = 1; info.wire_version = XVFS_WIRE_VERSION;
+        info.flags = registration.flags; info.operations = registration.operations;
+        info.max_payload = registration.max_payload; info.interface_version = 1;
+        text(info.interface_name, HELLO_INTERFACE);
+        const unsigned char *bytes = (const unsigned char *)&info;
+        for (unsigned i = 0; i < sizeof(info); ++i) message.data[i] = bytes[i];
+        message.result = sizeof(info);
+      }
+      else if (equal(message.name, HELLO_INTERFACE) && message.offset == 1)
+      {
+        if (message.other == HELLO_STATUS && !message.count &&
+            message.attributes.size >= sizeof(struct hello_status))
+        {
+          struct hello_status status = { size, message.context.pid, message.context.uid,
+                                         message.context.gid, message.attributes.mode };
+          const unsigned char *bytes = (const unsigned char *)&status;
+          for (unsigned i = 0; i < sizeof(status); ++i) message.data[i] = bytes[i];
+          message.result = sizeof(status);
+        }
+        else if (message.other == HELLO_WRITE_PREFIX && message.node == 2 && writable &&
+                 !message.context.uid && (message.attributes.mode & XVFS_ACCESS_WRITABLE) &&
+                 !(message.attributes.mode & XVFS_ACCESS_READ_ONLY) && message.count)
+        {
+          if (xvfs_seek(XVFS_SOURCE_FD, 0, 0) < 0) break;
+          int wrote = xvfs_write(XVFS_SOURCE_FD, message.data, message.count);
+          if (wrote != (int)message.count || xvfs_syscall(90, XVFS_SOURCE_FD, 0, 0) < 0) break;
+          if ((unsigned)wrote > size) size = (unsigned)wrote;
+          message.result = 0;
+        }
+      }
+      message.count = message.result >= 0 ? (unsigned)message.result : 0;
+      if (message.result >= 0) message.attributes = attributes(message.node, size);
+      break;
     case XVFS_LOOKUP:
       if (message.node == 1)
       {

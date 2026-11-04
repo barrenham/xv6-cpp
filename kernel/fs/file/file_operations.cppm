@@ -14,6 +14,7 @@ public:
     contents_.take(contents);
   }
 
+  int filesystem_control(unsigned long address, unsigned access) override;
   void close() override;
   int read(xv::io::Buffer destination, int count) override;
   int write(xv::io::Buffer source, int count) override;

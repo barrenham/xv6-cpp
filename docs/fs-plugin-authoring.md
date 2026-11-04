@@ -219,6 +219,10 @@ dup/fork 仍共享该打开文件的偏移。目标进程退出、fd 复用或�
 目录快照沿用项目的 16 字节 dirent 字节流，原有 read(dir)/getdents64 的不可混用约束继续生效。
 `user/fs/backends/procfs/backend.cpp` 提供完整实现，`fssnapshottest` 验证捕获失败、独立打开和客户端身份。
 
+## 文件系统驱动的原生功能
+
+普通回调之外，驱动可通过版本化的 Control 命名空间提供自己的功能。契约、权限与元数据刷新约定、ext3 实现和 fsctl 用法见 [驱动契约](fs-driver-contract.md)。
+
 ## 当前扩展边界
 
 清单和 ELF 插件可以扩展文件系统算法、存储格式和数据来源。协议 3 仍有明确的公共边界：

@@ -266,3 +266,11 @@
 @brief 保护的默认析构，仅定义能力接口生命周期；实际对象销毁由 IoObject::close 管理。
 @details 保护的默认析构，仅定义能力接口生命周期；实际对象销毁由 IoObject::close 管理。
 ```
+
+<a id="fn-909e7cd5aba77ee6"></a>
+
+```doxygen
+@fn virtual int xv::io::IoObject::filesystem_control(unsigned long, unsigned)
+@brief 可选的文件系统原生命令入口。
+@details 可选的文件系统原生命令入口。默认拒绝，普通设备、管道和其他对象不会自动获得此能力；address 是用户载体地址，access 由打开的 File 构造。
+```

@@ -1,7 +1,9 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/fs/userfs/protocol.h"
+#include "kernel/io/fs_control.h"
 #include "user/fs/sdk/include/xvfs/plugin.h"
+#include "user/fs/sdk/include/xvfs/control.h"
 export module xv.userfs;
 
 export namespace userfs
@@ -34,6 +36,14 @@ public:
   // A deferred batch can request a bounded wait, interrupted by incoming RPCs.
   virtual unsigned maintenance_delay_ms() const { return 0; }
 
+  unsigned payload_limit() const { return registered_payload_; }
+  virtual const char *extension_interface() const { return ""; }
+  virtual unsigned extension_version() const { return 0; }
+  // Input and output may alias. Access and identity originate in the kernel.
+  virtual int control(unsigned node, const char *interface_name, unsigned version,
+                      unsigned command, unsigned access, const void *input,
+                      unsigned input_size, void *output, unsigned capacity) { return -1; }
+
   virtual Attributes root()
   {
     return {1, 0, 0, 0, 0755, 1, 2};
@@ -46,7 +56,7 @@ public:
 
   virtual unsigned long operations()
   {
-    return xv::userfs::AllOperations;
+    return xv::userfs::StandardOperations;
   }
 
   virtual int lookup(unsigned, const char *, Attributes &)
@@ -113,6 +123,10 @@ public:
   {
   }
 
+private:
+  friend int register_backend(const char *, Backend &, unsigned);
+  unsigned registered_payload_ = DataSize;
+
 protected:
 
   ~Backend() = default;
@@ -148,3 +162,16 @@ static_assert(offsetof(xvfs_registration, type) == offsetof(xv::userfs::Registra
 static_assert(offsetof(xvfs_registration, root) == offsetof(xv::userfs::Registration, root));
 static_assert(XVFS_WIRE_VERSION == xv::userfs::Version);
 static_assert(XVFS_READ_OPERATIONS == xv::userfs::ReadOperations);
+
+static_assert(sizeof(xvfs_control) == sizeof(xv::fscontrol::Request));
+static_assert(XVFS_CONTROL_IOCTL == xv::fscontrol::Ioctl);
+static_assert(XVFS_CONTROL == static_cast<unsigned>(xv::userfs::Operation::Control));
+static_assert(offsetof(xvfs_control, size) == offsetof(xv::fscontrol::Request, size));
+static_assert(offsetof(xvfs_control, version) == offsetof(xv::fscontrol::Request, version));
+static_assert(offsetof(xvfs_control, driver_version) == offsetof(xv::fscontrol::Request, driver_version));
+static_assert(offsetof(xvfs_control, command) == offsetof(xv::fscontrol::Request, command));
+static_assert(offsetof(xvfs_control, input_size) == offsetof(xv::fscontrol::Request, input_size));
+static_assert(offsetof(xvfs_control, capacity) == offsetof(xv::fscontrol::Request, capacity));
+static_assert(offsetof(xvfs_control, output_size) == offsetof(xv::fscontrol::Request, output_size));
+static_assert(offsetof(xvfs_control, interface_name) == offsetof(xv::fscontrol::Request, interface_name));
+static_assert(offsetof(xvfs_control, data) == offsetof(xv::fscontrol::Request, data));

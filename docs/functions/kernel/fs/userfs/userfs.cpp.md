@@ -403,6 +403,7 @@
 @fn UserFileSystem *xv::fs::UserFileSystem::create(unsigned device, const xv::userfs::Registration &registration, bool anonymous)
 @brief 按注册配置分配独立服务实例及固定地址 inode 存储。
 @details 通用 Version=3 RPC 代理保留 5 秒超时、按实例串行与聚合 Forget。请求携带原调用者 PID/有效 UID/GID；读取快照、目录条目和设备号由服务返回。普通写入保留既有 1 KiB 分段的错误前缀语义，消息分段不改变出错段的长度/偏移提交边界。内核只复制、校验与固定 inode，不实现后端格式算法。
+@note 驱动命令契约：只读实例仍剔除标准修改操作，但保留驱动明确声明的 Control 位；每次命令通过内核设置的 ReadOnly 上下文交由驱动按命令语义限制。旧注册默认 StandardOperations 不包含 Control。
 ```
 
 <a id="fn-02e33bbbb44bae7d"></a>
@@ -456,3 +457,11 @@
 ```
 
 - [`xv::fs::UserFileSystem::snapshot`](userfs.cpp.md#fn-3370dfa7623315f5)
+
+<a id="fn-2aad75e7a347d7f4"></a>
+
+```doxygen
+@fn int UserFileSystem::xv::fs::UserFileSystem::control(Inode *node, unsigned long address, unsigned access)
+@brief 显式 Control 能力才受理。
+@details 显式 Control 能力才受理。分配临时页复制并验证版本、NUL 命名空间、输入及输出长度；在已有 inode 锁下串行发 RPC，附上真实调用者和描述符权限/只读状态，并将输出容量限制到协商载荷。验证回复长度、对象身份和属性范围，更新共享 inode 后清零尾部并复制输出，所有路径归还临时页。驱动自身授权原生命令；命令失败不承诺回滚已发生的副作用。
+```

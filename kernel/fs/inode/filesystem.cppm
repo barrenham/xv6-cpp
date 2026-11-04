@@ -44,6 +44,7 @@ public:
   virtual void update(Inode *node) = 0;
   virtual void truncate(Inode *node) = 0;
   virtual int resize(Inode *, unsigned) { return -1; }
+  virtual int control(Inode *, unsigned long, unsigned) { return -1; }
   virtual void flush() {}
   virtual int synchronize(Inode *) { flush(); return 0; }
   virtual Journal *transaction_log() { return nullptr; }

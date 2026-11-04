@@ -4,6 +4,7 @@ module;
 #include "kernel/fs/poll.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/userfs/protocol.h"
+#include "user/fs/sdk/include/xvfs/control.h"
 module xv.userfs;
 
 namespace userfs
@@ -20,7 +21,9 @@ int register_backend(const char *type, Backend &backend, unsigned payload)
   registration.flags = backend.flags();
   registration.operations = backend.operations();
   registration.max_payload = payload;
-  return fsregister(&registration);
+  int descriptor = fsregister(&registration);
+  if (descriptor >= 0) backend.registered_payload_ = payload;
+  return descriptor;
 }
 
 namespace
@@ -37,6 +40,31 @@ void dispatch(xv::userfs::Message &m, Backend &backend)
   backend.context(m.context);
   switch (m.operation)
   {
+  case Operation::Control:
+  {
+    unsigned input = m.count, capacity = m.attributes.size;
+    if (!m.offset || m.offset > 0xffffffffUL || capacity > DataSize) break;
+    if (!strcmp(m.name, XVFS_DRIVER_INTERFACE))
+    {
+      if (m.offset != 1 || m.other != XVFS_DRIVER_DESCRIBE || input || capacity < sizeof(xvfs_driver_info)) break;
+      xvfs_driver_info info{};
+      info.size = sizeof(info); info.version = 1; info.wire_version = xv::userfs::Version;
+      info.flags = backend.flags(); info.operations = backend.operations(); info.max_payload = backend.payload_limit();
+      info.interface_version = backend.extension_version();
+      const char *name = backend.extension_interface();
+      if (!name || strlen(name) >= sizeof(info.interface_name)) break;
+      strcpy(info.interface_name, name);
+      memmove(m.data, &info, sizeof(info));
+      m.result = sizeof(info);
+    }
+    else m.result = backend.control(m.node, m.name, m.offset, m.other, m.attributes.mode,
+                                    m.data, input, m.data, capacity);
+    if (m.result > int(capacity)) m.result = -1;
+    m.count = m.result >= 0 ? unsigned(m.result) : 0;
+    if (m.result >= 0 && backend.getattr(m.node, m.attributes) < 0)
+    { m.result = -1; m.count = 0; }
+    break;
+  }
   case Operation::SnapshotBegin:
   {
     unsigned size = 0;

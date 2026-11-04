@@ -335,6 +335,7 @@
       "c:@N@xv@N@io@S@IoObject@F@IoObject#&1$@N@xv@N@io@S@IoObject#",
       "c:@N@xv@N@io@S@IoObject@F@capability#$@N@xv@N@io@E@CapabilityId#",
       "c:@N@xv@N@io@S@IoObject@F@close#",
+      "c:@N@xv@N@io@S@IoObject@F@filesystem_control#l#i#",
       "c:@N@xv@N@io@S@IoObject@F@getdents64#$@N@xv@N@io@S@Buffer#I#",
       "c:@N@xv@N@io@S@IoObject@F@operator=#&1$@N@xv@N@io@S@IoObject#",
       "c:@N@xv@N@io@S@IoObject@F@poll#*$@N@xv@N@sync@S@PollTable#",
@@ -1701,6 +1702,7 @@
       "c:@N@xv@N@fs@S@EndpointBackend@F@write#$@N@xv@N@io@S@Buffer#I#",
       "c:@N@xv@N@fs@S@InodeBackend@F@InodeBackend#&$@N@xv@N@fs@S@Inode#b#&$@N@xv@N@fs@S@PageBuffer#",
       "c:@N@xv@N@fs@S@InodeBackend@F@close#",
+      "c:@N@xv@N@fs@S@InodeBackend@F@filesystem_control#l#i#",
       "c:@N@xv@N@fs@S@InodeBackend@F@getdents64#$@N@xv@N@io@S@Buffer#I#",
       "c:@N@xv@N@fs@S@InodeBackend@F@poll#*$@N@xv@N@sync@S@PollTable#",
       "c:@N@xv@N@fs@S@InodeBackend@F@position#1",
@@ -1744,6 +1746,7 @@
       "c:@N@xv@N@fs@S@EndpointBackend@F@write#$@N@xv@N@io@S@Buffer#I#",
       "c:@N@xv@N@fs@S@FileSystem@F@legacy_next_directory#*$@N@xv@N@fs@S@Inode#&l#&$@N@xv@N@fs@S@DirectoryRecord#",
       "c:@N@xv@N@fs@S@InodeBackend@F@close#",
+      "c:@N@xv@N@fs@S@InodeBackend@F@filesystem_control#l#i#",
       "c:@N@xv@N@fs@S@InodeBackend@F@getdents64#$@N@xv@N@io@S@Buffer#I#",
       "c:@N@xv@N@fs@S@InodeBackend@F@poll#*$@N@xv@N@sync@S@PollTable#",
       "c:@N@xv@N@fs@S@InodeBackend@F@read#$@N@xv@N@io@S@Buffer#I#",
@@ -2158,6 +2161,7 @@
       "c:@N@xv@N@fs@S@FileSystem@F@allocate#i#S#",
       "c:@N@xv@N@fs@S@FileSystem@F@attributes#*$@N@xv@N@fs@S@Inode#i#i#i#",
       "c:@N@xv@N@fs@S@FileSystem@F@busy#",
+      "c:@N@xv@N@fs@S@FileSystem@F@control#*$@N@xv@N@fs@S@Inode#l#i#",
       "c:@N@xv@N@fs@S@FileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
       "c:@N@xv@N@fs@S@FileSystem@F@flush#",
       "c:@N@xv@N@fs@S@FileSystem@F@initialize#I#",
@@ -9157,6 +9161,7 @@
       "c:@N@xv@N@fs@S@UserFileSystem@F@begin#$@N@xv@N@userfs@E@Operation#i#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@busy#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@claim_mount#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@control#*$@N@xv@N@fs@S@Inode#l#i#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@create#i#&1$@N@xv@N@userfs@S@Registration#b#S",
       "c:@N@xv@N@fs@S@UserFileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@describe_provider#&$@N@xv@N@userfs@S@ProviderInfo#",
@@ -9204,6 +9209,7 @@
       "c:@N@xv@N@fs@S@UserFileSystem@F@begin#$@N@xv@N@userfs@E@Operation#i#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@busy#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@claim_mount#",
+      "c:@N@xv@N@fs@S@UserFileSystem@F@control#*$@N@xv@N@fs@S@Inode#l#i#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@create#i#&1$@N@xv@N@userfs@S@Registration#b#S",
       "c:@N@xv@N@fs@S@UserFileSystem@F@create_at#*$@N@xv@N@fs@S@Inode#*1C#S#S#S#",
       "c:@N@xv@N@fs@S@UserFileSystem@F@describe_provider#&$@N@xv@N@userfs@S@ProviderInfo#",
@@ -9398,5 +9404,10 @@
       "c:boot_asset.cpp@N@xv@N@fs@aN@S@BootAsset@F@stat#&$@S@stat#",
       "c:boot_asset.cpp@N@xv@N@fs@aN@S@BootAsset@F@write#$@N@xv@N@io@S@Buffer#I#"
     ]
+  },
+  {
+    "source": "kernel/io/fs_control.h",
+    "document": "docs/functions/kernel/io/fs_control.h.md",
+    "function_usrs": []
   }
 ]

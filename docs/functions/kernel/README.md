@@ -536,3 +536,5 @@
 - [资产目录验证](boot/asset_archive.h.md)
 - [资产查询 ABI](io/boot_assets.h.md)
 - [不可变资产描述符](fs/file/boot_asset.cpp.md)
+
+- [文件系统原生命令载体](io/fs_control.h.md)

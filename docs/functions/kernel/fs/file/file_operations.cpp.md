@@ -425,3 +425,11 @@
 - [`xv::fs::InodeBackend::getdents64`](file_operations.cpp.md#fn-ad868dc021560e72)
 
 - [`xv::fs::legacy_record`](file_operations.cpp.md#fn-f18f6dbcb62acdcf)
+
+<a id="fn-f61b20ed4fa6eaa0"></a>
+
+```doxygen
+@fn int InodeBackend::xv::fs::InodeBackend::filesystem_control(unsigned long address, unsigned access)
+@brief 取得所属文件系统的 inode 锁后转交通用命令地址和可信访问权限；不解释任何文件系统类型、命名空间或原生载荷。
+@details 取得所属文件系统的 inode 锁后转交通用命令地址和可信访问权限；不解释任何文件系统类型、命名空间或原生载荷。
+```
