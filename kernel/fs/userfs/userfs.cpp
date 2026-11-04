@@ -13,16 +13,16 @@ namespace xv::fs
 {
 using xv::userfs::Operation;
 
-void UserFileSystem::initialize_inodes()
-{
+void
+UserFileSystem::initialize_inodes() {
   tree_.init("userfs metadata");
   serial_.init("userfs request");
   state_.init("userfs channel");
   references_.init("userfs references");
 }
 
-bool UserFileSystem::reserve(unsigned device)
-{
+bool
+UserFileSystem::reserve(unsigned device) {
   xv::sync::ScopedLock guard(state_);
   if (reserved_)
   {
@@ -44,15 +44,15 @@ bool UserFileSystem::reserve(unsigned device)
   return true;
 }
 
-void UserFileSystem::attached(bool value)
-{
+void
+UserFileSystem::attached(bool value) {
   xv::sync::ScopedLock guard(state_);
   mounted_ = value;
   mounting_ = false;
 }
 
-void UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a)
-{
+void
+UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a) {
   n->owner_ = this;
   n->dev = device_;
   n->inum = a.node;
@@ -64,13 +64,13 @@ void UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a)
   n->nlink = a.links;
   n->major = a.major;
   n->minor = a.minor;
-  n->valid = 1;
 }
 
-Inode *UserFileSystem::node(const xv::userfs::Attributes &a)
-{
-  if (!a.node || (a.type != T_DIR && a.type != T_FILE && a.type != T_SYMLINK &&
-                  a.type != T_DEVICE && a.type != T_BLOCK) ||
+Inode *
+UserFileSystem::node(const xv::userfs::Attributes &a) {
+  if (!a.node ||
+      (a.type != T_DIR && a.type != T_FILE && a.type != T_SYMLINK &&
+       a.type != T_DEVICE && a.type != T_BLOCK) ||
       a.links > 32767 || a.mode > 07777 || a.major > 32767 || a.minor > 32767)
   {
     return nullptr;
@@ -109,21 +109,21 @@ Inode *UserFileSystem::node(const xv::userfs::Attributes &a)
   return nullptr;
 }
 
-Inode *UserFileSystem::root()
-{
+Inode *
+UserFileSystem::root() {
   return retain(nodes_[0]);
 }
 
-Inode *UserFileSystem::retain(Inode *n)
-{
+Inode *
+UserFileSystem::retain(Inode *n) {
   xv::sync::ScopedLock guard(references_);
   ++n->ref;
   ++live_references_;
   return n;
 }
 
-void UserFileSystem::release(Inode *n)
-{
+void
+UserFileSystem::release(Inode *n) {
   // Path operations sometimes release another inode while holding tree_.
   // Take the metadata lock before making the last reference reusable, so a
   // new lookup cannot race a Forget for the previous identity.
@@ -154,8 +154,8 @@ void UserFileSystem::release(Inode *n)
   }
 }
 
-bool UserFileSystem::busy()
-{
+bool
+UserFileSystem::busy() {
   // A last close can still be sending Forget after dropping its inode ref.
   // Wait for that metadata operation before permitting instance retirement.
   xv::sync::ScopedLock metadata(tree_);
@@ -163,8 +163,8 @@ bool UserFileSystem::busy()
   return live_references_ != 2;
 }
 
-void UserFileSystem::begin(Operation operation, unsigned node)
-{
+void
+UserFileSystem::begin(Operation operation, unsigned node) {
   // Clear the complete wire buffer, including ABI padding, before delivery.
   detail::fill(&request_, 0, sizeof(request_));
   request_.version = xv::userfs::Version;
@@ -176,8 +176,8 @@ void UserFileSystem::begin(Operation operation, unsigned node)
   request_.context = {unsigned(detail::current_pid()), caller.uid, caller.gid};
 }
 
-bool UserFileSystem::exchange()
-{
+bool
+UserFileSystem::exchange() {
   const auto deadline = detail::monotonic_milliseconds() + 5000;
   state_.acquire();
   if (!connected_ || (!mounted_ && !mounting_) || detail::killed() ||
@@ -209,15 +209,15 @@ bool UserFileSystem::exchange()
   return success && response_.result >= 0;
 }
 
-void UserFileSystem::disconnect()
-{
+void
+UserFileSystem::disconnect() {
   connected_ = false;
   detail::wakeup(&pending_);
   detail::wakeup(&replied_);
 }
 
-void UserFileSystem::shutdown()
-{
+void
+UserFileSystem::shutdown() {
   xv::sync::ScopedLock guard(state_);
   mounted_ = false;
   completed_ = true;
@@ -230,8 +230,8 @@ void UserFileSystem::shutdown()
   // Keep the slot reserved until the last endpoint descriptor is closed.
 }
 
-int UserFileSystem::Endpoint::read(xv::io::Buffer out, int count)
-{
+int
+UserFileSystem::Endpoint::read(xv::io::Buffer out, int count) {
   if (count != sizeof(xv::userfs::Message))
   {
     return -1;
@@ -269,8 +269,8 @@ int UserFileSystem::Endpoint::read(xv::io::Buffer out, int count)
   return result;
 }
 
-int UserFileSystem::Endpoint::write(xv::io::Buffer in, int count)
-{
+int
+UserFileSystem::Endpoint::write(xv::io::Buffer in, int count) {
   if (count != sizeof(xv::userfs::Message))
   {
     return -1;
@@ -299,8 +299,8 @@ int UserFileSystem::Endpoint::write(xv::io::Buffer in, int count)
   return count;
 }
 
-unsigned UserFileSystem::Endpoint::poll(xv::sync::PollTable *table)
-{
+unsigned
+UserFileSystem::Endpoint::poll(xv::sync::PollTable *table) {
   auto &o = owner_;
   xv::sync::ScopedLock guard(o.state_);
   if (table)
@@ -315,8 +315,8 @@ unsigned UserFileSystem::Endpoint::poll(xv::sync::PollTable *table)
          (o.pending_ && o.delivered_ && !o.replied_ ? POLLOUT : 0);
 }
 
-void UserFileSystem::Endpoint::close()
-{
+void
+UserFileSystem::Endpoint::close() {
   auto &o = owner_;
   xv::sync::ScopedLock guard(o.state_);
   o.disconnect();
@@ -327,9 +327,8 @@ void UserFileSystem::Endpoint::close()
   }
 }
 
-Inode *UserFileSystem::lookup_entry(Inode *directory, const char *name,
-                                    unsigned *offset)
-{
+Inode *
+UserFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offset) {
   if (directory->type != T_DIR)
   {
     return nullptr;
@@ -344,11 +343,11 @@ Inode *UserFileSystem::lookup_entry(Inode *directory, const char *name,
   return exchange() ? node(response_.attributes) : nullptr;
 }
 
-Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type, short major,
-                                 short minor)
-{
-  if (type != T_FILE && type != T_DIR && type != T_SYMLINK &&
-      type != T_DEVICE && type != T_BLOCK)
+Inode *
+UserFileSystem::create_at(Inode *directory, const char *name, short type, short major,
+                          short minor) {
+  if (type != T_FILE && type != T_DIR && type != T_SYMLINK && type != T_DEVICE &&
+      type != T_BLOCK)
   {
     return nullptr;
   }
@@ -372,10 +371,14 @@ Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type,
                          0,
                          identity.uid,
                          identity.gid,
-                         unsigned((type == T_DIR ? 0777 :
-                                   (type == T_DEVICE || type == T_BLOCK) ? 0600 : 0666) & ~identity.mask),
+                         unsigned((type == T_DIR                           ? 0777
+                                   : (type == T_DEVICE || type == T_BLOCK) ? 0600
+                                                                           : 0666) &
+                                  ~identity.mask),
                          unsigned(type),
-                         1, unsigned(major), unsigned(minor)};
+                         1,
+                         unsigned(major),
+                         unsigned(minor)};
   auto *result = exchange() ? node(response_.attributes) : nullptr;
   serial_.release();
   if (!result)
@@ -385,9 +388,9 @@ Inode *UserFileSystem::create_at(Inode *directory, const char *name, short type,
   return result; // create_at returns a locked inode, matching existing backends.
 }
 
-int UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
-                         unsigned count)
-{
+int
+UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
+                     unsigned count) {
   if (offset + count < offset)
   {
     return -1;
@@ -418,9 +421,9 @@ int UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
   return done;
 }
 
-int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
-                          unsigned count)
-{
+int
+UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
+                      unsigned count) {
   if (offset + count < offset || n->type == T_DIR)
   {
     return -1;
@@ -431,7 +434,10 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
   while (done < count)
   {
     unsigned part = BlockSize - (offset + done) % BlockSize;
-    if (part > count - done) part = count - done;
+    if (part > count - done)
+    {
+      part = count - done;
+    }
     unsigned copied = 0;
     while (copied < part)
     {
@@ -439,9 +445,15 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       if (user)
       {
         unsigned tail = 4096 - (in + done + copied) % 4096;
-        if (take > tail) take = tail;
+        if (take > tail)
+        {
+          take = tail;
+        }
       }
-      if (detail::copy_in(bytes + copied, user, in + done + copied, take) < 0) break;
+      if (detail::copy_in(bytes + copied, user, in + done + copied, take) < 0)
+      {
+        break;
+      }
       copied += take;
     }
     bool fault = copied != part;
@@ -452,7 +464,10 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       // count or file growth, but valid overwrites of existing bytes survive.
       unsigned position = offset + done;
       unsigned existing = position < n->size ? n->size - position : 0;
-      if (publish > existing) publish = existing;
+      if (publish > existing)
+      {
+        publish = existing;
+      }
     }
     unsigned sent = 0;
     while (sent < publish)
@@ -460,7 +475,10 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       begin(Operation::Write, n->inum);
       request_.offset = offset + done + sent;
       request_.count = publish - sent;
-      if (request_.count > registration_.max_payload) request_.count = registration_.max_payload;
+      if (request_.count > registration_.max_payload)
+      {
+        request_.count = registration_.max_payload;
+      }
       detail::move(request_.data, bytes + sent, request_.count);
       if (!exchange() || response_.result > int(request_.count))
       {
@@ -469,17 +487,26 @@ int UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       }
       unsigned take = response_.result;
       sent += take;
-      if (offset + done + sent > n->size) n->size = offset + done + sent;
-      if (take < request_.count) return fault ? (done ? int(done) : -1) : int(done + sent);
+      if (offset + done + sent > n->size)
+      {
+        n->size = offset + done + sent;
+      }
+      if (take < request_.count)
+      {
+        return fault ? (done ? int(done) : -1) : int(done + sent);
+      }
     }
-    if (fault) return done ? int(done) : -1;
+    if (fault)
+    {
+      return done ? int(done) : -1;
+    }
     done += part;
   }
   return done;
 }
 
-int UserFileSystem::resize(Inode *n, unsigned size)
-{
+int
+UserFileSystem::resize(Inode *n, unsigned size) {
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Resize, n->inum);
   request_.attributes.size = size;
@@ -491,17 +518,8 @@ int UserFileSystem::resize(Inode *n, unsigned size)
   return 0;
 }
 
-void UserFileSystem::update(Inode *n)
-{
-  xv::sync::ScopedLock guard(serial_);
-  begin(Operation::Setattr, n->inum);
-  request_.attributes = {n->inum,  n->size,           n->uid_,           n->gid_,
-                         n->mode_, unsigned(n->type), unsigned(n->nlink)};
-  (void)exchange();
-}
-
-void UserFileSystem::stat(Inode *n, Stat *out)
-{
+void
+UserFileSystem::stat(Inode *n, Stat *out) {
   *out = {};
   out->dev = device_;
   out->ino = n->inum;
@@ -511,9 +529,9 @@ void UserFileSystem::stat(Inode *n, Stat *out)
   n->security_stat(out);
 }
 
-int UserFileSystem::next_directory(Inode *n, unsigned long &cookie,
-                                   DirectoryRecord &entry)
-{
+int
+UserFileSystem::next_directory(Inode *n, unsigned long &cookie,
+                               DirectoryRecord &entry) {
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Readdir, n->inum);
   request_.offset = cookie;
@@ -535,14 +553,15 @@ int UserFileSystem::next_directory(Inode *n, unsigned long &cookie,
                : response_.attributes.type == T_SYMLINK ? 10
                : response_.attributes.type == T_DEVICE  ? 2
                : response_.attributes.type == T_BLOCK   ? 6
-               : response_.attributes.type == T_SOCKET  ? 12 : 8;
+               : response_.attributes.type == T_SOCKET  ? 12
+                                                        : 8;
   detail::copy_fixed(entry.name, response_.name, sizeof(entry.name));
   cookie = response_.offset;
   return 1;
 }
 
-int UserFileSystem::link_at(Inode *directory, const char *name, Inode *target)
-{
+int
+UserFileSystem::link_at(Inode *directory, const char *name, Inode *target) {
   xv::sync::ScopedLock tree(tree_);
   xv::sync::ScopedLock guard(serial_);
   if (!detail::allowed(directory, 3) || target->kind() == T_DIR)
@@ -560,8 +579,8 @@ int UserFileSystem::link_at(Inode *directory, const char *name, Inode *target)
   return 0;
 }
 
-int UserFileSystem::unlink_at(Inode *directory, const char *name)
-{
+int
+UserFileSystem::unlink_at(Inode *directory, const char *name) {
   xv::sync::ScopedLock tree(tree_);
   auto *target = lookup_entry(directory, name, nullptr);
   if (!target)
@@ -591,8 +610,8 @@ int UserFileSystem::unlink_at(Inode *directory, const char *name)
   return 0;
 }
 
-int UserFileSystem::rename_at(Inode *from, const char *old, Inode *to, const char *next)
-{
+int
+UserFileSystem::rename_at(Inode *from, const char *old, Inode *to, const char *next) {
   xv::sync::ScopedLock tree(tree_);
   auto *source = lookup_entry(from, old, nullptr);
   auto *target = lookup_entry(to, next, nullptr);
@@ -619,18 +638,12 @@ int UserFileSystem::rename_at(Inode *from, const char *old, Inode *to, const cha
   return exchange() ? 0 : -1;
 }
 
-void UserFileSystem::flush()
-{
-  xv::sync::ScopedLock guard(serial_);
-  begin(Operation::Sync);
-  (void)exchange();
-}
 } // namespace xv::fs
 
 namespace xv::fs
 {
-int UserFileSystem::status(Inode *n, Stat *out)
-{
+int
+UserFileSystem::status(Inode *n, Stat *out) {
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Getattr, n->inum);
   if (!exchange() || response_.attributes.node != n->inum ||
@@ -644,15 +657,15 @@ int UserFileSystem::status(Inode *n, Stat *out)
   return 0;
 }
 
-int UserFileSystem::synchronize(Inode *n)
-{
+int
+UserFileSystem::synchronize(Inode *n) {
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Sync, n->inum);
   return exchange() ? 0 : -1;
 }
 
-bool UserFileSystem::attributes(Inode *n, unsigned uid, unsigned gid, unsigned mode)
-{
+bool
+UserFileSystem::attributes(Inode *n, unsigned uid, unsigned gid, unsigned mode) {
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Setattr, n->inum);
   request_.attributes = {n->inum,           n->size,           uid, gid, mode,
@@ -670,10 +683,9 @@ bool UserFileSystem::attributes(Inode *n, unsigned uid, unsigned gid, unsigned m
 
 namespace xv::fs
 {
-UserFileSystem *UserFileSystem::create(unsigned device,
-                                       const xv::userfs::Registration &registration,
-                                       bool anonymous)
-{
+UserFileSystem *
+UserFileSystem::create(unsigned device, const xv::userfs::Registration &registration,
+                       bool anonymous) {
   static_assert(sizeof(UserFileSystem) <= 4096 && sizeof(NodePage) <= 4096);
   void *memory = detail::allocate_page();
   if (!memory)
@@ -685,9 +697,11 @@ UserFileSystem *UserFileSystem::create(unsigned device,
   fs->registration_ = registration;
   if (registration.flags & xv::userfs::ReadOnly)
   {
-    fs->registration_.operations &= xv::userfs::ReadOperations |
+    fs->registration_.operations &=
+        xv::userfs::ReadOperations |
         (registration.operations & xv::userfs::operation_bit(Operation::Control)) |
-        ((registration.flags & xv::userfs::Snapshots) ? xv::userfs::SnapshotOperations : 0);
+        ((registration.flags & xv::userfs::Snapshots) ? xv::userfs::SnapshotOperations
+                                                      : 0);
   }
   fs->provider_pid_ = detail::current_pid();
   fs->anonymous_ = anonymous;
@@ -716,8 +730,8 @@ UserFileSystem *UserFileSystem::create(unsigned device,
   return fs;
 }
 
-void UserFileSystem::destroy()
-{
+void
+UserFileSystem::destroy() {
   while (node_pages_)
   {
     auto *page = node_pages_;
@@ -729,8 +743,8 @@ void UserFileSystem::destroy()
   detail::free_page(this);
 }
 
-bool UserFileSystem::claim_mount()
-{
+bool
+UserFileSystem::claim_mount() {
   xv::sync::ScopedLock guard(state_);
   if (!connected_ || !endpoint_open_ || mounted_ || mounting_ || completed_)
   {
@@ -740,14 +754,14 @@ bool UserFileSystem::claim_mount()
   return true;
 }
 
-bool UserFileSystem::retired()
-{
+bool
+UserFileSystem::retired() {
   xv::sync::ScopedLock guard(state_);
   return !endpoint_open_ && !mounted_ && !mounting_;
 }
 
-bool UserFileSystem::describe_provider(xv::userfs::ProviderInfo &info)
-{
+bool
+UserFileSystem::describe_provider(xv::userfs::ProviderInfo &info) {
   xv::sync::ScopedLock guard(state_);
   if (!endpoint_open_ && !mounted_ && !mounting_)
   {
@@ -770,8 +784,8 @@ bool UserFileSystem::describe_provider(xv::userfs::ProviderInfo &info)
 
 namespace xv::fs
 {
-bool UserFileSystem::snapshot(Inode *node, PageBuffer &buffer)
-{
+bool
+UserFileSystem::snapshot(Inode *node, PageBuffer &buffer) {
   // One contiguous transaction keeps the backend capture stable. Each open
   // receives its own kernel-owned bytes, which outlive process exit and fd reuse.
   xv::sync::ScopedLock guard(serial_);
@@ -784,44 +798,65 @@ bool UserFileSystem::snapshot(Inode *node, PageBuffer &buffer)
     begin(Operation::SnapshotRead, node->inum);
     request_.offset = offset;
     request_.count = size - offset;
-    if (request_.count > registration_.max_payload) request_.count = registration_.max_payload;
+    if (request_.count > registration_.max_payload)
+    {
+      request_.count = registration_.max_payload;
+    }
     good = exchange() && response_.result > 0 &&
-           response_.result == int(response_.count) && response_.count <= request_.count &&
+           response_.result == int(response_.count) &&
+           response_.count <= request_.count &&
            buffer.append(response_.data, response_.count);
-    if (good) offset += response_.count;
+    if (good)
+    {
+      offset += response_.count;
+    }
   }
   begin(Operation::SnapshotEnd, node->inum);
   bool ended = exchange();
-  if (!good || !ended) buffer.clear();
+  if (!good || !ended)
+  {
+    buffer.clear();
+  }
   return good && ended;
 }
 } // namespace xv::fs
 
 namespace xv::fs
 {
-int UserFileSystem::control(Inode *node, unsigned long address, unsigned access)
-{
-  if (!(registration_.operations & xv::userfs::operation_bit(Operation::Control))) return -1;
+int
+UserFileSystem::control(Inode *node, unsigned long address, unsigned access) {
+  if (!(registration_.operations & xv::userfs::operation_bit(Operation::Control)))
+  {
+    return -1;
+  }
   auto *page = detail::allocate_page();
-  if (!page) return -1;
+  if (!page)
+  {
+    return -1;
+  }
   auto &control = *static_cast<xv::fscontrol::Request *>(page);
   int result = -1;
   if (detail::copy_in(&control, true, address, sizeof(control)) == 0 &&
       control.size == sizeof(control) && control.version == xv::fscontrol::Version &&
-      control.driver_version && control.interface_name[0] && !control.interface_name[31] &&
-      control.input_size <= registration_.max_payload && control.capacity <= xv::fscontrol::DataSize)
+      control.driver_version && control.interface_name[0] &&
+      !control.interface_name[31] && control.input_size <= registration_.max_payload &&
+      control.capacity <= xv::fscontrol::DataSize)
   {
     xv::sync::ScopedLock guard(serial_);
     begin(Operation::Control, node->inum);
     request_.other = control.command;
     request_.offset = control.driver_version;
     request_.count = control.input_size;
-    request_.attributes.size = control.capacity < registration_.max_payload ? control.capacity : registration_.max_payload;
+    request_.attributes.size = control.capacity < registration_.max_payload
+                                   ? control.capacity
+                                   : registration_.max_payload;
     request_.attributes.mode = access | (read_only() ? xv::fscontrol::ReadOnly : 0);
     detail::move(request_.name, control.interface_name, sizeof(control.interface_name));
     detail::move(request_.data, control.data, control.input_size);
-    if (exchange() && response_.count <= request_.attributes.size && response_.result == int(response_.count) &&
-        response_.attributes.node == node->inum && response_.attributes.type == unsigned(node->type) &&
+    if (exchange() && response_.count <= request_.attributes.size &&
+        response_.result == int(response_.count) &&
+        response_.attributes.node == node->inum &&
+        response_.attributes.type == unsigned(node->type) &&
         response_.attributes.links <= 32767 && response_.attributes.mode <= 07777 &&
         response_.attributes.major <= 32767 && response_.attributes.minor <= 32767)
     {
@@ -829,10 +864,13 @@ int UserFileSystem::control(Inode *node, unsigned long address, unsigned access)
       control.output_size = response_.count;
       detail::fill(control.data, 0, sizeof(control.data));
       detail::move(control.data, response_.data, control.output_size);
-      if (detail::copy_out(true, address, &control, sizeof(control)) == 0) result = control.output_size;
+      if (detail::copy_out(true, address, &control, sizeof(control)) == 0)
+      {
+        result = control.output_size;
+      }
     }
   }
   detail::free_page(page);
   return result;
 }
-}
+} // namespace xv::fs

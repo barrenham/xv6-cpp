@@ -9,8 +9,8 @@ module xv.userfs;
 
 namespace userfs
 {
-int register_backend(const char *type, Backend &backend, unsigned payload)
-{
+int
+register_backend(const char *type, Backend &backend, unsigned payload) {
   if (!type || !*type || strlen(type) >= 32)
   {
     return -1;
@@ -22,160 +22,57 @@ int register_backend(const char *type, Backend &backend, unsigned payload)
   registration.operations = backend.operations();
   registration.max_payload = payload;
   int descriptor = fsregister(&registration);
-  if (descriptor >= 0) backend.registered_payload_ = payload;
+  if (descriptor >= 0)
+  {
+    backend.registered_payload_ = payload;
+  }
   return descriptor;
 }
 
-namespace
-{
-void dispatch(xv::userfs::Message &m, Backend &backend)
-{
-  using xv::userfs::Operation;
-  m.result = -1;
-  if (m.version != xv::userfs::Version || !m.node || m.count > DataSize ||
-      m.name[NameSize - 1] || m.target[NameSize - 1])
-  {
-    return;
-  }
-  backend.context(m.context);
-  switch (m.operation)
-  {
-  case Operation::Control:
-  {
-    unsigned input = m.count, capacity = m.attributes.size;
-    if (!m.offset || m.offset > 0xffffffffUL || capacity > DataSize) break;
-    if (!strcmp(m.name, XVFS_DRIVER_INTERFACE))
-    {
-      if (m.offset != 1 || m.other != XVFS_DRIVER_DESCRIBE || input || capacity < sizeof(xvfs_driver_info)) break;
-      xvfs_driver_info info{};
-      info.size = sizeof(info); info.version = 1; info.wire_version = xv::userfs::Version;
-      info.flags = backend.flags(); info.operations = backend.operations(); info.max_payload = backend.payload_limit();
-      info.interface_version = backend.extension_version();
-      const char *name = backend.extension_interface();
-      if (!name || strlen(name) >= sizeof(info.interface_name)) break;
-      strcpy(info.interface_name, name);
-      memmove(m.data, &info, sizeof(info));
-      m.result = sizeof(info);
-    }
-    else m.result = backend.control(m.node, m.name, m.offset, m.other, m.attributes.mode,
-                                    m.data, input, m.data, capacity);
-    if (m.result > int(capacity)) m.result = -1;
-    m.count = m.result >= 0 ? unsigned(m.result) : 0;
-    if (m.result >= 0 && backend.getattr(m.node, m.attributes) < 0)
-    { m.result = -1; m.count = 0; }
-    break;
-  }
-  case Operation::SnapshotBegin:
-  {
-    unsigned size = 0;
-    m.result = backend.snapshot(m.node, size);
-    m.attributes.size = size;
-    break;
-  }
-  case Operation::SnapshotRead:
-  {
-    unsigned limit = m.count;
-    m.result = backend.snapshot_read(m.offset, m.data, limit);
-    if (m.result > int(limit)) m.result = -1;
-    m.count = m.result < 0 ? 0 : unsigned(m.result);
-    break;
-  }
-  case Operation::SnapshotEnd:
-    backend.snapshot_end();
-    m.result = 0;
-    break;
-  case Operation::Lookup:
-    m.result = backend.lookup(m.node, m.name, m.attributes);
-    break;
-  case Operation::Getattr:
-    m.result = backend.getattr(m.node, m.attributes);
-    break;
-  case Operation::Create:
-  {
-    auto requested = m.attributes;
-    m.result = backend.create(m.node, m.name, requested, m.attributes);
-    break;
-  }
-  case Operation::Read:
-  {
-    unsigned limit = m.count;
-    m.result = backend.read(m.node, m.offset, m.data, limit);
-    if (m.result > int(limit))
-    {
-      m.result = -1;
-    }
-    m.count = m.result >= 0 ? unsigned(m.result) : 0;
-    break;
-  }
-  case Operation::Write:
-    m.result = backend.write(m.node, m.offset, m.data, m.count);
-    if (m.result > int(m.count))
-    {
-      m.result = -1;
-    }
-    break;
-  case Operation::Resize:
-    m.result = backend.resize(m.node, m.attributes.size);
-    break;
-  case Operation::Setattr:
-    m.result = backend.setattr(m.node, m.attributes);
-    break;
-  case Operation::Link:
-    m.result = backend.link(m.node, m.name, m.other);
-    break;
-  case Operation::Unlink:
-    m.result = backend.unlink(m.node, m.name, m.attributes);
-    break;
-  case Operation::Rename:
-    m.result = backend.rename(m.node, m.name, m.other, m.target);
-    break;
-  case Operation::Sync:
-    m.result = backend.sync(m.node);
-    break;
-  case Operation::Forget:
-    backend.forget(m.node);
-    m.result = 0;
-    break;
-  case Operation::Readdir:
-  {
-    Entry entry;
-    m.result = backend.readdir(m.node, m.offset, entry);
-    if (m.result == 1)
-    {
-      m.attributes = entry.attributes;
-      m.offset = entry.next;
-      memmove(m.name, entry.name, NameSize);
-    }
-    break;
-  }
-  }
-}
-} // namespace
-
-int serve(int descriptor, Backend &backend)
-{
+int
+serve(int descriptor, Backend &backend) {
   auto *storage = malloc(sizeof(xv::userfs::Message));
-  if (!storage) return -1;
+  if (!storage)
+  {
+    return -1;
+  }
+
   struct Storage
   {
     void *pointer;
-    ~Storage() { free(pointer); }
+
+    ~Storage() {
+      free(pointer);
+    }
   } allocation{storage};
+
   auto &message = *static_cast<xv::userfs::Message *>(storage);
   memset(&message, 0, sizeof(message));
   for (;;)
   {
     if (backend.maintenance_pending())
     {
-      if (!backend.maintain()) return -1;
+      if (!backend.maintain())
+      {
+        return -1;
+      }
       if (backend.maintenance_pending())
       {
         pollfd pending{descriptor, POLLIN, 0};
         unsigned delay = backend.maintenance_delay_ms();
-        if (delay > 1000) delay = 1000;
+        if (delay > 1000)
+        {
+          delay = 1000;
+        }
         int ready = poll(&pending, 1, delay);
-        if (ready < 0) return -1;
-        if (!ready) continue;
+        if (ready < 0)
+        {
+          return -1;
+        }
+        if (!ready)
+        {
+          continue;
+        }
       }
     }
     int count = ::read(descriptor, &message, sizeof(message));
@@ -183,11 +80,19 @@ int serve(int descriptor, Backend &backend)
     {
       while (backend.maintenance_pending())
       {
-        if (!backend.maintain()) return -1;
-        unsigned delay = backend.maintenance_delay_ms();
-        if (delay > 1000) delay = 1000;
-        if (backend.maintenance_pending() && delay && poll(nullptr, 0, delay) < 0)
+        if (!backend.maintain())
+        {
           return -1;
+        }
+        unsigned delay = backend.maintenance_delay_ms();
+        if (delay > 1000)
+        {
+          delay = 1000;
+        }
+        if (backend.maintenance_pending() && delay && poll(nullptr, 0, delay) < 0)
+        {
+          return -1;
+        }
       }
       return 0;
     }

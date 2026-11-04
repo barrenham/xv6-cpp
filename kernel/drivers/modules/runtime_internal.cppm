@@ -77,7 +77,6 @@ extern Binding bindings[MaxDevices];
 extern unsigned online[MaxDevices];
 bool callback(const Image &, unsigned long address);
 int attach(Image &, const xv_kmod_device_v2 &);
-SerialPort &serial_proxy();
 unsigned network_count();
 EthernetDevice &network_proxy(unsigned index);
 void network_receiver(unsigned index, EthernetReceiver &receiver);

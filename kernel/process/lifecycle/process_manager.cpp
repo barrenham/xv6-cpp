@@ -32,19 +32,19 @@ struct ProcessManager::AllocateFlow
     bool ready = false;
   };
 
-  static void descriptor(Context &c) noexcept
-  {
+  static void
+  descriptor(Context &c) noexcept {
     const auto pid = c.owner.allocate_pid();
     c.process = pid ? c.owner.store_.allocate(pid) : nullptr;
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.process != nullptr;
   }
 
-  static void trapframe(Context &c) noexcept
-  {
+  static void
+  trapframe(Context &c) noexcept {
     c.process->trapframe = static_cast<TrapFrame *>(xv::memory::allocator().allocate());
 #ifdef LAB_LOCK
     if (c.process->trapframe)
@@ -55,13 +55,13 @@ struct ProcessManager::AllocateFlow
 #endif
   }
 
-  static bool has_trapframe(Context &c) noexcept
-  {
+  static bool
+  has_trapframe(Context &c) noexcept {
     return c.process->trapframe != nullptr;
   }
 #ifdef LAB_PGTBL
-  static void user_syscall(Context &c) noexcept
-  {
+  static void
+  user_syscall(Context &c) noexcept {
     c.process->usyscall = xv::memory::allocator().allocate();
     if (c.process->usyscall)
     {
@@ -70,31 +70,31 @@ struct ProcessManager::AllocateFlow
     }
   }
 
-  static bool has_user_syscall(Context &c) noexcept
-  {
+  static bool
+  has_user_syscall(Context &c) noexcept {
     return c.process->usyscall != nullptr;
   }
 #endif
-  static void image(Context &c) noexcept
-  {
+  static void
+  image(Context &c) noexcept {
     c.ready = c.process->create_image(c.process->memory_);
   }
 
-  static bool ready(Context &c) noexcept
-  {
+  static bool
+  ready(Context &c) noexcept {
     return c.ready;
   }
 
-  static void prepare_return(Context &c) noexcept
-  {
+  static void
+  prepare_return(Context &c) noexcept {
     xv::runtime::fill(&c.process->context, 0, sizeof(c.process->context));
     c.process->context.ra = reinterpret_cast<uint64>(first_return);
     c.process->context.sp = c.process->kstack + KSTACK_PAGES * PGSIZE;
     c.result = c.process;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     c.owner.reap(c.process);
   }
   struct Descriptor;
@@ -136,40 +136,40 @@ struct ProcessManager::ReapFlow
     Process *process;
   };
 
-  static void group(Context &c) noexcept
-  {
+  static void
+  group(Context &c) noexcept {
     c.owner.groups_.release(c.process->membership_);
   }
 
-  static bool has_trapframe(Context &c) noexcept
-  {
+  static bool
+  has_trapframe(Context &c) noexcept {
     return c.process->trapframe != nullptr;
   }
 
-  static void free_trapframe(Context &c) noexcept
-  {
+  static void
+  free_trapframe(Context &c) noexcept {
     xv::memory::allocator().deallocate(c.process->trapframe);
   }
 
-  static void image(Context &c) noexcept
-  {
+  static void
+  image(Context &c) noexcept {
     c.process->trapframe = nullptr;
     c.process->memory_.reset();
     c.process->exec_snapshot_.reset();
   }
 #ifdef LAB_PGTBL
-  static bool has_user_syscall(Context &c) noexcept
-  {
+  static bool
+  has_user_syscall(Context &c) noexcept {
     return c.process->usyscall != nullptr;
   }
 
-  static void free_user_syscall(Context &c) noexcept
-  {
+  static void
+  free_user_syscall(Context &c) noexcept {
     xv::memory::allocator().deallocate(c.process->usyscall);
   }
 #endif
-  static void reset_identity(Context &c) noexcept
-  {
+  static void
+  reset_identity(Context &c) noexcept {
 #ifdef LAB_PGTBL
     c.process->usyscall = nullptr;
 #endif
@@ -189,13 +189,13 @@ struct ProcessManager::ReapFlow
         c.process->continue_notification_ = false;
   }
 
-  static void detach(Context &c) noexcept
-  {
+  static void
+  detach(Context &c) noexcept {
     detach_child(*c.process);
   }
 
-  static void release(Context &c) noexcept
-  {
+  static void
+  release(Context &c) noexcept {
     c.owner.store_.release(c.process);
   }
   struct Group;
@@ -236,39 +236,39 @@ struct ProcessManager::InitialFlow
     bool grouped = false;
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.process = c.owner.allocate();
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.process != nullptr;
   }
 
-  static void no_slot(Context &) noexcept
-  {
+  static void
+  no_slot(Context &) noexcept {
     xv::print::panic("process: no initial process slot");
   }
 
-  static void group(Context &c) noexcept
-  {
+  static void
+  group(Context &c) noexcept {
     c.owner.initial_ = c.process;
     c.grouped = c.owner.groups_.create_initial(c.process->membership_, c.process->pid);
   }
 
-  static bool grouped(Context &c) noexcept
-  {
+  static bool
+  grouped(Context &c) noexcept {
     return c.grouped;
   }
 
-  static void no_session(Context &) noexcept
-  {
+  static void
+  no_session(Context &) noexcept {
     xv::print::panic("process: no initial session memory");
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.owner.scheduler_.make_runnable(*c.process);
     c.process->lock.release();
   }
@@ -284,8 +284,8 @@ struct ProcessManager::InitialFlow
                                           flow::go<NoSlot>>>,
                   flow::node<NoSlot, flow::action<&no_slot>, flow::stop>,
                   flow::node<Group, flow::action<&group>,
-                             flow::branch<flow::condition<&grouped>,
-                                          flow::go<Publish>, flow::go<NoSession>>>,
+                             flow::branch<flow::condition<&grouped>, flow::go<Publish>,
+                                          flow::go<NoSession>>>,
                   flow::node<NoSession, flow::action<&no_session>, flow::stop>,
                   flow::node<Publish, flow::action<&publish>, flow::stop>>>;
 };
@@ -301,33 +301,33 @@ struct ProcessManager::ForkFlow
     int result = -1;
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.child = c.owner.allocate();
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.child != nullptr;
   }
 
-  static void image(Context &c) noexcept
-  {
+  static void
+  image(Context &c) noexcept {
     c.copied = c.parent.memory_.copy_to(c.child->memory_);
   }
 
-  static bool copied(Context &c) noexcept
-  {
+  static bool
+  copied(Context &c) noexcept {
     return c.copied;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     c.owner.reap(c.child);
   }
 
-  static void signal_state(Context &c) noexcept
-  {
+  static void
+  signal_state(Context &c) noexcept {
     c.child->pending_signals_.inherit_dispositions(c.parent.pending_signals_);
     c.child->signal_depth_ = c.parent.signal_depth_;
     for (unsigned i = 0; i < c.parent.signal_depth_; ++i)
@@ -336,14 +336,14 @@ struct ProcessManager::ForkFlow
     }
   }
 
-  static void registers(Context &c) noexcept
-  {
+  static void
+  registers(Context &c) noexcept {
     *c.child->trapframe = *c.parent.trapframe;
     c.child->trapframe->a0 = 0;
   }
 
-  static void resources(Context &c) noexcept
-  {
+  static void
+  resources(Context &c) noexcept {
     c.child->descriptors_.inherit_from(c.parent.descriptors_);
     c.child->directory_.inherit_from(c.parent.directory_);
     c.child->credentials_.inherit(c.parent.credentials_);
@@ -353,16 +353,16 @@ struct ProcessManager::ForkFlow
     c.child->lock.release();
   }
 
-  static void family(Context &c) noexcept
-  {
+  static void
+  family(Context &c) noexcept {
     c.owner.wait_lock_.acquire();
     c.owner.groups_.inherit(c.child->membership_, c.child->pid, c.parent.membership_);
     attach_child(c.parent, *c.child);
     c.owner.wait_lock_.release();
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.child->lock.acquire();
     c.owner.scheduler_.make_runnable(*c.child);
     c.child->lock.release();
@@ -400,8 +400,8 @@ struct ProcessManager::ReparentFlow
     Process *child;
   };
 
-  static void adopt(Context &c) noexcept
-  {
+  static void
+  adopt(Context &c) noexcept {
     c.child->lock.acquire();
     c.owner.groups_.reparent(c.child->membership_, c.owner.initial_->pid);
     detach_child(*c.child);
@@ -409,29 +409,29 @@ struct ProcessManager::ReparentFlow
     refresh_child_events(*c.child);
   }
 
-  static bool zombie(Context &c) noexcept
-  {
+  static bool
+  zombie(Context &c) noexcept {
     return c.child->state == ProcessState::Zombie;
   }
 
-  static void notify(Context &c) noexcept
-  {
+  static void
+  notify(Context &c) noexcept {
     c.owner.post_child_signal(*c.child);
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.child->lock.release();
     c.child = c.parent.first_child_;
   }
 
-  static bool more(Context &c) noexcept
-  {
+  static bool
+  more(Context &c) noexcept {
     return c.child != nullptr;
   }
 
-  static void wake(Context &c) noexcept
-  {
+  static void
+  wake(Context &c) noexcept {
     c.owner.wakeup(&c.owner.initial_->child_events_);
   }
   struct Adopt;
@@ -458,29 +458,28 @@ struct ProcessManager::ExitFlow
     int status, signal;
   };
 
-  static void terminal(Context &c) noexcept
-  {
+  static void
+  terminal(Context &c) noexcept {
     c.owner.groups_.exit_terminal(c.process.membership_);
   }
 
-  static void cancel_wait(Context &c) noexcept
-  {
+  static void
+  cancel_wait(Context &c) noexcept {
     c.owner.waits_.cancel(c.process);
   }
 
-  static void close_files(Context &c) noexcept
-  {
+  static void
+  close_files(Context &c) noexcept {
     c.process.descriptors_.close_all();
   }
 
-  static void directory(Context &c) noexcept
-  {
-    xv::fs::Transaction transaction;
+  static void
+  directory(Context &c) noexcept {
     c.process.directory_.clear();
   }
 
-  static void family(Context &c) noexcept
-  {
+  static void
+  family(Context &c) noexcept {
     c.owner.wait_lock_.acquire();
     c.owner.reparent(&c.process);
     if (c.process.parent)
@@ -489,8 +488,8 @@ struct ProcessManager::ExitFlow
     }
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.process.lock.acquire();
     c.process.xstate = c.status;
     c.process.exit_signal_ = c.signal;
@@ -499,8 +498,8 @@ struct ProcessManager::ExitFlow
     c.owner.wait_lock_.release();
   }
 
-  static void suspend(Context &c) noexcept
-  {
+  static void
+  suspend(Context &c) noexcept {
     c.owner.scheduler_.suspend();
     xv::print::panic("zombie exit");
   }
@@ -533,36 +532,36 @@ struct ProcessManager::KillFlow
     int result = -1;
   };
 
-  static void find(Context &c) noexcept
-  {
+  static void
+  find(Context &c) noexcept {
     c.process = c.owner.store_.find_pid(c.pid);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.process != nullptr;
   }
 
-  static bool permitted(Context &c) noexcept
-  {
+  static bool
+  permitted(Context &c) noexcept {
     return !c.process->kernel_entry_ && c.process != c.owner.initial_ &&
            Credentials::may_signal(current()->credentials().snapshot(),
                                    c.process->credentials().snapshot());
   }
 
-  static void mark(Context &c) noexcept
-  {
+  static void
+  mark(Context &c) noexcept {
     c.process->killed = 1;
     c.owner.wake_for_signal(*c.process);
   }
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.process->lock.release();
   }
 
-  static void notify(Context &c) noexcept
-  {
+  static void
+  notify(Context &c) noexcept {
     c.owner.notify_child_events();
     c.result = 0;
   }
@@ -601,40 +600,38 @@ struct ProcessManager::InspectFlow
     unsigned inspector = ~0U;
   };
 
-  static void find(Context &c) noexcept
-  {
+  static void
+  find(Context &c) noexcept {
     c.process = c.owner.store_.find_pid(c.pid);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.process != nullptr;
   }
 
-  static void credentials(Context &c) noexcept
-  {
+  static void
+  credentials(Context &c) noexcept {
     auto caller = current()->credentials().snapshot(),
          target = c.process->credentials().snapshot();
     unsigned inspector = c.inspector == ~0U ? caller.effective_uid : c.inspector;
-    c.permitted = inspector == 0 || (inspector == target.uid &&
-                                                target.uid == target.effective_uid);
+    c.permitted = inspector == 0 ||
+                  (inspector == target.uid && target.uid == target.effective_uid);
   }
 
-  static bool permitted(Context &c) noexcept
-  {
+  static bool
+  permitted(Context &c) noexcept {
     return c.permitted;
   }
 
-  static void inspect(Context &c) noexcept
-  {
+  static void
+  inspect(Context &c) noexcept {
     if (c.text)
     {
       bool success =
           c.process->state == ProcessState::Zombie ||
           c.process->exec_snapshot_.copy(
-              c.field, c.text,
-              +[](void *context, const void *bytes, unsigned count)
-              {
+              c.field, c.text, +[](void *context, const void *bytes, unsigned count) {
                 return static_cast<xv::fs::PageBuffer *>(context)->append(bytes, count);
               });
       c.result = success ? 0 : -1;
@@ -645,8 +642,8 @@ struct ProcessManager::InspectFlow
     }
   }
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.process->lock.release();
   }
   struct Find;
@@ -664,15 +661,15 @@ struct ProcessManager::InspectFlow
                         flow::node<Unlock, flow::action<&unlock>, flow::stop>>>;
 };
 
-void ProcessManager::initialize()
-{
+void
+ProcessManager::initialize() {
   pid_lock_.init("next pid");
   wait_lock_.init("process families");
   child_notification_lock_.init("child notifications");
 }
 
-int ProcessManager::allocate_pid()
-{
+int
+ProcessManager::allocate_pid() {
   int pid;
 
   pid_lock_.acquire();
@@ -682,8 +679,8 @@ int ProcessManager::allocate_pid()
 }
 
 // Allocation transfers a stable descriptor and its held process lock.
-Process *ProcessManager::allocate()
-{
+Process *
+ProcessManager::allocate() {
   AllocateFlow::Context context{*this};
   (void)AllocateFlow::Graph::run<0>(context);
   return context.result;
@@ -692,15 +689,15 @@ Process *ProcessManager::allocate()
 // Release process-owned resources and its descriptor,
 // including user pages.
 // p->lock must be held.
-void ProcessManager::reap(Process *p)
-{
+void
+ProcessManager::reap(Process *p) {
   ReapFlow::Context context{*this, p};
   (void)ReapFlow::Graph::run<0>(context);
 }
 
 // Set up first user process.
-void ProcessManager::kernel_task_return()
-{
+void
+ProcessManager::kernel_task_return() {
   auto *process = current();
   auto entry = process->kernel_entry_;
   process->lock.release();
@@ -710,8 +707,8 @@ void ProcessManager::kernel_task_return()
   xv::print::panic("kernel task returned");
 }
 
-void ProcessManager::create_kernel_task(const char *name, void (*entry)())
-{
+void
+ProcessManager::create_kernel_task(const char *name, void (*entry)()) {
   auto *process = allocate();
   if (!process)
   {
@@ -724,16 +721,16 @@ void ProcessManager::create_kernel_task(const char *name, void (*entry)())
   process->lock.release();
 }
 
-void ProcessManager::create_initial_process(void)
-{
+void
+ProcessManager::create_initial_process(void) {
   InitialFlow::Context context{*this};
   (void)InitialFlow::Graph::run<0>(context);
 }
 
 // Family links are only accessed with wait_lock_ held. Unpublished rollback
 // objects have no parent, so detach also accepts a never-attached descriptor.
-void ProcessManager::attach_child(Process &parent, Process &child)
-{
+void
+ProcessManager::attach_child(Process &parent, Process &child) {
   child.parent = &parent;
   child.sibling_previous_ = parent.last_child_;
   child.sibling_next_ = nullptr;
@@ -748,8 +745,8 @@ void ProcessManager::attach_child(Process &parent, Process &child)
   parent.last_child_ = &child;
 }
 
-void ProcessManager::detach_child(Process &child)
-{
+void
+ProcessManager::detach_child(Process &child) {
   remove_child_events(child);
   auto *parent = child.parent;
   if (!parent)
@@ -778,8 +775,8 @@ void ProcessManager::detach_child(Process &child)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
-int ProcessManager::fork_process(void)
-{
+int
+ProcessManager::fork_process(void) {
   ForkFlow::Context context{*this, *current()};
   (void)ForkFlow::Graph::run<0>(context);
   return context.result;
@@ -787,8 +784,8 @@ int ProcessManager::fork_process(void)
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock_.
-void ProcessManager::reparent(Process *p)
-{
+void
+ProcessManager::reparent(Process *p) {
   if (!p->first_child_)
   {
     return;
@@ -800,8 +797,8 @@ void ProcessManager::reparent(Process *p)
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait().
-void ProcessManager::exit_process(int status, int signal)
-{
+void
+ProcessManager::exit_process(int status, int signal) {
   Process *p = current();
   if (p == initial_)
   {
@@ -813,16 +810,16 @@ void ProcessManager::exit_process(int status, int signal)
 }
 
 // Wake up all processes sleeping on channel chan.
-void ProcessManager::wakeup(void *channel)
-{
+void
+ProcessManager::wakeup(void *channel) {
   waits_.wake(channel);
 }
 
 // Kill the process with the given pid.
 // The victim won't exit until it tries to return
 // to user space (see usertrap() in trap.c).
-int ProcessManager::kill(int pid)
-{
+int
+ProcessManager::kill(int pid) {
   if (pid <= 0)
   {
     return -1;
@@ -833,14 +830,14 @@ int ProcessManager::kill(int pid)
   return context.result;
 }
 
-void ProcessManager::dump()
-{
+void
+ProcessManager::dump() {
   class Listing final : public ProcessVisitor
   {
   public:
 
-    void visit(Process &process) override
-    {
+    void
+    visit(Process &process) override {
       static const char *states[] = {"unused", "used",    "sleep", "runble",
                                      "run",    "stopped", "zombie"};
       if (process.state == ProcessState::Unused)
@@ -859,19 +856,18 @@ void ProcessManager::dump()
   store_.visit(listing);
 }
 
-bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
-{
+bool
+ProcessManager::snapshot_after(int after, ProcessInfo &result) {
   class Snapshot final : public ProcessVisitor
   {
   public:
 
     Snapshot(int after, ProcessInfo &result, ProcessGroups &groups)
-        : after_(after), result_(result), groups_(groups)
-    {
+        : after_(after), result_(result), groups_(groups) {
     }
 
-    void visit(Process &process) override
-    {
+    void
+    visit(Process &process) override {
       if (process.state == ProcessState::Unused || process.pid <= after_ ||
           (found && process.pid >= result_.pid))
       {
@@ -908,8 +904,9 @@ bool ProcessManager::snapshot_after(int after, ProcessInfo &result)
   return snapshot.found;
 }
 
-int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector)
-{
+int
+ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity,
+                              unsigned inspector) {
   if (pid < 1 || capacity < DescriptorTable::Capacity ||
       (inspector != ~0U && current()->credentials().snapshot().effective_uid != 0))
   {
@@ -922,10 +919,11 @@ int ProcessManager::inspect_files(int pid, xv::fs::FileInfo *entries, unsigned c
   return context.result;
 }
 
-bool ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field,
-                                  xv::fs::PageBuffer &result, unsigned inspector)
-{
-  if (pid < 1 || (inspector != ~0U && current()->credentials().snapshot().effective_uid != 0))
+bool
+ProcessManager::inspect_exec(int pid, ExecSnapshot::Field field,
+                             xv::fs::PageBuffer &result, unsigned inspector) {
+  if (pid < 1 ||
+      (inspector != ~0U && current()->credentials().snapshot().effective_uid != 0))
   {
     return false;
   }

@@ -385,11 +385,6 @@ attach(Image &image, const xv_kmod_device_v2 &device) {
   return 0;
 }
 
-SerialPort &
-serial_proxy() {
-  return serial;
-}
-
 unsigned
 network_count() {
   return __atomic_load_n(&network_size, __ATOMIC_ACQUIRE);

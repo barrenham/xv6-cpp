@@ -1,6 +1,6 @@
 #include "kernel/fs/image_paths.h"
 #include "kernel/support/types.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"

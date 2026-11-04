@@ -9,7 +9,7 @@ module;
 
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/fs/fcntl.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/mount.h"
 #include "kernel/fs/userfs/protocol.h"
 #include "kernel/fs/stat.h"
@@ -31,8 +31,8 @@ import xv.drivers;
 namespace xv::syscall
 {
 
-uint64 sys_kmod()
-{
+uint64
+sys_kmod() {
   int operation;
   unsigned long argument, value;
   argument_integer(0, &operation);
@@ -43,8 +43,8 @@ uint64 sys_kmod()
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding xv::fs::File.
-static int argfd(int n, int *pfd, xv::fs::File **pf)
-{
+static int
+argfd(int n, int *pfd, xv::fs::File **pf) {
   int fd;
   xv::fs::File *f;
 
@@ -66,22 +66,22 @@ static int argfd(int n, int *pfd, xv::fs::File **pf)
 
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
-static int fdalloc(xv::fs::File *f)
-{
+static int
+fdalloc(xv::fs::File *f) {
   xv::process::Process *p = xv::process::current();
 
   return p->files().install(f);
 }
 
-uint64 sys_dup(void)
-{
+uint64
+sys_dup(void) {
   int descriptor;
   argument_integer(0, &descriptor);
   return xv::process::current()->files().duplicate(descriptor);
 }
 
-uint64 sys_read(void)
-{
+uint64
+sys_read(void) {
   xv::fs::File *f;
   int n;
   uint64 p;
@@ -95,8 +95,8 @@ uint64 sys_read(void)
   return xv::fs::files().read(f, p, n);
 }
 
-uint64 sys_write(void)
-{
+uint64
+sys_write(void) {
   xv::fs::File *f;
   int n;
   uint64 p;
@@ -111,23 +111,29 @@ uint64 sys_write(void)
   return xv::fs::files().write(f, p, n);
 }
 
-uint64 sys_close(void)
-{
+uint64
+sys_close(void) {
   int descriptor;
   argument_integer(0, &descriptor);
   return xv::process::current()->files().close(descriptor) ? 0 : -1;
 }
 
-uint64 sys_getdents64()
-{
-  xv::fs::File *file;unsigned long destination;int count;
-  if(argfd(0,nullptr,&file)<0)return -1;
-  argument_address(1,&destination);argument_integer(2,&count);
-  return xv::fs::files().getdents64(file,destination,count);
+uint64
+sys_getdents64() {
+  xv::fs::File *file;
+  unsigned long destination;
+  int count;
+  if (argfd(0, nullptr, &file) < 0)
+  {
+    return -1;
+  }
+  argument_address(1, &destination);
+  argument_integer(2, &count);
+  return xv::fs::files().getdents64(file, destination, count);
 }
 
-uint64 sys_fstat(void)
-{
+uint64
+sys_fstat(void) {
   xv::fs::File *f;
   uint64 st; // user pointer to struct stat
 
@@ -139,8 +145,8 @@ uint64 sys_fstat(void)
   return xv::fs::files().stat(f, st);
 }
 
-uint64 sys_link(void)
-{
+uint64
+sys_link(void) {
   char old[MAXPATH], next[MAXPATH];
   if (argument_string(0, old, MAXPATH) < 0 || argument_string(1, next, MAXPATH) < 0)
   {
@@ -149,8 +155,8 @@ uint64 sys_link(void)
   return xv::fs::filesystem().link(old, next);
 }
 
-uint64 sys_unlink(void)
-{
+uint64
+sys_unlink(void) {
   char path[MAXPATH];
   if (argument_string(0, path, MAXPATH) < 0)
   {
@@ -162,6 +168,7 @@ uint64 sys_unlink(void)
 namespace
 {
 namespace flow = xv::flow;
+
 struct OpenFlow
 {
   struct Context
@@ -174,25 +181,36 @@ struct OpenFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool creating(Context &c) noexcept { return c.mode & O_CREATE; }
-  static bool create(Context &c) noexcept
-  {
+  static bool
+  creating(Context &c) noexcept {
+    return c.mode & O_CREATE;
+  }
+
+  static bool
+  create(Context &c) noexcept {
     c.inode = xv::fs::filesystem().create(c.path, T_FILE, 0, 0, !(c.mode & O_NOFOLLOW));
     return c.inode;
   }
-  static bool lookup(Context &c) noexcept
-  {
+
+  static bool
+  lookup(Context &c) noexcept {
     c.inode = xv::fs::filesystem().lookup(c.path, false, !(c.mode & O_NOFOLLOW));
     return c.inode;
   }
-  static void lock(Context &c) noexcept { xv::fs::filesystem().lock(c.inode); }
-  static bool existing_kind(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
+    xv::fs::filesystem().lock(c.inode);
+  }
+
+  static bool
+  existing_kind(Context &c) noexcept {
     return c.inode->kind() != T_SYMLINK &&
            (c.inode->kind() != T_DIR || (c.mode & ~O_NONBLOCK) == O_RDONLY);
   }
-  static bool permitted(Context &c) noexcept
-  {
+
+  static bool
+  permitted(Context &c) noexcept {
     unsigned access = (c.mode & O_ACCMODE) == O_WRONLY ? 2
                       : (c.mode & O_ACCMODE) == O_RDWR ? 6
                                                        : 4;
@@ -201,34 +219,43 @@ struct OpenFlow
                c.inode,
                access | ((c.mode & O_TRUNC) && c.inode->kind() == T_FILE ? 2 : 0));
   }
-  static bool writable_mount(Context &c) noexcept
-  {
+
+  static bool
+  writable_mount(Context &c) noexcept {
     return !(c.inode->kind() == T_FILE && c.inode->owner().read_only() &&
              ((c.mode & O_ACCMODE) != O_RDONLY || (c.mode & O_TRUNC)));
   }
-  static bool allocate(Context &c) noexcept
-  {
+
+  static bool
+  allocate(Context &c) noexcept {
     c.file = xv::fs::files().allocate();
     return c.file;
   }
-  static bool install(Context &c) noexcept
-  {
+
+  static bool
+  install(Context &c) noexcept {
     c.descriptor = fdalloc(c.file);
     return c.descriptor >= 0;
   }
-  static bool bind(Context &c) noexcept
-  {
+
+  static bool
+  bind(Context &c) noexcept {
     return xv::fs::files().bind_inode(*c.file, *c.inode, !(c.mode & O_WRONLY),
                                       (c.mode & O_WRONLY) || (c.mode & O_RDWR),
                                       c.mode & O_NONBLOCK, c.mode & O_APPEND);
   }
-  static bool truncating(Context &c) noexcept
-  {
+
+  static bool
+  truncating(Context &c) noexcept {
     return (c.mode & O_TRUNC) && c.inode->kind() == T_FILE;
   }
-  static bool truncate(Context &c) noexcept
-  {
-    if(c.inode->owner().resize(c.inode,0)<0)return false;
+
+  static bool
+  truncate(Context &c) noexcept {
+    if (c.inode->owner().resize(c.inode, 0) < 0)
+    {
+      return false;
+    }
     if (c.inode->mode() & 06000)
     {
       c.inode->owner().attributes(c.inode, c.inode->uid(), c.inode->gid(),
@@ -236,18 +263,29 @@ struct OpenFlow
     }
     return true;
   }
-  static void unlock_bound(Context &c) noexcept {xv::fs::filesystem().unlock(c.inode);}
-  static void detach(Context &c) noexcept
-  {
+
+  static void
+  unlock_bound(Context &c) noexcept {
+    xv::fs::filesystem().unlock(c.inode);
+  }
+
+  static void
+  detach(Context &c) noexcept {
     xv::process::current()->files().take(c.descriptor);
   }
-  static void release_file(Context &c) noexcept { xv::fs::files().release(c.file); }
-  static void release_inode(Context &c) noexcept
-  {
+
+  static void
+  release_file(Context &c) noexcept {
+    xv::fs::files().release(c.file);
+  }
+
+  static void
+  release_inode(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
   }
-  static void success(Context &c) noexcept
-  {
+
+  static void
+  success(Context &c) noexcept {
     xv::fs::filesystem().unlock(c.inode);
     c.result = c.descriptor;
   }
@@ -303,15 +341,17 @@ struct OpenFlow
                      flow::branch<flow::condition<&truncating>, flow::go<Truncate>,
                                   flow::go<Success>>>,
           flow::node<Truncate, flow::noop,
-                     flow::branch<flow::condition<&truncate>,flow::go<Success>,flow::go<UnlockBound>>>,
-          flow::node<UnlockBound,flow::action<&unlock_bound>,flow::go<DetachBound>>,
-          flow::node<DetachBound,flow::action<&detach>,flow::go<ReleaseBound>>,
-          flow::node<ReleaseBound,flow::action<&release_file>,flow::stop>,
+                     flow::branch<flow::condition<&truncate>, flow::go<Success>,
+                                  flow::go<UnlockBound>>>,
+          flow::node<UnlockBound, flow::action<&unlock_bound>, flow::go<DetachBound>>,
+          flow::node<DetachBound, flow::action<&detach>, flow::go<ReleaseBound>>,
+          flow::node<ReleaseBound, flow::action<&release_file>, flow::stop>,
           flow::node<Success, flow::action<&success>, flow::stop>,
           flow::node<Detach, flow::action<&detach>, flow::go<ReleaseFile>>,
           flow::node<ReleaseFile, flow::action<&release_file>, flow::go<ReleaseInode>>,
           flow::node<ReleaseInode, flow::action<&release_inode>, flow::stop>>>;
 };
+
 struct CreateNodeFlow
 {
   struct Context
@@ -323,13 +363,14 @@ struct CreateNodeFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool create(Context &c) noexcept
-  {
+  static bool
+  create(Context &c) noexcept {
     c.inode = xv::fs::filesystem().create(c.path, c.kind, c.major, c.minor);
     return c.inode;
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
     c.result = 0;
   }
@@ -342,6 +383,7 @@ struct CreateNodeFlow
                                                       flow::go<Release>, flow::stop>>,
                               flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct DirectoryFlow
 {
   struct Context
@@ -352,22 +394,29 @@ struct DirectoryFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool lookup(Context &c) noexcept
-  {
+  static bool
+  lookup(Context &c) noexcept {
     c.inode = xv::fs::filesystem().lookup(c.path);
     return c.inode;
   }
-  static void lock(Context &c) noexcept { xv::fs::filesystem().lock(c.inode); }
-  static bool searchable(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
+    xv::fs::filesystem().lock(c.inode);
+  }
+
+  static bool
+  searchable(Context &c) noexcept {
     return c.inode->kind() == T_DIR && xv::fs::filesystem().allowed(c.inode, 1);
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
   }
-  static void commit(Context &c) noexcept
-  {
+
+  static void
+  commit(Context &c) noexcept {
     xv::fs::filesystem().unlock(c.inode);
     c.process->directory().replace(c.inode);
     c.result = 0;
@@ -386,6 +435,7 @@ struct DirectoryFlow
                           flow::node<Commit, flow::action<&commit>, flow::stop>,
                           flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct PipeFlow
 {
   struct Context
@@ -397,41 +447,55 @@ struct PipeFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool create(Context &c) noexcept
-  {
+  static bool
+  create(Context &c) noexcept {
     return xv::fs::create_pipe(&c.reader, &c.writer);
   }
-  static bool install_reader(Context &c) noexcept
-  {
+
+  static bool
+  install_reader(Context &c) noexcept {
     c.first = fdalloc(c.reader);
     return c.first >= 0;
   }
-  static bool install_writer(Context &c) noexcept
-  {
+
+  static bool
+  install_writer(Context &c) noexcept {
     c.second = fdalloc(c.writer);
     return c.second >= 0;
   }
-  static bool copy_reader(Context &c) noexcept
-  {
+
+  static bool
+  copy_reader(Context &c) noexcept {
     return c.process->memory().copy_out(c.address, &c.first, sizeof(c.first)) >= 0;
   }
-  static bool copy_writer(Context &c) noexcept
-  {
+
+  static bool
+  copy_writer(Context &c) noexcept {
     return c.process->memory().copy_out(c.address + sizeof(c.first), &c.second,
                                         sizeof(c.second)) >= 0;
   }
-  static void detach_reader(Context &c) noexcept { c.process->files().take(c.first); }
-  static void detach_both(Context &c) noexcept
-  {
+
+  static void
+  detach_reader(Context &c) noexcept {
+    c.process->files().take(c.first);
+  }
+
+  static void
+  detach_both(Context &c) noexcept {
     c.process->files().take(c.first);
     c.process->files().take(c.second);
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::files().release(c.reader);
     xv::fs::files().release(c.writer);
   }
-  static void success(Context &c) noexcept { c.result = 0; }
+
+  static void
+  success(Context &c) noexcept {
+    c.result = 0;
+  }
   struct Create;
   struct InstallReader;
   struct InstallWriter;
@@ -464,6 +528,7 @@ struct PipeFlow
           flow::node<DetachBoth, flow::action<&detach_both>, flow::go<Release>>,
           flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct PtyOpenFlow
 {
   struct Context
@@ -476,23 +541,26 @@ struct PtyOpenFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.master_file = xv::fs::files().allocate();
     c.slave_file = xv::fs::files().allocate();
   }
-  static bool create(Context &c) noexcept
-  {
+
+  static bool
+  create(Context &c) noexcept {
     return c.master_file && c.slave_file &&
            xv::drivers::create_pty(&c.master, &c.slave);
   }
-  static void bind(Context &c) noexcept
-  {
+
+  static void
+  bind(Context &c) noexcept {
     xv::fs::files().bind_endpoint(*c.master_file, *c.master);
     xv::fs::files().bind_endpoint(*c.slave_file, *c.slave);
   }
-  static bool install(Context &c) noexcept
-  {
+
+  static bool
+  install(Context &c) noexcept {
     c.table = &xv::process::current()->files();
     c.descriptors[0] = c.table->install(c.master_file);
     if (c.descriptors[0] >= 0)
@@ -501,13 +569,15 @@ struct PtyOpenFlow
     }
     return c.descriptors[1] >= 0;
   }
-  static bool copy(Context &c) noexcept
-  {
+
+  static bool
+  copy(Context &c) noexcept {
     return xv::process::current()->memory().copy_out(c.address, c.descriptors,
                                                      sizeof(c.descriptors)) >= 0;
   }
-  static void detach(Context &c) noexcept
-  {
+
+  static void
+  detach(Context &c) noexcept {
     if (c.descriptors[0] >= 0)
     {
       c.table->take(c.descriptors[0]);
@@ -517,8 +587,9 @@ struct PtyOpenFlow
       c.table->take(c.descriptors[1]);
     }
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     if (c.master_file)
     {
       xv::fs::files().release(c.master_file);
@@ -528,7 +599,11 @@ struct PtyOpenFlow
       xv::fs::files().release(c.slave_file);
     }
   }
-  static void success(Context &c) noexcept { c.result = 0; }
+
+  static void
+  success(Context &c) noexcept {
+    c.result = 0;
+  }
   struct Allocate;
   struct Bind;
   struct Install;
@@ -552,6 +627,7 @@ struct PtyOpenFlow
                   flow::node<Detach, flow::action<&detach>, flow::go<Release>>,
                   flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct AttributesFlow
 {
   struct Context
@@ -564,14 +640,19 @@ struct AttributesFlow
     unsigned uid = 0, gid = 0, mode = 0;
   };
 
-  static bool lookup(Context &c) noexcept
-  {
+  static bool
+  lookup(Context &c) noexcept {
     c.node = xv::fs::filesystem().lookup(c.path);
     return c.node;
   }
-  static void lock(Context &c) noexcept { xv::fs::filesystem().lock(c.node); }
-  static void assess(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
+    xv::fs::filesystem().lock(c.node);
+  }
+
+  static void
+  assess(Context &c) noexcept {
     auto who = xv::process::current()->credentials().snapshot();
     c.valid = !c.node->owner().read_only() &&
               (who.effective_uid == 0 || who.effective_uid == c.node->uid());
@@ -619,13 +700,19 @@ struct AttributesFlow
       c.mode &= ~06000U;
     }
   }
-  static bool valid(Context &c) noexcept { return c.valid; }
-  static void commit(Context &c) noexcept
-  {
+
+  static bool
+  valid(Context &c) noexcept {
+    return c.valid;
+  }
+
+  static void
+  commit(Context &c) noexcept {
     c.valid = c.node->owner().attributes(c.node, c.uid, c.gid, c.mode);
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.node);
   }
   struct Lookup;
@@ -644,6 +731,7 @@ struct AttributesFlow
                           flow::node<Commit, flow::action<&commit>, flow::go<Release>>,
                           flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct AccessFlow
 {
   struct Context
@@ -654,18 +742,24 @@ struct AccessFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool lookup(Context &c) noexcept
-  {
+  static bool
+  lookup(Context &c) noexcept {
     c.inode = xv::fs::filesystem().lookup(c.path, true);
     return c.inode;
   }
-  static void lock(Context &c) noexcept { xv::fs::filesystem().lock(c.inode); }
-  static void assess(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
+    xv::fs::filesystem().lock(c.inode);
+  }
+
+  static void
+  assess(Context &c) noexcept {
     c.result = xv::fs::filesystem().allowed(c.inode, c.mode, true) ? 0 : -1;
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
   }
   struct Lookup;
@@ -680,6 +774,7 @@ struct AccessFlow
                           flow::node<Assess, flow::action<&assess>, flow::go<Release>>,
                           flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
+
 struct StatFlow
 {
   struct Context
@@ -692,28 +787,35 @@ struct StatFlow
     uint64 result = static_cast<uint64>(-1);
   };
 
-  static bool lookup(Context &c) noexcept
-  {
+  static bool
+  lookup(Context &c) noexcept {
     c.inode = xv::fs::filesystem().lookup(c.path, false, c.follow);
     return c.inode;
   }
-  static void lock(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
     c.value = {};
     xv::fs::filesystem().lock(c.inode);
   }
-  static void snapshot(Context &c) noexcept
-  {
+
+  static void
+  snapshot(Context &c) noexcept {
     c.result = c.inode->owner().status(c.inode, &c.value);
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
   }
-  static void copy(Context &c) noexcept
-  {
+
+  static void
+  copy(Context &c) noexcept {
     if (c.result == 0)
-      c.result = xv::process::current()->memory().copy_out(c.address, &c.value, sizeof(c.value));
+    {
+      c.result = xv::process::current()->memory().copy_out(c.address, &c.value,
+                                                           sizeof(c.value));
+    }
   }
   struct Lookup;
   struct Lock;
@@ -730,6 +832,7 @@ struct StatFlow
                   flow::node<Release, flow::action<&release>, flow::go<Copy>>,
                   flow::node<Copy, flow::action<&copy>, flow::stop>>>;
 };
+
 struct UnmountFlow
 {
   struct Context
@@ -738,28 +841,16 @@ struct UnmountFlow
     int result = -1;
   };
 
-  static void unmount(Context &c) noexcept
-  {
+  static void
+  unmount(Context &c) noexcept {
     c.result = xv::fs::filesystem().unmount(c.path);
   }
-  static bool removed(Context &c) noexcept { return c.result == 0; }
-  static void sync(Context &) noexcept
-  {
-    xv::fs::journal().sync();
-    if (xv::fs::Transaction::secondary)
-    {
-      xv::fs::Transaction::secondary->sync();
-    }
-  }
   struct Unmount;
-  struct Sync;
   using Graph =
       flow::graph<Unmount,
-                  flow::types<flow::node<Unmount, flow::action<&unmount>,
-                                         flow::branch<flow::condition<&removed>,
-                                                      flow::go<Sync>, flow::stop>>,
-                              flow::node<Sync, flow::action<&sync>, flow::stop>>>;
+                  flow::types<flow::node<Unmount, flow::action<&unmount>, flow::stop>>>;
 };
+
 struct MountInfoFlow
 {
   struct Context
@@ -770,17 +861,26 @@ struct MountInfoFlow
     int result = 0;
   };
 
-  static void describe(Context &c) noexcept
-  {
+  static void
+  describe(Context &c) noexcept {
     c.result = xv::fs::filesystem().mounts(c.index, c.record.path, c.record.type);
   }
-  static bool has_result(Context &c) noexcept { return c.result != 0; }
-  static bool copy(Context &c) noexcept
-  {
+
+  static bool
+  has_result(Context &c) noexcept {
+    return c.result != 0;
+  }
+
+  static bool
+  copy(Context &c) noexcept {
     return xv::process::current()->memory().copy_out(c.address, &c.record,
                                                      sizeof(c.record)) >= 0;
   }
-  static void bad_copy(Context &c) noexcept { c.result = -1; }
+
+  static void
+  bad_copy(Context &c) noexcept {
+    c.result = -1;
+  }
   struct Describe;
   struct Copy;
   struct BadCopy;
@@ -793,6 +893,7 @@ struct MountInfoFlow
                                                     flow::go<BadCopy>>>,
                             flow::node<BadCopy, flow::action<&bad_copy>, flow::stop>>>;
 };
+
 struct ReadlinkFlow
 {
   struct Context
@@ -804,19 +905,29 @@ struct ReadlinkFlow
     int result = -1;
   };
 
-  static bool lookup(Context &c) noexcept
-  {
+  static bool
+  lookup(Context &c) noexcept {
     c.inode = xv::fs::filesystem().lookup(c.path, false, false);
     return c.inode;
   }
-  static void lock(Context &c) noexcept { xv::fs::filesystem().lock(c.inode); }
-  static bool symlink(Context &c) noexcept { return c.inode->kind() == T_SYMLINK; }
-  static void read(Context &c) noexcept
-  {
+
+  static void
+  lock(Context &c) noexcept {
+    xv::fs::filesystem().lock(c.inode);
+  }
+
+  static bool
+  symlink(Context &c) noexcept {
+    return c.inode->kind() == T_SYMLINK;
+  }
+
+  static void
+  read(Context &c) noexcept {
     c.result = c.inode->owner().read(c.inode, 1, c.address, 0, c.size);
   }
-  static void release(Context &c) noexcept
-  {
+
+  static void
+  release(Context &c) noexcept {
     xv::fs::filesystem().unlock_release(c.inode);
   }
   struct Lookup;
@@ -836,8 +947,8 @@ struct ReadlinkFlow
 
 } // namespace
 
-uint64 sys_open(void)
-{
+uint64
+sys_open(void) {
   char path[MAXPATH];
   int mode;
   argument_integer(1, &mode);
@@ -845,16 +956,14 @@ uint64 sys_open(void)
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   OpenFlow::Context context{path, mode};
   (void)OpenFlow::Graph::run<0>(context);
   return context.result;
 }
 
-uint64 sys_mkdir(void)
-{
+uint64
+sys_mkdir(void) {
   char path[MAXPATH];
-  xv::fs::Transaction transaction;
   if (argument_string(0, path, MAXPATH) < 0)
   {
     return -1;
@@ -864,11 +973,10 @@ uint64 sys_mkdir(void)
   return context.result;
 }
 
-uint64 sys_mknod(void)
-{
+uint64
+sys_mknod(void) {
   char path[MAXPATH];
   int major, minor;
-  xv::fs::Transaction transaction;
   argument_integer(1, &major);
   argument_integer(2, &minor);
   if (argument_string(0, path, MAXPATH) < 0)
@@ -880,11 +988,10 @@ uint64 sys_mknod(void)
   return context.result;
 }
 
-uint64 sys_chdir(void)
-{
+uint64
+sys_chdir(void) {
   char path[MAXPATH];
   auto *process = xv::process::current();
-  xv::fs::Transaction transaction;
   if (argument_string(0, path, MAXPATH) < 0)
   {
     return -1;
@@ -900,8 +1007,8 @@ struct ArgumentVector
 {
   struct CopyFlow;
   char *items[MAXARG]{};
-  ~ArgumentVector()
-  {
+
+  ~ArgumentVector() {
     for (auto *item : items)
     {
       if (item)
@@ -910,8 +1017,10 @@ struct ArgumentVector
       }
     }
   }
+
   bool copy(uint64 address);
 };
+
 struct ArgumentVector::CopyFlow
 {
   struct Context
@@ -922,25 +1031,48 @@ struct ArgumentVector::CopyFlow
     uint64 argument = 0;
     bool result = false;
   };
-  static bool present(Context &c) noexcept { return c.address != 0; }
-  static bool fetch(Context &c) noexcept
-  {
+
+  static bool
+  present(Context &c) noexcept {
+    return c.address != 0;
+  }
+
+  static bool
+  fetch(Context &c) noexcept {
     return c.address <= ~0UL - c.index * sizeof(uint64) &&
            fetch_address(c.address + c.index * sizeof(uint64), &c.argument) >= 0;
   }
-  static bool terminated(Context &c) noexcept { return c.argument == 0; }
-  static bool capacity(Context &c) noexcept { return c.index != MAXARG - 1; }
-  static bool allocate(Context &c) noexcept
-  {
+
+  static bool
+  terminated(Context &c) noexcept {
+    return c.argument == 0;
+  }
+
+  static bool
+  capacity(Context &c) noexcept {
+    return c.index != MAXARG - 1;
+  }
+
+  static bool
+  allocate(Context &c) noexcept {
     c.owner.items[c.index] = static_cast<char *>(xv::memory::allocator().allocate());
     return c.owner.items[c.index];
   }
-  static bool copy_string(Context &c) noexcept
-  {
+
+  static bool
+  copy_string(Context &c) noexcept {
     return fetch_string(c.argument, c.owner.items[c.index], PGSIZE) >= 0;
   }
-  static void advance(Context &c) noexcept { ++c.index; }
-  static void success(Context &c) noexcept { c.result = true; }
+
+  static void
+  advance(Context &c) noexcept {
+    ++c.index;
+  }
+
+  static void
+  success(Context &c) noexcept {
+    c.result = true;
+  }
   struct Present;
   struct Fetch;
   struct Terminated;
@@ -973,8 +1105,8 @@ struct ArgumentVector::CopyFlow
                   flow::node<Success, flow::action<&success>, flow::stop>>>;
 };
 
-bool ArgumentVector::copy(uint64 address)
-{
+bool
+ArgumentVector::copy(uint64 address) {
   CopyFlow::Context context{*this, address};
   (void)CopyFlow::Graph::run<0>(context);
   return context.result;
@@ -989,13 +1121,19 @@ struct ExecuteImageFlow
     ArgumentVector &argv, &envp;
     uint64 result = static_cast<uint64>(-1);
   };
-  static bool arguments(Context &c) noexcept { return c.argv.copy(c.arguments); }
-  static bool environment(Context &c) noexcept
-  {
+
+  static bool
+  arguments(Context &c) noexcept {
+    return c.argv.copy(c.arguments);
+  }
+
+  static bool
+  environment(Context &c) noexcept {
     return !c.environment || c.envp.copy(c.environment);
   }
-  static void execute(Context &c) noexcept
-  {
+
+  static void
+  execute(Context &c) noexcept {
     c.result = xv::process::execute(c.path, c.argv.items, c.envp.items);
   }
   struct Arguments;
@@ -1012,8 +1150,8 @@ struct ExecuteImageFlow
                   flow::node<Execute, flow::action<&execute>, flow::stop>>>;
 };
 
-uint64 execute_image(bool with_environment)
-{
+uint64
+execute_image(bool with_environment) {
   char path[MAXPATH];
   uint64 arguments, environment = 0;
   argument_address(1, &arguments);
@@ -1031,32 +1169,47 @@ uint64 execute_image(bool with_environment)
   return context.result;
 }
 } // namespace
-uint64 sys_exec() { return execute_image(false); }
-uint64 sys_execve() { return execute_image(true); }
 
-uint64 sys_fexecve()
-{
+uint64
+sys_exec() {
+  return execute_image(false);
+}
+
+uint64
+sys_execve() {
+  return execute_image(true);
+}
+
+uint64
+sys_fexecve() {
   int descriptor;
   uint64 arguments, environment;
   argument_integer(0, &descriptor);
   argument_address(1, &arguments);
   argument_address(2, &environment);
   ArgumentVector argv, envp;
-  if (!argv.copy(arguments) || (environment && !envp.copy(environment))) return -1;
+  if (!argv.copy(arguments) || (environment && !envp.copy(environment)))
+  {
+    return -1;
+  }
   auto *process = xv::process::current();
   auto *file = process->files().get(descriptor);
-  if (!file) return -1;
+  if (!file)
+  {
+    return -1;
+  }
   xv::fs::files().retain(file);
   auto *image = xv::io::query<xv::io::ExecutableData>(xv::fs::files().object(file));
   int result = image ? xv::process::executable_loader().load_memory(
-      *process, image->bytes(), image->length(), image->name(), argv.items, envp.items) : -1;
+                           *process, image->bytes(), image->length(), image->name(),
+                           argv.items, envp.items)
+                     : -1;
   xv::fs::files().release(file);
   return result;
 }
 
-
-uint64 sys_pipe(void)
-{
+uint64
+sys_pipe(void) {
   uint64 address;
   auto *process = xv::process::current();
   argument_address(0, &address);
@@ -1065,8 +1218,8 @@ uint64 sys_pipe(void)
   return context.result;
 }
 
-uint64 sys_openpty(void)
-{
+uint64
+sys_openpty(void) {
   uint64 address;
   argument_address(0, &address);
   PtyOpenFlow::Context context{address};
@@ -1074,8 +1227,8 @@ uint64 sys_openpty(void)
   return context.result;
 }
 
-uint64 sys_fcntl(void)
-{
+uint64
+sys_fcntl(void) {
   xv::fs::File *file;
   int command, flags = 0;
   argument_integer(1, &command);
@@ -1090,8 +1243,8 @@ uint64 sys_fcntl(void)
   return xv::fs::files().fcntl(file, command, static_cast<unsigned>(flags));
 }
 
-uint64 sys_ioctl(void)
-{
+uint64
+sys_ioctl(void) {
   xv::fs::File *file;
   int request;
   uint64 argument;
@@ -1104,23 +1257,15 @@ uint64 sys_ioctl(void)
   return xv::fs::files().ioctl(file, static_cast<unsigned>(request), argument);
 }
 
-uint64 sys_sync(void)
-{
-  if (xv::fs::filesystem().services())
-  {
-    return xv::fs::filesystem().synchronize_services();
-  }
-  xv::fs::journal().sync();
-  if (xv::fs::Transaction::secondary)
-  {
-    xv::fs::Transaction::secondary->sync();
-  }
-  return 0;
+uint64
+sys_sync(void) {
+  return xv::fs::filesystem().synchronize_services();
 }
+
 namespace
 {
-uint64 attributes(bool ownership)
-{
+uint64
+attributes(bool ownership) {
   char path[MAXPATH];
   int first, second = -1;
   argument_integer(1, &first);
@@ -1132,16 +1277,24 @@ uint64 attributes(bool ownership)
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   AttributesFlow::Context context{path, ownership, first, second};
   (void)AttributesFlow::Graph::run<0>(context);
   return context.valid ? 0 : -1;
 }
 } // namespace
-uint64 sys_chmod() { return attributes(false); }
-uint64 sys_chown() { return attributes(true); }
-uint64 sys_access()
-{
+
+uint64
+sys_chmod() {
+  return attributes(false);
+}
+
+uint64
+sys_chown() {
+  return attributes(true);
+}
+
+uint64
+sys_access() {
   char path[MAXPATH];
   int mode;
   argument_integer(1, &mode);
@@ -1149,13 +1302,13 @@ uint64 sys_access()
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   AccessFlow::Context context{path, mode};
   (void)AccessFlow::Graph::run<0>(context);
   return context.result;
 }
-uint64 sys_stat()
-{
+
+uint64
+sys_stat() {
   char path[MAXPATH];
   uint64 address;
   argument_address(1, &address);
@@ -1163,15 +1316,14 @@ uint64 sys_stat()
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   xv::fs::Stat value;
   StatFlow::Context context{path, address, true, value};
   (void)StatFlow::Graph::run<0>(context);
   return context.result;
 }
 
-uint64 sys_rename()
-{
+uint64
+sys_rename() {
   char old[MAXPATH], next[MAXPATH];
   if (argument_string(0, old, MAXPATH) <= 0 || argument_string(1, next, MAXPATH) <= 0)
   {
@@ -1199,29 +1351,55 @@ uint64 sys_rename()
   }
   return xv::fs::filesystem().rename(old, next);
 }
-uint64 sys_fsregister()
-{
-  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+
+uint64
+sys_fsregister() {
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0)
+  {
+    return -1;
+  }
   uint64 address;
   argument_address(0, &address);
   xv::userfs::Registration registration;
-  if (xv::process::copy_in(&registration, true, address, sizeof(registration)) < 0) return -1;
+  if (xv::process::copy_in(&registration, true, address, sizeof(registration)) < 0)
+  {
+    return -1;
+  }
   auto *file = xv::fs::register_userfs(registration);
-  if (!file) return -1;
+  if (!file)
+  {
+    return -1;
+  }
   int fd = fdalloc(file);
-  if (fd < 0) xv::fs::files().release(file);
+  if (fd < 0)
+  {
+    xv::fs::files().release(file);
+  }
   return fd;
 }
 
-uint64 sys_fsserve()
-{
-  if (xv::process::current()->credentials().snapshot().effective_uid != 0) return -1;
+uint64
+sys_fsserve() {
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0)
+  {
+    return -1;
+  }
   char path[MAXPATH];
-  if (argument_string(0, path, sizeof(path)) <= 0) return -1;
+  if (argument_string(0, path, sizeof(path)) <= 0)
+  {
+    return -1;
+  }
   auto *file = xv::fs::create_userfs();
-  if (!file) return -1;
+  if (!file)
+  {
+    return -1;
+  }
   int fd = fdalloc(file);
-  if (fd < 0) { xv::fs::files().release(file); return -1; }
+  if (fd < 0)
+  {
+    xv::fs::files().release(file);
+    return -1;
+  }
   if (!xv::fs::mount_userfs(*file, path))
   {
     xv::process::current()->files().close(fd);
@@ -1230,8 +1408,8 @@ uint64 sys_fsserve()
   return fd;
 }
 
-uint64 sys_mount()
-{
+uint64
+sys_mount() {
   if (xv::process::current()->credentials().snapshot().effective_uid != 0)
   {
     return -1;
@@ -1243,13 +1421,20 @@ uint64 sys_mount()
     return -1;
   }
   // The user manager serializes selection, creation and publication together.
-  if (xv::fs::managed_mounts_available()) return xv::fs::request_managed_mount(type, path);
+  if (xv::fs::managed_mounts_available())
+  {
+    return xv::fs::request_managed_mount(type, path);
+  }
   return xv::fs::mount_registered_userfs(type, path);
 }
-uint64 sys_mountfs()
-{
+
+uint64
+sys_mountfs() {
   if (xv::process::current()->credentials().snapshot().effective_uid ||
-      !xv::fs::managed_mounts_available()) return -1;
+      !xv::fs::managed_mounts_available())
+  {
+    return -1;
+  }
   char type[32], path[MAXPATH], source[128]{}, options[256]{};
   uint64 source_address, options_address;
   argument_address(2, &source_address);
@@ -1257,11 +1442,15 @@ uint64 sys_mountfs()
   if (argument_string(0, type, sizeof(type)) < 0 || !type[0] ||
       argument_string(1, path, sizeof(path)) < 0 ||
       (source_address && argument_string(2, source, sizeof(source)) < 0) ||
-      (options_address && argument_string(3, options, sizeof(options)) < 0)) return -1;
+      (options_address && argument_string(3, options, sizeof(options)) < 0))
+  {
+    return -1;
+  }
   return xv::fs::request_managed_mount(type, path, source, options);
 }
-uint64 sys_umount()
-{
+
+uint64
+sys_umount() {
   if (xv::process::current()->credentials().snapshot().effective_uid != 0)
   {
     return -1;
@@ -1275,8 +1464,9 @@ uint64 sys_umount()
   (void)UnmountFlow::Graph::run<0>(context);
   return context.result;
 }
-uint64 sys_mountinfo()
-{
+
+uint64
+sys_mountinfo() {
   int index;
   uint64 address;
   argument_integer(0, &index);
@@ -1291,8 +1481,8 @@ uint64 sys_mountinfo()
   return context.result;
 }
 
-uint64 sys_lseek()
-{
+uint64
+sys_lseek() {
   xv::fs::File *file;
   uint64 offset;
   int origin;
@@ -1302,8 +1492,9 @@ uint64 sys_lseek()
              ? -1
              : xv::fs::files().seek(file, static_cast<long>(offset), origin);
 }
-uint64 sys_ftruncate()
-{
+
+uint64
+sys_ftruncate() {
   xv::fs::File *file;
   uint64 size;
   argument_address(1, &size);
@@ -1311,13 +1502,15 @@ uint64 sys_ftruncate()
              ? -1
              : xv::fs::files().resize(file, size);
 }
-uint64 sys_fsync()
-{
+
+uint64
+sys_fsync() {
   xv::fs::File *file;
   return argfd(0, nullptr, &file) < 0 ? -1 : xv::fs::files().sync(file);
 }
-uint64 sys_symlink()
-{
+
+uint64
+sys_symlink() {
   char target[MAXPATH], path[MAXPATH];
   if (argument_string(0, target, sizeof(target)) < 0 ||
       argument_string(1, path, sizeof(path)) < 0)
@@ -1326,8 +1519,9 @@ uint64 sys_symlink()
   }
   return xv::fs::filesystem().symlink(target, path);
 }
-uint64 sys_readlink()
-{
+
+uint64
+sys_readlink() {
   char path[MAXPATH];
   uint64 address;
   int size;
@@ -1337,13 +1531,13 @@ uint64 sys_readlink()
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   ReadlinkFlow::Context context{path, address, size};
   (void)ReadlinkFlow::Graph::run<0>(context);
   return context.result;
 }
-uint64 sys_lstat()
-{
+
+uint64
+sys_lstat() {
   char path[MAXPATH];
   uint64 address;
   argument_address(1, &address);
@@ -1351,7 +1545,6 @@ uint64 sys_lstat()
   {
     return -1;
   }
-  xv::fs::Transaction transaction;
   xv::fs::Stat value;
   StatFlow::Context context{path, address, false, value};
   (void)StatFlow::Graph::run<0>(context);

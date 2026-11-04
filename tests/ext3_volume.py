@@ -11,7 +11,6 @@ import tempfile
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--contract',required=True)
-    parser.add_argument('--fs-contract')
     args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='ext3-volume-') as temporary:
         root=Path(temporary)
@@ -28,18 +27,6 @@ def main():
             subprocess.run([args.contract,str(image)],check=True)
             subprocess.run([args.contract,str(image),'--backend','0'],check=True)
             subprocess.run([shutil.which('e2fsck') or '/usr/sbin/e2fsck','-fn',str(image)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
-            if args.fs_contract:
-                subprocess.run([args.fs_contract,'--ext3',str(image)],check=True)
-                subprocess.run([shutil.which('e2fsck') or '/usr/sbin/e2fsck','-fn',str(image)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
-                result=subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-R','cat /module-kept',str(image)],check=True,capture_output=True)
-                assert result.stdout==b'VFS and JBD', result.stdout
-                metadata=subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-R','stat /module-kept',str(image)],check=True,capture_output=True).stdout
-                timestamps=re.findall(rb'^\s*(?:ctime|mtime):\s+0x([0-9a-fA-F]+)',metadata,re.MULTILINE)
-                assert len(timestamps)==2 and all(int(value,16)==1700000000 for value in timestamps), metadata
-                secondary=Path(str(image)+'.data')
-                subprocess.run([shutil.which('e2fsck') or '/usr/sbin/e2fsck','-fn',str(secondary)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
-                result=subprocess.run([shutil.which('debugfs') or '/usr/sbin/debugfs','-R','cat /data-kept',str(secondary)],check=True,capture_output=True)
-                assert result.stdout==b'secondary ext3', result.stdout
             orphan=root/'orphan.img';shutil.copyfile(image,orphan)
             expected=subprocess.run([args.contract,str(orphan),'--orphan-prepare','0'],check=True,capture_output=True).stdout.split()
             for cut in (0,1,2,3,4,5,8,13,21,34,55,89,144,233):

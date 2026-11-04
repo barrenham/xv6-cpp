@@ -5,7 +5,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/register_constants.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 
 module xv.memory;
 
@@ -28,9 +28,8 @@ namespace xv::memory
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
-static pte_t *walkto(pagetable_t pagetable, uint64 va, int alloc, int target,
-                     int *leaflevel)
-{
+static pte_t *
+walkto(pagetable_t pagetable, uint64 va, int alloc, int target, int *leaflevel) {
   if (va >= MAXVA)
   {
     xv::print::panic("walk_entry");
@@ -71,16 +70,16 @@ static pte_t *walkto(pagetable_t pagetable, uint64 va, int alloc, int target,
   return &pagetable[PX(target, va)];
 }
 
-pte_t *walk_entry(pagetable_t pagetable, uint64 va, int alloc)
-{
+pte_t *
+walk_entry(pagetable_t pagetable, uint64 va, int alloc) {
   return walkto(pagetable, va, alloc, 0, 0);
 }
 
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.
 // Can only be used to look up user pages.
-uint64 translate_user_page(pagetable_t pagetable, uint64 va)
-{
+uint64
+translate_user_page(pagetable_t pagetable, uint64 va) {
   pte_t *pte;
   uint64 pa;
   int level;
@@ -109,8 +108,8 @@ uint64 translate_user_page(pagetable_t pagetable, uint64 va)
 }
 
 #if defined(LAB_PGTBL) || defined(SOL_MMAP) || defined(SOL_COW)
-static void vmprint_level(pagetable_t pagetable, int level, uint64 base)
-{
+static void
+vmprint_level(pagetable_t pagetable, int level, uint64 base) {
   for (int i = 0; i < 512; i++)
   {
     pte_t pte = pagetable[i];
@@ -141,8 +140,8 @@ static void vmprint_level(pagetable_t pagetable, int level, uint64 base)
   }
 }
 
-void print_page_table(pagetable_t pagetable)
-{
+void
+print_page_table(pagetable_t pagetable) {
   xv::print::printk("page table %p\n", pagetable);
   vmprint_level(pagetable, 2, 0);
 }
@@ -164,33 +163,33 @@ struct SuperMapFlow
     pte_t *pte = nullptr;
   };
 
-  static void walk(Context &c) noexcept
-  {
+  static void
+  walk(Context &c) noexcept {
     c.pte = walkto(c.table, c.address, 1, 1, &c.level);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.pte != nullptr;
   }
 
-  static bool level(Context &c) noexcept
-  {
+  static bool
+  level(Context &c) noexcept {
     return c.level == 1;
   }
 
-  static void invalid(Context &) noexcept
-  {
+  static void
+  invalid(Context &) noexcept {
     xv::print::panic("supermap: level");
   }
 
-  static bool existing(Context &c) noexcept
-  {
+  static bool
+  existing(Context &c) noexcept {
     return *c.pte & PTE_V;
   }
 
-  static void reclaim(Context &c) noexcept
-  {
+  static void
+  reclaim(Context &c) noexcept {
     if (PTE_LEAF(*c.pte))
     {
       xv::print::panic("supermap: remap");
@@ -206,8 +205,8 @@ struct SuperMapFlow
     allocator().deallocate(child);
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     *c.pte = PA2PTE(c.physical) | c.permissions | PTE_V;
     c.result = 0;
   }
@@ -234,8 +233,8 @@ struct SuperMapFlow
 
 } // namespace
 
-static int supermap(pagetable_t pagetable, uint64 va, uint64 pa, int perm)
-{
+static int
+supermap(pagetable_t pagetable, uint64 va, uint64 pa, int perm) {
   if ((va | pa) % SUPERPGSIZE != 0)
   {
     xv::print::panic("supermap: alignment");
@@ -263,30 +262,30 @@ struct SuperDemoteFlow
     int recycled = -1, result = -1;
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.child = static_cast<pagetable_t>(allocator().allocate());
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.child != nullptr;
   }
 
-  static bool may_recycle(Context &c) noexcept
-  {
+  static bool
+  may_recycle(Context &c) noexcept {
     return c.do_free != 0;
   }
 
-  static void recycle(Context &c) noexcept
-  {
+  static void
+  recycle(Context &c) noexcept {
     c.recycled = PX(0, c.address);
     c.child = reinterpret_cast<pagetable_t>(c.physical +
                                             static_cast<uint64>(c.recycled) * PGSIZE);
   }
 
-  static void split(Context &c) noexcept
-  {
+  static void
+  split(Context &c) noexcept {
     if (!allocator().split_to_pages(reinterpret_cast<void *>(c.physical),
                                     SuperpageOrder))
     {
@@ -294,8 +293,8 @@ struct SuperDemoteFlow
     }
   }
 
-  static void fill(Context &c) noexcept
-  {
+  static void
+  fill(Context &c) noexcept {
     for (int i = 0; i < 512; ++i)
     {
       c.child[i] = i == c.recycled
@@ -304,8 +303,8 @@ struct SuperDemoteFlow
     }
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     *c.pte = PA2PTE(c.child) | PTE_V;
     c.result = 0;
   }
@@ -331,8 +330,8 @@ struct SuperDemoteFlow
 
 } // namespace
 
-static int superdemote(pte_t *pte, uint64 va, int do_free)
-{
+static int
+superdemote(pte_t *pte, uint64 va, int do_free) {
   SuperDemoteFlow::Context context{pte, va, PTE2PA(*pte),
                                    static_cast<uint>(PTE_FLAGS(*pte)), do_free};
   (void)SuperDemoteFlow::Graph::run<0>(context);
@@ -356,43 +355,43 @@ struct DemoteUserFlow
     bool ok = false;
   };
 
-  static bool remaining(Context &c) noexcept
-  {
+  static bool
+  remaining(Context &c) noexcept {
     return c.address < c.end;
   }
 
-  static void walk(Context &c) noexcept
-  {
+  static void
+  walk(Context &c) noexcept {
     c.pte = walkto(c.table, c.address, 0, 0, &c.level);
   }
 
-  static bool mapped(Context &c) noexcept
-  {
+  static bool
+  mapped(Context &c) noexcept {
     return c.pte && (*c.pte & PTE_V);
   }
 
-  static bool huge(Context &c) noexcept
-  {
+  static bool
+  huge(Context &c) noexcept {
     return c.level == 1;
   }
 
-  static void split(Context &c) noexcept
-  {
+  static void
+  split(Context &c) noexcept {
     c.ok = superdemote(c.pte, c.address, 0) >= 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.address = SUPERPGROUNDDOWN(c.address) + SUPERPGSIZE;
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = 0;
   }
   struct Remaining;
@@ -421,8 +420,8 @@ struct DemoteUserFlow
 
 } // namespace
 
-int demote_user_pages(pagetable_t pagetable, uint64 va, uint64 npages)
-{
+int
+demote_user_pages(pagetable_t pagetable, uint64 va, uint64 npages) {
   if (va % PGSIZE != 0 || va >= MAXVA || npages > (MAXVA - va) / PGSIZE)
   {
     return -1;
@@ -435,8 +434,8 @@ int demote_user_pages(pagetable_t pagetable, uint64 va, uint64 npages)
 
 // The mapping policy can be reused with a 4 KiB-only maximum in other contexts.
 // Here it selects the largest legal Sv39 leaf without crossing permissions.
-void map_kernel_range(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
-{
+void
+map_kernel_range(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm) {
   xv::memory::LargestPagePolicy policy;
   xv::memory::Sv39PageTable table(kpgtbl, xv::memory::allocator(), policy);
   if (table.map_range(va, xv::memory::PhysicalAddress(pa), sz, perm) !=
@@ -467,18 +466,18 @@ struct MapUserFlow
     int result = -1;
   };
 
-  static void walk(Context &c) noexcept
-  {
+  static void
+  walk(Context &c) noexcept {
     c.pte = walk_entry(c.table, c.address, 1);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.pte != nullptr;
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     if (*c.pte & PTE_V)
     {
       xv::print::panic("map_user_pages: remap");
@@ -486,19 +485,19 @@ struct MapUserFlow
     *c.pte = PA2PTE(c.physical) | c.permissions | PTE_V;
   }
 
-  static bool last(Context &c) noexcept
-  {
+  static bool
+  last(Context &c) noexcept {
     return c.address == c.last;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.address += PGSIZE;
     c.physical += PGSIZE;
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = 0;
   }
   struct Walk;
@@ -518,8 +517,8 @@ struct MapUserFlow
 
 } // namespace
 
-int map_user_pages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
-{
+int
+map_user_pages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm) {
   if (va % PGSIZE)
   {
     xv::print::panic("map_user_pages: va not aligned");
@@ -539,8 +538,8 @@ int map_user_pages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int
 
 // create an empty user page table.
 // returns 0 if out of memory.
-pagetable_t create_user_table()
-{
+pagetable_t
+create_user_table() {
   pagetable_t pagetable;
   pagetable = (pagetable_t)xv::memory::allocator().allocate();
   if (pagetable == 0)
@@ -569,8 +568,8 @@ struct UnmapUserFlow
     int step = PGSIZE, level = 0;
   };
 
-  static void scan(Context &c) noexcept
-  {
+  static void
+  scan(Context &c) noexcept {
     for (; c.address < c.end; c.address += c.step)
     {
       c.step = PGSIZE;
@@ -583,23 +582,23 @@ struct UnmapUserFlow
     c.pte = nullptr;
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.pte != nullptr;
   }
 #ifdef LAB_PGTBL
-  static bool huge(Context &c) noexcept
-  {
+  static bool
+  huge(Context &c) noexcept {
     return c.level == 1;
   }
 
-  static bool whole(Context &c) noexcept
-  {
+  static bool
+  whole(Context &c) noexcept {
     return !(c.address % SUPERPGSIZE) && c.end - c.address >= SUPERPGSIZE;
   }
 
-  static void remove_huge(Context &c) noexcept
-  {
+  static void
+  remove_huge(Context &c) noexcept {
     if (c.do_free)
     {
       allocator().deallocate(reinterpret_cast<void *>(PTE2PA(*c.pte)), SuperpageOrder);
@@ -608,8 +607,8 @@ struct UnmapUserFlow
     c.step = SUPERPGSIZE;
   }
 
-  static void split(Context &c) noexcept
-  {
+  static void
+  split(Context &c) noexcept {
     if (superdemote(c.pte, c.address, c.do_free) < 0)
     {
       xv::print::panic("unmap_user_pages: split");
@@ -617,13 +616,13 @@ struct UnmapUserFlow
     c.pte = walk_entry(c.table, c.address, 0);
   }
 
-  static bool mapped(Context &c) noexcept
-  {
+  static bool
+  mapped(Context &c) noexcept {
     return *c.pte & PTE_V;
   }
 #endif
-  static void remove_leaf(Context &c) noexcept
-  {
+  static void
+  remove_leaf(Context &c) noexcept {
     if (PTE_FLAGS(*c.pte) == PTE_V)
     {
       xv::print::panic("unmap_user_pages: not a leaf");
@@ -635,8 +634,8 @@ struct UnmapUserFlow
     *c.pte = 0;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.address += c.step;
   }
 #ifdef LAB_PGTBL
@@ -682,8 +681,8 @@ struct UnmapUserFlow
 
 } // namespace
 
-void unmap_user_pages(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
-{
+void
+unmap_user_pages(pagetable_t pagetable, uint64 va, uint64 npages, int do_free) {
   if (va % PGSIZE)
   {
     xv::print::panic("unmap_user_pages: not aligned");
@@ -710,13 +709,13 @@ struct AllocateUserFlow
     uint64 result = 0;
   };
 
-  static bool remaining(Context &c) noexcept
-  {
+  static bool
+  remaining(Context &c) noexcept {
     return c.address < c.new_size;
   }
 
-  static void choose(Context &c) noexcept
-  {
+  static void
+  choose(Context &c) noexcept {
     c.step = PGSIZE;
 #ifdef LAB_PGTBL
     c.memory = nullptr;
@@ -727,35 +726,35 @@ struct AllocateUserFlow
 #endif
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.memory != nullptr;
   }
 #ifdef LAB_PGTBL
-  static void map_huge(Context &c) noexcept
-  {
+  static void
+  map_huge(Context &c) noexcept {
     xv::runtime::fill(c.memory, 0, SUPERPGSIZE);
     c.ok = supermap(c.table, c.address, reinterpret_cast<uint64>(c.memory),
                     PTE_R | PTE_U | c.permissions) >= 0;
   }
 
-  static void huge_step(Context &c) noexcept
-  {
+  static void
+  huge_step(Context &c) noexcept {
     c.step = SUPERPGSIZE;
   }
 
-  static void drop_huge(Context &c) noexcept
-  {
+  static void
+  drop_huge(Context &c) noexcept {
     allocator().deallocate(c.memory, SuperpageOrder);
   }
 #endif
-  static void page(Context &c) noexcept
-  {
+  static void
+  page(Context &c) noexcept {
     c.memory = static_cast<char *>(allocator().allocate());
   }
 
-  static void zero(Context &c) noexcept
-  {
+  static void
+  zero(Context &c) noexcept {
 #ifndef LAB_SYSCALL
     xv::runtime::fill(c.memory, 0, c.step);
 #else
@@ -763,35 +762,35 @@ struct AllocateUserFlow
 #endif
   }
 
-  static void map(Context &c) noexcept
-  {
+  static void
+  map(Context &c) noexcept {
     c.ok =
         map_user_pages(c.table, c.address, c.step, reinterpret_cast<uint64>(c.memory),
                        PTE_R | PTE_U | c.permissions) == 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void drop(Context &c) noexcept
-  {
+  static void
+  drop(Context &c) noexcept {
     allocator().deallocate(c.memory);
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     deallocate_user_pages(c.table, c.address, c.old_size);
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.address += c.step;
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = c.new_size;
   }
 #ifdef LAB_PGTBL
@@ -865,8 +864,8 @@ struct AllocateUserFlow
 
 } // namespace
 
-uint64 allocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
-{
+uint64
+allocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm) {
   if (newsz < oldsz)
   {
     return oldsz;
@@ -887,8 +886,8 @@ uint64 allocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz, in
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
-uint64 deallocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
-{
+uint64
+deallocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz) {
   if (newsz >= oldsz)
   {
     return oldsz;
@@ -905,8 +904,8 @@ uint64 deallocate_user_pages(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
-static void freewalk(pagetable_t pagetable)
-{
+static void
+freewalk(pagetable_t pagetable) {
   // there are 2^9 = 512 PTEs in a page table.
   for (int i = 0; i < 512; i++)
   {
@@ -929,8 +928,8 @@ static void freewalk(pagetable_t pagetable)
 
 // Free user memory pages,
 // then free page-table pages.
-void free_user_table(pagetable_t pagetable, uint64 sz)
-{
+void
+free_user_table(pagetable_t pagetable, uint64 sz) {
   if (sz > 0)
   {
     unmap_user_pages(pagetable, 0, PGROUNDUP(sz) / PGSIZE, 1);
@@ -960,8 +959,8 @@ struct CloneUserFlow
     bool ok = false;
   };
 
-  static void scan(Context &c) noexcept
-  {
+  static void
+  scan(Context &c) noexcept {
     for (; c.address < c.size; c.address += PGSIZE)
     {
       c.pte = walkto(c.source, c.address, 0, 0, &c.level);
@@ -973,18 +972,18 @@ struct CloneUserFlow
     c.pte = nullptr;
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.pte != nullptr;
   }
 #ifdef LAB_PGTBL
-  static bool huge(Context &c) noexcept
-  {
+  static bool
+  huge(Context &c) noexcept {
     return c.level == 1;
   }
 
-  static void split(Context &c) noexcept
-  {
+  static void
+  split(Context &c) noexcept {
     c.ok = superdemote(c.pte, c.address, 0) >= 0;
     if (c.ok)
     {
@@ -993,13 +992,13 @@ struct CloneUserFlow
     }
   }
 #endif
-  static bool level(Context &c) noexcept
-  {
+  static bool
+  level(Context &c) noexcept {
     return c.level == 0;
   }
 
-  static void share(Context &c) noexcept
-  {
+  static void
+  share(Context &c) noexcept {
     c.physical = PTE2PA(*c.pte);
     c.flags = PTE_FLAGS(*c.pte);
     if ((c.flags & (PTE_U | PTE_W)) == (PTE_U | PTE_W))
@@ -1008,35 +1007,35 @@ struct CloneUserFlow
     }
   }
 
-  static void map(Context &c) noexcept
-  {
+  static void
+  map(Context &c) noexcept {
     c.ok = map_user_pages(c.target, c.address, PGSIZE, c.physical, c.flags) >= 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void retain(Context &c) noexcept
-  {
+  static void
+  retain(Context &c) noexcept {
     allocator().retain_page(reinterpret_cast<void *>(c.physical));
     *c.pte = PA2PTE(c.physical) | c.flags;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.address += PGSIZE;
   }
 
-  static void failure(Context &c) noexcept
-  {
+  static void
+  failure(Context &c) noexcept {
     unmap_user_pages(c.target, 0, c.address / PGSIZE, 1);
     xv::arch::sfence_vma();
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     xv::arch::sfence_vma();
     c.result = 0;
   }
@@ -1103,8 +1102,8 @@ struct CloneUserFlow
 
 } // namespace
 
-int clone_user_pages(pagetable_t old, pagetable_t new_table, uint64 sz)
-{
+int
+clone_user_pages(pagetable_t old, pagetable_t new_table, uint64 sz) {
   CloneUserFlow::Context context{old, new_table, sz};
   (void)CloneUserFlow::Graph::run<0>(context);
   return context.result;
@@ -1112,8 +1111,8 @@ int clone_user_pages(pagetable_t old, pagetable_t new_table, uint64 sz)
 
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
-void protect_user_guard(pagetable_t pagetable, uint64 va)
-{
+void
+protect_user_guard(pagetable_t pagetable, uint64 va) {
   pte_t *pte;
 
   pte = walk_entry(pagetable, va, 0);
@@ -1126,16 +1125,16 @@ void protect_user_guard(pagetable_t pagetable, uint64 va)
 
 namespace
 {
-unsigned permission_for(FaultAccess access)
-{
+unsigned
+permission_for(FaultAccess access) {
   return access == FaultAccess::Write     ? PTE_W
          : access == FaultAccess::Execute ? PTE_X
                                           : PTE_R;
 }
 
-const VirtualRegion *accessible_region(const VirtualAddressPool &regions, uint64 size,
-                                       uint64 address, FaultAccess access)
-{
+const VirtualRegion *
+accessible_region(const VirtualAddressPool &regions, uint64 size, uint64 address,
+                  FaultAccess access) {
   auto *region = regions.find(address);
   auto permissions = permission_for(access) | PTE_U;
   if (!region || (region->permissions & permissions) != permissions ||
@@ -1170,145 +1169,145 @@ struct FaultUserFlow
     FaultOutcome result{FaultResult::OutsideRegion};
   };
 
-  static void region(Context &c) noexcept
-  {
+  static void
+  region(Context &c) noexcept {
     c.region = c.regions.find(c.address);
   }
 
-  static bool inside(Context &c) noexcept
-  {
+  static bool
+  inside(Context &c) noexcept {
     return c.region && (c.address < c.size || c.region->kind == RegionKind::Special);
   }
 
-  static bool accessible(Context &c) noexcept
-  {
+  static bool
+  accessible(Context &c) noexcept {
     return accessible_region(c.regions, c.size, c.address, c.access) != nullptr;
   }
 
-  static void permission(Context &c) noexcept
-  {
+  static void
+  permission(Context &c) noexcept {
     c.result = {FaultResult::Permission};
   }
 
-  static void walk(Context &c) noexcept
-  {
+  static void
+  walk(Context &c) noexcept {
     c.pte = walkto(c.table, c.address, 0, 0, &c.level);
   }
 
-  static bool mapped(Context &c) noexcept
-  {
+  static bool
+  mapped(Context &c) noexcept {
     return c.pte && (*c.pte & PTE_V);
   }
 
-  static bool leaf(Context &c) noexcept
-  {
+  static bool
+  leaf(Context &c) noexcept {
     return PTE_LEAF(*c.pte);
   }
 
-  static void invalid(Context &c) noexcept
-  {
+  static void
+  invalid(Context &c) noexcept {
     c.result = {FaultResult::InvalidMapping};
   }
 
-  static bool user(Context &c) noexcept
-  {
+  static bool
+  user(Context &c) noexcept {
     return *c.pte & PTE_U;
   }
 
-  static bool cow(Context &c) noexcept
-  {
+  static bool
+  cow(Context &c) noexcept {
     return c.access == FaultAccess::Write && (*c.pte & PTE_COW) && !(*c.pte & PTE_W);
   }
 
-  static void existing(Context &c) noexcept
-  {
+  static void
+  existing(Context &c) noexcept {
     c.result = {(*c.pte & permission_for(c.access)) ? FaultResult::AlreadyMapped
                                                     : FaultResult::Permission};
   }
 
-  static bool small(Context &c) noexcept
-  {
+  static bool
+  small(Context &c) noexcept {
     return c.level == 0;
   }
 
-  static void shared(Context &c) noexcept
-  {
+  static void
+  shared(Context &c) noexcept {
     c.physical = PTE2PA(*c.pte);
     c.flags = (PTE_FLAGS(*c.pte) | PTE_W) & ~PTE_COW;
   }
 
-  static bool sole(Context &c) noexcept
-  {
+  static bool
+  sole(Context &c) noexcept {
     return allocator().page_references(reinterpret_cast<void *>(c.physical)) == 1;
   }
 
-  static void promote(Context &c) noexcept
-  {
+  static void
+  promote(Context &c) noexcept {
     *c.pte = PA2PTE(c.physical) | c.flags;
     xv::arch::sfence_vma();
     c.result = {FaultResult::Resolved, c.physical};
   }
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.page = allocator().allocate();
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.page != nullptr;
   }
 
-  static void oom(Context &c) noexcept
-  {
+  static void
+  oom(Context &c) noexcept {
     c.result = {FaultResult::OutOfMemory};
   }
 
-  static void copy(Context &c) noexcept
-  {
+  static void
+  copy(Context &c) noexcept {
     xv::runtime::move(c.page, reinterpret_cast<void *>(c.physical), PGSIZE);
   }
 
-  static void publish_cow(Context &c) noexcept
-  {
+  static void
+  publish_cow(Context &c) noexcept {
     *c.pte = PA2PTE(c.page) | c.flags;
     xv::arch::sfence_vma();
   }
 
-  static void release(Context &c) noexcept
-  {
+  static void
+  release(Context &c) noexcept {
     allocator().release_page(reinterpret_cast<void *>(c.physical));
     c.result = {FaultResult::Resolved, reinterpret_cast<uint64>(c.page)};
   }
 
-  static bool demand(Context &c) noexcept
-  {
+  static bool
+  demand(Context &c) noexcept {
     return c.region->demand && c.access != FaultAccess::Execute;
   }
 
-  static void zero(Context &c) noexcept
-  {
+  static void
+  zero(Context &c) noexcept {
     xv::runtime::fill(c.page, 0, PGSIZE);
   }
 
-  static void map(Context &c) noexcept
-  {
+  static void
+  map(Context &c) noexcept {
     c.ok = map_user_pages(c.table, PGROUNDDOWN(c.address), PGSIZE,
                           reinterpret_cast<uint64>(c.page), c.region->permissions) >= 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     allocator().deallocate(c.page);
   }
 
-  static void resolved(Context &c) noexcept
-  {
+  static void
+  resolved(Context &c) noexcept {
     xv::arch::sfence_vma();
     c.result = {FaultResult::Resolved, reinterpret_cast<uint64>(c.page)};
   }
@@ -1389,10 +1388,9 @@ struct FaultUserFlow
 
 } // namespace
 
-FaultOutcome resolve_user_fault(pagetable_t table, uint64 size,
-                                const VirtualAddressPool &regions, uint64 address,
-                                FaultAccess access)
-{
+FaultOutcome
+resolve_user_fault(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
+                   uint64 address, FaultAccess access) {
   if (address >= MAXVA)
   {
     return {FaultResult::OutsideRegion};
@@ -1404,9 +1402,9 @@ FaultOutcome resolve_user_fault(pagetable_t table, uint64 size,
 
 namespace
 {
-uint64 user_access(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
-                   uint64 address, FaultAccess access)
-{
+uint64
+user_access(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
+            uint64 address, FaultAccess access) {
   if (!accessible_region(regions, size, address, access))
   {
     return 0;
@@ -1422,8 +1420,8 @@ uint64 user_access(pagetable_t table, uint64 size, const VirtualAddressPool &reg
   return result.result == FaultResult::Resolved ? result.physical : 0;
 }
 
-uint64 accessible_bytes(const VirtualAddressPool &regions, uint64 size, uint64 address)
-{
+uint64
+accessible_bytes(const VirtualAddressPool &regions, uint64 size, uint64 address) {
   auto *region = regions.find(address);
   auto end = region->end;
   if (region->kind != RegionKind::Special && size < end)
@@ -1439,9 +1437,9 @@ uint64 accessible_bytes(const VirtualAddressPool &regions, uint64 size, uint64 a
 }
 } // namespace
 
-int copy_to_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
-                 uint64 destination, const char *source, uint64 bytes)
-{
+int
+copy_to_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
+             uint64 destination, const char *source, uint64 bytes) {
   if (bytes > MAXVA || destination >= MAXVA || bytes > MAXVA - destination)
   {
     return -1;
@@ -1467,9 +1465,9 @@ int copy_to_user(pagetable_t table, uint64 size, const VirtualAddressPool &regio
   return 0;
 }
 
-int copy_from_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
-                   char *destination, uint64 source, uint64 bytes)
-{
+int
+copy_from_user(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
+               char *destination, uint64 source, uint64 bytes) {
   if (bytes > MAXVA || source >= MAXVA || bytes > MAXVA - source)
   {
     return -1;
@@ -1495,9 +1493,9 @@ int copy_from_user(pagetable_t table, uint64 size, const VirtualAddressPool &reg
   return 0;
 }
 
-int copy_user_string(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
-                     char *destination, uint64 source, uint64 maximum)
-{
+int
+copy_user_string(pagetable_t table, uint64 size, const VirtualAddressPool &regions,
+                 char *destination, uint64 source, uint64 maximum) {
   while (maximum)
   {
     auto physical = user_access(table, size, regions, source, FaultAccess::Read);
@@ -1525,8 +1523,8 @@ int copy_user_string(pagetable_t table, uint64 size, const VirtualAddressPool &r
   return -1;
 }
 
-int is_user_mapped(pagetable_t table, uint64 address)
-{
+int
+is_user_mapped(pagetable_t table, uint64 address) {
   if (address >= MAXVA)
   {
     return 0;

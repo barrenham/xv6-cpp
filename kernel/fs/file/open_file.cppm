@@ -4,6 +4,7 @@ module;
 
 export module xv.fs:file;
 export import :filesystem;
+import :cache;
 export import xv.drivers;
 export import xv.io;
 

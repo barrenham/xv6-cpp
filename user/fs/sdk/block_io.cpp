@@ -5,7 +5,7 @@ module;
 #include "kernel/io/fs_service.h"
 #include "kernel/io/fs_resources.h"
 #include "user/runtime/user.h"
-#include "kernel/fs/ext3/volume.h"
+#include "user/fs/backends/ext3/volume.h"
 module xv.userfs.block;
 
 namespace userfs

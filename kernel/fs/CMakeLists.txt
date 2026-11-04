@@ -1,6 +1,6 @@
 include("${PROJECT_SOURCE_DIR}/cmake/fs-modules.cmake")
 xv_add_fs_interfaces(kernel)
-xv_add_fs_internals(kernel SERVICES_ONLY)
+xv_add_fs_internals(kernel)
 target_sources(kernel PRIVATE
   cache/lru_block_cache.cpp
   buffer/page_buffer.cpp

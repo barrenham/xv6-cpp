@@ -113,7 +113,7 @@ ctest --test-dir build/dev --output-on-failure -R '^(driver_contract|process_gro
 
 原生 `fs_contract` 还在隔离的可写内存盘上检查跨扇区读写、保留两端、复制故障、共享偏移和 EOF，验证字符/块设备编号独立，以及已挂载磁盘拒绝可写打开。ext3 模块契约检查磁盘中的块设备 inode 也走相同注册表。
 
-原生 `fs_contract` 使用实际 VFS/devfs 实现，验证合成目录的非对齐读取、minor 分派、复制失败、相对路径、挂载保护、并发打开，以及这些操作不产生磁盘写入。宿主驱动还验证 entropy 的短 used 长度、每个 DMA 分配失败点、错误完成、复制失败，以及 16 位队列索引完整回绕。`devfs_no_entropy_1cpu` 使用没有随机硬件的 QEMU 验证不可用路径；`namedptytest` 增加控制终端打开与主端关闭并发、旧别名寿命和 setsid 隔离检查。
+原生 `fs_contract` 使用实际 VFS/UserFileSystem 与用户态 RAM 后端，验证跨协议读写、重命名、同步和资源回收；devfs 的合成目录、minor 分派、复制失败及设备打开由用户态 devfs 与 QEMU 回归验证。宿主驱动还验证 entropy 的短 used 长度、每个 DMA 分配失败点、错误完成、复制失败，以及 16 位队列索引完整回绕。`devfs_no_entropy_1cpu` 使用没有随机硬件的 QEMU 验证不可用路径；`namedptytest` 增加控制终端打开与主端关闭并发、旧别名寿命和 setsid 隔离检查。
 
 QEMU 单核/五核 `devfstest` 验证用户指针错误、设备内容、poll/ioctl、dup/fork、重复打开和并发子进程；脚本同时检查 shell 的目录遍历与设备重定向。
 

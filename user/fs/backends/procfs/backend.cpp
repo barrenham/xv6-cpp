@@ -4,7 +4,7 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/support/placement_new.hpp"
 #include "kernel/fs/stat.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 module xv.userfs.procfs;
 import xv.userfs;
 import xv.userfs.resources;

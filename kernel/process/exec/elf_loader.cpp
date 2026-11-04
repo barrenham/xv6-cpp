@@ -44,8 +44,7 @@ class ExecutableFile final : public ExecutableImage
 {
 public:
 
-  explicit ExecutableFile(const char *path)
-  {
+  explicit ExecutableFile(const char *path) {
     inode_ = xv::fs::filesystem().lookup(const_cast<char *>(path));
     if (inode_)
     {
@@ -58,36 +57,35 @@ public:
     }
   }
 
-  ~ExecutableFile()
-  {
+  ~ExecutableFile() {
     close();
   }
 
   ExecutableFile(const ExecutableFile &) = delete;
   ExecutableFile &operator=(const ExecutableFile &) = delete;
 
-  explicit operator bool() const
-  {
+  explicit
+  operator bool() const {
     return inode_ != nullptr;
   }
 
-  unsigned uid() const
-  {
+  unsigned
+  uid() const {
     return inode_->uid();
   }
 
-  unsigned gid() const
-  {
+  unsigned
+  gid() const {
     return inode_->gid();
   }
 
-  unsigned mode() const
-  {
+  unsigned
+  mode() const {
     return inode_->mode();
   }
 
-  bool read(unsigned long offset, void *destination, unsigned count)
-  {
+  bool
+  read(unsigned long offset, void *destination, unsigned count) {
     if (offset > ~0U)
     {
       return false;
@@ -97,8 +95,8 @@ public:
                static_cast<unsigned>(offset), count) == static_cast<int>(count);
   }
 
-  void close()
-  {
+  void
+  close() {
     if (!active_)
     {
       return;
@@ -108,14 +106,12 @@ public:
       xv::fs::filesystem().unlock_release(inode_);
     }
     inode_ = nullptr;
-    transaction_.finish();
     active_ = false;
   }
 
 private:
 
   xv::fs::Inode *inode_ = nullptr;
-  xv::fs::Transaction transaction_;
   bool active_ = true;
 };
 
@@ -126,21 +122,31 @@ class ExecutableMemory final : public ExecutableImage
 public:
 
   ExecutableMemory(const void *bytes, unsigned long count)
-      : bytes_(static_cast<const unsigned char *>(bytes)), count_(count)
-  {
+      : bytes_(static_cast<const unsigned char *>(bytes)), count_(count) {
   }
 
-  explicit operator bool() const override
-  {
+  explicit
+  operator bool() const override {
     return bytes_ && count_;
   }
 
-  unsigned uid() const override { return 0; }
-  unsigned gid() const override { return 0; }
-  unsigned mode() const override { return 0755; }
+  unsigned
+  uid() const override {
+    return 0;
+  }
 
-  bool read(unsigned long offset, void *destination, unsigned count) override
-  {
+  unsigned
+  gid() const override {
+    return 0;
+  }
+
+  unsigned
+  mode() const override {
+    return 0755;
+  }
+
+  bool
+  read(unsigned long offset, void *destination, unsigned count) override {
     if (!bytes_ || offset > count_ || count > count_ - offset)
     {
       return false;
@@ -149,7 +155,9 @@ public:
     return true;
   }
 
-  void close() override {}
+  void
+  close() override {
+  }
 
 private:
 
@@ -163,8 +171,7 @@ public:
 
   AddressSpace memory;
 
-  ~PendingImage()
-  {
+  ~PendingImage() {
     memory.reset();
   }
 
@@ -173,8 +180,8 @@ public:
   PendingImage &operator=(const PendingImage &) = delete;
 };
 
-int permissions(unsigned flags)
-{
+int
+permissions(unsigned flags) {
   int permission = 0;
   if (flags & ELF_PROG_FLAG_EXEC)
   {
@@ -187,8 +194,8 @@ int permissions(unsigned flags)
   return permission;
 }
 
-bool load_segment(AddressSpace &image, ExecutableImage &file, const proghdr &segment)
-{
+bool
+load_segment(AddressSpace &image, ExecutableImage &file, const proghdr &segment) {
   for (unsigned long offset = 0; offset < segment.filesz; offset += PGSIZE)
   {
     auto physical = image.translate(segment.vaddr + offset);
@@ -236,24 +243,24 @@ struct ElfLoader::LoadFlow
     int result = -1;
   };
 
-  static bool header(Context &c) noexcept
-  {
+  static bool
+  header(Context &c) noexcept {
     return c.file && c.file.read(0, &c.header, sizeof(c.header)) &&
            c.header.magic == ELF_MAGIC;
   }
 
-  static bool create(Context &c) noexcept
-  {
+  static bool
+  create(Context &c) noexcept {
     return c.process.create_image(c.candidate.memory);
   }
 
-  static bool segments(Context &c) noexcept
-  {
+  static bool
+  segments(Context &c) noexcept {
     return c.segment_index < c.header.phnum;
   }
 
-  static bool read_segment(Context &c) noexcept
-  {
+  static bool
+  read_segment(Context &c) noexcept {
     auto offset =
         c.header.phoff + static_cast<unsigned long>(c.segment_index) * sizeof(proghdr);
     if (offset < c.header.phoff)
@@ -264,146 +271,148 @@ struct ElfLoader::LoadFlow
     return c.file.read(offset, &c.segment, sizeof(c.segment));
   }
 
-  static bool loadable(Context &c) noexcept
-  {
+  static bool
+  loadable(Context &c) noexcept {
     return c.segment.type == ELF_PROG_LOAD;
   }
 
-  static bool valid_segment(Context &c) noexcept
-  {
+  static bool
+  valid_segment(Context &c) noexcept {
     return c.segment.memsz >= c.segment.filesz && c.segment.vaddr % PGSIZE == 0 &&
            c.segment.vaddr + c.segment.memsz >= c.segment.vaddr;
   }
 
-  static bool map_segment(Context &c) noexcept
-  {
+  static bool
+  map_segment(Context &c) noexcept {
     return c.candidate.memory.grow_to(c.segment.vaddr + c.segment.memsz,
                                       permissions(c.segment.flags));
   }
 
-  static bool copy_segment(Context &c) noexcept
-  {
+  static bool
+  copy_segment(Context &c) noexcept {
     return load_segment(c.candidate.memory, c.file, c.segment);
   }
 
-  static void next_segment(Context &c) noexcept
-  {
+  static void
+  next_segment(Context &c) noexcept {
     ++c.segment_index;
   }
 
-  static void close_file(Context &c) noexcept
-  {
+  static void
+  close_file(Context &c) noexcept {
     c.image_uid = c.file.uid();
     c.image_gid = c.file.gid();
     c.image_mode = c.file.mode();
     c.file.close();
   }
 
-  static bool map_stack(Context &c) noexcept
-  {
+  static bool
+  map_stack(Context &c) noexcept {
     c.rounded = PGROUNDUP(c.candidate.memory.size());
     return c.candidate.memory.grow_to(c.rounded + (USERSTACK + 1) * PGSIZE, PTE_W,
                                       true);
   }
 
-  static bool guard(Context &c) noexcept
-  {
+  static bool
+  guard(Context &c) noexcept {
     return c.candidate.memory.protect_guard(c.rounded);
   }
 
-  static void start_stack(Context &c) noexcept
-  {
+  static void
+  start_stack(Context &c) noexcept {
     c.stack = c.candidate.memory.size();
     c.bottom = c.stack - USERSTACK * PGSIZE;
   }
 
-  static bool environment(Context &c) noexcept
-  {
+  static bool
+  environment(Context &c) noexcept {
     return c.environment && c.environment[c.env_count];
   }
 
-  static bool environment_room(Context &c) noexcept
-  {
+  static bool
+  environment_room(Context &c) noexcept {
     return c.env_count < MAXENV - 1;
   }
 
-  static void environment_string(Context &c) noexcept
-  {
+  static void
+  environment_string(Context &c) noexcept {
     c.source = c.environment[c.env_count];
     c.bytes = xv::runtime::length(c.environment[c.env_count]) + 1;
   }
 
-  static void store_environment(Context &c) noexcept
-  {
+  static void
+  store_environment(Context &c) noexcept {
     c.user_environment[c.env_count++] = c.stack;
   }
 
-  static void environment_array(Context &c) noexcept
-  {
+  static void
+  environment_array(Context &c) noexcept {
     c.user_environment[c.env_count] = 0;
     c.source = c.user_environment;
     c.bytes = (c.env_count + 1) * sizeof(unsigned long);
   }
 
-  static void environment_address(Context &c) noexcept
-  {
+  static void
+  environment_address(Context &c) noexcept {
     c.environment_address = c.stack;
   }
 
-  static bool argument(Context &c) noexcept
-  {
+  static bool
+  argument(Context &c) noexcept {
     return c.arguments[c.count] != nullptr;
   }
 
-  static bool argument_room(Context &c) noexcept
-  {
+  static bool
+  argument_room(Context &c) noexcept {
     return c.count < MAXARG - 1;
   }
 
-  static void argument_string(Context &c) noexcept
-  {
+  static void
+  argument_string(Context &c) noexcept {
     c.source = c.arguments[c.count];
     c.bytes = static_cast<unsigned long>(xv::runtime::length(c.arguments[c.count])) + 1;
   }
 
-  static void store_argument(Context &c) noexcept
-  {
+  static void
+  store_argument(Context &c) noexcept {
     c.user_arguments[c.count++] = c.stack;
   }
 
-  static void argument_array(Context &c) noexcept
-  {
+  static void
+  argument_array(Context &c) noexcept {
     c.user_arguments[c.count] = 0;
     c.source = c.user_arguments;
     c.bytes = (c.count + 1) * sizeof(unsigned long);
   }
 
   // All four callers use the same checked, 16-byte-aligned stack copy.
-  static bool space(Context &c) noexcept
-  {
+  static bool
+  space(Context &c) noexcept {
     return c.bytes <= c.stack - c.bottom;
   }
 
-  static void align_stack(Context &c) noexcept
-  {
+  static void
+  align_stack(Context &c) noexcept {
     c.stack = (c.stack - c.bytes) & ~15UL;
   }
 
-  static bool copy_stack(Context &c) noexcept
-  {
+  static bool
+  copy_stack(Context &c) noexcept {
     return c.stack >= c.bottom &&
            c.candidate.memory.copy_out(c.stack, c.source, c.bytes) >= 0;
   }
 
-  static bool snapshot(Context &c) noexcept
-  {
-    return c.snapshot.prepare(c.path,c.arguments,c.environment,&detail::allocate_process_page,&detail::free_process_page,MAXARG,MAXENV);
+  static bool
+  snapshot(Context &c) noexcept {
+    return c.snapshot.prepare(c.path, c.arguments, c.environment,
+                              &detail::allocate_process_page,
+                              &detail::free_process_page, MAXARG, MAXENV);
   }
 
-  static void commit(Context &c) noexcept
-  {
+  static void
+  commit(Context &c) noexcept {
     c.process.commit_image(c.candidate.memory, c.header.entry, c.stack, c.stack, c.path,
-                           c.environment_address,&c.snapshot);
+                           c.environment_address, &c.snapshot);
     c.process.credentials().apply_exec(c.image_uid, c.image_gid, c.image_mode);
     c.result = c.count;
   }
@@ -503,45 +512,49 @@ struct ElfLoader::LoadFlow
           flow::node<
               AlignStack, flow::action<&align_stack>,
               flow::branch<flow::condition<&copy_stack>, flow::return_, flow::stop>>,
-          flow::node<Snapshot,flow::noop,flow::branch<flow::condition<&snapshot>,flow::go<Commit>,flow::stop>>,
+          flow::node<
+              Snapshot, flow::noop,
+              flow::branch<flow::condition<&snapshot>, flow::go<Commit>, flow::stop>>,
           flow::node<Commit, flow::action<&commit>, flow::stop>>>;
 };
 
-int ElfLoader::load(Process &process, const char *path, char *const *arguments,
-                    char *const *environment)
-{
+int
+ElfLoader::load(Process &process, const char *path, char *const *arguments,
+                char *const *environment) {
   PendingImage candidate;
   ExecutableFile file(path);
   ExecSnapshot snapshot;
   unsigned long user_environment[MAXENV], user_arguments[MAXARG];
-  LoadFlow::Context context{process,   path, arguments,        environment,
-                            candidate, file,snapshot, user_environment, user_arguments};
+  LoadFlow::Context context{process,       path, arguments, environment,
+                            candidate,     file, snapshot,  user_environment,
+                            user_arguments};
   (void)LoadFlow::Graph::run<1>(context);
   // On success candidate owns the old image; on failure it owns the partial one.
   return context.result;
 }
 
-int ElfLoader::load_memory(Process &process, const void *bytes, unsigned long length,
-                           const char *path, char *const *arguments,
-                           char *const *environment)
-{
+int
+ElfLoader::load_memory(Process &process, const void *bytes, unsigned long length,
+                       const char *path, char *const *arguments,
+                       char *const *environment) {
   PendingImage candidate;
   ExecutableMemory file(bytes, length);
   ExecSnapshot snapshot;
   unsigned long user_environment[MAXENV], user_arguments[MAXARG];
-  LoadFlow::Context context{process, path, arguments, environment, candidate,
-                            file, snapshot, user_environment, user_arguments};
+  LoadFlow::Context context{process,       path, arguments, environment,
+                            candidate,     file, snapshot,  user_environment,
+                            user_arguments};
   (void)LoadFlow::Graph::run<1>(context);
   return context.result;
 }
 
-ExecutableLoader &executable_loader()
-{
+ExecutableLoader &
+executable_loader() {
   return loader;
 }
 
-int execute(const char *path, char *const *arguments, char *const *environment)
-{
+int
+execute(const char *path, char *const *arguments, char *const *environment) {
   return executable_loader().load(*current(), path, arguments, environment);
 }
 } // namespace xv::process

@@ -3,7 +3,7 @@ module;
 #include "kernel/io/fs_resources.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/stat.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 module xv.userfs.devfs;
 import xv.userfs;
 import xv.userfs.resources;

@@ -1,6 +1,6 @@
 module;
 #include "kernel/support/flow.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
 #include "kernel/support/param.h"
 module xv.fs:vfs_path_flow;
@@ -21,19 +21,19 @@ struct VirtualFileSystem::WalkFlow
     char *name;
     bool real, follow, creating;
     char *pending, *target;
-    unsigned name_capacity=256;
-    bool exact_names=false;
+    unsigned name_capacity = 256;
+    bool exact_names = false;
     Inode *node = nullptr, *next = nullptr, *result = nullptr;
     unsigned links = 0, size = 0, rest = 0;
     bool valid = false, trailing = false;
   };
 
-  static void copy_path(Context &c) noexcept
-  {
+  static void
+  copy_path(Context &c) noexcept {
     unsigned length = 0;
     while (c.path[length])
     {
-      if (length == MAXPATH-1)
+      if (length == MAXPATH - 1)
       {
         return;
       }
@@ -46,81 +46,94 @@ struct VirtualFileSystem::WalkFlow
     c.valid = true;
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.valid;
   }
 
-  static void start(Context &c) noexcept
-  {
+  static void
+  start(Context &c) noexcept {
     c.node = *c.path == '/' ? c.owner.root() : detail::current_directory();
   }
 
-  static bool started(Context &c) noexcept
-  {
+  static bool
+  started(Context &c) noexcept {
     return c.node != nullptr;
   }
 
-  static void skip_slashes(Context &c) noexcept
-  {
+  static void
+  skip_slashes(Context &c) noexcept {
     while (*c.path == '/')
     {
       ++c.path;
     }
   }
 
-  static bool more(Context &c) noexcept
-  {
+  static bool
+  more(Context &c) noexcept {
     return *c.path != 0;
   }
 
-  static void component(Context &c) noexcept
-  {
-    unsigned length=0,limit=c.node->owner().name_max();
-    if(limit>255)limit=255;
-    while(*c.path && *c.path!='/')
+  static void
+  component(Context &c) noexcept {
+    unsigned length = 0, limit = c.node->owner().name_max();
+    if (limit > 255)
     {
-      if(length<limit && length<c.name_capacity)c.name[length]=*c.path;
-      ++length;++c.path;
+      limit = 255;
+    }
+    while (*c.path && *c.path != '/')
+    {
+      if (length < limit && length < c.name_capacity)
+      {
+        c.name[length] = *c.path;
+      }
+      ++length;
+      ++c.path;
     }
     // The xv6 backend keeps its historical truncation aliases. Native ext3
     // names are exact and reject oversized components rather than aliasing.
-    if(limit==14 && length>limit && !c.exact_names)length=limit;
-    c.valid=length<=limit && length<=c.name_capacity;
-    if(length<c.name_capacity)c.name[length]=0;
+    if (limit == 14 && length > limit && !c.exact_names)
+    {
+      length = limit;
+    }
+    c.valid = length <= limit && length <= c.name_capacity;
+    if (length < c.name_capacity)
+    {
+      c.name[length] = 0;
+    }
     skip_slashes(c);
     c.owner.lock(c.node);
   }
 
-  static bool searchable(Context &c) noexcept
-  {
+  static bool
+  searchable(Context &c) noexcept {
     return c.valid && c.node->kind() == T_DIR && c.node->linked() &&
            detail::allowed(c.node, 1, c.real);
   }
 
-  static void unlock_current(Context &c) noexcept
-  {
+  static void
+  unlock_current(Context &c) noexcept {
     c.owner.unlock(c.node);
   }
 
-  static void release_current(Context &c) noexcept
-  {
+  static void
+  release_current(Context &c) noexcept {
     c.owner.release(c.node);
   }
 
-  static bool parent_component(Context &c) noexcept
-  {
+  static bool
+  parent_component(Context &c) noexcept {
     return c.parent && !*c.path;
   }
 
-  static void return_parent(Context &c) noexcept
-  {
+  static void
+  return_parent(Context &c) noexcept {
     c.owner.unlock(c.node);
     c.result = c.node;
   }
 
-  static void find_next(Context &c) noexcept
-  {
+  static void
+  find_next(Context &c) noexcept {
     c.next = nullptr;
     if (detail::compare(c.name, "..", DIRSIZ) == 0)
     {
@@ -140,18 +153,18 @@ struct VirtualFileSystem::WalkFlow
     c.owner.unlock(c.node);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.next != nullptr;
   }
 
-  static bool create_last(Context &c) noexcept
-  {
+  static bool
+  create_last(Context &c) noexcept {
     return c.creating && !*c.path;
   }
 
-  static void create(Context &c) noexcept
-  {
+  static void
+  create(Context &c) noexcept {
     c.result = c.node->owner().create_at(c.node, c.name, T_FILE, 0, 0);
     if (c.result)
     {
@@ -160,32 +173,33 @@ struct VirtualFileSystem::WalkFlow
     c.owner.release(c.node);
   }
 
-  static void lock_next(Context &c) noexcept
-  {
+  static void
+  lock_next(Context &c) noexcept {
     c.owner.lock(c.next);
   }
 
-  static bool symbolic(Context &c) noexcept
-  {
+  static bool
+  symbolic(Context &c) noexcept {
     return c.next->kind() == T_SYMLINK && (c.follow || *c.path || c.trailing);
   }
 
-  static void read_target(Context &c) noexcept
-  {
+  static void
+  read_target(Context &c) noexcept {
     c.size = c.next->size_bytes();
     c.rest = 0;
     while (c.path[c.rest])
     {
       ++c.rest;
     }
-    c.valid = ++c.links <= 16 && c.size && c.size + (c.rest ? 1 : 0) + c.rest < MAXPATH &&
+    c.valid = ++c.links <= 16 && c.size &&
+              c.size + (c.rest ? 1 : 0) + c.rest < MAXPATH &&
               c.next->owner().read(c.next, 0, reinterpret_cast<unsigned long>(c.target),
                                    0, c.size) == static_cast<int>(c.size);
     c.owner.unlock_release(c.next);
   }
 
-  static void rewrite(Context &c) noexcept
-  {
+  static void
+  rewrite(Context &c) noexcept {
     if (!c.rest && c.target[c.size - 1] == '/')
     {
       c.trailing = true;
@@ -204,43 +218,43 @@ struct VirtualFileSystem::WalkFlow
     c.path = c.pending;
   }
 
-  static bool absolute(Context &c) noexcept
-  {
+  static bool
+  absolute(Context &c) noexcept {
     return c.target[0] == '/';
   }
 
-  static void restart_root(Context &c) noexcept
-  {
+  static void
+  restart_root(Context &c) noexcept {
     c.owner.release(c.node);
     c.node = c.owner.root();
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.owner.unlock(c.next);
     c.owner.release(c.node);
     c.node = c.owner.enter_mount(c.next);
   }
 
-  static bool wants_parent(Context &c) noexcept
-  {
+  static bool
+  wants_parent(Context &c) noexcept {
     return c.parent;
   }
 
-  static bool trailing(Context &c) noexcept
-  {
+  static bool
+  trailing(Context &c) noexcept {
     return c.trailing;
   }
 
-  static void check_directory(Context &c) noexcept
-  {
+  static void
+  check_directory(Context &c) noexcept {
     c.owner.lock(c.node);
     c.valid = c.node->kind() == T_DIR;
     c.owner.unlock(c.node);
   }
 
-  static void complete(Context &c) noexcept
-  {
+  static void
+  complete(Context &c) noexcept {
     c.result = c.node;
   }
   struct Copy;
@@ -325,23 +339,23 @@ struct VirtualFileSystem::AncestorFlow
     bool end = false, result = false;
   };
 
-  static void retain(Context &c) noexcept
-  {
+  static void
+  retain(Context &c) noexcept {
     c.node = c.owner.retain(c.node);
   }
 
-  static bool remaining(Context &c) noexcept
-  {
+  static bool
+  remaining(Context &c) noexcept {
     return c.depth < MAXPATH;
   }
 
-  static bool matches(Context &c) noexcept
-  {
+  static bool
+  matches(Context &c) noexcept {
     return same(c.possible, c.node);
   }
 
-  static void ascend(Context &c) noexcept
-  {
+  static void
+  ascend(Context &c) noexcept {
     c.parent = nullptr;
     for (unsigned i = 0; i < c.owner.mount_count_; ++i)
     {
@@ -361,27 +375,27 @@ struct VirtualFileSystem::AncestorFlow
     c.owner.release(c.node);
   }
 
-  static bool ended(Context &c) noexcept
-  {
+  static bool
+  ended(Context &c) noexcept {
     return c.end;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     c.node = c.parent;
     ++c.depth;
   }
 
-  static void absent(Context &c) noexcept
-  {
+  static void
+  absent(Context &c) noexcept {
     if (c.parent)
     {
       c.owner.release(c.parent);
     }
   }
 
-  static void present(Context &c) noexcept
-  {
+  static void
+  present(Context &c) noexcept {
     c.owner.release(c.node);
     c.result = true;
   }
@@ -420,33 +434,34 @@ struct VirtualFileSystem::CreateFlow
     Inode *parent = nullptr, *result = nullptr;
   };
 
-  static bool regular(Context &c) noexcept
-  {
+  static bool
+  regular(Context &c) noexcept {
     return c.type == T_FILE;
   }
 
-  static void lookup(Context &c) noexcept
-  {
+  static void
+  lookup(Context &c) noexcept {
     c.result = c.owner.walk(c.path, false, c.name, false, c.follow, true);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.result != nullptr;
   }
 
-  static void lock(Context &c) noexcept
-  {
+  static void
+  lock(Context &c) noexcept {
     c.owner.lock(c.result);
   }
 
-  static bool openable(Context &c) noexcept
-  {
-    return c.result->kind() == T_FILE || c.result->kind() == T_DEVICE || c.result->kind() == T_BLOCK;
+  static bool
+  openable(Context &c) noexcept {
+    return c.result->kind() == T_FILE || c.result->kind() == T_DEVICE ||
+           c.result->kind() == T_BLOCK;
   }
 
-  static void reject(Context &c) noexcept
-  {
+  static void
+  reject(Context &c) noexcept {
     c.owner.unlock_release(c.result);
     c.result = nullptr;
   }
@@ -463,29 +478,29 @@ struct VirtualFileSystem::CreateFlow
               flow::branch<flow::condition<&openable>, flow::stop, flow::go<Reject>>>,
           flow::node<Reject, flow::action<&reject>, flow::stop>>>;
 
-  static void open_regular(Context &c) noexcept
-  {
+  static void
+  open_regular(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.namespace_);
     (void)RegularGraph::run<0>(c);
   }
 
-  static void find_parent(Context &c) noexcept
-  {
-    c.parent = c.owner.lookup_parent(c.path, c.name,256);
+  static void
+  find_parent(Context &c) noexcept {
+    c.parent = c.owner.lookup_parent(c.path, c.name, 256);
   }
 
-  static bool parent_found(Context &c) noexcept
-  {
+  static bool
+  parent_found(Context &c) noexcept {
     return c.parent != nullptr;
   }
 
-  static void create(Context &c) noexcept
-  {
+  static void
+  create(Context &c) noexcept {
     c.result = c.owner.create_at(c.parent, c.name, c.type, c.major, c.minor);
   }
 
-  static void release_parent(Context &c) noexcept
-  {
+  static void
+  release_parent(Context &c) noexcept {
     c.owner.release(c.parent);
   }
   struct Kind;
@@ -516,38 +531,38 @@ struct VirtualFileSystem::LinkFlow
     int result = -1;
   };
 
-  static void lookup(Context &c) noexcept
-  {
+  static void
+  lookup(Context &c) noexcept {
     c.target = c.owner.lookup(c.old_path, false, false);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.target != nullptr;
   }
 
-  static void parent(Context &c) noexcept
-  {
-    c.parent = c.owner.lookup_parent(c.new_path, c.name,256);
+  static void
+  parent(Context &c) noexcept {
+    c.parent = c.owner.lookup_parent(c.new_path, c.name, 256);
   }
 
-  static bool parent_found(Context &c) noexcept
-  {
+  static bool
+  parent_found(Context &c) noexcept {
     return c.parent != nullptr;
   }
 
-  static void link(Context &c) noexcept
-  {
+  static void
+  link(Context &c) noexcept {
     c.result = c.owner.link_at(c.parent, c.name, c.target);
   }
 
-  static void release_parent(Context &c) noexcept
-  {
+  static void
+  release_parent(Context &c) noexcept {
     c.owner.release(c.parent);
   }
 
-  static void release_target(Context &c) noexcept
-  {
+  static void
+  release_target(Context &c) noexcept {
     c.owner.release(c.target);
   }
   struct Target;
@@ -580,23 +595,23 @@ struct VirtualFileSystem::UnlinkFlow
     int result = -1;
   };
 
-  static void parent(Context &c) noexcept
-  {
-    c.parent = c.owner.lookup_parent(c.path, c.name,256);
+  static void
+  parent(Context &c) noexcept {
+    c.parent = c.owner.lookup_parent(c.path, c.name, 256);
   }
 
-  static bool found(Context &c) noexcept
-  {
+  static bool
+  found(Context &c) noexcept {
     return c.parent != nullptr;
   }
 
-  static void unlink(Context &c) noexcept
-  {
+  static void
+  unlink(Context &c) noexcept {
     c.result = c.owner.unlink_at(c.parent, c.name);
   }
 
-  static void release(Context &c) noexcept
-  {
+  static void
+  release(Context &c) noexcept {
     c.owner.release(c.parent);
   }
   struct Parent;
@@ -621,18 +636,18 @@ struct VirtualFileSystem::UnlinkAtFlow
     int result = -1;
   };
 
-  static void lock(Context &c) noexcept
-  {
+  static void
+  lock(Context &c) noexcept {
     c.owner.lock(c.directory);
   }
 
-  static bool directory(Context &c) noexcept
-  {
+  static bool
+  directory(Context &c) noexcept {
     return c.directory->kind() == T_DIR;
   }
 
-  static void inspect(Context &c) noexcept
-  {
+  static void
+  inspect(Context &c) noexcept {
     auto *target = c.owner.lookup_entry(c.directory, c.name, nullptr);
     for (unsigned i = 0; i < c.owner.mount_count_; ++i)
     {
@@ -645,18 +660,18 @@ struct VirtualFileSystem::UnlinkAtFlow
     }
   }
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.owner.unlock(c.directory);
   }
 
-  static bool mounted(Context &c) noexcept
-  {
+  static bool
+  mounted(Context &c) noexcept {
     return c.mounted;
   }
 
-  static void unlink(Context &c) noexcept
-  {
+  static void
+  unlink(Context &c) noexcept {
     c.result = c.directory->owner().unlink_at(c.directory, c.name);
   }
   struct Lock;
@@ -688,26 +703,26 @@ struct VirtualFileSystem::RenameFlow
     int result = -1;
   };
 
-  static void parents(Context &c) noexcept
-  {
-    c.from = c.owner.walk(c.old_path, true, c.old_name,false,true,false,256,true);
-    c.to = c.owner.walk(c.new_path, true, c.new_name,false,true,false,256,true);
+  static void
+  parents(Context &c) noexcept {
+    c.from = c.owner.walk(c.old_path, true, c.old_name, false, true, false, 256, true);
+    c.to = c.owner.walk(c.new_path, true, c.new_name, false, true, false, 256, true);
   }
 
-  static bool dot(const char *name) noexcept
-  {
+  static bool
+  dot(const char *name) noexcept {
     return detail::compare(name, ".", DIRSIZ) == 0 ||
            detail::compare(name, "..", DIRSIZ) == 0;
   }
 
-  static bool eligible(Context &c) noexcept
-  {
+  static bool
+  eligible(Context &c) noexcept {
     return c.from && c.to && &c.from->owner() == &c.to->owner() && !dot(c.old_name) &&
            !dot(c.new_name);
   }
 
-  static void entries(Context &c) noexcept
-  {
+  static void
+  entries(Context &c) noexcept {
     c.owner.lock(c.from);
     c.source = c.owner.lookup_entry(c.from, c.old_name, nullptr);
     c.owner.unlock(c.from);
@@ -716,8 +731,8 @@ struct VirtualFileSystem::RenameFlow
     c.owner.unlock(c.to);
   }
 
-  static void protect_mounts(Context &c) noexcept
-  {
+  static void
+  protect_mounts(Context &c) noexcept {
     c.valid = c.source != nullptr;
     for (unsigned i = 0; i < c.owner.mount_count_; ++i)
     {
@@ -731,8 +746,8 @@ struct VirtualFileSystem::RenameFlow
     }
   }
 
-  static void protect_descendants(Context &c) noexcept
-  {
+  static void
+  protect_descendants(Context &c) noexcept {
     if (c.source)
     {
       c.owner.lock(c.source);
@@ -745,18 +760,18 @@ struct VirtualFileSystem::RenameFlow
     }
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.valid;
   }
 
-  static void rename(Context &c) noexcept
-  {
+  static void
+  rename(Context &c) noexcept {
     c.result = c.from->owner().rename_at(c.from, c.old_name, c.to, c.new_name);
   }
 
-  static void release_entries(Context &c) noexcept
-  {
+  static void
+  release_entries(Context &c) noexcept {
     if (c.source)
     {
       c.owner.release(c.source);
@@ -767,8 +782,8 @@ struct VirtualFileSystem::RenameFlow
     }
   }
 
-  static void release_parents(Context &c) noexcept
-  {
+  static void
+  release_parents(Context &c) noexcept {
     if (c.from)
     {
       c.owner.release(c.from);
@@ -814,8 +829,8 @@ struct VirtualFileSystem::SymlinkFlow
     int result = -1;
   };
 
-  static unsigned measure(const char *target) noexcept
-  {
+  static unsigned
+  measure(const char *target) noexcept {
     unsigned size = 0;
     while (target[size])
     {
@@ -827,28 +842,28 @@ struct VirtualFileSystem::SymlinkFlow
     return size;
   }
 
-  static void parent(Context &c) noexcept
-  {
+  static void
+  parent(Context &c) noexcept {
     c.parent = c.owner.walk(c.path, true, c.name);
   }
 
-  static bool parent_found(Context &c) noexcept
-  {
+  static bool
+  parent_found(Context &c) noexcept {
     return c.parent != nullptr;
   }
 
-  static void create(Context &c) noexcept
-  {
+  static void
+  create(Context &c) noexcept {
     c.node = c.parent->owner().create_at(c.parent, c.name, T_SYMLINK, 0, 0);
   }
 
-  static bool created(Context &c) noexcept
-  {
+  static bool
+  created(Context &c) noexcept {
     return c.node != nullptr;
   }
 
-  static void write(Context &c) noexcept
-  {
+  static void
+  write(Context &c) noexcept {
     c.result =
         c.node->owner().write(c.node, 0, reinterpret_cast<unsigned long>(c.target), 0,
                               c.size) == static_cast<int>(c.size)
@@ -857,18 +872,18 @@ struct VirtualFileSystem::SymlinkFlow
     c.owner.unlock_release(c.node);
   }
 
-  static bool failed(Context &c) noexcept
-  {
+  static bool
+  failed(Context &c) noexcept {
     return c.result < 0;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     c.parent->owner().unlink_at(c.parent, c.name);
   }
 
-  static void release(Context &c) noexcept
-  {
+  static void
+  release(Context &c) noexcept {
     c.owner.release(c.parent);
   }
   struct Parent;

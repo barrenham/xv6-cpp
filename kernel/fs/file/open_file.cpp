@@ -1,7 +1,7 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"

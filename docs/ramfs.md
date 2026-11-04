@@ -55,7 +55,7 @@ ctest --test-dir build/dev --output-on-failure -R '^(userfs_memory_contract|fs_s
 
 ramfstest 验证 1 MiB 文件、用户指针错误、共享偏移、跨页目录、硬链接、非空目录、删除后继续打开、截断补零、孤儿 cwd 和多进程并发。userfs_memory_contract 直接测试生产用户后端的分配失败回滚、2 GiB 稀疏洞、改名和全部内存回收；生命周期测试验证独立 exec、忙卸载拒绝、服务退出与原目录恢复。
 
-当前源码见 [用户态 RAM 后端](../user/fs/backends/ramfs/backend.cpp)。旧 [内核 RAM 节点实现](functions/kernel/fs/ramfs/ramfs.cpp.md)用于宿主机参考测试。
+当前源码见 [用户态 RAM 后端](../user/fs/backends/ramfs/backend.cpp)。旧内核 RAM 节点实现已删除，原生测试复用实际用户态后端。
 
 ## 用户与权限
 

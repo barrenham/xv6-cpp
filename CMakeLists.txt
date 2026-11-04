@@ -73,6 +73,9 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
+add_test(NAME kernel_source_boundary COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/kernel_source_boundary.py" --build "${PROJECT_BINARY_DIR}")
+set_tests_properties(kernel_source_boundary PROPERTIES TIMEOUT 10 LABELS "fs;module")
 add_test(NAME device_elf_boundary COMMAND "${Python3_EXECUTABLE}"
   "${PROJECT_SOURCE_DIR}/tests/device_elf_boundary.py"
   --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
@@ -194,7 +197,7 @@ set_tests_properties(print_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 set_tests_properties(runtime_contract PROPERTIES TIMEOUT 10 LABELS runtime)
 add_test(NAME trap_contract COMMAND "${PROJECT_BINARY_DIR}/trap_contract")
 set_tests_properties(trap_contract PROPERTIES TIMEOUT 45 LABELS trap)
-add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
+add_test(NAME fs_contract COMMAND "${PROJECT_BINARY_DIR}/fs_contract" )
 set_tests_properties(fs_contract PROPERTIES TIMEOUT 45 LABELS fs)
 add_test(NAME process_contract COMMAND "${PROJECT_BINARY_DIR}/process_contract")
 set_tests_properties(process_contract PROPERTIES TIMEOUT 45 LABELS process)
@@ -496,7 +499,7 @@ set_tests_properties(slab_kernel_performance PROPERTIES TIMEOUT 90 LABELS "memor
 add_test(NAME ext3_jbd_contract COMMAND "${PROJECT_BINARY_DIR}/ext3_jbd_contract")
 set_tests_properties(ext3_jbd_contract PROPERTIES TIMEOUT 30 LABELS "fs;ext3")
 
-add_test(NAME ext3_volume_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_volume.py" --contract "${PROJECT_BINARY_DIR}/ext3_volume_contract" --fs-contract "${PROJECT_BINARY_DIR}/fs_contract")
+add_test(NAME ext3_volume_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/ext3_volume.py" --contract "${PROJECT_BINARY_DIR}/ext3_volume_contract")
 # Three block sizes, allocation faults and native/Linux crash recovery checks
 # also run in a low-priority background session; keep every cut point and assert.
 set_tests_properties(ext3_volume_contract PROPERTIES TIMEOUT 420 LABELS "fs;ext3" RUN_SERIAL TRUE)

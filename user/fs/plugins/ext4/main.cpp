@@ -1,6 +1,6 @@
 #include "user/runtime/user.h"
 #include "kernel/support/placement_new.hpp"
-#include "kernel/fs/ext3/format.h"
+#include "user/fs/backends/ext3/format.h"
 import xv.userfs.plugin;
 import xv.userfs.ext4;
 import xv.userfs.block;

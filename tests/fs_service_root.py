@@ -6,6 +6,7 @@ from pathlib import Path
 import selectors
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -68,7 +69,15 @@ def main():
     parser.add_argument('--cpus', type=int, required=True)
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='xv-fs-service-root-') as name:
-        disk = Path(name) / 'root.img'
+        directory = Path(name)
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from pack_boot_assets import pack, unpack
+        _, assets = unpack((args.kernel.parent / 'user/image/_fsboot').read_bytes())
+        drivers = [asset for asset in assets if asset[0].startswith('drivers/')]
+        program = directory / 'bootstrap.elf'
+        program.write_bytes(pack(args.program.read_bytes(), drivers))
+        args.program = program
+        disk = directory / 'root.img'
         shutil.copyfile(args.image, disk)
         for run in (1, 2):
             boot(args, disk, run)

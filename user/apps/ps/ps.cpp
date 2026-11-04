@@ -1,5 +1,5 @@
 #include "kernel/support/types.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "user/runtime/proc.h"
 #include "user/runtime/directory.h"
 

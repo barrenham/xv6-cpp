@@ -1,7 +1,7 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/io_status.h"
@@ -15,8 +15,8 @@ namespace xv::fs
 {
 static_assert(sizeof(Pipe) <= 4096);
 
-unsigned Pipe::poll(bool writable, xv::sync::PollTable *table)
-{
+unsigned
+Pipe::poll(bool writable, xv::sync::PollTable *table) {
   xv::sync::ScopedLock guard(lock_);
   if (table)
   {
@@ -34,13 +34,13 @@ unsigned Pipe::poll(bool writable, xv::sync::PollTable *table)
   return events | (writer_open_ ? 0 : POLLHUP);
 }
 
-void Pipe::initialize()
-{
+void
+Pipe::initialize() {
   lock_.init("pipe");
 }
 
-void Pipe::close(bool writable)
-{
+void
+Pipe::close(bool writable) {
   lock_.acquire();
   if (writable)
   {
@@ -64,8 +64,8 @@ void Pipe::close(bool writable)
   }
 }
 
-int Pipe::write(uint64 addr, int n, bool nonblocking)
-{
+int
+Pipe::write(uint64 addr, int n, bool nonblocking) {
   if (n <= 0)
   {
     return n == 0 ? 0 : -1;
@@ -76,8 +76,8 @@ int Pipe::write(uint64 addr, int n, bool nonblocking)
   return context.result;
 }
 
-int Pipe::read(uint64 addr, int n, bool nonblocking)
-{
+int
+Pipe::read(uint64 addr, int n, bool nonblocking) {
   if (n <= 0)
   {
     return n == 0 ? 0 : -1;

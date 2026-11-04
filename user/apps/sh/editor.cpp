@@ -2,7 +2,7 @@
 #include "kernel/support/param.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/stat.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "user/runtime/user.h"
 #include "editor.h"
 #include "user/runtime/directory.h"

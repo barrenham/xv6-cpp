@@ -14,13 +14,14 @@ constinit xv::sync::SpinLock registry_lock;
 UserFileSystem *providers[xv::userfs::ProviderCapacity]{};
 unsigned next_device = 0x10000;
 
-bool valid(const xv::userfs::Registration &r)
-{
+bool
+valid(const xv::userfs::Registration &r) {
   if (r.size != sizeof(r) || r.version != xv::userfs::Version ||
       (r.flags & ~(xv::userfs::ReadOnly | xv::userfs::Snapshots)) || !r.max_payload ||
       ((r.flags & xv::userfs::Snapshots) &&
        (!(r.flags & xv::userfs::ReadOnly) ||
-        (r.operations & xv::userfs::SnapshotOperations) != xv::userfs::SnapshotOperations)) ||
+        (r.operations & xv::userfs::SnapshotOperations) !=
+            xv::userfs::SnapshotOperations)) ||
       r.max_payload > xv::userfs::DataSize || r.root.node != 1 ||
       r.root.type != T_DIR || !r.root.links || r.root.links > 32767 ||
       r.root.mode > 07777 || (r.operations & ~xv::userfs::AllOperations) ||
@@ -40,19 +41,11 @@ bool valid(const xv::userfs::Registration &r)
       return false;
     }
   }
-  const char *reserved_names[] = {"ext3", "xv6", "ramfs", "procfs", "devfs", "userfs"};
-  for (const char *reserved : reserved_names)
-  {
-    if (!filesystem().services() && !detail::compare(r.type, reserved, 32))
-    {
-      return false;
-    }
-  }
   return true;
 }
 
-void collect()
-{
+void
+collect() {
   UserFileSystem *dead[xv::userfs::ProviderCapacity]{};
   unsigned count = 0;
   registry_lock.acquire();
@@ -71,8 +64,8 @@ void collect()
   }
 }
 
-File *create(const xv::userfs::Registration &registration, bool anonymous)
-{
+File *
+create(const xv::userfs::Registration &registration, bool anonymous) {
   collect();
   auto *file = files().allocate();
   if (!file)
@@ -109,25 +102,25 @@ File *create(const xv::userfs::Registration &registration, bool anonymous)
 }
 } // namespace
 
-void initialize_userfs_plugins()
-{
+void
+initialize_userfs_plugins() {
   registry_lock.init("filesystem plugins");
 }
 
-File *create_userfs()
-{
+File *
+create_userfs() {
   xv::userfs::Registration registration;
   detail::copy_fixed(registration.type, "userfs", sizeof(registration.type));
   return create(registration, true);
 }
 
-File *register_userfs(const xv::userfs::Registration &registration)
-{
+File *
+register_userfs(const xv::userfs::Registration &registration) {
   return valid(registration) ? create(registration, false) : nullptr;
 }
 
-bool mount_userfs(File &file, const char *path)
-{
+bool
+mount_userfs(File &file, const char *path) {
   UserFileSystem *selected = nullptr;
   registry_lock.acquire();
   for (auto *fs : providers)
@@ -148,8 +141,8 @@ bool mount_userfs(File &file, const char *path)
   return result;
 }
 
-int mount_registered_userfs(const char *type, const char *path)
-{
+int
+mount_registered_userfs(const char *type, const char *path) {
   UserFileSystem *selected = nullptr;
   registry_lock.acquire();
   for (auto *fs : providers)
@@ -171,8 +164,8 @@ int mount_registered_userfs(const char *type, const char *path)
   return result ? 0 : -1;
 }
 
-bool userfs_provider(unsigned index, xv::userfs::ProviderInfo &info)
-{
+bool
+userfs_provider(unsigned index, xv::userfs::ProviderInfo &info) {
   xv::sync::ScopedLock guard(registry_lock);
   for (auto *fs : providers)
   {
@@ -184,8 +177,8 @@ bool userfs_provider(unsigned index, xv::userfs::ProviderInfo &info)
   return false;
 }
 
-bool userfs_type(unsigned index, char *name)
-{
+bool
+userfs_type(unsigned index, char *name) {
   xv::sync::ScopedLock guard(registry_lock);
   for (unsigned i = 0; i < xv::userfs::ProviderCapacity; ++i)
   {

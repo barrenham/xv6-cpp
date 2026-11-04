@@ -1,10 +1,13 @@
 #pragma once
 #include "kernel/support/types.h"
 // On-disk file system format.
-// Both the kernel and user programs use this header file.
+// Used by the xv6 userspace backend, filesystem tools and compatibility tests.
 
-#define ROOTINO 1    // root i-number
-#define BSIZE   1024 // block size
+#define MAXOPBLOCKS 10
+#define LOGBLOCKS (MAXOPBLOCKS * 3)
+
+#define ROOTINO 1  // root i-number
+#define BSIZE 1024 // block size
 
 // Disk layout:
 // [ boot block | super block | log | inode blocks |
@@ -12,7 +15,8 @@
 //
 // mkfs computes the super block and builds an initial file system. The
 // super block describes the disk layout:
-struct superblock {
+struct superblock
+{
   uint magic;      // Must be FSMAGIC
   uint size;       // Size of file system image (blocks)
   uint nblocks;    // Number of data blocks
@@ -25,13 +29,15 @@ struct superblock {
 
 #define FSMAGIC 0x10203041
 
-#define NDIRECT   12
+#define NLINK_MAX 32767
+
+#define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
-#define MAXFILE   (NDIRECT + NINDIRECT)
-#define NLINK_MAX 32767 // nlink is a short; refuse links past its maximum
+#define MAXFILE (NDIRECT + NINDIRECT)
 
 // On-disk inode structure
-struct dinode {
+struct dinode
+{
   short type;              // File type
   short major;             // Major device number (T_DEVICE only)
   short minor;             // Minor device number (T_DEVICE only)
@@ -56,12 +62,4 @@ struct dinode {
 // Block of free map containing bit for block b
 #define BBLOCK(b, sb) ((b) / BPB + sb.bmapstart)
 
-// Directory is a file containing a sequence of dirent structures.
-#define DIRSIZ 14
-
-// The name field may have DIRSIZ characters and not end in a NUL
-// character.
-struct dirent {
-  ushort inum;
-  char name[DIRSIZ] __attribute__((nonstring));
-};
+#include "kernel/io/legacy_dirent.h"

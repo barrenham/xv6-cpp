@@ -1,5 +1,5 @@
 #include "kernel/support/types.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/mount.h"

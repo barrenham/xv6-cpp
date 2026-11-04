@@ -1,7 +1,7 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
 
 module xv.fs;
@@ -11,8 +11,8 @@ import :lru;
 
 namespace xv::fs
 {
-void LruBlockCache::initialize()
-{
+void
+LruBlockCache::initialize() {
   if (!device_)
   {
     detail::fail("cache: missing block device");
@@ -40,16 +40,16 @@ void LruBlockCache::initialize()
   }
 }
 
-Buffer *LruBlockCache::get(unsigned device, unsigned block)
-{
+Buffer *
+LruBlockCache::get(unsigned device, unsigned block) {
   GetFlow::Context context{*this, device, block};
   (void)GetFlow::Graph::run<0>(context);
   return context.result;
 }
 
 // Return a locked buf with the contents of the indicated block.
-BlockHandle LruBlockCache::read(unsigned dev, unsigned blockno)
-{
+BlockHandle
+LruBlockCache::read(unsigned dev, unsigned blockno) {
   Buffer *b;
 
   b = get(dev, blockno);
@@ -57,8 +57,8 @@ BlockHandle LruBlockCache::read(unsigned dev, unsigned blockno)
   {
     device_->transfer(xv::drivers::BlockOperation::Read,
                       static_cast<unsigned long>(b->blockno) *
-                          (BSIZE / xv::drivers::BlockDevice::SectorSize),
-                      b->data, BSIZE);
+                          (BlockSize / xv::drivers::BlockDevice::SectorSize),
+                      b->data, BlockSize);
     b->valid = 1;
     increment(buckets_[b->bucket_].statistics.reads);
   }
@@ -67,8 +67,8 @@ BlockHandle LruBlockCache::read(unsigned dev, unsigned blockno)
 
 // Write b's contents to disk.  Must be locked.
 // Only the log calls bwrite.
-void LruBlockCache::write(Buffer &buffer)
-{
+void
+LruBlockCache::write(Buffer &buffer) {
   auto *b = &buffer;
   if (!b->lock.holding())
   {
@@ -77,20 +77,20 @@ void LruBlockCache::write(Buffer &buffer)
   increment(buckets_[b->bucket_].statistics.writes);
   device_->transfer(xv::drivers::BlockOperation::Write,
                     static_cast<unsigned long>(b->blockno) *
-                        (BSIZE / xv::drivers::BlockDevice::SectorSize),
-                    b->data, BSIZE);
+                        (BlockSize / xv::drivers::BlockDevice::SectorSize),
+                    b->data, BlockSize);
 }
 
 // Release a locked buffer.
 // Move to the head of the most-recently-used list.
-void LruBlockCache::release(Buffer &buffer)
-{
+void
+LruBlockCache::release(Buffer &buffer) {
   ReleaseFlow::Context context{*this, buffer};
   (void)ReleaseFlow::Graph::run<0>(context);
 }
 
-void LruBlockCache::pin(Buffer &buffer)
-{
+void
+LruBlockCache::pin(Buffer &buffer) {
   // The caller owns an existing handle/pin, so identity cannot be replaced.
   auto &bucket = buckets_[buffer.bucket_];
   acquire(bucket.lock, bucket.statistics);
@@ -103,8 +103,8 @@ void LruBlockCache::pin(Buffer &buffer)
   bucket.lock.release();
 }
 
-void LruBlockCache::unpin(Buffer &buffer)
-{
+void
+LruBlockCache::unpin(Buffer &buffer) {
   auto &bucket = buckets_[buffer.bucket_];
   acquire(bucket.lock, bucket.statistics);
   auto refs = __atomic_load_n(&buffer.refcnt, __ATOMIC_RELAXED);
@@ -124,8 +124,8 @@ void LruBlockCache::unpin(Buffer &buffer)
 
 namespace xv::fs
 {
-void LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics)
-{
+void
+LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistics) {
   // Avoid reading the clock on every uncontended cache operation. Only a
   // failed exchange starts the sampled wait interval; that failure also counts.
   if (lock.try_acquire())
@@ -141,11 +141,10 @@ void LruBlockCache::acquire(xv::sync::SpinLock &lock, CacheStatistics &statistic
   increment(statistics.wait_ticks, detail::cache_ticks() - start);
 }
 
-CacheStatistics LruBlockCache::statistics() const
-{
+CacheStatistics
+LruBlockCache::statistics() const {
   CacheStatistics result;
-  auto accumulate = [&](const CacheStatistics &statistics)
-  {
+  auto accumulate = [&](const CacheStatistics &statistics) {
 #define ADD(field) result.field += __atomic_load_n(&statistics.field, __ATOMIC_RELAXED)
     ADD(hits);
     ADD(misses);

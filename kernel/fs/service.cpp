@@ -8,31 +8,6 @@ namespace xv::fs
 {
 namespace
 {
-// With user backends, transaction boundaries belong to the serving process.
-// Existing VFS callers may still bracket operations, but reserve no disk log.
-class ServiceJournal final : public Journal
-{
-public:
-
-  void
-  begin() override {
-  }
-
-  void
-  end() override {
-  }
-
-  void
-  sync() override {
-  }
-
-  void
-  record(Buffer &) override {
-    xv::print::panic("userfs: kernel attempted a disk journal mutation");
-  }
-};
-
-constinit ServiceJournal service_journal;
 constinit LruBlockCache system_cache;
 constinit LruBlockCache data_cache;
 constinit VirtualFileSystem system_filesystem;
@@ -68,11 +43,6 @@ bootstrap_cache(unsigned index) {
     return &system_cache;
   }
   return index == 1 && xv::drivers::data_device() ? &data_cache : nullptr;
-}
-
-Journal &
-journal() {
-  return service_journal;
 }
 
 VirtualFileSystem &

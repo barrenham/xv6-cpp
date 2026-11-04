@@ -130,29 +130,18 @@ xv_add_fs_interfaces(process_contract)
 add_executable(fs_contract
   "${XV_ROOT}/tests/fs_contract.cpp"
   "${XV_ROOT}/tests/fs_test_platform.cpp"
-  "${XV_ROOT}/kernel/fs/ext3/ext3_filesystem.cpp"
-  "${XV_ROOT}/kernel/fs/ext3/volume.cpp"
-  "${XV_ROOT}/kernel/fs/ext3/mutate.cpp"
-  "${XV_ROOT}/kernel/fs/ext3/jbd.cpp"
-  "${XV_ROOT}/kernel/fs/inode/disk_filesystem.cpp"
+  "${XV_ROOT}/tests/fs_user_backend.cpp"
   "${XV_ROOT}/kernel/fs/buffer/page_buffer.cpp"
   "${XV_ROOT}/tests/fs_driver_platform.cpp"
-  "${XV_ROOT}/kernel/fs/procfs/procfs.cpp"
-  "${XV_ROOT}/kernel/fs/procfs/system_providers.cpp"
-  "${XV_ROOT}/kernel/fs/ramfs/ramfs.cpp"
   "${XV_ROOT}/kernel/fs/userfs/userfs.cpp"
   "${XV_ROOT}/kernel/fs/userfs/registry.cpp"
   "${XV_ROOT}/kernel/fs/permissions.cpp"
   "${XV_ROOT}/kernel/fs/vfs/vfs.cpp"
-  "${XV_ROOT}/kernel/fs/devfs/devfs.cpp"
   "${XV_ROOT}/kernel/fs/file/device_registry.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
   "${XV_ROOT}/kernel/sync/spin/spinlock.cpp"
   "${XV_ROOT}/kernel/sync/sleep/sleeplock.cpp"
   "${XV_ROOT}/kernel/fs/cache/lru_block_cache.cpp"
-  "${XV_ROOT}/kernel/fs/journal/journal.cpp"
-  "${XV_ROOT}/kernel/fs/inode/xv6_filesystem.cpp"
-  "${XV_ROOT}/kernel/fs/path/path_operations.cpp"
   "${XV_ROOT}/kernel/fs/file/open_file.cpp"
   "${XV_ROOT}/kernel/fs/file/file_operations.cpp"
   "${XV_ROOT}/kernel/fs/pipe/pipe.cpp"
@@ -160,7 +149,7 @@ add_executable(fs_contract
 target_include_directories(fs_contract PRIVATE "${XV_ROOT}")
 target_compile_features(fs_contract PRIVATE cxx_std_20)
 target_compile_options(fs_contract PRIVATE -O2 -Wall -Wextra -Werror -Wno-sign-compare -fno-rtti -fno-exceptions)
-target_link_libraries(fs_contract PRIVATE Threads::Threads)
+target_link_libraries(fs_contract PRIVATE Threads::Threads user_fs_ramfs)
 set_target_properties(fs_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 xv_add_sync_modules(fs_contract)
 xv_add_driver_interfaces(fs_contract)
@@ -400,7 +389,7 @@ set_target_properties(slab_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OU
 
 target_compile_definitions(slab_contract PRIVATE XV_DEFAULT_SLAB_BITMAP=$<STREQUAL:${XV_SLAB_ALLOCATOR},bitmap>)
 
-add_executable(ext3_jbd_contract "${XV_ROOT}/tests/ext3_jbd_contract.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+add_executable(ext3_jbd_contract "${XV_ROOT}/tests/ext3_jbd_contract.cpp" "${XV_ROOT}/user/fs/backends/ext3/jbd.cpp")
 target_include_directories(ext3_jbd_contract PRIVATE "${XV_ROOT}")
 target_compile_features(ext3_jbd_contract PRIVATE cxx_std_20)
 target_compile_options(ext3_jbd_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
@@ -421,7 +410,7 @@ target_compile_options(ext3_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -U
 set_target_properties(ext3_volume_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
 
 add_library(ext3_image SHARED "${XV_ROOT}/tools/mkfs/ext3_image.cpp"
-  "${XV_ROOT}/kernel/fs/ext3/volume.cpp" "${XV_ROOT}/kernel/fs/ext3/mutate.cpp" "${XV_ROOT}/kernel/fs/ext3/jbd.cpp")
+  "${XV_ROOT}/user/fs/backends/ext3/volume.cpp" "${XV_ROOT}/user/fs/backends/ext3/mutate.cpp" "${XV_ROOT}/user/fs/backends/ext3/jbd.cpp")
 target_include_directories(ext3_image PRIVATE "${XV_ROOT}")
 target_compile_features(ext3_image PRIVATE cxx_std_20)
 target_compile_options(ext3_image PRIVATE -O2 -Wall -Wextra -Werror -fno-rtti -fno-exceptions)

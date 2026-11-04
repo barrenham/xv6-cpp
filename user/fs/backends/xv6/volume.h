@@ -1,6 +1,6 @@
 #pragma once
-#include "kernel/fs/format/layout.h"
-#include "kernel/fs/ext3/volume.h"
+#include "user/fs/backends/xv6/format.h"
+#include "user/fs/backends/ext3/volume.h"
 #include "kernel/support/param.h"
 
 namespace userfs::xv6

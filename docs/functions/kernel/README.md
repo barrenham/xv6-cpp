@@ -2,7 +2,8 @@
 
 函数说明与运行代码分离，按 USR 维护单一函数条目。
 
-此生成索引保留设备 ELF 迁移前的驱动源码路径，尚未重新生成。当前硬件实现
+此生成索引保留迁移前的硬件驱动与内置 FS 源码路径，尚未重新生成。旧内核 FS 已删除，
+当前后端位于 `user/fs/backends/`，内核机制见 `kernel/fs/README.md`。当前硬件实现
 位于 `drivers/backends/` 和 `examples/kernel-driver/`，原内核路径已移除；
 当前构建边界与入口见[设备 ELF 说明](../../kernel-driver-modules.md)。
 

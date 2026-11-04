@@ -3,7 +3,7 @@
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/syscall/syscall.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -19,6 +19,8 @@ extern "C" {
 // kernel printing usertrap messages, which can be ignored if test
 // prints "OK".
 //
+
+constexpr int InodeStressCount = 50; // Stress workload, not a kernel inode limit.
 
 #define BUFSZ ((MAXOPBLOCKS + 2) * BSIZE)
 
@@ -1979,7 +1981,7 @@ iref(char *s)
 {
   int i, fd;
 
-  for (i = 0; i < NINODE + 1; i++) {
+  for (i = 0; i < InodeStressCount + 1; i++) {
     if (mkdir("irefd") != 0) {
       printf("%s: mkdir irefd failed\n", s);
       exit(1);
@@ -2001,7 +2003,7 @@ iref(char *s)
   }
 
   // clean up
-  for (i = 0; i < NINODE + 1; i++) {
+  for (i = 0; i < InodeStressCount + 1; i++) {
     chdir("..");
     unlink("irefd");
   }

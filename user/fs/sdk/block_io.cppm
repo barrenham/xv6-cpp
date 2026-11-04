@@ -1,7 +1,7 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/fs/userfs/protocol.h"
-#include "kernel/fs/ext3/volume.h"
+#include "user/fs/backends/ext3/volume.h"
 export module xv.userfs.block;
 
 export namespace userfs

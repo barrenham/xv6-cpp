@@ -1,5 +1,5 @@
 #include "ext3_image.h"
-#include "kernel/fs/ext3/volume.h"
+#include "user/fs/backends/ext3/volume.h"
 #include <cstdlib>
 #include <cstring>
 #include <ctime>

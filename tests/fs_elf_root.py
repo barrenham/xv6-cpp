@@ -27,6 +27,8 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo / 'tools'))
     from pack_boot_assets import pack, unpack
+    _, boot_assets = unpack(args.bootstrap.read_bytes())
+    drivers = [asset for asset in boot_assets if asset[0].startswith("drivers/")]
     with tempfile.TemporaryDirectory(prefix='xv-external-root-') as temporary:
         directory = Path(temporary)
         sdk = directory / 'sdk'
@@ -49,7 +51,7 @@ def main():
         guard = compile('guard', 'fs_asset_guard.c')
         guard_bundle = directory / 'asset-guard.elf'
         guard_bundle.write_bytes(pack(guard, [('data', b'DATA', False),
-                                              ('bad', b'not ELF', True), ('self', guard, True)]))
+                                              ('bad', b'not ELF', True), ('self', guard, True)] + drivers))
         default_bundle = args.bootstrap
         args.bootstrap = guard_bundle
         disk = directory / 'guard.img'

@@ -1,9 +1,8 @@
 module;
-#include "kernel/fs/format/layout.h"
+#include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
 #include "kernel/support/param.h"
 module xv.fs;
-import :vfs_initialize_flow;
 import :vfs_mount_flow;
 import :vfs_path_flow;
 import :vfs;
@@ -11,38 +10,20 @@ import :platform;
 
 namespace xv::fs
 {
-void VirtualFileSystem::initialize_inodes()
-{
-  InitializeFlow::Context context{*this, 0};
-  (void)InitializeFlow::InodesGraph::run<0>(context);
+void
+VirtualFileSystem::initialize_inodes() {
+  namespace_.init_single_waiter("vfs namespace");
+  mount_snapshot_lock_.init("mount snapshot");
 }
 
-void VirtualFileSystem::initialize(int device)
-{
-  InitializeFlow::Context context{*this, device};
-  (void)InitializeFlow::BackendsGraph::run<0>(context);
-  Transaction transaction;
-  (void)InitializeFlow::MountsGraph::run<0>(context);
-  publish_mount_snapshot();
-}
-
-bool VirtualFileSystem::mount(const char *path, FileSystem &backend, unsigned device)
-{
-  char name[256];
-  MountFlow::Context context{{*this, path, name}, backend, device};
-  (void)MountFlow::Graph::run<0>(context);
-  if(context.result==0)publish_mount_snapshot();
-  return context.result == 0;
-}
-
-bool VirtualFileSystem::same(Inode *first, Inode *second)
-{
+bool
+VirtualFileSystem::same(Inode *first, Inode *second) {
   return first && second && &first->owner() == &second->owner() &&
          first->device() == second->device() && first->number() == second->number();
 }
 
-Inode *VirtualFileSystem::enter_mount(Inode *node)
-{
+Inode *
+VirtualFileSystem::enter_mount(Inode *node) {
   for (unsigned i = 0; i < mount_count_; ++i)
   {
     if (same(node, mounts_[i].covered))
@@ -54,133 +35,116 @@ Inode *VirtualFileSystem::enter_mount(Inode *node)
   return node;
 }
 
-Inode *VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real,
-                               bool follow, bool creating,unsigned capacity,bool exact_names)
-{
+Inode *
+VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real,
+                        bool follow, bool creating, unsigned capacity,
+                        bool exact_names) {
   char pending[MAXPATH], target[MAXPATH];
-  WalkFlow::Context context{*this,  path,     parent,  name,  real,
-                            follow, creating, pending, target,capacity,exact_names};
+  WalkFlow::Context context{*this,    path,    parent, name,     real,       follow,
+                            creating, pending, target, capacity, exact_names};
   (void)WalkFlow::Graph::run<0>(context);
   return context.result;
 }
 
-Inode *VirtualFileSystem::lookup(const char *path, bool real, bool follow)
-{
+Inode *
+VirtualFileSystem::lookup(const char *path, bool real, bool follow) {
   xv::sync::ScopedLock guard(namespace_);
   char name[256];
   return walk(path, false, name, real, follow);
 }
 
-Inode *VirtualFileSystem::lookup_parent(const char *path, char *name,unsigned capacity)
-{
+Inode *
+VirtualFileSystem::lookup_parent(const char *path, char *name, unsigned capacity) {
   xv::sync::ScopedLock guard(namespace_);
-  return walk(path, true, name,false,true,false,capacity);
+  return walk(path, true, name, false, true, false, capacity);
 }
 
-Inode *VirtualFileSystem::create(char *path, short type, short major, short minor,
-                                 bool follow)
-{
+Inode *
+VirtualFileSystem::create(char *path, short type, short major, short minor,
+                          bool follow) {
   char name[256];
   CreateFlow::Context context{*this, path, type, major, minor, follow, name};
   (void)CreateFlow::Graph::run<0>(context);
   return context.result;
 }
 
-int VirtualFileSystem::link(char *old_path, char *new_path)
-{
-  Transaction transaction;
+int
+VirtualFileSystem::link(char *old_path, char *new_path) {
   char name[256];
   LinkFlow::Context context{*this, old_path, new_path, name};
   (void)LinkFlow::Graph::run<0>(context);
   return context.result;
 }
 
-int VirtualFileSystem::unlink(char *path)
-{
-  Transaction transaction;
+int
+VirtualFileSystem::unlink(char *path) {
   char name[256];
   UnlinkFlow::Context context{*this, path, name};
   (void)UnlinkFlow::Graph::run<0>(context);
   return context.result;
 }
 
-Inode *VirtualFileSystem::allocate(unsigned device, short type)
-{
-  return disk_ ? disk_->allocate(device, type) : nullptr;
-}
-
-Inode *VirtualFileSystem::retain(Inode *node)
-{
+Inode *
+VirtualFileSystem::retain(Inode *node) {
   return node->owner().retain(node);
 }
 
-void VirtualFileSystem::release(Inode *node)
-{
+void
+VirtualFileSystem::release(Inode *node) {
   node->owner().release(node);
 }
 
-void VirtualFileSystem::lock(Inode *node)
-{
+void
+VirtualFileSystem::lock(Inode *node) {
   node->owner().lock(node);
 }
 
-void VirtualFileSystem::unlock(Inode *node)
-{
+void
+VirtualFileSystem::unlock(Inode *node) {
   node->owner().unlock(node);
 }
 
-void VirtualFileSystem::unlock_release(Inode *node)
-{
+void
+VirtualFileSystem::unlock_release(Inode *node) {
   node->owner().unlock_release(node);
 }
 
-void VirtualFileSystem::update(Inode *node)
-{
-  node->owner().update(node);
-}
-
-void VirtualFileSystem::truncate(Inode *node)
-{
-  node->owner().truncate(node);
-}
-
-int VirtualFileSystem::read(Inode *node, int user, unsigned long destination,
-                            unsigned offset, unsigned count)
-{
+int
+VirtualFileSystem::read(Inode *node, int user, unsigned long destination,
+                        unsigned offset, unsigned count) {
   return node->owner().read(node, user, destination, offset, count);
 }
 
-int VirtualFileSystem::write(Inode *node, int user, unsigned long source,
-                             unsigned offset, unsigned count)
-{
+int
+VirtualFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset,
+                         unsigned count) {
   return node->owner().write(node, user, source, offset, count);
 }
 
-bool VirtualFileSystem::allowed(Inode *node, unsigned requested, bool real)
-{
+bool
+VirtualFileSystem::allowed(Inode *node, unsigned requested, bool real) {
   return detail::allowed(node, requested, real);
 }
 
-void VirtualFileSystem::stat(Inode *node, Stat *result)
-{
+void
+VirtualFileSystem::stat(Inode *node, Stat *result) {
   node->owner().stat(node, result);
 }
 
-Inode *VirtualFileSystem::lookup_entry(Inode *directory, const char *name,
-                                       unsigned *offset)
-{
+Inode *
+VirtualFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offset) {
   return directory->owner().lookup_entry(directory, name, offset);
 }
 
-Inode *VirtualFileSystem::create_at(Inode *directory, const char *name, short type,
-                                    short major, short minor)
-{
+Inode *
+VirtualFileSystem::create_at(Inode *directory, const char *name, short type,
+                             short major, short minor) {
   xv::sync::ScopedLock guard(namespace_);
   return directory->owner().create_at(directory, name, type, major, minor);
 }
 
-int VirtualFileSystem::link_at(Inode *directory, const char *name, Inode *target)
-{
+int
+VirtualFileSystem::link_at(Inode *directory, const char *name, Inode *target) {
   xv::sync::ScopedLock guard(namespace_);
   if (&directory->owner() != &target->owner())
   {
@@ -189,83 +153,95 @@ int VirtualFileSystem::link_at(Inode *directory, const char *name, Inode *target
   return directory->owner().link_at(directory, name, target);
 }
 
-int VirtualFileSystem::unlink_at(Inode *directory, const char *name)
-{
+int
+VirtualFileSystem::unlink_at(Inode *directory, const char *name) {
   xv::sync::ScopedLock guard(namespace_);
   UnlinkAtFlow::Context context{*this, directory, name};
   (void)UnlinkAtFlow::Graph::run<0>(context);
   return context.result;
 }
 
-bool VirtualFileSystem::ancestor(Inode *possible, Inode *node)
-{
+bool
+VirtualFileSystem::ancestor(Inode *possible, Inode *node) {
   AncestorFlow::Context context{*this, possible, node};
   (void)AncestorFlow::Graph::run<0>(context);
   return context.result;
 }
 
-int VirtualFileSystem::mount_ram(const char *path)
-{
-  Transaction transaction;
-  xv::sync::ScopedLock guard(namespace_);
-  char name[256];
-  MountRamFlow::Context context{{*this, path, name}};
-  (void)MountRamFlow::Graph::run<0>(context);
-  if(context.result==0)publish_mount_snapshot();
-  return context.result;
-}
-
-int VirtualFileSystem::unmount(const char *path)
-{
-  Transaction transaction;
+int
+VirtualFileSystem::unmount(const char *path) {
   xv::sync::ScopedLock guard(namespace_);
   char name[256];
   UnmountFlow::Context context{*this, path, name};
   (void)UnmountFlow::Graph::run<0>(context);
-  if(context.result==0)publish_mount_snapshot();
+  if (context.result == 0)
+  {
+    publish_mount_snapshot();
+  }
   return context.result;
 }
 
-void VirtualFileSystem::publish_mount_snapshot()
-{
+void
+VirtualFileSystem::publish_mount_snapshot() {
   // Called during boot publication or with namespace_ held. Build metadata
   // before taking the snapshot spinlock; readers never acquire namespace_.
   MountSnapshot records[9]{};
-  detail::copy_fixed(records[0].path,"/",128);
-  detail::copy_fixed(records[0].type,root_backend().type_name(),32);
-  records[0].readonly=root_backend().read_only();records[0].nodev=!root_backend().persistent();
-  for(unsigned i=0;i<mount_count_;++i)
+  detail::copy_fixed(records[0].path, "/", 128);
+  detail::copy_fixed(records[0].type, root_backend().type_name(), 32);
+  records[0].readonly = root_backend().read_only();
+  records[0].nodev = !root_backend().persistent();
+  for (unsigned i = 0; i < mount_count_; ++i)
   {
-    auto &backend=mounts_[i].root->owner();auto &record=records[i+1];
-    detail::copy_fixed(record.path,mounts_[i].path,128);detail::copy_fixed(record.type,backend.type_name(),32);
-    record.readonly=backend.read_only();record.nodev=!backend.persistent();
+    auto &backend = mounts_[i].root->owner();
+    auto &record = records[i + 1];
+    detail::copy_fixed(record.path, mounts_[i].path, 128);
+    detail::copy_fixed(record.type, backend.type_name(), 32);
+    record.readonly = backend.read_only();
+    record.nodev = !backend.persistent();
   }
-  xv::sync::ScopedLock guard(mount_snapshot_lock_);snapshot_count_=mount_count_+1;
-  for(unsigned i=0;i<snapshot_count_;++i)mount_snapshots_[i]=records[i];
-}
-
-unsigned VirtualFileSystem::snapshot_mounts(MountSnapshot *records,unsigned capacity) const
-{
-  xv::sync::ScopedLock guard(mount_snapshot_lock_);unsigned count=snapshot_count_<capacity ? snapshot_count_:capacity;
-  for(unsigned i=0;i<count;++i)records[i]=mount_snapshots_[i];return count;
-}
-
-bool VirtualFileSystem::snapshot_mount(unsigned index, MountSnapshot &record) const
-{
   xv::sync::ScopedLock guard(mount_snapshot_lock_);
-  if (index >= snapshot_count_) return false;
+  snapshot_count_ = mount_count_ + 1;
+  for (unsigned i = 0; i < snapshot_count_; ++i)
+  {
+    mount_snapshots_[i] = records[i];
+  }
+}
+
+unsigned
+VirtualFileSystem::snapshot_mounts(MountSnapshot *records, unsigned capacity) const {
+  xv::sync::ScopedLock guard(mount_snapshot_lock_);
+  unsigned count = snapshot_count_ < capacity ? snapshot_count_ : capacity;
+  for (unsigned i = 0; i < count; ++i)
+  {
+    records[i] = mount_snapshots_[i];
+  }
+  return count;
+}
+
+bool
+VirtualFileSystem::snapshot_mount(unsigned index, MountSnapshot &record) const {
+  xv::sync::ScopedLock guard(mount_snapshot_lock_);
+  if (index >= snapshot_count_)
+  {
+    return false;
+  }
   record = mount_snapshots_[index];
   return true;
 }
 
-int VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canonical,bool *readonly)
-{
+int
+VirtualFileSystem::mounts(unsigned index, char *path, char *type, bool canonical,
+                          bool *readonly) {
   xv::sync::ScopedLock guard(namespace_);
   if (!index)
   {
     detail::copy_fixed(path, "/", 128);
-    detail::copy_fixed(type, canonical ? root_backend().type_name():root_backend().name(), 32);
-    if(readonly)*readonly=root_backend().read_only();
+    detail::copy_fixed(
+        type, canonical ? root_backend().type_name() : root_backend().name(), 32);
+    if (readonly)
+    {
+      *readonly = root_backend().read_only();
+    }
     return 1;
   }
   --index;
@@ -274,15 +250,17 @@ int VirtualFileSystem::mounts(unsigned index, char *path, char *type,bool canoni
     return 0;
   }
   detail::copy_fixed(path, mounts_[index].path, 128);
-  auto &backend=mounts_[index].root->owner();
-  detail::copy_fixed(type, canonical ? backend.type_name():backend.name(), 32);
-  if(readonly)*readonly=backend.read_only();
+  auto &backend = mounts_[index].root->owner();
+  detail::copy_fixed(type, canonical ? backend.type_name() : backend.name(), 32);
+  if (readonly)
+  {
+    *readonly = backend.read_only();
+  }
   return 1;
 }
 
-int VirtualFileSystem::rename(const char *old_path, const char *new_path)
-{
-  Transaction transaction;
+int
+VirtualFileSystem::rename(const char *old_path, const char *new_path) {
   xv::sync::ScopedLock guard(namespace_);
   char old_name[256]{}, new_name[256]{};
   RenameFlow::Context context{*this, old_path, new_path, old_name, new_name};
@@ -290,14 +268,13 @@ int VirtualFileSystem::rename(const char *old_path, const char *new_path)
   return context.result;
 }
 
-int VirtualFileSystem::symlink(const char *target, const char *path)
-{
+int
+VirtualFileSystem::symlink(const char *target, const char *path) {
   const unsigned size = SymlinkFlow::measure(target);
   if (!size)
   {
     return -1;
   }
-  Transaction transaction;
   xv::sync::ScopedLock guard(namespace_);
   char name[256];
   SymlinkFlow::Context context{*this, target, path, size, name};
@@ -305,34 +282,24 @@ int VirtualFileSystem::symlink(const char *target, const char *path)
   return context.result;
 }
 
-int VirtualFileSystem::mount_disk(const char *path,const char *type)
-{
-  if (!MountDiskFlow::ready(*this, path))
-  {
-    return -1;
-  }
-  if(type && detail::compare(type,storage_->type_name(),16))return -1;
-  Transaction transaction;
-  xv::sync::ScopedLock guard(namespace_);
-  char name[256];
-  MountDiskFlow::Context context{*this, path, name};
-  (void)MountDiskFlow::Graph::run<0>(context);
-  if(context.result==0)publish_mount_snapshot();
-  return context.result;
-}
-
 } // namespace xv::fs
 
 namespace xv::fs
 {
-bool VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
-{
-  if (!path || path[0] != '/') return false;
+bool
+VirtualFileSystem::mount_service(const char *path, FileSystem &backend) {
+  if (!path || path[0] != '/')
+  {
+    return false;
+  }
   if (!path[1])
   {
     // Only the initial boot supervisor can publish the first root service.
     xv::sync::ScopedLock guard(namespace_);
-    if (!service_mode_ || service_root_ || detail::current_pid() != 1) return false;
+    if (service_root_ || detail::current_pid() != 1)
+    {
+      return false;
+    }
     service_root_ = &backend;
     publish_mount_snapshot();
     return true;
@@ -340,53 +307,81 @@ bool VirtualFileSystem::mount_service(const char *path, FileSystem &backend)
   unsigned length = 0, start = 1;
   for (; path[length]; ++length)
   {
-    if (length >= 127) return false;
+    if (length >= 127)
+    {
+      return false;
+    }
     if (length && path[length] == '/')
     {
       unsigned size = length - start;
       if (!size || (size == 1 && path[start] == '.') ||
-          (size == 2 && path[start] == '.' && path[start + 1] == '.')) return false;
+          (size == 2 && path[start] == '.' && path[start + 1] == '.'))
+      {
+        return false;
+      }
       start = length + 1;
     }
   }
   unsigned size = length - start;
   if (!size || (size == 1 && path[start] == '.') ||
-      (size == 2 && path[start] == '.' && path[start + 1] == '.')) return false;
-  Transaction transaction;
+      (size == 2 && path[start] == '.' && path[start + 1] == '.'))
+  {
+    return false;
+  }
   xv::sync::ScopedLock guard(namespace_);
-  if (mount_count_ == 8) return false;
+  if (mount_count_ == 8)
+  {
+    return false;
+  }
   char name[256];
   auto *covered = walk(path, false, name);
-  if (!covered) return false;
+  if (!covered)
+  {
+    return false;
+  }
   bool valid = covered->kind() == T_DIR;
   for (unsigned i = 0; i < mount_count_; ++i)
-    if (same(covered, mounts_[i].root)) valid = false;
+  {
+    if (same(covered, mounts_[i].root))
+    {
+      valid = false;
+    }
+  }
   auto *parent = valid ? walk(path, true, name) : nullptr;
-  if (!parent) { release(covered); return false; }
+  if (!parent)
+  {
+    release(covered);
+    return false;
+  }
   auto &record = mounts_[mount_count_++];
   record.covered = covered;
   record.parent = parent;
   record.root = backend.root();
-  record.dynamic = -3;
   detail::copy_fixed(record.path, path, sizeof(record.path));
   publish_mount_snapshot();
   return true;
 }
-}
+} // namespace xv::fs
 
 namespace xv::fs
 {
-int VirtualFileSystem::synchronize_services()
-{
+int
+VirtualFileSystem::synchronize_services() {
   xv::sync::ScopedLock guard(namespace_);
-  if (!service_mode_ || !service_root_) return -1;
+  if (!service_root_)
+  {
+    return -1;
+  }
   auto *node = service_root_->root();
   int result = service_root_->synchronize(node);
   service_root_->release(node);
   for (unsigned i = 0; i < mount_count_; ++i)
   {
     auto *root = mounts_[i].root;
-    if (root->owner().synchronize(root) < 0) result = -1;
+    if (root->owner().synchronize(root) < 0)
+    {
+      result = -1;
+    }
   }
   return result;
 }

@@ -1,7 +1,7 @@
 module;
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
-#include "kernel/fs/format/layout.h"
+#include "user/fs/backends/xv6/format.h"
 #include "kernel/support/placement_new.hpp"
 module xv.userfs.ramfs;
 import xv.userfs;

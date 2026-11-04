@@ -10,14 +10,15 @@ def export(source, target, backend='ext4'):
     if target.exists():
         raise ValueError('kit destination must not exist')
     target.mkdir(parents=True)
-    for header in (source / 'kernel').rglob('*'):
-        if header.is_file() and header.suffix in ('.h', '.hpp', '.inc'):
-            destination = target / header.relative_to(source)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(header, destination)
+    for directory in ('kernel', 'user/fs/backends'):
+        for header in (source / directory).rglob('*'):
+            if header.is_file() and header.suffix in ('.h', '.hpp', '.inc'):
+                destination = target / header.relative_to(source)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(header, destination)
     for directory in ('user/runtime', 'user/fs/sdk', f'user/fs/backends/{backend}',
                       f'user/fs/plugins/{backend}', 'linker', 'examples/fs-driver'):
-        shutil.copytree(source / directory, target / directory)
+        shutil.copytree(source / directory, target / directory, dirs_exist_ok=True)
     return target
 
 
