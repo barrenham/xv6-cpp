@@ -26,8 +26,8 @@ struct SchedulerContext::DispatchFlow
     ReadyQueue &ready;
   };
 
-  static void enter(Context &c) noexcept
-  {
+  static void
+  enter(Context &c) noexcept {
     c.process.lock.acquire();
     if (c.process.state != ProcessState::Runnable)
     {
@@ -39,8 +39,8 @@ struct SchedulerContext::DispatchFlow
     account_dispatch();
   }
 
-  static void switch_context(Context &c) noexcept
-  {
+  static void
+  switch_context(Context &c) noexcept {
     // Keep both TLB fences adjacent to the switch across recyclable stack leaves.
     xv::arch::sfence_vma();
     xv_kmod_synchronize();
@@ -48,8 +48,8 @@ struct SchedulerContext::DispatchFlow
     xv::arch::sfence_vma();
   }
 
-  static void leave(Context &c) noexcept
-  {
+  static void
+  leave(Context &c) noexcept {
     current_cpu()->intena = 0;
     c.cpu.current = nullptr;
     c.process.lock.release();
@@ -72,8 +72,8 @@ struct SchedulerContext::SuspendFlow
     int intena = 0;
   };
 
-  static void prepare(Context &c) noexcept
-  {
+  static void
+  prepare(Context &c) noexcept {
     if (!c.process.lock.holding())
     {
       xv::print::panic("sched p->lock");
@@ -93,13 +93,13 @@ struct SchedulerContext::SuspendFlow
     c.intena = current_cpu()->intena;
   }
 
-  static void switch_context(Context &c) noexcept
-  {
+  static void
+  switch_context(Context &c) noexcept {
     // A service can sleep inside poll/read indefinitely. Reclaim unused stack
     // margin here as well as at user return, while its lock excludes dispatch
     // on another hart and interrupts are masked. Live wait records remain above SP.
-    xv::memory::kernel_page_table().trim_process_stack(
-        c.process.kernel_stack(), xv::arch::r_sp() - PGSIZE);
+    xv::memory::kernel_page_table().trim_process_stack(c.process.kernel_stack(),
+                                                       xv::arch::r_sp() - PGSIZE);
     swtch(&c.process.context, &current_cpu()->context);
     // The resumed process may run on another hart. Never cache CpuState across swtch.
     current_cpu()->intena = c.intena;
@@ -120,18 +120,18 @@ struct SchedulerContext::YieldFlow
     Process &process;
   };
 
-  static void lock(Context &c) noexcept
-  {
+  static void
+  lock(Context &c) noexcept {
     c.process.lock.acquire();
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.scheduler.make_runnable(c.process);
   }
 
-  static void suspend(Context &c) noexcept
-  {
+  static void
+  suspend(Context &c) noexcept {
     c.scheduler.suspend();
     c.process.lock.release();
   }
@@ -144,22 +144,22 @@ struct SchedulerContext::YieldFlow
                         flow::node<Suspend, flow::action<&suspend>, flow::stop>>>;
 };
 
-CpuState &SchedulerContext::prepare_cpu()
-{
+CpuState &
+SchedulerContext::prepare_cpu() {
   auto *cpu = current_cpu();
   cpu->current = nullptr;
   return *cpu;
 }
 
-void SchedulerContext::begin_round()
-{
+void
+SchedulerContext::begin_round() {
   // Permit pending interrupts, then close the check-to-idle interrupt window.
   xv::arch::intr_on();
   xv::arch::intr_off();
 }
 
-void SchedulerContext::idle()
-{
+void
+SchedulerContext::idle() {
   // begin_round() keeps interrupts disabled from the empty-queue check through
   // WFI. Enabling them here could handle the wakeup, then sleep despite runnable
   // work. RISC-V WFI resumes for locally enabled pending interrupts even with
@@ -170,14 +170,14 @@ void SchedulerContext::idle()
 #endif
 }
 
-void SchedulerContext::dispatch(Process &process, CpuState &cpu, ReadyQueue &ready)
-{
+void
+SchedulerContext::dispatch(Process &process, CpuState &cpu, ReadyQueue &ready) {
   DispatchFlow::Context context{process, cpu, ready};
   (void)DispatchFlow::Graph::run<0>(context);
 }
 
-void SchedulerContext::make_runnable(Process &process, ReadyQueue &ready)
-{
+void
+SchedulerContext::make_runnable(Process &process, ReadyQueue &ready) {
   if (!process.lock.holding() || process.state == ProcessState::Unused ||
       process.state == ProcessState::Zombie || process.state == ProcessState::Runnable)
   {
@@ -187,14 +187,14 @@ void SchedulerContext::make_runnable(Process &process, ReadyQueue &ready)
   ready.enqueue(process);
 }
 
-void SchedulerContext::suspend()
-{
+void
+SchedulerContext::suspend() {
   SuspendFlow::Context context{*current()};
   (void)SuspendFlow::Graph::run<0>(context);
 }
 
-void SchedulerContext::yield(Scheduler &scheduler)
-{
+void
+SchedulerContext::yield(Scheduler &scheduler) {
   YieldFlow::Context context{scheduler, *current()};
   (void)YieldFlow::Graph::run<0>(context);
 }

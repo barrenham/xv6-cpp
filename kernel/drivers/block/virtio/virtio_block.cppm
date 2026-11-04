@@ -11,22 +11,21 @@ class VirtioBlock final : public BlockDevice
 {
 public:
 
-  constexpr VirtioBlock(unsigned long base, unsigned irq) : registers_(base), irq_(irq)
-  {
+  constexpr VirtioBlock(unsigned long base, unsigned irq)
+      : registers_(base), irq_(irq) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "VirtIO MMIO block";
   }
 
-  unsigned irq() const override
-  {
+  unsigned
+  irq() const override {
     return irq_;
   }
 
   void initialize() override;
-  bool present() const;
   void flush() override;
   unsigned long capacity_sectors() const override;
   void transfer(BlockOperation operation, unsigned long sector, void *data,

@@ -37,6 +37,7 @@ SerialPort &serial_port();
 BlockDevice &block_device();
 BlockDevice *data_device();
 void initialize_modules();
+void initialize_boot_modules();
 long module_control(unsigned operation, unsigned long argument, unsigned long value);
 bool module_device(unsigned index, xv_kmod_device &device);
 void module_interrupt(unsigned index);

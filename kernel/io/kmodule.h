@@ -45,8 +45,8 @@ struct xv_kmod_block
   unsigned size, flags; // reserved; ABI 1 requires a writable block device
   void *context;
   unsigned long sectors;
-  int (*transfer)(void *context, unsigned write, unsigned long sector,
-                  void *dma_buffer, unsigned bytes);
+  int (*transfer)(void *context, unsigned write, unsigned long sector, void *dma_buffer,
+                  unsigned bytes);
   int (*flush)(void *context);
   void (*interrupt)(void *context);
 };

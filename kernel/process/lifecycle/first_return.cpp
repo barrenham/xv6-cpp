@@ -23,34 +23,35 @@ struct Process::FirstReturnFlow
     int &first;
   };
 
-  static void unlock(Context &c) noexcept
-  {
+  static void
+  unlock(Context &c) noexcept {
     c.owner.lock.release();
   }
 
-  static bool first(Context &c) noexcept
-  {
+  static bool
+  first(Context &c) noexcept {
     return __atomic_load_n(&c.first, __ATOMIC_ACQUIRE);
   }
 
-  static void initialize(Context &) noexcept
-  {
+  static void
+  initialize(Context &) noexcept {
     if (xv::memory::boot_image().empty())
     {
       xv::print::panic("boot: missing userspace bootstrap (-initrd)");
     }
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     __atomic_store_n(&c.first, 0, __ATOMIC_RELEASE);
   }
 
-  static void execute_init(Context &c) noexcept
-  {
+  static void
+  execute_init(Context &c) noexcept {
     auto image = xv::memory::boot_image();
     if (!image.empty())
     {
+      xv::drivers::initialize_boot_modules();
       xv::fs::initialize_device_registry();
       // Bootstrap console descriptors require neither /dev nor a root directory.
       for (int descriptor = 0; descriptor < 3; ++descriptor)
@@ -70,13 +71,19 @@ struct Process::FirstReturnFlow
       auto *disk = xv::fs::create_boot_disk(0);
       if (!disk || c.owner.files().install(disk) != 3)
       {
-        if (disk) xv::fs::files().release(disk);
+        if (disk)
+        {
+          xv::fs::files().release(disk);
+        }
         xv::print::panic("boot disk: descriptor allocation");
       }
       auto *resources = xv::fs::create_fs_resources();
       if (!resources || c.owner.files().install(resources) != 4)
       {
-        if (resources) xv::fs::files().release(resources);
+        if (resources)
+        {
+          xv::fs::files().release(resources);
+        }
         xv::print::panic("boot resources: descriptor allocation");
       }
       char *arguments[] = {const_cast<char *>("/boot/fsboot"), nullptr};
@@ -87,18 +94,18 @@ struct Process::FirstReturnFlow
     }
   }
 
-  static bool loaded(Context &c) noexcept
-  {
+  static bool
+  loaded(Context &c) noexcept {
     return c.owner.trapframe->a0 != -1;
   }
 
-  static void fail(Context &) noexcept
-  {
+  static void
+  fail(Context &) noexcept {
     xv::print::panic("exec");
   }
 
-  static void user(Context &) noexcept
-  {
+  static void
+  user(Context &) noexcept {
     xv::trap::return_to_user();
   }
   struct Unlock;
@@ -122,8 +129,8 @@ struct Process::FirstReturnFlow
 };
 
 // swtch enters here only on a process's first dispatch, holding its process lock.
-void first_return()
-{
+void
+first_return() {
   static int first = 1;
   Process::FirstReturnFlow::Context context{*current(), first};
   (void)Process::FirstReturnFlow::Graph::run<0>(context);

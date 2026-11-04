@@ -16,13 +16,13 @@ import :pipe;
 
 namespace xv::fs
 {
-bool File::nonblocking() const
-{
+bool
+File::nonblocking() const {
   return __atomic_load_n(&status_flags_, __ATOMIC_ACQUIRE) & O_NONBLOCK;
 }
 
-int OpenFileTable::fcntl(File *file, int command, unsigned flags)
-{
+int
+OpenFileTable::fcntl(File *file, int command, unsigned flags) {
   if (command == F_GETFL)
   {
     return __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
@@ -43,13 +43,13 @@ int OpenFileTable::fcntl(File *file, int command, unsigned flags)
   }
 }
 
-void OpenFileTable::initialize()
-{
+void
+OpenFileTable::initialize() {
   lock_.init("open files");
 }
 
-File *OpenFileTable::allocate()
-{
+File *
+OpenFileTable::allocate() {
   xv::sync::ScopedLock guard(lock_);
   for (auto &file : files_)
   {
@@ -66,8 +66,8 @@ File *OpenFileTable::allocate()
   return nullptr;
 }
 
-File *OpenFileTable::retain(File *file)
-{
+File *
+OpenFileTable::retain(File *file) {
   xv::sync::ScopedLock guard(lock_);
   if (file->ref < 1)
   {
@@ -77,8 +77,8 @@ File *OpenFileTable::retain(File *file)
   return file;
 }
 
-void OpenFileTable::release(File *file)
-{
+void
+OpenFileTable::release(File *file) {
   lock_.acquire();
   if (file->ref > 1)
   {
@@ -90,10 +90,10 @@ void OpenFileTable::release(File *file)
   (void)ReleaseFlow::Graph::run<0>(context);
 }
 
-void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable,
-                              bool writable, bool nonblocking, FileKind kind,
-                              const Inode *node)
-{
+void
+OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readable,
+                         bool writable, bool nonblocking, FileKind kind,
+                         const Inode *node) {
   file.identity_.kind = kind;
   if (node)
   {
@@ -116,57 +116,57 @@ void OpenFileTable::configure(File &file, xv::io::IoObject &object, bool readabl
   __atomic_store_n(&file.ready_, true, __ATOMIC_RELEASE);
 }
 
-bool OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
-                               bool nonblocking, bool append)
-{
+bool
+OpenFileTable::bind_inode(File &file, Inode &node, bool readable, bool writable,
+                          bool nonblocking, bool append) {
   BindInodeFlow::Context context{*this,    file,        node,  readable,
                                  writable, nonblocking, append};
   (void)BindInodeFlow::Graph::run<0>(context);
   return context.result;
 }
 
-void OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
-{
+void
+OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint) {
   static_assert(sizeof(EndpointBackend) <= File::BackendBytes &&
                 alignof(EndpointBackend) <= 16);
   auto *backend = new (file.backend_storage_) EndpointBackend(endpoint);
   configure(file, *backend, true, true, false, FileKind::Terminal);
 }
 
-void OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking)
-{
+void
+OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking) {
   configure(file, object, true, true, nonblocking,
             object.capability(xv::io::CapabilityId::Socket) ? FileKind::Socket
                                                             : FileKind::Unknown);
 }
 
-xv::io::IoObject *OpenFileTable::object(File *file) const
-{
+xv::io::IoObject *
+OpenFileTable::object(File *file) const {
   return file ? file->backend_ : nullptr;
 }
 
-bool OpenFileTable::describe(File *file, FileInfo &result) const
-{
+bool
+OpenFileTable::describe(File *file, FileInfo &result) const {
   if (!file || !__atomic_load_n(&file->ready_, __ATOMIC_ACQUIRE))
   {
     return false;
   }
   result = file->identity_;
   result.flags = __atomic_load_n(&file->status_flags_, __ATOMIC_ACQUIRE);
-  result.position=file->backend_->position();
+  result.position = file->backend_->position();
   return true;
 }
 
-void OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable)
-{
+void
+OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable) {
   static_assert(sizeof(PipeBackend) <= File::BackendBytes &&
                 alignof(PipeBackend) <= 16);
   auto *backend = new (file.backend_storage_) PipeBackend(pipe, writable);
   configure(file, *backend, !writable, writable, false, FileKind::Pipe);
 }
 
-int OpenFileTable::read(File *file, unsigned long address, int count)
-{
+int
+OpenFileTable::read(File *file, unsigned long address, int count) {
   if (!file->readable || count < 0 || !file->backend_)
   {
     return -1;
@@ -174,8 +174,8 @@ int OpenFileTable::read(File *file, unsigned long address, int count)
   return file->backend_->read({address, file->nonblocking()}, count);
 }
 
-int OpenFileTable::write(File *file, unsigned long address, int count)
-{
+int
+OpenFileTable::write(File *file, unsigned long address, int count) {
   if (!file->writable || count < 0 || !file->backend_)
   {
     return -1;
@@ -186,8 +186,8 @@ int OpenFileTable::write(File *file, unsigned long address, int count)
       count);
 }
 
-int OpenFileTable::stat(File *file, unsigned long address)
-{
+int
+OpenFileTable::stat(File *file, unsigned long address) {
   xv::io::Metadata value{};
   if (!file->backend_ || file->backend_->stat(value) < 0)
   {
@@ -196,11 +196,14 @@ int OpenFileTable::stat(File *file, unsigned long address)
   return detail::copy_out(true, address, &value, sizeof(value));
 }
 
-int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
-{
+int
+OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument) {
   if (request == xv::fscontrol::Ioctl)
   {
-    if (!file->backend_) return -1;
+    if (!file->backend_)
+    {
+      return -1;
+    }
     unsigned access = (file->readable ? xv::fscontrol::Readable : 0) |
                       (file->writable ? xv::fscontrol::Writable : 0);
     return file->backend_->filesystem_control(argument, access);
@@ -209,8 +212,8 @@ int OpenFileTable::ioctl(File *file, unsigned request, unsigned long argument)
   return control ? control->ioctl(request, {argument, file->nonblocking()}) : -1;
 }
 
-unsigned OpenFileTable::poll(File *file, xv::sync::PollTable *table)
-{
+unsigned
+OpenFileTable::poll(File *file, xv::sync::PollTable *table) {
   unsigned events = file->backend_ ? file->backend_->poll(table) : POLLNVAL;
   if (!file->readable)
   {
@@ -223,46 +226,57 @@ unsigned OpenFileTable::poll(File *file, xv::sync::PollTable *table)
   return events;
 }
 
-xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking)
-{
+xv::drivers::CharacterDevice *
+open_registered_device(Inode *node, bool nonblocking) {
   auto *device = devices().get(node->device_major(), node->device_minor());
   return device ? device->open(nonblocking) : nullptr;
 }
 
-xv::drivers::BlockDevice *open_registered_block(Inode *node,bool writable)
-{
-  auto *record=devices().block(node->device_major(),node->device_minor());
+xv::drivers::BlockDevice *
+open_registered_block(Inode *node, bool writable) {
+  auto *record = devices().block(node->device_major(), node->device_minor());
   return record && (!writable || !record->read_only) ? record->block : nullptr;
 }
 
-void DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device)
-{
+void
+DeviceRegistry::attach(unsigned major, xv::drivers::CharacterDevice &device) {
   attach("", major, 0, device);
 }
 
-void DeviceRegistry::attach(const char *name, unsigned major, unsigned minor,
-                            xv::drivers::CharacterDevice &device,unsigned mode)
-{
-  AttachFlow::Context context{*this, name, major, minor, &device,nullptr,true,mode};
+void
+DeviceRegistry::attach(const char *name, unsigned major, unsigned minor,
+                       xv::drivers::CharacterDevice &device, unsigned mode) {
+  AttachFlow::Context context{*this, name, major, minor, &device, nullptr, true, mode};
   (void)AttachFlow::Graph::run<0>(context);
 }
 
-void DeviceRegistry::attach_block(const char *name,unsigned major,unsigned minor,
-                                   xv::drivers::BlockDevice &device,bool read_only)
-{
-  AttachFlow::Context context{*this,name,major,minor,nullptr,&device,read_only,read_only ? 0440U:0660U};
+void
+DeviceRegistry::attach_block(const char *name, unsigned major, unsigned minor,
+                             xv::drivers::BlockDevice &device, bool read_only) {
+  AttachFlow::Context context{*this,   name,    major,     minor,
+                              nullptr, &device, read_only, read_only ? 0440U : 0660U};
   (void)AttachFlow::Graph::run<0>(context);
 }
-const DeviceRegistry::Entry *DeviceRegistry::block(int major,int minor) const
-{
-  if(major<0 || minor<0)return nullptr;
-  for(unsigned i=0;i<count();++i)
-    if(entries_[i].block && entries_[i].major==unsigned(major) && entries_[i].minor==unsigned(minor))return &entries_[i];
+
+const DeviceRegistry::Entry *
+DeviceRegistry::block(int major, int minor) const {
+  if (major < 0 || minor < 0)
+  {
+    return nullptr;
+  }
+  for (unsigned i = 0; i < count(); ++i)
+  {
+    if (entries_[i].block && entries_[i].major == unsigned(major) &&
+        entries_[i].minor == unsigned(minor))
+    {
+      return &entries_[i];
+    }
+  }
   return nullptr;
 }
 
-xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
-{
+xv::drivers::CharacterDevice *
+DeviceRegistry::get(int major, int minor) const {
   if (major < 0 || minor < 0)
   {
     return nullptr;
@@ -278,25 +292,35 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
   return nullptr;
 }
 
-bool DeviceRegistry::attach_dynamic_block(const char *name, unsigned major,
-                                          unsigned minor, xv::drivers::BlockDevice &device)
-{
+bool
+DeviceRegistry::attach_dynamic_block(const char *name, unsigned major, unsigned minor,
+                                     xv::drivers::BlockDevice &device) {
   // Runtime writers are serialized by the module manager. Existing entries
   // never move or disappear, so readers need only an acquire count snapshot.
   auto length = 0U;
   while (length < 14 && name[length])
   {
-    if (name[length] == '/') return false;
+    if (name[length] == '/')
+    {
+      return false;
+    }
     ++length;
   }
   auto index = count();
   if (!length || length >= 14 || index == Capacity || major > 32767 || minor > 32767 ||
       detail::compare(name, ".", 14) == 0 || detail::compare(name, "..", 14) == 0 ||
-      detail::compare(name, "pts", 14) == 0) return false;
+      detail::compare(name, "pts", 14) == 0)
+  {
+    return false;
+  }
   for (unsigned i = 0; i < index; ++i)
+  {
     if (detail::compare(entries_[i].name, name, 14) == 0 ||
         (entries_[i].block && entries_[i].major == major && entries_[i].minor == minor))
+    {
       return false;
+    }
+  }
   auto &record = entries_[index];
   detail::copy_fixed(record.name, name, 14);
   record.major = major;
@@ -308,21 +332,25 @@ bool DeviceRegistry::attach_dynamic_block(const char *name, unsigned major,
   return true;
 }
 
-int OpenFileTable::getdents64(File *file,unsigned long address,int count)
-{return file && file->readable && file->backend_ ? file->backend_->getdents64({address,file->nonblocking()},count):-1;}
+int
+OpenFileTable::getdents64(File *file, unsigned long address, int count) {
+  return file && file->readable && file->backend_
+             ? file->backend_->getdents64({address, file->nonblocking()}, count)
+             : -1;
+}
 
-long OpenFileTable::seek(File *file, long offset, int origin)
-{
+long
+OpenFileTable::seek(File *file, long offset, int origin) {
   return file && file->backend_ ? file->backend_->seek(offset, origin) : -1;
 }
 
-int OpenFileTable::resize(File *file, unsigned size)
-{
+int
+OpenFileTable::resize(File *file, unsigned size) {
   return file && file->writable && file->backend_ ? file->backend_->resize(size) : -1;
 }
 
-int OpenFileTable::sync(File *file)
-{
+int
+OpenFileTable::sync(File *file) {
   return file && file->backend_ ? file->backend_->sync() : -1;
 }
 } // namespace xv::fs

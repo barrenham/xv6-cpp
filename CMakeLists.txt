@@ -76,6 +76,13 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
 foreach(kmod_cpus 1 5)
+  add_test(NAME kernel_driver_boot_${kmod_cpus}cpu
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/kmod_boot.py"
+      --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel>
+      --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+      --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${kmod_cpus})
+  set_tests_properties(kernel_driver_boot_${kmod_cpus}cpu PROPERTIES
+    TIMEOUT 180 RUN_SERIAL TRUE LABELS "driver;module;boot")
   add_test(NAME kernel_driver_hotplug_${kmod_cpus}cpu
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/kmod_hotplug.py"
       --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel>

@@ -72,7 +72,7 @@ public:
   int read(File *file, unsigned long address, int count);
   int write(File *file, unsigned long address, int count);
   int stat(File *file, unsigned long address);
-  int getdents64(File *file,unsigned long address,int count);
+  int getdents64(File *file, unsigned long address, int count);
   long seek(File *file, long offset, int origin);
   int resize(File *file, unsigned size);
   int sync(File *file);
@@ -122,18 +122,18 @@ public:
                             xv::drivers::BlockDevice &device);
   const Entry *block(int major, int minor) const;
 
-  unsigned count() const
-  {
+  unsigned
+  count() const {
     return __atomic_load_n(&count_, __ATOMIC_ACQUIRE);
   }
 
-  const Entry &entry(unsigned index) const
-  {
+  const Entry &
+  entry(unsigned index) const {
     return entries_[index];
   }
 
-  void seal()
-  {
+  void
+  seal() {
     sealed_ = true;
   }
 

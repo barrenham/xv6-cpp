@@ -7,49 +7,64 @@
 namespace
 {
 unsigned char reference[4096], buffer[4096];
-void check(bool okay, const char *why)
-{
-  if (!okay) { fprintf(2, "kmodtest: FAIL: %s\n", why); exit(1); }
+
+void
+check(bool okay, const char *why) {
+  if (!okay)
+  {
+    fprintf(2, "kmodtest: FAIL: %s\n", why);
+    exit(1);
+  }
 }
-void boundaries()
-{
+
+void
+boundaries() {
   check(kmod(99, 0, 0) < 0, "unknown command");
   check(kmod(XV_KMOD_LOAD, 0, 0) < 0 &&
-        kmod(XV_KMOD_LOAD, 0, XV_KMOD_MAX_FILE + 1) < 0 &&
-        kmod(XV_KMOD_LOAD, ~0UL - 8, 64) < 0, "invalid load buffers");
+            kmod(XV_KMOD_LOAD, 0, XV_KMOD_MAX_FILE + 1) < 0 &&
+            kmod(XV_KMOD_LOAD, ~0UL - 8, 64) < 0,
+        "invalid load buffers");
   check(kmod(XV_KMOD_INFO, 0, 0) < 0 &&
-        kmod(XV_KMOD_INFO, reinterpret_cast<unsigned long>(buffer), ~0UL) < 0 &&
-        kmod(XV_KMOD_DEVICE, 0, 0) < 0 &&
-        kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(buffer), 1UL << 32) < 0 &&
-        kmod(XV_KMOD_BIND, 1UL << 32, 0) < 0 &&
-        kmod(XV_KMOD_BIND, 0, 1UL << 32) < 0, "query and binding bounds");
-  int pid = fork(); check(pid >= 0, "credential test fork");
+            kmod(XV_KMOD_INFO, reinterpret_cast<unsigned long>(buffer), ~0UL) < 0 &&
+            kmod(XV_KMOD_DEVICE, 0, 0) < 0 &&
+            kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(buffer), 1UL << 32) <
+                0 &&
+            kmod(XV_KMOD_BIND, 1UL << 32, 0) < 0 &&
+            kmod(XV_KMOD_BIND, 0, 1UL << 32) < 0,
+        "query and binding bounds");
+  int pid = fork();
+  check(pid >= 0, "credential test fork");
   if (!pid)
   {
     check(setuid(1000) == 0, "drop root privilege");
     check(kmod(XV_KMOD_INFO, reinterpret_cast<unsigned long>(buffer), 0) < 0 &&
-          kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(buffer), 0) < 0 &&
-          kmod(XV_KMOD_LOAD, reinterpret_cast<unsigned long>(buffer), 64) < 0 &&
-          kmod(XV_KMOD_BIND, 0, 0) < 0, "root-only module management");
+              kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(buffer), 0) < 0 &&
+              kmod(XV_KMOD_LOAD, reinterpret_cast<unsigned long>(buffer), 64) < 0 &&
+              kmod(XV_KMOD_BIND, 0, 0) < 0,
+          "root-only module management");
     exit(0);
   }
   int status;
   check(wait(&status) == pid && !status, "credential child succeeded");
 }
-}
+} // namespace
 
-extern "C" int main(int argc, char **argv)
-{
+extern "C" int
+main(int argc, char **argv) {
   if (argc == 3 && !strcmp(argv[1], "--failed-bind"))
   {
     unsigned module = atoi(argv[2]);
     check(kmod(XV_KMOD_BIND, module, 0) < 0, "warm failed bind");
     char memory[512];
-    check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0, "read memory before retries");
+    check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0,
+          "read memory before retries");
     int before = proc::number(memory, "MemFree");
     for (unsigned i = 0; i < 64; ++i)
+    {
       check(kmod(XV_KMOD_BIND, module, 0) < 0, "failed bind retry");
-    check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0, "read memory after retries");
+    }
+    check(proc::read("/proc/meminfo", memory, sizeof(memory)) >= 0,
+          "read memory after retries");
     check(before > 0 && before - proc::number(memory, "MemFree") <= 64,
           "failed bind reclaims DMA pages and locks");
     printf("kmodtest: PASS: failed bind retries reclaim resources\n");
@@ -57,13 +72,19 @@ extern "C" int main(int argc, char **argv)
   }
   boundaries();
   int fd = open("/dev/vdb", O_RDONLY);
-  check(fd >= 0 && read(fd, reference, sizeof(reference)) == sizeof(reference), "reference raw read");
+  check(fd >= 0 && read(fd, reference, sizeof(reference)) == sizeof(reference),
+        "reference raw read");
   close(fd);
-  int gate[2]; check(pipe(gate) == 0, "concurrent reader gate");
+  int gate[2];
+  check(pipe(gate) == 0, "concurrent reader gate");
   for (unsigned worker = 0; worker < 4; ++worker)
   {
-    int pid = fork(); check(pid >= 0, "reader fork");
-    if (pid) continue;
+    int pid = fork();
+    check(pid >= 0, "reader fork");
+    if (pid)
+    {
+      continue;
+    }
     close(gate[1]);
     char token;
     check(read(gate[0], &token, 1) == 1, "start reader");
@@ -74,7 +95,8 @@ extern "C" int main(int argc, char **argv)
     {
       unsigned offset = ((i * 131 + worker * 37) % 3000);
       check(lseek(disk, offset, SEEK_SET) == offset && read(disk, buffer, 777) == 777 &&
-            !memcmp(buffer, reference + offset, 777), "concurrent unaligned read contents");
+                !memcmp(buffer, reference + offset, 777),
+            "concurrent unaligned read contents");
     }
     close(disk);
     exit(0);

@@ -20,8 +20,8 @@ struct VirtioBlock::InitializeFlow
     unsigned status = 0;
   };
 
-  static void validate(Context &c) noexcept
-  {
+  static void
+  validate(Context &c) noexcept {
     c.owner.lock_.init("virtio_disk");
 
     if (c.owner.registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
@@ -33,8 +33,8 @@ struct VirtioBlock::InitializeFlow
     }
   }
 
-  static void handshake(Context &c) noexcept
-  {
+  static void
+  handshake(Context &c) noexcept {
     // reset device
     c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
 
@@ -47,8 +47,8 @@ struct VirtioBlock::InitializeFlow
     c.owner.registers_.write32(VIRTIO_MMIO_STATUS, c.status);
   }
 
-  static void features(Context &c) noexcept
-  {
+  static void
+  features(Context &c) noexcept {
     // negotiate features
     unsigned long features = c.owner.registers_.read32(VIRTIO_MMIO_DEVICE_FEATURES);
     features &= ~(1 << VIRTIO_BLK_F_RO);
@@ -73,8 +73,8 @@ struct VirtioBlock::InitializeFlow
     }
   }
 
-  static void queue(Context &c) noexcept
-  {
+  static void
+  queue(Context &c) noexcept {
     // initialize queue 0.
     c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_SEL, 0);
 
@@ -96,8 +96,8 @@ struct VirtioBlock::InitializeFlow
     }
   }
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     // allocate and zero queue memory.
     c.owner.descriptors_ =
         static_cast<struct virtq_desc *>(detail::allocate_dma_page());
@@ -112,8 +112,8 @@ struct VirtioBlock::InitializeFlow
     detail::zero_page(const_cast<virtq_used *>(c.owner.used_));
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     // set queue size.
     c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_NUM, QueueSize);
 
@@ -135,8 +135,8 @@ struct VirtioBlock::InitializeFlow
     c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_READY, 0x1);
   }
 
-  static void ready(Context &c) noexcept
-  {
+  static void
+  ready(Context &c) noexcept {
     // all QueueSize descriptors start out unused.
     for (int i = 0; i < QueueSize; i++)
     {
@@ -174,36 +174,36 @@ struct VirtioBlock::ChainFlow
     int index = 0, result = -1;
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.indices[c.index] = c.owner.allocate_descriptor();
   }
 
-  static bool allocated(Context &c) noexcept
-  {
+  static bool
+  allocated(Context &c) noexcept {
     return c.indices[c.index] >= 0;
   }
 
-  static void advance(Context &c) noexcept
-  {
+  static void
+  advance(Context &c) noexcept {
     ++c.index;
   }
 
-  static bool remaining(Context &c) noexcept
-  {
+  static bool
+  remaining(Context &c) noexcept {
     return c.index < 3;
   }
 
-  static void rollback(Context &c) noexcept
-  {
+  static void
+  rollback(Context &c) noexcept {
     for (int j = 0; j < c.index; ++j)
     {
       c.owner.free_descriptor(c.indices[j]);
     }
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = 0;
   }
   struct Allocate;
@@ -235,26 +235,26 @@ struct VirtioBlock::TransferFlow
     bool ok = false;
   };
 
-  static void allocate(Context &c) noexcept
-  {
+  static void
+  allocate(Context &c) noexcept {
     c.ok = c.owner.allocate_chain(c.indices) == 0;
   }
 
-  static bool ok(Context &c) noexcept
-  {
+  static bool
+  ok(Context &c) noexcept {
     return c.ok;
   }
 
-  static void wait_descriptors(Context &c) noexcept
-  {
+  static void
+  wait_descriptors(Context &c) noexcept {
     detail::prepare_sleep(&c.owner.free_[0]);
     c.owner.lock_.release();
     detail::sleep_process();
     c.owner.lock_.acquire();
   }
 
-  static void prepare(Context &c) noexcept
-  {
+  static void
+  prepare(Context &c) noexcept {
     auto *header = &c.owner.operations_[c.indices[0]];
     if (c.flushing)
     {
@@ -296,8 +296,8 @@ struct VirtioBlock::TransferFlow
     c.owner.requests_[c.indices[0]].pending = true;
   }
 
-  static void submit(Context &c) noexcept
-  {
+  static void
+  submit(Context &c) noexcept {
     c.owner.available_->ring[c.owner.available_->idx % QueueSize] = c.indices[0];
     detail::io_barrier();
     c.owner.available_->idx += 1;
@@ -305,21 +305,21 @@ struct VirtioBlock::TransferFlow
     c.owner.registers_.write32(VIRTIO_MMIO_QUEUE_NOTIFY, 0);
   }
 
-  static bool pending(Context &c) noexcept
-  {
+  static bool
+  pending(Context &c) noexcept {
     return c.owner.requests_[c.indices[0]].pending;
   }
 
-  static void wait_completion(Context &c) noexcept
-  {
+  static void
+  wait_completion(Context &c) noexcept {
     detail::prepare_sleep(&c.owner.requests_[c.indices[0]]);
     c.owner.lock_.release();
     detail::sleep_process();
     c.owner.lock_.acquire();
   }
 
-  static void reclaim(Context &c) noexcept
-  {
+  static void
+  reclaim(Context &c) noexcept {
     if (c.flushing)
     {
       c.owner.free_descriptor(c.indices[0]);
@@ -362,21 +362,21 @@ struct VirtioBlock::InterruptFlow
     int id = 0;
   };
 
-  static void acknowledge(Context &c) noexcept
-  {
+  static void
+  acknowledge(Context &c) noexcept {
     c.owner.registers_.write32(VIRTIO_MMIO_INTERRUPT_ACK,
                                c.owner.registers_.read32(VIRTIO_MMIO_INTERRUPT_STATUS) &
                                    0x3);
     detail::io_barrier();
   }
 
-  static bool pending(Context &c) noexcept
-  {
+  static bool
+  pending(Context &c) noexcept {
     return c.owner.used_index_ != c.owner.used_->idx;
   }
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     detail::io_barrier();
     c.id = c.owner.used_->ring[c.owner.used_index_ % QueueSize].id;
     if (c.id < 0 || c.id >= QueueSize || !c.owner.requests_[c.id].pending)
@@ -389,8 +389,8 @@ struct VirtioBlock::InterruptFlow
     }
   }
 
-  static void complete(Context &c) noexcept
-  {
+  static void
+  complete(Context &c) noexcept {
     c.owner.requests_[c.id].pending = false;
     detail::wake_processes(&c.owner.requests_[c.id]);
     c.owner.used_index_ += 1;
@@ -409,15 +409,15 @@ struct VirtioBlock::InterruptFlow
                                                       flow::go<Read>, flow::stop>>>>;
 };
 
-void VirtioBlock::initialize()
-{
+void
+VirtioBlock::initialize() {
   InitializeFlow::Context context{*this};
   (void)InitializeFlow::Graph::run<0>(context);
 }
 
 // find a free descriptor, mark it non-free, return its index.
-int VirtioBlock::allocate_descriptor()
-{
+int
+VirtioBlock::allocate_descriptor() {
   for (int i = 0; i < QueueSize; i++)
   {
     if (free_[i])
@@ -430,8 +430,8 @@ int VirtioBlock::allocate_descriptor()
 }
 
 // mark a descriptor as free.
-void VirtioBlock::free_descriptor(int i)
-{
+void
+VirtioBlock::free_descriptor(int i) {
   if (i < 0 || i >= QueueSize)
   {
     detail::fail("free_desc 1");
@@ -449,8 +449,8 @@ void VirtioBlock::free_descriptor(int i)
 }
 
 // free a chain of descriptors.
-void VirtioBlock::free_chain(int i)
-{
+void
+VirtioBlock::free_chain(int i) {
   while (1)
   {
     int flag = descriptors_[i].flags;
@@ -469,16 +469,16 @@ void VirtioBlock::free_chain(int i)
 
 // allocate three descriptors (they need not be contiguous).
 // disk transfers always use three descriptors.
-int VirtioBlock::allocate_chain(int *idx)
-{
+int
+VirtioBlock::allocate_chain(int *idx) {
   ChainFlow::Context context{*this, idx};
   (void)ChainFlow::Graph::run<0>(context);
   return context.result;
 }
 
-void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void *data,
-                           unsigned count)
-{
+void
+VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void *data,
+                      unsigned count) {
   bool flushing = !data && count == 0;
   if (!flushing && (!data || count == 0 || count % SectorSize != 0))
   {
@@ -492,24 +492,18 @@ void VirtioBlock::transfer(BlockOperation operation, unsigned long sector, void 
   lock_.release();
 }
 
-void VirtioBlock::handle_interrupt()
-{
+void
+VirtioBlock::handle_interrupt() {
   xv::sync::ScopedLock guard(lock_);
   InterruptFlow::Context context{*this};
   (void)InterruptFlow::Graph::run<0>(context);
 }
 
-bool VirtioBlock::present() const
-{
-  return registers_.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 &&
-         registers_.read32(VIRTIO_MMIO_DEVICE_ID) == 2;
-}
-
-unsigned long VirtioBlock::capacity_sectors() const
-{
+unsigned long
+VirtioBlock::capacity_sectors() const {
   // VirtIO 1.2, sections 4.2.2.2 and 5.2.4: a generation-protected,
   // little-endian 64-bit capacity, always expressed in 512-byte sectors.
-  unsigned generation,low,high;
+  unsigned generation, low, high;
   do
   {
     generation = registers_.read32(VIRTIO_MMIO_CONFIG_GENERATION);
@@ -521,8 +515,8 @@ unsigned long VirtioBlock::capacity_sectors() const
   return static_cast<unsigned long>(high) << 32 | low;
 }
 
-void VirtioBlock::flush()
-{
+void
+VirtioBlock::flush() {
   if (can_flush_)
   {
     transfer(BlockOperation::Write, 0, nullptr, 0);

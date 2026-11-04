@@ -88,7 +88,10 @@ def main():
             code = code.replace('  s->host = host;',
                 '  unsigned long satp;\n'
                 '  asm volatile("csrr %0, satp" : "=r"(satp));\n'
-                '  if (!satp) return -1;\n'
+                '  if (!satp)\n'
+                '  {\n'
+                '    return -1;\n'
+                '  }\n'
                 '  s->host = host;')
             driver_source.write_text(code)
             build = directory / 'new-build'
@@ -97,7 +100,7 @@ def main():
             subprocess.run([args.cmake, '--build', str(build), '-j', '1'], check=True)
             failed_source = source / 'fail.cpp'
             failed_source.write_text(code.replace('  *out = {',
-                '  write(*s, 0x70, 0); return -1;\n  *out = {'))
+                '  write(*s, 0x70, 0);\n  return -1;\n  *out = {'))
             failed_build = directory / 'failed-build'
             subprocess.run([args.cmake, '-S', str(source), '-B', str(failed_build), '-G', 'Ninja',
                             f'-DXVK_ABI_DIR={source}', '-DXVK_NAME=faildisk',
