@@ -118,7 +118,9 @@ static void blocked(Work work, int signal)
   char data[128];
   if (work == ReadPipe)
   {
-    check(write(io[1], "x", 1) == -1, "signal closes pipe reader");
+    auto previous = ::signal(SIGPIPE, SIG_IGN);
+    check(write(io[1], "x", 1) == -1 && errno == EPIPE, "signal closes pipe reader");
+    ::signal(SIGPIPE, previous);
   }
   if (work == WritePipe)
   {

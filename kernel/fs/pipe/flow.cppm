@@ -1,6 +1,7 @@
 module;
 #include "kernel/support/flow.h"
 #include "kernel/fs/io_status.h"
+#include "kernel/io/posix_errno.h"
 module xv.fs:pipe_flow;
 import :pipe;
 import :platform;
@@ -18,7 +19,7 @@ struct Pipe::WriteFlow
     int count;
     bool nonblocking;
     int done = 0, result = -1;
-    bool aborted = false, wait_needed = false;
+    bool aborted = false, wait_needed = false, broken = false;
   };
 
   static bool atomic_wait(Context &c) noexcept
@@ -112,6 +113,11 @@ struct Pipe::WriteFlow
 
   static void unlock(Context &c) noexcept
   {
+    c.broken = !c.owner.reader_open_;
+    if (c.broken && c.result < 0)
+    {
+      c.result = -EPIPE;
+    }
     c.owner.lock_.release();
   }
   struct AtomicSpace;

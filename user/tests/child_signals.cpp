@@ -19,7 +19,10 @@ static void handler(int signal)
 static int wait_event(int pid, int *status, int flags)
 {
   int result;
-  do { result = waitpid(pid, status, flags); } while (result == -EINTR);
+  do
+  {
+    result = waitpid(pid, status, flags);
+  } while ((result < 0 && errno == EINTR));
   return result;
 }
 static void event()
@@ -29,10 +32,11 @@ static void event()
   {
     int n = read(channel[0], &c, 1);
     if (n == 1) return;
-    check(n == -EAGAIN || n == -EINTR, "notification read");
+    check((n < 0 && errno == EAGAIN) || (n < 0 && errno == EINTR), "notification read");
     pollfd fd{channel[0], POLLIN, 0};
     int ready = poll(&fd, 1, 3000);
-    check(ready > 0 || ready == -EINTR, "parent notified while waiting on another fd");
+    check(ready > 0 || (ready < 0 && errno == EINTR),
+          "parent notified while waiting on another fd");
   }
 }
 static void clear_events()

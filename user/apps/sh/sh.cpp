@@ -78,7 +78,10 @@ extern "C"
   static int child_status(int child)
   {
     int status = 0, result;
-    do { result = waitpid(child, &status, 0); } while (result == -EINTR);
+    do
+    {
+      result = waitpid(child, &status, 0);
+    } while ((result < 0 && errno == EINTR));
     if (result < 0) return 255;
     if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
     return WIFEXITED(status) ? WEXITSTATUS(status) : 255;
@@ -271,7 +274,10 @@ extern "C"
   static int read_retry(int fd, void *data, int count)
   {
     int result;
-    do { result = read(fd, data, count); } while (result == -EINTR);
+    do
+    {
+      result = read(fd, data, count);
+    } while ((result < 0 && errno == EINTR));
     return result;
   }
 
@@ -374,7 +380,10 @@ extern "C"
       for (;;)
       {
         int pid = waitpid(job->pid, &status, WNOHANG | WUNTRACED | WCONTINUED);
-        if (pid == -EINTR) continue;
+        if ((pid < 0 && errno == EINTR))
+        {
+          continue;
+        }
         if (pid == 0)
         {
           break;
@@ -408,7 +417,10 @@ extern "C"
     for (;;)
     {
       int n = read(child_pipe[0], bytes, sizeof(bytes));
-      if (n > 0 || n == -EINTR) continue;
+      if (n > 0 || (n < 0 && errno == EINTR))
+      {
+        continue;
+      }
       break;
     }
     return refresh_jobs(separate_line, foreground);
@@ -429,13 +441,19 @@ extern "C"
       }
       pollfd events[] = {{input_fd, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
       int ready = poll(events, 2, -1);
-      if (ready == -EINTR) continue;
+      if ((ready < 0 && errno == EINTR))
+      {
+        continue;
+      }
       if (ready < 0) return -1;
       if (events[1].revents) continue;
       if (!(events[0].revents & (POLLIN | POLLHUP | POLLERR))) continue;
       char byte;
       int n = read(input_fd, &byte, 1);
-      if (n == -EINTR || n == -EAGAIN) continue;
+      if ((n < 0 && errno == EINTR) || (n < 0 && errno == EAGAIN))
+      {
+        continue;
+      }
       if (n <= 0) return used ? 0 : -1;
       if (editor.active())
       { int action = editor.input(byte, used); if (action < 0) return -1; if (action > 0) break; continue; }
@@ -485,12 +503,18 @@ extern "C"
       service_children(false, job);
       pid = waitpid(job->pid, &status, WNOHANG | WUNTRACED);
       if (pid > 0 || pid == -1) break;
-      if (pid == -EINTR) continue;
+      if ((pid < 0 && errno == EINTR))
+      {
+        continue;
+      }
       // Drain notifications before checking status. A change after that check
       // leaves a byte for poll, closing the status-check-to-sleep window.
       pollfd event{child_pipe[0], POLLIN, 0};
       int ready = poll(&event, 1, -1);
-      if (ready < 0 && ready != -EINTR) break;
+      if (ready < 0 && !(ready < 0 && errno == EINTR))
+      {
+        break;
+      }
     }
     if (pid > 0 && WIFSTOPPED(status))
     {
@@ -740,7 +764,9 @@ extern "C"
     bool saved_modes = tcgetattr(terminal_fd, &launch_modes) == 0;
     if (ready_ok && (background || tcsetpgrp(terminal_fd, child) == 0))
     {
-      while (write(gate[1], "g", 1) == -EINTR) {}
+      while ((write(gate[1], "g", 1) < 0 && errno == EINTR))
+      {
+      }
     }
     close(ready[0]);
     close(gate[1]);

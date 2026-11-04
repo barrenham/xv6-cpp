@@ -178,20 +178,45 @@ UserFileSystem::begin(Operation operation, unsigned node) {
 
 bool
 UserFileSystem::exchange() {
+  __atomic_fetch_add(&statistics_.exchanges, 1UL, __ATOMIC_RELAXED);
   const auto deadline = detail::monotonic_milliseconds() + 5000;
   state_.acquire();
-  if (!connected_ || (!mounted_ && !mounting_) || detail::killed() ||
+  if (!connected_ || (!mounted_ && !mounting_) ||
       !(registration_.operations & xv::userfs::operation_bit(request_.operation)))
   {
     state_.release();
     return false;
   }
+  if (peer_)
+  {
+    auto *peer = files().retain(peer_);
+    state_.release();
+    __atomic_fetch_add(&statistics_.waits, 1UL, __ATOMIC_RELAXED);
+    bool success = detail::exchange_transport(peer, &request_, &response_,
+                                              sizeof(request_), deadline);
+    files().release(peer);
+    state_.acquire();
+    success = success && connected_ && response_.version == xv::userfs::Version &&
+              response_.id == request_.id &&
+              response_.operation == request_.operation &&
+              response_.count <= registration_.max_payload &&
+              response_.result <= int(registration_.max_payload);
+    if (!success)
+    {
+      disconnect();
+    }
+    state_.release();
+    __atomic_fetch_add(&statistics_.copied_bytes, 2UL * sizeof(request_),
+                       __ATOMIC_RELAXED);
+    return success && response_.result >= 0;
+  }
   pending_ = true;
   delivered_ = replied_ = false;
   detail::wakeup(&pending_);
-  while (connected_ && !replied_ && !detail::killed() &&
+  while (connected_ && !replied_ &&
          detail::monotonic_milliseconds() < deadline)
   {
+    __atomic_fetch_add(&statistics_.waits, 1UL, __ATOMIC_RELAXED);
     if (!detail::wait_until(&replied_, state_, deadline))
     {
       break;
@@ -212,6 +237,7 @@ UserFileSystem::exchange() {
 void
 UserFileSystem::disconnect() {
   connected_ = false;
+  detail::cancel_transport(peer_);
   detail::wakeup(&pending_);
   detail::wakeup(&replied_);
 }
@@ -221,6 +247,7 @@ UserFileSystem::shutdown() {
   xv::sync::ScopedLock guard(state_);
   mounted_ = false;
   completed_ = true;
+  detail::cancel_transport(peer_);
   if (!endpoint_open_)
   {
     reserved_ = false;
@@ -231,6 +258,59 @@ UserFileSystem::shutdown() {
 }
 
 int
+UserFileSystem::bulk_copy(unsigned long address, unsigned bytes, bool user,
+                          bool writing) {
+  state_.acquire();
+  auto *bulk = bulk_ ? files().retain(bulk_) : nullptr;
+  state_.release();
+  if (!bulk)
+  {
+    return -1;
+  }
+  int result = detail::copy_transport(bulk, address, bytes, user, writing);
+  files().release(bulk);
+  return result;
+}
+
+int
+UserFileSystem::Endpoint::ioctl(unsigned request, xv::io::Buffer argument) {
+  if (request != xv::userfs::BindTransport)
+  {
+    return -1;
+  }
+  xv::userfs::TransportBinding binding;
+  if (detail::copy_in(&binding, true, argument.address, sizeof(binding)) < 0 ||
+      binding.size != sizeof(binding) || binding.version != 1 || binding.reserved ||
+      binding.payload <= xv::userfs::DataSize || binding.payload > xv::userfs::BulkSize)
+  {
+    return -1;
+  }
+  File *peer = nullptr, *bulk = nullptr;
+  if (!detail::bind_transport(binding.socket, binding.memory, binding.payload, peer,
+                              bulk))
+  {
+    return -1;
+  }
+  auto &o = owner_;
+  o.state_.acquire();
+  bool valid = o.connected_ && !o.mounted_ && !o.mounting_ && !o.peer_ && !o.pending_;
+  if (valid)
+  {
+    o.peer_ = peer;
+    o.bulk_ = bulk;
+    o.registration_.max_payload = binding.payload;
+    o.statistics_.payload = binding.payload;
+  }
+  o.state_.release();
+  if (!valid)
+  {
+    files().release(peer);
+    files().release(bulk);
+  }
+  return valid ? 0 : -1;
+}
+
+int
 UserFileSystem::Endpoint::read(xv::io::Buffer out, int count) {
   if (count != sizeof(xv::userfs::Message))
   {
@@ -238,6 +318,11 @@ UserFileSystem::Endpoint::read(xv::io::Buffer out, int count) {
   }
   auto &o = owner_;
   o.state_.acquire();
+  if (o.peer_)
+  {
+    o.state_.release();
+    return -1;
+  }
   while (o.connected_ && !o.completed_ && (!o.pending_ || o.delivered_))
   {
     if (out.nonblocking)
@@ -261,6 +346,8 @@ UserFileSystem::Endpoint::read(xv::io::Buffer out, int count) {
     result = detail::copy_out(true, out.address, &o.request_, count) < 0 ? -1 : count;
     if (result > 0)
     {
+      __atomic_fetch_add(&o.statistics_.copied_bytes, static_cast<unsigned long>(count),
+                         __ATOMIC_RELAXED);
       o.delivered_ = true;
       detail::wakeup(&o.pending_);
     }
@@ -277,8 +364,8 @@ UserFileSystem::Endpoint::write(xv::io::Buffer in, int count) {
   }
   auto &o = owner_;
   xv::sync::ScopedLock guard(o.state_);
-  if (!o.connected_ || (!o.mounted_ && !o.mounting_) || !o.pending_ || !o.delivered_ ||
-      o.replied_)
+  if (o.peer_ || !o.connected_ || (!o.mounted_ && !o.mounting_) || !o.pending_ ||
+      !o.delivered_ || o.replied_)
   {
     return -1;
   }
@@ -286,6 +373,8 @@ UserFileSystem::Endpoint::write(xv::io::Buffer in, int count) {
   {
     return -1;
   }
+  __atomic_fetch_add(&o.statistics_.copied_bytes, static_cast<unsigned long>(count),
+                     __ATOMIC_RELAXED);
   auto &r = o.response_;
   if (r.version != xv::userfs::Version || r.id != o.request_.id ||
       r.operation != o.request_.operation || r.count > xv::userfs::DataSize ||
@@ -318,12 +407,23 @@ UserFileSystem::Endpoint::poll(xv::sync::PollTable *table) {
 void
 UserFileSystem::Endpoint::close() {
   auto &o = owner_;
-  xv::sync::ScopedLock guard(o.state_);
+  o.state_.acquire();
   o.disconnect();
+  auto *peer = o.peer_, *bulk = o.bulk_;
+  o.peer_ = o.bulk_ = nullptr;
   o.endpoint_open_ = false;
   if (!o.mounted_)
   {
     o.reserved_ = false;
+  }
+  o.state_.release();
+  if (peer)
+  {
+    files().release(peer);
+  }
+  if (bulk)
+  {
+    files().release(bulk);
   }
 }
 
@@ -408,7 +508,9 @@ UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
     }
     if (!exchange() || response_.count > request_.count ||
         response_.result != int(response_.count) ||
-        detail::copy_out(user, out + done, response_.data, response_.count) < 0)
+        (statistics_.payload > xv::userfs::DataSize
+             ? bulk_copy(out + done, response_.count, user, false) < 0
+             : detail::copy_out(user, out + done, response_.data, response_.count) < 0))
     {
       return done ? int(done) : -1;
     }
@@ -429,6 +531,52 @@ UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
     return -1;
   }
   xv::sync::ScopedLock guard(serial_);
+  if (statistics_.payload > xv::userfs::DataSize)
+  {
+    unsigned done = 0;
+    while (done < count)
+    {
+      unsigned take = count - done;
+      if (take > registration_.max_payload)
+      {
+        take = registration_.max_payload;
+      }
+      if (bulk_copy(in + done, take, user, true) < 0)
+      {
+        break;
+      }
+      begin(Operation::Write, n->inum);
+      request_.offset = offset + done;
+      request_.count = take;
+      if (!exchange() || response_.result > int(take))
+      {
+        return done ? int(done) : -1;
+      }
+      unsigned written = response_.result;
+      done += written;
+      if (offset + done > n->size)
+      {
+        n->size = offset + done;
+      }
+      if (written < take)
+      {
+        return done;
+      }
+    }
+    if (done == count)
+    {
+      return done;
+    }
+    // Continue at the first faulted batch using block-level legacy accounting.
+    int tail = write_fault_blocks(n, user, in + done, offset + done, count - done);
+    return tail < 0 ? (done ? int(done) : -1) : int(done) + tail;
+  }
+  return write_fault_blocks(n, user, in, offset, count);
+}
+
+int
+UserFileSystem::write_fault_blocks(Inode *n, int user, unsigned long in,
+                                   unsigned offset, unsigned count) {
   unsigned char bytes[BlockSize];
   unsigned done = 0;
   while (done < count)
@@ -479,7 +627,18 @@ UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       {
         request_.count = registration_.max_payload;
       }
-      detail::move(request_.data, bytes + sent, request_.count);
+      if (statistics_.payload > xv::userfs::DataSize)
+      {
+        if (bulk_copy(reinterpret_cast<unsigned long>(bytes + sent), request_.count,
+                      false, true) < 0)
+        {
+          return done ? int(done) : -1;
+        }
+      }
+      else
+      {
+        detail::move(request_.data, bytes + sent, request_.count);
+      }
       if (!exchange() || response_.result > int(request_.count))
       {
         unsigned progress = done + (fault ? 0 : sent);
@@ -793,6 +952,7 @@ UserFileSystem::snapshot(Inode *node, PageBuffer &buffer) {
   bool good = exchange();
   unsigned size = good ? response_.attributes.size : 0;
   unsigned offset = 0;
+  unsigned char snapshot_bytes[xv::userfs::DataSize];
   while (good && offset < size)
   {
     begin(Operation::SnapshotRead, node->inum);
@@ -802,10 +962,18 @@ UserFileSystem::snapshot(Inode *node, PageBuffer &buffer) {
     {
       request_.count = registration_.max_payload;
     }
+    if (request_.count > xv::userfs::DataSize)
+    {
+      request_.count = xv::userfs::DataSize;
+    }
     good = exchange() && response_.result > 0 &&
            response_.result == int(response_.count) &&
            response_.count <= request_.count &&
-           buffer.append(response_.data, response_.count);
+           (statistics_.payload > xv::userfs::DataSize
+                ? bulk_copy(reinterpret_cast<unsigned long>(snapshot_bytes),
+                            response_.count, false, false) >= 0 &&
+                      buffer.append(snapshot_bytes, response_.count)
+                : buffer.append(response_.data, response_.count));
     if (good)
     {
       offset += response_.count;
@@ -825,10 +993,6 @@ namespace xv::fs
 {
 int
 UserFileSystem::control(Inode *node, unsigned long address, unsigned access) {
-  if (!(registration_.operations & xv::userfs::operation_bit(Operation::Control)))
-  {
-    return -1;
-  }
   auto *page = detail::allocate_page();
   if (!page)
   {
@@ -839,9 +1003,33 @@ UserFileSystem::control(Inode *node, unsigned long address, unsigned access) {
   if (detail::copy_in(&control, true, address, sizeof(control)) == 0 &&
       control.size == sizeof(control) && control.version == xv::fscontrol::Version &&
       control.driver_version && control.interface_name[0] &&
-      !control.interface_name[31] && control.input_size <= registration_.max_payload &&
+      !control.interface_name[31] && control.input_size <= xv::userfs::DataSize &&
+      control.input_size <= registration_.max_payload &&
       control.capacity <= xv::fscontrol::DataSize)
   {
+    if (!detail::compare(control.interface_name, "xvfs.transport", 32))
+    {
+      if (control.driver_version == 1 && control.command == 1 && !control.input_size &&
+          control.capacity >= sizeof(xv::userfs::TransportStatistics))
+      {
+        xv::userfs::TransportStatistics stats;
+        stats.payload = statistics_.payload;
+        stats.exchanges = __atomic_load_n(&statistics_.exchanges, __ATOMIC_RELAXED);
+        stats.copied_bytes =
+            __atomic_load_n(&statistics_.copied_bytes, __ATOMIC_RELAXED);
+        stats.waits = __atomic_load_n(&statistics_.waits, __ATOMIC_RELAXED);
+        detail::move(control.data, &stats, sizeof(stats));
+        control.output_size = sizeof(stats);
+        result = detail::copy_out(true, address, &control, sizeof(control));
+      }
+      detail::free_page(page);
+      return result;
+    }
+    if (!(registration_.operations & xv::userfs::operation_bit(Operation::Control)))
+    {
+      detail::free_page(page);
+      return -1;
+    }
     xv::sync::ScopedLock guard(serial_);
     begin(Operation::Control, node->inum);
     request_.other = control.command;

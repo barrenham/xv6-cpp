@@ -470,21 +470,22 @@ void Process::begin_system_call()
   syscall_interrupted_ = false;
 }
 
-long Process::finish_system_call(int number, unsigned long argument, long result)
-{
+long
+Process::finish_system_call(int number, unsigned long argument, long result) {
   if (number == SYS_sigsuspend && result == -1 && stop_requested())
   {
     suspend_restarted_ = true;
     return result;
   }
   int signal = pending_signals_.caught_signal();
-  if (result != -1 || !syscall_interrupted_ || !signal)
+  if ((result != -1 && result != -EINTR) || !syscall_interrupted_ || !signal)
   {
     return result;
   }
   bool restartable = number == SYS_read || number == SYS_write || number == SYS_wait ||
                      number == SYS_waitpid || number == SYS_accept ||
-                     number == SYS_recvfrom || number == SYS_sendto;
+                     number == SYS_recvfrom || number == SYS_sendto ||
+                     number == SYS_recvmsg || number == SYS_sendmsg;
   if (restartable && (pending_signals_.action(signal).flags & SA_RESTART))
   {
     trapframe->epc -= 4;

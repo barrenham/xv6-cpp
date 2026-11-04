@@ -116,13 +116,21 @@ public:
 
 private:
 
-  class Endpoint final : public xv::io::IoObject
+  class Endpoint final : public xv::io::IoObject, public xv::io::DeviceControl
   {
   public:
 
     constexpr explicit Endpoint(UserFileSystem &owner) : owner_(owner) {
     }
 
+    xv::io::Capability *
+    capability(xv::io::CapabilityId id) override {
+      return id == xv::io::DeviceControl::Id
+                 ? static_cast<xv::io::DeviceControl *>(this)
+                 : nullptr;
+    }
+
+    int ioctl(unsigned, xv::io::Buffer) override;
     int read(xv::io::Buffer, int) override;
     int write(xv::io::Buffer, int) override;
     unsigned poll(xv::sync::PollTable *) override;
@@ -135,6 +143,8 @@ private:
 
   void begin(xv::userfs::Operation, unsigned node = 1);
   bool exchange();
+  int write_fault_blocks(Inode *, int, unsigned long, unsigned, unsigned);
+  int bulk_copy(unsigned long, unsigned, bool user, bool writing);
   Inode *node(const xv::userfs::Attributes &);
   void apply(Inode *, const xv::userfs::Attributes &);
   void disconnect();
@@ -158,5 +168,7 @@ private:
   int provider_pid_ = 0;
   bool anonymous_ = false, mounting_ = false, completed_ = false;
   xv::userfs::Message request_, response_;
+  xv::userfs::TransportStatistics statistics_;
+  File *peer_ = nullptr, *bulk_ = nullptr;
 };
 } // namespace xv::fs

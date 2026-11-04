@@ -9,6 +9,7 @@ module;
 
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/io/posix_errno.h"
 #include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/mount.h"
 #include "kernel/fs/userfs/protocol.h"
@@ -90,7 +91,7 @@ sys_read(void) {
   argument_integer(2, &n);
   if (argfd(0, 0, &f) < 0)
   {
-    return -1;
+    return -EBADF;
   }
   return xv::fs::files().read(f, p, n);
 }
@@ -105,7 +106,7 @@ sys_write(void) {
   argument_integer(2, &n);
   if (argfd(0, 0, &f) < 0)
   {
-    return -1;
+    return -EBADF;
   }
 
   return xv::fs::files().write(f, p, n);
@@ -115,7 +116,7 @@ uint64
 sys_close(void) {
   int descriptor;
   argument_integer(0, &descriptor);
-  return xv::process::current()->files().close(descriptor) ? 0 : -1;
+  return xv::process::current()->files().close(descriptor) ? 0 : -EBADF;
 }
 
 uint64
@@ -206,7 +207,8 @@ struct OpenFlow
   static bool
   existing_kind(Context &c) noexcept {
     return c.inode->kind() != T_SYMLINK &&
-           (c.inode->kind() != T_DIR || (c.mode & ~O_NONBLOCK) == O_RDONLY);
+           (c.inode->kind() != T_DIR ||
+            (c.mode & ~(O_NONBLOCK | O_CLOEXEC)) == O_RDONLY);
   }
 
   static bool
@@ -234,7 +236,8 @@ struct OpenFlow
 
   static bool
   install(Context &c) noexcept {
-    c.descriptor = fdalloc(c.file);
+    c.descriptor = xv::process::current()->files().install(
+        c.file, c.mode & O_CLOEXEC ? FD_CLOEXEC : 0);
     return c.descriptor >= 0;
   }
 
@@ -1230,15 +1233,43 @@ sys_openpty(void) {
 uint64
 sys_fcntl(void) {
   xv::fs::File *file;
-  int command, flags = 0;
+  int descriptor, command, flags = 0;
   argument_integer(1, &command);
-  if (command == F_SETFL)
+  if (command == F_SETFL || command == F_SETFD || command == F_DUPFD ||
+      command == F_DUPFD_CLOEXEC)
   {
     argument_integer(2, &flags);
   }
-  if (argfd(0, nullptr, &file) < 0)
+  if (argfd(0, &descriptor, &file) < 0)
   {
-    return -1;
+    return -EBADF;
+  }
+  if (command == F_DUPFD || command == F_DUPFD_CLOEXEC)
+  {
+    if (flags < 0 || flags >= xv::process::DescriptorTable::Capacity)
+    {
+      return -EINVAL;
+    }
+    auto *owned = xv::fs::files().retain(file);
+    int result = xv::process::current()->files().install(
+        owned, command == F_DUPFD_CLOEXEC ? FD_CLOEXEC : 0, flags);
+    if (result < 0)
+    {
+      xv::fs::files().release(owned);
+    }
+    return result < 0 ? -EMFILE : result;
+  }
+  if (command == F_SETFD && (flags & ~FD_CLOEXEC))
+  {
+    return -EINVAL;
+  }
+  if (command == F_GETFD)
+  {
+    return xv::process::current()->files().flags(descriptor);
+  }
+  if (command == F_SETFD)
+  {
+    return xv::process::current()->files().flags(descriptor, flags);
   }
   return xv::fs::files().fcntl(file, command, static_cast<unsigned>(flags));
 }

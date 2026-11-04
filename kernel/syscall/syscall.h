@@ -129,3 +129,10 @@
 #define SYS_mountfs 97
 
 #define SYS_kmod 98
+
+#define SYS_socketpair 99
+#define SYS_sendmsg 100
+#define SYS_recvmsg 101
+
+#define SYS_shm_open 102
+#define SYS_shm_unlink 103

@@ -61,7 +61,7 @@ void flags()
   int second = open("/dev/console", O_RDONLY);
   check(first >= 0 && second >= 0 && fcntl(first, F_GETFL) == O_NONBLOCK &&
         fcntl(second, F_GETFL) == O_RDONLY, "independent opens of one TTY");
-  check(read(first, copy, 1) == -EAGAIN && read(first, copy, 0) == 0,
+  check((read(first, copy, 1) < 0 && errno == EAGAIN) && read(first, copy, 0) == 0,
         "nonblocking serial input");
   close(first); close(second);
   int regular = open(XV_README_PATH, O_RDONLY | O_NONBLOCK);
@@ -92,37 +92,49 @@ void flags()
 void pipes()
 {
   int fds[2]; check(pipe(fds) == 0, "nonblock pipe"); nb(fds[0]); nb(fds[1]);
-  check(read(fds[0], copy, 1) == -EAGAIN && read(fds[0], copy, 0) == 0 &&
-        write(fds[1], data, 0) == 0, "empty pipe and zero lengths");
-  check(write(fds[1], data, 1024) == 512 && write(fds[1], data, 1) == -EAGAIN,
+  check((read(fds[0], copy, 1) < 0 && errno == EAGAIN) && read(fds[0], copy, 0) == 0 &&
+            write(fds[1], data, 0) == 0,
+        "empty pipe and zero lengths");
+  check(write(fds[1], data, 1024) == 512 &&
+            (write(fds[1], data, 1) < 0 && errno == EAGAIN),
         "large pipe partial write and full EAGAIN");
-  check(read(fds[0], copy, 1) == 1 && write(fds[1], "ab", 2) == -EAGAIN &&
-        write(fds[1], data + 512, 1024) == 1, "small pipe write is atomic");
+  check(read(fds[0], copy, 1) == 1 && (write(fds[1], "ab", 2) < 0 && errno == EAGAIN) &&
+            write(fds[1], data + 512, 1024) == 1,
+        "small pipe write is atomic");
   check(read(fds[0], copy + 1, 512) == 512 && memcmp(copy, data, 513) == 0,
         "partial pipe data unchanged");
-  check(read(fds[0], copy, 1) == -EAGAIN, "drained open pipe is not EOF");
+  check((read(fds[0], copy, 1) < 0 && errno == EAGAIN), "drained open pipe is not EOF");
   close(fds[1]); check(read(fds[0], copy, 1) == 0, "closed pipe EOF"); close(fds[0]);
   check(pipe(fds) == 0, "broken nonblock pipe"); nb(fds[1]); close(fds[0]);
-  check(write(fds[1], data, 1) == -1, "broken pipe is not EAGAIN"); close(fds[1]);
+  auto previous = signal(SIGPIPE, SIG_IGN);
+  check(write(fds[1], data, 1) == -1 && errno == EPIPE, "broken pipe errno");
+  signal(SIGPIPE, previous);
+  close(fds[1]);
 }
 void terminals()
 {
   int fds[2]; check(openpty(fds) == 0, "nonblock PTY"); nb(fds[0]); nb(fds[1]);
-  check(read(fds[0], copy, 1) == -EAGAIN && read(fds[1], copy, 1) == -EAGAIN,
+  check((read(fds[0], copy, 1) < 0 && errno == EAGAIN) &&
+            (read(fds[1], copy, 1) < 0 && errno == EAGAIN),
         "empty master and canonical slave");
   termios settings; tcgetattr(fds[1], &settings); settings.c_lflag &= ~ECHO;
   check(tcsetattr(fds[1], TCSANOW, &settings) == 0 && write(fds[0], "a", 1) == 1 &&
-        read(fds[1], copy, 1) == -EAGAIN && write(fds[0], "\004", 1) == 1 &&
-        read(fds[1], copy, 32) == 1 && copy[0] == 'a', "canonical pending line and EOF");
+            (read(fds[1], copy, 1) < 0 && errno == EAGAIN) &&
+            write(fds[0], "\004", 1) == 1 && read(fds[1], copy, 32) == 1 &&
+            copy[0] == 'a',
+        "canonical pending line and EOF");
   check(write(fds[0], "\004", 1) == 1 && read(fds[1], copy, 1) == 0 &&
-        read(fds[1], copy, 1) == -EAGAIN, "EOF record consumed exactly once");
+            (read(fds[1], copy, 1) < 0 && errno == EAGAIN),
+        "EOF record consumed exactly once");
   raw(fds[1]); tcgetattr(fds[1], &settings);
   settings.c_cc[VMIN] = 8; settings.c_cc[VTIME] = 5;
   check(tcsetattr(fds[1], TCSANOW, &settings) == 0 && write(fds[0], "ab", 2) == 2 &&
-        read(fds[1], copy, 32) == 2 && read(fds[1], copy, 32) == -EAGAIN,
+            read(fds[1], copy, 32) == 2 &&
+            (read(fds[1], copy, 32) < 0 && errno == EAGAIN),
         "nonblock overrides VMIN and VTIME");
   settings.c_cc[VMIN] = settings.c_cc[VTIME] = 0;
-  check(tcsetattr(fds[1], TCSANOW, &settings) == 0 && read(fds[1], copy, 1) == -EAGAIN,
+  check(tcsetattr(fds[1], TCSANOW, &settings) == 0 &&
+            (read(fds[1], copy, 1) < 0 && errno == EAGAIN),
         "empty raw nonblock returns EAGAIN even VMIN=0");
   raw(fds[1]);
   int written = 0, received = 0;
@@ -131,7 +143,7 @@ void terminals()
     if (written < sizeof(data))
     {
       int n = write(fds[0], data + written, sizeof(data) - written);
-      check(n > 0 || n == -EAGAIN, "master nonblocking partial");
+      check(n > 0 || (n < 0 && errno == EAGAIN), "master nonblocking partial");
       if (n > 0) written += n;
     }
     int n = read(fds[1], copy + received, sizeof(copy) - received);
@@ -139,11 +151,14 @@ void terminals()
   }
   check(written == sizeof(data) && memcmp(copy, data, sizeof(data)) == 0,
         "large raw input retains all bytes");
-  check(write(fds[1], data, sizeof(data)) == 1024 && write(fds[1], data, 1) == -EAGAIN &&
-        read(fds[0], copy, 1) == 1, "slave output partial and backpressure");
+  check(write(fds[1], data, sizeof(data)) == 1024 &&
+            (write(fds[1], data, 1) < 0 && errno == EAGAIN) &&
+            read(fds[0], copy, 1) == 1,
+        "slave output partial and backpressure");
   tcgetattr(fds[1], &settings); settings.c_oflag = OPOST | ONLCR;
   check(tcsetattr(fds[1], TCSANOW, &settings) == 0 &&
-        write(fds[1], "\n", 1) == -EAGAIN && write(fds[1], "z", 1) == 1,
+            (write(fds[1], "\n", 1) < 0 && errno == EAGAIN) &&
+            write(fds[1], "z", 1) == 1,
         "CRLF needs two slots, failed write consumes none");
   check(read(fds[0], copy, sizeof(copy)) == 1024 && copy[1023] == 'z', "drain full output");
   memset(copy, 'x', 1022);

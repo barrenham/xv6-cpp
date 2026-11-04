@@ -16,7 +16,7 @@ def export(source, target, backend='ext4'):
                 destination = target / header.relative_to(source)
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(header, destination)
-    for directory in ('user/runtime', 'user/fs/sdk', f'user/fs/backends/{backend}',
+    for directory in ('user/runtime', 'user/include', 'user/fs/sdk', f'user/fs/backends/{backend}',
                       f'user/fs/plugins/{backend}', 'linker', 'examples/fs-driver'):
         shutil.copytree(source / directory, target / directory, dirs_exist_ok=True)
     return target

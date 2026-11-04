@@ -5,6 +5,7 @@ module;
 #include "kernel/fs/stat.h"
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
+#include "kernel/io/posix_errno.h"
 #include "kernel/io/fs_control.h"
 #include "kernel/support/placement_new.hpp"
 
@@ -56,6 +57,7 @@ OpenFileTable::allocate() {
     if (file.ref == 0)
     {
       file.ref = 1;
+      file.message_refs_ = 0;
       file.backend_ = nullptr;
       __atomic_store_n(&file.ready_, false, __ATOMIC_RELAXED);
       file.identity_ = {};
@@ -83,7 +85,12 @@ OpenFileTable::release(File *file) {
   if (file->ref > 1)
   {
     --file->ref;
+    auto hook = file->ref == int(file->message_refs_) ? collect_hook_ : nullptr;
     lock_.release();
+    if (hook)
+    {
+      hook();
+    }
     return;
   }
   ReleaseFlow::Context context{*this, *file};
@@ -134,10 +141,13 @@ OpenFileTable::bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint)
 }
 
 void
-OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking) {
-  configure(file, object, true, true, nonblocking,
-            object.capability(xv::io::CapabilityId::Socket) ? FileKind::Socket
-                                                            : FileKind::Unknown);
+OpenFileTable::bind_object(File &file, xv::io::IoObject &object, bool nonblocking,
+                           bool readable, bool writable) {
+  configure(file, object, readable, writable, nonblocking,
+            (object.capability(xv::io::CapabilityId::Socket) ||
+             object.capability(xv::io::CapabilityId::LocalSocket))
+                ? FileKind::Socket
+                : FileKind::Unknown);
 }
 
 xv::io::IoObject *
@@ -167,18 +177,26 @@ OpenFileTable::bind_pipe(File &file, Pipe &pipe, bool writable) {
 
 int
 OpenFileTable::read(File *file, unsigned long address, int count) {
-  if (!file->readable || count < 0 || !file->backend_)
+  if (!file || !file->readable || !file->backend_)
   {
-    return -1;
+    return -EBADF;
+  }
+  if (count < 0)
+  {
+    return -EINVAL;
   }
   return file->backend_->read({address, file->nonblocking()}, count);
 }
 
 int
 OpenFileTable::write(File *file, unsigned long address, int count) {
-  if (!file->writable || count < 0 || !file->backend_)
+  if (!file || !file->writable || !file->backend_)
   {
-    return -1;
+    return -EBADF;
+  }
+  if (count < 0)
+  {
+    return -EINVAL;
   }
   return file->backend_->write(
       {address, file->nonblocking(),
@@ -387,11 +405,52 @@ OpenFileTable::seek(File *file, long offset, int origin) {
 
 int
 OpenFileTable::resize(File *file, unsigned size) {
-  return file && file->writable && file->backend_ ? file->backend_->resize(size) : -1;
+  return file && file->writable && file->backend_ ? file->backend_->resize(size)
+                                                  : -EBADF;
 }
 
 int
 OpenFileTable::sync(File *file) {
   return file && file->backend_ ? file->backend_->sync() : -1;
+}
+} // namespace xv::fs
+
+namespace xv::fs
+{
+File *
+OpenFileTable::retain_message(File *file) {
+  xv::sync::ScopedLock guard(lock_);
+  if (file->ref < 1)
+  {
+    detail::fail("file: message retain dead reference");
+  }
+  ++file->ref;
+  ++file->message_refs_;
+  return file;
+}
+
+void
+OpenFileTable::release_message(File *file) {
+  {
+    xv::sync::ScopedLock guard(lock_);
+    if (!file->message_refs_)
+    {
+      detail::fail("file: unowned message reference");
+    }
+    --file->message_refs_;
+  }
+  release(file);
+}
+
+unsigned
+OpenFileTable::external_references(File *file) {
+  xv::sync::ScopedLock guard(lock_);
+  return file && file->ref > 0 ? unsigned(file->ref) - file->message_refs_ : 0;
+}
+
+void
+OpenFileTable::set_collect_hook(void (*hook)()) {
+  xv::sync::ScopedLock guard(lock_);
+  collect_hook_ = hook;
 }
 } // namespace xv::fs

@@ -24,8 +24,8 @@ pipe:
  li a7, SYS_pipe
  ecall
  ret
-.global read
-read:
+.global __xv_read
+__xv_read:
  li a7, SYS_read
  ecall
  ret
@@ -74,8 +74,8 @@ open:
  li a7, SYS_open
  ecall
  ret
-.global write
-write:
+.global __xv_write
+__xv_write:
  li a7, SYS_write
  ecall
  ret
@@ -99,8 +99,8 @@ mkdir:
  li a7, SYS_mkdir
  ecall
  ret
-.global close
-close:
+.global __xv_close
+__xv_close:
  li a7, SYS_close
  ecall
  ret
@@ -134,13 +134,13 @@ symlink:
  li a7, SYS_symlink
  ecall
  ret
-.global mmap
-mmap:
+.global __xv_mmap
+__xv_mmap:
  li a7, SYS_mmap
  ecall
  ret
-.global munmap
-munmap:
+.global __xv_munmap
+__xv_munmap:
  li a7, SYS_munmap
  ecall
  ret
@@ -217,8 +217,8 @@ sigdisposition:
  ecall
  ret
 
-.global waitpid
-waitpid:
+.global __xv_waitpid
+__xv_waitpid:
  li a7, SYS_waitpid
  ecall
  ret
@@ -229,14 +229,14 @@ openpty:
  ecall
  ret
 
-.global poll
-poll:
+.global __xv_poll
+__xv_poll:
  li a7, SYS_poll
  ecall
  ret
 
-.global fcntl
-fcntl:
+.global __xv_fcntl
+__xv_fcntl:
  li a7, SYS_fcntl
  ecall
  ret
@@ -257,8 +257,8 @@ sigpending:
  li a7, SYS_sigpending
  ecall
  ret
-.global sigsuspend
-sigsuspend:
+.global __xv_sigsuspend
+__xv_sigsuspend:
  li a7, SYS_sigsuspend
  ecall
  ret
@@ -269,58 +269,58 @@ __signal_return:
  # A failed restoration must not execute arbitrary stack bytes.
  ebreak
 
-.global socket
-socket:
+.global __xv_socket
+__xv_socket:
  li a7, SYS_socket
  ecall
  ret
-.global sockbind
-sockbind:
+.global __xv_sockbind
+__xv_sockbind:
  li a7, SYS_sockbind
  ecall
  ret
-.global connect
-connect:
+.global __xv_connect
+__xv_connect:
  li a7, SYS_connect
  ecall
  ret
-.global listen
-listen:
+.global __xv_listen
+__xv_listen:
  li a7, SYS_listen
  ecall
  ret
-.global accept
-accept:
+.global __xv_accept
+__xv_accept:
  li a7, SYS_accept
  ecall
  ret
-.global sendto
-sendto:
+.global __xv_sendto
+__xv_sendto:
  li a7, SYS_sendto
  ecall
  ret
-.global recvfrom
-recvfrom:
+.global __xv_recvfrom
+__xv_recvfrom:
  li a7, SYS_recvfrom
  ecall
  ret
-.global shutdown
-shutdown:
+.global __xv_shutdown
+__xv_shutdown:
  li a7, SYS_shutdown
  ecall
  ret
-.global getsockname
-getsockname:
+.global __xv_getsockname
+__xv_getsockname:
  li a7, SYS_getsockname
  ecall
  ret
-.global getpeername
-getpeername:
+.global __xv_getpeername
+__xv_getpeername:
  li a7, SYS_getpeername
  ecall
  ret
-.global getsockopt
-getsockopt:
+.global __xv_getsockopt
+__xv_getsockopt:
  li a7, SYS_getsockopt
  ecall
  ret
@@ -457,14 +457,14 @@ clockticks:
  ecall
  ret
 
-.global lseek
-lseek:
+.global __xv_lseek
+__xv_lseek:
  li a7, SYS_lseek
  ecall
  ret
 
-.global ftruncate
-ftruncate:
+.global __xv_ftruncate
+__xv_ftruncate:
  li a7, SYS_ftruncate
  ecall
  ret
@@ -514,5 +514,35 @@ fexecve:
 .global mountfs
 mountfs:
  li a7, SYS_mountfs
+ ecall
+ ret
+
+.global __xv_socketpair
+__xv_socketpair:
+ li a7, SYS_socketpair
+ ecall
+ ret
+
+.global __xv_sendmsg
+__xv_sendmsg:
+ li a7, SYS_sendmsg
+ ecall
+ ret
+
+.global __xv_recvmsg
+__xv_recvmsg:
+ li a7, SYS_recvmsg
+ ecall
+ ret
+
+.global __xv_shm_open
+__xv_shm_open:
+ li a7, SYS_shm_open
+ ecall
+ ret
+
+.global __xv_shm_unlink
+__xv_shm_unlink:
+ li a7, SYS_shm_unlink
  ecall
  ret

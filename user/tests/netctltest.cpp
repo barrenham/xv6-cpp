@@ -39,7 +39,7 @@ extern "C" int main(int argc,char **argv)
   r=request(); check(netctl(NETCTL_NEIGHBOR,&r)==1 && r.address==0x0a000202,"ARP neighbor visible");
   r=request(); check(netctl(NETCTL_FLUSH_NEIGHBORS,&r)==0,"flush neighbors");
   r=request(); check(netctl(NETCTL_NEIGHBOR,&r)==0,"neighbor cache cleared"); exchange(fd,peer);
-  check(state(false)==0 && send(fd,peer)==-101,"down interface blocks existing socket send");
+  check(state(false)==0 && (send(fd,peer)<0 && errno==ENETUNREACH),"down interface blocks existing socket send");
   check(state(true)==0,"enable interface"); exchange(fd,peer);
   auto route=request(); bool found=false;
   for (unsigned i=0;;++i)
@@ -48,11 +48,11 @@ extern "C" int main(int argc,char **argv)
     if (!r.prefix && r.ifindex==2) { route=r; found=true; }
   }
   check(found && netctl(NETCTL_DEL_ROUTE,&route)==0,"delete default route");
-  check(send(fd,endpoint(0xc0000201,9999))==-101,"missing default route is observable");
+  check((send(fd,endpoint(0xc0000201,9999))<0 && errno==ENETUNREACH),"missing default route is observable");
   check(netctl(NETCTL_ADD_ROUTE,&route)==0,"restore default route");
   check(address(NETCTL_ADD_ADDRESS,0x0a000210)==0,"add alias and local routes");
   int alias=bound(0x0a000210,2099); auto local=endpoint(0x0a000210,2099); exchange(alias,local);
-  check(address(NETCTL_DEL_ADDRESS,0x0a000210)==0 && send(alias,local)==-101,"deleted bound address becomes unreachable");
+  check(address(NETCTL_DEL_ADDRESS,0x0a000210)==0 && (send(alias,local)<0 && errno==ENETUNREACH),"deleted bound address becomes unreachable");
   check(address(NETCTL_ADD_ADDRESS,0x0a000210)==0,"restore alias"); exchange(alias,local); close(alias);
   check(address(NETCTL_DEL_ADDRESS,0x0a000210)==0,"remove alias");
   int pid=fork(); check(pid>=0,"fork configuration stress");

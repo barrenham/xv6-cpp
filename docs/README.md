@@ -2,6 +2,7 @@
 
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
+- [POSIX IPC 与 FS 批量传输](posix-ipc.md)：Unix socket、描述符传递、共享内存和请求合并。
 - [通用 FS 桥接插件与动态注册](user-filesystems.md)：具名注册、统一挂载、SDK 与独立归档后端。
 - [块缓存哈希索引、锁拆分与前后对照](block-cache.md)。
 - [ps/free 列宽与真实 Tab 验证](terminal-columns.md)。

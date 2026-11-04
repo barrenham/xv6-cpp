@@ -73,6 +73,10 @@ Pipe::write(uint64 addr, int n, bool nonblocking) {
   lock_.acquire();
   WriteFlow::Context context{*this, addr, n, nonblocking};
   (void)WriteFlow::Graph::run<0>(context);
+  if (context.broken)
+  {
+    detail::broken_pipe();
+  }
   return context.result;
 }
 

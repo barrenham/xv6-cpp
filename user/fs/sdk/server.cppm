@@ -60,6 +60,11 @@ public:
     return 0;
   }
 
+  virtual unsigned
+  max_transfer() const {
+    return xv::userfs::BulkSize;
+  }
+
   unsigned
   payload_limit() const {
     return registered_payload_;
@@ -165,6 +170,10 @@ public:
 private:
 
   friend int register_backend(const char *, Backend &, unsigned);
+  friend int serve(int, Backend &);
+  int transport_ = -1;
+  void *bulk_ = nullptr;
+  unsigned bulk_bytes_ = 0;
   unsigned registered_payload_ = DataSize;
 
 protected:
@@ -173,7 +182,8 @@ protected:
 };
 
 int register_backend(const char *type, Backend &backend, unsigned payload = DataSize);
-void dispatch(xv::userfs::Message &, Backend &);
+void dispatch(xv::userfs::Message &, Backend &, void *bulk = nullptr,
+              unsigned capacity = DataSize);
 int serve(int descriptor, Backend &backend);
 } // namespace userfs
 

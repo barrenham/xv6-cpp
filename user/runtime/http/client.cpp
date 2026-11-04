@@ -55,7 +55,7 @@ public:
       if (fd_ < 0) return Connect;
       sockaddr_in peer{}; peer.sin_family = AF_INET; peer.sin_port = htons(url.port); peer.sin_addr.s_addr = htonl(addresses.addresses[i]);
       status = connect(fd_, reinterpret_cast<sockaddr *>(&peer), sizeof(peer));
-      if (status == -115)
+      if (status < 0 && errno == EINPROGRESS)
       {
         status = connecting.wait(fd_, POLLOUT);
         if (!status)
@@ -77,7 +77,7 @@ public:
       if (!deadline_.remaining()) return Timeout;
       ++response_.socket_writes;
       int n = write(fd_, data+done, int(length-done));
-      if (n == -11) { int status = deadline_.wait(fd_, POLLOUT); if (status) return status; }
+      if (n < 0 && errno == EAGAIN) { int status = deadline_.wait(fd_, POLLOUT); if (status) return status; }
       else if (n <= 0) return Connect;
       else done += unsigned(n);
     }
@@ -97,7 +97,7 @@ public:
       ++response_.socket_reads;
       int n = read(fd_, data, int(length));
       if(n>0 && !saw_first_) { response_.first_byte_us=(clockticks()-began_)/10;saw_first_=true; }
-      if (n != -11) return n < 0 ? -Connect : n;
+      if (!(n < 0 && errno == EAGAIN)) return n < 0 ? -Connect : n;
       int status = deadline_.wait(fd_, POLLIN); if (status) return -status;
     }
   }

@@ -1,5 +1,6 @@
 module;
 #include "kernel/support/types.h"
+#include "kernel/fs/userfs/protocol.h"
 #include "kernel/fs/stat.h"
 #include "user/fs/backends/xv6/format.h"
 #include "kernel/support/placement_new.hpp"
@@ -404,13 +405,16 @@ int MemoryBackend::read(unsigned identity, unsigned long offset, void *data, uns
 int MemoryBackend::write(unsigned identity, unsigned long offset, const void *data, unsigned count)
 {
   auto *node = find(identity);
-  if (!node || directory(*node) || count > DataSize || offset > ~0U || count > ~0U - offset)
+  if (!node || directory(*node) || count > xv::userfs::BulkSize || offset > ~0U ||
+      count > ~0U - offset)
+  {
     return -1;
+  }
   if (!count) return 0;
-  Page *created[2]{};
+  Page *created[xv::userfs::BulkSize / PageBytes + 1]{};
   unsigned allocated = 0;
   unsigned first = offset / PageBytes, last = (offset + count - 1) / PageBytes;
-  static_assert(DataSize <= PageBytes);
+  static_assert(xv::userfs::BulkSize % PageBytes == 0);
   for (unsigned index = first; index <= last; ++index)
   {
     auto **link = page(*node, index);

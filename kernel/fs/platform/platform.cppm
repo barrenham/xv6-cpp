@@ -48,6 +48,13 @@ unsigned long boot_epoch_seconds();
 void memory_info(unsigned long &total_kib, unsigned long &free_kib);
 void prepare_sleep(void *channel);
 void prepare_interruptible_sleep(void *channel);
+bool bind_transport(int socket, int memory, unsigned payload, File *&peer, File *&bulk);
+void cancel_transport(File *);
+void broken_pipe();
+bool exchange_transport(File *, void *request, void *response, unsigned bytes,
+                        unsigned long deadline);
+int copy_transport(File *, unsigned long address, unsigned bytes, bool user,
+                   bool writing);
 void sleep();
 void wakeup(void *channel);
 bool killed();

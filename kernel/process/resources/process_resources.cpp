@@ -70,18 +70,26 @@ xv::fs::File *DescriptorTable::get(int descriptor) const
   return descriptor >= 0 && descriptor < Capacity ? entries_[descriptor] : nullptr;
 }
 
-int DescriptorTable::install(xv::fs::File *owned)
-{
-  if (!owned)
+int
+DescriptorTable::install(xv::fs::File *owned, unsigned flags, int minimum) {
+  if (!owned || (flags & ~1U) || minimum < 0 || minimum >= Capacity)
   {
     return -1;
   }
   xv::sync::ScopedLock guard(lock_);
-  for (int i = 0; i < Capacity; ++i)
+  for (int i = minimum; i < Capacity; ++i)
   {
     if (!entries_[i])
     {
       entries_[i] = owned;
+      if (flags)
+      {
+        cloexec_ |= 1U << i;
+      }
+      else
+      {
+        cloexec_ &= ~(1U << i);
+      }
       return i;
     }
   }
@@ -96,6 +104,7 @@ xv::fs::File *DescriptorTable::take(int descriptor)
   if (owned)
   {
     entries_[descriptor] = nullptr;
+    cloexec_ &= ~(1U << descriptor);
   }
   return owned;
 }
@@ -140,6 +149,13 @@ void DescriptorTable::inherit_from(const DescriptorTable &parent)
     }
   }
   parent.snapshot(entries_, Capacity);
+  for (int i = 0; i < Capacity; ++i)
+  {
+    if (parent.flags(i) == 1)
+    {
+      cloexec_ |= 1U << i;
+    }
+  }
 }
 
 unsigned DescriptorTable::snapshot(xv::fs::File **references, unsigned capacity) const
@@ -200,5 +216,46 @@ void WorkingDirectory::inherit_from(const WorkingDirectory &parent)
     detail::resource_fail("working directory: child is not empty");
   }
   directory_ = parent.duplicate();
+}
+} // namespace xv::process
+
+namespace xv::process
+{
+int
+DescriptorTable::flags(int descriptor) const {
+  xv::sync::ScopedLock guard(lock_);
+  return descriptor >= 0 && descriptor < Capacity && entries_[descriptor]
+             ? int((cloexec_ >> descriptor) & 1U)
+             : -1;
+}
+
+int
+DescriptorTable::flags(int descriptor, unsigned value) {
+  xv::sync::ScopedLock guard(lock_);
+  if (descriptor < 0 || descriptor >= Capacity || !entries_[descriptor] ||
+      (value & ~1U))
+  {
+    return -1;
+  }
+  if (value)
+  {
+    cloexec_ |= 1U << descriptor;
+  }
+  else
+  {
+    cloexec_ &= ~(1U << descriptor);
+  }
+  return 0;
+}
+
+void
+DescriptorTable::close_on_exec() {
+  for (int i = 0; i < Capacity; ++i)
+  {
+    if (flags(i) == 1)
+    {
+      close(i);
+    }
+  }
 }
 } // namespace xv::process

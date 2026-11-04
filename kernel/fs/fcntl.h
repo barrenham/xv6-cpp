@@ -19,3 +19,13 @@
 #define SEEK_END 2
 #define F_GETFL 3
 #define F_SETFL 4
+
+#define O_CREAT O_CREATE
+#define O_EXCL 0x10000
+#define O_CLOEXEC 0x80000
+#define FD_CLOEXEC 1
+#define F_DUPFD 0
+#define F_GETFD 1
+#define F_SETFD 2
+
+#define F_DUPFD_CLOEXEC 1030

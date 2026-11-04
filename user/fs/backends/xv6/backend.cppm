@@ -13,6 +13,11 @@ public:
   explicit Xv6Backend(xv6::Io &io) : volume_(io) {}
   ~Xv6Backend();
   bool initialize();
+
+  unsigned
+  max_transfer() const override {
+    return 3072;
+  }
   xv6::Error error() const { return volume_.error(); }
   Attributes root() override;
   int lookup(unsigned, const char *, Attributes &) override;

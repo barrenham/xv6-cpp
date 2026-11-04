@@ -13,7 +13,9 @@ extern "C" int main(int argc,char **argv)
   check(argc==2,"echo port required");
   int fd=socket(AF_INET,SOCK_STREAM|SOCK_NONBLOCK,0); check(fd>=0,"socket");
   sockaddr_in peer{}; peer.sin_family=AF_INET; peer.sin_addr.s_addr=htonl(0x0a000202); peer.sin_port=htons(atoi(argv[1]));
-  check(connect(fd,reinterpret_cast<sockaddr *>(&peer),sizeof(peer))==-EINPROGRESS,"connect");
+  check((connect(fd, reinterpret_cast<sockaddr *>(&peer), sizeof(peer)) < 0 &&
+         errno == EINPROGRESS),
+        "connect");
   pollfd event{fd,POLLOUT,0}; check(poll(&event,1,5000)==1,"connect readiness");
   int error=-1; socklen_t size=sizeof(error); check(!getsockopt(fd,SOL_SOCKET,SO_ERROR,&error,&size)&&!error,"connect result");
   constexpr unsigned Total=512*1024;
@@ -27,13 +29,15 @@ extern "C" int main(int argc,char **argv)
     {
       unsigned n=Total-sent; if (n>sizeof(output)) n=sizeof(output);
       for (unsigned i=0;i<n;++i) output[i]=(sent+i)*29+3;
-      int wrote=write(fd,output,n); check(wrote>0 || wrote==-EAGAIN,"nonblocking write");
+      int wrote = write(fd, output, n);
+      check(wrote > 0 || (wrote < 0 && errno == EAGAIN), "nonblocking write");
       if (wrote>0) sent+=wrote;
       if (sent==Total) check(!shutdown(fd,SHUT_WR),"queued half close");
     }
     if (event.revents&POLLIN)
     {
-      int n=read(fd,input,sizeof(input)); check(n>=0 || n==-EAGAIN,"nonblocking read");
+      int n = read(fd, input, sizeof(input));
+      check(n >= 0 || (n < 0 && errno == EAGAIN), "nonblocking read");
       if (!n) { check(received==Total && sent==Total,"EOF follows both complete streams"); finished=true; }
       if (n>0)
       {

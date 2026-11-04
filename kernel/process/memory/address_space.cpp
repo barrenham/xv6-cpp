@@ -2,6 +2,7 @@ module;
 
 #include "kernel/support/types.h"
 #include "kernel/support/flow.h"
+#include "kernel/support/placement_new.hpp"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/arch/riscv/register_constants.h"
@@ -10,6 +11,7 @@ module xv.process;
 import :address_space_flow;
 
 import xv.memory;
+import xv.runtime;
 
 namespace xv::process
 {
@@ -33,6 +35,7 @@ void AddressSpace::reset()
     return;
   }
   unmap_device_pages();
+  reset_shared_pages();
   auto pagetable = table_;
   xv::memory::unmap_user_pages(pagetable, TRAMPOLINE, 1, 0);
   xv::memory::unmap_user_pages(pagetable, TRAPFRAME, 1, 0);
@@ -54,6 +57,9 @@ void AddressSpace::swap(AddressSpace &other)
   table_ = other.table_;
   other.table_ = table;
   regions_.swap(other.regions_);
+  auto shared = shared_;
+  shared_ = other.shared_;
+  other.shared_ = shared;
   auto device = device_pages_;
   device_pages_ = other.device_pages_;
   other.device_pages_ = device;
@@ -76,6 +82,11 @@ bool AddressSpace::copy_to(AddressSpace &child) const
   (void)CopyFlow::Graph::run<0>(context);
   if (context.result && device_pages_ &&
       !child.map_device(nullptr, device_pages_, this))
+  {
+    child.reset();
+    return false;
+  }
+  if (context.result && !copy_shared_pages(child))
   {
     child.reset();
     return false;
@@ -263,5 +274,303 @@ int AddressSpace::copy_string(char *destination, unsigned long source,
 {
   return xv::memory::copy_user_string(table_, size_, regions_, destination, source,
                                       limit);
+}
+} // namespace xv::process
+
+namespace xv::process
+{
+namespace
+{
+constexpr unsigned long SharedBegin = UTOP - 512UL * 1024 * 1024;
+constexpr unsigned long SharedEnd = UTOP - 32UL * 1024 * 1024;
+constexpr unsigned SharedSlots = 32;
+constexpr unsigned SharedMaxPages = 256;
+} // namespace
+
+struct AddressSpace::SharedMappings
+{
+  struct Entry
+  {
+    unsigned long base = 0;
+    unsigned pages = 0, permissions = 0;
+    bool private_copy = false;
+  } entries[SharedSlots];
+};
+
+unsigned long
+AddressSpace::map_shared_pages(void *const *pages, unsigned count, unsigned permissions,
+                               bool private_copy, unsigned long hint) {
+  if (!table_ || !pages || !count || count > SharedMaxPages ||
+      (permissions & ~(PTE_R | PTE_W | PTE_U)))
+  {
+    return 0;
+  }
+  static_assert(sizeof(SharedMappings) <= PGSIZE);
+  if (!shared_)
+  {
+    auto *page = xv::memory::allocator().allocate();
+    if (!page)
+    {
+      return 0;
+    }
+    shared_ = new (page) SharedMappings{};
+  }
+  unsigned slot = 0;
+  while (slot < SharedSlots && shared_->entries[slot].pages)
+  {
+    ++slot;
+  }
+  if (slot == SharedSlots)
+  {
+    return 0;
+  }
+  unsigned long bytes = static_cast<unsigned long>(count) * PGSIZE;
+  auto kind =
+      permissions ? xv::memory::RegionKind::Special : xv::memory::RegionKind::Guard;
+  unsigned long base = hint & ~(PGSIZE - 1);
+  if (base < SharedBegin || base >= SharedEnd || bytes > SharedEnd - base ||
+      !regions_.reserve(base, base + bytes, permissions, kind))
+  {
+    base =
+        regions_.allocate_in(bytes, SharedBegin, SharedEnd, PGSIZE, permissions, kind);
+  }
+  if (!base)
+  {
+    bool empty = true;
+    for (const auto &entry : shared_->entries)
+    {
+      empty &= !entry.pages;
+    }
+    if (empty)
+    {
+      xv::memory::allocator().deallocate(shared_);
+      shared_ = nullptr;
+    }
+    return 0;
+  }
+  unsigned mapped = 0;
+  if (permissions)
+  {
+    for (; mapped < count; ++mapped)
+    {
+      void *physical = pages[mapped];
+      if (private_copy)
+      {
+        physical = xv::memory::allocator().allocate();
+        if (!physical)
+        {
+          break;
+        }
+        xv::runtime::move(physical, pages[mapped], PGSIZE);
+      }
+      if (xv::memory::map_user_pages(table_, base + mapped * PGSIZE, PGSIZE,
+                                     reinterpret_cast<unsigned long>(physical),
+                                     permissions) < 0)
+      {
+        if (private_copy)
+        {
+          xv::memory::allocator().release_page(physical);
+        }
+        break;
+      }
+      if (!private_copy)
+      {
+        xv::memory::allocator().retain_page(physical);
+      }
+    }
+    if (mapped != count)
+    {
+      if (mapped)
+      {
+        xv::memory::unmap_user_pages(table_, base, mapped, 1);
+      }
+      regions_.release(base);
+      bool empty = true;
+      for (const auto &entry : shared_->entries)
+      {
+        empty &= !entry.pages;
+      }
+      if (empty)
+      {
+        xv::memory::allocator().deallocate(shared_);
+        shared_ = nullptr;
+      }
+      return 0;
+    }
+  }
+  shared_->entries[slot] = {base, count, permissions, private_copy};
+  return base;
+}
+
+int
+AddressSpace::unmap_shared_pages(unsigned long begin, unsigned long bytes) {
+  if (!bytes || begin % PGSIZE || begin < SharedBegin || begin >= SharedEnd ||
+      bytes > SharedEnd - begin || begin < size_)
+  {
+    return -22;
+  }
+  unsigned long end = begin + ((bytes + PGSIZE - 1) & ~(PGSIZE - 1));
+  if (end > SharedEnd)
+  {
+    return -22;
+  }
+  if (!shared_)
+  {
+    return 0;
+  }
+  unsigned free_slot = SharedSlots;
+  bool needs_split = false;
+  for (unsigned i = 0; i < SharedSlots; ++i)
+  {
+    const auto &entry = shared_->entries[i];
+    if (!entry.pages)
+    {
+      free_slot = i;
+      continue;
+    }
+    unsigned long limit = entry.base + static_cast<unsigned long>(entry.pages) * PGSIZE;
+    needs_split |= entry.base < begin && end < limit;
+  }
+  if (needs_split && free_slot == SharedSlots)
+  {
+    return -12;
+  }
+  if (!regions_.erase(begin, end))
+  {
+    return -12;
+  }
+  for (auto &entry : shared_->entries)
+  {
+    if (!entry.pages)
+    {
+      continue;
+    }
+    unsigned long limit = entry.base + static_cast<unsigned long>(entry.pages) * PGSIZE;
+    unsigned long low = entry.base > begin ? entry.base : begin;
+    unsigned long high = limit < end ? limit : end;
+    if (low >= high)
+    {
+      continue;
+    }
+    if (entry.permissions)
+    {
+      xv::memory::unmap_user_pages(table_, low, (high - low) / PGSIZE, 1);
+    }
+    if (entry.base < low && high < limit)
+    {
+      shared_->entries[free_slot] = {high, unsigned((limit - high) / PGSIZE),
+                                     entry.permissions, entry.private_copy};
+      entry.pages = (low - entry.base) / PGSIZE;
+    }
+    else if (entry.base < low)
+    {
+      entry.pages = (low - entry.base) / PGSIZE;
+    }
+    else if (high < limit)
+    {
+      entry.base = high;
+      entry.pages = (limit - high) / PGSIZE;
+    }
+    else
+    {
+      entry = {};
+    }
+  }
+  bool empty = true;
+  for (const auto &entry : shared_->entries)
+  {
+    empty &= !entry.pages;
+  }
+  if (empty)
+  {
+    xv::memory::allocator().deallocate(shared_);
+    shared_ = nullptr;
+  }
+  return 0;
+}
+
+void
+AddressSpace::reset_shared_pages() {
+  if (!shared_)
+  {
+    return;
+  }
+  for (const auto &entry : shared_->entries)
+  {
+    if (!entry.pages)
+    {
+      continue;
+    }
+    if (entry.permissions)
+    {
+      xv::memory::unmap_user_pages(table_, entry.base, entry.pages, 1);
+    }
+    regions_.release(entry.base);
+  }
+  xv::memory::allocator().deallocate(shared_);
+  shared_ = nullptr;
+}
+
+bool
+AddressSpace::copy_shared_pages(AddressSpace &child) const {
+  if (!shared_)
+  {
+    return true;
+  }
+  auto *page = xv::memory::allocator().allocate();
+  if (!page)
+  {
+    return false;
+  }
+  child.shared_ = new (page) SharedMappings{};
+  for (unsigned i = 0; i < SharedSlots; ++i)
+  {
+    const auto &entry = shared_->entries[i];
+    if (!entry.pages)
+    {
+      continue;
+    }
+    auto &out = child.shared_->entries[i];
+    out = entry;
+    out.pages = 0;
+    if (!entry.permissions)
+    {
+      out.pages = entry.pages;
+      continue;
+    }
+    for (unsigned index = 0; index < entry.pages; ++index)
+    {
+      auto physical = translate(entry.base + index * PGSIZE);
+      if (!physical)
+      {
+        return false;
+      }
+      if (entry.private_copy)
+      {
+        void *copy = xv::memory::allocator().allocate();
+        if (!copy)
+        {
+          return false;
+        }
+        xv::runtime::move(copy, reinterpret_cast<void *>(physical), PGSIZE);
+        physical = reinterpret_cast<unsigned long>(copy);
+      }
+      if (xv::memory::map_user_pages(child.table_, entry.base + index * PGSIZE, PGSIZE,
+                                     physical, entry.permissions) < 0)
+      {
+        if (entry.private_copy)
+        {
+          xv::memory::allocator().release_page(reinterpret_cast<void *>(physical));
+        }
+        return false;
+      }
+      if (!entry.private_copy)
+      {
+        xv::memory::allocator().retain_page(reinterpret_cast<void *>(physical));
+      }
+      ++out.pages;
+    }
+  }
+  return true;
 }
 } // namespace xv::process

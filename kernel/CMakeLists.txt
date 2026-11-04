@@ -14,3 +14,5 @@ add_subdirectory(drivers)
 add_subdirectory(support)
 
 add_subdirectory(net)
+
+add_subdirectory(ipc)

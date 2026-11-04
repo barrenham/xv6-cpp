@@ -1,0 +1,269 @@
+{
+  "scope": "POSIX Unix socketpair and shared-memory APIs, generic FS bulk transport; supported subset documented in posix-ipc.md",
+  "configuration": {
+    "preset": "dev",
+    "ram_mib": 128,
+    "cpus": [
+      1,
+      5
+    ],
+    "qemu": "serial runs using disposable disks",
+    "persistent_root_modified": false,
+    "fork_performance_gate": false
+  },
+  "latest_results": {
+    "device_elf_boundary": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "dns_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "dns_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "firewall_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "firewall_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "foreground_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "foreground_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "fs_elf_plugin_ext3_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "fs_elf_plugin_xv6_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "fs_hotplug_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-hotplug-final.log"
+    },
+    "fs_memory_pressure_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_memory_pressure_xv6_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_mount_services_ext3_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_mount_services_xv6_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_partial_write_ext3_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_partial_write_ext3_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_partial_write_xv6_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_partial_write_xv6_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_runtime_boundary": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "fs_service_boot_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_boot_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_permissions_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_procfs_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_ramfs_lifecycle_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_root_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_root_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_snapshots_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "fs_service_xv6_persistence_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "http_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "http_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "jobs_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "jobs_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "kernel_source_boundary": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "netctl_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "netctl_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "network_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "network_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-network-final.log"
+    },
+    "nonblock_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "nonblock_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "poll_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "poll_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "posix_headers_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "posix_ipc_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "posix_ipc_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "process_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "process_groups_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "process_storage_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "pty_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "pty_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "sigchld_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "sigchld_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "signal_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "signals_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "signals_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "socket_1cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "socket_5cpu": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "user_printf_contract": {
+      "status": "Passed",
+      "log": "build/posix-regressions.log"
+    },
+    "vm_buddy_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    },
+    "vm_freelist_contract": {
+      "status": "Passed",
+      "log": "build/posix-final-regressions.log"
+    }
+  },
+  "passed_tests": 60,
+  "clangd": {
+    "checked_files": 244,
+    "module_diagnostics": "passed",
+    "dispatch_hover_and_definition": "passed"
+  },
+  "resolved_regressions": [
+    "Pending client signals cannot disconnect a shared FS RPC transport; bounded kernel waits finish before signal delivery.",
+    "SIGPIPE implemented for local streams and pipes; legacy broken-pipe tests explicitly ignore SIGPIPE when checking EPIPE.",
+    "Existing HTTP/DNS/ping and network tests migrated from numeric negative errors to errno."
+  ],
+  "benchmark": "ipc-transport-results.json",
+  "runtime_hot_loading": "New independent C++ FS ELF compiled after boot, downloaded, mounted, unmounted and remounted without restarting the kernel."
+}

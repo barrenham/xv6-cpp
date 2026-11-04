@@ -93,3 +93,25 @@ struct ProviderInfo
 static_assert(sizeof(unsigned) == 4 && sizeof(unsigned long) == 8);
 static_assert(sizeof(Message) <= 1152);
 } // namespace xv::userfs
+
+namespace xv::userfs
+{
+struct TransportStatistics
+{
+  unsigned version = 1, payload = DataSize;
+  unsigned long exchanges = 0, copied_bytes = 0, waits = 0;
+};
+} // namespace xv::userfs
+
+namespace xv::userfs
+{
+inline constexpr unsigned BulkSize = 16384;
+inline constexpr unsigned BindTransport = 0x58564601;
+
+struct TransportBinding
+{
+  unsigned size = sizeof(TransportBinding), version = 1;
+  int socket = -1, memory = -1;
+  unsigned payload = BulkSize, reserved = 0;
+};
+} // namespace xv::userfs

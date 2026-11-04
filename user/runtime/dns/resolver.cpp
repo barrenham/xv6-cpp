@@ -64,7 +64,7 @@ int open_peer(bool tcp, unsigned server, unsigned source, unsigned port, unsigne
   }
   auto peer = endpoint(server, port);
   int status = connect(fd, reinterpret_cast<sockaddr *>(&peer), sizeof(peer));
-  if (tcp && status == -115)
+  if (tcp && status < 0 && errno == EINPROGRESS)
   {
     status = ready(fd, POLLOUT, start, timeout);
     int error = 0; socklen_t size = sizeof(error);
@@ -80,7 +80,7 @@ int transfer(int fd, unsigned char *data, unsigned length, bool writing, unsigne
   {
     if (elapsed(start) >= timeout) return DNS_TIMEOUT;
     int n = writing ? write(fd, data + offset, int(length - offset)) : read(fd, data + offset, int(length - offset));
-    if (n == -11)
+    if (n < 0 && errno == EAGAIN)
     { int status = ready(fd, writing ? POLLOUT : POLLIN, start, timeout); if (status) return status; }
     else if (n <= 0) return DNS_NETWORK;
     else offset += unsigned(n);
@@ -130,7 +130,7 @@ int query(Buffer &buffer, const char *name, unsigned server, unsigned source, co
       int status = ready(peer.fd, POLLIN, start, timeout);
       if (status) { last = status; break; }
       int n = read(peer.fd, buffer.reply, 513);
-      if (n == -11) continue;
+      if (n < 0 && errno == EAGAIN) continue;
       if (n < 0) return DNS_NETWORK;
       if (n > 512) { last = DNS_MALFORMED; continue; }
       status = xv::dns::parse_reply(buffer.reply, unsigned(n), id, name, result);

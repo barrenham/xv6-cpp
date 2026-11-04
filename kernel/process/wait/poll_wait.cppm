@@ -41,7 +41,7 @@ public:
   void watch(void *channel);
   void set_deadline(unsigned long milliseconds);
   void cancel_deadline();
-  void sleep();
+  void sleep(bool interruptible = true);
 
   bool failed() const
   {

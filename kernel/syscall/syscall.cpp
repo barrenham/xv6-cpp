@@ -1,5 +1,6 @@
 module;
 #include "kernel/support/flow.h"
+#include "kernel/io/posix_errno.h"
 
 #include "kernel/support/types.h"
 #include "kernel/syscall/syscall.h"
@@ -54,6 +55,13 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_mountinfo: return sys_mountinfo;
   case SYS_stat: return sys_stat;
   case SYS_netctl: return sys_netctl;
+  case SYS_mmap: return sys_mmap;
+  case SYS_munmap: return sys_munmap;
+  case SYS_shm_open: return sys_shm_open;
+  case SYS_shm_unlink: return sys_shm_unlink;
+  case SYS_socketpair: return sys_socketpair;
+  case SYS_sendmsg: return sys_sendmsg;
+  case SYS_recvmsg: return sys_recvmsg;
   case SYS_socket: return sys_socket;
   case SYS_sockbind: return sys_sockbind;
   case SYS_connect: return sys_connect;
@@ -139,16 +147,20 @@ struct DispatchFlow
     c.result = static_cast<unsigned long>(
         c.process->finish_system_call(c.number, c.argument, c.handler()));
   }
-  static bool restart(Context &c) noexcept
-  {
+
+  static bool
+  restart(Context &c) noexcept {
     bool restartable =
         c.number == SYS_read || c.number == SYS_write || c.number == SYS_wait ||
         c.number == SYS_waitpid || c.number == SYS_accept || c.number == SYS_recvfrom ||
-        c.number == SYS_sendto || c.number == SYS_pause || c.number == SYS_sigsuspend;
-    return c.result == ~0UL && restartable && c.process->stop_requested();
+        c.number == SYS_sendto || c.number == SYS_recvmsg || c.number == SYS_sendmsg ||
+        c.number == SYS_pause || c.number == SYS_sigsuspend;
+    return (c.result == ~0UL || static_cast<long>(c.result) == -EINTR) && restartable &&
+           c.process->stop_requested();
   }
-  static void rewind(Context &c) noexcept
-  {
+
+  static void
+  rewind(Context &c) noexcept {
     c.process->registers()->epc -= 4;
     c.process->registers()->a0 = c.argument;
   }

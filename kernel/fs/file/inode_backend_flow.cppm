@@ -353,7 +353,7 @@ struct InodeBackend::WriteFlow
 
   static void
   prepare(Context &c) noexcept {
-    constexpr int maximum = 3072; // Bounded kernel write batch; FS owns journaling.
+    constexpr int maximum = 16384; // Bounded kernel write batch; FS owns journaling.
     c.part = c.count - c.done;
     if (c.part > maximum)
     {

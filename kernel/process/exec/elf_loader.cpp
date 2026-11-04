@@ -414,6 +414,7 @@ struct ElfLoader::LoadFlow
     c.process.commit_image(c.candidate.memory, c.header.entry, c.stack, c.stack, c.path,
                            c.environment_address, &c.snapshot);
     c.process.credentials().apply_exec(c.image_uid, c.image_gid, c.image_mode);
+    c.process.files().close_on_exec();
     c.result = c.count;
   }
   struct Header;

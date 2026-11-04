@@ -80,7 +80,7 @@ extern "C" int main(int argc, char **argv)
       if(!ready)break;
       sockaddr_in from{}; socklen_t from_size=sizeof(from);
       n=recvfrom(fd,w->reply,sizeof(w->reply),MSG_DONTWAIT,reinterpret_cast<sockaddr *>(&from),&from_size);
-      if(n==-11)continue;
+      if(n<0 && errno==EAGAIN)continue;
       if(n<0) { if(!stopped)failure=2;break; }
       if(from_size!=sizeof(from) || from.sin_addr.s_addr!=peer.sin_addr.s_addr)continue;
       if(xv::echo::matches(w->reply,unsigned(n),w->request,length,identifier))

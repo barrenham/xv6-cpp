@@ -9,10 +9,15 @@ module xv.userfs;
 namespace userfs
 {
 void
-dispatch(xv::userfs::Message &m, Backend &backend) {
+dispatch(xv::userfs::Message &m, Backend &backend, void *bulk, unsigned capacity) {
   using xv::userfs::Operation;
+  void *data = bulk ? bulk : m.data;
+  bool bulk_operation = m.operation == Operation::Read ||
+                        m.operation == Operation::Write ||
+                        m.operation == Operation::SnapshotRead;
+  unsigned limit = bulk_operation ? capacity : DataSize;
   m.result = -1;
-  if (m.version != xv::userfs::Version || !m.node || m.count > DataSize ||
+  if (m.version != xv::userfs::Version || !m.node || m.count > limit ||
       m.name[NameSize - 1] || m.target[NameSize - 1])
   {
     return;
@@ -75,7 +80,7 @@ dispatch(xv::userfs::Message &m, Backend &backend) {
   }
   case Operation::SnapshotRead: {
     unsigned limit = m.count;
-    m.result = backend.snapshot_read(m.offset, m.data, limit);
+    m.result = backend.snapshot_read(m.offset, data, limit);
     if (m.result > int(limit))
     {
       m.result = -1;
@@ -100,7 +105,7 @@ dispatch(xv::userfs::Message &m, Backend &backend) {
   }
   case Operation::Read: {
     unsigned limit = m.count;
-    m.result = backend.read(m.node, m.offset, m.data, limit);
+    m.result = backend.read(m.node, m.offset, data, limit);
     if (m.result > int(limit))
     {
       m.result = -1;
@@ -109,7 +114,7 @@ dispatch(xv::userfs::Message &m, Backend &backend) {
     break;
   }
   case Operation::Write:
-    m.result = backend.write(m.node, m.offset, m.data, m.count);
+    m.result = backend.write(m.node, m.offset, data, m.count);
     if (m.result > int(m.count))
     {
       m.result = -1;

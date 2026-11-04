@@ -51,12 +51,21 @@ public:
   bool unmap_device_pages();
   bool device_mapping(void *const *pages, unsigned count) const;
 
+  unsigned long map_shared_pages(void *const *, unsigned count, unsigned permissions,
+                                 bool private_copy = false, unsigned long hint = 0);
+  int unmap_shared_pages(unsigned long address, unsigned long bytes);
+
   int copy_in(void *destination, unsigned long source, unsigned long bytes) const;
   int copy_out(unsigned long destination, const void *source,
                unsigned long bytes) const;
   int copy_string(char *destination, unsigned long source, unsigned long limit) const;
 
 private:
+
+  struct SharedMappings;
+  SharedMappings *shared_ = nullptr;
+  void reset_shared_pages();
+  bool copy_shared_pages(AddressSpace &) const;
 
   struct CreateFlow;
   struct ResizeFlow;

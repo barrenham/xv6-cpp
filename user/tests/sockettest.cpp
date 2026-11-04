@@ -46,7 +46,7 @@ extern "C" int main(int argc, char **argv)
   truncated = {};
   check(getsockname(udp, sa(truncated), const_cast<socklen_t *>(&fixed_capacity)) == -1 &&
         ntohs(truncated.sin_port) == 2020, "name length failure retains first output");
-  check(recv(udp, received, 10, 0) == -EAGAIN, "nonblocking UDP");
+  check((recv(udp, received, 10, 0) < 0 && errno == EAGAIN), "nonblocking UDP");
   pollfd p{udp, POLLIN, 0}; check(poll(&p, 1, 0) == 0, "UDP poll empty");
   auto host = address(0x0a000202, udp_port);
   check(sendto(udp, sent, 1301, 0, sa(host), sizeof(host)) == 1301, "sendto");
@@ -67,7 +67,8 @@ extern "C" int main(int argc, char **argv)
 
   int tcp = socket(AF_INET, SOCK_STREAM|SOCK_NONBLOCK, IPPROTO_TCP);
   check(tcp >= 0, "TCP socket"); host = address(0x0a000202, tcp_port);
-  check(connect(tcp, sa(host), sizeof(host)) == -EINPROGRESS, "nonblocking TCP connect");
+  check((connect(tcp, sa(host), sizeof(host)) < 0 && errno == EINPROGRESS),
+        "nonblocking TCP connect");
   p = {tcp, POLLOUT, 0}; check(poll(&p, 1, 5000) == 1 && (p.revents&POLLOUT), "connect poll");
   int error = -1; size = sizeof(error);
   check(getsockopt(tcp, SOL_SOCKET, SO_ERROR, &error, &size) == 0 && error == 0, "connect status");
@@ -79,13 +80,15 @@ extern "C" int main(int argc, char **argv)
   check(!memcmp(sent, received, 262144), "TCP stream content");
   check(read(tcp, received, 1) == 0, "TCP EOF"); close(tcp);
   tcp = socket(AF_INET, SOCK_STREAM, 0); host = address(0x0a000202, refused_port);
-  check(connect(tcp, sa(host), sizeof(host)) == -ECONNREFUSED, "TCP refusal"); close(tcp);
+  check((connect(tcp, sa(host), sizeof(host)) < 0 && errno == ECONNREFUSED),
+        "TCP refusal");
+  close(tcp);
   printf("sockettest: TCP active open, stream, half close, refusal OK\n");
 
   int server = socket(AF_INET, SOCK_STREAM|SOCK_NONBLOCK, 0);
   local = address(INADDR_ANY, 2021);
   check(server >= 0 && bind(server, sa(local), sizeof(local)) == 0 && listen(server, 4) == 0, "listen");
-  check(accept(server, 0, 0) == -EAGAIN, "nonblocking accept");
+  check((accept(server, 0, 0) < 0 && errno == EAGAIN), "nonblocking accept");
   printf("sockettest: listening\n");
   p = {server, POLLIN, 0}; check(poll(&p, 1, 10000) == 1, "listener poll");
   size = sizeof(peer); int connection = accept(server, sa(peer), &size);

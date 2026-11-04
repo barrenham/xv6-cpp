@@ -28,7 +28,7 @@ find_program(XV_HOST_CLANG clang++ HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 find_program(XV_QEMU qemu-system-riscv64 HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_library(xv_options INTERFACE)
-target_include_directories(xv_options INTERFACE "${PROJECT_SOURCE_DIR}")
+target_include_directories(xv_options INTERFACE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/user/include")
 target_compile_definitions(xv_options INTERFACE LAB_PGTBL SOL_PGTBL LAB_NET XV_KERNEL_STACK_MIB=${XV_KERNEL_STACK_MIB})
 target_compile_options(xv_options INTERFACE
   -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
@@ -777,3 +777,17 @@ foreach(cpus 1 5)
     --cmake "${CMAKE_COMMAND}" --cpus ${cpus})
   set_tests_properties(fs_hotplug_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "fs;plugin;hotplug")
 endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME posix_ipc_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/posix_ipc.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(posix_ipc_${cpus}cpu PROPERTIES TIMEOUT 240 LABELS "io;fs")
+endforeach()
+
+add_test(NAME posix_headers_contract COMMAND "${XV_HOST_CLANG}"
+  -x c --target=riscv64-unknown-elf -std=c11 -ffreestanding -Wall -Wextra -Werror
+  -fsyntax-only "-I${PROJECT_SOURCE_DIR}/user/include" "-I${PROJECT_SOURCE_DIR}"
+  "${PROJECT_SOURCE_DIR}/tests/posix_headers.c")
+set_tests_properties(posix_headers_contract PROPERTIES TIMEOUT 15 LABELS io)

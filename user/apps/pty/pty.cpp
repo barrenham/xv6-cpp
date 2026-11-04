@@ -67,7 +67,7 @@ static void transfer(int master)
       if (sent == used && (descriptors[1].revents & (POLLIN | POLLHUP)))
       {
         int n = read(master, output, sizeof(output));
-        if (n != -EAGAIN)
+        if (!(n < 0 && errno == EAGAIN))
         {
           if (n <= 0)
           {
@@ -84,7 +84,7 @@ static void transfer(int master)
         {
           sent += n;
         }
-        else if (n != -EAGAIN)
+        else if (!(n < 0 && errno == EAGAIN))
         {
           break;
         }
@@ -92,7 +92,7 @@ static void transfer(int master)
       if (descriptors[0].revents & (POLLIN | POLLHUP))
       {
         int n = read(0, input, sizeof(input));
-        if (n != -EAGAIN)
+        if (!(n < 0 && errno == EAGAIN))
         {
           if (n <= 0)
           {
@@ -121,7 +121,7 @@ static void transfer(int master)
         {
           input_sent += n;
         }
-        else if (n != -EAGAIN)
+        else if (!(n < 0 && errno == EAGAIN))
         {
           break;
         }

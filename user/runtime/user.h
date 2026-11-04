@@ -2,14 +2,13 @@
 #include "kernel/support/types.h"
 #include "kernel/process/signals/signal_abi.h"
 #include "kernel/net/socket/socket.h"
+#include "errno.h"
+#include "posix_types.h"
+#include "kernel/io/mman.h"
 #include "kernel/net/control.h"
 #include "dns/dns.h"
 extern "C" {
 #pragma once
-#ifdef LAB_MMAP
-typedef unsigned long size_t;
-typedef long int off_t;
-#endif
 
 #define SBRK_ERROR ((char *)-1)
 
@@ -28,13 +27,25 @@ struct pollfd;
 struct sigaction;
 
 int netctl(unsigned operation, struct netctl_request *request);
+int shm_open(const char *, int, mode_t);
+int shm_unlink(const char *);
+void *mmap(void *, size_t, int, int, int, off_t);
+int munmap(void *, size_t);
+int socketpair(int, int, int, int descriptors[2]);
+long sendmsg(int, const struct msghdr *, int);
+long recvmsg(int, struct msghdr *, int);
 int socket(int domain, int type, int protocol);
+int bind(int fd, const struct sockaddr *, socklen_t);
+ssize_t send(int, const void *, size_t, int);
+ssize_t recv(int, void *, size_t, int);
 int sockbind(int fd, const struct sockaddr *address, socklen_t length);
 int connect(int fd, const struct sockaddr *address, socklen_t length);
 int listen(int fd, int backlog);
 int accept(int fd, struct sockaddr *address, socklen_t *length);
-int sendto(int fd, const void *data, int length, int flags, const struct sockaddr *address, socklen_t address_length);
-int recvfrom(int fd, void *data, int length, int flags, struct sockaddr *address, socklen_t *address_length);
+ssize_t sendto(int fd, const void *data, size_t length, int flags,
+               const struct sockaddr *address, socklen_t address_length);
+ssize_t recvfrom(int fd, void *data, size_t length, int flags, struct sockaddr *address,
+                 socklen_t *address_length);
 int shutdown(int fd, int how);
 int getsockname(int fd, struct sockaddr *address, socklen_t *length);
 int getpeername(int fd, struct sockaddr *address, socklen_t *length);
@@ -51,10 +62,10 @@ int posix_openpt(int flags);
 int grantpt(int fd);
 int unlockpt(int fd);
 int ptsname_r(int fd, char *buffer, unsigned length);
-int poll(struct pollfd *fds, int count, int timeout_ms);
+int poll(struct pollfd *fds, unsigned long count, int timeout_ms);
 int fcntl(int fd, int command, ...);
-int write(int, const void *, int);
-int read(int, void *, int);
+ssize_t write(int, const void *, size_t);
+ssize_t read(int, void *, size_t);
 int close(int);
 int kill(int);
 sighandler_t signal(int signal, sighandler_t handler);
@@ -159,10 +170,3 @@ void *malloc(uint);
 void free(void *);
 
 }
-
-inline int bind(int fd, const sockaddr *address, socklen_t length)
-{ return sockbind(fd, address, length); }
-inline int send(int fd, const void *data, int length, int flags)
-{ return sendto(fd, data, length, flags, nullptr, 0); }
-inline int recv(int fd, void *data, int length, int flags)
-{ return recvfrom(fd, data, length, flags, nullptr, nullptr); }

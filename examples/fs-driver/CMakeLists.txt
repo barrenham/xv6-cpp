@@ -15,7 +15,7 @@ set(XVFS_DRIVER_ENTRY "${XVFS_KIT_ROOT}/user/fs/plugins/ext4/main.cpp" CACHE FIL
 set(XVFS_DRIVER_RESOURCE block CACHE STRING "Source capability category")
 set(XVFS_DRIVER_SOURCE 1 CACHE STRING "Default source")
 add_compile_options(-O1 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-sign-compare -Wno-write-strings -Wno-writable-strings)
-include_directories("${XVFS_KIT_ROOT}")
+include_directories("${XVFS_KIT_ROOT}" "${XVFS_KIT_ROOT}/user/include")
 add_library(sdk STATIC
   "${XVFS_KIT_ROOT}/user/fs/sdk/server.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/dispatch.cpp"
@@ -32,7 +32,7 @@ target_sources(backend PUBLIC FILE_SET driver_module TYPE CXX_MODULES
   BASE_DIRS "${driver_directory}" FILES "${XVFS_DRIVER_INTERFACE}")
 target_link_libraries(backend PUBLIC sdk)
 set(runtime_sources "")
-foreach(source ulib.cpp cxx.cpp path.cpp file_copy.cpp environment.cpp pty.cpp signals.cpp termios.cpp printf.cpp umalloc.cpp usys.S start.S)
+foreach(source ulib.cpp posix.cpp cxx.cpp path.cpp file_copy.cpp environment.cpp pty.cpp signals.cpp termios.cpp printf.cpp umalloc.cpp usys.S start.S)
   list(APPEND runtime_sources "${XVFS_KIT_ROOT}/user/runtime/${source}")
 endforeach()
 add_executable(driver "${XVFS_DRIVER_ENTRY}" ${runtime_sources})

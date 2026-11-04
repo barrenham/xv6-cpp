@@ -25,7 +25,10 @@ int send_echo(int fd, const char *data, int length)
 void echo(int fd, char *data, int length, int capacity = 1472)
 {
   int result;
-  do { result = send_echo(fd, data, length); } while (result == -EAGAIN);
+  do
+  {
+    result = send_echo(fd, data, length);
+  } while ((result < 0 && errno == EAGAIN));
   check(result == length, "sendto");
   sockaddr_in source{}; socklen_t size = sizeof(source); char received[1472];
   int n = recvfrom(fd, received, capacity, 0, reinterpret_cast<sockaddr *>(&source), &size);
@@ -67,7 +70,8 @@ extern "C" int main(int argc, char **argv)
   check(sigaction(SIGUSR1, &action, 0) == 0, "sigaction"); int parent = getpid();
   child = fork(); check(child >= 0, "signal fork");
   if (!child) { pause(2); sigsend(parent, SIGUSR1); exit(0); }
-  check(recv(signal_fd, data, sizeof(data), 0) == -EINTR && caught, "signal interrupts recvfrom");
+  check((recv(signal_fd, data, sizeof(data), 0) < 0 && errno == EINTR) && caught,
+        "signal interrupts recvfrom");
   wait_ok(child); caught = 0; action.sa_flags = SA_RESTART;
   check(sigaction(SIGUSR1, &action, 0) == 0, "restart action");
   child = fork(); check(child >= 0, "restart fork");

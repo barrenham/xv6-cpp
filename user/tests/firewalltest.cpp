@@ -15,7 +15,11 @@ void clear(const char *chain)
 int send(int fd,const sockaddr_in &peer)
 {
   int result;
-  do { result=sendto(fd,"filter",6,0,reinterpret_cast<const sockaddr *>(&peer),sizeof(peer)); } while (result==-EAGAIN);
+  do
+  {
+    result = sendto(fd, "filter", 6, 0, reinterpret_cast<const sockaddr *>(&peer),
+                    sizeof(peer));
+  } while ((result < 0 && errno == EAGAIN));
   return result;
 }
 void reply(int fd)
@@ -50,7 +54,7 @@ extern "C" int main(int argc,char **argv)
   sockaddr_in peer{}; peer.sin_family=AF_INET; peer.sin_port=htons(port); peer.sin_addr.s_addr=htonl(0x0a000202);
   check(send(fd,peer)==6,"baseline send"); reply(fd);
   r=request("OUTPUT"); r.rule.protocol=17; r.rule.dport_low=r.rule.dport_high=port; r.rule.action=FW_DROP;
-  check(!call(FW_APPEND,r) && send(fd,peer)==-13,"OUTPUT drop errno");
+  check(!call(FW_APPEND,r) && (send(fd,peer)<0 && errno==EACCES),"OUTPUT drop errno");
   r=request("OUTPUT"); check(call(FW_RULE,r)==1 && r.packets==1 && r.bytes==34,"OUTPUT counters");
   clear("OUTPUT");
   r=request(); r.rule.protocol=17; r.rule.sport_low=r.rule.sport_high=port; r.rule.action=FW_DROP;

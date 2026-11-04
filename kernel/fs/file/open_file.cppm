@@ -45,6 +45,7 @@ private:
   friend class OpenFileTable;
   static constexpr unsigned BackendBytes = 64;
   int ref = 0;
+  unsigned message_refs_ = 0;
   unsigned status_flags_ = 0;
   bool ready_ = false;
   FileInfo identity_;
@@ -63,11 +64,16 @@ public:
   File *allocate();
   File *retain(File *file);
   void release(File *file);
+  File *retain_message(File *file);
+  void release_message(File *file);
+  unsigned external_references(File *file);
+  void set_collect_hook(void (*hook)());
   bool bind_inode(File &file, Inode &node, bool readable, bool writable,
                   bool nonblocking = false, bool append = false);
   void bind_pipe(File &file, Pipe &pipe, bool writable);
   void bind_endpoint(File &file, xv::drivers::CharacterDevice &endpoint);
-  void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false);
+  void bind_object(File &file, xv::io::IoObject &object, bool nonblocking = false,
+                   bool readable = true, bool writable = true);
   xv::io::IoObject *object(File *file) const;
   bool describe(File *file, FileInfo &result) const;
   int read(File *file, unsigned long address, int count);
@@ -91,6 +97,7 @@ private:
   xv::sync::SpinLock lock_;
   File files_[NFILE]{};
   unsigned long next_identity_ = 1;
+  void (*collect_hook_)() = nullptr;
 };
 
 OpenFileTable &files();

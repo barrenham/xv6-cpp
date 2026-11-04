@@ -2,9 +2,12 @@ module;
 #include "kernel/support/types.h"
 #include "kernel/arch/riscv/register_constants.h"
 
+#include "kernel/net/socket/socket.h"
+#include "kernel/process/signals/signal.h"
 module xv.fs;
 
 import xv.print;
+import xv.ipc;
 
 import xv.runtime;
 import :platform;
@@ -15,6 +18,66 @@ import xv.arch;
 
 namespace xv::fs::detail
 {
+bool
+bind_transport(int socket, int memory, unsigned payload, File *&peer, File *&bulk) {
+  auto &descriptors = xv::process::current()->files();
+  auto *p = descriptors.get(socket), *b = descriptors.get(memory);
+  if (!p || !b || p == b)
+  {
+    return false;
+  }
+  auto *channel = xv::io::query<xv::ipc::LocalSocket>(files().object(p));
+  auto *shared = xv::io::query<xv::ipc::SharedMemory>(files().object(b));
+  if (!channel || channel->type() != SOCK_SEQPACKET || !channel->connected() ||
+      !shared || !shared->writable() || shared->length() < payload)
+  {
+    return false;
+  }
+  peer = files().retain(p);
+  bulk = files().retain(b);
+  return true;
+}
+
+void
+broken_pipe() {
+  xv::process::send_signal(xv::process::current()->id(), SIGPIPE);
+}
+
+void
+cancel_transport(File *peer) {
+  if (peer)
+  {
+    xv::io::query<xv::ipc::LocalSocket>(files().object(peer))->cancel();
+  }
+}
+
+bool
+exchange_transport(File *peer, void *request, void *response, unsigned bytes,
+                   unsigned long deadline) {
+  auto *channel = xv::io::query<xv::ipc::LocalSocket>(files().object(peer));
+  iovec out{request, bytes}, in{response, bytes};
+  xv::ipc::Rights rights;
+  unsigned flags = 0;
+  if (channel->send(&out, 1, false, MSG_NOSIGNAL | xv::ipc::KernelWait, rights,
+                    deadline) != int(bytes))
+  {
+    return false;
+  }
+  int count =
+      channel->receive(&in, 1, false, xv::ipc::KernelWait, rights, flags, deadline);
+  bool valid =
+      count == int(bytes) && !rights.count && !(flags & (MSG_TRUNC | MSG_CTRUNC));
+  xv::ipc::release_rights(rights);
+  return valid;
+}
+
+int
+copy_transport(File *bulk, unsigned long address, unsigned bytes, bool user,
+               bool writing) {
+  auto *shared = xv::io::query<xv::ipc::SharedMemory>(files().object(bulk));
+  int count = shared->copy(0, reinterpret_cast<void *>(address), bytes, user, writing);
+  return count == int(bytes) ? count : -1;
+}
 unsigned long cache_ticks() { return xv::arch::r_time(); }
 unsigned long monotonic_milliseconds() { return xv::arch::r_time() / 10000; }
 bool wait_until(void *channel, xv::sync::SpinLock &lock, unsigned long deadline)
@@ -26,7 +89,7 @@ bool wait_until(void *channel, xv::sync::SpinLock &lock, unsigned long deadline)
     wait.set_deadline(deadline);
     valid = !wait.failed();
     lock.release();
-    if (valid) wait.sleep();
+    if (valid) wait.sleep(false);
   }
   lock.acquire();
   return valid;

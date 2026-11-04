@@ -3,14 +3,14 @@
 static char output[4096];
 static unsigned used;
 
-extern "C" int write(int, const void *data, int count)
-{
-  if (count < 0 || used + count >= sizeof(output))
+extern "C" ssize_t
+write(int, const void *data, size_t count) {
+  if (used + count >= sizeof(output))
   {
     return -1;
   }
   auto *bytes = static_cast<const char *>(data);
-  for (int i = 0; i < count; ++i)
+  for (size_t i = 0; i < count; ++i)
   {
     output[used++] = bytes[i];
   }

@@ -1,0 +1,136 @@
+{
+  "workload": {
+    "cpus": 5,
+    "ram_mib": 128,
+    "write_bytes": 65536,
+    "read_bytes": 65536,
+    "clock_hz": 10000000,
+    "disks": "disposable copies, persistent root not modified",
+    "timing": "single observations, no timing performance gate"
+  },
+  "baseline": {
+    "ramfs": [
+      {
+        "batch": 512,
+        "bytes": 131072,
+        "ticks": 3884141,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      },
+      {
+        "batch": 4096,
+        "bytes": 131072,
+        "ticks": 2419714,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      },
+      {
+        "batch": 16384,
+        "bytes": 131072,
+        "ticks": 3758433,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      }
+    ],
+    "ext3": [
+      {
+        "batch": 512,
+        "bytes": 131072,
+        "ticks": 76914427,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      },
+      {
+        "batch": 4096,
+        "bytes": 131072,
+        "ticks": 61407732,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      },
+      {
+        "batch": 16384,
+        "bytes": 131072,
+        "ticks": 63872846,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 512
+      }
+    ]
+  },
+  "shared_transport": {
+    "ramfs": [
+      {
+        "batch": 512,
+        "bytes": 131072,
+        "ticks": 4758299,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 16384
+      },
+      {
+        "batch": 4096,
+        "bytes": 131072,
+        "ticks": 561692,
+        "rpc": 32,
+        "server_message_bytes": 71168,
+        "waits": 32,
+        "payload": 16384
+      },
+      {
+        "batch": 16384,
+        "bytes": 131072,
+        "ticks": 193479,
+        "rpc": 8,
+        "server_message_bytes": 17792,
+        "waits": 8,
+        "payload": 16384
+      }
+    ],
+    "ext3": [
+      {
+        "batch": 512,
+        "bytes": 131072,
+        "ticks": 80211309,
+        "rpc": 256,
+        "server_message_bytes": 569344,
+        "waits": 256,
+        "payload": 16384
+      },
+      {
+        "batch": 4096,
+        "bytes": 131072,
+        "ticks": 14015244,
+        "rpc": 32,
+        "server_message_bytes": 71168,
+        "waits": 32,
+        "payload": 16384
+      },
+      {
+        "batch": 16384,
+        "bytes": 131072,
+        "ticks": 11424246,
+        "rpc": 8,
+        "server_message_bytes": 17792,
+        "waits": 8,
+        "payload": 16384
+      }
+    ]
+  },
+  "notes": [
+    "Message boundary copies only; excludes client/shared-page and device/disk copies.",
+    "Small requests do not reduce RPC count and can be slower.",
+    "Per-instance requests remain serialized; snapshots currently retain 512-byte batches."
+  ]
+}

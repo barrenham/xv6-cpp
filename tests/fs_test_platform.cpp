@@ -420,7 +420,7 @@ pipe_contract() {
         "killed reader does not block");
   killed = false;
   file_table.release(reader);
-  check(file_table.write(writer, reinterpret_cast<unsigned long>(part), 1) == -1,
+  check(file_table.write(writer, reinterpret_cast<unsigned long>(part), 1) == -32,
         "closed reader rejects writes");
   file_table.release(writer);
   check(allocated_pages == baseline_pages, "closed-reader pipe lifetime");
@@ -618,6 +618,29 @@ devices() {
 
 namespace xv::fs::detail
 {
+bool
+bind_transport(int, int, unsigned, File *&, File *&) {
+  return false;
+}
+
+void
+cancel_transport(File *) {
+}
+
+void
+broken_pipe() {
+}
+
+bool
+exchange_transport(File *, void *, void *, unsigned, unsigned long) {
+  return false;
+}
+
+int
+copy_transport(File *, unsigned long, unsigned, bool, bool) {
+  return -1;
+}
+
 unsigned long
 monotonic_milliseconds() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -47,7 +47,8 @@ extern "C" int main()
   check(endpoint >= 0 && ioctl(4, ManagerIoctl, 0) < 0, "one active manager");
   check(fcntl(endpoint, F_SETFL, O_NONBLOCK) == 0, "nonblocking manager endpoint");
   Request request;
-  check(read(endpoint, &request, sizeof(request)) == -EAGAIN, "idle nonblocking receive");
+  check((read(endpoint, &request, sizeof(request)) < 0 && errno == EAGAIN),
+        "idle nonblocking receive");
   check(fcntl(endpoint, F_SETFL, 0) == 0, "restore blocking endpoint");
   int pid = client(endpoint);
   pollfd watched{endpoint, POLLIN, 0};

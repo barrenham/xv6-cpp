@@ -398,7 +398,7 @@ public:
       {
         sent_ += n;
       }
-      else if (n != -EAGAIN)
+      else if (!(n < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -411,7 +411,7 @@ public:
       {
         received_ += n;
       }
-      else if (n != -EAGAIN)
+      else if (!(n < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -610,7 +610,7 @@ bool transfer(int master, int &keyboard, int &mouse)
     {
       KeyboardEvent motion[32];
       int bytes = read(mouse, motion, sizeof(motion));
-      if (bytes < 0 && bytes != -EAGAIN)
+      if (bytes < 0 && !(bytes < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -655,11 +655,11 @@ bool transfer(int master, int &keyboard, int &mouse)
       {
         return presenter.finish(needs_paint);
       }
-      if (n < 0 && n != -EAGAIN)
+      if (n < 0 && !(n < 0 && errno == EAGAIN))
       {
         return false;
       }
-      if (n == -EAGAIN && hungup)
+      if ((n < 0 && errno == EAGAIN) && hungup)
       {
         return presenter.finish(needs_paint);
       }
@@ -699,7 +699,7 @@ bool transfer(int master, int &keyboard, int &mouse)
       {
         sent += n;
       }
-      else if (n != -EAGAIN)
+      else if (!(n < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -711,7 +711,7 @@ bool transfer(int master, int &keyboard, int &mouse)
       {
         return presenter.finish(needs_paint);
       }
-      if (n < 0 && n != -EAGAIN)
+      if (n < 0 && !(n < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -750,7 +750,7 @@ bool transfer(int master, int &keyboard, int &mouse)
     if (input_sent == input_used && (descriptors[3].revents & POLLIN))
     {
       int bytes = read(keyboard, key_events, sizeof(key_events));
-      if (bytes < 0 && bytes != -EAGAIN)
+      if (bytes < 0 && !(bytes < 0 && errno == EAGAIN))
       {
         return false;
       }
@@ -792,7 +792,7 @@ bool transfer(int master, int &keyboard, int &mouse)
       {
         input_sent += n;
       }
-      else if (n != -EAGAIN)
+      else if (!(n < 0 && errno == EAGAIN))
       {
         return false;
       }

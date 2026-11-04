@@ -158,6 +158,7 @@ struct PollWait::SleepFlow
   struct Context
   {
     PollWait &owner;
+    bool interruptible = true;
     bool interrupted = false;
   };
 
@@ -166,30 +167,31 @@ struct PollWait::SleepFlow
     c.owner.channels_.cancel(c.owner.process_);
     c.owner.process_.lock.acquire();
     c.interrupted =
-        c.owner.process_.killed || c.owner.process_.pending_signals_.interrupting();
-    if (c.owner.process_.pending_signals_.caught_signal())
+        c.interruptible &&
+        (c.owner.process_.killed || c.owner.process_.pending_signals_.interrupting());
+    if (c.interruptible && c.owner.process_.pending_signals_.caught_signal())
     {
       c.owner.process_.syscall_interrupted_ = true;
     }
   }
 
-  static bool ready(Context &c) noexcept
-  {
+  static bool
+  ready(Context &c) noexcept {
     return !c.owner.triggered_ && !c.interrupted;
   }
 
-  static void suspend(Context &c) noexcept
-  {
+  static void
+  suspend(Context &c) noexcept {
     c.owner.process_.chan = &c.owner;
-    c.owner.process_.interruptible_ = true;
+    c.owner.process_.interruptible_ = c.interruptible;
     c.owner.process_.state = ProcessState::Sleeping;
     c.owner.channels_.scheduler_.suspend();
     c.owner.process_.chan = nullptr;
     c.owner.process_.interruptible_ = false;
   }
 
-  static void finish(Context &c) noexcept
-  {
+  static void
+  finish(Context &c) noexcept {
     c.owner.triggered_ = false;
     c.owner.process_.lock.release();
   }
@@ -205,8 +207,8 @@ struct PollWait::SleepFlow
                   flow::node<Finish, flow::action<&finish>, flow::stop>>>;
 };
 
-PollWait::Page *PollWait::allocate_page()
-{
+PollWait::Page *
+PollWait::allocate_page() {
   static_assert(sizeof(Page) <= 4096);
   auto *storage = detail::allocate_process_page();
   if (!storage)
@@ -274,14 +276,14 @@ void PollWait::cancel_deadline()
   channels_.remove_timer(*this);
 }
 
-void PollWait::sleep()
-{
-  SleepFlow::Context context{*this};
+void
+PollWait::sleep(bool interruptible) {
+  SleepFlow::Context context{*this, interruptible};
   (void)SleepFlow::Graph::run<0>(context);
 }
 
-void WaitChannels::subscribe(PollEntry &entry, void *channel)
-{
+void
+WaitChannels::subscribe(PollEntry &entry, void *channel) {
   auto &bucket = buckets_[index(channel)];
   xv::sync::ScopedLock guard(bucket.lock);
   entry.channel = channel;

@@ -1,11 +1,13 @@
 module;
 #include "kernel/net/errno.h"
+#include "kernel/io/posix_errno.h"
 #include "kernel/net/socket/socket.h"
 #include "kernel/support/flow.h"
 module xv.syscall;
 import :arguments;
 import :handlers;
 import xv.net;
+import xv.ipc;
 import xv.process;
 import xv.fs;
 namespace xv::syscall
@@ -22,6 +24,36 @@ xv::net::Socket *socket_argument(xv::fs::File **file = nullptr)
     *file = f;
   }
   return xv::io::query<xv::net::Socket>(xv::fs::files().object(f));
+}
+
+xv::ipc::LocalSocket *
+local_argument() {
+  int descriptor;
+  argument_integer(0, &descriptor);
+  return xv::io::query<xv::ipc::LocalSocket>(
+      xv::fs::files().object(xv::process::current()->files().get(descriptor)));
+}
+
+int
+unix_name(unsigned long address, unsigned long length) {
+  socklen_t capacity;
+  auto &memory = xv::process::current()->memory();
+  if (!address || !length || memory.copy_in(&capacity, length, sizeof(capacity)) < 0)
+  {
+    return -EFAULT;
+  }
+  unsigned short family = AF_UNIX;
+  socklen_t actual = sizeof(family);
+  if (capacity > actual)
+  {
+    capacity = actual;
+  }
+  if (memory.copy_out(address, &family, capacity) < 0 ||
+      memory.copy_out(length, &actual, sizeof(actual)) < 0)
+  {
+    return -EFAULT;
+  }
+  return 0;
 }
 namespace flow = xv::flow;
 struct SocketInstallFlow
@@ -474,6 +506,23 @@ unsigned long sys_sendto()
   argument_integer(3, &flags);
   argument_address(4, &address);
   argument_integer(5, &address_length);
+  if (auto *local = local_argument())
+  {
+    if (length < 0)
+    {
+      return -EINVAL;
+    }
+    if (address || address_length)
+    {
+      return -EISCONN;
+    }
+    if (file->nonblocking())
+    {
+      flags |= MSG_DONTWAIT;
+    }
+    iovec vector{reinterpret_cast<void *>(data), unsigned(length)};
+    return local->send(&vector, 1, true, flags, {});
+  }
   if (!socket || length < 0 || (flags & ~MSG_DONTWAIT) || address_length < 0)
   {
     return -1;
@@ -495,6 +544,27 @@ unsigned long sys_recvfrom()
   argument_integer(3, &flags);
   argument_address(4, &address);
   argument_address(5, &address_length);
+  if (auto *local = local_argument())
+  {
+    if (length < 0)
+    {
+      return -EINVAL;
+    }
+    if (file->nonblocking())
+    {
+      flags |= MSG_DONTWAIT;
+    }
+    iovec vector{reinterpret_cast<void *>(data), unsigned(length)};
+    xv::ipc::Rights discarded;
+    unsigned output_flags = 0;
+    int result = local->receive(&vector, 1, true, flags, discarded, output_flags);
+    xv::ipc::release_rights(discarded);
+    if (result >= 0 && address && unix_name(address, address_length) < 0)
+    {
+      return -EFAULT;
+    }
+    return result;
+  }
   if (!socket || length < 0 || (flags & ~MSG_DONTWAIT))
   {
     return -1;
@@ -510,6 +580,10 @@ unsigned long sys_shutdown()
   auto *socket = socket_argument();
   int how;
   argument_integer(1, &how);
+  if (auto *local = local_argument())
+  {
+    return local->shutdown(how);
+  }
   return socket ? socket->shutdown(how) : -1;
 }
 unsigned long sys_getsockname()
@@ -518,6 +592,10 @@ unsigned long sys_getsockname()
   unsigned long address, length;
   argument_address(1, &address);
   argument_address(2, &length);
+  if (local_argument())
+  {
+    return unix_name(address, length);
+  }
   return socket && address ? output_address(address, length, socket->local()) : -1;
 }
 unsigned long sys_getpeername()
@@ -526,6 +604,10 @@ unsigned long sys_getpeername()
   unsigned long address, length;
   argument_address(1, &address);
   argument_address(2, &length);
+  if (auto *local = local_argument())
+  {
+    return local->connected() ? unix_name(address, length) : -ENOTCONN;
+  }
   if (!socket || !address)
   {
     return -1;

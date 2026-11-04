@@ -169,7 +169,10 @@ static void interrupt(Operation operation, bool restart)
     else if (operation == TtyRead) result = read(0, &c, 1);
     else result = write(io[1], "x", 1);
     check(first == 1, "blocked call executed handler");
-    check(result == (restart ? (operation == ChildWait ? child : 1) : -EINTR),
+    check((restart ? result == (operation == ChildWait ? child : 1)
+                   : ((operation == ChildWait || operation == TimerWait)
+                          ? result == -EINTR
+                          : result == -1 && errno == EINTR)),
           "interrupted call result or restart");
     exit(0);
   }
@@ -219,7 +222,8 @@ static void suspend_and_fork()
   {
     check(sigpending(&pending) == 0 && pending == 0, "fork clears pending");
     check(sigprocmask(0, nullptr, &pending) == 0 && pending == blocked, "fork inherits mask");
-    check(sigsend(getpid(), SIGUSR1) == 0 && sigsuspend(&empty) == -EINTR && first == 1,
+    check(sigsend(getpid(), SIGUSR1) == 0 &&
+              (sigsuspend(&empty) < 0 && errno == EINTR) && first == 1,
           "sigsuspend atomically unblocks pending handler");
     check(sigprocmask(0, nullptr, &pending) == 0 && pending == blocked,
           "sigsuspend restores original mask");
@@ -237,7 +241,8 @@ static void suspend_and_fork()
     first = 0;
     check(sigprocmask(SIG_BLOCK, &blocked, nullptr) == 0 && write(ready[1], "r", 1) == 1,
           "prepare suspend worker");
-    check(sigsuspend(&empty) == -EINTR && first == 1, "sleeping sigsuspend wakes");
+    check((sigsuspend(&empty) < 0 && errno == EINTR) && first == 1,
+          "sleeping sigsuspend wakes");
     exit(0);
   }
   char c; check(read(ready[0], &c, 1) == 1, "suspend ready"); pause(1);
@@ -320,7 +325,8 @@ static void suspend_continue()
     check(sigaction(SIGCONT, &action, nullptr) == 0 &&
           sigprocmask(SIG_BLOCK, &blocked, nullptr) == 0 && write(ready[1], "r", 1) == 1,
           "prepare suspend/stop worker");
-    check(sigsuspend(&empty) == -EINTR && second == 1, "caught continue completes sigsuspend");
+    check((sigsuspend(&empty) < 0 && errno == EINTR) && second == 1,
+          "caught continue completes sigsuspend");
     check(sigprocmask(0, nullptr, &mask) == 0 && mask == blocked,
           "stop/continue preserves original suspend mask");
     exit(0);

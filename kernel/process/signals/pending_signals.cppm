@@ -7,9 +7,11 @@ export namespace xv::process
 {
 inline constexpr bool supported_signal(int signal)
 {
-  return signal == SIGHUP || signal == SIGINT || signal == SIGKILL || signal == SIGTERM ||
-         signal == SIGCONT || signal == SIGSTOP || signal == SIGTSTP ||
-         signal == SIGCHLD || signal == SIGTTIN || signal == SIGUSR1 || signal == SIGUSR2 || signal == SIGSEGV;
+  return signal == SIGHUP || signal == SIGINT || signal == SIGKILL ||
+         signal == SIGTERM || signal == SIGCONT || signal == SIGSTOP ||
+         signal == SIGTSTP || signal == SIGCHLD || signal == SIGTTIN ||
+         signal == SIGUSR1 || signal == SIGUSR2 || signal == SIGSEGV ||
+         signal == SIGPIPE;
 }
 
 // Standard signals coalesce. Atomic posting allows group delivery under the
@@ -21,7 +23,8 @@ public:
   static constexpr unsigned SupportedMask =
       (1U << SIGHUP) | (1U << SIGINT) | (1U << SIGKILL) | (1U << SIGTERM) |
       (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |
-      (1U << SIGUSR1) | (1U << SIGUSR2) | (1U << SIGSEGV) | (1U << SIGCHLD);
+      (1U << SIGPIPE) | (1U << SIGUSR1) | (1U << SIGUSR2) | (1U << SIGSEGV) |
+      (1U << SIGCHLD);
   static constexpr unsigned Unmaskable = (1U << SIGKILL) | (1U << SIGSTOP);
   struct Action
   {
@@ -173,6 +176,10 @@ public:
     if (bits & (1U << SIGUSR1)) return SIGUSR1;
     if (bits & (1U << SIGUSR2)) return SIGUSR2;
     if (bits & (1U << SIGSEGV)) return SIGSEGV;
+    if (bits & (1U << SIGPIPE))
+    {
+      return SIGPIPE;
+    }
     return 0;
   }
 
