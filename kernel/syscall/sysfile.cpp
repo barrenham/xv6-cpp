@@ -26,9 +26,20 @@ import xv.fs;
 import xv.process;
 import xv.sync;
 import xv.memory;
+import xv.drivers;
 
 namespace xv::syscall
 {
+
+uint64 sys_kmod()
+{
+  int operation;
+  unsigned long argument, value;
+  argument_integer(0, &operation);
+  argument_address(1, &argument);
+  argument_address(2, &value);
+  return xv::drivers::module_control(operation, argument, value);
+}
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding xv::fs::File.

@@ -7,6 +7,7 @@ import selectors
 import subprocess
 import tempfile
 import time
+import sys
 
 
 def boot(args, directory, image, expected):
@@ -77,7 +78,14 @@ def main():
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='xv-fsbootstrap-') as path:
         directory = Path(path)
-        boot(args, directory, args.program,
+        program = args.program
+        if args.data_disk:
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+            from pack_boot_assets import pack
+            driver = args.kernel.parent / 'modules/virtio_block.elf'
+            program = directory / 'disk-bootstrap.elf'
+            program.write_bytes(pack(args.program.read_bytes(), [('disk-driver.elf', driver.read_bytes(), False)]))
+        boot(args, directory, program,
              args.expected.encode() + b'\n')
         boot(args, directory, None, b'panic: boot: missing userspace bootstrap (-initrd)')
         for name, contents in [('bad-magic', b'not an ELF executable'),

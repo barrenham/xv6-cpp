@@ -849,6 +849,74 @@ const void *KernelPageTable::root() const
   return root_;
 }
 
+unsigned long KernelPageTable::allocate_module(unsigned long bytes)
+{
+  if (!bytes || bytes % PageSize || bytes > 1024 * 1024) return 0;
+  xv::sync::ScopedLock guard(stacks_);
+  auto base = regions_.allocate_in(bytes, 1UL << 36, (1UL << 36) + (1UL << 30),
+      PageSize, PTE_R | PTE_W, RegionKind::Image);
+  if (!base) return 0;
+  unsigned long done = 0;
+  for (; done < bytes; done += PageSize)
+  {
+    auto *entry = walk_entry(static_cast<PageTable>(root_), base + done, 1);
+    auto *page = entry ? allocator().allocate() : nullptr;
+    if (!page) break;
+    xv::runtime::fill(page, 0, PageSize);
+    __atomic_store_n(entry, PA2PTE(page) | PTE_R | PTE_W | PTE_V, __ATOMIC_RELEASE);
+  }
+  if (done != bytes)
+  {
+    while (done)
+    {
+      done -= PageSize;
+      auto *entry = walk_entry(static_cast<PageTable>(root_), base + done, 0);
+      auto old = __atomic_exchange_n(entry, 0UL, __ATOMIC_ACQ_REL);
+      allocator().deallocate(reinterpret_cast<void *>(PTE2PA(old)));
+    }
+    regions_.release(base);
+    base = 0;
+  }
+  xv::arch::sfence_vma();
+  return base;
+}
+
+bool KernelPageTable::protect_module(unsigned long base, unsigned long offset,
+                                     unsigned permissions)
+{
+  if (offset % PageSize || !(permissions & PTE_R) ||
+      (permissions & ~(PTE_R | PTE_W | PTE_X)) ||
+      ((permissions & PTE_W) && (permissions & PTE_X))) return false;
+  xv::sync::ScopedLock guard(stacks_);
+  auto *region = regions_.find(base);
+  if (!region || region->begin != base || region->kind != RegionKind::Image ||
+      offset >= region->end - base) return false;
+  auto *entry = walk_entry(static_cast<PageTable>(root_), base + offset, 0);
+  if (!entry || !(*entry & PTE_V)) return false;
+  auto old = *entry;
+  __atomic_store_n(entry, (old & ~(PTE_R | PTE_W | PTE_X)) | permissions, __ATOMIC_RELEASE);
+  xv::arch::sfence_vma();
+  return true;
+}
+
+void KernelPageTable::discard_module(unsigned long base)
+{
+  xv::sync::ScopedLock guard(stacks_);
+  auto *region = regions_.find(base);
+  if (!region || region->begin != base || region->kind != RegionKind::Image) return;
+  for (auto at = base; at < region->end; at += PageSize)
+  {
+    auto *entry = walk_entry(static_cast<PageTable>(root_), at, 0);
+    if (entry && (*entry & PTE_V))
+    {
+      auto old = __atomic_exchange_n(entry, 0UL, __ATOMIC_ACQ_REL);
+      xv::arch::sfence_vma();
+      allocator().deallocate(reinterpret_cast<void *>(PTE2PA(old)));
+    }
+  }
+  regions_.release(base);
+}
+
 KernelPageTable &kernel_page_table()
 {
   return shared_kernel_page_table;

@@ -256,7 +256,7 @@ void DeviceRegistry::attach_block(const char *name,unsigned major,unsigned minor
 const DeviceRegistry::Entry *DeviceRegistry::block(int major,int minor) const
 {
   if(major<0 || minor<0)return nullptr;
-  for(unsigned i=0;i<count_;++i)
+  for(unsigned i=0;i<count();++i)
     if(entries_[i].block && entries_[i].major==unsigned(major) && entries_[i].minor==unsigned(minor))return &entries_[i];
   return nullptr;
 }
@@ -267,7 +267,7 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
   {
     return nullptr;
   }
-  for (unsigned i = 0; i < count_; ++i)
+  for (unsigned i = 0; i < count(); ++i)
   {
     if (entries_[i].device && entries_[i].major == static_cast<unsigned>(major) &&
         entries_[i].minor == static_cast<unsigned>(minor))
@@ -276,6 +276,36 @@ xv::drivers::CharacterDevice *DeviceRegistry::get(int major, int minor) const
     }
   }
   return nullptr;
+}
+
+bool DeviceRegistry::attach_dynamic_block(const char *name, unsigned major,
+                                          unsigned minor, xv::drivers::BlockDevice &device)
+{
+  // Runtime writers are serialized by the module manager. Existing entries
+  // never move or disappear, so readers need only an acquire count snapshot.
+  auto length = 0U;
+  while (length < 14 && name[length])
+  {
+    if (name[length] == '/') return false;
+    ++length;
+  }
+  auto index = count();
+  if (!length || length >= 14 || index == Capacity || major > 32767 || minor > 32767 ||
+      detail::compare(name, ".", 14) == 0 || detail::compare(name, "..", 14) == 0 ||
+      detail::compare(name, "pts", 14) == 0) return false;
+  for (unsigned i = 0; i < index; ++i)
+    if (detail::compare(entries_[i].name, name, 14) == 0 ||
+        (entries_[i].block && entries_[i].major == major && entries_[i].minor == minor))
+      return false;
+  auto &record = entries_[index];
+  detail::copy_fixed(record.name, name, 14);
+  record.major = major;
+  record.minor = minor;
+  record.block = &device;
+  record.read_only = true;
+  record.mode = 0440;
+  __atomic_store_n(&count_, index + 1, __ATOMIC_RELEASE);
+  return true;
 }
 
 int OpenFileTable::getdents64(File *file,unsigned long address,int count)

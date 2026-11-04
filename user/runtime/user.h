@@ -17,6 +17,7 @@ struct stat;
 struct mount_info;
 int mount(const char *type, const char *path);
 int mountfs(const char *type, const char *path, const char *source, const char *options);
+long kmod(unsigned operation, unsigned long argument, unsigned long value);
 int fsserve(const char *path);
 int fsregister(const void *registration);
 int fexecve(int descriptor, char *const arguments[], char *const environment[]);

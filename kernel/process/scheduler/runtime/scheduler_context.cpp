@@ -9,6 +9,9 @@ import xv.arch;
 import xv.memory;
 import xv.print;
 
+// Internal kernel hook; loadable modules cannot resolve private symbols.
+extern "C" void xv_kmod_synchronize();
+
 namespace xv::process
 {
 
@@ -40,6 +43,7 @@ struct SchedulerContext::DispatchFlow
   {
     // Keep both TLB fences adjacent to the switch across recyclable stack leaves.
     xv::arch::sfence_vma();
+    xv_kmod_synchronize();
     swtch(&c.cpu.context, &c.process.context);
     xv::arch::sfence_vma();
   }

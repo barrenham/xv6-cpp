@@ -5,6 +5,7 @@ module;
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/drivers/device_numbers.h"
+#include "kernel/io/kmodule.h"
 
 module xv.drivers;
 
@@ -41,7 +42,16 @@ constinit NttyDiscipline discipline;
 constinit Tty terminal(uart, discipline);
 constinit Plic plic(PLIC);
 constinit VirtioBlock disk(VIRTIO0, VIRTIO0_IRQ);
-constinit VirtioBlock data_disk(VIRTIO0 + 0x1000, VIRTIO0_IRQ + 1);
+class ModuleInterrupt final : public InterruptDevice
+{
+public:
+  constexpr ModuleInterrupt() = default;
+  const char *name() const override { return "loadable device"; }
+  unsigned irq() const override { return VIRTIO0_IRQ + 1; }
+  void initialize() override {}
+  void handle_interrupt() override { module_interrupt(0); }
+};
+constinit ModuleInterrupt data_interrupt;
 constinit E1000 ethernet[] = {
     {0x40000000UL, 0}, {0x40020000UL, 0}, {0x40040000UL, 0}, {0x40060000UL, 0}};
 constinit unsigned ethernet_count = 0;
@@ -87,9 +97,9 @@ private:
 constinit PciNetworkInterrupt pci_lines[] = {
     PciNetworkInterrupt(32), PciNetworkInterrupt(33), PciNetworkInterrupt(34),
     PciNetworkInterrupt(35)};
-constinit InterruptDevice *sources[] = {&uart,         &disk,         &data_disk, &entropy, &gpu, &keyboard, &mouse,
-                                        &pci_lines[0], &pci_lines[1], &pci_lines[2],
-                                        &pci_lines[3]};
+constinit InterruptDevice *sources[] = {
+    &uart, &disk, &data_interrupt, &entropy, &gpu, &keyboard, &mouse,
+    &pci_lines[0], &pci_lines[1], &pci_lines[2], &pci_lines[3]};
 constinit InterruptRouter router(plic, sources, 11);
 
 namespace flow = xv::flow;
@@ -186,6 +196,7 @@ void initialize_console()
 
 void initialize_interrupts()
 {
+  initialize_modules();
   unsigned slots[4];
   InterruptsFlow::Context context{slots};
   (void)InterruptsFlow::Graph::run<0>(context);
@@ -245,9 +256,22 @@ SerialPort &serial_port()
   return uart;
 }
 
-BlockDevice *data_device()
+bool module_device(unsigned index, xv_kmod_device &device)
 {
-  return data_disk.present() ? &data_disk : nullptr;
+  if (index) return false;
+  auto *registers = reinterpret_cast<volatile unsigned *>(VIRTIO0 + 0x1000UL);
+  if (registers[0] != 0x74726976 || !registers[2]) return false;
+  device = {};
+  device.size = sizeof(device);
+  device.bus = XV_KMOD_BUS_VIRTIO_MMIO;
+  device.id = registers[2];
+  device.vendor = registers[3];
+  device.irq = VIRTIO0_IRQ + 1;
+  device.mmio = VIRTIO0 + 0x1000UL;
+  device.mmio_size = 4096;
+  const char name[] = "virtio-mmio.1";
+  for (unsigned i = 0; i < sizeof(name); ++i) device.name[i] = name[i];
+  return true;
 }
 
 BlockDevice &block_device()

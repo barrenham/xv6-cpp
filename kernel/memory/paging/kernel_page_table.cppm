@@ -22,6 +22,11 @@ public:
   void activate_hart() const;
   const void *root() const;
   PageTableStatistics statistics();
+  // Unpublished module images only. Final permissions precede publication;
+  // resident images cannot be unmapped while callbacks may execute.
+  unsigned long allocate_module(unsigned long bytes);
+  bool protect_module(unsigned long base, unsigned long offset, unsigned permissions);
+  void discard_module(unsigned long base);
   // Virtual regions are owned independently of physical page allocation.
   unsigned long allocate_process_stack();
   bool grow_process_stack(unsigned long address, unsigned long lowest);

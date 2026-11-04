@@ -49,6 +49,7 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_fsregister: return sys_fsregister;
   case SYS_fexecve: return sys_fexecve;
   case SYS_mountfs: return sys_mountfs;
+  case SYS_kmod: return sys_kmod;
   case SYS_umount: return sys_umount;
   case SYS_mountinfo: return sys_mountinfo;
   case SYS_stat: return sys_stat;

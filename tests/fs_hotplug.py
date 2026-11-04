@@ -45,6 +45,8 @@ def main():
         server = None
         try:
             login_root(guest.expect, guest.process)
+            guest.command('drvctl load /usr/lib/drivers/vblk.elf', 'loaded module 0')
+            guest.command('drvctl bind 0 0', 'bound module 0 to device 0')
             guest.command('cd /')
             guest.command('mkdir /tmp/newfs')
             guest.command('mount -t hotext4 /tmp/newfs', failure=True)

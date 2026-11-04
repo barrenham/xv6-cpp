@@ -46,6 +46,10 @@ set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/drivers/display/virtio
 target_compile_definitions(kernel PRIVATE XV_KERNEL_VERSION="${PROJECT_VERSION}" XV_KERNEL_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 target_compile_definitions(kernel PRIVATE XV_NET_BOOT_DHCP=$<BOOL:${XV_NET_DHCP}>)
 add_subdirectory(user)
+add_subdirectory(examples/kernel-driver modules)
+set(XV_KMOD_ELF "${PROJECT_BINARY_DIR}/modules/virtio_block.elf")
+string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/lib/drivers/vblk.elf\t${XV_KMOD_ELF}\n")
+list(APPEND XV_USER_BINARIES "${XV_KMOD_ELF}")
 add_subdirectory(tools/mkfs)
 configure_file(README.xv6 "${PROJECT_BINARY_DIR}/README" COPYONLY)
 set(XV_FILESYSTEM "ext3" CACHE STRING "Filesystem for newly created system images (ext3 or xv6)")
@@ -54,7 +58,7 @@ if(NOT XV_FILESYSTEM MATCHES "^(ext3|xv6)$")
   message(FATAL_ERROR "XV_FILESYSTEM must be ext3 or xv6")
 endif()
 set(XV_FS_DIRECTORIES "")
-foreach(directory /bin /sbin /usr /usr/tests /usr/lib /usr/lib/fsplugins /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /etc/fsplugins /home /data)
+foreach(directory /bin /sbin /usr /usr/tests /usr/lib /usr/lib/fsplugins /usr/lib/drivers /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /etc/fsplugins /home /data)
   string(APPEND XV_FS_DIRECTORIES "dir\t0755\t${directory}\n")
 endforeach()
 string(APPEND XV_FS_DIRECTORIES "dir\t01777\t/tmp\ndir\t0700\t/root\n")
@@ -71,6 +75,16 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
+foreach(kmod_cpus 1 5)
+  add_test(NAME kernel_driver_hotplug_${kmod_cpus}cpu
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/kmod_hotplug.py"
+      --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel>
+      --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+      --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
+      --cmake "${CMAKE_COMMAND}" --cpus ${kmod_cpus})
+  set_tests_properties(kernel_driver_hotplug_${kmod_cpus}cpu PROPERTIES
+    TIMEOUT 240 RUN_SERIAL TRUE LABELS "driver;module;hotplug")
+endforeach()
 # Keep explicit coverage of the retained xv6 disk layout and recovery protocol.
 add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-legacy-test.img"
   COMMAND "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --filesystem xv6

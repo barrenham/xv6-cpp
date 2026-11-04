@@ -20,4 +20,5 @@ target_sources(kernel PRIVATE
   input/virtio_keyboard.cpp
   entropy/virtio_entropy.cpp
   board/qemu_virt.cpp
+  modules/runtime.cpp
 )

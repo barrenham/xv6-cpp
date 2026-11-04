@@ -38,6 +38,10 @@ QEMU 通过 `-kernel kernel.elf` 进入内核，并用 `-initrd` 预加载用户
 独立构建、安装及根插件扩展见 [FS 插件开发规范](docs/fs-plugin-authoring.md)，示例位于 `examples/fs-plugin/`。
 运行中的系统可以实时安装并挂载新 ELF；独立编译与传入步骤见 [热加载文件系统](docs/fs-hot-loading.md)。
 可选的真实 [ext4 驱动](docs/ext4.md) 用于验证这一流程，目前只读，默认不预装。
+
+设备驱动也可独立编译为 ELF，由用户态命令加载、绑定后在内核态执行，
+见 [运行时内核驱动模块](docs/kernel-driver-modules.md)。第二块 VirtIO 磁盘
+需显式加载 `/usr/lib/drivers/vblk.elf` 并绑定，随后才能挂载 source=1。
 迁移验证与当前限制见 [FS 服务迁移](docs/fs-service-migration.md)。
 
 退出 QEMU：先按 `Ctrl-a`，再按 `x`。运行测试：

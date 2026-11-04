@@ -102,6 +102,8 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-') as temporary:
             g.run('su alice id','groups=1000,1001');g.run('su alice pwd','/home/alice\n')
             g.run('umount / || echo ROOT_PROTECTED','ROOT_PROTECTED\n')
             # Optional secondary disks mount explicitly and never relocate HOME/accounts.
+            g.run('drvctl load /usr/lib/drivers/vblk.elf','loaded module 0')
+            g.run('drvctl bind 0 0','bound module 0 to device 0')
             g.run('mount -t ext3 /data');g.run('echo AUXILIARY > /data/retained')
             g.run('echo $HOME','/root\n');g.run('su alice id','groups=1000,1001')
             g.run('umount /data');g.run('mount -t ext3 /data');g.run('cat /data/retained','AUXILIARY\n')

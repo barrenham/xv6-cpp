@@ -76,9 +76,12 @@ void initialize_cache()
   devices().attach_block("vda",8,0,xv::drivers::block_device());
   system_cache.attach(xv::drivers::block_device());
   system_cache.initialize();
-  if (auto *device = xv::drivers::data_device())
-  {
-    device->initialize(); devices().attach_block("vdb",8,16,*device); data_cache.attach(*device); data_cache.initialize();
-  }
+}
+
+bool publish_data_device(xv::drivers::BlockDevice &device)
+{
+  data_cache.attach(device);
+  data_cache.initialize();
+  return devices().attach_dynamic_block("vdb", 8, 16, device);
 }
 } // namespace xv::fs

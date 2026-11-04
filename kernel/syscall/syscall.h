@@ -127,3 +127,5 @@
 #define SYS_fexecve 96
 
 #define SYS_mountfs 97
+
+#define SYS_kmod 98

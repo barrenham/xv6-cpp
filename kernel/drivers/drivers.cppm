@@ -1,3 +1,5 @@
+module;
+#include "kernel/io/kmodule.h"
 export module xv.drivers;
 
 export import :device;
@@ -34,5 +36,9 @@ CharacterDevice &console();
 SerialPort &serial_port();
 BlockDevice &block_device();
 BlockDevice *data_device();
+void initialize_modules();
+long module_control(unsigned operation, unsigned long argument, unsigned long value);
+bool module_device(unsigned index, xv_kmod_device &device);
+void module_interrupt(unsigned index);
 InterruptController &interrupt_controller();
 } // namespace xv::drivers

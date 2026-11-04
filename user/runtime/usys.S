@@ -1,4 +1,9 @@
 #include "kernel/syscall/syscall.h"
+.global kmod
+kmod:
+ li a7, SYS_kmod
+ ecall
+ ret
 .global fork
 fork:
  li a7, SYS_fork

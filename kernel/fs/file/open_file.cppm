@@ -118,11 +118,13 @@ public:
   xv::drivers::CharacterDevice *get(int major, int minor = 0) const;
   void attach_block(const char *name, unsigned major, unsigned minor,
                     xv::drivers::BlockDevice &device, bool read_only = true);
+  bool attach_dynamic_block(const char *name, unsigned major, unsigned minor,
+                            xv::drivers::BlockDevice &device);
   const Entry *block(int major, int minor) const;
 
   unsigned count() const
   {
-    return count_;
+    return __atomic_load_n(&count_, __ATOMIC_ACQUIRE);
   }
 
   const Entry &entry(unsigned index) const
@@ -155,6 +157,7 @@ void initialize_userfs_plugins();
 // Bootstrap capability: no path lookup and no dependency on a mounted FS.
 File *create_boot_disk(unsigned index);
 BlockCache *bootstrap_cache(unsigned index);
+bool publish_data_device(xv::drivers::BlockDevice &device);
 void initialize_mount_manager();
 File *create_mount_manager();
 int request_managed_mount(const char *type, const char *path,

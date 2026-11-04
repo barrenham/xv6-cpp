@@ -3,6 +3,11 @@
 统一入口是 `import xv.drivers;`。公共接口与具体硬件实现分开，普通调用方
 不依赖 UART、PLIC 或 VirtIO 的寄存器、描述符和内部锁。
 
+运行时驱动入口见 [内核驱动模块](../../docs/kernel-driver-modules.md)。
+`modules/` 提供 ELF 加载器、版本化 C ABI 的主机实现和块设备适配器。
+第二块磁盘不再拥有启动时初始化的 `VirtioBlock` 实例；板级代码只描述
+该插槽的 MMIO/IRQ 资源并预接中断入口，具体协议由绑定后的模块实现。
+
 ```mermaid
 classDiagram
   Device <|-- InterruptDevice
