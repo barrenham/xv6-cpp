@@ -1023,6 +1023,27 @@ uint64 execute_image(bool with_environment)
 uint64 sys_exec() { return execute_image(false); }
 uint64 sys_execve() { return execute_image(true); }
 
+uint64 sys_fexecve()
+{
+  int descriptor;
+  uint64 arguments, environment;
+  argument_integer(0, &descriptor);
+  argument_address(1, &arguments);
+  argument_address(2, &environment);
+  ArgumentVector argv, envp;
+  if (!argv.copy(arguments) || (environment && !envp.copy(environment))) return -1;
+  auto *process = xv::process::current();
+  auto *file = process->files().get(descriptor);
+  if (!file) return -1;
+  xv::fs::files().retain(file);
+  auto *image = xv::io::query<xv::io::ExecutableData>(xv::fs::files().object(file));
+  int result = image ? xv::process::executable_loader().load_memory(
+      *process, image->bytes(), image->length(), image->name(), argv.items, envp.items) : -1;
+  xv::fs::files().release(file);
+  return result;
+}
+
+
 uint64 sys_pipe(void)
 {
   uint64 address;
@@ -1213,6 +1234,20 @@ uint64 sys_mount()
   // The user manager serializes selection, creation and publication together.
   if (xv::fs::managed_mounts_available()) return xv::fs::request_managed_mount(type, path);
   return xv::fs::mount_registered_userfs(type, path);
+}
+uint64 sys_mountfs()
+{
+  if (xv::process::current()->credentials().snapshot().effective_uid ||
+      !xv::fs::managed_mounts_available()) return -1;
+  char type[32], path[MAXPATH], source[128]{}, options[256]{};
+  uint64 source_address, options_address;
+  argument_address(2, &source_address);
+  argument_address(3, &options_address);
+  if (argument_string(0, type, sizeof(type)) < 0 || !type[0] ||
+      argument_string(1, path, sizeof(path)) < 0 ||
+      (source_address && argument_string(2, source, sizeof(source)) < 0) ||
+      (options_address && argument_string(3, options, sizeof(options)) < 0)) return -1;
+  return xv::fs::request_managed_mount(type, path, source, options);
 }
 uint64 sys_umount()
 {

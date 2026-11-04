@@ -1,6 +1,7 @@
 module;
 #include "kernel/support/placement_new.hpp"
 #include "kernel/io/fs_resources.h"
+#include "kernel/io/boot_assets.h"
 #include "kernel/fs/poll.h"
 #include "kernel/support/param.h"
 #include "kernel/fs/userfs/protocol.h"
@@ -37,6 +38,16 @@ public:
 
   int ioctl(unsigned request, xv::io::Buffer address) override
   {
+    if (request == xv::bootdata::OpenIoctl)
+    {
+      if (xv::process::current()->credentials().snapshot().effective_uid ||
+          !filesystem().services()) return -1;
+      auto *file = open_boot_asset(address.address);
+      if (!file) return -1;
+      int descriptor = xv::process::current()->files().install(file);
+      if (descriptor < 0) files().release(file);
+      return descriptor;
+    }
     if (request == StorageIoctl || request == ManagerIoctl)
     {
       if (xv::process::current()->credentials().snapshot().effective_uid ||

@@ -18,15 +18,15 @@
     },
     {
       "source": "kernel/syscall/handlers.cppm",
-      "sha256": "f180fe5a1410b41f6943d7d17ff4a9c95a69ed6a25659165d16e1dadb24ede5c",
-      "review": "声明具名用户态 FS 注册处理器；服务继续通过普通 read/write/poll 描述符通信，不增加每种 FS 的系统调用。",
+      "sha256": "edfe70594d1fe10eea803902edd92a92770061e0bbc344ac597e00f4fe590ad9",
+      "review": "声明具名用户态 FS 注册处理器；服务继续通过普通 read/write/poll 描述符通信，不增加每种 FS 的系统调用。 本次插件 ELF 改造复核：导出 fexecve 和 mountfs 处理函数声明，与分派一致。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/syscall/syscall.cpp",
-      "sha256": "afe2c1e48b653f64f0f0b2f5d9bff123adeaf521eb6dab54ef52cd8637b20f7d",
-      "review": "新增 SYS_fsregister 到注册处理器分派，旧系统调用号与具名挂载 ABI 保持。",
+      "sha256": "5c7769a5178c37eb8927447018e34e065c4f869e12bba1e7524bc0c85355b24b",
+      "review": "新增 SYS_fsregister 到注册处理器分派，旧系统调用号与具名挂载 ABI 保持。 本次插件 ELF 改造复核：登记 fexecve 和 mountfs 的通用系统调用分派，不包含格式策略。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::dispatch",
@@ -49,15 +49,15 @@
     },
     {
       "source": "kernel/syscall/syscall.h",
-      "sha256": "4f1fe6a1e8df4e220884f23648462c74b6ef782d6f20fcaccd596f61a358977c",
-      "review": "新增注册系统调用 fsregister（95），保留 fsserve（94）兼容已有服务。",
+      "sha256": "e07ec15e794c945e70d05bf67806c3a213cc93aefbd3458df34dae7f55ac8e03",
+      "review": "新增注册系统调用 fsregister（95），保留 fsserve（94）兼容已有服务。 本次插件 ELF 改造复核：新增系统调用号 96 fexecve、97 mountfs；旧编号保持。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
-      "review": "mount 只处理权限/参数并通过通用管理通道或已注册实例挂载，不按格式调用内核后端。sync 委托 VFS 同步已挂载用户服务；原始块的 flush 和后端日志提交由相应能力/服务完成，调用者仍获得失败结果。",
+      "sha256": "c2717fbf4f7a04bbc12b229678bdb46cfa30df011381cc7ce0fd7e6e039ba08b",
+      "review": "mount 只处理权限/参数并通过通用管理通道或已注册实例挂载，不按格式调用内核后端。sync 委托 VFS 同步已挂载用户服务；原始块的 flush 和后端日志提交由相应能力/服务完成，调用者仍获得失败结果。 本次插件 ELF 改造复核：新增 fexecve：先复制 argv/envp，再保留 File，查询只读执行能力并调用既有 load_memory，返回后释放；不读取普通文件或执行 setuid 提权。新增 mountfs：仅 root 且管理器在线，校验有界字符串后转发源/选项。既有执行/挂载流程不改变。",
       "graph_entries": [
         {
           "qualified": "xv::syscall::sys_open",

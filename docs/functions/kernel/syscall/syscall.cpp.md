@@ -27,6 +27,7 @@
 @fn static SyscallHandler xv::syscall::lookup_syscall(int number)
 @brief 把共享 ABI 调用号映射到处理函数。
 @details 新增 SYS_fsregister 到注册处理器分派，旧系统调用号与具名挂载 ABI 保持。
+@note ELF 插件改造复核：增加 96 fexecve 和 97 mountfs 到固定系统调用分派，未知编号仍按既有错误路径处理。
 ```
 
 <a id="fn-b83b0bfa82c48ee9"></a>

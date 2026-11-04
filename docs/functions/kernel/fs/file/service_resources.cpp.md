@@ -96,9 +96,10 @@
 ## `xv::fs::ServiceResources::ioctl`
 
 ```doxygen
-@fn int xv::fs::ServiceResources::ioctl(unsigned request, xv::io::Buffer address) override
+@fn int xv::fs::ServiceResources::ioctl(unsigned request, xv::io::Buffer address)
 @brief 校验版本并串行执行资源查询、快照或受权能力创建。
 @details 资源描述符通过 Version=2 的 QueryIoctl 提供设备、PTY、进程、CPU、挂载、插件与系统原始记录，不解释文件系统路径或生成 /proc 文本。查询由对象 SleepLock 串行，消息缓冲位于对象已有页面；挂载只复制一个已发布记录。进程私有信息按原请求 inspector UID 检查，fd/exec 捕获状态由能力对象持有；关闭释放所有 PTY 固定引用。Clone 创建独立捕获状态，Storage/Manager 仅允许 root 取得。
+@note ELF 插件改造复核：新增 OpenIoctl 只允许服务引导下的有效 uid 0 获取资产；描述符安装失败释放文件引用，其他资源能力语义保持。
 ```
 
 <a id="fn-c4759dcd3f43521e"></a>

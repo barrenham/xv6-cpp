@@ -147,6 +147,7 @@ private:
 DeviceRegistry &devices();
 void initialize_device_registry();
 File *create_fs_resources();
+File *open_boot_asset(unsigned long request_address);
 xv::drivers::CharacterDevice *open_registered_device(Inode *node, bool nonblocking);
 xv::drivers::BlockDevice *open_registered_block(Inode *node, bool writable);
 bool create_pipe(File **read_end, File **write_end);
@@ -156,7 +157,8 @@ File *create_boot_disk(unsigned index);
 BlockCache *bootstrap_cache(unsigned index);
 void initialize_mount_manager();
 File *create_mount_manager();
-int request_managed_mount(const char *type, const char *path);
+int request_managed_mount(const char *type, const char *path,
+                          const char *source = nullptr, const char *options = nullptr);
 bool managed_mounts_available();
 File *create_userfs();
 File *register_userfs(const xv::userfs::Registration &);

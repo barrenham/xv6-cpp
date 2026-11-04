@@ -234,3 +234,35 @@
 - [`xv::io::IoObject::getdents64`](object.cppm.md#fn-fbfbdd198b463c26)
 
 - [`xv::io::IoObject::position`](object.cppm.md#fn-e1b0e8512f77d7f2)
+
+<a id="fn-14931724b63ed855"></a>
+
+```doxygen
+@fn virtual const void *xv::io::ExecutableData::bytes() const
+@brief 纯虚契约：返回不可变镜像字节借用；调用者必须持有 File 引用并尊重 length。；实现必须保证借用视图在 File 引用存续期间不变。
+@details 纯虚契约：返回不可变镜像字节借用；调用者必须持有 File 引用并尊重 length。；实现必须保证借用视图在 File 引用存续期间不变。
+```
+
+<a id="fn-d2320100fb4932af"></a>
+
+```doxygen
+@fn virtual unsigned long xv::io::ExecutableData::length() const
+@brief 纯虚契约：返回已经验证的资产字节长度，不扫描或复制内容。；实现必须保证借用视图在 File 引用存续期间不变。
+@details 纯虚契约：返回已经验证的资产字节长度，不扫描或复制内容。；实现必须保证借用视图在 File 引用存续期间不变。
+```
+
+<a id="fn-37a8a3903d1ca25c"></a>
+
+```doxygen
+@fn virtual const char *xv::io::ExecutableData::name() const
+@brief 纯虚契约：返回镜像内 NUL 终止的资产名称借用，用作执行诊断名称。；实现必须保证借用视图在 File 引用存续期间不变。
+@details 纯虚契约：返回镜像内 NUL 终止的资产名称借用，用作执行诊断名称。；实现必须保证借用视图在 File 引用存续期间不变。
+```
+
+<a id="fn-102867b3aab51f90"></a>
+
+```doxygen
+@fn xv::io::ExecutableData::~ExecutableData()
+@brief 保护的默认析构，仅定义能力接口生命周期；实际对象销毁由 IoObject::close 管理。
+@details 保护的默认析构，仅定义能力接口生命周期；实际对象销毁由 IoObject::close 管理。
+```

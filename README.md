@@ -33,6 +33,8 @@ cmake --build build/dev --target qemu
 QEMU 通过 `-kernel kernel.elf` 进入内核，并用 `-initrd` 预加载用户态 `fsboot`。
 默认目标会自动提供该引导数据；根文件系统（ext3 或 xv6）、devfs、procfs 和 ramfs 均由独立用户进程服务，内核保留 VFS、IPC 和设备机制。
 手工启动时也需要 `-initrd build/dev/user/image/_fsboot`，缺少它不会回退到内核 FS。
+五种后端各自是独立 ELF 和 C++ 模块。新后端可按 `/etc/fsplugins/*.conf` 清单发现并加载，无需重新链接内核或 fsboot。
+独立构建、安装及根插件扩展见 [FS 插件开发规范](docs/fs-plugin-authoring.md)，示例位于 `examples/fs-plugin/`。
 迁移验证与当前限制见 [FS 服务迁移](docs/fs-service-migration.md)。
 
 退出 QEMU：先按 `Ctrl-a`，再按 `x`。运行测试：

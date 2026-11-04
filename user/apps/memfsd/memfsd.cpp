@@ -1,7 +1,8 @@
-#include "kernel/fs/userfs/protocol.h"
 #include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/server.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs;
+
 
 namespace
 {
@@ -582,6 +583,7 @@ public:
   }
 };
 } // namespace
+
 
 extern "C" int main(int argc, char **argv)
 {

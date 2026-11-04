@@ -1,7 +1,9 @@
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/server.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs;
+
 
 namespace
 {
@@ -339,6 +341,7 @@ bool load(int image)
   return false;
 }
 } // namespace
+
 
 extern "C" int main(int argc, char **argv)
 {

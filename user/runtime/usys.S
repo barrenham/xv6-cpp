@@ -499,3 +499,15 @@ fsregister:
  li a7, SYS_fsregister
  ecall
  ret
+
+.global fexecve
+fexecve:
+ li a7, SYS_fexecve
+ ecall
+ ret
+
+.global mountfs
+mountfs:
+ li a7, SYS_mountfs
+ ecall
+ ret

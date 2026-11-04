@@ -4,10 +4,15 @@
 #include "kernel/fs/fcntl.h"
 #include "kernel/tty/termios.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/server.h"
-#include "user/runtime/userfs/block_io.h"
-#include "user/runtime/userfs/ext3.h"
-#include "user/runtime/userfs/devices.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs;
+import xv.userfs.block;
+import xv.userfs.ext3;
+import xv.userfs.devfs;
+
+
+
+
 
 namespace
 {
@@ -56,6 +61,7 @@ void device_worker(int ready)
   exit(result ? 1 : 0);
 }
 } // namespace
+
 
 extern "C" int main(int, char **)
 {

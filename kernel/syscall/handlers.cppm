@@ -30,6 +30,8 @@ unsigned long sys_rename();
 unsigned long sys_mount();
 unsigned long sys_fsserve();
 unsigned long sys_fsregister();
+unsigned long sys_fexecve();
+unsigned long sys_mountfs();
 unsigned long sys_umount();
 unsigned long sys_mountinfo();
 // Prototypes for the functions that handle system calls.

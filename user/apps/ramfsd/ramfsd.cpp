@@ -1,6 +1,9 @@
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/memory.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs.ramfs;
+
+
 
 extern "C" int main(int argc, char **argv)
 {

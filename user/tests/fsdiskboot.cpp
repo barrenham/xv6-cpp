@@ -4,7 +4,9 @@
 #include "kernel/io/block.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/block_io.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs.block;
+
 
 namespace
 {
@@ -14,6 +16,7 @@ void check(bool okay, const char *message)
   if (!okay) { printf("fsdiskboot: FAIL: %s\n", message); exit(1); }
 }
 }
+
 extern "C" int main()
 {
   using namespace xv::fsservice;

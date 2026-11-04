@@ -1,5 +1,5 @@
 {
-  "scope": "Every kernel source is inventoried. Boot and network subtrees remain unchanged. Current non-network coverage has 229 graph identities plus 3 conditional alternatives. Production FS format/policy backends run in userspace; excluded native backends are host-test references. New raw device/resource/mount protocol boundaries and exclusive stack trimming are explicitly reviewed primitives. Runtime migration verification remains separate in docs/fs-service-migration.md. Graph totals include 190 production identities and 39 host-reference identities; native fixture graphs do not establish production runtime coverage.",
+  "scope": "Every kernel source is inventoried. Existing boot and network sources remain unchanged; the new generic boot asset archive is separately validated. Current non-network coverage has 229 graph identities plus 3 conditional alternatives. Production FS format/policy backends run in userspace; excluded native backends are host-test references. New raw device/resource/mount protocol boundaries and exclusive stack trimming are explicitly reviewed primitives. Runtime migration verification remains separate in docs/fs-service-migration.md. Graph totals include 190 production identities and 39 host-reference identities; native fixture graphs do not establish production runtime coverage.",
   "files": [
     {
       "source": "kernel/arch/arch.cppm",
@@ -30,6 +30,12 @@
       "sha256": "e463845c511543fb888bc0c50b8d12d6f35dee7c15f4f27c1826f099bc50e40c",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
+      "source": "kernel/boot/asset_archive.h",
+      "sha256": "84ea1cd186356c8b4df1e3b6b1011ed1ad723788a4cc97774904daccf1965cf8",
+      "classification": "excluded_boot",
+      "review": "通用不可变资产目录；已复核版本、计数、目录边界、条目溢出、NUL/ASCII 名称、重复名称、执行标志；原生边界测试通过。无文件系统识别。"
     },
     {
       "source": "kernel/boot/boot.cppm",
@@ -451,6 +457,12 @@
       "review": "docs/fs-flow-audit.json"
     },
     {
+      "source": "kernel/fs/file/boot_asset.cpp",
+      "sha256": "6bcbedc056bee6a50aef295e65810c3acc9ace07383080cf282e9a0fc5c162c5",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/fs-flow-audit.json"
+    },
+    {
       "source": "kernel/fs/file/bootstrap_block.cpp",
       "sha256": "0119e58cfc09a97296cac914a803abe7d97998ae18f670afa03ae5963030aebd",
       "classification": "reviewed_workflow_or_primitive",
@@ -494,13 +506,13 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "cadcf2c374fa9cecc91017090783be5c2c8205b6e18a2e67668447967794a59e",
+      "sha256": "b781fea8f6e347718be0fae214b2a103fa547b3c547da3974112c95a109cc73b",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
     {
       "source": "kernel/fs/file/service_resources.cpp",
-      "sha256": "bd9d634897a25ec387443866910aa7f429c439d0a4e64d431a5b84679a4f9191",
+      "sha256": "509295ab504c0eb8b16e5075a10f3218121aa4f9459fd5ddda3d31d7eca66f9e",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -716,7 +728,7 @@
     },
     {
       "source": "kernel/fs/userfs/mount_manager.cpp",
-      "sha256": "1be59aae9c5fd6e997a8ee3e89f587a1714028946d5e0b9eff64d62df96933e9",
+      "sha256": "52b203a56151804cfbf466dbd15f322c2a90a38c5348001cc3de5bd42907933a",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/fs-flow-audit.json"
     },
@@ -781,6 +793,12 @@
       "review": "docs/kernel-primitives-flow-audit.json"
     },
     {
+      "source": "kernel/io/boot_assets.h",
+      "sha256": "26dbe21fa5e75dca6ab5e97185d03f6a2df5c3811b288b618b367bd1a3c71937",
+      "classification": "reviewed_workflow_or_primitive",
+      "review": "docs/kernel-primitives-flow-audit.json"
+    },
+    {
       "source": "kernel/io/dirent.h",
       "sha256": "330b814dde3b1a64ee65ae63c5c8eaf3aa315184ac78ecdb336f84a0de84c5e2",
       "classification": "reviewed_workflow_or_primitive",
@@ -794,7 +812,7 @@
     },
     {
       "source": "kernel/io/fs_mount.h",
-      "sha256": "97621b7413ea9fb72dc68035f2e27c337a3ca67ddaac124a751b8cd1ebdc7be9",
+      "sha256": "7f314a1e37669b383e7f0dcc4658127cbba37589310ecbb949fb32a59af03671",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -818,7 +836,7 @@
     },
     {
       "source": "kernel/io/object.cppm",
-      "sha256": "e097548a1944c20ec0fba42490f78c1a55aa85eb2dec8a0405baf7ea48c61054",
+      "sha256": "42eb17e4953f7fc6a5cf78633c6d6d61b171a0919b406af8e70fbcda1395b28d",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/kernel-primitives-flow-audit.json"
     },
@@ -2306,13 +2324,13 @@
     },
     {
       "source": "kernel/syscall/handlers.cppm",
-      "sha256": "f180fe5a1410b41f6943d7d17ff4a9c95a69ed6a25659165d16e1dadb24ede5c",
+      "sha256": "edfe70594d1fe10eea803902edd92a92770061e0bbc344ac597e00f4fe590ad9",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
     {
       "source": "kernel/syscall/syscall.cpp",
-      "sha256": "afe2c1e48b653f64f0f0b2f5d9bff123adeaf521eb6dab54ef52cd8637b20f7d",
+      "sha256": "5c7769a5178c37eb8927447018e34e065c4f869e12bba1e7524bc0c85355b24b",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
@@ -2324,13 +2342,13 @@
     },
     {
       "source": "kernel/syscall/syscall.h",
-      "sha256": "4f1fe6a1e8df4e220884f23648462c74b6ef782d6f20fcaccd596f61a358977c",
+      "sha256": "e07ec15e794c945e70d05bf67806c3a213cc93aefbd3458df34dae7f55ac8e03",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
     {
       "source": "kernel/syscall/sysfile.cpp",
-      "sha256": "621c6c3642831ecbc16b31130e74e2b7e092d498d146bb0f9f5a0da6b19fd00d",
+      "sha256": "c2717fbf4f7a04bbc12b229678bdb46cfa30df011381cc7ce0fd7e6e039ba08b",
       "classification": "reviewed_workflow_or_primitive",
       "review": "docs/syscall-flow-audit.json"
     },
@@ -2518,7 +2536,8 @@
       "kernel/boot/start.cpp": "560ef28db9fcfa519e2bdc0d6da812e015b398b89e35a81848960ab1df200a8b",
       "kernel/boot/boot.cppm": "03ea6dcc20cbde2ca9ae8f74f8e3d510ea250f0cda6afaab043dc75964ee0ebc",
       "kernel/boot/state.cppm": "9f38026823e1c9e88cc375a94398b5d5dbc723c0644d0226b4e9693eda298141",
-      "kernel/boot/entry.S": "f6214a9ab032bb72b2de39b8a81ffff03d44c58b485e85e6764b97d0fe8bc5a0"
+      "kernel/boot/entry.S": "f6214a9ab032bb72b2de39b8a81ffff03d44c58b485e85e6764b97d0fe8bc5a0",
+      "kernel/boot/asset_archive.h": "84ea1cd186356c8b4df1e3b6b1011ed1ad723788a4cc97774904daccf1965cf8"
     },
     "kernel/net/": {
       "kernel/net/net.cppm": "4077897f9fd78bdefe8a80186df8253d7e840247e6150c85208c77ec8defe13b",

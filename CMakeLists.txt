@@ -54,7 +54,7 @@ if(NOT XV_FILESYSTEM MATCHES "^(ext3|xv6)$")
   message(FATAL_ERROR "XV_FILESYSTEM must be ext3 or xv6")
 endif()
 set(XV_FS_DIRECTORIES "")
-foreach(directory /bin /sbin /usr /usr/tests /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /home /data)
+foreach(directory /bin /sbin /usr /usr/tests /usr/lib /usr/lib/fsplugins /usr/share /usr/share/doc /usr/share/doc/xv6 /dev /proc /etc /etc/fsplugins /home /data)
   string(APPEND XV_FS_DIRECTORIES "dir\t0755\t${directory}\n")
 endforeach()
 string(APPEND XV_FS_DIRECTORIES "dir\t01777\t/tmp\ndir\t0700\t/root\n")
@@ -575,7 +575,7 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_boot_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus})
   set_tests_properties(fs_service_boot_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
@@ -587,7 +587,7 @@ set_tests_properties(userfs_memory_contract PROPERTIES TIMEOUT 30 LABELS fs)
 foreach(cpus 1 5)
   add_test(NAME fs_service_ramfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --ramfs)
   set_tests_properties(fs_service_ramfs_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
@@ -596,7 +596,7 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_ramfs_lifecycle_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --ramfs-service)
   set_tests_properties(fs_service_ramfs_lifecycle_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
@@ -605,7 +605,7 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_permissions_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --permissions)
   set_tests_properties(fs_service_permissions_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "fs;boot")
@@ -614,7 +614,7 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_procfs_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --procfs)
   set_tests_properties(fs_service_procfs_${cpus}cpu PROPERTIES TIMEOUT 200 LABELS "fs;boot")
@@ -632,7 +632,7 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_snapshots_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --snapshots)
   set_tests_properties(fs_service_snapshots_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
@@ -658,7 +658,7 @@ foreach(cpus 1 5)
   foreach(feature userfs fsplugins)
     add_test(NAME fs_service_${feature}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
       --image "${PROJECT_BINARY_DIR}/fs-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
       --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --${feature})
     set_tests_properties(fs_service_${feature}_${cpus}cpu PROPERTIES TIMEOUT 160 LABELS "fs;boot")
@@ -670,7 +670,7 @@ foreach(cpus 1 5)
     endif()
     add_test(NAME fs_mount_services_${data_format}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/fs_mount_services.py" --qemu "${XV_QEMU}"
-      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
       --image "${manager_root}" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
       --data-format ${data_format} --cpus ${cpus})
     set_tests_properties(fs_mount_services_${data_format}_${cpus}cpu PROPERTIES TIMEOUT 260 LABELS "fs;boot")
@@ -680,21 +680,49 @@ endforeach()
 foreach(cpus 1 5)
   add_test(NAME fs_service_xv6_boot_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
     --ram-mib "${XV_RAM_MB}" --cpus ${cpus})
   set_tests_properties(fs_service_xv6_boot_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
   add_test(NAME fs_service_xv6_persistence_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/fs_service_xv6.py" --qemu "${XV_QEMU}"
-    --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+    --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --cpus ${cpus})
   set_tests_properties(fs_service_xv6_persistence_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
   foreach(contract procfs permissions ramfs)
     add_test(NAME fs_service_xv6_${contract}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
       "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
-      --kernel $<TARGET_FILE:kernel> --initrd $<TARGET_FILE:user_fsboot>
+      --kernel $<TARGET_FILE:kernel> --initrd "${PROJECT_BINARY_DIR}/user/image/_fsboot"
       --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --allocator "${XV_PAGE_ALLOCATOR}"
       --ram-mib "${XV_RAM_MB}" --cpus ${cpus} --${contract})
     set_tests_properties(fs_service_xv6_${contract}_${cpus}cpu PROPERTIES TIMEOUT 150 LABELS "fs;boot")
   endforeach()
 endforeach()
+
+# External plugins build in a private project using only the published SDK.
+foreach(cpus 1 5)
+  foreach(format ext3 xv6)
+    if(format STREQUAL "ext3")
+      set(plugin_test_image "${PROJECT_BINARY_DIR}/fs-test.img")
+    else()
+      set(plugin_test_image "${PROJECT_BINARY_DIR}/fs-legacy-test.img")
+    endif()
+    add_test(NAME fs_elf_plugin_${format}_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/tests/fs_elf_plugins.py" --qemu "${XV_QEMU}"
+      --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+      --image "${plugin_test_image}" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
+      --sdk "${PROJECT_SOURCE_DIR}/user/fs/sdk" --example "${PROJECT_SOURCE_DIR}/examples/fs-plugin"
+      --cmake "${CMAKE_COMMAND}" --cpus ${cpus})
+    set_tests_properties(fs_elf_plugin_${format}_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+      LABELS "fs;plugin" ENVIRONMENT_MODIFICATION "XV_EXT3_LIBRARY=set:${PROJECT_BINARY_DIR}/libext3_image.so")
+  endforeach()
+  add_test(NAME fs_elf_root_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_elf_root.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --sdk "${PROJECT_SOURCE_DIR}/user/fs/sdk" --example "${PROJECT_SOURCE_DIR}/examples/fs-plugin"
+    --cmake "${CMAKE_COMMAND}" --cpus ${cpus})
+  set_tests_properties(fs_elf_root_${cpus}cpu PROPERTIES TIMEOUT 100 RUN_SERIAL TRUE LABELS "fs;plugin;boot")
+endforeach()
+
+add_test(NAME boot_assets_contract COMMAND "${PROJECT_BINARY_DIR}/boot_assets_contract")
+set_tests_properties(boot_assets_contract PROPERTIES TIMEOUT 10 LABELS "fs;boot")

@@ -1,6 +1,6 @@
 # RAM 文件系统
 
-系统启动时由独立用户态服务在 `/tmp` 挂载 ramfs。`user/runtime/userfs/memory.cpp` 的 `MemoryBackend` 管理文件内容、目录项和节点对象，内存从服务自身地址空间按需分配，不写磁盘，也不占用磁盘文件的直接/间接块配额。默认引导和独立 `ramfsd` 使用同一个后端，见 [文件系统服务迁移](fs-service-migration.md)。
+系统启动时由独立用户态服务在 `/tmp` 挂载 ramfs。`user/fs/backends/ramfs/backend.cpp` 的 `MemoryBackend` 管理文件内容、目录项和节点对象，内存从服务自身地址空间按需分配，不写磁盘，也不占用磁盘文件的直接/间接块配额。默认引导和独立 `ramfsd` 使用同一个后端，见 [文件系统服务迁移](fs-service-migration.md)。
 
 ```sh
 mkdir /tmp/work
@@ -55,7 +55,7 @@ ctest --test-dir build/dev --output-on-failure -R '^(userfs_memory_contract|fs_s
 
 ramfstest 验证 1 MiB 文件、用户指针错误、共享偏移、跨页目录、硬链接、非空目录、删除后继续打开、截断补零、孤儿 cwd 和多进程并发。userfs_memory_contract 直接测试生产用户后端的分配失败回滚、2 GiB 稀疏洞、改名和全部内存回收；生命周期测试验证独立 exec、忙卸载拒绝、服务退出与原目录恢复。
 
-当前源码见 [用户态 RAM 后端](../user/runtime/userfs/memory.cpp)。旧 [内核 RAM 节点实现](functions/kernel/fs/ramfs/ramfs.cpp.md)用于宿主机参考测试。
+当前源码见 [用户态 RAM 后端](../user/fs/backends/ramfs/backend.cpp)。旧 [内核 RAM 节点实现](functions/kernel/fs/ramfs/ramfs.cpp.md)用于宿主机参考测试。
 
 ## 用户与权限
 

@@ -35,9 +35,20 @@ for name in ('Xv6FileSystem', 'Ext3FileSystem', 'DevFileSystem', 'ProcFileSystem
              'RamFileSystem', 'DiskFileSystem', 'Xv6Journal', 'xv::ext3::'):
     assert name not in kernel_symbols, f'filesystem algorithm linked into kernel: {name}'
 assert 'UserFileSystem' in kernel_symbols and 'create_mount_manager' in kernel_symbols
+backend_types = {'ext3': 'Ext3Backend', 'xv6': 'Xv6Backend', 'ramfs': 'MemoryBackend',
+                 'procfs': 'ProcessBackend', 'devfs': 'DeviceBackend'}
 user_symbols = symbols(args.bootstrap)
-for name in ('Ext3Backend', 'Xv6Backend', 'MemoryBackend', 'ProcessBackend', 'DeviceBackend'):
-    assert name in user_symbols, f'bootstrap lacks userspace backend: {name}'
+for name in (*backend_types.values(), 'xv::ext3::Volume', 'userfs::xv6::Volume'):
+    assert name not in user_symbols, f'filesystem algorithm linked into supervisor: {name}'
+for backend, expected in backend_types.items():
+    image = build / f'user/image/_{backend}_plugin'
+    own_symbols = symbols(image)
+    assert expected in own_symbols, f'{image}: backend module missing'
+    for foreign in backend_types.values():
+        if foreign != expected:
+            assert foreign not in own_symbols, f'{image}: unrelated backend linked: {foreign}'
+    compiled = [item for item in commands if f'user/fs/backends/{backend}/backend.cppm' in item['file']]
+    assert compiled, f'{backend}: no actual C++ module interface compiled'
 
 for target in ('qemu', 'qemu-vnc', 'qemu-graphics', 'qemu-gdb'):
     output = subprocess.check_output([args.ninja, '-C', str(build), '-t', 'commands', target], text=True)
@@ -49,4 +60,4 @@ for target in ('qemu', 'qemu-vnc', 'qemu-graphics', 'qemu-gdb'):
     if not payload.is_absolute():
         payload = build / payload
     assert payload.resolve() == args.bootstrap.resolve(), (target, payload)
-print(f'FS runtime boundary: {len(sources)} kernel sources checked; all five backends in userspace; four default launch targets use bootstrap')
+print(f'FS runtime boundary: {len(sources)} kernel sources checked; five separate backend ELFs, supervisor contains no backend; four launch targets use the generic boot bundle')

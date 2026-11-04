@@ -2,7 +2,9 @@
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
 #include "user/runtime/user.h"
-#include "user/runtime/userfs/server.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs;
+
 
 namespace
 {
@@ -55,6 +57,7 @@ public:
   void snapshot_end() override { active_ = 0; }
 };
 }
+
 extern "C" int main()
 {
   check(mkdir("/tmp/snapshot-test") == 0, "mount directory");

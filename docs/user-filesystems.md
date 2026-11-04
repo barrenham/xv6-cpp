@@ -4,7 +4,7 @@
 
 注册、挂载和实例寿命分开：每个服务端点代表一个待挂载实例；同一类型可注册多个实例。`mount -t 类型 目录` 选择该类型尚未挂载的实例，一条连接只能被挂载一次。FS 程序如何启动、如何打开存储或网络资源由用户态决定，内核不包含 memfsd/tarfsd 的实现。
 
-默认根及 ext3、xv6、ramfs、procfs、devfs 现在全部使用这个通道。用户态 fsboot 和挂载管理进程负责选取格式、启动实例和预先取得资源；内核生产目标不再链接这五种旧后端。管理进程有效时，普通 mount 请求先交给它，它可挂载已注册的任意新插件，也可按用户态策略启动现有后端。完整引导、资源和故障边界见 [迁移说明](fs-service-migration.md)。
+默认根及 ext3、xv6、ramfs、procfs、devfs 现在全部使用这个通道。用户态 fsboot 和挂载管理进程按清单执行独立 ELF、启动实例和预先取得资源；格式识别由插件负责；内核生产目标不再链接这五种旧后端。管理进程有效时，普通 mount 请求先交给它，它可挂载已注册的任意新插件，也可通过 `/etc/fsplugins/*.conf` 发现并执行新后端。完整引导、资源和故障边界见 [迁移说明](fs-service-migration.md)。
 
 ## 使用已有插件
 
@@ -48,7 +48,7 @@ tarfsd 为只读后端；归档源文件在服务退出后仍然保留。重新�
 
 ## 接入新文件系统
 
-[用户态 SDK](../user/runtime/userfs/server.h) 提供 `userfs::Backend` 操作接口；[公共服务循环](../user/runtime/userfs/server.cpp) 负责消息接收、校验、操作分派和回复。只读后端通常实现 root、lookup、getattr、readdir、read，并声明 ReadOnly/ReadOperations；可写后端实现 create/write/resize/setattr/link/unlink/rename/sync。存储算法不需要理解内核 inode 指针或 VFS 挂载表。
+[用户态 SDK](../user/fs/sdk/server.cppm) 提供 `userfs::Backend` 操作接口；[公共服务循环](../user/fs/sdk/server.cpp) 负责消息接收、校验、操作分派和回复。只读后端通常实现 root、lookup、getattr、readdir、read，并声明 ReadOnly/ReadOperations；可写后端实现 create/write/resize/setattr/link/unlink/rename/sync。存储算法不需要理解内核 inode 指针或 VFS 挂载表。
 
 服务通过 `userfs::register_backend(type, backend)` 注册，取得描述符后调用 `userfs::serve(fd, backend)`。开发者也可直接使用 `fsregister(Registration*)` 和 read/write/poll 实现其他语言的等价协议客户端。具体开发与独立构建说明见 [插件开发接口](fs-plugin-authoring.md)。全部系统 FS 的迁移进度和独立引导路径见 [FS 服务迁移](fs-service-migration.md)。
 

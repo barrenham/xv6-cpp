@@ -44,7 +44,8 @@ def manifest_files(path, name_max=255):
         if kind == 'dir':
             directories[name] = mode
         else:
-            if not name.startswith(('/bin/', '/sbin/', '/usr/tests/', '/usr/share/doc/')):
+            if not name.startswith(('/bin/', '/sbin/', '/usr/tests/', '/usr/share/doc/',
+                                    '/usr/lib/fsplugins/', '/etc/fsplugins/')):
                 raise ValueError('manifest attempts to update a protected path: ' + name)
             files.append((guest, mode))
     if not files:

@@ -6,7 +6,7 @@ export namespace xv::io
 {
 using Metadata = ::stat;
 enum class MetadataKind : short { Directory = T_DIR, Regular = T_FILE, Device = T_DEVICE, Socket = T_SOCKET, Block = T_BLOCK };
-enum class CapabilityId { DeviceControl, Socket };
+enum class CapabilityId { DeviceControl, Socket, ExecutableData };
 struct Buffer { unsigned long address; bool nonblocking = false; bool append = false; };
 class Capability
 {
@@ -22,6 +22,16 @@ public:
 protected:
   constexpr DeviceControl() = default;
   ~DeviceControl() = default;
+};
+class ExecutableData : public Capability
+{
+public:
+  static constexpr CapabilityId Id = CapabilityId::ExecutableData;
+  virtual const void *bytes() const = 0;
+  virtual unsigned long length() const = 0;
+  virtual const char *name() const = 0;
+protected:
+  ~ExecutableData() = default;
 };
 class IoObject
 {

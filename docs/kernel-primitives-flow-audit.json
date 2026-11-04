@@ -242,6 +242,12 @@
           "review": "导出模块/接口声明。",
           "graph_entries": [],
           "pending": []
+        },
+        {
+          "source": "kernel/io/boot_assets.h",
+          "sha256": "26dbe21fa5e75dca6ab5e97185d03f6a2df5c3811b288b618b367bd1a3c71937",
+          "review": "版本 1 的通用资产查询 POD，固定 64 字节名称、索引、长度和执行标志；无格式策略。",
+          "graph_entries": []
         }
       ]
     },
@@ -408,8 +414,8 @@
       "files": [
         {
           "source": "kernel/io/object.cppm",
-          "sha256": "e097548a1944c20ec0fba42490f78c1a55aa85eb2dec8a0405baf7ea48c61054",
-          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。",
+          "sha256": "42eb17e4953f7fc6a5cf78633c6d6d61b171a0919b406af8e70fbcda1395b28d",
+          "review": "Buffer/Metadata 值、原虚能力接口与固定默认错误、一次 capability 查询/static_cast；实际 I/O 连接在拥有模块。 本轮调整接口/委托及观测数据；原图中的锁、引用交接及错误分支保持，直接访问器和有界数据算法不增加控制图。 新增 ExecutableData 能力仅描述不可变 ELF 字节、长度和名称，由对象显式授予，不提升执行身份。",
           "graph_entries": [],
           "pending": []
         },
@@ -449,8 +455,8 @@
         },
         {
           "source": "kernel/io/fs_mount.h",
-          "sha256": "97621b7413ea9fb72dc68035f2e27c337a3ca67ddaac124a751b8cd1ebdc7be9",
-          "review": "Version 1 挂载管理 Request 数据布局，含序号、原请求 PID、类型名、路径和结果；只作为通用内核/用户态协议边界，不决定后端实现。",
+          "sha256": "7f314a1e37669b383e7f0dcc4658127cbba37589310ecbb949fb32a59af03671",
+          "review": "Version 1 挂载管理 Request 数据布局，含序号、原请求 PID、类型名、路径和结果；只作为通用内核/用户态协议边界，不决定后端实现。 控制通道版本 2 增加 source/options；Progress=-2 仅续期无响应期限，最终结果仍为 0/-1；格式策略留在用户态。",
           "graph_entries": [],
           "pending": []
         },

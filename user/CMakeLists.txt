@@ -1,13 +1,7 @@
 find_program(XV_USER_OBJCOPY llvm-objcopy HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/cxx.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
-add_library(user_fs STATIC runtime/userfs/server.cpp runtime/userfs/block_io.cpp
-  runtime/userfs/ext3.cpp runtime/userfs/devices.cpp
-  runtime/userfs/memory.cpp runtime/userfs/memory_heap.cpp
-  runtime/userfs/processes.cpp runtime/userfs/process_system.cpp
-  runtime/userfs/xv6_volume.cpp runtime/userfs/xv6.cpp ../kernel/fs/ext3/volume.cpp ../kernel/fs/ext3/mutate.cpp
-  ../kernel/fs/ext3/jbd.cpp)
-target_link_libraries(user_fs PRIVATE xv_options)
+add_subdirectory(fs)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
 add_library(user_dns STATIC runtime/dns/codec.cpp runtime/dns/resolver.cpp)
@@ -16,10 +10,18 @@ add_library(user_http STATIC runtime/http/codec.cpp runtime/http/client.cpp)
 target_link_libraries(user_http PRIVATE xv_options PUBLIC user_dns)
 function(xv_add_program source)
   get_filename_component(name "${source}" NAME_WE)
-  add_executable(user_${name} "${source}" $<TARGET_OBJECTS:user_runtime>)
-  target_link_libraries(user_${name} PRIVATE xv_options user_http user_dns user_fs)
-  target_link_options(user_${name} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
-  set_target_properties(user_${name} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
+  if(ARGC GREATER 1)
+    set(name "${ARGV1}")
+  endif()
+  set(target "user_${name}")
+  if(name STREQUAL "fsboot")
+    set(target "user_fsboot_executable")
+  endif()
+  add_executable(${target} "${source}" $<TARGET_OBJECTS:user_runtime>)
+  set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
+  target_link_libraries(${target} PRIVATE xv_options user_http user_dns user_fs_core)
+  target_link_options(${target} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
+  set_target_properties(${target} PROPERTIES OUTPUT_NAME _${name} RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/user" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/user.ld")
   set(guest_name "${name}")
   if(name STREQUAL "ramfsservicetest")
     set(guest_name "ramfssvctest")
@@ -33,6 +35,9 @@ function(xv_add_program source)
   else()
     set(destination "/bin/${name}")
   endif()
+  if(ARGC GREATER 2)
+    set(destination "${ARGV2}")
+  endif()
   set(mode 0755)
   if(name STREQUAL "passwd")
     set(mode 04755)
@@ -40,12 +45,15 @@ function(xv_add_program source)
   # Guest loaders use program headers; keep full DWARF in the host executable
   # while installing a regular stripped ELF within the legacy xv6 file limit.
   set(guest_binary "${PROJECT_BINARY_DIR}/user/image/_${name}")
-  add_custom_command(TARGET user_${name} POST_BUILD
+  if(name STREQUAL "fsboot")
+    set(guest_binary "${PROJECT_BINARY_DIR}/user/image/_fsboot.base")
+  endif()
+  add_custom_command(TARGET ${target} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${PROJECT_BINARY_DIR}/user/image"
-    COMMAND "${XV_USER_OBJCOPY}" --strip-debug $<TARGET_FILE:user_${name}> "${guest_binary}"
+    COMMAND "${XV_USER_OBJCOPY}" --strip-debug $<TARGET_FILE:${target}> "${guest_binary}"
     BYPRODUCTS "${guest_binary}" VERBATIM)
   set(XV_FS_ENTRIES "${XV_FS_ENTRIES}file\t${mode}\t${destination}\t${guest_binary}\n" PARENT_SCOPE)
-  set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:user_${name}> "${guest_binary}" PARENT_SCOPE)
+  set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:${target}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
   apps/fsboot/fsboot.cpp
@@ -174,3 +182,37 @@ target_sources(user_signaltest PRIVATE tests/signal_handlers.cpp tests/child_sig
 foreach(program init id su useradd chown sh login passwd userdel groupadd groupdel usermod)
   target_link_libraries(user_${program} PRIVATE user_accounts)
 endforeach()
+
+target_link_libraries(user_ramfsd PRIVATE user_fs_ramfs)
+target_link_libraries(user_fsrootboottest PRIVATE user_fs_block user_fs_ext3 user_fs_devfs)
+target_link_libraries(user_fsdiskboot PRIVATE user_fs_block)
+target_link_libraries(user_fsboot_executable PRIVATE user_fs_bootstrap)
+
+set(plugin_bundle_arguments --asset "boot.cfg=${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")
+set(plugin_bundle_dependencies "${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")
+foreach(backend ext3 xv6 devfs ramfs procfs)
+  set(plugin_program "${backend}_plugin")
+  xv_add_program("fs/plugins/${backend}/main.cpp" "${plugin_program}" "/usr/lib/fsplugins/${backend}.elf")
+  target_link_libraries(user_${plugin_program} PRIVATE user_fs_${backend} user_fs_plugin)
+  if(backend STREQUAL "ext3" OR backend STREQUAL "xv6")
+    target_link_libraries(user_${plugin_program} PRIVATE user_fs_block)
+  endif()
+  set(config "${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/${backend}/${backend}.conf")
+  string(APPEND XV_FS_ENTRIES "file\t0644\t/etc/fsplugins/${backend}.conf\t${config}\n")
+  list(APPEND plugin_bundle_arguments --asset "fsplugins/${backend}.conf=${config}"
+    --executable "fsplugins/${backend}.elf=${PROJECT_BINARY_DIR}/user/image/_${plugin_program}")
+  list(APPEND plugin_bundle_dependencies "${config}" "${PROJECT_BINARY_DIR}/user/image/_${plugin_program}")
+endforeach()
+set(boot_bundle "${PROJECT_BINARY_DIR}/user/image/_fsboot")
+add_custom_command(OUTPUT "${boot_bundle}"
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/pack_boot_assets.py"
+    --base "${PROJECT_BINARY_DIR}/user/image/_fsboot.base" --output "${boot_bundle}"
+    ${plugin_bundle_arguments}
+  DEPENDS user_fsboot_executable "${PROJECT_BINARY_DIR}/user/image/_fsboot.base"
+    ${plugin_bundle_dependencies} "${PROJECT_SOURCE_DIR}/tools/pack_boot_assets.py"
+  VERBATIM)
+add_custom_target(user_fsboot DEPENDS "${boot_bundle}")
+list(APPEND XV_FS_ASSETS "${boot_bundle}" ${plugin_bundle_dependencies})
+set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
+set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
+set(XV_FS_ASSETS ${XV_FS_ASSETS} PARENT_SCOPE)

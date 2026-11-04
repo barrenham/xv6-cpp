@@ -123,3 +123,7 @@
 #define SYS_fsserve 94
 
 #define SYS_fsregister 95
+
+#define SYS_fexecve 96
+
+#define SYS_mountfs 97

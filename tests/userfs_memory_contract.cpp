@@ -5,7 +5,8 @@
 #include <unordered_set>
 #include "kernel/fs/stat.h"
 #include "kernel/fs/format/layout.h"
-#include "user/runtime/userfs/memory.h"
+#include "kernel/fs/userfs/protocol.h"
+import xv.userfs.ramfs;
 
 namespace
 {

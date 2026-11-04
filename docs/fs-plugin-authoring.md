@@ -4,7 +4,7 @@ FS 插件是一个用户态可执行程序。内核只安装一次通用桥接�
 
 ## 最小服务结构
 
-包含 `user/runtime/userfs/server.h`，继承 `userfs::Backend`。只读插件至少需要实现：
+`import xv.userfs;`，继承 `userfs::Backend`。只读插件至少需要实现：
 
 | 方法 | 职责 |
 | --- | --- |
@@ -28,29 +28,143 @@ FS 插件是一个用户态可执行程序。内核只安装一次通用桥接�
 服务入口的公共部分如下：
 
 ```cpp
-MyBackend backend(source_descriptor);
-int service = userfs::register_backend(type_from_arguments, backend);
-if (service < 0) exit(1);
-int result = userfs::serve(service, backend);
-close(service);
-exit(result < 0);
+import xv.userfs.plugin;
+
+extern "C" int main(int argc, char **argv)
+{
+  userfs::plugin::Invocation invocation(argc, argv);
+  if (!invocation.valid || invocation.probe) return 2;
+  MyBackend backend(userfs::plugin::Source);
+  return userfs::plugin::run(invocation, backend) < 0;
+}
 ```
 
 后端文件、块设备或网络连接应在注册前准备好。客户端在挂载后立即发起请求也应能处理；不能依赖在第一次请求后才通过路径查找打开后端，否则可能重入 VFS 的命名空间锁。
 
-完整的独立只读后端见 [tarfsd](../user/apps/tarfsd/tarfsd.cpp)，它只实现 Backend 回调，SDK 处理所有协议分派；[memfsd](../user/apps/memfsd/memfsd.cpp) 演示可写操作和对象回收。两个后端没有对应的内核专用分支。
+完整的独立只读后端见 [tarfsd](../user/apps/tarfsd/tarfsd.cpp)，它只实现 Backend 回调，SDK 处理所有协议分派；[memfsd](../user/apps/memfsd/memfsd.cpp) 演示可写操作和对象回收。两个后端没有对应的内核专用分支。它们保留手工服务命令行；按清单自动加载的入口应使用上面的 `plugin::run` 握手，独立构建示例见 `examples/fs-plugin/`。
 
-## 独立构建
+## 独立 ELF 与构建
 
-在 `user/CMakeLists.txt` 中向 programs 列表加入程序源文件，或给自己的用户态目标链接项目的 user_runtime、user_fs、xv_options 及用户链接脚本。`user_fs` 是静态 SDK 库，只有引用它的程序才会提取服务循环代码，不给所有普通程序增加服务代码。
+默认五种后端分别编译成独立 ELF：`ext3.elf`、`xv6.elf`、`devfs.elf`、`procfs.elf`、`ramfs.elf`。
+`fsboot` 只导入监督模块，不链接这些算法。用户态模块位于 `user/fs/`：
 
-已有后端的独立构建命令：
+| 目录 | 职责 |
+| --- | --- |
+| `sdk` | 协议分派、资源访问、插件入口；公共 C ABI 和独立启动代码 |
+| `backends/<name>` | 各后端的实际 C++ 模块接口及实现 |
+| `supervisor` | 清单解析、ELF 启动、挂载管理、根引导 |
+| `plugins/<name>` | 各 ELF 的入口和清单 |
+
+第三方无需修改项目 CMake。可复制 `user/fs/sdk/{include,standalone}` 和
+[独立示例](../examples/fs-plugin/CMakeLists.txt) 到仓库外构建：
 
 ```sh
-cmake --build build/dev --target user_tarfsd
+cmake -S examples/fs-plugin -B build/hello-plugin -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$PWD/user/fs/sdk/standalone/riscv64-toolchain.cmake" \
+  -DXVFS_SDK="$PWD/user/fs/sdk"
+cmake --build build/hello-plugin -j 1
 ```
 
-该目标只构建用户态依赖和 tarfsd，不依赖 kernel 目标。新增算法或改动插件代码无需改变注册表、VFS、系统调用分派或重新链接内核。为放入新安装种子可再构建 image；更新正在使用的持久 rootfs 必须使用离线更新流程并保留账户目录。
+产物为 `hello.elf`、`hello.conf`、`install.tsv`。SDK 的独立 C 入口不运行 C++ 全局构造函数；
+C++ 插件可链接项目用户运行库，并 `import xv.userfs.plugin;`、`import xv.userfs;`。
+项目内后端目标为 `user_ext3_plugin` 等，分别链接自己的模块。
+
+## 插件清单 ABI 1
+
+运行时管理器每次请求都扫描 `/etc/fsplugins/*.conf`，不需要更新类型表或重启管理器。
+ELF 通常装在 `/usr/lib/fsplugins/`，清单中的 `exec` 可指定其他绝对路径。
+格式严格为 `key=value`，支持空行及以 `#` 开头的注释；不支持重复或未知字段、CRLF 和空格裁剪。
+清单最大 2048 字节，类型名最长 31 字节，只接受小写字母、数字、`-_.`。
+
+```ini
+abi=1
+type=hello
+exec=/usr/lib/fsplugins/hello.elf
+resource=none
+mode=0555
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `abi`、`type`、`exec`、`resource` | 必填；ABI 固定 1；resource 为 none/block/file/system |
+| `alias` | 一个可选类型别名；同名或别名冲突的请求失败 |
+| `image` | 根挂载前使用的引导资产名，如 fsplugins/hello.elf |
+| `source` | 默认源；block 为 0/1，file 为绝对路径或 boot:资产名 |
+| `access` | file 的打开权限 ro/rw，默认 ro；不决定插件注册的只读标志 |
+| `system` | 设为 1 时额外授予资源描述符；默认 0 |
+| `options` | 传给插件的一个字符串，最长 255 字节 |
+| `mode` | 根目录八进制权限，默认 0755 |
+| `startup_ms` | 注册就绪期限，正整数毫秒，默认 20000 |
+
+`resource=block` 获取独占可写块租约；`file` 预先打开源，避免服务回调递归打开自身路径。
+`system` 提供设备/进程等类型化资源；`none` 可用于内存或自建网络连接的插件。
+这些是资源类别，不是文件系统格式判断。普通应用不会继承管理器的资源能力。
+
+```sh
+mkdir /tmp/hello
+mount -t hello -o example /tmp/hello
+cat /tmp/hello/hello
+umount /tmp/hello
+```
+
+`mount -t TYPE -s SOURCE -o OPTIONS /path` 可覆盖默认源和选项。
+示例在资源为 none 时提供静态内容，在 file 模式读取源文件；options=rw 时演示写回源。
+插件清单和代码具有服务权限，应由管理员安装；独立进程不是对不可信代码的完整沙箱。
+
+离线安装到**已停机的目标镜像**：先创建仅含插件的种子，再使用保留账户的合并工具。
+这里的 `TARGET.img` 是管理员明确选择的镜像，不能用重新生成整个 rootfs 代替安装。
+
+```sh
+build/dev/mkfs build/hello-seed.img --filesystem ext3 --manifest build/hello-plugin/install.tsv
+python3 tools/update_rootfs.py --seed build/hello-seed.img --image TARGET.img \
+  --manifest build/hello-plugin/install.tsv --dry-run
+python3 tools/update_rootfs.py --seed build/hello-seed.img --image TARGET.img \
+  --manifest build/hello-plugin/install.tsv
+```
+
+工具锁定目标、生成备份并原子替换；不覆盖账户数据库和用户目录。第三方插件的加载不要求重新构建 kernel 或 fsboot。
+
+## 进程入口和发布握手
+
+管理器启动 `ELF --fs-plugin 1 TYPE MODE_OCTAL OPTIONS`，包括程序名共 6 个参数。
+自动根探测使用 `ELF --fs-probe 1 TYPE OPTIONS`，以退出码 0 表示匹配；格式识别由插件执行。
+
+| fd | 内容 |
+| --- | --- |
+| 0..2 | 继承的控制台 |
+| 3 | 可选源描述符 |
+| 4 | 可选资源能力 |
+| 5 | 就绪管道写端 |
+| 6 | 发布确认管道读端 |
+| 7 | 引导 ELF 字节能力，入口先关闭 |
+
+插件先准备资源并注册，向 fd5 写入一个 `R` 后关闭它，再从 fd6 读取 `G` 并关闭它，之后开始处理请求。
+收到 EOF 或其他字节时清理退出。父进程只在注册就绪后挂载，成功后发 `G`。
+失败和超时会终止并回收子进程，释放尚未发布的端点和源；卸载使服务收到 EOF。
+管理器等待期间定期报告进度，续期内核 30 秒无响应期限；插件自身仍受 startup_ms 限制。
+这允许慢恢复，而不会永久等待从不就绪的插件。
+
+## 根插件也是 ELF
+
+QEMU 仍以 `-kernel kernel.elf` 引导；`-initrd` 提供用户态 fsboot ELF 及附加的不可变资产。
+内核资产目录仅提供字节和受控 fexecve，不识别任何文件系统格式。
+引导 `boot.cfg` 的 `root=auto` 逐个执行块后端的探测入口；`root=TYPE` 可选择任意已打包插件，
+包括无磁盘源的根服务。块设备根使用内核预先交付的系统盘 fd3；清单中的 block source 用于根发布后的运行时挂载。
+其余配置如 `init=/sbin/init`、`mount=proc:/proc:0555` 控制后续启动。
+根插件必须提供 init 和后续 ELF/配置需要的文件，以及 /dev、/proc、/tmp 挂载点。
+
+在 hello.conf 增加 `image=fsplugins/hello.elf` 后，可扩展现有引导包，保留原资产：
+
+```sh
+python3 tools/pack_boot_assets.py --extend build/dev/user/image/_fsboot \
+  --output build/custom-fsboot.elf \
+  --executable fsplugins/hello.elf=build/hello-plugin/hello.elf \
+  --asset fsplugins/hello.conf=build/hello-plugin/hello.conf \
+  --asset boot.cfg=MY_BOOT.cfg
+```
+
+这里仅重新打包用户态资产；kernel 和 fsboot 的机器代码不变。静态 hello 示例只提供一个文件，
+不能直接用作根；`tests/fixtures/fs_root_plugin.c` 展示携带 init 的最小独立根插件。
 
 ## 注册契约
 
@@ -66,7 +180,7 @@ cmake --build build/dev --target user_tarfsd
 挂载使用 `mount -t type /existing/directory`。不同服务进程可以使用同一个可执行文件、不同参数和不同存储源注册同一类型的多个实例。挂载器会选择尚未挂载的实例；已经挂载、停止或失去连接的实例不会再被选择。内核不会代替用户态进程管理器启动 FS 程序。
 
 服务引导模式下，fsboot 的独立用户态管理进程通过通用控制端点接收 mount 请求。
-它先挂载已注册的实例；没有实例时，可按用户态策略启动 ramfs、procfs、devfs 或可选数据盘服务。
+它先挂载已注册的实例；没有实例时，解析清单并执行独立 ELF，不按文件系统类型分支。
 独立插件仍可按上面的协议注册自己的类型，无需修改管理通道或重新构建内核。
 管理进程统一串行执行实例选择、启动和挂载，避免并发请求抢占尚未发布的实例。
 资源能力及控制端点不会继承给普通应用，详见 [FS 服务迁移](fs-service-migration.md)。
@@ -103,4 +217,15 @@ Readdir 只是枚举，不建立引用。Getattr 查询已有编号，不建立�
 并回收文件槽；普通错误不应污染后续捕获。成功后，每个打开文件拥有独立的只读缓冲，
 dup/fork 仍共享该打开文件的偏移。目标进程退出、fd 复用或后来再次打开文件都不会替换既有缓冲。
 目录快照沿用项目的 16 字节 dirent 字节流，原有 read(dir)/getdents64 的不可混用约束继续生效。
-`user/runtime/userfs/processes.cpp` 提供完整实现，`fssnapshottest` 验证捕获失败、独立打开和客户端身份。
+`user/fs/backends/procfs/backend.cpp` 提供完整实现，`fssnapshottest` 验证捕获失败、独立打开和客户端身份。
+
+## 当前扩展边界
+
+清单和 ELF 插件可以扩展文件系统算法、存储格式和数据来源。协议 3 仍有明确的公共边界：
+对象编号与属性中的长度是 32 位，单条载荷最多 512 字节；每个连接串行处理请求，部分 VFS 操作仍持命名空间锁。
+插件应按接口能力位声明实际支持的操作，不能把“独立加载”解释成已经支持任意外部文件系统的全部语义。
+新增 xattr、ACL 或更大文件属性等接口需要演进公共协议；新增已有协议能够表达的后端无需改内核。
+用户态默认栈只有 4 KiB，大型目录表、消息数组和恢复缓冲应放在堆上；监督模块通过编译器检查单帧大小。
+
+测试 `fs_elf_plugin_{ext3,xv6}_{1,5}cpu` 从仓库外副本编译 C ELF，再离线安装到私有镜像，验证发现、参数、写源、故障恢复及重复挂载。
+`fs_elf_root_{1,5}cpu` 在未格式化磁盘上运行新根插件，并验证不可变资产与描述符执行的权限边界；两组都检查原内核/引导包哈希不变。

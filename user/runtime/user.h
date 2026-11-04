@@ -1,4 +1,5 @@
 #pragma once
+#include "kernel/support/types.h"
 #include "kernel/process/signals/signal_abi.h"
 #include "kernel/net/socket/socket.h"
 #include "kernel/net/control.h"
@@ -15,8 +16,10 @@ typedef long int off_t;
 struct stat;
 struct mount_info;
 int mount(const char *type, const char *path);
+int mountfs(const char *type, const char *path, const char *source, const char *options);
 int fsserve(const char *path);
 int fsregister(const void *registration);
+int fexecve(int descriptor, char *const arguments[], char *const environment[]);
 int umount(const char *path);
 int mountinfo(int index, struct mount_info *info);
 struct termios;

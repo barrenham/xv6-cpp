@@ -297,8 +297,8 @@
     },
     {
       "source": "kernel/fs/file/open_file.cppm",
-      "sha256": "cadcf2c374fa9cecc91017090783be5c2c8205b6e18a2e67668447967794a59e",
-      "review": "内核导出原始块能力、类型化资源能力与通用挂载管理端点；文件系统格式、目录策略及服务进程创建在用户态。原有 File 引用与 dup/fork 共享寿命规则继续生效。",
+      "sha256": "b781fea8f6e347718be0fae214b2a103fa547b3c547da3974112c95a109cc73b",
+      "review": "内核导出原始块能力、类型化资源能力与通用挂载管理端点；文件系统格式、目录策略及服务进程创建在用户态。原有 File 引用与 dup/fork 共享寿命规则继续生效。 本次插件 ELF 改造复核：声明通用资产文件构造入口；没有文件系统算法。",
       "graph_entries": []
     },
     {
@@ -1161,17 +1161,23 @@
     },
     {
       "source": "kernel/fs/file/service_resources.cpp",
-      "sha256": "bd9d634897a25ec387443866910aa7f429c439d0a4e64d431a5b84679a4f9191",
-      "review": "资源描述符通过 Version=2 的 QueryIoctl 提供设备、PTY、进程、CPU、挂载、插件与系统原始记录，不解释文件系统路径或生成 /proc 文本。查询由对象 SleepLock 串行，消息缓冲位于对象已有页面；挂载只复制一个已发布记录。进程私有信息按原请求 inspector UID 检查，fd/exec 捕获状态由能力对象持有；关闭释放所有 PTY 固定引用。Clone 创建独立捕获状态，Storage/Manager 仅允许 root 取得。",
+      "sha256": "509295ab504c0eb8b16e5075a10f3218121aa4f9459fd5ddda3d31d7eca66f9e",
+      "review": "资源描述符通过 Version=2 的 QueryIoctl 提供设备、PTY、进程、CPU、挂载、插件与系统原始记录，不解释文件系统路径或生成 /proc 文本。查询由对象 SleepLock 串行，消息缓冲位于对象已有页面；挂载只复制一个已发布记录。进程私有信息按原请求 inspector UID 检查，fd/exec 捕获状态由能力对象持有；关闭释放所有 PTY 固定引用。Clone 创建独立捕获状态，Storage/Manager 仅允许 root 取得。 本次插件 ELF 改造复核：新增引导资产 OpenIoctl：仅服务引导模式有效 uid 0 可取得资产能力；失败的描述符安装释放文件引用。其余类型化资源路径保持原约束。",
       "graph_entries": [],
       "pending": []
     },
     {
       "source": "kernel/fs/userfs/mount_manager.cpp",
-      "sha256": "1be59aae9c5fd6e997a8ee3e89f587a1714028946d5e0b9eff64d62df96933e9",
-      "review": "单个受控服务描述符接收版本化挂载请求，只允许登记的进程读写。请求在不持有 namespace/inode/注册锁时串行发送，最多等待 30 秒；非阻塞 read 返回 EAGAIN，poll 暴露消息方向。响应核对版本和请求号；取消或关闭使连接退役并唤醒双方，旧通道完成后才可重新 claim。用户态管理器负责选择、启动及挂载后端，内核不按格式创建服务。",
+      "sha256": "52b203a56151804cfbf466dbd15f322c2a90a38c5348001cc3de5bd42907933a",
+      "review": "单个受控服务描述符接收版本化挂载请求，只允许登记的进程读写。请求在不持有 namespace/inode/注册锁时串行发送，最多等待 30 秒；非阻塞 read 返回 EAGAIN，poll 暴露消息方向。响应核对版本和请求号；取消或关闭使连接退役并唤醒双方，旧通道完成后才可重新 claim。用户态管理器负责选择、启动及挂载后端，内核不按格式创建服务。 本次插件 ELF 改造复核：挂载请求携带源/选项；回复校验版本、序号、原始 pid 和管理进程身份。Progress 仅续期当前请求的 30 秒无响应期限，等待在锁内重查期限变化；取消断开连接以拒绝迟到回复。管理器另实施插件启动期限。命名空间锁不跨 RPC。",
       "graph_entries": [],
       "pending": []
+    },
+    {
+      "source": "kernel/fs/file/boot_asset.cpp",
+      "sha256": "6bcbedc056bee6a50aef295e65810c3acc9ace07383080cf282e9a0fc5c162c5",
+      "review": "不可变引导资产 FileObject：读/seek 有界，写拒绝；可执行标志才提供 ExecutableData 能力。资产来自启动时保留的内存，File 引用保证加载期间对象有效；分配或安装失败回收文件槽/页面。Open 请求验证版本、结构、NUL 名称，返回长度/标志；不解析文件系统。原生边界测试与客体 asset-guard 覆盖失败执行后继续运行、只读和身份保持。",
+      "graph_entries": []
     }
   ],
   "graph_count": 74,

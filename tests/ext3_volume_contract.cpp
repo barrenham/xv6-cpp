@@ -1,5 +1,4 @@
 #include "kernel/fs/ext3/volume.h"
-#include "user/runtime/userfs/ext3.h"
 #include <cassert>
 #include <algorithm>
 #include <cstdio>
@@ -9,6 +8,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <vector>
+#include "kernel/fs/userfs/protocol.h"
+#include "kernel/fs/ext3/volume.h"
+import xv.userfs.ext3;
 using namespace xv::ext3;
 struct Device final : Io
 {

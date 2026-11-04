@@ -1411,3 +1411,19 @@
 
 
 - [`xv::syscall::sys_fsregister`](sysfile.cpp.md#fn-cc3ab8ebf1366e1d)
+
+<a id="fn-d9977c0efa455877"></a>
+
+```doxygen
+@fn uint64 xv::syscall::sys_fexecve()
+@brief 先复制 argv/envp 并保留描述符的 File 引用，只有显式提供 ExecutableData 的不可变对象可调用既有 load_memory；失败返回原进程，成功替换镜像，最后释放引用。不执行 setuid 提权。
+@details 先复制 argv/envp 并保留描述符的 File 引用，只有显式提供 ExecutableData 的不可变对象可调用既有 load_memory；失败返回原进程，成功替换镜像，最后释放引用。不执行 setuid 提权。
+```
+
+<a id="fn-63fdb861986d7492"></a>
+
+```doxygen
+@fn uint64 xv::syscall::sys_mountfs()
+@brief 仅有效 uid 0 且管理器在线时接受；复制有界类型/路径/可选源和选项后转交用户态管理器，不加载后端算法。
+@details 仅有效 uid 0 且管理器在线时接受；复制有界类型/路径/可选源和选项后转交用户态管理器，不加载后端算法。
+```

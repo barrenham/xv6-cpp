@@ -54,7 +54,14 @@ class MountManager final
       xv::sync::ScopedLock guard(o.state_);
       if (detail::current_pid() != o.pid_ || !o.connected_ || !o.pending_ || !o.delivered_ || o.replied_ ||
           response.version != xv::fsmount::Version || response.id != o.request_.id ||
-          (response.result != 0 && response.result != -1)) return -1;
+          response.pid != o.request_.pid ||
+          (response.result != 0 && response.result != -1 && response.result != xv::fsmount::Progress)) return -1;
+      if (response.result == xv::fsmount::Progress)
+      {
+        o.deadline_ = detail::monotonic_milliseconds() + 30000;
+        detail::wakeup(&o.replied_);
+        return count;
+      }
       o.request_.result = response.result;
       o.replied_ = true;
       detail::wakeup(&o.replied_);
@@ -112,12 +119,14 @@ public:
     xv::sync::ScopedLock guard(state_);
     return connected_ && detail::current_pid() != pid_;
   }
-  int request(const char *type, const char *path)
+  int request(const char *type, const char *path, const char *source, const char *options)
   {
     if (!type || !path) return -1;
     unsigned length = 0;
     while (length < sizeof(request_.path) && path[length]) ++length;
     if (length == sizeof(request_.path)) return -1;
+    for (unsigned i = 0; source && source[i]; ++i) if (i + 1 >= sizeof(request_.source)) return -1;
+    for (unsigned i = 0; options && options[i]; ++i) if (i + 1 >= sizeof(request_.options)) return -1;
     {
       xv::sync::ScopedLock guard(state_);
       if (!connected_ || detail::current_pid() == pid_) return -1;
@@ -137,14 +146,17 @@ public:
     request_.pid = detail::current_pid();
     detail::copy_fixed(request_.type, type, sizeof(request_.type));
     detail::copy_fixed(request_.path, path, sizeof(request_.path));
+    if (source) detail::copy_fixed(request_.source, source, sizeof(request_.source));
+    if (options) detail::copy_fixed(request_.options, options, sizeof(request_.options));
     pending_ = true;
     delivered_ = replied_ = false;
     detail::wakeup(&pending_);
-    const auto deadline = detail::monotonic_milliseconds() + 30000;
+    deadline_ = detail::monotonic_milliseconds() + 30000;
     while (connected_ && !replied_ && !detail::killed() &&
-           detail::monotonic_milliseconds() < deadline)
+           detail::monotonic_milliseconds() < deadline_)
     {
-      if (!detail::wait_until(&replied_, state_, deadline)) break;
+      const auto observed = deadline_;
+      if (!detail::wait_until(&replied_, state_, observed) && deadline_ == observed) break;
     }
     bool success = connected_ && replied_;
     int result = success ? request_.result : -1;
@@ -169,6 +181,7 @@ private:
   xv::sync::SleepLock serial_;
   xv::fsmount::Request request_{};
   unsigned sequence_ = 0;
+  unsigned long deadline_ = 0;
   int pid_ = 0;
   bool connected_ = false, endpoint_open_ = false;
   bool pending_ = false, delivered_ = false, replied_ = false;
@@ -187,9 +200,9 @@ File *create_mount_manager()
   return file;
 }
 
-int request_managed_mount(const char *type, const char *path)
+int request_managed_mount(const char *type, const char *path, const char *source, const char *options)
 {
-  return manager.request(type, path);
+  return manager.request(type, path, source, options);
 }
 
 bool managed_mounts_available() { return manager.available(); }

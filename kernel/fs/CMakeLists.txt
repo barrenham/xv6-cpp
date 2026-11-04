@@ -7,6 +7,7 @@ target_sources(kernel PRIVATE
   file/device_registry.cpp
   file/service_resources.cpp
   file/bootstrap_block.cpp
+  file/boot_asset.cpp
   file/open_file.cpp
   file/file_operations.cpp
   pipe/pipe.cpp

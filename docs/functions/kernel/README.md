@@ -530,3 +530,9 @@
 - [`kernel/io/keyboard.h`](io/keyboard.h.md)
 
 - [`kernel/support/deadline_queue.h`](support/deadline_queue.h.md)：侵入式截止时间树、重设、取消及有界通知。
+
+## 通用插件引导资产
+
+- [资产目录验证](boot/asset_archive.h.md)
+- [资产查询 ABI](io/boot_assets.h.md)
+- [不可变资产描述符](fs/file/boot_asset.cpp.md)

@@ -5,8 +5,10 @@
 #include <vector>
 #include <unordered_set>
 #include "kernel/fs/stat.h"
-#include "user/runtime/userfs/xv6_volume.h"
-#include "user/runtime/userfs/xv6.h"
+#include "user/fs/backends/xv6/volume.h"
+#include "kernel/fs/userfs/protocol.h"
+#include "user/fs/backends/xv6/volume.h"
+import xv.userfs.xv6;
 
 namespace
 {
