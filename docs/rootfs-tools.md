@@ -17,7 +17,8 @@ cmake --build build/dev --target qemu
 ```
 
 目标先构建最新安装种子，再离线更新 `XV_ROOTFS_IMAGE` 指向的已有磁盘。
-只替换构建清单中的 `/bin`、`/sbin`、`/usr/tests` 和 `/usr/share/doc` 文件，
+只替换构建清单中的 `/bin`、`/sbin`、`/usr/tests`、`/usr/share/doc`、
+`/usr/lib/fsplugins`、`/usr/lib/drivers` 和 `/etc/fsplugins` 文件，
 安装 UID/GID 为 root，权限按清单设置，包括 passwd 的 04755。
 这些文件的系统父目录也按清单恢复 root 属主与目录权限；父目录不能是符号链接。
 

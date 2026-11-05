@@ -15,6 +15,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 from create_rootfs import BLOCK, DIRECTORY, FILE, SYMLINK, Image
+from update_rootfs import lookup
 
 p = argparse.ArgumentParser()
 p.add_argument('--image', type=Path, required=True)
@@ -59,6 +60,9 @@ with tempfile.TemporaryDirectory(prefix='rootfs-update-contract-') as temporary:
     image.set_attributes(image.entries(binary)[b'passwd'], (1000, 1001, 0o700))
     image.set_attributes(binary, (1000, 1001, 0o777))
     extra = child(image, binary, b'extra', b'UNLISTED_PROGRAM\n', (1000, 1001, 0o750))
+    drivers = lookup(image, ('usr', 'lib', 'drivers'))
+    image.unlink_file(drivers, b'vblk.elf')
+    child(image, drivers, b'vblk.elf', b'OUTDATED_DRIVER', (0, 0, 0o600))
     tests = image.entries(top[b'usr'])[b'tests']
     image.unlink_file(tests, b'vmcheck')
     image.validate_allocations()
@@ -86,8 +90,9 @@ with tempfile.TemporaryDirectory(prefix='rootfs-update-contract-') as temporary:
         assert candidate.read_bytes() == before and not list(root.glob(candidate.name + '.before-update-*.img'))
 
     bad_manifest = root / 'bad.tsv'
-    bad_manifest.write_text(a.manifest.read_text() + 'file\t0600\t/etc/shadow\tignored\n')
-    run(seed, target, bad_manifest, success=False)
+    for protected in ('/etc/shadow', '/usr/lib/private'):
+        bad_manifest.write_text(a.manifest.read_text() + f'file\t0600\t{protected}\tignored\n')
+        run(seed, target, bad_manifest, success=False)
     assert target.read_bytes() == original
     bad = root / 'bad-parent.img'
     malformed = Image.from_bytes(original)
