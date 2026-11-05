@@ -136,3 +136,14 @@
 
 #define SYS_shm_open 102
 #define SYS_shm_unlink 103
+
+#define SYS_mq_open 104
+#define SYS_mq_unlink 105
+#define SYS_mq_send 106
+#define SYS_mq_receive 107
+#define SYS_mq_getsetattr 108
+#define SYS_clock_gettime 109
+
+#define SYS_mprotect 110
+
+#define SYS_msync 111

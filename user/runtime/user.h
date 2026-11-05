@@ -31,6 +31,8 @@ int shm_open(const char *, int, mode_t);
 int shm_unlink(const char *);
 void *mmap(void *, size_t, int, int, int, off_t);
 int munmap(void *, size_t);
+int mprotect(void *, size_t, int);
+int msync(void *, size_t, int);
 int socketpair(int, int, int, int descriptors[2]);
 long sendmsg(int, const struct msghdr *, int);
 long recvmsg(int, struct msghdr *, int);

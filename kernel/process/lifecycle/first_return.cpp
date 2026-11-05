@@ -10,6 +10,7 @@ import xv.print;
 import xv.memory;
 import xv.drivers;
 import xv.net;
+import xv.ipc;
 
 namespace xv::process
 {
@@ -79,6 +80,7 @@ struct Process::FirstReturnFlow
     {
       xv::drivers::initialize_boot_modules();
       initialize_network();
+      xv::ipc::start_socket_collector();
       xv::fs::initialize_device_registry();
       // Bootstrap console descriptors require neither /dev nor a root directory.
       for (int descriptor = 0; descriptor < 3; ++descriptor)

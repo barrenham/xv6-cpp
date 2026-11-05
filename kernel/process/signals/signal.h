@@ -2,6 +2,7 @@
 
 #define SIGHUP 1
 #define SIGINT 2
+#define SIGBUS 7
 #define SIGKILL 9
 #define SIGUSR1 10
 #define SIGSEGV 11

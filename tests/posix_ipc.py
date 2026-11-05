@@ -24,6 +24,7 @@ def main():
         try:
             login_root(guest.expect, guest.process)
             print(guest.command('/usr/tests/posixipc', 'posixipc: PASS', timeout=90))
+            print(guest.command('/usr/tests/mqtest', 'mqtest: PASS', timeout=90))
             for path in ('/tmp/ipcbench', '/root/ipcbench'):
                 output = guest.command('/usr/tests/ipcbench ' + path, 'ipcbench: PASS', timeout=120)
                 print(path, output)

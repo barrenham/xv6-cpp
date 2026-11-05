@@ -3,9 +3,24 @@
 #include <stdbool.h>
 
 #define XV_KMOD_ABI_V2 2U
+#define XV_KMOD_DEVICE_PCI_READY 1U
 #define XV_KMOD_BUS_PLATFORM 2U
 #define XV_KMOD_BUS_SOFTWARE 3U
 #define XV_KMOD_BUS_PCI 4U
+
+// Generic platform devices use the first DT compatible string as a stable ID.
+// Device-specific bind code must still validate its hardware before programming it.
+#ifdef __cplusplus
+constexpr
+#else
+static inline
+#endif
+unsigned xv_kmod_compatible_id(const char *name)
+{
+  unsigned value = 2166136261U;
+  while (*name) { value ^= (unsigned char)*name++; value *= 16777619U; }
+  return value ? value : 1U;
+}
 
 struct xv_kmod_device_v2
 {

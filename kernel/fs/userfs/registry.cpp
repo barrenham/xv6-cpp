@@ -210,3 +210,18 @@ userfs_type(unsigned index, char *name) {
   return false;
 }
 } // namespace xv::fs
+
+namespace xv::fs
+{
+bool can_reclaim_file_objects()
+{
+  if (filesystem().namespace_held()) { return false; }
+  xv::sync::ScopedLock guard(registry_lock);
+  for (auto *provider : providers)
+  {
+    if (provider && (provider->operation_held() ||
+                     provider->provider_pid() == detail::current_pid())) { return false; }
+  }
+  return true;
+}
+}

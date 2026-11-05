@@ -54,7 +54,7 @@ void broken_pipe();
 bool exchange_transport(File *, void *request, void *response, unsigned bytes,
                         unsigned long deadline);
 int copy_transport(File *, unsigned long address, unsigned bytes, bool user,
-                   bool writing);
+                   bool writing, unsigned offset = 0);
 void sleep();
 void wakeup(void *channel);
 bool killed();
@@ -63,6 +63,8 @@ int copy_in(void *destination, bool user, unsigned long source, unsigned count);
 int copy_out(bool user, unsigned long destination, const void *source, unsigned count);
 void *allocate_page();
 void free_page(void *page);
+void release_frame(void *page);
+void synchronize_file_mappings();
 void move(void *destination, const void *source, unsigned count);
 void fill(void *destination, int value, unsigned count);
 int compare(const char *first, const char *second, unsigned count);

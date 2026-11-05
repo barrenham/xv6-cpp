@@ -64,6 +64,8 @@ directory_type(u16 mode) {
     return 4;
   case Symlink:
     return 7;
+  case Socket:
+    return 6;
   default:
     return 0;
   }
@@ -1263,7 +1265,7 @@ Volume::create(u32 parent, const char *name, u16 mode, u32 uid, u32 gid,
   }
   u16 type = mode & 0xf000;
   if (type != Regular && type != Directory && type != Symlink && type != Character &&
-      type != Block)
+      type != Block && type != Socket)
   {
     return fail(Error::Unsupported);
   }

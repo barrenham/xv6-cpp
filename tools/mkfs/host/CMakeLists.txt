@@ -83,7 +83,6 @@ add_executable(driver_contract
   "${XV_ROOT}/kernel/drivers/tty/core/tty.cpp"
   "${XV_ROOT}/kernel/drivers/tty/pty/pty.cpp"
   "${XV_ROOT}/drivers/backends/e1000/device.cpp"
-  "${XV_ROOT}/drivers/backends/e1000/pci.cpp"
   "${XV_ROOT}/kernel/drivers/tty/ldisc/n_tty.cpp"
   "${XV_ROOT}/drivers/backends/entropy/device.cpp"
   "${XV_ROOT}/drivers/backends/gpu/device.cpp"
@@ -103,8 +102,7 @@ xv_add_driver_modules(driver_contract)
 
 target_sources(driver_contract PRIVATE FILE_SET driver_contract_internals TYPE CXX_MODULES
   BASE_DIRS "${XV_ROOT}" FILES "${XV_ROOT}/kernel/drivers/tty/pty/pty.cppm"
-    "${XV_ROOT}/drivers/backends/e1000/device.cppm"
-    "${XV_ROOT}/drivers/backends/e1000/pci.cppm")
+    "${XV_ROOT}/drivers/backends/e1000/device.cppm")
 
 include("${XV_ROOT}/cmake/process-modules.cmake")
 add_executable(process_contract
@@ -131,6 +129,7 @@ add_executable(fs_contract
   "${XV_ROOT}/tests/fs_contract.cpp"
   "${XV_ROOT}/tests/fs_test_platform.cpp"
   "${XV_ROOT}/tests/fs_user_backend.cpp"
+  "${XV_ROOT}/kernel/fs/inode/file_mapping.cpp"
   "${XV_ROOT}/kernel/fs/buffer/page_buffer.cpp"
   "${XV_ROOT}/tests/fs_driver_platform.cpp"
   "${XV_ROOT}/kernel/fs/userfs/userfs.cpp"
@@ -472,3 +471,10 @@ target_include_directories(ext4_volume_contract PRIVATE "${XV_ROOT}")
 target_compile_features(ext4_volume_contract PRIVATE cxx_std_20)
 target_compile_options(ext4_volume_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
 set_target_properties(ext4_volume_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(device_tree_contract "${XV_ROOT}/tests/device_tree_contract.cpp"
+  "${XV_ROOT}/kernel/hardware/device_tree.cpp")
+target_include_directories(device_tree_contract PRIVATE "${XV_ROOT}")
+target_compile_features(device_tree_contract PRIVATE cxx_std_20)
+target_compile_options(device_tree_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(device_tree_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

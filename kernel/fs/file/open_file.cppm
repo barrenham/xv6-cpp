@@ -4,6 +4,7 @@ module;
 
 export module xv.fs:file;
 export import :filesystem;
+import :mapping;
 import :cache;
 export import xv.drivers;
 export import xv.io;
@@ -83,7 +84,10 @@ public:
   long seek(File *file, long offset, int origin);
   int resize(File *file, unsigned size);
   int sync(File *file);
+  int map_file(File *, unsigned offset, unsigned pages, bool shared, bool writing,
+               FileMapping *&, unsigned &maximum_protection);
   int ioctl(File *file, unsigned request, unsigned long argument);
+  bool exchange_nonblocking(File *file, bool value);
   int fcntl(File *file, int command, unsigned flags);
   unsigned poll(File *file, xv::sync::PollTable *table = nullptr);
 

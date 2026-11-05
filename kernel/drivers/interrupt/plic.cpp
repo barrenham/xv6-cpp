@@ -1,9 +1,17 @@
 module xv.drivers;
 
 import :plic;
+import :platform;
 
 namespace xv::drivers
 {
+unsigned Plic::context(int hart) const
+{
+  if (hart < 0 || unsigned(hart) >= context_count_ || !contexts_ || contexts_[hart] == ~0U)
+    detail::fail("PLIC: no supervisor context for hart");
+  return contexts_[hart];
+}
+
 void Plic::initialize()
 {
   // Source priorities are supplied by the board's InterruptRouter.
@@ -18,25 +26,25 @@ void Plic::initialize_hart(int hart)
 {
   for (unsigned word = 0; word < 32; ++word)
   {
-    registers_.write32(0x2080 + hart * 0x100 + word * 4, 0);
+    registers_.write32(0x2000 + context(hart) * 0x80 + word * 4, 0);
   }
-  registers_.write32(0x201000 + hart * 0x2000, 0);
+  registers_.write32(0x200000 + context(hart) * 0x1000, 0);
 }
 
 void Plic::enable(int hart, unsigned irq)
 {
-  unsigned offset = 0x2080 + hart * 0x100 + (irq / 32) * 4;
+  unsigned offset = 0x2000 + context(hart) * 0x80 + (irq / 32) * 4;
   unsigned mask = registers_.read32(offset);
   registers_.write32(offset, mask | (1U << (irq % 32)));
 }
 
 unsigned Plic::claim(int hart)
 {
-  return registers_.read32(0x201004 + hart * 0x2000);
+  return registers_.read32(0x200004 + context(hart) * 0x1000);
 }
 
 void Plic::complete(int hart, unsigned irq)
 {
-  registers_.write32(0x201004 + hart * 0x2000, irq);
+  registers_.write32(0x200004 + context(hart) * 0x1000, irq);
 }
 } // namespace xv::drivers

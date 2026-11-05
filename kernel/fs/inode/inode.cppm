@@ -8,6 +8,8 @@ export namespace xv::fs
 {
 using Stat = ::stat;
 class FileSystem;
+class FileMapping;
+struct MappedPages;
 
 class Inode final
 {
@@ -82,11 +84,18 @@ public:
 private:
 
   friend class FileSystem;
+  friend class FileMapping;
+  friend struct MappedPages;
   friend class UserFileSystem;
   FileSystem *owner_ = nullptr;
+  MappedPages *mapped_pages_ = nullptr;
+  unsigned mapped_length_ = 0;
   unsigned dev = 0;
   unsigned inum = 0;
   int ref = 0;
+  xv::sync::SleepLock data_lock_;
+  unsigned long write_epoch_ = 0;
+  bool metadata_valid_ = false;
   short type = 0;
   short major = 0;
   short minor = 0;

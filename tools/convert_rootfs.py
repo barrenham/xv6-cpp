@@ -16,7 +16,7 @@ import subprocess
 import tempfile
 import uuid
 
-from create_rootfs import Image,DIRECTORY,DEVICE,BLOCK_DEVICE,import_tree
+from create_rootfs import Image,DIRECTORY,DEVICE,SOCKET,BLOCK_DEVICE,import_tree
 from update_rootfs import fsync_directory,same_inode
 
 
@@ -31,7 +31,7 @@ def snapshot(image):
             for name,child in image.entries(number).items():
                 if name not in (b'.',b'..'):visit(child,path+b'/'+name)
         else:
-            if kind not in (2,DEVICE,5,BLOCK_DEVICE):raise ValueError('unsupported source inode type')
+            if kind not in (2,DEVICE,SOCKET,5,BLOCK_DEVICE):raise ValueError('unsupported source inode type')
             content=image.read(number)
             records[path]=(kind,image.attributes(number),len(content),hashlib.sha256(content).digest(),image.device_numbers(number) if kind in (DEVICE,BLOCK_DEVICE) else None)
             links.setdefault(number,[]).append(path)

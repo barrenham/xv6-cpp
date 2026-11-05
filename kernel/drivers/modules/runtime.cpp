@@ -456,8 +456,10 @@ class ModuleBlock final : public BlockDevice
 {
 public:
 
-  constexpr explicit ModuleBlock(unsigned index) : index_(index) {
+  constexpr explicit ModuleBlock(unsigned index = 0) : index_(index) {
   }
+
+  void configure(unsigned index) { index_ = index; }
 
   const char *
   name() const override {
@@ -515,8 +517,9 @@ private:
   unsigned index_;
 };
 
-constinit ModuleBlock root_block(0);
-constinit ModuleBlock data_block(1);
+constinit ModuleBlock block_instances[MaxDevices];
+unsigned block_indices[MaxDevices]{};
+unsigned block_count = 0;
 
 bool
 module_callback(const Image &image, unsigned long address) {
@@ -551,10 +554,7 @@ bind(unsigned id, unsigned device_index) {
     extended.binding = &binding;
     return modules::attach(image, extended);
   }
-  if (device_index > 1)
-  {
-    return -1;
-  }
+  if (device.bus != XV_KMOD_BUS_VIRTIO_MMIO || device.id != 2) return -1;
   binding.host = {sizeof(xv_kmod_host),
                   XV_KMOD_ABI,
                   &binding,
@@ -585,9 +585,19 @@ bind(unsigned id, unsigned device_index) {
     binding.operations = {};
     return -1;
   }
-  if (device_index == 1 && !xv::fs::publish_data_device(data_block))
-  {
+  unsigned ordinal = 0;
+  while (ordinal < block_count && block_indices[ordinal] != device_index) ++ordinal;
+  if (ordinal == block_count) return -1;
+  if (ordinal == 1 && !xv::fs::publish_data_device(block_instances[device_index]))
     xv::print::panic("module: device publication failed");
+  if (ordinal > 1)
+  {
+    char name[16] = "vd";
+    unsigned value = ordinal, at = 2;
+    if (value >= 26) { name[at++] = 'a' + value / 26 - 1; value %= 26; }
+    name[at++] = 'a' + value; name[at] = 0;
+    if (!xv::fs::devices().attach_dynamic_block(name, 8, ordinal * 16, block_instances[device_index]))
+      xv::print::panic("module: extra block device publication failed");
   }
   ++image.bound;
   __atomic_store_n(&online[device_index], 1U, __ATOMIC_RELEASE);
@@ -719,6 +729,7 @@ initialize_boot_modules() {
       {
         break;
       }
+      if (__atomic_load_n(&online[device_index], __ATOMIC_ACQUIRE)) continue;
       if (selected != MaxDevices && selected != device_index)
       {
         continue;
@@ -738,14 +749,32 @@ initialize_boot_modules() {
   }
 }
 
+void discover_block_roles()
+{
+  if (block_count) return;
+  for (unsigned i = 0; i < MaxDevices; ++i)
+  {
+    block_instances[i].configure(i);
+    xv_kmod_device device{};
+    if (!module_device(i, device)) break;
+    if (device.bus == XV_KMOD_BUS_VIRTIO_MMIO && device.id == 2)
+      block_indices[block_count++] = i;
+  }
+}
+
 BlockDevice *
 data_device() {
-  return __atomic_load_n(&online[1], __ATOMIC_ACQUIRE) ? &data_block : nullptr;
+  discover_block_roles();
+  if (block_count < 2) return nullptr;
+  unsigned index = block_indices[1];
+  return __atomic_load_n(&online[index], __ATOMIC_ACQUIRE) ? &block_instances[index] : nullptr;
 }
 
 BlockDevice &
 block_device() {
-  return root_block;
+  discover_block_roles();
+  if (!block_count) xv::print::panic("no block device discovered in device tree");
+  return block_instances[block_indices[0]];
 }
 
 void
@@ -822,6 +851,21 @@ module_control(unsigned operation, unsigned long argument, unsigned long value) 
     device.bound =
         value < MaxDevices ? __atomic_load_n(&online[value], __ATOMIC_ACQUIRE) : 0;
     return xv::process::copy_out(true, argument, &device, sizeof(device));
+  }
+  case XV_KMOD_AUTOBIND: {
+    if (argument >= MaxModules || !images[argument].base) return -1;
+    unsigned attached = 0;
+    bool failed = false;
+    for (unsigned index = 0; index < MaxDevices; ++index)
+    {
+      xv_kmod_device device{};
+      if (!module_device(index, device)) break;
+      if (__atomic_load_n(&online[index], __ATOMIC_ACQUIRE) ||
+          device.bus != images[argument].driver->bus || device.id != images[argument].driver->device_id) continue;
+      if (bind(argument, index) < 0) failed = true;
+      else ++attached;
+    }
+    return failed ? -1 : static_cast<long>(attached);
   }
   case XV_KMOD_BIND:
     return argument >= MaxModules || value > 0xffffffffUL ? -1 : bind(argument, value);

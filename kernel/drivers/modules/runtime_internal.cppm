@@ -8,7 +8,7 @@ import :network;
 namespace xv::drivers::modules
 {
 inline constexpr unsigned MaxModules = 32;
-inline constexpr unsigned MaxDevices = 16;
+inline constexpr unsigned MaxDevices = XV_KMOD_MAX_DEVICES;
 
 class ResourcePool
 {

@@ -52,7 +52,13 @@ public:
   bool device_mapping(void *const *pages, unsigned count) const;
 
   unsigned long map_shared_pages(void *const *, unsigned count, unsigned permissions,
-                                 bool private_copy = false, unsigned long hint = 0);
+                                 bool private_copy = false, unsigned long hint = 0,
+                                 unsigned maximum_permissions = 30,
+                                 xv::memory::MappingBacking *backing = nullptr);
+  void close_file_mappings();
+  void refresh_file_mappings() const;
+  int sync_mappings(unsigned long address, unsigned long bytes);
+  int protect_mappings(unsigned long address, unsigned long bytes, unsigned permissions);
   int unmap_shared_pages(unsigned long address, unsigned long bytes);
 
   int copy_in(void *destination, unsigned long source, unsigned long bytes) const;

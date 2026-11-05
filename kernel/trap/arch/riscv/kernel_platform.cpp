@@ -4,6 +4,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/support/param.h"
 #include "kernel/support/types.h"
+#include "kernel/process/signals/signal.h"
 #include "kernel/trap/arch/riscv/entry.h"
 
 module xv.trap;
@@ -396,6 +397,7 @@ bool scheduler_timer_tick()
 
 void save_user_pc(Word pc)
 {
+  xv::process::leave_user_mappings();
   xv::process::current()->registers()->epc = pc;
 }
 
@@ -423,14 +425,17 @@ void dispatch_external_interrupt()
 
 bool resolve_page_fault(Word address, MemoryAccess access)
 {
-  return xv::process::current()
-             ->memory()
-             .handle_fault(address, access == MemoryAccess::Read
-                                        ? xv::memory::FaultAccess::Read
-                                    : access == MemoryAccess::Write
-                                        ? xv::memory::FaultAccess::Write
-                                        : xv::memory::FaultAccess::Execute)
-             .result == xv::memory::FaultResult::Resolved;
+  auto *process = xv::process::current();
+  auto result = process->memory().handle_fault(address,
+      access == MemoryAccess::Read ? xv::memory::FaultAccess::Read :
+      access == MemoryAccess::Write ? xv::memory::FaultAccess::Write :
+                                     xv::memory::FaultAccess::Execute).result;
+  if (result == xv::memory::FaultResult::FileBounds)
+  {
+    (void)xv::process::send_signal(process->id(), SIGBUS);
+    return true;
+  }
+  return result == xv::memory::FaultResult::Resolved;
 }
 
 void report_user_fault(const TrapEvent &event)
@@ -512,6 +517,7 @@ void prepare_user_return()
   auto *process = xv::process::current();
   UserReturnFlow::Context context{process};
   (void)UserReturnFlow::Graph::run<0>(context);
+  xv::process::enter_user_mappings();
 }
 
 Word user_page_table_token()

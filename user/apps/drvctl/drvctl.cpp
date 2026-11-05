@@ -44,8 +44,9 @@ bus_name(unsigned bus) {
 void
 usage() {
   fprintf(2, "usage: drvctl [--raw] list|devices\n"
-             "       drvctl load ELF\n"
-             "       drvctl bind MODULE DEVICE\n");
+             "       drvctl load [--auto|--no-bind] ELF\n"
+             "       drvctl bind MODULE DEVICE\n"
+             "       drvctl bind --auto MODULE\n");
 }
 
 } // namespace
@@ -68,9 +69,16 @@ main(int argc, char **argv) {
       return 1;
     }
   }
-  if (argc == 3 && strcmp(argv[1], "load") == 0)
+  if ((argc == 3 || argc == 4) && strcmp(argv[1], "load") == 0)
   {
-    auto fd = open(argv[2], O_RDONLY);
+    bool automatic = true;
+    if (argc == 4)
+    {
+      if (!strcmp(argv[2], "--no-bind")) automatic = false;
+      else if (strcmp(argv[2], "--auto")) { usage(); return 1; }
+    }
+    const char *path = argv[argc - 1];
+    auto fd = open(path, O_RDONLY);
     struct stat metadata{};
     if (fd < 0 || fstat(fd, &metadata) < 0 || metadata.type != T_FILE ||
         !metadata.size || metadata.size > XV_KMOD_MAX_FILE)
@@ -110,6 +118,12 @@ main(int argc, char **argv) {
       return 1;
     }
     printf("drvctl: loaded module %ld\n", id);
+    if (automatic)
+    {
+      long bound = kmod(XV_KMOD_AUTOBIND, id, 0);
+      if (bound < 0) { fprintf(2, "drvctl: automatic binding failed; inspect drvctl devices\n"); return 1; }
+      printf("drvctl: automatically bound %ld devices\n", bound);
+    }
     return 0;
   }
   if (argc == 2 && strcmp(argv[1], "list") == 0)
@@ -157,7 +171,7 @@ main(int argc, char **argv) {
              "IRQ", "STATE");
     }
     unsigned count = 0;
-    for (unsigned index = 0; index < 16; ++index)
+    for (unsigned index = 0; index < XV_KMOD_MAX_DEVICES; ++index)
     {
       xv_kmod_device device{};
       if (kmod(XV_KMOD_DEVICE, reinterpret_cast<unsigned long>(&device), index) < 0)
@@ -203,6 +217,14 @@ main(int argc, char **argv) {
   }
   if (argc == 4 && strcmp(argv[1], "bind") == 0)
   {
+    if (!strcmp(argv[2], "--auto"))
+    {
+      int module = number(argv[3]);
+      long count = module < 0 ? -1 : kmod(XV_KMOD_AUTOBIND, module, 0);
+      if (count < 0) { fprintf(2, "drvctl: automatic binding failed\n"); return 1; }
+      printf("drvctl: automatically bound %ld devices\n", count);
+      return 0;
+    }
     auto module = number(argv[2]), device = number(argv[3]);
     if (module < 0 || device < 0 || kmod(XV_KMOD_BIND, module, device) < 0)
     {

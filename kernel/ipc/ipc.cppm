@@ -1,5 +1,7 @@
 module;
 #include "kernel/net/socket/socket.h"
+#include "kernel/io/mqueue.h"
+#include "kernel/io/posix_errno.h"
 export module xv.ipc;
 export import xv.io;
 
@@ -33,6 +35,19 @@ public:
   virtual bool connected() const = 0;
   virtual int type() const = 0;
   virtual void attach_file(void *) = 0;
+  virtual int bind_path(const char *) { return -EOPNOTSUPP; }
+  virtual int connect_path(const char *, bool) { return -EOPNOTSUPP; }
+  virtual int listen(int) { return -EOPNOTSUPP; }
+  virtual xv::io::IoObject *accept(bool, int &error)
+  {
+    error = -EOPNOTSUPP;
+    return nullptr;
+  }
+  virtual int address(bool peer, char *path)
+  {
+    path[0] = 0;
+    return peer && !connected() ? -ENOTCONN : 0;
+  }
 
 protected:
 
@@ -40,9 +55,14 @@ protected:
   ~LocalSocket() = default;
 };
 
+xv::io::IoObject *local_socket(int type);
 bool socket_pair(int type, xv::io::IoObject *out[2]);
 void release_rights(Rights &);
+void start_socket_collector();
+void request_socket_reclamation();
 void collect_socket_cycles();
+void collect_deferred_socket_cycles();
+bool reclaim_named_sockets();
 } // namespace xv::ipc
 
 export namespace xv::ipc
@@ -68,3 +88,20 @@ protected:
 xv::io::IoObject *shared_open(const char *, unsigned flags, unsigned mode, int &error);
 int shared_unlink(const char *);
 } // namespace xv::ipc
+
+export namespace xv::ipc
+{
+class MessageQueue : public xv::io::Capability
+{
+public:
+  static constexpr auto Id = xv::io::CapabilityId::MessageQueue;
+  virtual int send(unsigned long, unsigned long, unsigned, bool, unsigned long) = 0;
+  virtual int receive(unsigned long, unsigned long, unsigned long, bool, unsigned long) = 0;
+  virtual void attributes(mq_attr &) = 0;
+protected:
+  constexpr MessageQueue() = default;
+  ~MessageQueue() = default;
+};
+xv::io::IoObject *queue_open(const char *, unsigned, unsigned, const mq_attr *, int &);
+int queue_unlink(const char *);
+}

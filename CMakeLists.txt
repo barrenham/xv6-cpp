@@ -791,3 +791,42 @@ add_test(NAME posix_headers_contract COMMAND "${XV_HOST_CLANG}"
   -fsyntax-only "-I${PROJECT_SOURCE_DIR}/user/include" "-I${PROJECT_SOURCE_DIR}"
   "${PROJECT_SOURCE_DIR}/tests/posix_headers.c")
 set_tests_properties(posix_headers_contract PROPERTIES TIMEOUT 15 LABELS io)
+
+add_test(NAME device_tree_contract COMMAND "${Python3_EXECUTABLE}"
+  "${PROJECT_SOURCE_DIR}/tests/device_tree_contract.py" --qemu "${XV_QEMU}"
+  --contract "${PROJECT_BINARY_DIR}/device_tree_contract")
+set_tests_properties(device_tree_contract PROPERTIES TIMEOUT 40 LABELS "driver;boot")
+
+foreach(cpus 1 5)
+  add_test(NAME device_discovery_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/device_discovery.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --module "${PROJECT_BINARY_DIR}/modules/virtio_block.elf"
+    --cpus ${cpus})
+  set_tests_properties(device_discovery_${cpus}cpu PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE LABELS "driver;boot")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME unix_socket_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/unix_sockets.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs"
+    --cpus ${cpus})
+  set_tests_properties(unix_socket_${cpus}cpu PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "io;fs")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_concurrency_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_concurrency.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(fs_concurrency_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "fs;io")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME memory_mapping_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/memory_mapping.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --cpus ${cpus})
+  set_tests_properties(memory_mapping_${cpus}cpu PROPERTIES TIMEOUT 540 RUN_SERIAL TRUE LABELS memory)
+endforeach()

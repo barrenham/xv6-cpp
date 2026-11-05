@@ -1,6 +1,7 @@
 module;
 #include "kernel/net/errno.h"
 #include "kernel/io/posix_errno.h"
+#include "kernel/fs/fcntl.h"
 #include "kernel/net/socket/socket.h"
 #include "kernel/support/flow.h"
 module xv.syscall;
@@ -35,25 +36,61 @@ local_argument() {
 }
 
 int
-unix_name(unsigned long address, unsigned long length) {
+socket_argument_error() {
+  int descriptor;
+  argument_integer(0, &descriptor);
+  return xv::process::current()->files().get(descriptor) ? -ENOTSOCK : -EBADF;
+}
+
+int
+unix_path(unsigned long address, int length, sockaddr_un &value) {
+  if (length <= int(sizeof(value.sun_family)) || length > int(sizeof(value)))
+  { return -EINVAL; }
+  value = {};
+  if (xv::process::current()->memory().copy_in(&value, address, unsigned(length)) < 0)
+  { return -EFAULT; }
+  if (value.sun_family != AF_UNIX) { return -EAFNOSUPPORT; }
+  if (!value.sun_path[0]) { return -EOPNOTSUPP; } // Abstract names are not pathname sockets.
+  for (unsigned i = 0; i < sizeof(value.sun_path); ++i)
+  { if (!value.sun_path[i]) { return 0; } }
+  return -ENAMETOOLONG;
+}
+
+int
+unix_name(unsigned long address, unsigned long length, xv::ipc::LocalSocket &socket,
+          bool peer) {
   socklen_t capacity;
   auto &memory = xv::process::current()->memory();
   if (!address || !length || memory.copy_in(&capacity, length, sizeof(capacity)) < 0)
+  { return -EFAULT; }
+  sockaddr_un value{};
+  value.sun_family = AF_UNIX;
+  int error = socket.address(peer, value.sun_path);
+  if (error) { return error; }
+  socklen_t actual = sizeof(value.sun_family);
+  if (value.sun_path[0])
   {
-    return -EFAULT;
+    unsigned bytes = 0;
+    while (bytes < sizeof(value.sun_path) && value.sun_path[bytes]) { ++bytes; }
+    actual += bytes + 1;
   }
-  unsigned short family = AF_UNIX;
-  socklen_t actual = sizeof(family);
-  if (capacity > actual)
-  {
-    capacity = actual;
-  }
-  if (memory.copy_out(address, &family, capacity) < 0 ||
+  if (capacity > actual) { capacity = actual; }
+  if (memory.copy_out(address, &value, capacity) < 0 ||
       memory.copy_out(length, &actual, sizeof(actual)) < 0)
-  {
-    return -EFAULT;
-  }
+  { return -EFAULT; }
   return 0;
+}
+
+int
+install_local(xv::io::IoObject *object, unsigned options) {
+  auto *file = xv::fs::files().allocate();
+  if (!file) { object->close(); return -ENFILE; }
+  xv::fs::files().bind_object(*file, *object, options & SOCK_NONBLOCK);
+  xv::io::query<xv::ipc::LocalSocket>(object)->attach_file(file);
+  int descriptor = xv::process::current()->files().install(
+      file, options & SOCK_CLOEXEC ? FD_CLOEXEC : 0);
+  if (descriptor < 0) { xv::fs::files().release(file); return -EMFILE; }
+  return descriptor;
 }
 namespace flow = xv::flow;
 struct SocketInstallFlow
@@ -433,6 +470,15 @@ unsigned long sys_socket()
   argument_integer(0, &domain);
   argument_integer(1, &type);
   argument_integer(2, &protocol);
+  if (domain == AF_UNIX)
+  {
+    unsigned options = type & (SOCK_NONBLOCK | SOCK_CLOEXEC);
+    type &= ~(SOCK_NONBLOCK | SOCK_CLOEXEC);
+    if (protocol || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
+    { return -EOPNOTSUPP; }
+    auto *object = xv::ipc::local_socket(type);
+    return object ? install_local(object, options) : -ENOMEM;
+  }
   if (domain != AF_INET || (type & ~(SOCK_NONBLOCK | 3)))
   {
     return -1;
@@ -447,10 +493,16 @@ unsigned long sys_sockbind()
   int length;
   argument_address(1, &address);
   argument_integer(2, &length);
+  if (auto *local = local_argument())
+  {
+    sockaddr_un value;
+    int error = unix_path(address, length, value);
+    return error ? error : local->bind_path(value.sun_path);
+  }
   xv::net::Endpoint local;
   if (!socket || length < 0)
   {
-    return -1;
+    return !socket ? socket_argument_error() : -EINVAL;
   }
   SocketBindFlow::Context context{socket, address, length, local};
   (void)SocketBindFlow::Graph::run<0>(context);
@@ -464,10 +516,16 @@ unsigned long sys_connect()
   int length;
   argument_address(1, &address);
   argument_integer(2, &length);
+  if (auto *local = local_argument())
+  {
+    sockaddr_un value;
+    int error = unix_path(address, length, value);
+    return error ? error : local->connect_path(value.sun_path, file->nonblocking());
+  }
   xv::net::Endpoint peer;
   if (!socket || length < 0)
   {
-    return -1;
+    return !socket ? socket_argument_error() : -EINVAL;
   }
   SocketConnectFlow::Context context{socket, file, address, length, peer};
   (void)SocketConnectFlow::Graph::run<0>(context);
@@ -478,7 +536,8 @@ unsigned long sys_listen()
   auto *socket = socket_argument();
   int backlog;
   argument_integer(1, &backlog);
-  return socket ? socket->listen(backlog) : -1;
+  if (auto *local = local_argument()) { return local->listen(backlog); }
+  return socket ? socket->listen(backlog) : socket_argument_error();
 }
 unsigned long sys_accept()
 {
@@ -487,9 +546,22 @@ unsigned long sys_accept()
   unsigned long address, length;
   argument_address(1, &address);
   argument_address(2, &length);
+  if (auto *local = local_argument())
+  {
+    if (address && !length) { return -EFAULT; }
+    int error = 0;
+    auto *child = local->accept(file->nonblocking(), error);
+    if (!child) { return error; }
+    if (address)
+    {
+      error = unix_name(address, length, *xv::io::query<xv::ipc::LocalSocket>(child), true);
+      if (error) { child->close(); return error; }
+    }
+    return install_local(child, 0);
+  }
   if (!socket)
   {
-    return -1;
+    return socket_argument_error();
   }
   SocketAcceptFlow::Context context{socket, file, address, length};
   (void)SocketAcceptFlow::Graph::run<0>(context);
@@ -525,7 +597,7 @@ unsigned long sys_sendto()
   }
   if (!socket || length < 0 || (flags & ~MSG_DONTWAIT) || address_length < 0)
   {
-    return -1;
+    return !socket ? socket_argument_error() : -EINVAL;
   }
   xv::net::Endpoint peer;
   SocketSendFlow::Context context{socket, file,  data,           address,
@@ -559,7 +631,7 @@ unsigned long sys_recvfrom()
     unsigned output_flags = 0;
     int result = local->receive(&vector, 1, true, flags, discarded, output_flags);
     xv::ipc::release_rights(discarded);
-    if (result >= 0 && address && unix_name(address, address_length) < 0)
+    if (result >= 0 && address && unix_name(address, address_length, *local, true) < 0)
     {
       return -EFAULT;
     }
@@ -567,7 +639,7 @@ unsigned long sys_recvfrom()
   }
   if (!socket || length < 0 || (flags & ~MSG_DONTWAIT))
   {
-    return -1;
+    return !socket ? socket_argument_error() : -EINVAL;
   }
   xv::net::Endpoint peer;
   SocketReceiveFlow::Context context{socket,         file,   data,  address,
@@ -584,7 +656,7 @@ unsigned long sys_shutdown()
   {
     return local->shutdown(how);
   }
-  return socket ? socket->shutdown(how) : -1;
+  return socket ? socket->shutdown(how) : socket_argument_error();
 }
 unsigned long sys_getsockname()
 {
@@ -592,11 +664,12 @@ unsigned long sys_getsockname()
   unsigned long address, length;
   argument_address(1, &address);
   argument_address(2, &length);
-  if (local_argument())
+  if (auto *local = local_argument())
   {
-    return unix_name(address, length);
+    return unix_name(address, length, *local, false);
   }
-  return socket && address ? output_address(address, length, socket->local()) : -1;
+  return !socket ? socket_argument_error()
+         : !address ? -EFAULT : output_address(address, length, socket->local());
 }
 unsigned long sys_getpeername()
 {
@@ -606,11 +679,11 @@ unsigned long sys_getpeername()
   argument_address(2, &length);
   if (auto *local = local_argument())
   {
-    return local->connected() ? unix_name(address, length) : -ENOTCONN;
+    return unix_name(address, length, *local, true);
   }
   if (!socket || !address)
   {
-    return -1;
+    return !socket ? socket_argument_error() : -EFAULT;
   }
   auto peer = socket->peer();
   return peer.port ? output_address(address, length, peer) : -ENOTCONN;
@@ -626,6 +699,18 @@ unsigned long sys_getsockopt()
   argument_address(4, &length);
   unsigned capacity;
   auto &memory = xv::process::current()->memory();
+  if (auto *local = local_argument())
+  {
+    if (level != SOL_SOCKET || (option != SO_ERROR && option != SO_TYPE))
+    { return -EOPNOTSUPP; }
+    if (memory.copy_in(&capacity, length, sizeof(capacity)) < 0) { return -EFAULT; }
+    int result = option == SO_TYPE ? local->type() : 0;
+    socklen_t actual = sizeof(result);
+    if (capacity > actual) { capacity = actual; }
+    return memory.copy_out(value, &result, capacity) < 0 ||
+           memory.copy_out(length, &actual, sizeof(actual)) < 0 ? -EFAULT : 0;
+  }
+  if (!socket) { return socket_argument_error(); }
   SocketOptionFlow::Context context{socket, level,    option, value,
                                     length, capacity, memory};
   (void)SocketOptionFlow::Graph::run<0>(context);

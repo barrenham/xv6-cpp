@@ -2,6 +2,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/io/legacy_dirent.h"
 #include "kernel/fs/stat.h"
+#include "kernel/io/posix_errno.h"
 #include "kernel/support/param.h"
 module xv.fs:vfs_path_flow;
 import :vfs;
@@ -26,6 +27,7 @@ struct VirtualFileSystem::WalkFlow
     Inode *node = nullptr, *next = nullptr, *result = nullptr;
     unsigned links = 0, size = 0, rest = 0;
     bool valid = false, trailing = false;
+    int error = -ENOENT;
   };
 
   static void
@@ -35,6 +37,7 @@ struct VirtualFileSystem::WalkFlow
     {
       if (length == MAXPATH - 1)
       {
+        c.error = -ENAMETOOLONG;
         return;
       }
       c.pending[length] = c.path[length];
@@ -107,8 +110,11 @@ struct VirtualFileSystem::WalkFlow
 
   static bool
   searchable(Context &c) noexcept {
-    return c.valid && c.node->kind() == T_DIR && c.node->linked() &&
-           detail::allowed(c.node, 1, c.real);
+    if (!c.valid) { c.error = -ENAMETOOLONG; return false; }
+    if (c.node->kind() != T_DIR) { c.error = -ENOTDIR; return false; }
+    if (!c.node->linked()) { c.error = -ENOENT; return false; }
+    if (!detail::allowed(c.node, 1, c.real)) { c.error = -EACCES; return false; }
+    return true;
   }
 
   static void
@@ -191,10 +197,15 @@ struct VirtualFileSystem::WalkFlow
     {
       ++c.rest;
     }
-    c.valid = ++c.links <= 16 && c.size &&
+    ++c.links;
+    c.error = c.links > 16 ? -ELOOP
+                : c.size + (c.rest ? 1 : 0) + c.rest >= MAXPATH ? -ENAMETOOLONG
+                : c.size ? -EIO : -ENOENT;
+    c.valid = c.links <= 16 && c.size &&
               c.size + (c.rest ? 1 : 0) + c.rest < MAXPATH &&
               c.next->owner().read(c.next, 0, reinterpret_cast<unsigned long>(c.target),
                                    0, c.size) == static_cast<int>(c.size);
+    if (c.valid) { c.error = -ENOENT; }
     c.owner.unlock_release(c.next);
   }
 
@@ -250,6 +261,7 @@ struct VirtualFileSystem::WalkFlow
   check_directory(Context &c) noexcept {
     c.owner.lock(c.node);
     c.valid = c.node->kind() == T_DIR;
+    if (!c.valid) { c.error = -ENOTDIR; }
     c.owner.unlock(c.node);
   }
 

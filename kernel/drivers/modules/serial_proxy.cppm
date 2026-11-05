@@ -18,14 +18,16 @@ public:
     return "serial transport";
   }
 
+  void configure(unsigned long base, unsigned irq) { base_ = base; irq_ = irq; }
+
   unsigned
   irq() const override {
-    return UART0_IRQ;
+    return irq_;
   }
 
   void
   initialize() override {
-    auto *registers = reinterpret_cast<volatile unsigned char *>(UART0);
+    auto *registers = reinterpret_cast<volatile unsigned char *>(base_);
     registers[1] = 0;
     registers[3] = 3;
   }
@@ -79,7 +81,7 @@ public:
       return;
     }
     xv::sync::push_interrupts_off();
-    auto *registers = reinterpret_cast<volatile unsigned char *>(UART0);
+    auto *registers = reinterpret_cast<volatile unsigned char *>(base_);
     while (!(registers[5] & 0x20))
     {
     }
@@ -113,6 +115,9 @@ public:
   }
 
 private:
+
+  unsigned long base_ = UART0; // Emergency output before validated DT discovery.
+  unsigned irq_ = UART0_IRQ;
 
   Binding *binding_ = nullptr;
   InputReceiver *receiver_ = nullptr;

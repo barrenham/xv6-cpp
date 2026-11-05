@@ -3,7 +3,6 @@ module;
 
 module xv.drivers;
 import :e1000;
-import :pci;
 import :platform;
 
 namespace xv::drivers
@@ -27,7 +26,7 @@ struct E1000::InitializeFlow
 
   static bool
   configured(Context &c) noexcept {
-    return c.owner.receiver_ && detail::configure_e1000(c.owner.base_, c.owner.slot_);
+    return c.owner.receiver_ && c.owner.resources_ready_;
   }
 
   static void

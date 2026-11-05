@@ -1,4 +1,5 @@
 function(xv_add_fs_interfaces target)
+  xv_add_virtual_pool_modules(${target})
   set(module_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../kernel/fs")
   target_sources(${target} PRIVATE
     FILE_SET fs_interfaces TYPE CXX_MODULES
@@ -8,6 +9,7 @@ function(xv_add_fs_interfaces target)
       "${module_root}/cache/block_cache.cppm"
       "${module_root}/inode/inode.cppm"
       "${module_root}/inode/filesystem.cppm"
+      "${module_root}/inode/file_mapping.cppm"
       "${module_root}/buffer/page_buffer.cppm"
       "${module_root}/vfs/vfs.cppm"
       "${module_root}/file/open_file.cppm"

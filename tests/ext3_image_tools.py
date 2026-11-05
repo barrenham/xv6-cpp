@@ -11,7 +11,7 @@ from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
-from create_rootfs import Image,DIRECTORY,FILE,DEVICE,SYMLINK
+from create_rootfs import Image,DIRECTORY,FILE,DEVICE,SOCKET,SYMLINK
 import convert_rootfs
 
 
@@ -71,6 +71,7 @@ def main():
         note=private.create(alice,b'note',FILE,(1000,1001,0o6750));private.append(note,content)
         private.link(alice,b'alias',note)
         symbolic=private.create(alice,b'link',SYMLINK,(1000,1001,0o777));private.append(symbolic,b'note')
+        private.create(alice,b'stale-socket',SOCKET,(1000,1001,0o620))
         device=private.create(top[b'dev'],b'testchar',DEVICE,(0,0,0o600));private.set_device_numbers(device,(5,0))
         # Conversion must not apply the separate legacy /data import rewrite.
         for name,data,mode in ((b'passwd',b'root:!:0:0:root:/data/root:/bin/sh\n',0o644),(b'shadow',b'OPAQUE PRIVATE CREDENTIAL\0BYTES\n',0o600)):
@@ -110,6 +111,7 @@ def main():
         names=updated.entries(updated_alice);assert names[b'note']==names[b'alias'] and updated.read(names[b'note'])==content
         assert updated.read(names[b'old-program'])==b'OBSOLETE SYSTEM PROGRAM\n'
         assert updated.attributes(names[b'note'])==(1000,1001,0o6750)
+        assert updated.kind(names[b'stale-socket'])==SOCKET and updated.attributes(names[b'stale-socket'])==(1000,1001,0o620)
         updated_etc=updated.entries(updated.root)[b'etc']
         assert updated.read(updated.entries(updated_etc)[b'shadow'])==b'OPAQUE PRIVATE CREDENTIAL\0BYTES\n'
         backups=list(root.glob('*.before-update-*.img'));assert len(backups)==1 and backups[0].read_bytes()==before_update and backups[0].stat().st_mode&0o777==0o600

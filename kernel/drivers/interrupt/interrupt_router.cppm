@@ -18,6 +18,7 @@ public:
   InterruptRouter(const InterruptRouter &) = delete;
   InterruptRouter &operator=(const InterruptRouter &) = delete;
 
+  void configure(InterruptDevice *const *devices, unsigned count) { devices_ = devices; count_ = count; }
   void initialize();
   void initialize_hart(int hart);
   // Returns an unknown IRQ for diagnostics, or zero for known/spurious IRQs.

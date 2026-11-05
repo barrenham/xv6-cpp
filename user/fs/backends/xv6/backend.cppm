@@ -10,6 +10,7 @@ export namespace userfs
 class Xv6Backend final : public Backend
 {
 public:
+  unsigned cache_flags() const override { return xv::userfs::CacheMetadata; }
   explicit Xv6Backend(xv6::Io &io) : volume_(io) {}
   ~Xv6Backend();
   bool initialize();

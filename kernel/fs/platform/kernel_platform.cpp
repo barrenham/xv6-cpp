@@ -73,9 +73,9 @@ exchange_transport(File *peer, void *request, void *response, unsigned bytes,
 
 int
 copy_transport(File *bulk, unsigned long address, unsigned bytes, bool user,
-               bool writing) {
+               bool writing, unsigned offset) {
   auto *shared = xv::io::query<xv::ipc::SharedMemory>(files().object(bulk));
-  int count = shared->copy(0, reinterpret_cast<void *>(address), bytes, user, writing);
+  int count = shared->copy(offset, reinterpret_cast<void *>(address), bytes, user, writing);
   return count == int(bytes) ? count : -1;
 }
 unsigned long cache_ticks() { return xv::arch::r_time(); }
@@ -198,6 +198,16 @@ int copy_out(bool user, unsigned long destination, const void *source, unsigned 
 void *allocate_page()
 {
   return xv::memory::allocator().allocate();
+}
+
+void synchronize_file_mappings()
+{
+  xv::process::synchronize_file_mappings();
+}
+
+void release_frame(void *page)
+{
+  xv::memory::allocator().release_page(page);
 }
 
 void free_page(void *page)

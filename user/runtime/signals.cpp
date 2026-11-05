@@ -6,7 +6,7 @@ static bool supported(int signal)
   return signal == SIGHUP || signal == SIGINT || signal == SIGKILL ||
          signal == SIGTERM || signal == SIGCONT || signal == SIGSTOP ||
          signal == SIGTSTP || signal == SIGCHLD || signal == SIGTTIN || signal == SIGUSR1 ||
-         signal == SIGUSR2 || signal == SIGSEGV || signal == SIGPIPE;
+         signal == SIGUSR2 || signal == SIGSEGV || signal == SIGBUS || signal == SIGPIPE;
 }
 
 int sigemptyset(sigset_t *set)

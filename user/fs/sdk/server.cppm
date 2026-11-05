@@ -60,6 +60,9 @@ public:
     return 0;
   }
 
+  // Opt in only when every namespace mutation arrives through this bridge.
+  virtual unsigned cache_flags() const { return 0; }
+
   virtual unsigned
   max_transfer() const {
     return xv::userfs::BulkSize;
@@ -172,8 +175,10 @@ private:
   friend int register_backend(const char *, Backend &, unsigned);
   friend int serve(int, Backend &);
   int transport_ = -1;
+  int extra_transports_[xv::userfs::TransportLanes - 1]{-1, -1};
+  unsigned transport_lanes_ = 1;
   void *bulk_ = nullptr;
-  unsigned bulk_bytes_ = 0;
+  unsigned bulk_bytes_ = 0, bulk_mapping_bytes_ = 0;
   unsigned registered_payload_ = DataSize;
 
 protected:

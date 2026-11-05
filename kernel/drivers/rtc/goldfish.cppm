@@ -10,6 +10,7 @@ class GoldfishRtc final : public Device
 public:
   constexpr explicit GoldfishRtc(unsigned long base):registers_(base) {}
   const char *name() const override {return "Goldfish RTC";}
+  void configure(unsigned long base) { registers_ = detail::MmioRegion(base); }
   void initialize() override {lock_.init("goldfish rtc");}
   unsigned long nanoseconds()
   {

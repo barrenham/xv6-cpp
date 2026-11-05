@@ -67,6 +67,21 @@ public:
   virtual void lock(Inode *node) = 0;
   virtual void unlock(Inode *node) = 0;
   virtual void unlock_release(Inode *node) = 0;
+  virtual void lock_data(Inode *node) { lock(node); }
+  virtual void unlock_data(Inode *node) { unlock(node); }
+  virtual int read_data(Inode *node, int user, unsigned long address, unsigned offset,
+                         unsigned count) { return read(node, user, address, offset, count); }
+  virtual int write_data(Inode *node, int user, unsigned long address, unsigned offset,
+                          unsigned count) { return write(node, user, address, offset, count); }
+
+  // Callers hold the inode data lock; these wrappers preserve mmap coherence.
+  int read_file(Inode *, int user, unsigned long, unsigned offset, unsigned count);
+  int write_file(Inode *, int user, unsigned long, unsigned offset, unsigned count);
+  int resize_file(Inode *, unsigned size);
+  int flush_mapped(Inode *);
+  int sync_file(Inode *);
+
+  virtual bool mappable() const { return false; }
 
   virtual int
   resize(Inode *, unsigned) {
@@ -132,12 +147,13 @@ class LockedInode final
 {
 public:
 
-  LockedInode(FileSystem &fs, Inode &node) : fs_(fs), node_(node) {
-    fs_.lock(&node_);
+  LockedInode(FileSystem &fs, Inode &node, bool data = false)
+      : fs_(fs), node_(node), data_(data) {
+    if (data_) { fs_.lock_data(&node_); } else { fs_.lock(&node_); }
   }
 
   ~LockedInode() {
-    fs_.unlock(&node_);
+    if (data_) { fs_.unlock_data(&node_); } else { fs_.unlock(&node_); }
   }
 
   LockedInode(const LockedInode &) = delete;
@@ -147,5 +163,6 @@ private:
 
   FileSystem &fs_;
   Inode &node_;
+  bool data_;
 };
 } // namespace xv::fs

@@ -93,7 +93,7 @@ inline constexpr u32 JournalMagic = 0xc03b3998;
 inline constexpr u32 HasJournal = 0x4, FileType = 0x2, Recover = 0x4,
                      JournalDevice = 0x8;
 inline constexpr u16 Directory = 0x4000, Regular = 0x8000, Symlink = 0xa000,
-                     Character = 0x2000, Block = 0x6000;
+                     Character = 0x2000, Block = 0x6000, Socket = 0xc000;
 inline constexpr u32 Descriptor = 1, Commit = 2, JournalSuperV1 = 3, JournalSuperV2 = 4,
                      Revoke = 5;
 inline constexpr u32 Escaped = 1, SameUuid = 2, Deleted = 4, LastTag = 8;

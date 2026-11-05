@@ -35,6 +35,7 @@ private:
   struct SeekFlow;
   struct ResizeFlow;
   struct SyncFlow;
+  friend class OpenFileTable;
   Inode *node_;
   unsigned long offset_ = 0;
   unsigned long observed_offset_=0;

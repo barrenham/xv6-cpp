@@ -5,6 +5,8 @@
 #define XV_KMOD_ABI 1U
 #define XV_KMOD_MAX_FILE (256U * 1024)
 #define XV_KMOD_NAME 32
+#define XV_KMOD_MAX_DEVICES 64
+#define XV_KMOD_AUTOBIND 4
 #define XV_KMOD_BUS_VIRTIO_MMIO 1U
 #define XV_KMOD_LOAD 0
 #define XV_KMOD_INFO 1

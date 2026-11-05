@@ -10,6 +10,7 @@ import xv.process;
 import xv.memory;
 import xv.runtime;
 import xv.arch;
+import xv.print;
 
 namespace xv::ipc
 {
@@ -113,7 +114,8 @@ static_assert(sizeof(Pair) <= 4096);
 constinit xv::sync::SpinLock registry;
 Pair *pairs = nullptr;
 unsigned registry_initialized = 0, collecting = 0, collect_again = 0;
-unsigned long topology_epoch = 0;
+unsigned long topology_epoch = 0, collection_generation = 0;
+unsigned worker_started = 0;
 
 void
 initialize_registry() {
@@ -679,10 +681,81 @@ socket_pair(int type, xv::io::IoObject *out[2]) {
 }
 
 void
+request_socket_reclamation() {
+  __atomic_add_fetch(&collection_generation, 1UL, __ATOMIC_RELEASE);
+  xv::process::wakeup(&collection_generation);
+}
+
+namespace
+{
+void
+collection_worker() {
+  xv::arch::intr_on();
+  unsigned passes = 0;
+  for (;;)
+  {
+    auto wait = xv::process::make_poll_wait();
+    wait.watch(&collection_generation);
+    if (wait.failed())
+    {
+      xv::print::panic("socket collector subscription");
+    }
+    auto generation = __atomic_load_n(&collection_generation, __ATOMIC_ACQUIRE);
+    collect_deferred_socket_cycles();
+    if (++passes % 8 == 0)
+    {
+      xv::process::scheduler().yield();
+    }
+    if (generation == __atomic_load_n(&collection_generation, __ATOMIC_ACQUIRE))
+    {
+      wait.sleep(false);
+    }
+  }
+}
+} // namespace
+
+void
+start_socket_collector() {
+  unsigned expected = 0;
+  if (__atomic_compare_exchange_n(&worker_started, &expected, 1U, false,
+                                  __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+  {
+    xv::process::create_kernel_task("ipc-gc", collection_worker);
+  }
+}
+
+void
+collect_deferred_socket_cycles() {
+  // An inode close can itself retire another socket through a received right.
+  // Drain to a fixed point outside FS locks, including on non-returning exit.
+  while (reclaim_named_sockets() || __atomic_load_n(&collect_again, __ATOMIC_ACQUIRE))
+  {
+    if (!xv::fs::can_reclaim_file_objects() ||
+        __atomic_load_n(&collecting, __ATOMIC_ACQUIRE))
+    {
+      return;
+    }
+    if (__atomic_load_n(&collect_again, __ATOMIC_ACQUIRE))
+    {
+      collect_socket_cycles();
+    }
+  }
+}
+
+void
 collect_socket_cycles() {
+  // Sweeping SCM_RIGHTS can close pathname sockets and ordinary file inodes.
+  // Defer those callbacks until FS namespace/metadata/RPC locks are released.
+  if (!xv::fs::can_reclaim_file_objects())
+  {
+    __atomic_store_n(&collect_again, 1U, __ATOMIC_RELEASE);
+    request_socket_reclamation();
+    return;
+  }
   if (__atomic_exchange_n(&collecting, 1U, __ATOMIC_ACQ_REL))
   {
     __atomic_store_n(&collect_again, 1U, __ATOMIC_RELEASE);
+    request_socket_reclamation();
     return;
   }
   do
@@ -791,6 +864,8 @@ collect_socket_cycles() {
     }
   } while (__atomic_load_n(&collect_again, __ATOMIC_ACQUIRE));
   __atomic_store_n(&collecting, 0U, __ATOMIC_RELEASE);
+  // A deferred worker may be asleep behind this synchronous collector.
+  request_socket_reclamation();
   if (__atomic_load_n(&collect_again, __ATOMIC_ACQUIRE))
   {
     collect_socket_cycles();

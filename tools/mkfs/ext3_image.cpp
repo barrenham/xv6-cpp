@@ -32,11 +32,11 @@ struct Image
 Image &get(void *image){return *static_cast<Image *>(image);}
 u16 disk_type(unsigned kind)
 {
-  switch(kind){case 1:return Directory;case 2:return Regular;case 3:return Character;case 5:return Symlink;case 6:return Block;default:return 0;}
+  switch(kind){case 1:return Directory;case 2:return Regular;case 3:return Character;case 4:return Socket;case 5:return Symlink;case 6:return Block;default:return 0;}
 }
 unsigned host_type(u16 mode)
 {
-  switch(mode&0xf000){case Directory:return 1;case Regular:return 2;case Character:return 3;case Symlink:return 5;case Block:return 6;default:return 0;}
+  switch(mode&0xf000){case Directory:return 1;case Regular:return 2;case Character:return 3;case Socket:return 4;case Symlink:return 5;case Block:return 6;default:return 0;}
 }
 }
 extern "C"

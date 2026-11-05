@@ -12,6 +12,7 @@ export namespace userfs
 class Ext3Backend final : public Backend
 {
 public:
+  unsigned cache_flags() const override { return xv::userfs::CacheMetadata; }
 
   explicit Ext3Backend(xv::ext3::Io &io) : volume_(io), io_(io) {
   }

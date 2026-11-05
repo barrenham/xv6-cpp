@@ -63,11 +63,15 @@ ELF 必须是 RV64、LP64 整数 ABI、位置无关的 `ET_DYN`，只允许无�
 模块是受信任的内核代码，错误可以损坏内核，不具备用户进程的故障隔离。
 初始化失败须停止 DMA、撤销 IRQ 并释放已申请资源。
 
-当前上限为 32 个常驻 ELF、16 个资源槽，每个文件 256 KiB、映像 1 MiB。
+当前上限为 32 个常驻 ELF、64 个资源槽，每个文件 256 KiB、映像 1 MiB。
 ABI 1 每次绑定最多 32 页；ABI 2 每个 ELF 追踪最多 8192 个数据页，按需分配元数据。
-板级资源包括两个块设备槽、熵源、GPU、两个输入槽、UART、软件设备和四个 PCI 候选。
-PCI 由通用枚举发现，具体 vendor/device 匹配及 BAR 配置留给 ELF。
-不支持设备树自动发现、PCI 热插拔、卸载或重新绑定已占用设备。
+设备树提供 VirtIO MMIO、UART、PLIC、RTC 与 PCI ECAM/内存窗口、中断映射。
+内核按这些资源建立映射与中断路由，PCI 通用枚举分配 BAR；驱动按 bus/device_id
+匹配。VirtIO 槽位按 MMIO 地址排序，空槽保留资源编号，块设备名称按块设备次序分配。
+默认 QEMU 的八个 VirtIO 槽位编号 0..7，UART 为 8、软件资源为 9，PCI 从 10 开始；
+应以 `drvctl devices` 的实际结果为准。普通平台设备使用首个 compatible 字符串的
+`xv_kmod_compatible_id()` 值作为 device_id。ABI 结构布局保持不变。
+不支持运行中硬件热插拔、卸载或重新绑定已占用设备。
 
 ## 构建和运行中安装
 
@@ -96,10 +100,14 @@ drvctl devices
 drvctl list
 curl -fsS -o /tmp/mydisk.elf http://10.0.2.2:8000/mydisk.elf
 drvctl load /tmp/mydisk.elf
+# 默认自动绑定匹配的空闲设备；显式手动绑定可使用：
+drvctl load --no-bind /tmp/other.elf
 drvctl bind MODULE DEVICE
+# 对已加载的模块再次扫描空闲设备：
+drvctl bind --auto MODULE
 ```
 
-最后一行的编号须按查询结果替换；`10.0.2.2` 是 QEMU user 网络的宿主地址。
+命令中的 MODULE/DEVICE 编号须按查询结果替换；`10.0.2.2` 是 QEMU user 网络的宿主地址。
 默认启动已绑定所有匹配设备，新模块需要空闲且匹配的资源。
 可用前述仅根盘绑定清单在测试中保留设备 1，再在线绑定新 ELF。
 第二块磁盘成功绑定后发布 vdb，已有用户态 FS 可用 `mount -t ext3 -s 1 PATH`
@@ -128,3 +136,12 @@ drvctl bind MODULE DEVICE
 诊断、跳转、补全检查通过，编辑器日志见 `build/device-elf-clangd-tests.log`。
 
 `drvctl list/devices` 默认显示带表头的对齐表格和字段说明。脚本可使用 `drvctl --raw list`、`drvctl --raw devices` 保留原键值输出。MODULE 与 DEVICE 是绑定命令的两个编号，DEVICE_ID 是总线类型标识，详见 [命令输出说明](command-output.md)。
+
+设备树与自动绑定的扩展回归：`device_tree_contract` 使用真实 QEMU DTB，修改
+MMIO/IRQ 验证解析随资源变化并拒绝畸形资源；`device_discovery_{1,5}cpu` 将
+根盘/熵源放在第 7、8 个 VirtIO 槽位，并验证在线加载后自动绑定第二盘、挂载读写、
+重复自动扫描不抢占已有设备。测试均使用临时磁盘。
+
+早期发现代码在 4 KiB 固定启动栈上执行。资源描述必须原地初始化，避免生成超过
+6 KiB 的聚合临时对象；该源文件启用 `-Wframe-larger-than=2048` 并由 Werror 拒绝
+过大的单函数栈帧。完整启动测试补充检查跨函数调用和实际驱动路径。

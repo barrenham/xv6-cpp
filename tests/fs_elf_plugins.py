@@ -19,7 +19,8 @@ def digest(path):
 
 
 class Guest:
-    def __init__(self, args, image, log, data=None, network=False, extra=()):
+    def __init__(self, args, image, log, data=None, network=False, extra=(), root_bus=0, rng_bus=2, allow_user_faults=False):
+        self.allow_user_faults = allow_user_faults
         self.output = bytearray()
         self.cursor = 0
         self.log = log
@@ -28,9 +29,9 @@ class Guest:
             '-initrd', str(args.bootstrap), '-m', '128M', '-smp', str(args.cpus),
             '-nographic', '-global', 'virtio-mmio.force-legacy=false',
             '-drive', f'file={image},if=none,format=raw,id=x0',
-            '-device', 'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0',
+            '-device', f'virtio-blk-device,drive=x0,bus=virtio-mmio-bus.{root_bus}',
             '-object', 'rng-random,id=rng0,filename=/dev/urandom',
-            '-device', 'virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2']
+            '-device', f'virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.{rng_bus}']
         if data is not None:
             command += ['-drive', f'file={data},if=none,format=raw,id=x1',
                         '-device', 'virtio-blk-device,drive=x1,bus=virtio-mmio-bus.1']
@@ -47,7 +48,10 @@ class Guest:
     def expect(self, token, timeout=40):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            for failure in (b'panic:', b'usertrap(): unexpected', b'fsboot: root service '):
+            failures = (b'panic:', b'fsboot: root service ')
+            if not self.allow_user_faults:
+                failures += (b'usertrap(): unexpected',)
+            for failure in failures:
                 if failure in self.output:
                     raise RuntimeError('guest failed: ' + failure.decode())
             found = self.output.find(token.encode(), self.cursor)

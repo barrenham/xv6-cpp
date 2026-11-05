@@ -51,7 +51,7 @@ InodeBackend::close() {
 
 int
 InodeBackend::read(xv::io::Buffer destination, int count) {
-  LockedInode guard(node_->owner(), *node_);
+  LockedInode guard(node_->owner(), *node_, true);
   if (node_->kind() == T_DIR && directory_mode_ == 2)
   {
     return -1;
@@ -74,7 +74,7 @@ InodeBackend::write(xv::io::Buffer source, int count) {
 
 long
 InodeBackend::seek(long offset, int origin) {
-  LockedInode guard(node_->owner(), *node_);
+  LockedInode guard(node_->owner(), *node_, true);
   SeekFlow::Context context{*this, offset, origin};
   (void)SeekFlow::Graph::run<0>(context);
   return context.result;
@@ -90,6 +90,7 @@ InodeBackend::resize(unsigned size) {
 
 int
 InodeBackend::sync() {
+  LockedInode guard(node_->owner(), *node_);
   SyncFlow::Context context{*this};
   (void)SyncFlow::Graph::run<0>(context);
   return context.result;

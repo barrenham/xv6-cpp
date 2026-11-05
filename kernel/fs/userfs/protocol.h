@@ -115,3 +115,24 @@ struct TransportBinding
   unsigned payload = BulkSize, reserved = 0;
 };
 } // namespace xv::userfs
+
+namespace xv::userfs
+{
+inline constexpr unsigned TransportLanes = 3;
+inline constexpr unsigned CacheMetadata = 1U;
+struct TransportBindingV2
+{
+  unsigned size = sizeof(TransportBindingV2), version = 2;
+  unsigned payload = BulkSize, lanes = TransportLanes;
+  int sockets[TransportLanes]{-1, -1, -1};
+  int memory = -1;
+  unsigned cache_flags = 0, reserved = 0;
+};
+struct ConcurrencyStatistics
+{
+  unsigned version = 1, lanes = 1;
+  unsigned long data_requests = 0, lane_waits = 0;
+  unsigned long in_flight = 0, maximum_in_flight = 0;
+  unsigned long lookup_hits = 0, read_hits = 0;
+};
+}

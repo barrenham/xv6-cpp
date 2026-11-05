@@ -74,6 +74,6 @@ target_sources(driver_input PRIVATE FILE_SET input_module TYPE CXX_MODULES
 xv_add_device_elf(serial backends/serial/main.cpp backends/serial/device.cpp)
 target_sources(driver_serial PRIVATE FILE_SET serial_module TYPE CXX_MODULES
   FILES backends/serial/device.cppm backends/serial/flow.cppm)
-xv_add_device_elf(e1000 backends/e1000/main.cpp backends/e1000/device.cpp backends/e1000/pci.cpp)
+xv_add_device_elf(e1000 backends/e1000/main.cpp backends/e1000/device.cpp)
 target_sources(driver_e1000 PRIVATE FILE_SET e1000_module TYPE CXX_MODULES
-  FILES backends/e1000/device.cppm backends/e1000/pci.cppm)
+  FILES backends/e1000/device.cppm)

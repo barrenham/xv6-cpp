@@ -26,11 +26,7 @@ public:
 
   void initialize() override;
 
-  void
-  locate(unsigned slot) {
-    slot_ = slot;
-    irq_ = 32 + slot % 4;
-  }
+  void authorize_resources(bool ready) { resources_ready_ = ready; }
 
   void
   mac_address(unsigned char *destination) const override {
@@ -87,7 +83,7 @@ private:
   detail::MmioRegion registers_;
   unsigned long base_;
   unsigned irq_;
-  unsigned slot_ = 32;
+  bool resources_ready_ = false;
   unsigned char mac_[6]{};
   xv::sync::SpinLock lock_;
   alignas(128) TxDescriptor tx_[Count]{};

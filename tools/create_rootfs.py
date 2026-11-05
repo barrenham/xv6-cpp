@@ -14,7 +14,7 @@ import tempfile
 BLOCK = 1024
 INODE = 128
 DIRECT = 12
-DIRECTORY, FILE, DEVICE, SYMLINK, BLOCK_DEVICE = 1, 2, 3, 5, 6
+DIRECTORY, FILE, DEVICE, SOCKET, SYMLINK, BLOCK_DEVICE = 1, 2, 3, 4, 5, 6
 
 
 class LegacyImage:
@@ -162,11 +162,13 @@ class LegacyImage:
             kind = self.kind(number)
             if not kind:
                 continue
-            if kind not in (DIRECTORY, FILE, DEVICE, SYMLINK):
+            if kind not in (DIRECTORY, FILE, DEVICE, SOCKET, SYMLINK):
                 raise ValueError('unsupported inode type')
             size = struct.unpack_from('<I', self.data, self.inode(number) + 8)[0]
             if size > (DIRECT + BLOCK // 4) * BLOCK or (kind == DIRECTORY and size % 16):
                 raise ValueError('invalid inode size')
+            if kind == SOCKET and (size or self.owned_blocks(number)):
+                raise ValueError('socket inode contains file data')
             for block in self.owned_blocks(number):
                 if not first <= block < self.blocks or block in owned:
                     raise ValueError('invalid or multiply owned disk block')
@@ -304,7 +306,7 @@ def import_tree(image, source, rewrite_legacy_home=False):
                 image.set_attributes(child, attributes)
                 visit(number, child, path)
                 continue
-            if kind not in (FILE, DEVICE, SYMLINK, BLOCK_DEVICE) or existing is not None:
+            if kind not in (FILE, DEVICE, SOCKET, SYMLINK, BLOCK_DEVICE) or existing is not None:
                 raise ValueError('unsupported or conflicting import: ' + repr(path))
             if number in copied:
                 image.link(new, name, copied[number])

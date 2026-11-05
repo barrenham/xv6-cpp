@@ -12,7 +12,8 @@ enum class CapabilityId
   Socket,
   ExecutableData,
   LocalSocket,
-  SharedMemory
+  SharedMemory,
+  MessageQueue
 };
 struct Buffer { unsigned long address; bool nonblocking = false; bool append = false; };
 class Capability

@@ -25,12 +25,15 @@ constexpr unsigned long FrameMagic = 0x5856534947465231UL;
 static_assert(sizeof(SignalFrame) == 272);
 static_assert(sizeof(TrapFrame) - __builtin_offsetof(TrapFrame, ra) == 31 * 8);
 
-bool executable(const AddressSpace &memory, unsigned long address)
-{
-  if (address >= memory.size() || (address & 1))
+bool
+executable(const AddressSpace &memory, unsigned long address) {
+  const auto *region = memory.regions().find(address);
+  if ((address & 1) || !region ||
+      (region->permissions & (PTE_U | PTE_X)) != (PTE_U | PTE_X))
   {
     return false;
   }
+  memory.refresh_file_mappings();
   auto *entry = xv::memory::walk_entry(memory.page_table(), address, 0);
   return entry && (*entry & (PTE_V | PTE_U | PTE_X)) == (PTE_V | PTE_U | PTE_X);
 }
@@ -51,52 +54,52 @@ struct Process::SignalActionFlow
     int result = -1;
   };
 
-  static bool input(Context &c) noexcept
-  {
+  static bool
+  input(Context &c) noexcept {
     return c.address != 0;
   }
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value.sa_mask & ~PendingSignals::SupportedMask) &&
               !(c.value.sa_flags & ~(SA_NODEFER | SA_RESETHAND | SA_RESTART));
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.valid;
   }
 
-  static bool executable_handler(Context &c) noexcept
-  {
+  static bool
+  executable_handler(Context &c) noexcept {
     auto handler = reinterpret_cast<unsigned long>(c.value.sa_handler);
     return handler <= SIGNAL_IGNORE || (executable(c.owner.memory_, handler) &&
                                         executable(c.owner.memory_, c.restorer));
   }
 
-  static void previous(Context &c) noexcept
-  {
+  static void
+  previous(Context &c) noexcept {
     c.previous = c.owner.pending_signals_.action(c.signal);
   }
 
-  static bool copy_previous(Context &c) noexcept
-  {
+  static bool
+  copy_previous(Context &c) noexcept {
     sigaction result{reinterpret_cast<sighandler_t>(c.previous.handler),
                      c.previous.mask, c.previous.flags};
     return !c.old || c.owner.memory_.copy_out(c.old, &result, sizeof(result)) >= 0;
   }
 
-  static void install(Context &c) noexcept
-  {
+  static void
+  install(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
     c.owner.pending_signals_.set_action(
         c.signal, {reinterpret_cast<unsigned long>(c.value.sa_handler), c.value.sa_mask,
                    c.value.sa_flags, c.restorer});
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = 0;
   }
   struct Input;
@@ -138,44 +141,44 @@ struct Process::SignalMaskFlow
     int result = -1;
   };
 
-  static bool input(Context &c) noexcept
-  {
+  static bool
+  input(Context &c) noexcept {
     return c.address != 0;
   }
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value & ~PendingSignals::SupportedMask) &&
               (c.how == SIG_BLOCK || c.how == SIG_UNBLOCK || c.how == SIG_SETMASK);
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.valid;
   }
 
-  static void previous(Context &c) noexcept
-  {
+  static void
+  previous(Context &c) noexcept {
     c.previous = c.owner.pending_signals_.mask();
   }
 
-  static bool copy_previous(Context &c) noexcept
-  {
+  static bool
+  copy_previous(Context &c) noexcept {
     return !c.old ||
            c.owner.memory_.copy_out(c.old, &c.previous, sizeof(c.previous)) >= 0;
   }
 
-  static void install(Context &c) noexcept
-  {
+  static void
+  install(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
     c.owner.pending_signals_.set_mask(c.how == SIG_BLOCK     ? c.previous | c.value
                                       : c.how == SIG_UNBLOCK ? c.previous & ~c.value
                                                              : c.value);
   }
 
-  static void success(Context &c) noexcept
-  {
+  static void
+  success(Context &c) noexcept {
     c.result = 0;
   }
   struct Input;
@@ -212,19 +215,19 @@ struct Process::SignalSuspendFlow
     int result = -1;
   };
 
-  static void read(Context &c) noexcept
-  {
+  static void
+  read(Context &c) noexcept {
     c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value & ~PendingSignals::SupportedMask);
   }
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.valid;
   }
 
-  static void install(Context &c) noexcept
-  {
+  static void
+  install(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
     if (!c.owner.suspended_mask_)
     {
@@ -235,18 +238,18 @@ struct Process::SignalSuspendFlow
     c.owner.pending_signals_.set_mask(c.value);
   }
 
-  static bool killed(Context &c) noexcept
-  {
+  static bool
+  killed(Context &c) noexcept {
     return c.owner.is_killed();
   }
 
-  static void interrupted(Context &c) noexcept
-  {
+  static void
+  interrupted(Context &c) noexcept {
     c.result = c.owner.pending_signals_.caught_signal() ? -EINTR : -1;
   }
 
-  static void wait(Context &c) noexcept
-  {
+  static void
+  wait(Context &c) noexcept {
     prepare_interruptible_sleep(&c.owner.suspend_mask_);
     sleep();
   }
@@ -280,8 +283,8 @@ struct Process::EnterSignalFlow
     bool copied = false, result = false;
   };
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.owner.signal_depth_ != 16 &&
            executable(c.owner.memory_, c.action.handler) &&
            executable(c.owner.memory_, c.action.restorer) &&
@@ -289,8 +292,8 @@ struct Process::EnterSignalFlow
            c.owner.trapframe->sp >= sizeof(SignalFrame);
   }
 
-  static void frame(Context &c) noexcept
-  {
+  static void
+  frame(Context &c) noexcept {
     c.stack = (c.owner.trapframe->sp - sizeof(SignalFrame)) & ~15UL;
     c.frame = {};
     c.frame.magic = FrameMagic;
@@ -306,18 +309,18 @@ struct Process::EnterSignalFlow
     }
   }
 
-  static void copy(Context &c) noexcept
-  {
+  static void
+  copy(Context &c) noexcept {
     c.copied = c.owner.memory_.copy_out(c.stack, &c.frame, sizeof(c.frame)) >= 0;
   }
 
-  static bool copied(Context &c) noexcept
-  {
+  static bool
+  copied(Context &c) noexcept {
     return c.copied;
   }
 
-  static void consume(Context &c) noexcept
-  {
+  static void
+  consume(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
     c.owner.pending_signals_.consume(c.signal);
     if (c.action.flags & SA_RESETHAND)
@@ -335,8 +338,8 @@ struct Process::EnterSignalFlow
     c.owner.signal_frames_[c.owner.signal_depth_++] = c.stack;
   }
 
-  static void publish(Context &c) noexcept
-  {
+  static void
+  publish(Context &c) noexcept {
     c.owner.trapframe->sp = c.stack;
     c.owner.trapframe->epc = c.action.handler;
     c.owner.trapframe->ra = c.action.restorer;
@@ -369,8 +372,8 @@ struct Process::ReturnSignalFlow
     unsigned long stack, result = ~0UL;
   };
 
-  static bool valid(Context &c) noexcept
-  {
+  static bool
+  valid(Context &c) noexcept {
     return c.owner.trapframe->sp == c.stack &&
            c.owner.memory_.copy_in(&c.frame, c.stack, sizeof(c.frame)) >= 0 &&
            c.frame.magic == FrameMagic && executable(c.owner.memory_, c.frame.pc) &&
@@ -379,15 +382,15 @@ struct Process::ReturnSignalFlow
            !(c.frame.mask & ~static_cast<unsigned long>(PendingSignals::SupportedMask));
   }
 
-  static void restore_mask(Context &c) noexcept
-  {
+  static void
+  restore_mask(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
     --c.owner.signal_depth_;
     c.owner.pending_signals_.set_mask(c.frame.mask);
   }
 
-  static void restore_registers(Context &c) noexcept
-  {
+  static void
+  restore_registers(Context &c) noexcept {
     c.owner.trapframe->epc = c.frame.pc;
     xv::runtime::move(&c.owner.trapframe->ra, c.frame.registers,
                       sizeof(c.frame.registers));
@@ -405,9 +408,9 @@ struct Process::ReturnSignalFlow
           flow::node<Registers, flow::action<&restore_registers>, flow::stop>>>;
 };
 
-int Process::signal_action(int signal, unsigned long address, unsigned long old,
-                           unsigned long restorer)
-{
+int
+Process::signal_action(int signal, unsigned long address, unsigned long old,
+                       unsigned long restorer) {
   if (!supported_signal(signal) || signal == SIGKILL || signal == SIGSTOP)
   {
     return -1;
@@ -418,28 +421,28 @@ int Process::signal_action(int signal, unsigned long address, unsigned long old,
   return context.result;
 }
 
-int Process::signal_mask(int how, unsigned long address, unsigned long old)
-{
+int
+Process::signal_mask(int how, unsigned long address, unsigned long old) {
   SignalMaskFlow::Context context{*this, how, address, old};
   (void)SignalMaskFlow::Graph::run<0>(context);
   return context.result;
 }
 
-int Process::signal_pending(unsigned long address)
-{
+int
+Process::signal_pending(unsigned long address) {
   auto value = pending_signals_.pending() & pending_signals_.mask();
   return memory_.copy_out(address, &value, sizeof(value));
 }
 
-int Process::signal_suspend(unsigned long address)
-{
+int
+Process::signal_suspend(unsigned long address) {
   SignalSuspendFlow::Context context{*this, address};
   (void)SignalSuspendFlow::Graph::run<0>(context);
   return context.result;
 }
 
-bool Process::enter_signal_handler()
-{
+bool
+Process::enter_signal_handler() {
   const int signal = pending_signals_.caught_signal();
   if (!signal)
   {
@@ -452,8 +455,8 @@ bool Process::enter_signal_handler()
   return context.result;
 }
 
-unsigned long Process::signal_return()
-{
+unsigned long
+Process::signal_return() {
   if (!signal_depth_)
   {
     return -1;
@@ -465,8 +468,8 @@ unsigned long Process::signal_return()
   return context.result;
 }
 
-void Process::begin_system_call()
-{
+void
+Process::begin_system_call() {
   syscall_interrupted_ = false;
 }
 
@@ -482,10 +485,11 @@ Process::finish_system_call(int number, unsigned long argument, long result) {
   {
     return result;
   }
-  bool restartable = number == SYS_read || number == SYS_write || number == SYS_wait ||
-                     number == SYS_waitpid || number == SYS_accept ||
-                     number == SYS_recvfrom || number == SYS_sendto ||
-                     number == SYS_recvmsg || number == SYS_sendmsg;
+  bool restartable =
+      number == SYS_read || number == SYS_write || number == SYS_wait ||
+      number == SYS_waitpid || number == SYS_accept || number == SYS_recvfrom ||
+      number == SYS_sendto || number == SYS_recvmsg || number == SYS_sendmsg ||
+      number == SYS_connect || number == SYS_mq_send || number == SYS_mq_receive;
   if (restartable && (pending_signals_.action(signal).flags & SA_RESTART))
   {
     trapframe->epc -= 4;

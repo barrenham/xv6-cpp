@@ -42,6 +42,9 @@ Ext3Backend::attributes(const Inode &wire, Attributes &out) {
   case xv::ext3::Block:
     type = T_BLOCK;
     break;
+  case xv::ext3::Socket:
+    type = T_SOCKET;
+    break;
   default:
     return false;
   }
@@ -256,6 +259,7 @@ Ext3Backend::create(unsigned parent, const char *name, const Attributes &request
                   : requested.type == T_SYMLINK ? xv::ext3::Symlink
                   : requested.type == T_DEVICE  ? xv::ext3::Character
                   : requested.type == T_BLOCK   ? xv::ext3::Block
+                  : requested.type == T_SOCKET  ? xv::ext3::Socket
                                                 : 0;
   if (!kind || !volume_.create(number(parent), name, kind | requested.mode,
                                requested.uid, requested.gid, found))

@@ -1,6 +1,7 @@
 module;
 
 #include "kernel/support/types.h"
+#include "kernel/hardware/device_tree.h"
 #include "kernel/support/flow.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -63,32 +64,12 @@ struct KernelBuildFlow
 
   static void
   devices_text(Context &c) noexcept {
-    map_initial_range(c.regions, c.table, RTC0, RTC0, PGSIZE, PTE_R | PTE_W);
-
-    // uart registers
-    map_initial_range(c.regions, c.table, UART0, UART0, PGSIZE, PTE_R | PTE_W);
-
-    // VirtIO MMIO: two disks, entropy, GPU, keyboard, and mouse.
-    map_initial_range(c.regions, c.table, VIRTIO0, VIRTIO0, 6 * PGSIZE, PTE_R | PTE_W);
-
-#ifdef LAB_NET
-    // PCI-E ECAM (configuration space), for pci.c
-    map_initial_range(c.regions, c.table, 0x30000000L, 0x30000000L, 0x10000000,
-                      PTE_R | PTE_W);
-
-    // pci.c maps the e1000's registers here.
-    map_initial_range(c.regions, c.table, 0x40000000L, 0x40000000L, 0x80000,
-                      PTE_R | PTE_W);
-#endif
-
-#ifdef LAB_LOCK
-    // CLINT
-    map_initial_range(c.regions, c.table, CLINT_BASE, CLINT_BASE, PGSIZE,
-                      PTE_R | PTE_W);
-#endif
-
-    // PLIC
-    map_initial_range(c.regions, c.table, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);
+    for (unsigned i = 0; i < xv::hardware::description().regions_count; ++i)
+    {
+      const auto &region = xv::hardware::description().regions[i];
+      map_initial_range(c.regions, c.table, region.address, region.address,
+                        region.bytes, PTE_R | PTE_W);
+    }
 
     // map kernel text executable and read-only.
     map_initial_range(c.regions, c.table, KERNBASE, KERNBASE, (uint64)etext - KERNBASE,

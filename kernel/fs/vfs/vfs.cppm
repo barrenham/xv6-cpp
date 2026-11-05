@@ -15,6 +15,7 @@ public:
 
   constexpr VirtualFileSystem() = default;
   void initialize_inodes();
+  bool namespace_held() const { return namespace_.holding(); }
 
   Inode *
   root() {
@@ -33,6 +34,9 @@ public:
   void stat(Inode *node, Stat *result);
   bool allowed(Inode *node, unsigned requested, bool real = false);
   Inode *lookup(const char *path, bool real = false, bool follow = true);
+  // Checked pathname APIs preserve traversal errno and reject truncation aliases.
+  Inode *lookup_checked(const char *, int &error, bool follow = true);
+  Inode *lookup_parent_checked(const char *, char *, unsigned capacity, int &error);
   // Default preserves the old raw 14-byte caller buffer; internal callers pass 256.
   Inode *lookup_parent(const char *path, char *name, unsigned capacity = 14);
   Inode *create(char *path, short type, short major, short minor, bool follow = true);
@@ -77,7 +81,7 @@ private:
   static bool same(Inode *first, Inode *second);
   Inode *walk(const char *path, bool parent, char *name, bool real = false,
               bool follow = true, bool creating = false, unsigned capacity = 256,
-              bool exact_names = false);
+              bool exact_names = false, int *error = nullptr);
   Inode *enter_mount(Inode *node);
 
   FileSystem &

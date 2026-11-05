@@ -28,6 +28,7 @@ public:
   }
 
   bool snapshot(Inode *, PageBuffer &) override;
+  bool mappable() const override { return cache_flags_ & xv::userfs::CacheMetadata; }
 
   unsigned
   name_max() const override {
@@ -40,6 +41,8 @@ public:
   }
 
   void initialize_inodes();
+  int provider_pid() const { return provider_pid_; }
+  bool operation_held();
   static UserFileSystem *create(unsigned device, const xv::userfs::Registration &,
                                 bool anonymous);
   void destroy();
@@ -82,12 +85,14 @@ public:
   void release(Inode *) override;
 
   void
-  lock(Inode *) override {
+  lock(Inode *node) override {
     tree_.acquire();
+    node->data_lock_.acquire();
   }
 
   void
-  unlock(Inode *) override {
+  unlock(Inode *node) override {
+    node->data_lock_.release();
     tree_.release();
   }
 
@@ -97,6 +102,10 @@ public:
     release(node);
   }
 
+  void lock_data(Inode *) override;
+  void unlock_data(Inode *) override;
+  int read_data(Inode *, int, unsigned long, unsigned, unsigned) override;
+  int write_data(Inode *, int, unsigned long, unsigned, unsigned) override;
   int resize(Inode *, unsigned) override;
   void stat(Inode *, Stat *) override;
   int status(Inode *, Stat *) override;
@@ -143,7 +152,6 @@ private:
 
   void begin(xv::userfs::Operation, unsigned node = 1);
   bool exchange();
-  int write_fault_blocks(Inode *, int, unsigned long, unsigned, unsigned);
   int bulk_copy(unsigned long, unsigned, bool user, bool writing);
   Inode *node(const xv::userfs::Attributes &);
   void apply(Inode *, const xv::userfs::Attributes &);
@@ -170,5 +178,22 @@ private:
   xv::userfs::Message request_, response_;
   xv::userfs::TransportStatistics statistics_;
   File *peer_ = nullptr, *bulk_ = nullptr;
+  File *data_peers_[xv::userfs::TransportLanes - 1]{};
+  struct DataSlot { int owner = 0; } data_slots_[xv::userfs::TransportLanes - 1];
+  unsigned lanes_ = 1;
+  xv::userfs::ConcurrencyStatistics concurrency_;
+  unsigned long data_epoch_ = 0, request_epoch_ = 0;
+  class Request;
+  struct LookupCache;
+  LookupCache *lookup_cache_ = nullptr;
+  unsigned cache_flags_ = 0;
+  bool cache_active();
+  Inode *cached_lookup(Inode *, const char *);
+  void cache_lookup(Inode *, const char *, Inode *);
+  void invalidate_lookup();
+  void cache_pressure();
+  int read_impl(Inode *, int, unsigned long, unsigned, unsigned, bool);
+  int write_impl(Inode *, int, unsigned long, unsigned, unsigned, bool);
+  int write_fault_blocks(Request &, Inode *, int, unsigned long, unsigned, unsigned);
 };
 } // namespace xv::fs

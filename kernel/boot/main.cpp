@@ -1,3 +1,5 @@
+module;
+#include "kernel/hardware/device_tree.h"
 module xv.boot;
 
 import :state;
@@ -26,6 +28,10 @@ constinit int started = 0;
 
 void
 initialize_bootstrap_hart() {
+  if (!xv::hardware::initialize(reinterpret_cast<const void *>(detail::device_tree())))
+  {
+    xv::print::panic("devices: invalid or unsupported device tree");
+  }
   xv::drivers::initialize_console();
   xv::print::initialize();
   xv::print::printk("\nxv6 kernel is booting\n\n");

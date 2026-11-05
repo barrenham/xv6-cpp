@@ -30,6 +30,7 @@ target_sources(kernel PRIVATE
   lifecycle/service.cpp
   resources/process_resources.cpp
   resources/kernel_platform.cpp
+  memory/mapping_sync.cpp
   memory/address_space.cpp
   scheduler/runtime/scheduler_runtime.cpp
   exec/elf_loader.cpp

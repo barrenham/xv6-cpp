@@ -54,6 +54,8 @@ extern "C"
   long __xv_shm_unlink(const char *);
   long __xv_mmap(void *, unsigned long, int, int, int, long);
   long __xv_munmap(void *, unsigned long);
+  long __xv_mprotect(void *, unsigned long, int);
+  long __xv_msync(void *, unsigned long, int);
 
   int
   shm_open(const char *name, int flags, unsigned mode) {
@@ -70,6 +72,16 @@ extern "C"
        long offset) {
     return reinterpret_cast<void *>(
         result(__xv_mmap(hint, bytes, protection, flags, fd, offset)));
+  }
+
+  int
+  msync(void *address, unsigned long bytes, int flags) {
+    return result(__xv_msync(address, bytes, flags));
+  }
+
+  int
+  mprotect(void *address, unsigned long bytes, int protection) {
+    return result(__xv_mprotect(address, bytes, protection));
   }
 
   int
@@ -243,4 +255,60 @@ extern "C"
   sigsuspend(const sigset_t *mask) {
     return result(__xv_sigsuspend(mask));
   }
+}
+
+#include "kernel/io/mqueue.h"
+#include "kernel/io/time.h"
+extern "C"
+{
+long __xv_mq_open(const char *, int, unsigned, const mq_attr *);
+long __xv_mq_unlink(const char *);
+long __xv_mq_send(int, const char *, unsigned long, unsigned, const timespec *);
+long __xv_mq_receive(int, char *, unsigned long, unsigned *, const timespec *);
+long __xv_mq_getsetattr(int, const mq_attr *, mq_attr *);
+long __xv_clock_gettime(int, timespec *);
+int mq_open(const char *name, int flags, ...)
+{
+  unsigned mode = 0;
+  const mq_attr *attributes = nullptr;
+  if (flags & O_CREAT)
+  {
+    va_list arguments;
+    va_start(arguments, flags);
+    mode = va_arg(arguments, unsigned);
+    attributes = va_arg(arguments, const mq_attr *);
+    va_end(arguments);
+  }
+  return result(__xv_mq_open(name, flags, mode, attributes));
+}
+int mq_close(int descriptor) { return close(descriptor); }
+int mq_unlink(const char *name) { return result(__xv_mq_unlink(name)); }
+int mq_send(int descriptor, const char *data, unsigned long bytes, unsigned priority)
+{ return result(__xv_mq_send(descriptor, data, bytes, priority, nullptr)); }
+long mq_receive(int descriptor, char *data, unsigned long bytes, unsigned *priority)
+{ return result(__xv_mq_receive(descriptor, data, bytes, priority, nullptr)); }
+int mq_timedsend(int descriptor, const char *data, unsigned long bytes, unsigned priority,
+                 const timespec *time)
+{
+  if (!time) { return result(-EINVAL); }
+  return result(__xv_mq_send(descriptor, data, bytes, priority, time));
+}
+long mq_timedreceive(int descriptor, char *data, unsigned long bytes, unsigned *priority,
+                     const timespec *time)
+{
+  if (!time) { return result(-EINVAL); }
+  return result(__xv_mq_receive(descriptor, data, bytes, priority, time));
+}
+int mq_getattr(int descriptor, mq_attr *attributes)
+{
+  if (!attributes) { return result(-EFAULT); }
+  return result(__xv_mq_getsetattr(descriptor, nullptr, attributes));
+}
+int mq_setattr(int descriptor, const mq_attr *attributes, mq_attr *previous)
+{
+  if (!attributes) { return result(-EFAULT); }
+  return result(__xv_mq_getsetattr(descriptor, attributes, previous));
+}
+int clock_gettime(int clock, timespec *time)
+{ return result(__xv_clock_gettime(clock, time)); }
 }

@@ -56,7 +56,14 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:${target}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
+  tests/filemaptest.cpp
+  tests/mappingtest.cpp
+  tests/unixsockettest.cpp
+  tests/mqtest.cpp
   tests/posixipc.cpp
+  tests/fscachetest.cpp
+  tests/fsconcurrencytest.cpp
+  tests/fsparallelbench.cpp
   tests/ipcbench.cpp
   apps/drvctl/drvctl.cpp
   apps/fsctl/fsctl.cpp

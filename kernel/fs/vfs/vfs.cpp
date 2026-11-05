@@ -38,11 +38,12 @@ VirtualFileSystem::enter_mount(Inode *node) {
 Inode *
 VirtualFileSystem::walk(const char *path, bool parent, char *name, bool real,
                         bool follow, bool creating, unsigned capacity,
-                        bool exact_names) {
+                        bool exact_names, int *error) {
   char pending[MAXPATH], target[MAXPATH];
   WalkFlow::Context context{*this,    path,    parent, name,     real,       follow,
                             creating, pending, target, capacity, exact_names};
   (void)WalkFlow::Graph::run<0>(context);
+  if (error) { *error = context.result ? 0 : context.error; }
   return context.result;
 }
 
@@ -57,6 +58,20 @@ Inode *
 VirtualFileSystem::lookup_parent(const char *path, char *name, unsigned capacity) {
   xv::sync::ScopedLock guard(namespace_);
   return walk(path, true, name, false, true, false, capacity);
+}
+
+Inode *
+VirtualFileSystem::lookup_checked(const char *path, int &error, bool follow) {
+  xv::sync::ScopedLock guard(namespace_);
+  char name[256];
+  return walk(path, false, name, false, follow, false, sizeof(name), true, &error);
+}
+
+Inode *
+VirtualFileSystem::lookup_parent_checked(const char *path, char *name,
+                                         unsigned capacity, int &error) {
+  xv::sync::ScopedLock guard(namespace_);
+  return walk(path, true, name, false, true, false, capacity, true, &error);
 }
 
 Inode *
@@ -112,13 +127,13 @@ VirtualFileSystem::unlock_release(Inode *node) {
 int
 VirtualFileSystem::read(Inode *node, int user, unsigned long destination,
                         unsigned offset, unsigned count) {
-  return node->owner().read(node, user, destination, offset, count);
+  return node->owner().read_file(node, user, destination, offset, count);
 }
 
 int
 VirtualFileSystem::write(Inode *node, int user, unsigned long source, unsigned offset,
                          unsigned count) {
-  return node->owner().write(node, user, source, offset, count);
+  return node->owner().write_file(node, user, source, offset, count);
 }
 
 bool

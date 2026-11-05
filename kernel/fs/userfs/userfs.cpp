@@ -36,6 +36,8 @@ UserFileSystem::reserve(unsigned device) {
   {
     auto &n = *slot;
     n.owner_ = this;
+    n.data_lock_.init("inode data");
+    n.write_epoch_ = 0;
     n.ref = 0;
     n.inum = 0;
   }
@@ -53,60 +55,118 @@ UserFileSystem::attached(bool value) {
 
 void
 UserFileSystem::apply(Inode *n, const xv::userfs::Attributes &a) {
+  bool held = n->data_lock_.holding();
+  if (!held)
+  {
+    n->data_lock_.acquire();
+  }
+  // A lookup can finish before a concurrent write releases the data lock.
+  // Keep the size committed by that later write instead of replaying stale attrs.
+  bool newer_data = n->inum == a.node && n->write_epoch_ > request_epoch_;
+  unsigned size = newer_data ? n->size : a.size;
   n->owner_ = this;
   n->dev = device_;
   n->inum = a.node;
   n->type = a.type;
-  n->size = a.size;
+  n->size = size;
   n->uid_ = a.uid;
   n->gid_ = a.gid;
   n->mode_ = a.mode & 07777;
   n->nlink = a.links;
   n->major = a.major;
   n->minor = a.minor;
+  if (!newer_data)
+  {
+    __atomic_store_n(&n->metadata_valid_, true, __ATOMIC_RELEASE);
+  }
+  if (!held)
+  {
+    n->data_lock_.release();
+  }
 }
 
 Inode *
-UserFileSystem::node(const xv::userfs::Attributes &a) {
+UserFileSystem::node(const xv::userfs::Attributes &source) {
+  auto attributes = source; // May alias response_, which a later RPC replaces.
+  const auto &a = attributes;
   if (!a.node ||
       (a.type != T_DIR && a.type != T_FILE && a.type != T_SYMLINK &&
-       a.type != T_DEVICE && a.type != T_BLOCK) ||
+       a.type != T_DEVICE && a.type != T_BLOCK && a.type != T_SOCKET) ||
       a.links > 32767 || a.mode > 07777 || a.major > 32767 || a.minor > 32767)
   {
     return nullptr;
   }
+  Inode *selected = nullptr, *empty = nullptr;
+  references_.acquire();
+  for (auto *n : nodes_)
   {
-    xv::sync::ScopedLock guard(references_);
-    Inode *empty = nullptr;
-    for (auto *slot : nodes_)
+    if (n->inum == a.node)
     {
-      auto &n = *slot;
-      if (n.inum == a.node)
-      {
-        apply(&n, a);
-        ++n.ref;
-        ++live_references_;
-        return &n;
-      }
-      if (!n.ref && !empty)
-      {
-        empty = &n;
-      }
+      selected = n;
+      break;
     }
-    if (empty)
+    if (!n->ref && !empty)
     {
-      apply(empty, a);
-      empty->ref = 1;
-      ++live_references_;
-      return empty;
+      empty = n;
     }
   }
-  // The server has handed us a reference, but all local slots are pinned.
-  // Undo that reference without holding the spinlock. Callers own serial_.
-  unsigned identity = a.node;
-  begin(Operation::Forget, identity);
+  if (!selected)
+  {
+    selected = empty;
+  }
+  if (selected)
+  {
+    ++selected->ref;
+    ++live_references_;
+  }
+  references_.release();
+  if (selected)
+  {
+    apply(selected, a);
+    return selected;
+  }
+  begin(Operation::Forget, a.node);
   (void)exchange();
   return nullptr;
+}
+
+void
+UserFileSystem::lock_data(Inode *node) {
+  tree_.acquire();
+  node->data_lock_.acquire();
+  // Set-id clearing remains one metadata/data transaction. Ordinary file I/O
+  // drops the instance metadata lock before waiting for its private RPC lane.
+  if (node->type == T_FILE && !(node->mode_ & 06000))
+  {
+    tree_.release();
+  }
+}
+
+void
+UserFileSystem::unlock_data(Inode *node) {
+  node->data_lock_.release();
+  if (tree_.holding())
+  {
+    tree_.release();
+  }
+}
+
+bool
+UserFileSystem::operation_held() {
+  if (tree_.holding() || serial_.holding())
+  {
+    return true;
+  }
+  xv::sync::ScopedLock guard(state_);
+  int pid = detail::current_pid();
+  for (const auto &slot : data_slots_)
+  {
+    if (slot.owner == pid)
+    {
+      return true;
+    }
+  }
+  return false;
 }
 
 Inode *
@@ -159,6 +219,7 @@ UserFileSystem::busy() {
   // A last close can still be sending Forget after dropping its inode ref.
   // Wait for that metadata operation before permitting instance retirement.
   xv::sync::ScopedLock metadata(tree_);
+  invalidate_lookup();
   xv::sync::ScopedLock guard(references_);
   return live_references_ != 2;
 }
@@ -169,7 +230,8 @@ UserFileSystem::begin(Operation operation, unsigned node) {
   detail::fill(&request_, 0, sizeof(request_));
   request_.version = xv::userfs::Version;
   request_.result = -1;
-  request_.id = ++sequence_;
+  request_.id = __atomic_add_fetch(&sequence_, 1UL, __ATOMIC_RELAXED);
+  request_epoch_ = __atomic_load_n(&data_epoch_, __ATOMIC_ACQUIRE);
   request_.operation = operation;
   request_.node = node;
   auto caller = detail::identity();
@@ -213,8 +275,7 @@ UserFileSystem::exchange() {
   pending_ = true;
   delivered_ = replied_ = false;
   detail::wakeup(&pending_);
-  while (connected_ && !replied_ &&
-         detail::monotonic_milliseconds() < deadline)
+  while (connected_ && !replied_ && detail::monotonic_milliseconds() < deadline)
   {
     __atomic_fetch_add(&statistics_.waits, 1UL, __ATOMIC_RELAXED);
     if (!detail::wait_until(&replied_, state_, deadline))
@@ -238,6 +299,11 @@ void
 UserFileSystem::disconnect() {
   connected_ = false;
   detail::cancel_transport(peer_);
+  for (auto *peer : data_peers_)
+  {
+    detail::cancel_transport(peer);
+  }
+  detail::wakeup(data_slots_);
   detail::wakeup(&pending_);
   detail::wakeup(&replied_);
 }
@@ -248,6 +314,11 @@ UserFileSystem::shutdown() {
   mounted_ = false;
   completed_ = true;
   detail::cancel_transport(peer_);
+  for (auto *peer : data_peers_)
+  {
+    detail::cancel_transport(peer);
+  }
+  detail::wakeup(data_slots_);
   if (!endpoint_open_)
   {
     reserved_ = false;
@@ -278,34 +349,111 @@ UserFileSystem::Endpoint::ioctl(unsigned request, xv::io::Buffer argument) {
   {
     return -1;
   }
-  xv::userfs::TransportBinding binding;
-  if (detail::copy_in(&binding, true, argument.address, sizeof(binding)) < 0 ||
-      binding.size != sizeof(binding) || binding.version != 1 || binding.reserved ||
-      binding.payload <= xv::userfs::DataSize || binding.payload > xv::userfs::BulkSize)
+  unsigned header[2];
+  if (detail::copy_in(header, true, argument.address, sizeof(header)) < 0)
   {
     return -1;
   }
-  File *peer = nullptr, *bulk = nullptr;
-  if (!detail::bind_transport(binding.socket, binding.memory, binding.payload, peer,
-                              bulk))
+  unsigned lanes = 1, payload = 0, cache_flags = 0;
+  int sockets[xv::userfs::TransportLanes]{-1, -1, -1}, memory = -1;
+  if (header[0] == sizeof(xv::userfs::TransportBinding) && header[1] == 1)
+  {
+    xv::userfs::TransportBinding binding;
+    if (detail::copy_in(&binding, true, argument.address, sizeof(binding)) < 0 ||
+        binding.reserved)
+    {
+      return -1;
+    }
+    payload = binding.payload;
+    sockets[0] = binding.socket;
+    memory = binding.memory;
+  }
+  else if (header[0] == sizeof(xv::userfs::TransportBindingV2) && header[1] == 2)
+  {
+    xv::userfs::TransportBindingV2 binding;
+    if (detail::copy_in(&binding, true, argument.address, sizeof(binding)) < 0 ||
+        binding.lanes < 2 || binding.lanes > xv::userfs::TransportLanes ||
+        (binding.cache_flags & ~xv::userfs::CacheMetadata) || binding.reserved)
+    {
+      return -1;
+    }
+    lanes = binding.lanes;
+    payload = binding.payload;
+    memory = binding.memory;
+    cache_flags = binding.cache_flags;
+    for (unsigned i = 0; i < lanes; ++i)
+    {
+      sockets[i] = binding.sockets[i];
+    }
+  }
+  else
   {
     return -1;
+  }
+  if (payload <= xv::userfs::DataSize || payload > xv::userfs::BulkSize)
+  {
+    return -1;
+  }
+  File *peers[xv::userfs::TransportLanes]{}, *bulk = nullptr;
+  bool valid = true;
+  for (unsigned i = 0; i < lanes; ++i)
+  {
+    File *buffer = nullptr;
+    if (!detail::bind_transport(sockets[i], memory, payload * lanes, peers[i], buffer))
+    {
+      valid = false;
+      break;
+    }
+    if (!i)
+    {
+      bulk = buffer;
+    }
+    else
+    {
+      valid = buffer == bulk;
+      files().release(buffer);
+      for (unsigned j = 0; j < i; ++j)
+      {
+        valid &= peers[j] != peers[i];
+      }
+      if (!valid)
+      {
+        break;
+      }
+    }
   }
   auto &o = owner_;
   o.state_.acquire();
-  bool valid = o.connected_ && !o.mounted_ && !o.mounting_ && !o.peer_ && !o.pending_;
+  valid =
+      valid && o.connected_ && !o.mounted_ && !o.mounting_ && !o.peer_ && !o.pending_;
   if (valid)
   {
-    o.peer_ = peer;
+    o.peer_ = peers[0];
+    for (unsigned i = 1; i < lanes; ++i)
+    {
+      o.data_peers_[i - 1] = peers[i];
+    }
     o.bulk_ = bulk;
-    o.registration_.max_payload = binding.payload;
-    o.statistics_.payload = binding.payload;
+    o.lanes_ = lanes;
+    o.cache_flags_ = cache_flags;
+    o.concurrency_.lanes = lanes;
+    o.registration_.max_payload = payload;
+    o.statistics_.payload = payload;
   }
   o.state_.release();
   if (!valid)
   {
-    files().release(peer);
-    files().release(bulk);
+    for (auto *peer : peers)
+    {
+      if (peer)
+      {
+        files().release(peer);
+      }
+    }
+    if (bulk)
+    {
+      files().release(bulk);
+    }
   }
   return valid ? 0 : -1;
 }
@@ -410,6 +558,12 @@ UserFileSystem::Endpoint::close() {
   o.state_.acquire();
   o.disconnect();
   auto *peer = o.peer_, *bulk = o.bulk_;
+  File *data[xv::userfs::TransportLanes - 1]{};
+  for (unsigned i = 0; i < xv::userfs::TransportLanes - 1; ++i)
+  {
+    data[i] = o.data_peers_[i];
+    o.data_peers_[i] = nullptr;
+  }
   o.peer_ = o.bulk_ = nullptr;
   o.endpoint_open_ = false;
   if (!o.mounted_)
@@ -425,6 +579,138 @@ UserFileSystem::Endpoint::close() {
   {
     files().release(bulk);
   }
+  for (auto *channel : data)
+  {
+    if (channel)
+    {
+      files().release(channel);
+    }
+  }
+}
+
+struct UserFileSystem::LookupCache
+{
+  static constexpr unsigned Capacity = 12;
+
+  struct Entry
+  {
+    Inode *parent = nullptr, *target = nullptr;
+    unsigned long stamp = 0;
+    char name[256]{};
+  } entries[Capacity];
+
+  unsigned long clock = 0;
+};
+
+bool
+UserFileSystem::cache_active() {
+  xv::sync::ScopedLock guard(state_);
+  return connected_ && (mounted_ || mounting_) && !completed_;
+}
+
+Inode *
+UserFileSystem::cached_lookup(Inode *parent, const char *name) {
+  if (!lookup_cache_ || !cache_active())
+  {
+    return nullptr;
+  }
+  for (auto &entry : lookup_cache_->entries)
+  {
+    if (entry.parent == parent &&
+        !detail::compare(entry.name, name, sizeof(entry.name)))
+    {
+      entry.stamp = ++lookup_cache_->clock;
+      __atomic_fetch_add(&concurrency_.lookup_hits, 1UL, __ATOMIC_RELAXED);
+      return retain(entry.target);
+    }
+  }
+  return nullptr;
+}
+
+void
+UserFileSystem::cache_lookup(Inode *parent, const char *name, Inode *target) {
+  if (!(cache_flags_ & xv::userfs::CacheMetadata) || !target ||
+      !detail::compare(name, ".", 256) || !detail::compare(name, "..", 256))
+  {
+    return;
+  }
+  static_assert(sizeof(LookupCache) <= 4096);
+  if (!lookup_cache_)
+  {
+    auto *page = detail::allocate_page();
+    if (!page)
+    {
+      return;
+    }
+    lookup_cache_ = new (page) LookupCache;
+  }
+  auto *selected = &lookup_cache_->entries[0];
+  for (auto &entry : lookup_cache_->entries)
+  {
+    if (!entry.target || entry.stamp < selected->stamp)
+    {
+      selected = &entry;
+    }
+    if (!entry.target)
+    {
+      break;
+    }
+  }
+  auto *old_parent = selected->parent, *old_target = selected->target;
+  selected->parent = retain(parent);
+  selected->target = retain(target);
+  selected->stamp = ++lookup_cache_->clock;
+  detail::copy_fixed(selected->name, name, sizeof(selected->name));
+  // Never evict while holding serial_: the last reference sends Forget.
+  if (old_target)
+  {
+    release(old_target);
+    release(old_parent);
+  }
+}
+
+void
+UserFileSystem::invalidate_lookup() {
+  if (cache_flags_ & xv::userfs::CacheMetadata)
+  {
+    for (auto *node : nodes_)
+    {
+      __atomic_store_n(&node->metadata_valid_, false, __ATOMIC_RELEASE);
+    }
+  }
+  if (!lookup_cache_)
+  {
+    return;
+  }
+  for (auto &entry : lookup_cache_->entries)
+  {
+    auto *parent = entry.parent, *target = entry.target;
+    entry = {};
+    if (target)
+    {
+      release(target);
+      release(parent);
+    }
+  }
+}
+
+void
+UserFileSystem::cache_pressure() {
+  if (!lookup_cache_)
+  {
+    return;
+  }
+  bool available = false;
+  references_.acquire();
+  for (auto *node : nodes_)
+  {
+    available |= !node->ref;
+  }
+  references_.release();
+  if (!available)
+  {
+    invalidate_lookup();
+  }
 }
 
 Inode *
@@ -437,17 +723,27 @@ UserFileSystem::lookup_entry(Inode *directory, const char *name, unsigned *offse
   {
     *offset = 0;
   }
-  xv::sync::ScopedLock guard(serial_);
-  begin(Operation::Lookup, directory->inum);
-  detail::copy_fixed(request_.name, name, sizeof(request_.name));
-  return exchange() ? node(response_.attributes) : nullptr;
+  if (auto *hit = cached_lookup(directory, name))
+  {
+    return hit;
+  }
+  cache_pressure();
+  Inode *result;
+  {
+    xv::sync::ScopedLock guard(serial_);
+    begin(Operation::Lookup, directory->inum);
+    detail::copy_fixed(request_.name, name, sizeof(request_.name));
+    result = exchange() ? node(response_.attributes) : nullptr;
+  }
+  cache_lookup(directory, name, result);
+  return result;
 }
 
 Inode *
 UserFileSystem::create_at(Inode *directory, const char *name, short type, short major,
                           short minor) {
   if (type != T_FILE && type != T_DIR && type != T_SYMLINK && type != T_DEVICE &&
-      type != T_BLOCK)
+      type != T_BLOCK && type != T_SOCKET)
   {
     return nullptr;
   }
@@ -457,6 +753,7 @@ UserFileSystem::create_at(Inode *directory, const char *name, short type, short 
     return nullptr;
   }
   tree_.acquire();
+  invalidate_lookup();
   serial_.acquire();
   begin(Operation::Create, directory->inum);
   detail::copy_fixed(request_.name, name, sizeof(request_.name));
@@ -471,7 +768,7 @@ UserFileSystem::create_at(Inode *directory, const char *name, short type, short 
                          0,
                          identity.uid,
                          identity.gid,
-                         unsigned((type == T_DIR                           ? 0777
+                         unsigned(((type == T_DIR || type == T_SOCKET)     ? 0777
                                    : (type == T_DEVICE || type == T_BLOCK) ? 0600
                                                                            : 0666) &
                                   ~identity.mask),
@@ -485,37 +782,260 @@ UserFileSystem::create_at(Inode *directory, const char *name, short type, short 
   {
     tree_.release();
   }
-  return result; // create_at returns a locked inode, matching existing backends.
+  if (result)
+  {
+    result->data_lock_.acquire();
+  }
+  return result; // Both inode data and metadata locks transfer to the caller.
+}
+
+class UserFileSystem::Request
+{
+public:
+
+  Request(UserFileSystem &owner, bool parallel) : owner_(owner) {
+    if (!parallel || owner_.lanes_ < 2)
+    {
+      owner_.serial_.acquire();
+      request_ = &owner_.request_;
+      response_ = &owner_.response_;
+      valid_ = true;
+      return;
+    }
+    const auto deadline = detail::monotonic_milliseconds() + 5000;
+    owner_.state_.acquire();
+    while (owner_.connected_ && owner_.mounted_ && !owner_.completed_)
+    {
+      for (unsigned i = 0; i + 1 < owner_.lanes_; ++i)
+      {
+        if (!owner_.data_slots_[i].owner)
+        {
+          lane_ = i + 1;
+          owner_.data_slots_[i].owner = detail::current_pid();
+          peer_ = files().retain(owner_.data_peers_[i]);
+          bulk_ = files().retain(owner_.bulk_);
+          break;
+        }
+      }
+      if (lane_)
+      {
+        break;
+      }
+      if (detail::monotonic_milliseconds() >= deadline)
+      {
+        break;
+      }
+      __atomic_fetch_add(&owner_.concurrency_.lane_waits, 1UL, __ATOMIC_RELAXED);
+      if (!detail::wait_until(owner_.data_slots_, owner_.state_, deadline))
+      {
+        break;
+      }
+    }
+    owner_.state_.release();
+    if (lane_)
+    {
+      auto *storage = detail::allocate_page();
+      if (storage)
+      {
+        page_ = new (storage) Messages;
+      }
+      if (page_)
+      {
+        request_ = &page_->request;
+        response_ = &page_->response;
+        valid_ = true;
+      }
+    }
+  }
+
+  ~Request() {
+    if (!lane_)
+    {
+      if (valid_)
+      {
+        owner_.serial_.release();
+      }
+      return;
+    }
+    // Keep the owner marker until descriptor callbacks finish: reclamation
+    // must not recursively enter metadata while this operation holds data_lock_.
+    files().release(peer_);
+    files().release(bulk_);
+    owner_.state_.acquire();
+    owner_.data_slots_[lane_ - 1].owner = 0;
+    detail::wakeup(owner_.data_slots_);
+    owner_.state_.release();
+    if (page_)
+    {
+      page_->~Messages();
+      detail::free_page(page_);
+    }
+  }
+
+  bool
+  valid() const {
+    return valid_;
+  }
+
+  xv::userfs::Message &
+  request() {
+    return *request_;
+  }
+
+  xv::userfs::Message &
+  response() {
+    return *response_;
+  }
+
+  void
+  begin(Operation operation, unsigned node) {
+    if (!lane_)
+    {
+      owner_.begin(operation, node);
+      return;
+    }
+    detail::fill(request_, 0, sizeof(*request_));
+    request_->version = xv::userfs::Version;
+    request_->result = -1;
+    request_->id = __atomic_add_fetch(&owner_.sequence_, 1UL, __ATOMIC_RELAXED);
+    request_->operation = operation;
+    request_->node = node;
+    auto caller = detail::identity();
+    request_->context = {unsigned(detail::current_pid()), caller.uid, caller.gid};
+  }
+
+  bool
+  exchange() {
+    if (!lane_)
+    {
+      return owner_.exchange();
+    }
+    auto &statistics = owner_.statistics_;
+    __atomic_fetch_add(&statistics.exchanges, 1UL, __ATOMIC_RELAXED);
+    owner_.state_.acquire();
+    bool active = owner_.connected_ && owner_.mounted_ && !owner_.completed_ &&
+                  (owner_.registration_.operations &
+                   xv::userfs::operation_bit(request_->operation));
+    owner_.state_.release();
+    if (!active)
+    {
+      return false;
+    }
+    auto &concurrency = owner_.concurrency_;
+    __atomic_fetch_add(&concurrency.data_requests, 1UL, __ATOMIC_RELAXED);
+    auto count = __atomic_add_fetch(&concurrency.in_flight, 1UL, __ATOMIC_ACQ_REL);
+    auto maximum = __atomic_load_n(&concurrency.maximum_in_flight, __ATOMIC_RELAXED);
+    while (count > maximum &&
+           !__atomic_compare_exchange_n(&concurrency.maximum_in_flight, &maximum, count,
+                                        false, __ATOMIC_RELAXED, __ATOMIC_RELAXED))
+    {
+    }
+    __atomic_fetch_add(&statistics.waits, 1UL, __ATOMIC_RELAXED);
+    bool good =
+        detail::exchange_transport(peer_, request_, response_, sizeof(*request_),
+                                   detail::monotonic_milliseconds() + 5000);
+    __atomic_fetch_sub(&concurrency.in_flight, 1UL, __ATOMIC_RELEASE);
+    __atomic_fetch_add(&statistics.copied_bytes, 2UL * sizeof(*request_),
+                       __ATOMIC_RELAXED);
+    owner_.state_.acquire();
+    good = good && owner_.connected_ && response_->version == xv::userfs::Version &&
+           response_->id == request_->id &&
+           response_->operation == request_->operation &&
+           response_->count <= owner_.registration_.max_payload &&
+           response_->result <= int(owner_.registration_.max_payload);
+    if (!good)
+    {
+      owner_.disconnect();
+    }
+    owner_.state_.release();
+    return good && response_->result >= 0;
+  }
+
+  int
+  copy(unsigned long address, unsigned bytes, bool user, bool writing) {
+    return lane_ ? detail::copy_transport(bulk_, address, bytes, user, writing,
+                                          lane_ * owner_.statistics_.payload)
+                 : owner_.bulk_copy(address, bytes, user, writing);
+  }
+
+private:
+
+  struct Messages
+  {
+    xv::userfs::Message request, response;
+  };
+
+  static_assert(sizeof(Messages) <= 4096);
+  UserFileSystem &owner_;
+  Messages *page_ = nullptr;
+  xv::userfs::Message *request_ = nullptr, *response_ = nullptr;
+  File *peer_ = nullptr, *bulk_ = nullptr;
+  unsigned lane_ = 0;
+  bool valid_ = false;
+};
+
+int
+UserFileSystem::read(Inode *node, int user, unsigned long address, unsigned offset,
+                     unsigned count) {
+  return read_impl(node, user, address, offset, count, false);
 }
 
 int
-UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
-                     unsigned count) {
+UserFileSystem::write(Inode *node, int user, unsigned long address, unsigned offset,
+                      unsigned count) {
+  return write_impl(node, user, address, offset, count, false);
+}
+
+int
+UserFileSystem::read_data(Inode *node, int user, unsigned long address, unsigned offset,
+                          unsigned count) {
+  return read_impl(node, user, address, offset, count, node->kind() == T_FILE);
+}
+
+int
+UserFileSystem::write_data(Inode *node, int user, unsigned long address,
+                           unsigned offset, unsigned count) {
+  return write_impl(node, user, address, offset, count, node->kind() == T_FILE);
+}
+
+int
+UserFileSystem::read_impl(Inode *n, int user, unsigned long out, unsigned offset,
+                          unsigned count, bool parallel) {
   if (offset + count < offset)
   {
     return -1;
   }
-  xv::sync::ScopedLock guard(serial_);
+  if (!count)
+  {
+    return 0;
+  }
+  Request context(*this, parallel);
+  if (!context.valid())
+  {
+    return -1;
+  }
+  auto &request = context.request();
+  auto &response = context.response();
   unsigned done = 0;
   while (done < count)
   {
-    begin(Operation::Read, n->inum);
-    request_.offset = offset + done;
-    request_.count = count - done;
-    if (request_.count > registration_.max_payload)
+    context.begin(Operation::Read, n->inum);
+    request.offset = offset + done;
+    request.count = count - done;
+    if (request.count > registration_.max_payload)
     {
-      request_.count = registration_.max_payload;
+      request.count = registration_.max_payload;
     }
-    if (!exchange() || response_.count > request_.count ||
-        response_.result != int(response_.count) ||
+    if (!context.exchange() || response.count > request.count ||
+        response.result != int(response.count) ||
         (statistics_.payload > xv::userfs::DataSize
-             ? bulk_copy(out + done, response_.count, user, false) < 0
-             : detail::copy_out(user, out + done, response_.data, response_.count) < 0))
+             ? context.copy(out + done, response.count, user, false) < 0
+             : detail::copy_out(user, out + done, response.data, response.count) < 0))
     {
       return done ? int(done) : -1;
     }
-    done += response_.count;
-    if (response_.count < request_.count)
+    done += response.count;
+    if (response.count < request.count)
     {
       break;
     }
@@ -524,13 +1044,23 @@ UserFileSystem::read(Inode *n, int user, unsigned long out, unsigned offset,
 }
 
 int
-UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
-                      unsigned count) {
+UserFileSystem::write_impl(Inode *n, int user, unsigned long in, unsigned offset,
+                           unsigned count, bool parallel) {
   if (offset + count < offset || n->type == T_DIR)
   {
     return -1;
   }
-  xv::sync::ScopedLock guard(serial_);
+  if (!count)
+  {
+    return 0;
+  }
+  Request context(*this, parallel);
+  if (!context.valid())
+  {
+    return -1;
+  }
+  auto &request = context.request();
+  auto &response = context.response();
   if (statistics_.payload > xv::userfs::DataSize)
   {
     unsigned done = 0;
@@ -541,18 +1071,24 @@ UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       {
         take = registration_.max_payload;
       }
-      if (bulk_copy(in + done, take, user, true) < 0)
+      if (context.copy(in + done, take, user, true) < 0)
       {
         break;
       }
-      begin(Operation::Write, n->inum);
-      request_.offset = offset + done;
-      request_.count = take;
-      if (!exchange() || response_.result > int(take))
+      context.begin(Operation::Write, n->inum);
+      request.offset = offset + done;
+      request.count = take;
+      if (!context.exchange() || response.result > int(take))
       {
+        n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
+        __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
         return done ? int(done) : -1;
       }
-      unsigned written = response_.result;
+      unsigned written = response.result;
+      if (written)
+      {
+        n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
+      }
       done += written;
       if (offset + done > n->size)
       {
@@ -568,15 +1104,18 @@ UserFileSystem::write(Inode *n, int user, unsigned long in, unsigned offset,
       return done;
     }
     // Continue at the first faulted batch using block-level legacy accounting.
-    int tail = write_fault_blocks(n, user, in + done, offset + done, count - done);
+    int tail =
+        write_fault_blocks(context, n, user, in + done, offset + done, count - done);
     return tail < 0 ? (done ? int(done) : -1) : int(done) + tail;
   }
-  return write_fault_blocks(n, user, in, offset, count);
+  return write_fault_blocks(context, n, user, in, offset, count);
 }
 
 int
-UserFileSystem::write_fault_blocks(Inode *n, int user, unsigned long in,
-                                   unsigned offset, unsigned count) {
+UserFileSystem::write_fault_blocks(Request &context, Inode *n, int user,
+                                   unsigned long in, unsigned offset, unsigned count) {
+  auto &request = context.request();
+  auto &response = context.response();
   unsigned char bytes[BlockSize];
   unsigned done = 0;
   while (done < count)
@@ -620,37 +1159,43 @@ UserFileSystem::write_fault_blocks(Inode *n, int user, unsigned long in,
     unsigned sent = 0;
     while (sent < publish)
     {
-      begin(Operation::Write, n->inum);
-      request_.offset = offset + done + sent;
-      request_.count = publish - sent;
-      if (request_.count > registration_.max_payload)
+      context.begin(Operation::Write, n->inum);
+      request.offset = offset + done + sent;
+      request.count = publish - sent;
+      if (request.count > registration_.max_payload)
       {
-        request_.count = registration_.max_payload;
+        request.count = registration_.max_payload;
       }
       if (statistics_.payload > xv::userfs::DataSize)
       {
-        if (bulk_copy(reinterpret_cast<unsigned long>(bytes + sent), request_.count,
-                      false, true) < 0)
+        if (context.copy(reinterpret_cast<unsigned long>(bytes + sent), request.count,
+                         false, true) < 0)
         {
           return done ? int(done) : -1;
         }
       }
       else
       {
-        detail::move(request_.data, bytes + sent, request_.count);
+        detail::move(request.data, bytes + sent, request.count);
       }
-      if (!exchange() || response_.result > int(request_.count))
+      if (!context.exchange() || response.result > int(request.count))
       {
+        n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
+        __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
         unsigned progress = done + (fault ? 0 : sent);
         return progress ? int(progress) : -1;
       }
-      unsigned take = response_.result;
+      unsigned take = response.result;
+      if (take)
+      {
+        n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
+      }
       sent += take;
       if (offset + done + sent > n->size)
       {
         n->size = offset + done + sent;
       }
-      if (take < request_.count)
+      if (take < request.count)
       {
         return fault ? (done ? int(done) : -1) : int(done + sent);
       }
@@ -671,9 +1216,11 @@ UserFileSystem::resize(Inode *n, unsigned size) {
   request_.attributes.size = size;
   if (!exchange())
   {
+    __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
     return -1;
   }
   n->size = size;
+  n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
   return 0;
 }
 
@@ -722,6 +1269,7 @@ UserFileSystem::next_directory(Inode *n, unsigned long &cookie,
 int
 UserFileSystem::link_at(Inode *directory, const char *name, Inode *target) {
   xv::sync::ScopedLock tree(tree_);
+  invalidate_lookup();
   xv::sync::ScopedLock guard(serial_);
   if (!detail::allowed(directory, 3) || target->kind() == T_DIR)
   {
@@ -752,6 +1300,7 @@ UserFileSystem::unlink_at(Inode *directory, const char *name) {
   {
     return -1;
   }
+  invalidate_lookup();
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Unlink, directory->inum);
   detail::copy_fixed(request_.name, name, sizeof(request_.name));
@@ -789,6 +1338,7 @@ UserFileSystem::rename_at(Inode *from, const char *old, Inode *to, const char *n
   {
     return -1;
   }
+  invalidate_lookup();
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Rename, from->inum);
   request_.other = to->inum;
@@ -803,6 +1353,16 @@ namespace xv::fs
 {
 int
 UserFileSystem::status(Inode *n, Stat *out) {
+  if (!cache_active())
+  {
+    return -1;
+  }
+  if ((cache_flags_ & xv::userfs::CacheMetadata) &&
+      __atomic_load_n(&n->metadata_valid_, __ATOMIC_ACQUIRE))
+  {
+    stat(n, out);
+    return 0;
+  }
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Getattr, n->inum);
   if (!exchange() || response_.attributes.node != n->inum ||
@@ -818,13 +1378,66 @@ UserFileSystem::status(Inode *n, Stat *out) {
 
 int
 UserFileSystem::synchronize(Inode *n) {
-  xv::sync::ScopedLock guard(serial_);
-  begin(Operation::Sync, n->inum);
-  return exchange() ? 0 : -1;
+  bool tree_held = tree_.holding(), data_held = n->data_lock_.holding();
+  if (!tree_held)
+  {
+    tree_.acquire();
+  }
+  if (!data_held)
+  {
+    n->data_lock_.acquire();
+  }
+  int result = 0;
+  // A mount-level sync must publish mapped stores before asking the backend
+  // to commit its filesystem journal. No serial RPC lock is held during flush.
+  if (n == nodes_[0])
+  {
+    for (auto *node : nodes_)
+    {
+      if (!node->mapped_pages_)
+      {
+        continue;
+      }
+      bool held = node->data_lock_.holding();
+      if (!held)
+      {
+        node->data_lock_.acquire();
+      }
+      result = flush_mapped(node);
+      if (!held)
+      {
+        node->data_lock_.release();
+      }
+      if (result < 0)
+      {
+        break;
+      }
+    }
+  }
+  if (!result)
+  {
+    xv::sync::ScopedLock guard(serial_);
+    begin(Operation::Sync, n->inum);
+    if (!exchange())
+    {
+      __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
+      result = -1;
+    }
+  }
+  if (!data_held)
+  {
+    n->data_lock_.release();
+  }
+  if (!tree_held)
+  {
+    tree_.release();
+  }
+  return result;
 }
 
 bool
 UserFileSystem::attributes(Inode *n, unsigned uid, unsigned gid, unsigned mode) {
+  invalidate_lookup();
   xv::sync::ScopedLock guard(serial_);
   begin(Operation::Setattr, n->inum);
   request_.attributes = {n->inum,           n->size,           uid, gid, mode,
@@ -891,6 +1504,11 @@ UserFileSystem::create(unsigned device, const xv::userfs::Registration &registra
 
 void
 UserFileSystem::destroy() {
+  if (lookup_cache_)
+  {
+    lookup_cache_->~LookupCache();
+    detail::free_page(lookup_cache_);
+  }
   while (node_pages_)
   {
     auto *page = node_pages_;
@@ -1022,6 +1640,24 @@ UserFileSystem::control(Inode *node, unsigned long address, unsigned access) {
         control.output_size = sizeof(stats);
         result = detail::copy_out(true, address, &control, sizeof(control));
       }
+      if (control.driver_version == 1 && control.command == 2 && !control.input_size &&
+          control.capacity >= sizeof(xv::userfs::ConcurrencyStatistics))
+      {
+        xv::userfs::ConcurrencyStatistics stats;
+        stats.lanes = lanes_;
+        stats.data_requests =
+            __atomic_load_n(&concurrency_.data_requests, __ATOMIC_RELAXED);
+        stats.lane_waits = __atomic_load_n(&concurrency_.lane_waits, __ATOMIC_RELAXED);
+        stats.in_flight = __atomic_load_n(&concurrency_.in_flight, __ATOMIC_ACQUIRE);
+        stats.maximum_in_flight =
+            __atomic_load_n(&concurrency_.maximum_in_flight, __ATOMIC_RELAXED);
+        stats.lookup_hits =
+            __atomic_load_n(&concurrency_.lookup_hits, __ATOMIC_RELAXED);
+        stats.read_hits = __atomic_load_n(&concurrency_.read_hits, __ATOMIC_RELAXED);
+        detail::move(control.data, &stats, sizeof(stats));
+        control.output_size = sizeof(stats);
+        result = detail::copy_out(true, address, &control, sizeof(control));
+      }
       detail::free_page(page);
       return result;
     }
@@ -1030,6 +1666,7 @@ UserFileSystem::control(Inode *node, unsigned long address, unsigned access) {
       detail::free_page(page);
       return -1;
     }
+    invalidate_lookup();
     xv::sync::ScopedLock guard(serial_);
     begin(Operation::Control, node->inum);
     request_.other = control.command;

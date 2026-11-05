@@ -28,6 +28,7 @@ import :lru;
 import :pipe;
 import :vfs;
 import :userfs;
+import :mapping;
 import :platform;
 
 extern "C" void *fs_test_backend_create(xv::userfs::Attributes *);
@@ -544,13 +545,23 @@ bridge_contract() {
   auto *provider = UserFileSystem::create(12, registration, false);
   check(provider != nullptr, "create production UserFileSystem bridge");
   provider->attached(true);
+  std::atomic<bool> reject_mapped_writes{false};
   std::thread server([&] {
     xv::userfs::Message message;
     auto &endpoint = provider->endpoint();
     while (endpoint.read({reinterpret_cast<unsigned long>(&message)},
                          sizeof(message)) == sizeof(message))
     {
-      fs_test_backend_dispatch(backend, &message);
+      if (reject_mapped_writes.load() &&
+          message.operation == xv::userfs::Operation::Write)
+      {
+        message.result = -1;
+        message.count = 0;
+      }
+      else
+      {
+        fs_test_backend_dispatch(backend, &message);
+      }
       check(endpoint.write({reinterpret_cast<unsigned long>(&message)},
                            sizeof(message)) == sizeof(message),
             "wire reply delivered");
@@ -579,9 +590,89 @@ bridge_contract() {
   check(!vfs.lookup("/content"), "old path removed");
   node = vfs.lookup("/renamed");
   check(node != nullptr, "new path resolves");
-  vfs.release(node);
+  int mapping_error = 0;
+  int mapped_baseline = allocated_pages;
+  for (int budget = 0; budget < 5; ++budget)
+  {
+    page_budget = budget;
+    auto *failed = FileMapping::create(node, 0, 3, mapping_error);
+    page_budget = -1;
+    check(!failed && mapping_error == -12 && allocated_pages == mapped_baseline,
+          "mapping allocation failure rolls back pages, cache records and inode refs");
+  }
+  for (int budget : {161, 162, 163, 258})
+  {
+    page_budget = budget;
+    auto *failed = FileMapping::create(node, 0, 256, mapping_error);
+    page_budget = -1;
+    check(
+        !failed && mapping_error == -12 && allocated_pages == mapped_baseline,
+        "large mapping failure also reclaims partially allocated second metadata block");
+  }
+  auto *mapping = FileMapping::create(node, 0, 3, mapping_error);
+  auto *alias = FileMapping::create(node, 4096, 2, mapping_error);
+  check(mapping && alias && mapping->page(1) == alias->page(0) &&
+            mapping->page_available(0) && mapping->page_available(1) &&
+            !mapping->page_available(2),
+        "inode mappings share physical pages and track file bounds");
+  vfs.lock(node);
+  check(node->owner().attributes(node, node->uid(), node->gid(), 06755),
+        "set-id fixture for mapping access");
+  vfs.unlock(node);
+  check(mapping->synchronize() == 0 && (node->mode() & 06000) == 06000,
+        "read-only mapping synchronization preserves set-id bits");
+  check(mapping->enable_write() == 0 && alias->enable_write() == 0 &&
+            !(node->mode() & 06000),
+        "writable mapping clears set-id bits");
+  static_cast<char *>(mapping->page(0))[0] = 'M';
+  static_cast<char *>(alias->page(0))[0] = 'N';
+  reject_mapped_writes.store(true);
+  check(mapping->synchronize() == -5 && static_cast<char *>(mapping->page(0))[0] == 'M',
+        "failed writeback reports EIO and preserves the live mapped data for retry");
+  reject_mapped_writes.store(false);
+  vfs.lock(node);
+  char mapped_bytes[2]{};
+  check(vfs.read(node, 0, reinterpret_cast<unsigned long>(mapped_bytes), 0, 2) == 2 &&
+            mapped_bytes[0] == 'M' && mapped_bytes[1] == 'Q',
+        "file reads immediately observe mapped stores before writeback");
+  check(vfs.write(node, 0, reinterpret_cast<unsigned long>("W"), 1, 1) == 1 &&
+            static_cast<char *>(mapping->page(0))[1] == 'W' &&
+            static_cast<char *>(alias->page(0))[0] == 'N',
+        "file writes update mappings and preserve other dirty bytes");
+  check(node->owner().read_data(node, 0, reinterpret_cast<unsigned long>(mapped_bytes),
+                                0, 2) == 2 &&
+            mapped_bytes[0] == 'M' && mapped_bytes[1] == 'W',
+        "write-through publishes dirty mapped bytes and descriptor writes");
+  check(node->owner().resize_file(node, 1) == 0 && !mapping->page_available(1) &&
+            static_cast<char *>(mapping->page(0))[1] == 0 &&
+            static_cast<char *>(alias->page(0))[0] == 0,
+        "truncate updates live mapping bounds and zeros discarded bytes");
+  check(node->owner().resize_file(node, 8192) == 0 && mapping->page_available(1) &&
+            static_cast<char *>(alias->page(0))[0] == 0,
+        "regrowth does not resurrect truncated mapped content");
+  vfs.unlock(node);
+  check(mapping->synchronize() == 0, "mapped writeback commits backend");
+  static_cast<char *>(mapping->page(0))[0] = 'S';
+  check(vfs.synchronize_services() == 0, "mount-level sync publishes mapped stores");
+  vfs.lock(node);
+  char committed = 0;
+  check(node->owner().read_data(node, 0, reinterpret_cast<unsigned long>(&committed), 0,
+                                1) == 1 &&
+            committed == 'S',
+        "mount-level sync reaches backend before journal commit");
+  vfs.unlock(node);
   check(vfs.unlink(const_cast<char *>("/renamed")) == 0,
-        "VFS unlink over user backend");
+        "unlink while mappings hold the inode");
+  vfs.release(node);
+  static_cast<char *>(mapping->page(0))[0] = 'U';
+  check(alias->synchronize() == 0,
+        "mapping survives unlink and original inode release");
+  mapping->retain();
+  mapping->release();
+  alias->release();
+  mapping->release();
+  check(allocated_pages == mapped_baseline,
+        "last mapping releases cached frames, metadata and unlinked backend inode");
   check(vfs.synchronize_services() == 0, "sync reaches backend");
   vfs.release(root);
   provider->shutdown();
@@ -637,7 +728,7 @@ exchange_transport(File *, void *, void *, unsigned, unsigned long) {
 }
 
 int
-copy_transport(File *, unsigned long, unsigned, bool, bool) {
+copy_transport(File *, unsigned long, unsigned, bool, bool, unsigned) {
   return -1;
 }
 
@@ -753,6 +844,14 @@ allocate_page() {
     ++test::allocated_pages;
   }
   return page;
+}
+
+void
+synchronize_file_mappings() {}
+
+void
+release_frame(void *page) {
+  free_page(page);
 }
 
 void

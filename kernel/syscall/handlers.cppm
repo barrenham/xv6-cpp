@@ -70,6 +70,8 @@ unsigned long sys_open(void);
 unsigned long sys_write(void);
 unsigned long sys_mknod(void);
 unsigned long sys_mmap();
+unsigned long sys_mprotect();
+unsigned long sys_msync();
 unsigned long sys_munmap();
 unsigned long sys_shm_open();
 unsigned long sys_shm_unlink();
@@ -106,3 +108,13 @@ unsigned long sys_cpupin(void);
 #endif
 
 } // namespace xv::syscall
+
+namespace xv::syscall
+{
+unsigned long sys_mq_open();
+unsigned long sys_mq_unlink();
+unsigned long sys_mq_send();
+unsigned long sys_mq_receive();
+unsigned long sys_mq_getsetattr();
+unsigned long sys_clock_gettime();
+}

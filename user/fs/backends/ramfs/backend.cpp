@@ -167,7 +167,7 @@ int MemoryBackend::create(unsigned parent, const char *name,
     out = found->node->attributes;
     return 0;
   }
-  if ((requested.type != T_DIR && requested.type != T_FILE && requested.type != T_SYMLINK) ||
+  if ((requested.type != T_DIR && requested.type != T_FILE && requested.type != T_SYMLINK && requested.type != T_SOCKET) ||
       !next_node_ || directory->next_cookie == ~0UL ||
       (requested.type == T_DIR && directory->attributes.links == NLINK_MAX)) return -1;
   auto *node_memory = storage_.allocate(sizeof(Node));

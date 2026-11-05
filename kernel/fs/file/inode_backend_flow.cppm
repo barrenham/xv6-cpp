@@ -305,7 +305,7 @@ struct InodeBackend::ReadFlow
 
   static void
   read_file(Context &c) noexcept {
-    c.result = filesystem().read(c.owner.node_, 1, c.destination.address,
+    c.result = c.owner.node_->owner().read_file(c.owner.node_, 1, c.destination.address,
                                  c.owner.offset_, c.count);
   }
 
@@ -363,13 +363,13 @@ struct InodeBackend::WriteFlow
 
   static void
   write_part(Context &c) noexcept {
-    LockedInode guard(c.owner.node_->owner(), *c.owner.node_);
+    LockedInode guard(c.owner.node_->owner(), *c.owner.node_, true);
     MutationProtocol::clear_setid(c);
     if (c.source.append)
     {
       c.owner.offset_ = c.owner.node_->size_bytes();
     }
-    c.result = filesystem().write(c.owner.node_, 1, c.source.address + c.done,
+    c.result = c.owner.node_->owner().write_file(c.owner.node_, 1, c.source.address + c.done,
                                   c.owner.offset_, c.part);
     if (c.result > 0)
     {
@@ -475,7 +475,7 @@ struct InodeBackend::ResizeFlow
 
   static void
   resize(Context &c) noexcept {
-    c.result = c.owner.node_->owner().resize(c.owner.node_, c.size);
+    c.result = c.owner.node_->owner().resize_file(c.owner.node_, c.size);
   }
   struct Writable;
   struct ClearSetid;
@@ -505,7 +505,7 @@ struct InodeBackend::SyncFlow
 
   static void
   local(Context &c) noexcept {
-    c.result = c.owner.node_->owner().synchronize(c.owner.node_);
+    c.result = c.owner.node_->owner().sync_file(c.owner.node_);
   }
   struct Validate;
   struct Local;

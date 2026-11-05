@@ -13,6 +13,7 @@ import xv.print;
 import xv.runtime;
 
 import xv.fs;
+import xv.ipc;
 
 import :manager;
 import xv.memory;
@@ -470,12 +471,14 @@ struct ProcessManager::ExitFlow
 
   static void
   close_files(Context &c) noexcept {
+    c.process.memory().close_file_mappings();
     c.process.descriptors_.close_all();
   }
 
   static void
   directory(Context &c) noexcept {
     c.process.directory_.clear();
+    xv::ipc::collect_deferred_socket_cycles();
   }
 
   static void

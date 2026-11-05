@@ -206,7 +206,7 @@ struct OpenFlow
 
   static bool
   existing_kind(Context &c) noexcept {
-    return c.inode->kind() != T_SYMLINK &&
+    return c.inode->kind() != T_SYMLINK && c.inode->kind() != T_SOCKET &&
            (c.inode->kind() != T_DIR ||
             (c.mode & ~(O_NONBLOCK | O_CLOEXEC)) == O_RDONLY);
   }
@@ -255,7 +255,7 @@ struct OpenFlow
 
   static bool
   truncate(Context &c) noexcept {
-    if (c.inode->owner().resize(c.inode, 0) < 0)
+    if (c.inode->owner().resize_file(c.inode, 0) < 0)
     {
       return false;
     }

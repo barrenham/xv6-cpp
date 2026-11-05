@@ -1,4 +1,5 @@
 add_executable(kernel)
+target_sources(kernel PRIVATE hardware/device_tree.cpp)
 target_link_libraries(kernel PRIVATE xv_options)
 target_link_options(kernel PRIVATE -z max-page-size=4096 -T "${PROJECT_SOURCE_DIR}/linker/kernel.ld")
 set_target_properties(kernel PROPERTIES OUTPUT_NAME kernel.elf RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}" LINK_DEPENDS "${PROJECT_SOURCE_DIR}/linker/kernel.ld")
@@ -16,3 +17,7 @@ add_subdirectory(support)
 add_subdirectory(net)
 
 add_subdirectory(ipc)
+
+# Firmware discovery executes before expandable process stacks exist.
+set_source_files_properties(hardware/device_tree.cpp PROPERTIES
+  COMPILE_OPTIONS "-Wframe-larger-than=2048")

@@ -9,6 +9,7 @@ module xv.syscall;
 
 import :handlers;
 import xv.process;
+import xv.ipc;
 import xv.print;
 
 namespace xv::syscall
@@ -55,7 +56,15 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_mountinfo: return sys_mountinfo;
   case SYS_stat: return sys_stat;
   case SYS_netctl: return sys_netctl;
+  case SYS_mq_open: return sys_mq_open;
+  case SYS_mq_unlink: return sys_mq_unlink;
+  case SYS_mq_send: return sys_mq_send;
+  case SYS_mq_receive: return sys_mq_receive;
+  case SYS_mq_getsetattr: return sys_mq_getsetattr;
+  case SYS_clock_gettime: return sys_clock_gettime;
   case SYS_mmap: return sys_mmap;
+  case SYS_mprotect: return sys_mprotect;
+  case SYS_msync: return sys_msync;
   case SYS_munmap: return sys_munmap;
   case SYS_shm_open: return sys_shm_open;
   case SYS_shm_unlink: return sys_shm_unlink;
@@ -146,6 +155,7 @@ struct DispatchFlow
     c.process->begin_system_call();
     c.result = static_cast<unsigned long>(
         c.process->finish_system_call(c.number, c.argument, c.handler()));
+    xv::ipc::collect_deferred_socket_cycles();
   }
 
   static bool
@@ -154,6 +164,7 @@ struct DispatchFlow
         c.number == SYS_read || c.number == SYS_write || c.number == SYS_wait ||
         c.number == SYS_waitpid || c.number == SYS_accept || c.number == SYS_recvfrom ||
         c.number == SYS_sendto || c.number == SYS_recvmsg || c.number == SYS_sendmsg ||
+        c.number == SYS_connect || c.number == SYS_mq_send || c.number == SYS_mq_receive ||
         c.number == SYS_pause || c.number == SYS_sigsuspend;
     return (c.result == ~0UL || static_cast<long>(c.result) == -EINTR) && restartable &&
            c.process->stop_requested();

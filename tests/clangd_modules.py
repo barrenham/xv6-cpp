@@ -322,7 +322,6 @@ void xv_clangd_module_probe()
                      'kernel/drivers/net/ethernet.cppm',
                      'drivers/backends/e1000/device.cppm',
                      'drivers/backends/e1000/device.cpp',
-                     'drivers/backends/e1000/pci.cpp',
                      'kernel/net/net.cppm',
                      'kernel/net/platform/kernel_platform.cpp',
                      'user/tests/nettest.cpp',

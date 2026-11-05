@@ -387,12 +387,47 @@ sys_mmap() {
   argument_integer(4, &descriptor);
   argument_address(5, &offset);
   if (!bytes || bytes > 256UL * 4096 || offset % 4096 ||
-      (protection & ~(PROT_READ | PROT_WRITE)) ||
-      (flags & ~(MAP_SHARED | MAP_PRIVATE)) ||
+      (protection & ~(PROT_READ | PROT_WRITE | PROT_EXEC)) ||
+      (flags & ~(MAP_SHARED | MAP_PRIVATE | MAP_ANONYMOUS)) ||
       ((flags & (MAP_SHARED | MAP_PRIVATE)) != MAP_SHARED &&
        (flags & (MAP_SHARED | MAP_PRIVATE)) != MAP_PRIVATE))
   {
     return -EINVAL;
+  }
+  unsigned count = (bytes + 4095) / 4096;
+  unsigned permissions =
+      protection ? PTE_U | ((protection & (PROT_READ | PROT_WRITE)) ? PTE_R : 0) |
+                       ((protection & PROT_WRITE) ? PTE_W : 0) |
+                       ((protection & PROT_EXEC) ? PTE_X : 0)
+                 : 0;
+  if (flags & MAP_ANONYMOUS)
+  {
+    if (offset)
+    {
+      return -EINVAL;
+    }
+    void *pages[256];
+    unsigned allocated = 0;
+    for (; allocated < count; ++allocated)
+    {
+      pages[allocated] = xv::memory::allocator().allocate();
+      if (!pages[allocated])
+      {
+        break;
+      }
+      xv::runtime::fill(pages[allocated], 0, 4096);
+    }
+    unsigned long result = 0;
+    if (allocated == count)
+    {
+      result = xv::process::current()->memory().map_shared_pages(
+          pages, count, permissions, flags & MAP_PRIVATE, hint);
+    }
+    for (unsigned i = 0; i < allocated; ++i)
+    {
+      xv::memory::allocator().release_page(pages[i]);
+    }
+    return result ? result : static_cast<unsigned long>(-ENOMEM);
   }
   auto *file = xv::process::current()->files().get(descriptor);
   if (!file)
@@ -402,13 +437,36 @@ sys_mmap() {
   auto *object = xv::io::query<xv::ipc::SharedMemory>(xv::fs::files().object(file));
   if (!object)
   {
-    return -ENODEV;
+    if (offset > 0xffffffffUL)
+    {
+      return -EINVAL;
+    }
+    xv::fs::FileMapping *backing = nullptr;
+    unsigned maximum = 0;
+    int error = xv::fs::files().map_file(file, offset, count, flags & MAP_SHARED,
+                                         protection & PROT_WRITE, backing, maximum);
+    if (error)
+    {
+      return error;
+    }
+    void *pages[256];
+    for (unsigned i = 0; i < count; ++i)
+    {
+      pages[i] = backing->page(i);
+    }
+    unsigned maximum_permissions =
+        PTE_U | PTE_R | PTE_X | ((maximum & PROT_WRITE) ? PTE_W : 0);
+    auto address = xv::process::current()->memory().map_shared_pages(
+        pages, count, permissions, flags & MAP_PRIVATE, hint, maximum_permissions,
+        backing->backing());
+    backing->release();
+    return address ? address : static_cast<unsigned long>(-ENOMEM);
   }
-  if ((flags & MAP_SHARED) && (protection & PROT_WRITE) && !object->writable())
+  if ((protection & PROT_EXEC) ||
+      ((flags & MAP_SHARED) && (protection & PROT_WRITE) && !object->writable()))
   {
     return -EACCES;
   }
-  unsigned count = (bytes + 4095) / 4096;
   if (offset / 4096 > 256 || count > 256 - offset / 4096)
   {
     return -EINVAL;
@@ -419,15 +477,53 @@ sys_mmap() {
   {
     return error;
   }
-  unsigned permissions =
-      protection ? PTE_U | PTE_R | ((protection & PROT_WRITE) ? PTE_W : 0) : 0;
   auto result = xv::process::current()->memory().map_shared_pages(
-      pages, count, permissions, flags & MAP_PRIVATE, hint);
+      pages, count, permissions, flags & MAP_PRIVATE, hint,
+      PTE_U | PTE_R | ((object->writable() || (flags & MAP_PRIVATE)) ? PTE_W : 0));
   for (unsigned i = 0; i < count; ++i)
   {
     xv::memory::allocator().release_page(pages[i]);
   }
   return result ? result : static_cast<unsigned long>(-ENOMEM);
+}
+
+unsigned long
+sys_msync() {
+  unsigned long address, bytes;
+  int flags;
+  argument_address(0, &address);
+  argument_address(1, &bytes);
+  argument_integer(2, &flags);
+  if ((flags & ~(MS_SYNC | MS_ASYNC | MS_INVALIDATE)) ||
+      ((flags & (MS_SYNC | MS_ASYNC)) != MS_SYNC &&
+       (flags & (MS_SYNC | MS_ASYNC)) != MS_ASYNC))
+  {
+    return -EINVAL;
+  }
+  if (flags & MS_ASYNC)
+  {
+    return -EOPNOTSUPP;
+  }
+  return xv::process::current()->memory().sync_mappings(address, bytes);
+}
+
+unsigned long
+sys_mprotect() {
+  unsigned long address, bytes;
+  int protection;
+  argument_address(0, &address);
+  argument_address(1, &bytes);
+  argument_integer(2, &protection);
+  if (protection & ~(PROT_READ | PROT_WRITE | PROT_EXEC))
+  {
+    return -EINVAL;
+  }
+  unsigned permissions =
+      protection ? PTE_U | ((protection & (PROT_READ | PROT_WRITE)) ? PTE_R : 0) |
+                       ((protection & PROT_WRITE) ? PTE_W : 0) |
+                       ((protection & PROT_EXEC) ? PTE_X : 0)
+                 : 0;
+  return xv::process::current()->memory().protect_mappings(address, bytes, permissions);
 }
 
 unsigned long

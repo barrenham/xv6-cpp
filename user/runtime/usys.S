@@ -546,3 +546,51 @@ __xv_shm_unlink:
  li a7, SYS_shm_unlink
  ecall
  ret
+
+.global __xv_mq_open
+__xv_mq_open:
+ li a7, SYS_mq_open
+ ecall
+ ret
+
+.global __xv_mq_unlink
+__xv_mq_unlink:
+ li a7, SYS_mq_unlink
+ ecall
+ ret
+
+.global __xv_mq_send
+__xv_mq_send:
+ li a7, SYS_mq_send
+ ecall
+ ret
+
+.global __xv_mq_receive
+__xv_mq_receive:
+ li a7, SYS_mq_receive
+ ecall
+ ret
+
+.global __xv_mq_getsetattr
+__xv_mq_getsetattr:
+ li a7, SYS_mq_getsetattr
+ ecall
+ ret
+
+.global __xv_clock_gettime
+__xv_clock_gettime:
+ li a7, SYS_clock_gettime
+ ecall
+ ret
+
+.global __xv_mprotect
+__xv_mprotect:
+ li a7, SYS_mprotect
+ ecall
+ ret
+
+.global __xv_msync
+__xv_msync:
+ li a7, SYS_msync
+ ecall
+ ret

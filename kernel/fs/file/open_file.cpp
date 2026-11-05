@@ -6,6 +6,7 @@ module;
 #include "kernel/fs/poll.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/io/posix_errno.h"
+#include "kernel/io/mman.h"
 #include "kernel/io/fs_control.h"
 #include "kernel/support/placement_new.hpp"
 
@@ -452,5 +453,66 @@ void
 OpenFileTable::set_collect_hook(void (*hook)()) {
   xv::sync::ScopedLock guard(lock_);
   collect_hook_ = hook;
+}
+} // namespace xv::fs
+
+namespace xv::fs
+{
+bool
+OpenFileTable::exchange_nonblocking(File *file, bool value) {
+  auto previous = value ? __atomic_fetch_or(&file->status_flags_, unsigned(O_NONBLOCK),
+                                            __ATOMIC_ACQ_REL)
+                        : __atomic_fetch_and(&file->status_flags_,
+                                             ~unsigned(O_NONBLOCK), __ATOMIC_ACQ_REL);
+  return previous & O_NONBLOCK;
+}
+} // namespace xv::fs
+
+namespace xv::fs
+{
+int
+OpenFileTable::map_file(File *file, unsigned offset, unsigned pages, bool shared,
+                        bool writing, FileMapping *&mapping,
+                        unsigned &maximum_protection) {
+  mapping = nullptr;
+  if (!file || !file->backend_)
+  {
+    return -EBADF;
+  }
+  if (file->identity_.kind != FileKind::Node || file->identity_.type != T_FILE)
+  {
+    return -ENODEV;
+  }
+  if (!file->readable || (shared && writing && !file->writable))
+  {
+    return -EACCES;
+  }
+  auto *node = static_cast<InodeBackend *>(file->backend_)->node_;
+  if (!node->owner().mappable())
+  {
+    return -ENODEV;
+  }
+  if (shared && writing && node->owner().read_only())
+  {
+    return -EACCES;
+  }
+  maximum_protection = PROT_READ | PROT_EXEC;
+  if (!shared || (file->writable && !node->owner().read_only()))
+  {
+    maximum_protection |= PROT_WRITE;
+  }
+  int error = 0;
+  mapping = FileMapping::create(node, offset, pages, error);
+  if (!mapping)
+  {
+    return error;
+  }
+  if (shared && writing && (error = mapping->enable_write()) < 0)
+  {
+    mapping->release();
+    mapping = nullptr;
+    return error;
+  }
+  return 0;
 }
 } // namespace xv::fs

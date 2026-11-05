@@ -2,6 +2,23 @@ export module xv.vm_types;
 
 export namespace xv::memory
 {
+// VM owns virtual ranges; backing owners manage pages and optional writeback.
+// release/enable_write/synchronize may sleep and must run outside spin locks.
+class MappingBacking
+{
+public:
+  virtual MappingBacking *retain() = 0;
+  virtual void release() = 0;
+  virtual int enable_write() = 0;
+  virtual int synchronize() = 0;
+  virtual bool page_available(unsigned index) const = 0;
+  virtual unsigned long length() const { return ~0UL; }
+  virtual void *page(unsigned index) const = 0;
+protected:
+  constexpr MappingBacking() = default;
+  ~MappingBacking() = default;
+};
+
 enum class RegionKind
 {
   Image,
@@ -26,6 +43,7 @@ enum class FaultResult
   Permission,
   AlreadyMapped,
   InvalidMapping,
+  FileBounds,
   OutOfMemory
 };
 

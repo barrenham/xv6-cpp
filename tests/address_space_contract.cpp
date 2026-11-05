@@ -1,6 +1,7 @@
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 #include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <vector>
 
@@ -18,18 +19,60 @@ namespace
 using xv::process::AddressSpace;
 using namespace xv::memory;
 
-void check(bool value, const char *message)
-{
+void
+check(bool value, const char *message) {
   if (!value)
   {
     std::fprintf(stderr, "address_space_contract: %s\n", message);
     std::exit(1);
   }
 }
+
+class MappingProbe final : public MappingBacking
+{
+public:
+
+  void *frames[3]{};
+  unsigned references = 1, available = 3, synchronizations = 0, writes = 0;
+
+  MappingBacking *
+  retain() override {
+    ++references;
+    return this;
+  }
+
+  void
+  release() override {
+    check(references > 1, "balanced backing release");
+    --references;
+  }
+
+  int
+  enable_write() override {
+    ++writes;
+    return 0;
+  }
+
+  int
+  synchronize() override {
+    ++synchronizations;
+    return 0;
+  }
+
+  bool
+  page_available(unsigned index) const override {
+    return index < available;
+  }
+
+  void *
+  page(unsigned index) const override {
+    return index < 3 ? frames[index] : nullptr;
+  }
+};
 } // namespace
 
-void address_space_contracts()
-{
+void
+address_space_contracts() {
   const auto initial = allocator().free_pages();
   void *borrowed[4];
   for (auto &page : borrowed)
@@ -135,6 +178,53 @@ void address_space_contracts()
     check(allocator().page_references(page) == 1,
           "reset drops parent and child device references");
     allocator().release_page(page);
+  }
+
+  MappingProbe backing;
+  for (auto &frame : backing.frames)
+  {
+    frame = allocator().allocate();
+    check(frame, "mapping backing frame");
+    std::memset(frame, 0, PGSIZE);
+  }
+  check(parent.create(borrowed[0], borrowed[1]) &&
+            child.create(borrowed[2], borrowed[3]),
+        "mapping owner address spaces");
+  auto mapped = parent.map_shared_pages(backing.frames, 3, PTE_U | PTE_R, false, 0,
+                                        PTE_U | PTE_R | PTE_W, &backing);
+  check(mapped && backing.references == 2 && parent.copy_out(mapped, "X", 1) < 0,
+        "mapping takes backing lease and enforces initial protection");
+  check(parent.protect_mappings(mapped + PGSIZE, PGSIZE, PTE_U | PTE_R | PTE_W) == 0 &&
+            backing.writes == 1 && parent.copy_out(mapped + PGSIZE, "W", 1) == 0,
+        "shared protection upgrade enables backing writes");
+  backing.available = 1;
+  check(parent.copy_in(&value, mapped + PGSIZE, 1) < 0,
+        "kernel user copy revokes access past backing EOF");
+  backing.available = 3;
+  check(parent.copy_in(&value, mapped + PGSIZE, 1) == 0 && value == 'W',
+        "backing growth restores access");
+  check(parent.unmap_shared_pages(mapped + PGSIZE, PGSIZE) == 0 &&
+            backing.references == 3 &&
+            parent.sync_mappings(mapped, 3 * PGSIZE) == -12 &&
+            !backing.synchronizations,
+        "partial unmap splits leases and msync validates holes first");
+  check(parent.sync_mappings(mapped + 2 * PGSIZE, PGSIZE) == 0 &&
+            backing.synchronizations == 1,
+        "remaining mapping fragment synchronizes");
+  check(parent.copy_to(child) && backing.references == 5,
+        "fork retains each surviving backing fragment");
+  child.close_file_mappings();
+  check(backing.references == 3 && child.copy_in(&value, mapped, 1) < 0,
+        "exit cleanup releases child mappings before zombie reaping");
+  parent.close_file_mappings();
+  check(backing.references == 1, "last address-space backing leases released");
+  parent.reset();
+  child.reset();
+  for (auto *frame : backing.frames)
+  {
+    check(allocator().page_references(frame) == 1,
+          "mapping lifecycle releases every page-table frame reference");
+    allocator().release_page(frame);
   }
 
   // Vary available physical pages across each mapping/metadata allocation stage.

@@ -1,4 +1,5 @@
 module;
+#include "kernel/hardware/pci.h"
 
 #include <cstdio>
 #include "kernel/io/framebuffer.h"
@@ -31,7 +32,6 @@ import :keyboard;
 import :plic;
 import :protocol;
 import :e1000;
-import :pci;
 
 namespace xv::drivers
 {
@@ -585,13 +585,13 @@ pci_contract() {
   config(5)[0] = 0x100e8086;
   config(0)[1] = 0x12345678;
   config(0)[4] = 0x98765432;
-  check(!detail::configure_e1000(0x40000000, 32) &&
-            !detail::configure_e1000(0x40000000, 0) && config(0)[1] == 0x12345678 &&
+  check(!xv::hardware::enable_pci_function(0, 0x100e8086) &&
+            !xv::hardware::enable_pci_function(reinterpret_cast<unsigned long>(config(0)), 0x100e8086) && config(0)[1] == 0x12345678 &&
             config(0)[4] == 0x98765432,
         "invalid PCI slot/vendor leaves command and BAR untouched");
   config(5)[1] = 0xabcd0403;
   check(
-      detail::configure_e1000(0x40020000, 5) && config(5)[4] == 0x40020000 &&
+      xv::hardware::enable_pci_function(reinterpret_cast<unsigned long>(config(5)), 0x100e8086) &&
           config(5)[1] == 7,
       "PCI configuration preserves low command bits and enables memory/bus master IRQ");
 
@@ -608,7 +608,7 @@ pci_contract() {
   nic.initialize();
   check(!nic.online() && !nic.carrier(), "NIC without receiver remains offline");
   nic.attach(receiver);
-  nic.locate(0);
+  nic.authorize_resources(false);
   nic.initialize();
   check(!nic.online() && registers[0] == 0,
         "PCI rejection stops NIC before reset programming");
@@ -752,6 +752,8 @@ interrupt_contract() {
 
   std::vector<unsigned> registers(0x208000 / 4, ~0U);
   Plic plic(reinterpret_cast<unsigned long>(registers.data()));
+  const unsigned contexts[] = {1, 3};
+  plic.configure(reinterpret_cast<unsigned long>(registers.data()), contexts, 2);
   plic.initialize();
   plic.set_priority(10, 1);
   plic.initialize_hart(1);

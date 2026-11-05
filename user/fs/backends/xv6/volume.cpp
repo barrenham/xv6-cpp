@@ -22,7 +22,7 @@ public:
 };
 bool kind(unsigned type)
 {
-  return type == T_DIR || type == T_FILE || type == T_SYMLINK || type == T_DEVICE || type == T_BLOCK;
+  return type == T_DIR || type == T_FILE || type == T_SYMLINK || type == T_DEVICE || type == T_BLOCK || type == T_SOCKET;
 }
 }
 struct Volume::Transaction

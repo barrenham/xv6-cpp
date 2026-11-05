@@ -30,7 +30,7 @@ struct State
 
   explicit State(const xv_kmod_device_v2 &resource)
       : device(resource.base.mmio, resource.base.irq), receiver(resource.binding) {
-    device.locate(resource.slot);
+    device.authorize_resources(resource.flags & XV_KMOD_DEVICE_PCI_READY);
     device.attach(receiver);
   }
 };
