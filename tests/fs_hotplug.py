@@ -45,7 +45,7 @@ def main():
         server = None
         try:
             login_root(guest.expect, guest.process)
-            guest.command('drvctl list', 'virtio_block bound=2')
+            guest.command('drvctl --raw list', 'virtio_block bound=2')
             guest.command('cd /')
             guest.command('mkdir /tmp/newfs')
             guest.command('mount -t hotext4 /tmp/newfs', failure=True)
@@ -67,7 +67,7 @@ def main():
             server = Server(build)
             install(guest, server, 'hotext4')
             guest.command('mount -t hotext4 /tmp/newfs')
-            guest.command('fsctl /tmp/newfs', 'interface=ext4.native')
+            guest.command('fsctl /tmp/newfs', 'Interface       : ext4.native')
             guest.command('ext4test /tmp/newfs', 'ext4test: PASS:', timeout=100)
             guest.command('/tmp/newfs/probe', 'cppdemo: RAII and move ownership OK')
             guest.command('umount /tmp/newfs')

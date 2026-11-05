@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-') as temporary:
         home='/root'
         g.run('pwd',home+'\n')
         if a.persistent:
-            g.run('mount',Image(seed).filesystem+' on /\n')
+            g.run('mount --raw',Image(seed).filesystem+' on /\n')
             g.run('echo $HOME','/root\n')
             g.run('echo PERSISTENT_CONTENT > /root/retained')
             g.run('useradd alice','uid=1000');g.password('alice',USERPASS)
@@ -102,7 +102,7 @@ with tempfile.TemporaryDirectory(prefix='xv-progress-') as temporary:
             g.run('su alice id','groups=1000,1001');g.run('su alice pwd','/home/alice\n')
             g.run('umount / || echo ROOT_PROTECTED','ROOT_PROTECTED\n')
             # Optional secondary disks mount explicitly and never relocate HOME/accounts.
-            g.run('drvctl list','virtio_block bound=2')
+            g.run('drvctl --raw list','virtio_block bound=2')
             g.run('mount -t ext3 /data');g.run('echo AUXILIARY > /data/retained')
             g.run('echo $HOME','/root\n');g.run('su alice id','groups=1000,1001')
             g.run('umount /data');g.run('mount -t ext3 /data');g.run('cat /data/retained','AUXILIARY\n')

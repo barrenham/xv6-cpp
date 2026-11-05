@@ -80,9 +80,9 @@ def main():
         try:
             login_root(guest.expect, guest.process)
             guest.command('cd /')
-            baseline = guest.command('drvctl list')
+            baseline = guest.command('drvctl --raw list')
             count = int(re.search(r'(\d+) resident modules', baseline)[1])
-            guest.command('drvctl devices', 'bound=0')
+            guest.command('drvctl --raw devices', 'bound=0')
             assert 'vdb' not in guest.command('ls /dev'), 'disk registered before loading driver'
             guest.command('mkdir /tmp/module-disk')
             guest.command('mount -t ext3 -s 1 /tmp/module-disk', failure=True)
@@ -127,9 +127,9 @@ def main():
             for name in invalid:
                 guest.command(f'curl -fsS -m 30 -o /tmp/bad.elf {server.url}/{name}.elf', timeout=45)
                 guest.command('drvctl load /tmp/bad.elf', 'load failed')
-            guest.command('drvctl list', f'{count} resident modules')
+            guest.command('drvctl --raw list', f'{count} resident modules')
             guest.command('drvctl load /tmp/hotdisk.elf', f'loaded module {count}')
-            guest.command('drvctl list', 'hotdisk bound=0')
+            guest.command('drvctl --raw list', 'hotdisk bound=0')
             guest.command('drvctl load /tmp/hotdisk.elf', 'load failed')
             guest.command(f'drvctl bind {count} 0', 'bind failed')
             guest.command(f'curl -fsS -m 30 -o /tmp/faildisk.elf {server.url}/faildisk.elf', timeout=45)
@@ -137,7 +137,7 @@ def main():
             guest.command(f'kmodtest --failed-bind {count + 1} 1', 'failed bind retries reclaim resources')
             guest.command(f'drvctl bind {count} 1', f'bound module {count} to device 1')
             guest.command(f'drvctl bind {count} 1', 'bind failed')
-            guest.command('drvctl devices', 'bound=1')
+            guest.command('drvctl --raw devices', 'bound=1')
             guest.command('ls /dev', 'vdb')
             guest.command('kmodtest', 'kmodtest: PASS:', timeout=80)
             guest.command('mount -t ext3 -s 1 /tmp/module-disk')
@@ -148,7 +148,7 @@ def main():
             guest.command('mount -t ext3 -s 1 /tmp/module-disk')
             guest.command('cat /tmp/module-disk/written', 'KERNEL_MODULE_PERSISTED')
             guest.command('umount /tmp/module-disk')
-            stats = guest.command('drvctl list', 'hotdisk bound=1')
+            stats = guest.command('drvctl --raw list', 'hotdisk bound=1')
             matched = re.search(rf'{count} hotdisk bound=1 transfers=(\d+) interrupts=(\d+)', stats)
             assert matched and int(matched[1]) > 0 and int(matched[2]) > 0, stats
             assert 'hotdisk' not in guest.command('ps'), 'driver incorrectly runs as a user process'

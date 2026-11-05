@@ -262,7 +262,7 @@ def main():
                 guest.command('fsdrivertest unsupported /', 'fsdrivertest: PASS: unsupported')
             guest.command('fsdrivertest unsupported /tmp', 'fsdrivertest: PASS: unsupported')
             guest.command('mount -t sdkmod /tmp/mod')
-            guest.command('fsctl /tmp/mod/hello', 'interface=example.file')
+            guest.command('fsctl /tmp/mod/hello', 'Interface       : example.file')
             guest.command('fsdrivertest readonly /tmp/mod/hello', 'fsdrivertest: PASS: readonly')
             guest.command('umount /tmp/mod')
             guest.command('mount -t fileview -o rw /tmp/mod')

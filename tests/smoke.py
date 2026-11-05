@@ -612,7 +612,10 @@ def session_checks():
     send(b'\x04'); expect('$ ')
     command('useradd alice', 'useradd: alice uid=1000')
     command('su alice ln /etc/shadow /home/alice/shadow-copy')
-    command('ls -l /etc/shadow', '-rw------- 2 0 0')
+    listing_begin = len(transcript)
+    command('ls -l /etc/shadow', '-rw-------')
+    if not re.search(rb'^-rw------- +2 +0 +0 +[0-9]+ +shadow\r?$', transcript[listing_begin:], re.MULTILINE):
+        raise RuntimeError('ls -l shadow link count or ownership changed')
     send('passwd alice'); expect('New password: '); send('alice-secret-42')
     expect('Retype password: '); send('alice-secret-42')
     expect('passwd: password updated for alice', timeout=60); expect('$ ')

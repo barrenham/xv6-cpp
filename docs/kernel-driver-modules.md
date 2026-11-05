@@ -126,3 +126,5 @@ drvctl bind MODULE DEVICE
 最终结果与内核、引导归档、七个模块的 SHA-256 汇总在
 `build/device-elf-acceptance.json`。正常镜像构建、C++ 格式检查和 clangd 的
 诊断、跳转、补全检查通过，编辑器日志见 `build/device-elf-clangd-tests.log`。
+
+`drvctl list/devices` 默认显示带表头的对齐表格和字段说明。脚本可使用 `drvctl --raw list`、`drvctl --raw devices` 保留原键值输出。MODULE 与 DEVICE 是绑定命令的两个编号，DEVICE_ID 是总线类型标识，详见 [命令输出说明](command-output.md)。
