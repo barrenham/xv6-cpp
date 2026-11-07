@@ -65,6 +65,7 @@ void *allocate_page();
 void free_page(void *page);
 void release_frame(void *page);
 void synchronize_file_mappings();
+bool mapping_fault_safe();
 void move(void *destination, const void *source, unsigned count);
 void fill(void *destination, int value, unsigned count);
 int compare(const char *first, const char *second, unsigned count);

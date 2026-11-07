@@ -1,6 +1,9 @@
 find_program(XV_USER_OBJCOPY llvm-objcopy HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
 add_library(user_runtime OBJECT runtime/ulib.cpp runtime/posix.cpp runtime/cxx.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
+add_library(user_services STATIC services/config.cpp services/control.cpp
+  services/supervisor.cpp services/daemon.cpp services/bootstrap.cpp)
+target_link_libraries(user_services PUBLIC xv_options)
 add_subdirectory(fs)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
 target_link_libraries(user_accounts PRIVATE xv_options)
@@ -18,6 +21,16 @@ function(xv_add_program source)
     set(target "user_fsboot_executable")
   endif()
   add_executable(${target} "${source}" $<TARGET_OBJECTS:user_runtime>)
+  if(source MATCHES "^apps/")
+    get_filename_component(application_directory "${source}" DIRECTORY)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/${application_directory}/sources.cmake")
+    get_filename_component(primary_source "${source}" NAME)
+    foreach(application_source IN LISTS XV_APP_SOURCES)
+      if(NOT application_source STREQUAL primary_source)
+        target_sources(${target} PRIVATE "${application_directory}/${application_source}")
+      endif()
+    endforeach()
+  endif()
   set_property(TARGET ${target} PROPERTY CXX_SCAN_FOR_MODULES ON)
   target_link_libraries(${target} PRIVATE xv_options user_http user_dns user_fs_core)
   target_link_options(${target} PRIVATE -z max-page-size=4096 -e _user_start -T "${PROJECT_SOURCE_DIR}/linker/user.ld")
@@ -30,7 +43,7 @@ function(xv_add_program source)
   endif()
   if(source MATCHES "^tests/" OR name STREQUAL "cppdemo" OR name STREQUAL "zombie")
     set(destination "/usr/tests/${guest_name}")
-  elseif(name STREQUAL "fsboot" OR name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
+  elseif(name STREQUAL "serviced" OR name STREQUAL "fsboot" OR name STREQUAL "init" OR name STREQUAL "useradd" OR name STREQUAL "userdel" OR name STREQUAL "groupadd" OR name STREQUAL "groupdel" OR name STREQUAL "usermod" OR name STREQUAL "netctl" OR name STREQUAL "iptables")
     set(destination "/sbin/${name}")
   else()
     set(destination "/bin/${name}")
@@ -56,6 +69,10 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:${target}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
+  tests/demandcachetest.cpp
+  tests/fsworkertest.cpp
+  tests/servicefixture.cpp
+  tests/servicetest.cpp
   tests/filemaptest.cpp
   tests/mappingtest.cpp
   tests/unixsockettest.cpp
@@ -65,34 +82,6 @@ set(programs
   tests/fsconcurrencytest.cpp
   tests/fsparallelbench.cpp
   tests/ipcbench.cpp
-  apps/drvctl/drvctl.cpp
-  apps/fsctl/fsctl.cpp
-  apps/fsboot/fsboot.cpp
-  apps/ramfsd/ramfsd.cpp
-  apps/memfsd/memfsd.cpp
-  apps/tarfsd/tarfsd.cpp
-  apps/fbterm/fbterm.cpp
-  apps/fbdemo/fbdemo.cpp
-  apps/userdel/userdel.cpp
-  apps/groupadd/groupadd.cpp
-  apps/groupdel/groupdel.cpp
-  apps/usermod/usermod.cpp
-  apps/readlink/readlink.cpp
-  apps/pwd/pwd.cpp
-  apps/cp/cp.cpp
-  apps/mv/mv.cpp
-  apps/login/login.cpp
-  apps/passwd/passwd.cpp
-  apps/mount/mount.cpp
-  apps/umount/umount.cpp
-  apps/id/id.cpp
-  apps/useradd/useradd.cpp
-  apps/su/su.cpp
-  apps/chmod/chmod.cpp
-  apps/chown/chown.cpp
-  apps/env/env.cpp
-  apps/ps/ps.cpp
-  apps/free/free.cpp
   tests/namedptytest.cpp
   tests/procfstest.cpp
   tests/ramfstest.cpp
@@ -118,22 +107,6 @@ set(programs
   tests/workflowtest.cpp
   tests/envtest.cpp
   tests/permissiontest.cpp
-  apps/ping/ping.cpp
-  apps/clear/clear.cpp
-  apps/curl/curl.cpp
-  apps/nslookup/nslookup.cpp
-  apps/iptables/iptables.cpp
-  apps/netctl/netctl.cpp
-  apps/cat/cat.cpp
-  apps/echo/echo.cpp
-  apps/grep/grep.cpp
-  apps/init/init.cpp
-  apps/kill/kill.cpp
-  apps/ln/ln.cpp
-  apps/ls/ls.cpp
-  apps/mkdir/mkdir.cpp
-  apps/rm/rm.cpp
-  apps/pty/pty.cpp
   tests/httptest.cpp
   tests/dnstest.cpp
   tests/devfstest.cpp
@@ -146,11 +119,6 @@ set(programs
   tests/sockettest.cpp
   tests/tcpduplex.cpp
   tests/ptytest.cpp
-  apps/sh/sh.cpp
-  apps/sync/sync.cpp
-  apps/stty/stty.cpp
-  apps/wc/wc.cpp
-  apps/zombie/zombie.cpp
   tests/dorphan.cpp
   tests/forktest.cpp
   tests/forphan.cpp
@@ -169,13 +137,14 @@ set(programs
   tests/superpgfork.cpp
   tests/superpgtest.cpp
   tests/usertests.cpp
-  apps/cppdemo/cppdemo.cpp
+
 )
+include(apps/programs.cmake)
 foreach(source IN LISTS programs)
   xv_add_program("${source}")
 endforeach()
 set(XV_USER_BINARIES ${XV_USER_BINARIES} PARENT_SCOPE)
-string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/fbfont.txt\t${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt\n")
+string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/fbfont.txt\t${CMAKE_CURRENT_SOURCE_DIR}/apps/terminal/fbterm/FONT-LICENSE.txt\n")
 set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
 set(plugin_sample "${PROJECT_BINARY_DIR}/fs-plugin-sample.tar")
 add_custom_command(OUTPUT "${plugin_sample}"
@@ -184,9 +153,8 @@ add_custom_command(OUTPUT "${plugin_sample}"
 add_custom_target(fs-plugin-sample DEPENDS "${plugin_sample}")
 string(APPEND XV_FS_ENTRIES "file\t0644\t/usr/share/doc/xv6/plugin.tar\t${plugin_sample}\n")
 set(XV_FS_ENTRIES "${XV_FS_ENTRIES}" PARENT_SCOPE)
-set(XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/apps/fbterm/FONT-LICENSE.txt" "${plugin_sample}" PARENT_SCOPE)
+set(XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/apps/terminal/fbterm/FONT-LICENSE.txt" "${plugin_sample}" PARENT_SCOPE)
 
-target_sources(user_sh PRIVATE apps/sh/environment.cpp apps/sh/prompt.cpp apps/sh/editor.cpp)
 
 # Poll contracts reuse the PTY test executable and installed inode.
 target_sources(user_ptytest PRIVATE tests/poll_checks.cpp tests/nonblock_checks.cpp)
@@ -201,6 +169,12 @@ target_link_libraries(user_ramfsd PRIVATE user_fs_ramfs)
 target_link_libraries(user_fsrootboottest PRIVATE user_fs_block user_fs_ext3 user_fs_devfs)
 target_link_libraries(user_fsdiskboot PRIVATE user_fs_block)
 target_link_libraries(user_fsboot_executable PRIVATE user_fs_bootstrap)
+target_link_libraries(user_fs_bootstrap PUBLIC user_services)
+target_link_libraries(user_serviced PRIVATE user_services)
+target_link_libraries(user_servicectl PRIVATE user_services)
+target_link_libraries(user_servicetest PRIVATE user_services)
+string(APPEND XV_FS_ENTRIES "file\t0644\t/etc/services.conf\t${CMAKE_CURRENT_SOURCE_DIR}/services/services.conf\n")
+list(APPEND XV_FS_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/services/services.conf")
 
 set(plugin_bundle_arguments --asset "boot.cfg=${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")
 set(plugin_bundle_dependencies "${CMAKE_CURRENT_SOURCE_DIR}/fs/plugins/boot.cfg")

@@ -21,7 +21,7 @@ flowchart TD
 | 文件 | 职责与依赖 |
 | --- | --- |
 | `kernel/net/filter/control.h` | 操作码和固定布局值对象；无用户指针，不包含内核对象 |
-| `user/apps/iptables/iptables.cpp` | 文本语法、CIDR/端口检查、网卡名解析和规则展示 |
+| `user/apps/network/iptables/iptables.cpp` | 文本语法、CIDR/端口检查、网卡名解析和规则展示 |
 | `kernel/syscall/sysnetctl.cpp` | 用户地址检查、凭据检查和请求复制；不知道如何匹配数据包 |
 | `kernel/net/filter/hook.cppm` | `FilterHook` 和 `PacketFilter` 抽象；IPv4 只依赖它 |
 | `kernel/net/filter/filter.cppm`、`filter.cpp` | `Firewall` 服务，组合解析器、规则核心和自旋锁 |

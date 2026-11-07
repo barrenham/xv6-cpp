@@ -74,6 +74,10 @@ cmake --build build/dev --target qemu
 
 `rootfs-update` 要求目标根盘已经存在。新使用者尚无根盘时，按下一节使用 `rootfs-create` 创建；日常程序更新使用 `rootfs-update`。安装种子 `build/dev/fs.img` 随构建更新，已有持久根盘需要显式安装才会改变。
 
+`/etc/services.conf` 是仅在缺失时安装的默认配置。升级旧根盘会补齐它；已有文件
+或符号链接会保留内容、所有者和权限，避免覆盖自定义服务。其余 `/etc` 路径
+仍受原白名单限制，账户文件不会因此开放给更新清单。
+
 ## 别人生成自己的 rootfs
 
 通过 Git 获取的是源码和构建规则，不包含你的磁盘、备份或密码。

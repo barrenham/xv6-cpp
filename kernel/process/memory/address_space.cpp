@@ -126,6 +126,11 @@ AddressSpace::handle_fault(unsigned long address, xv::memory::FaultAccess access
       address < MAXVA && table_ ? xv::memory::walk_entry(table_, address, 0) : nullptr;
   bool was_file_bound = pte && (*pte & (1UL << 9));
   refresh_file_mappings();
+  auto mapped = fault_mapping(address, access);
+  if (mapped.result != xv::memory::FaultResult::OutsideRegion)
+  {
+    return mapped;
+  }
   unsigned long permission = access == xv::memory::FaultAccess::Write     ? PTE_W
                              : access == xv::memory::FaultAccess::Execute ? PTE_X
                                                                           : PTE_R;
@@ -276,6 +281,10 @@ int
 AddressSpace::copy_in(void *destination, unsigned long source,
                       unsigned long bytes) const {
   refresh_file_mappings();
+  if (!prepare_mappings(source, bytes, xv::memory::FaultAccess::Read))
+  {
+    return -1;
+  }
   return xv::memory::copy_from_user(table_, size_, regions_,
                                     static_cast<char *>(destination), source, bytes);
 }
@@ -284,6 +293,10 @@ int
 AddressSpace::copy_out(unsigned long destination, const void *source,
                        unsigned long bytes) const {
   refresh_file_mappings();
+  if (!prepare_mappings(destination, bytes, xv::memory::FaultAccess::Write))
+  {
+    return -1;
+  }
   return xv::memory::copy_to_user(table_, size_, regions_, destination,
                                   static_cast<const char *>(source), bytes);
 }
@@ -291,9 +304,33 @@ AddressSpace::copy_out(unsigned long destination, const void *source,
 int
 AddressSpace::copy_string(char *destination, unsigned long source,
                           unsigned long limit) const {
-  refresh_file_mappings();
-  return xv::memory::copy_user_string(table_, size_, regions_, destination, source,
-                                      limit);
+  unsigned long done = 0;
+  while (done < limit)
+  {
+    auto at = source + done;
+    if (at < source)
+    {
+      return -1;
+    }
+    auto take = PGSIZE - at % PGSIZE;
+    if (take > limit - done)
+    {
+      take = limit - done;
+    }
+    if (copy_in(destination + done, at, take) < 0)
+    {
+      return -1;
+    }
+    for (unsigned long i = 0; i < take; ++i)
+    {
+      if (!destination[done + i])
+      {
+        return 0;
+      }
+    }
+    done += take;
+  }
+  return -1;
 }
 } // namespace xv::process
 
@@ -320,12 +357,124 @@ struct AddressSpace::SharedMappings
   } entries[SharedSlots];
 };
 
+namespace
+{
+constexpr unsigned long MappingCow = 1UL << 8;
+}
+
+xv::memory::FaultOutcome
+AddressSpace::fault_mapping(unsigned long address,
+                            xv::memory::FaultAccess access) const {
+  using xv::memory::FaultResult;
+  if (!shared_)
+  {
+    return {FaultResult::OutsideRegion};
+  }
+  for (const auto &view : shared_->entries)
+  {
+    if (!view.pages || address < view.base ||
+        address - view.base >= view.pages * PGSIZE)
+    {
+      continue;
+    }
+    auto *region = regions_.find(address);
+    unsigned permission = access == xv::memory::FaultAccess::Write     ? PTE_W
+                          : access == xv::memory::FaultAccess::Execute ? PTE_X
+                                                                       : PTE_R;
+    if (!region || (region->permissions & (PTE_U | permission)) != (PTE_U | permission))
+    {
+      return {FaultResult::Permission};
+    }
+    unsigned index = (address - view.base) / PGSIZE;
+    if (view.backing && !view.backing->page_available(view.backing_offset + index))
+    {
+      return {FaultResult::FileBounds};
+    }
+    auto *pte = xv::memory::walk_entry(table_, address, 1);
+    if (!pte)
+    {
+      return {FaultResult::OutOfMemory};
+    }
+    if (!PTE2PA(*pte))
+    {
+      if (!view.backing || !view.backing->demand_paged())
+      {
+        return {FaultResult::InvalidMapping};
+      }
+      int error = 0;
+      auto *frame = view.backing->load_page(view.backing_offset + index, error);
+      if (!frame)
+      {
+        return {error == -12 ? FaultResult::OutOfMemory : FaultResult::FileBounds};
+      }
+      xv::memory::allocator().retain_page(frame);
+      *pte =
+          PA2PTE(reinterpret_cast<unsigned long>(frame)) | region->permissions | PTE_V;
+      if (view.private_copy)
+      {
+        *pte = (*pte & ~PTE_W) | MappingCow;
+      }
+    }
+    if (access == xv::memory::FaultAccess::Write && (*pte & MappingCow))
+    {
+      void *old = reinterpret_cast<void *>(PTE2PA(*pte));
+      if (xv::memory::allocator().page_references(old) > 1)
+      {
+        auto *copy = xv::memory::allocator().allocate();
+        if (!copy)
+        {
+          return {FaultResult::OutOfMemory};
+        }
+        xv::runtime::move(copy, old, PGSIZE);
+        *pte = PA2PTE(reinterpret_cast<unsigned long>(copy)) | PTE_FLAGS(*pte);
+        xv::memory::allocator().release_page(old);
+      }
+      *pte = (*pte & ~MappingCow) | PTE_W;
+    }
+    if ((*pte & (PTE_V | PTE_U | permission)) != (PTE_V | PTE_U | permission))
+    {
+      return {FaultResult::Permission};
+    }
+    return {FaultResult::Resolved, PTE2PA(*pte)};
+  }
+  return {FaultResult::OutsideRegion};
+}
+
+bool
+AddressSpace::prepare_mappings(unsigned long address, unsigned long bytes,
+                               xv::memory::FaultAccess access) const {
+  if (bytes > MAXVA || address > MAXVA - bytes)
+  {
+    return false;
+  }
+  for (auto cursor = address; cursor < address + bytes;)
+  {
+    auto result = fault_mapping(cursor, access).result;
+    if (result != xv::memory::FaultResult::OutsideRegion &&
+        result != xv::memory::FaultResult::Resolved)
+    {
+      return false;
+    }
+    unsigned long next = PGROUNDDOWN(cursor) + PGSIZE;
+    cursor = next < address + bytes ? next : address + bytes;
+  }
+  return true;
+}
+
+bool
+AddressSpace::prefault_mappings(unsigned long address, unsigned long bytes,
+                                xv::memory::FaultAccess access) const {
+  refresh_file_mappings();
+  return prepare_mappings(address, bytes, access);
+}
+
 unsigned long
 AddressSpace::map_shared_pages(void *const *pages, unsigned count, unsigned permissions,
                                bool private_copy, unsigned long hint,
                                unsigned maximum_permissions,
                                xv::memory::MappingBacking *backing) {
-  if (!table_ || !pages || !count || count > SharedMaxPages ||
+  bool demand = backing && backing->demand_paged();
+  if (!table_ || (!pages && !demand) || !count || count > SharedMaxPages ||
       (permissions & ~(PTE_R | PTE_W | PTE_X | PTE_U)) ||
       (permissions & ~maximum_permissions))
   {
@@ -377,6 +526,10 @@ AddressSpace::map_shared_pages(void *const *pages, unsigned count, unsigned perm
   unsigned mapped = 0;
   for (; mapped < count; ++mapped)
   {
+    if (demand)
+    {
+      continue;
+    }
     // An invalid leaf retains the backing physical frame for PROT_NONE.
     // The attributed virtual region rejects access before any demand fault.
     auto *entry = xv::memory::walk_entry(table_, base + mapped * PGSIZE, 1);
@@ -485,8 +638,11 @@ AddressSpace::unmap_shared_pages(unsigned long begin, unsigned long bytes) {
     for (auto address = low; address < high; address += PGSIZE)
     {
       auto *pte = xv::memory::walk_entry(table_, address, 0);
-      xv::memory::allocator().release_page(reinterpret_cast<void *>(PTE2PA(*pte)));
-      *pte = 0;
+      if (pte && PTE2PA(*pte))
+      {
+        xv::memory::allocator().release_page(reinterpret_cast<void *>(PTE2PA(*pte)));
+        *pte = 0;
+      }
     }
     if (entry.base < low && high < limit)
     {
@@ -548,8 +704,11 @@ AddressSpace::reset_shared_pages() {
     for (unsigned i = 0; i < entry.pages; ++i)
     {
       auto *pte = xv::memory::walk_entry(table_, entry.base + i * PGSIZE, 0);
-      xv::memory::allocator().release_page(reinterpret_cast<void *>(PTE2PA(*pte)));
-      *pte = 0;
+      if (pte && PTE2PA(*pte))
+      {
+        xv::memory::allocator().release_page(reinterpret_cast<void *>(PTE2PA(*pte)));
+        *pte = 0;
+      }
     }
     regions_.erase(entry.base,
                    entry.base + static_cast<unsigned long>(entry.pages) * PGSIZE);
@@ -592,24 +751,18 @@ AddressSpace::copy_shared_pages(AddressSpace &child) const {
       auto *source = xv::memory::walk_entry(table_, entry.base + index * PGSIZE, 0);
       auto *target =
           xv::memory::walk_entry(child.table_, entry.base + index * PGSIZE, 1);
-      if (!source || !target || !PTE2PA(*source))
+      if (!target)
       {
         return false;
       }
-      auto physical = PTE2PA(*source);
-      if (entry.private_copy)
+      if (source && PTE2PA(*source))
       {
-        void *copy = xv::memory::allocator().allocate();
-        if (!copy)
+        auto physical = PTE2PA(*source);
+        if (entry.private_copy)
         {
-          return false;
+          *source = (*source & ~PTE_W) | MappingCow;
         }
-        xv::runtime::move(copy, reinterpret_cast<void *>(physical), PGSIZE);
-        physical = reinterpret_cast<unsigned long>(copy);
-      }
-      *target = PA2PTE(physical) | PTE_FLAGS(*source);
-      if (!entry.private_copy)
-      {
+        *target = PA2PTE(physical) | PTE_FLAGS(*source);
         xv::memory::allocator().retain_page(reinterpret_cast<void *>(physical));
       }
       if (!out.pages && entry.backing)
@@ -705,8 +858,16 @@ AddressSpace::protect_mappings(unsigned long begin, unsigned long bytes,
   for (auto address = begin; address < end; address += PGSIZE)
   {
     auto *pte = xv::memory::walk_entry(table_, address, 0);
-    *pte = (*pte & ~1023UL) | (*pte & (1UL << 9)) |
-           (permissions ? permissions | PTE_V : 0);
+    if (!pte || !PTE2PA(*pte))
+    {
+      continue;
+    }
+    auto flags = permissions ? permissions | PTE_V : 0;
+    if (*pte & MappingCow)
+    {
+      flags = (flags & ~PTE_W) | MappingCow;
+    }
+    *pte = (*pte & ~1023UL) | (*pte & (1UL << 9)) | flags;
   }
   refresh_file_mappings();
   // The process has one executing thread; the trampoline fences after SATP
@@ -737,6 +898,10 @@ AddressSpace::refresh_file_mappings() const {
     {
       auto address = entry.base + index * PGSIZE;
       auto *pte = xv::memory::walk_entry(table_, address, 0);
+      if (!pte || !PTE2PA(*pte))
+      {
+        continue;
+      }
       unsigned long page_start = (entry.backing_offset + index) * PGSIZE;
       if (entry.private_copy && shrunk && length < page_start + PGSIZE)
       {
@@ -753,8 +918,10 @@ AddressSpace::refresh_file_mappings() const {
       {
         if (entry.private_copy)
         {
-          xv::runtime::move(reinterpret_cast<void *>(PTE2PA(*pte)),
-                            entry.backing->page(entry.backing_offset + index), PGSIZE);
+          // Re-fault after growth; do not write through a COW-shared frame.
+          xv::memory::allocator().release_page(reinterpret_cast<void *>(PTE2PA(*pte)));
+          *pte = 0;
+          continue;
         }
         auto permissions = regions_.find(address)->permissions;
         *pte = (*pte & ~1023UL) | (permissions ? permissions | PTE_V : 0);

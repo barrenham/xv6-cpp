@@ -138,6 +138,13 @@ static void descriptor_contract()
 
 static void directory_contract()
 {
+  // These are new objects, even when the compiler reuses a previous fixture's
+  // stack addresses. Retired file references must not become inode references.
+  for (const auto &entry : reference_counts)
+  {
+    check(entry.second == 0, "previous fixture released all references");
+  }
+  reference_counts.clear();
   WorkingDirectory parent, child;
   inode root, replacement;
   check(!parent.get() && !parent.duplicate(), "empty directory");

@@ -147,6 +147,18 @@ extern "C" void xv_test_wakeup(void *channel)
   xv::sync::detail::wake_processes(channel);
 }
 
+extern "C" unsigned
+xv_test_waiter_count(void *channel) {
+  using namespace xv::sync::detail;
+  std::lock_guard guard(wait_mutex);
+  unsigned count = 0;
+  for (auto *waiting : waiters)
+  {
+    count += waiting->channel == channel;
+  }
+  return count;
+}
+
 extern "C" void xv_test_set_interrupted(bool value)
 {
   xv::sync::detail::interruption.store(value);

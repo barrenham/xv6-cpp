@@ -132,6 +132,11 @@ register_backend(const char *type, Backend &backend, unsigned payload) {
 
 int
 serve(int descriptor, Backend &backend) {
+  if (backend.parallel_read_workers() && backend.transport_ >= 0 &&
+      backend.transport_lanes_ > 1)
+  {
+    return serve_parallel(descriptor, backend);
+  }
   auto *storage = malloc(sizeof(xv::userfs::Message));
   if (!storage)
   {

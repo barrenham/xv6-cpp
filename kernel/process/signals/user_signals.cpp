@@ -34,6 +34,10 @@ executable(const AddressSpace &memory, unsigned long address) {
     return false;
   }
   memory.refresh_file_mappings();
+  if (!memory.prefault_mappings(address, 1, xv::memory::FaultAccess::Execute))
+  {
+    return false;
+  }
   auto *entry = xv::memory::walk_entry(memory.page_table(), address, 0);
   return entry && (*entry & (PTE_V | PTE_U | PTE_X)) == (PTE_V | PTE_U | PTE_X);
 }

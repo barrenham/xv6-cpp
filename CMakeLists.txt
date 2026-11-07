@@ -444,6 +444,9 @@ set_tests_properties(vm_stack_contract PROPERTIES TIMEOUT 90 LABELS memory)
 add_test(NAME rootfs_update_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update.py"
   --image "${PROJECT_BINARY_DIR}/fs-legacy-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv" --qemu "${XV_QEMU}")
 set_tests_properties(rootfs_update_contract PROPERTIES TIMEOUT 45 LABELS fs)
+add_test(NAME rootfs_config_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_config.py"
+  --image "${PROJECT_BINARY_DIR}/fs-test.img" --manifest "${PROJECT_BINARY_DIR}/fs-manifest.tsv")
+set_tests_properties(rootfs_config_contract PROPERTIES TIMEOUT 90 LABELS fs)
 foreach(cpus 1 5)
   add_test(NAME rootfs_update_${cpus}cpu COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update_guest.py"
     --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
@@ -829,4 +832,12 @@ foreach(cpus 1 5)
     --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --cpus ${cpus})
   set_tests_properties(memory_mapping_${cpus}cpu PROPERTIES TIMEOUT 540 RUN_SERIAL TRUE LABELS memory)
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME system_extensions_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/system_extensions.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --cpus ${cpus})
+  set_tests_properties(system_extensions_${cpus}cpu PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "fs;memory;services")
 endforeach()

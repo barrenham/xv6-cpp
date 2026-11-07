@@ -13,7 +13,7 @@ fbterm使用 **XV Mono 10×20** 等宽灰度字形，源自DejaVu Sans Mono的16
 
 ## 滚屏提交
 
-`user/apps/fbterm/render.h` 的Renderer复用匹配的旧像素行，并计算变化行的
+`user/apps/terminal/fbterm/render.h` 的Renderer复用匹配的旧像素行，并计算变化行的
 包围矩形，为整块像素准备完毕后，
 只调用一次XV_FB_DRAW。驱动仍先复制完整矩形，再transfer/flush；不再把
 同一次滚屏拆成多个各自flush的条带。缓冲按实际屏幕申请，1920×1080约
@@ -25,7 +25,7 @@ fbterm使用 **XV Mono 10×20** 等宽灰度字形，源自DejaVu Sans Mono的16
 
 ### 连续输出合并
 
-`user/apps/fbterm/pacing.h` 调度刷新，替换持续输出时固定约60次/秒的尝试：
+`user/apps/terminal/fbterm/pacing.h` 调度刷新，替换持续输出时固定约60次/秒的尝试：
 
 - 普通少量输出：从首次待绘制输出起约16ms提交。
 - 发生滚屏或本批累计至少4096字节：从首次待绘制输出起最多等100ms，
@@ -55,10 +55,10 @@ shell编辑器从TTY窗口取得列数，记录实际显示的光标行。重绘
 
 ## 字体来源
 
-预生成字形表位于 `user/apps/fbterm/font.h`，普通构建不需要字体库。
+预生成字形表位于 `user/apps/terminal/fbterm/font.h`，普通构建不需要字体库。
 原字体散列与参数记录在表头，源代码和分发镜像同时保留字体授权：
 
-- [字体授权](../user/apps/fbterm/FONT-LICENSE.txt)
+- [字体授权](../user/apps/terminal/fbterm/FONT-LICENSE.txt)
 - 客体文件 `/usr/share/doc/xv6/fbfont.txt`（名称兼容xv6旧文件系统）
 
 可在装有Pillow/FreeType的宿主环境重新生成：
@@ -66,7 +66,7 @@ shell编辑器从TTY窗口取得列数，记录实际显示的光标行。重绘
 ```sh
 /usr/bin/python3 tools/generate_fbterm_font.py \
   --font /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf \
-  --output user/apps/fbterm/font.h
+  --output user/apps/terminal/fbterm/font.h
 ```
 
 栅格器版本会影响结果，生成的表随源码保存。当前仍只提供可打印ASCII字符；

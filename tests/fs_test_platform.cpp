@@ -591,24 +591,45 @@ bridge_contract() {
   node = vfs.lookup("/renamed");
   check(node != nullptr, "new path resolves");
   int mapping_error = 0;
+  vfs.lock(node);
+  node->owner().discard_file_cache(node);
+  vfs.unlock(node);
   int mapped_baseline = allocated_pages;
-  for (int budget = 0; budget < 5; ++budget)
+  page_budget = 0;
+  auto *failed = FileMapping::create(node, 0, 3, mapping_error);
+  page_budget = -1;
+  check(!failed && mapping_error == -12 && allocated_pages == mapped_baseline,
+        "mapping metadata OOM leaves no inode reference or page");
+  auto *lazy = FileMapping::create(node, 0, 256, mapping_error);
+  check(lazy && allocated_pages == mapped_baseline + 1 && !lazy->resident_page(0),
+        "large mmap allocates only its lease metadata, no file pages");
+  lazy->release();
+  vfs.lock(node);
+  check(node->owner().resize_file(node, 256 * 4096) == 0,
+        "sparse demand-fault fixture");
+  vfs.unlock(node);
+  for (int budget : {0, 1, 121, 122, 240, 241, 258})
   {
+    lazy = FileMapping::create(node, 0, 256, mapping_error);
+    check(lazy != nullptr, "demand OOM lease");
     page_budget = budget;
-    auto *failed = FileMapping::create(node, 0, 3, mapping_error);
+    unsigned loaded = 0;
+    while (loaded < 256 && lazy->page(loaded))
+    {
+      ++loaded;
+    }
     page_budget = -1;
-    check(!failed && mapping_error == -12 && allocated_pages == mapped_baseline,
-          "mapping allocation failure rolls back pages, cache records and inode refs");
+    check(loaded < 256, "fault allocation budget is enforced");
+    lazy->release();
+    vfs.lock(node);
+    node->owner().discard_file_cache(node);
+    vfs.unlock(node);
+    check(allocated_pages == mapped_baseline,
+          "fault OOM rolls back frames, extra cache blocks and inode leases");
   }
-  for (int budget : {161, 162, 163, 258})
-  {
-    page_budget = budget;
-    auto *failed = FileMapping::create(node, 0, 256, mapping_error);
-    page_budget = -1;
-    check(
-        !failed && mapping_error == -12 && allocated_pages == mapped_baseline,
-        "large mapping failure also reclaims partially allocated second metadata block");
-  }
+  vfs.lock(node);
+  check(node->owner().resize_file(node, 4097) == 0, "restore mapping fixture");
+  vfs.unlock(node);
   auto *mapping = FileMapping::create(node, 0, 3, mapping_error);
   auto *alias = FileMapping::create(node, 4096, 2, mapping_error);
   check(mapping && alias && mapping->page(1) == alias->page(0) &&
@@ -847,7 +868,13 @@ allocate_page() {
 }
 
 void
-synchronize_file_mappings() {}
+synchronize_file_mappings() {
+}
+
+bool
+mapping_fault_safe() {
+  return true;
+}
 
 void
 release_frame(void *page) {

@@ -18,6 +18,11 @@ import uuid
 from create_rootfs import BLOCK, DIRECTORY, FILE, SYMLINK, Image, clean_seed
 
 
+# Defaults are installed only when absent; local service configuration belongs
+# to the administrator. Keep this exact list separate from replaceable files.
+DEFAULT_CONFIGS = frozenset(('/etc/services.conf',))
+
+
 def manifest_files(path, name_max=255):
     files, directories, names = [], {}, set()
     for line in path.read_text().splitlines():
@@ -44,8 +49,9 @@ def manifest_files(path, name_max=255):
         if kind == 'dir':
             directories[name] = mode
         else:
-            if not name.startswith(('/bin/', '/sbin/', '/usr/tests/', '/usr/share/doc/',
-                                    '/usr/lib/fsplugins/', '/usr/lib/drivers/', '/etc/fsplugins/')):
+            if (name not in DEFAULT_CONFIGS and
+                    not name.startswith(('/bin/', '/sbin/', '/usr/tests/', '/usr/share/doc/',
+                                         '/usr/lib/fsplugins/', '/usr/lib/drivers/', '/etc/fsplugins/'))):
                 raise ValueError('manifest attempts to update a protected path: ' + name)
             files.append((guest, mode))
     if not files:
@@ -89,6 +95,11 @@ def install(image, seed, files, directories):
         name = path.name.encode()
         existing = image.entries(parent).get(name)
         if existing is not None:
+            if str(path) in DEFAULT_CONFIGS:
+                if image.kind(existing) not in (FILE, SYMLINK):
+                    raise ValueError('configuration conflicts with a directory/device: ' + str(path))
+                # Preserve content, ownership, permissions and symlink targets.
+                continue
             if image.kind(existing) == FILE and image.attributes(existing) == (0, 0, mode) and image.read(existing) == content:
                 continue
             if image.kind(existing) not in (FILE, SYMLINK):

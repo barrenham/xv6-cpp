@@ -3,6 +3,7 @@
 extern "C" void xv_test_prepare_sleep(void *channel);
 extern "C" void xv_test_sleep();
 extern "C" void xv_test_wakeup(void *channel);
+extern "C" unsigned xv_test_waiter_count(void *channel);
 
 extern "C" void xv_test_set_interrupted(bool value);
 

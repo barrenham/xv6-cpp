@@ -93,6 +93,11 @@ sys_read(void) {
   {
     return -EBADF;
   }
+  if (n > 0 && !xv::process::current()->memory().prefault_mappings(
+                   p, n, xv::memory::FaultAccess::Write))
+  {
+    return -EFAULT;
+  }
   return xv::fs::files().read(f, p, n);
 }
 
@@ -109,6 +114,11 @@ sys_write(void) {
     return -EBADF;
   }
 
+  if (n > 0 && !xv::process::current()->memory().prefault_mappings(
+                   p, n, xv::memory::FaultAccess::Read))
+  {
+    return -EFAULT;
+  }
   return xv::fs::files().write(f, p, n);
 }
 
@@ -130,6 +140,11 @@ sys_getdents64() {
   }
   argument_address(1, &destination);
   argument_integer(2, &count);
+  if (count > 0 && !xv::process::current()->memory().prefault_mappings(
+                       destination, count, xv::memory::FaultAccess::Write))
+  {
+    return -EFAULT;
+  }
   return xv::fs::files().getdents64(file, destination, count);
 }
 
@@ -142,6 +157,11 @@ sys_fstat(void) {
   if (argfd(0, 0, &f) < 0)
   {
     return -1;
+  }
+  if (!xv::process::current()->memory().prefault_mappings(
+          st, sizeof(struct stat), xv::memory::FaultAccess::Write))
+  {
+    return -EFAULT;
   }
   return xv::fs::files().stat(f, st);
 }

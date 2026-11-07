@@ -65,6 +65,8 @@ public:
   int copy_out(unsigned long destination, const void *source,
                unsigned long bytes) const;
   int copy_string(char *destination, unsigned long source, unsigned long limit) const;
+  bool prefault_mappings(unsigned long address, unsigned long bytes,
+                         xv::memory::FaultAccess access) const;
 
 private:
 
@@ -72,6 +74,9 @@ private:
   SharedMappings *shared_ = nullptr;
   void reset_shared_pages();
   bool copy_shared_pages(AddressSpace &) const;
+  xv::memory::FaultOutcome fault_mapping(unsigned long, xv::memory::FaultAccess) const;
+  bool prepare_mappings(unsigned long address, unsigned long bytes,
+                        xv::memory::FaultAccess access) const;
 
   struct CreateFlow;
   struct ResizeFlow;

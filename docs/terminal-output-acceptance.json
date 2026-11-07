@@ -47,10 +47,10 @@
   ],
   "fork_gate": "skipped per user instruction; unchanged",
   "sources": {
-    "user/apps/fbterm/fbterm.cpp": "acd07c0d269446d2f282d57e77c5aab8bcd3948a73a28701587050db12fcad58",
-    "user/apps/fbterm/pacing.h": "d40dec5a283d9b35a6bddcc03904672128aadf4d1284915f8622397a008d3f9d",
-    "user/apps/fbterm/render.h": "c42a162efda2aca7684dbca11b16b42464728983135fd1704f4d0d4a9103ff1a",
-    "user/apps/fbterm/terminal.h": "81b5789d20c2b7409339f1a5532efbd7f7d3199f6cd2bcfad7e84aa6f2b4f794",
+    "user/apps/terminal/fbterm/fbterm.cpp": "acd07c0d269446d2f282d57e77c5aab8bcd3948a73a28701587050db12fcad58",
+    "user/apps/terminal/fbterm/pacing.h": "d40dec5a283d9b35a6bddcc03904672128aadf4d1284915f8622397a008d3f9d",
+    "user/apps/terminal/fbterm/render.h": "c42a162efda2aca7684dbca11b16b42464728983135fd1704f4d0d4a9103ff1a",
+    "user/apps/terminal/fbterm/terminal.h": "81b5789d20c2b7409339f1a5532efbd7f7d3199f6cd2bcfad7e84aa6f2b4f794",
     "tests/fbterm.py": "4591122dccac8e594b93f116f5d5d63c4fc4e5b3b071a26ab065cf82ab862d81",
     "tests/fbterm_contract.cpp": "1882e130cda7812d1a5dbc08173bc8ddef4e1a76aa752b98fb39ba659f911c18"
   },

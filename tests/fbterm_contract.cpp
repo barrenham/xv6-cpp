@@ -1,9 +1,9 @@
-#include "user/apps/fbterm/terminal.h"
-#include "user/apps/fbterm/keyboard.h"
-#include "user/apps/fbterm/render.h"
-#include "user/apps/fbterm/pacing.h"
-#include "user/apps/fbterm/navigation.h"
-#include "user/apps/fbterm/snapshot.h"
+#include "user/apps/terminal/fbterm/terminal.h"
+#include "user/apps/terminal/fbterm/keyboard.h"
+#include "user/apps/terminal/fbterm/render.h"
+#include "user/apps/terminal/fbterm/pacing.h"
+#include "user/apps/terminal/fbterm/navigation.h"
+#include "user/apps/terminal/fbterm/snapshot.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>

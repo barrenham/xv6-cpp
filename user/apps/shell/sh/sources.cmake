@@ -1,0 +1,9 @@
+set(XV_APP_SOURCES
+  editor.cpp
+  environment.cpp
+  execute.cpp
+  main.cpp
+  parser.cpp
+  prompt.cpp
+  sh.cpp
+)

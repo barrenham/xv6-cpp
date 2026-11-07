@@ -19,7 +19,7 @@
     "coverage_levels": 16,
     "asset_sha256": "88cd8c8591a531c0b434273c94abaffdbddea80eb75f21a37aeb0f7cf3d51ee1",
     "generator": "tools/generate_fbterm_font.py",
-    "license": "user/apps/fbterm/FONT-LICENSE.txt",
+    "license": "user/apps/terminal/fbterm/FONT-LICENSE.txt",
     "installed_license": "/usr/share/doc/xv6/fbfont.txt",
     "reproduced_from_local_source": true
   },

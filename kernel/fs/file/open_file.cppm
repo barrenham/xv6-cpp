@@ -44,7 +44,7 @@ public:
 private:
 
   friend class OpenFileTable;
-  static constexpr unsigned BackendBytes = 64;
+  static constexpr unsigned BackendBytes = 128;
   int ref = 0;
   unsigned message_refs_ = 0;
   unsigned status_flags_ = 0;

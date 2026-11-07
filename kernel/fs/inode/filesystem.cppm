@@ -67,19 +67,58 @@ public:
   virtual void lock(Inode *node) = 0;
   virtual void unlock(Inode *node) = 0;
   virtual void unlock_release(Inode *node) = 0;
-  virtual void lock_data(Inode *node) { lock(node); }
-  virtual void unlock_data(Inode *node) { unlock(node); }
+
+  virtual void
+  lock_data(Inode *node) {
+    lock(node);
+  }
+
+  virtual void
+  unlock_data(Inode *node) {
+    unlock(node);
+  }
+
+  virtual void
+  lock_read(Inode *node) {
+    lock_data(node);
+  }
+
+  virtual void
+  unlock_read(Inode *node) {
+    unlock_data(node);
+  }
   virtual int read_data(Inode *node, int user, unsigned long address, unsigned offset,
                          unsigned count) { return read(node, user, address, offset, count); }
   virtual int write_data(Inode *node, int user, unsigned long address, unsigned offset,
-                          unsigned count) { return write(node, user, address, offset, count); }
+                          unsigned count) { return write(node, user, address, offset, count);
+  }
 
-  // Callers hold the inode data lock; these wrappers preserve mmap coherence.
+  virtual int
+  write_cached_data(Inode *node, int user, unsigned long address, unsigned offset,
+                    unsigned count) {
+    return write_data(node, user, address, offset, count);
+  }
+
+  virtual bool
+  publishes_cached_writes(Inode *) const {
+    return false;
+  }
+
+  using CacheCopy = int (*)(void *, void *, unsigned, unsigned);
+  int cache_written(Inode *, unsigned old_size, unsigned offset, unsigned count,
+                    CacheCopy, void *context);
+
+  // read_file allows shared data ownership; mutations require exclusive ownership.
   int read_file(Inode *, int user, unsigned long, unsigned offset, unsigned count);
   int write_file(Inode *, int user, unsigned long, unsigned offset, unsigned count);
   int resize_file(Inode *, unsigned size);
   int flush_mapped(Inode *);
   int sync_file(Inode *);
+  void discard_file_cache(Inode *);
+
+  virtual void
+  record_read_hit() {
+  }
 
   virtual bool mappable() const { return false; }
 
@@ -164,5 +203,26 @@ private:
   FileSystem &fs_;
   Inode &node_;
   bool data_;
+};
+
+class ReadLockedInode final
+{
+public:
+
+  ReadLockedInode(FileSystem &fs, Inode &node);
+  ~ReadLockedInode();
+
+  ReadLockedInode(const ReadLockedInode &) = delete;
+  ReadLockedInode &operator=(const ReadLockedInode &) = delete;
+  static bool held();
+
+private:
+
+  FileSystem &fs_;
+  Inode &node_;
+  int pid_ = 0;
+  ReadLockedInode *next_ = nullptr;
+  static void link(ReadLockedInode &);
+  static void unlink(ReadLockedInode &);
 };
 } // namespace xv::fs

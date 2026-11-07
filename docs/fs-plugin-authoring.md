@@ -41,7 +41,7 @@ extern "C" int main(int argc, char **argv)
 
 后端文件、块设备或网络连接应在注册前准备好。客户端在挂载后立即发起请求也应能处理；不能依赖在第一次请求后才通过路径查找打开后端，否则可能重入 VFS 的命名空间锁。
 
-完整的独立只读后端见 [tarfsd](../user/apps/tarfsd/tarfsd.cpp)，它只实现 Backend 回调，SDK 处理所有协议分派；[memfsd](../user/apps/memfsd/memfsd.cpp) 演示可写操作和对象回收。两个后端没有对应的内核专用分支。它们保留手工服务命令行；按清单自动加载的入口应使用上面的 `plugin::run` 握手，独立构建示例见 `examples/fs-plugin/`。
+完整的独立只读后端见 [tarfsd](../user/apps/filesystem/tarfsd/tarfsd.cpp)，它只实现 Backend 回调，SDK 处理所有协议分派；[memfsd](../user/apps/filesystem/memfsd/memfsd.cpp) 演示可写操作和对象回收。两个后端没有对应的内核专用分支。它们保留手工服务命令行；按清单自动加载的入口应使用上面的 `plugin::run` 握手，独立构建示例见 `examples/fs-plugin/`。
 
 ## 独立 ELF 与构建
 

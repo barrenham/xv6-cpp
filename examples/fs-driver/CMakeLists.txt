@@ -18,6 +18,7 @@ add_compile_options(-O1 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-sign-co
 include_directories("${XVFS_KIT_ROOT}" "${XVFS_KIT_ROOT}/user/include")
 add_library(sdk STATIC
   "${XVFS_KIT_ROOT}/user/fs/sdk/server.cpp"
+  "${XVFS_KIT_ROOT}/user/fs/sdk/parallel.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/dispatch.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/plugin.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/block_io.cpp")

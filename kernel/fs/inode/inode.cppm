@@ -93,7 +93,8 @@ private:
   unsigned dev = 0;
   unsigned inum = 0;
   int ref = 0;
-  xv::sync::SleepLock data_lock_;
+  xv::sync::SleepRwLock data_lock_;
+  xv::sync::SpinLock cache_state_;
   unsigned long write_epoch_ = 0;
   bool metadata_valid_ = false;
   short type = 0;

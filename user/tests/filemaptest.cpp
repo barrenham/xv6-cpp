@@ -129,6 +129,7 @@ main(int argc, char **argv) {
   check(lseek(file, 1, SEEK_SET) == 1 && write(file, "C", 1) == 1 && shared[1] == 'C' &&
             shared[Page] == 'B',
         "descriptor writes update mapped page and preserve other stores");
+  char private_before = private_memory[1];
   private_memory[0] = 'P';
   read_at(file, 0, 'A');
   int child = fork();
@@ -139,7 +140,7 @@ main(int argc, char **argv) {
     exit(0);
   }
   wait_ok(child);
-  check(shared[2] == 'F' && private_memory[0] == 'P' && private_memory[1] == 'a',
+  check(shared[2] == 'F' && private_memory[0] == 'P' && private_memory[1] == private_before,
         "fork shared visibility and private isolation");
   child = fork();
   if (!child)

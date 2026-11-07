@@ -37,4 +37,37 @@ private:
   bool single_waiter_ = false;
   int pid_ = 0;
 };
+
+// Sleeping, writer-preferring rw lock. The Lock interface is exclusive;
+// shared holders use acquire_shared()/release_shared(). Neither mode supports
+// recursive acquisition or upgrading. Shared ownership is not tracked by PID.
+class SleepRwLock final : public Lock
+{
+public:
+
+  constexpr SleepRwLock() = default;
+
+  void init(const char *label) override;
+  void acquire() override;
+  void release() override;
+  bool holding() const override;
+  void acquire_shared();
+  void release_shared();
+  bool try_acquire_shared();
+
+  LockKind
+  kind() const override {
+    return LockKind::Sleep;
+  }
+
+private:
+
+  void wait(); // Called with state_lock_ held; returns with it held.
+
+  mutable SpinLock state_lock_;
+  unsigned readers_ = 0;
+  unsigned waiting_writers_ = 0;
+  int writer_ = 0;
+  bool writing_ = false;
+};
 } // namespace xv::sync

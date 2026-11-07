@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove independent in-flight FS RPCs and exercise the default SDK channels."""
+"""Prove shared inode reads, shared offsets and independent in-flight FS RPCs."""
 import argparse
 from pathlib import Path
 import re
@@ -20,7 +20,9 @@ with tempfile.TemporaryDirectory(prefix='xv-fs-concurrency-') as temporary:
     guest = Guest(args, image, args.kernel.parent / f'fs-concurrency-{args.cpus}cpu.log')
     try:
         login_root(guest.expect, guest.process)
-        print(guest.command('/usr/tests/fsconcurrencytest', 'fsconcurrencytest: PASS', timeout=45))
+        print(guest.command('/usr/tests/fsconcurrencytest',
+                            'fsconcurrencytest: PASS: same/distinct inode readers, shared offsets',
+                            timeout=45))
         for path in ('/tmp/fscache', '/root/fscache'):
             print(guest.command('/usr/tests/fscachetest ' + path, 'fscachetest: PASS', timeout=90))
         for path in ('/tmp/fspar', '/root/fspar'):
@@ -32,4 +34,4 @@ with tempfile.TemporaryDirectory(prefix='xv-fs-concurrency-') as temporary:
         guest.command('sync')
     finally:
         guest.close()
-print('FS concurrency: parallel RPCs, out-of-order replies, private buffers, disconnect and SDK lanes PASS')
+print('FS concurrency: same/distinct inode reads, shared offsets, reverse replies, disconnect and SDK lanes PASS')

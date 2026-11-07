@@ -34,6 +34,20 @@ public:
 
   void *frames[3]{};
   unsigned references = 1, available = 3, synchronizations = 0, writes = 0;
+  unsigned loads = 0;
+  bool lazy = false;
+
+  bool
+  demand_paged() const override {
+    return lazy;
+  }
+
+  void *
+  load_page(unsigned index, int &error) override {
+    ++loads;
+    error = 0;
+    return page(index);
+  }
 
   MappingBacking *
   retain() override {
@@ -218,6 +232,44 @@ address_space_contracts() {
         "exit cleanup releases child mappings before zombie reaping");
   parent.close_file_mappings();
   check(backing.references == 1, "last address-space backing leases released");
+  parent.reset();
+  child.reset();
+  backing.lazy = true;
+  check(parent.create(borrowed[0], borrowed[1]) &&
+            child.create(borrowed[2], borrowed[3]),
+        "lazy/COW owner address spaces");
+  mapped = parent.map_shared_pages(nullptr, 3, PTE_U | PTE_R | PTE_W, true, 0,
+                                   PTE_U | PTE_R | PTE_W, &backing);
+  check(mapped && !parent.translate(mapped) && !backing.loads,
+        "demand mapping reserves addresses without loading frames");
+  check(parent.copy_in(&value, mapped, 1) == 0 && !value && backing.loads == 1,
+        "kernel copy faults exactly one backing page");
+  check(parent.copy_to(child) && child.translate(mapped) == parent.translate(mapped),
+        "fork shares an untouched private physical frame");
+  std::vector<void *> cow_pressure;
+  while (auto *frame = allocator().allocate())
+  {
+    cow_pressure.push_back(frame);
+  }
+  check(child.copy_out(mapped, "Z", 1) < 0 &&
+            child.translate(mapped) == parent.translate(mapped),
+        "COW OOM preserves both source mappings");
+  allocator().deallocate(cow_pressure.back());
+  cow_pressure.pop_back();
+  check(child.copy_out(mapped, "Z", 1) == 0 &&
+            child.translate(mapped) != parent.translate(mapped) &&
+            parent.copy_in(&value, mapped, 1) == 0 && !value &&
+            *static_cast<char *>(backing.frames[0]) == 0,
+        "first write splits only the private page and leaves the backing unchanged");
+  for (void *frame : cow_pressure)
+  {
+    allocator().deallocate(frame);
+  }
+  check(parent.protect_mappings(mapped, PGSIZE, 0) == 0 &&
+            parent.protect_mappings(mapped, PGSIZE, PTE_U | PTE_R | PTE_W) == 0 &&
+            parent.copy_out(mapped, "P", 1) == 0 &&
+            *static_cast<char *>(backing.frames[0]) == 0,
+        "mprotect cannot accidentally make a borrowed COW frame writable");
   parent.reset();
   child.reset();
   for (auto *frame : backing.frames)

@@ -37,6 +37,7 @@ UserFileSystem::reserve(unsigned device) {
     auto &n = *slot;
     n.owner_ = this;
     n.data_lock_.init("inode data");
+    n.cache_state_.init("inode page cache");
     n.write_epoch_ = 0;
     n.ref = 0;
     n.inum = 0;
@@ -143,6 +144,34 @@ UserFileSystem::lock_data(Inode *node) {
 }
 
 void
+UserFileSystem::lock_read(Inode *node) {
+  tree_.acquire();
+  if (node->type == T_FILE)
+  {
+    node->data_lock_.acquire_shared();
+    tree_.release();
+  }
+  else
+  {
+    // Non-regular files retain the existing metadata/exclusive protection.
+    node->data_lock_.acquire();
+  }
+}
+
+void
+UserFileSystem::unlock_read(Inode *node) {
+  if (node->type == T_FILE)
+  {
+    node->data_lock_.release_shared();
+  }
+  else
+  {
+    node->data_lock_.release();
+    tree_.release();
+  }
+}
+
+void
 UserFileSystem::unlock_data(Inode *node) {
   node->data_lock_.release();
   if (tree_.holding())
@@ -203,6 +232,7 @@ UserFileSystem::release(Inode *n) {
   references_.release();
   if (last)
   {
+    discard_file_cache(n);
     xv::sync::ScopedLock guard(serial_);
     begin(Operation::Forget, n->inum);
     (void)exchange();
@@ -330,7 +360,7 @@ UserFileSystem::shutdown() {
 
 int
 UserFileSystem::bulk_copy(unsigned long address, unsigned bytes, bool user,
-                          bool writing) {
+                          bool writing, unsigned offset) {
   state_.acquire();
   auto *bulk = bulk_ ? files().retain(bulk_) : nullptr;
   state_.release();
@@ -338,7 +368,7 @@ UserFileSystem::bulk_copy(unsigned long address, unsigned bytes, bool user,
   {
     return -1;
   }
-  int result = detail::copy_transport(bulk, address, bytes, user, writing);
+  int result = detail::copy_transport(bulk, address, bytes, user, writing, offset);
   files().release(bulk);
   return result;
 }
@@ -952,10 +982,28 @@ public:
   }
 
   int
-  copy(unsigned long address, unsigned bytes, bool user, bool writing) {
+  copy(unsigned long address, unsigned bytes, bool user, bool writing,
+       unsigned offset = 0) {
     return lane_ ? detail::copy_transport(bulk_, address, bytes, user, writing,
-                                          lane_ * owner_.statistics_.payload)
-                 : owner_.bulk_copy(address, bytes, user, writing);
+                                          lane_ * owner_.statistics_.payload + offset)
+                 : owner_.bulk_copy(address, bytes, user, writing, offset);
+  }
+
+  int
+  publish(Inode *node, unsigned old_size, unsigned offset, unsigned count) {
+    return owner_.cache_written(
+        node, old_size, offset, count,
+        [](void *opaque, void *output, unsigned begin, unsigned bytes) {
+          auto &context = *static_cast<Request *>(opaque);
+          if (context.owner_.statistics_.payload > xv::userfs::DataSize)
+          {
+            return context.copy(reinterpret_cast<unsigned long>(output), bytes, false,
+                                false, begin);
+          }
+          detail::move(output, context.request_->data + begin, bytes);
+          return 0;
+        },
+        this);
   }
 
 private:
@@ -996,6 +1044,12 @@ int
 UserFileSystem::write_data(Inode *node, int user, unsigned long address,
                            unsigned offset, unsigned count) {
   return write_impl(node, user, address, offset, count, node->kind() == T_FILE);
+}
+
+int
+UserFileSystem::write_cached_data(Inode *node, int user, unsigned long address,
+                                  unsigned offset, unsigned count) {
+  return write_impl(node, user, address, offset, count, node->kind() == T_FILE, true);
 }
 
 int
@@ -1045,7 +1099,7 @@ UserFileSystem::read_impl(Inode *n, int user, unsigned long out, unsigned offset
 
 int
 UserFileSystem::write_impl(Inode *n, int user, unsigned long in, unsigned offset,
-                           unsigned count, bool parallel) {
+                           unsigned count, bool parallel, bool publish) {
   if (offset + count < offset || n->type == T_DIR)
   {
     return -1;
@@ -1085,15 +1139,22 @@ UserFileSystem::write_impl(Inode *n, int user, unsigned long in, unsigned offset
         return done ? int(done) : -1;
       }
       unsigned written = response.result;
+      unsigned old_size = n->size;
       if (written)
       {
         n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
       }
-      done += written;
-      if (offset + done > n->size)
+      if (offset + done + written > n->size)
       {
-        n->size = offset + done;
+        n->size = offset + done + written;
       }
+      if (publish && written &&
+          context.publish(n, old_size, offset + done, written) < 0)
+      {
+        __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
+        return done ? int(done) : -1;
+      }
+      done += written;
       if (written < take)
       {
         return done;
@@ -1104,16 +1165,17 @@ UserFileSystem::write_impl(Inode *n, int user, unsigned long in, unsigned offset
       return done;
     }
     // Continue at the first faulted batch using block-level legacy accounting.
-    int tail =
-        write_fault_blocks(context, n, user, in + done, offset + done, count - done);
+    int tail = write_fault_blocks(context, n, user, in + done, offset + done,
+                                  count - done, publish);
     return tail < 0 ? (done ? int(done) : -1) : int(done) + tail;
   }
-  return write_fault_blocks(context, n, user, in, offset, count);
+  return write_fault_blocks(context, n, user, in, offset, count, publish);
 }
 
 int
 UserFileSystem::write_fault_blocks(Request &context, Inode *n, int user,
-                                   unsigned long in, unsigned offset, unsigned count) {
+                                   unsigned long in, unsigned offset, unsigned count,
+                                   bool publish_cache) {
   auto &request = context.request();
   auto &response = context.response();
   unsigned char bytes[BlockSize];
@@ -1186,15 +1248,22 @@ UserFileSystem::write_fault_blocks(Request &context, Inode *n, int user,
         return progress ? int(progress) : -1;
       }
       unsigned take = response.result;
+      unsigned old_size = n->size;
       if (take)
       {
         n->write_epoch_ = __atomic_add_fetch(&data_epoch_, 1UL, __ATOMIC_RELEASE);
       }
-      sent += take;
-      if (offset + done + sent > n->size)
+      if (offset + done + sent + take > n->size)
       {
-        n->size = offset + done + sent;
+        n->size = offset + done + sent + take;
       }
+      if (publish_cache && take &&
+          context.publish(n, old_size, offset + done + sent, take) < 0)
+      {
+        __atomic_store_n(&n->metadata_valid_, false, __ATOMIC_RELEASE);
+        return done ? int(done) : -1;
+      }
+      sent += take;
       if (take < request.count)
       {
         return fault ? (done ? int(done) : -1) : int(done + sent);

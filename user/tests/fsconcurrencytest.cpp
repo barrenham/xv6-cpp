@@ -48,7 +48,9 @@ server(int control) {
   int pairs[xv::userfs::TransportLanes][2];
   xv::userfs::TransportBindingV2 binding;
   binding.memory = memory;
-  binding.cache_flags = xv::userfs::CacheMetadata;
+  // This adversarial backend requires both reads before replying. Disable
+  // content caching: a cached/coalesced same-page read should need just one RPC.
+  binding.cache_flags = 0;
   for (unsigned lane = 0; lane < xv::userfs::TransportLanes; ++lane)
   {
     check(socketpair(AF_UNIX, SOCK_SEQPACKET, 0, pairs[lane]) == 0, "request channels");
@@ -130,7 +132,7 @@ server(int control) {
     }
     if (held == 2)
     {
-      if (phase++)
+      if (phase++ >= 2)
       {
         // Disconnect with two RPCs blocked, requiring both clients to wake.
         close(service);
@@ -169,6 +171,67 @@ transport_requests(int fd) {
         "transport statistics");
   memmove(&result, query.data, sizeof(result));
   return result.exchanges;
+}
+
+void
+shared_offset(const char *path) {
+  int descriptors[2]{open(path, O_CREATE | O_RDWR | O_TRUNC), -1};
+  check(descriptors[0] >= 0, "create shared offset file");
+  unsigned char input[128];
+  for (unsigned i = 0; i < sizeof(input); ++i)
+  {
+    input[i] = i;
+  }
+  check(write(descriptors[0], input, sizeof(input)) == sizeof(input) &&
+            lseek(descriptors[0], 0, SEEK_SET) == 0,
+        "initialize shared offset file");
+  descriptors[1] = dup(descriptors[0]);
+  int results[2], children[2];
+  check(descriptors[1] >= 0 && pipe(results) == 0, "dup and result pipe");
+  for (unsigned i = 0; i < 2; ++i)
+  {
+    children[i] = fork();
+    check(children[i] >= 0, "shared offset reader fork");
+    if (!children[i])
+    {
+      close(results[0]);
+      close(descriptors[1 - i]);
+      unsigned char byte;
+      int count;
+      while ((count = read(descriptors[i], &byte, 1)) == 1)
+      {
+        check(write(results[1], &byte, 1) == 1, "report shared offset byte");
+      }
+      check(count == 0, "shared offset EOF");
+      close(descriptors[i]);
+      close(results[1]);
+      exit(0);
+    }
+  }
+  close(results[1]);
+  close(descriptors[1]);
+  unsigned seen[128]{}, total = 0;
+  unsigned char bytes[32];
+  int count;
+  while ((count = read(results[0], bytes, sizeof(bytes))) > 0)
+  {
+    for (int i = 0; i < count; ++i)
+    {
+      check(bytes[i] < 128 && !seen[bytes[i]]++,
+            "shared offset has no duplicate bytes");
+      ++total;
+    }
+  }
+  check(count == 0 && total == 128 && lseek(descriptors[0], 0, SEEK_CUR) == 128,
+        "fork and dup share one serialized offset");
+  for (int child : children)
+  {
+    int status = -1;
+    check(waitpid(child, &status, 0) == child && status == 0, "shared offset child");
+  }
+  close(results[0]);
+  close(descriptors[0]);
+  check(unlink(path) == 0, "shared offset cleanup");
 }
 
 xv::userfs::ConcurrencyStatistics
@@ -212,12 +275,22 @@ main() {
   check(fsync(files[0]) < 0 && fstat(files[0], &attributes) == 0 &&
             transport_requests(files[0]) == before + 2,
         "failed sync invalidates cached inode attributes");
-  for (unsigned phase = 0; phase < 2; ++phase)
+  for (unsigned phase = 0; phase < 3; ++phase)
   {
+    if (phase == 1)
+    {
+      close(files[1]);
+      files[1] = open("/tmp/parallel/a", O_RDONLY);
+      check(files[1] >= 0, "independent open of the same inode");
+    }
+    // Set up both independent file positions before starting either reader.
+    for (int file : files)
+    {
+      check(lseek(file, 0, SEEK_SET) == 0, "reset offset");
+    }
     int children[2];
     for (unsigned i = 0; i < 2; ++i)
     {
-      check(lseek(files[i], 0, SEEK_SET) == 0, "reset offset");
       children[i] = fork();
       check(children[i] >= 0, "client fork");
       if (!children[i])
@@ -225,7 +298,7 @@ main() {
         close(files[1 - i]);
         static char bytes[4096];
         int count = read(files[i], bytes, sizeof(bytes));
-        if (phase)
+        if (phase == 2)
         {
           check(count < 0, "disconnect cancels outstanding request");
         }
@@ -234,7 +307,7 @@ main() {
           check(count == sizeof(bytes), "full data reply");
           for (char value : bytes)
           {
-            check(value == (i ? 'B' : 'A'), "private slot integrity");
+            check(value == (phase == 0 && i ? 'B' : 'A'), "private slot integrity");
           }
         }
         close(files[i]);
@@ -257,7 +330,9 @@ main() {
   int status = -1;
   check(waitpid(provider, &status, 0) == provider && status == 0, "provider completed");
   check(umount(path) == 0 && unlink(path) == 0, "disconnected provider cleanup");
+  shared_offset("/tmp/shared-offset");
+  shared_offset("/root/shared-offset");
   printf(
-      "fsconcurrencytest: PASS: parallel requests, reverse replies, isolated slots and disconnect wakeup\n");
+      "fsconcurrencytest: PASS: same/distinct inode readers, shared offsets, reverse replies and disconnect wakeup\n");
   return 0;
 }

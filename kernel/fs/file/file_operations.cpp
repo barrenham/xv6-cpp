@@ -23,6 +23,7 @@ InodeBackend::filesystem_control(unsigned long address, unsigned access) {
 
 int
 InodeBackend::getdents64(xv::io::Buffer destination, int count) {
+  xv::sync::ScopedLock offset_guard(offset_lock_);
   LockedInode guard(node_->owner(), *node_);
   if (node_->kind() != T_DIR || directory_mode_ == 1 || count < 0)
   {
@@ -51,7 +52,8 @@ InodeBackend::close() {
 
 int
 InodeBackend::read(xv::io::Buffer destination, int count) {
-  LockedInode guard(node_->owner(), *node_, true);
+  xv::sync::ScopedLock offset_guard(offset_lock_);
+  ReadLockedInode guard(node_->owner(), *node_);
   if (node_->kind() == T_DIR && directory_mode_ == 2)
   {
     return -1;
@@ -67,6 +69,7 @@ InodeBackend::read(xv::io::Buffer destination, int count) {
 
 int
 InodeBackend::write(xv::io::Buffer source, int count) {
+  xv::sync::ScopedLock offset_guard(offset_lock_);
   WriteFlow::Context context{{*this}, source, count};
   (void)WriteFlow::Graph::run<0>(context);
   return context.done ? context.done : (count == 0 ? 0 : -1);
@@ -74,7 +77,8 @@ InodeBackend::write(xv::io::Buffer source, int count) {
 
 long
 InodeBackend::seek(long offset, int origin) {
-  LockedInode guard(node_->owner(), *node_, true);
+  xv::sync::ScopedLock offset_guard(offset_lock_);
+  ReadLockedInode guard(node_->owner(), *node_);
   SeekFlow::Context context{*this, offset, origin};
   (void)SeekFlow::Graph::run<0>(context);
   return context.result;

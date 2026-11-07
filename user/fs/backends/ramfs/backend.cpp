@@ -58,9 +58,9 @@ struct MemoryBackend::Node
   bool borrowed = false;
 };
 
-MemoryBackend::MemoryBackend(MemoryStorage &storage, unsigned root_mode)
-    : storage_(storage)
-{
+MemoryBackend::MemoryBackend(MemoryStorage &storage, unsigned root_mode,
+                             unsigned read_workers)
+    : storage_(storage), read_workers_(read_workers <= 2 ? read_workers : 0) {
   auto *memory = storage_.allocate(sizeof(Node));
   if (!memory || root_mode > 07777) { if (memory) storage_.release(memory); return; }
   root_ = nodes_ = new (memory) Node{};

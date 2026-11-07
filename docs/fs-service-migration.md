@@ -64,7 +64,7 @@ JBD 的描述符、载荷和日志头工作页，以及 ext3 恢复标志工作�
 
 ## 用户态引导监督进程
 
-`user/apps/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3/xv6 根服务、devfs、procfs 和 ramfs 服务，
+`user/apps/filesystem/fsboot/fsboot.cpp` 是独立用户程序，目前启动 ext3/xv6 根服务、devfs、procfs 和 ramfs 服务，
 将根目录、`/dev`、`/proc` 和 `/tmp` 分别挂到四个独立服务进程，再启动原有 `/sbin/init`。
 PID 1 保持监督和回收职责；init 退出时重启 init，FS 服务退出时报告该挂载不可用。
 它不在故障后静默切回内核 FS，也没有声称能够透明重启已有根连接。

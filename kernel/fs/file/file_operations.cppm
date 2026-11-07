@@ -11,6 +11,7 @@ public:
   InodeBackend(Inode &node, bool snapshot, PageBuffer &contents)
       : node_(&node), snapshot_(snapshot)
   {
+    offset_lock_.init("file offset");
     contents_.take(contents);
   }
 
@@ -37,6 +38,7 @@ private:
   struct SyncFlow;
   friend class OpenFileTable;
   Inode *node_;
+  xv::sync::SleepLock offset_lock_;
   unsigned long offset_ = 0;
   unsigned long observed_offset_=0;
   bool snapshot_ = false;

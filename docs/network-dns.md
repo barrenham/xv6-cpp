@@ -73,7 +73,7 @@ flowchart TD
 | `user/runtime/dns/dns.h` | 稳定用户 API、结果、选项和错误码 |
 | `user/runtime/dns/codec.*` | 与系统调用无关的查询编码和响应解析 |
 | `user/runtime/dns/resolver.cpp` | DHCP 选择、socket 生命周期、超时重试和 TCP 回退 |
-| `user/apps/nslookup/nslookup.cpp` | 命令行展示 |
+| `user/apps/network/nslookup/nslookup.cpp` | 命令行展示 |
 
 `user_dns` 是静态库，只链接到实际使用 DNS 的程序，避免把解析器和调试信息重复装进所有用户程序。
 

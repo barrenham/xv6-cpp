@@ -14,6 +14,20 @@ public:
   virtual bool page_available(unsigned index) const = 0;
   virtual unsigned long length() const { return ~0UL; }
   virtual void *page(unsigned index) const = 0;
+
+  virtual bool
+  demand_paged() const {
+    return false;
+  }
+
+  // Borrowed frame; the caller retains its own PTE reference after success.
+  virtual void *
+  load_page(unsigned index, int &error) {
+    auto *frame = page(index);
+    error = frame ? 0 : -12;
+    return frame;
+  }
+
 protected:
   constexpr MappingBacking() = default;
   ~MappingBacking() = default;

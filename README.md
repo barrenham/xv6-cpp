@@ -83,7 +83,7 @@ cmake --build build/dev --target qemu
 
 `rootfs-update` 会先编译用户程序并生成安装种子，再将清单内的程序安装到已有的 `data/rootfs.img`（或配置的 `XV_ROOTFS_IMAGE`）。例如本次的 `curl`、`ping` 和 `clear` 安装到 `/bin`。更新前会备份根盘，原有账户、密码和用户文件保留。
 
-新增应用需要先将源文件加入 `user/CMakeLists.txt` 的 `programs` 列表，再执行上述命令。普通应用安装到 `/bin`，指定的管理命令安装到 `/sbin`，测试程序安装到 `/usr/tests`。仅重新编译不会更新已有根盘；已有系统使用 `rootfs-update`，无需再次创建根盘。完整步骤、自定义根盘和预览方式见 [rootfs 工具说明](docs/rootfs-tools.md)。
+新增应用放入 `user/apps/<分类>/<应用>/`，在应用的 `sources.cmake` 中登记源文件，再加入 `user/apps/programs.cmake` 的应用清单，再执行上述命令。普通应用安装到 `/bin`，指定的管理命令安装到 `/sbin`，测试程序安装到 `/usr/tests`。仅重新编译不会更新已有根盘；已有系统使用 `rootfs-update`，无需再次创建根盘。完整步骤、自定义根盘和预览方式见 [rootfs 工具说明](docs/rootfs-tools.md)。
 
 ## 文档
 
@@ -94,6 +94,8 @@ cmake --build build/dev --target qemu
 - [开发指南](docs/development.md)：构建选项、调试和 clangd 配置。
 - [系统开发文档](docs/README.md)：模块设计、网络协议与用户态接口。
 - [通用 FS 桥接插件与动态注册](docs/user-filesystems.md)：具名注册、统一挂载、SDK 与独立归档后端。
+- [文件按需分页、统一页缓存、FS 并行与服务管理](docs/four-extensions.md)。
+- [用户应用分类与源文件组织](user/apps/README.md)。
 - [六项系统扩展与验证](docs/extension-goal.md)：设备发现、自动绑定、IPC、FS 并发缓存和内存映射。
 - [块缓存哈希索引、锁拆分与前后对照](docs/block-cache.md)。
 - [ps/free 列宽与真实 Tab 验证](docs/terminal-columns.md)。
@@ -108,4 +110,4 @@ IPv4 报文过滤与 `iptables` 命令的分层设计、用法及支持范围见
 
 Slab 的接口、实现选择与性能门禁见 [slab 对象分配](docs/slab.md)。
 
-fbterm的XV Mono灰度字形派生自DejaVu Sans Mono，字体采用其[原字体授权](user/apps/fbterm/FONT-LICENSE.txt)。
+fbterm的XV Mono灰度字形派生自DejaVu Sans Mono，字体采用其[原字体授权](user/apps/terminal/fbterm/FONT-LICENSE.txt)。

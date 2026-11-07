@@ -104,8 +104,21 @@ public:
 
   void lock_data(Inode *) override;
   void unlock_data(Inode *) override;
+  void lock_read(Inode *) override;
+  void unlock_read(Inode *) override;
+
+  void
+  record_read_hit() override {
+    __atomic_fetch_add(&concurrency_.read_hits, 1UL, __ATOMIC_RELAXED);
+  }
   int read_data(Inode *, int, unsigned long, unsigned, unsigned) override;
   int write_data(Inode *, int, unsigned long, unsigned, unsigned) override;
+  int write_cached_data(Inode *, int, unsigned long, unsigned, unsigned) override;
+
+  bool
+  publishes_cached_writes(Inode *node) const override {
+    return __atomic_load_n(&node->metadata_valid_, __ATOMIC_ACQUIRE);
+  }
   int resize(Inode *, unsigned) override;
   void stat(Inode *, Stat *) override;
   int status(Inode *, Stat *) override;
@@ -152,7 +165,7 @@ private:
 
   void begin(xv::userfs::Operation, unsigned node = 1);
   bool exchange();
-  int bulk_copy(unsigned long, unsigned, bool user, bool writing);
+  int bulk_copy(unsigned long, unsigned, bool user, bool writing, unsigned offset = 0);
   Inode *node(const xv::userfs::Attributes &);
   void apply(Inode *, const xv::userfs::Attributes &);
   void disconnect();
@@ -193,7 +206,9 @@ private:
   void invalidate_lookup();
   void cache_pressure();
   int read_impl(Inode *, int, unsigned long, unsigned, unsigned, bool);
-  int write_impl(Inode *, int, unsigned long, unsigned, unsigned, bool);
-  int write_fault_blocks(Request &, Inode *, int, unsigned long, unsigned, unsigned);
+  int write_impl(Inode *, int, unsigned long, unsigned, unsigned, bool,
+                 bool publish = false);
+  int write_fault_blocks(Request &, Inode *, int, unsigned long, unsigned, unsigned,
+                         bool);
 };
 } // namespace xv::fs

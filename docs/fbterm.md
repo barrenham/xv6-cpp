@@ -63,7 +63,7 @@ fbterm --no-serial-mirror cat /usr/share/doc/xv6/README
 
 ## 实现与边界
 
-- `user/apps/fbterm/font.h` 是XV Mono 10×20灰度等宽字形表，基于DejaVu
+- `user/apps/terminal/fbterm/font.h` 是XV Mono 10×20灰度等宽字形表，基于DejaVu
   Sans Mono生成；字体授权随源码和镜像分发，见 [终端渲染](terminal-rendering.md)。
 - `terminal.h` 管理字符与颜色网格、延迟自动折行、CR/LF、退格、制表、
   整屏滚动、固定下划线光标及跨读取保存的转义解析状态。

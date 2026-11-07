@@ -58,7 +58,7 @@ Ctrl-] 可主动退出 fbterm，原串口状态在退出时恢复。
 ## 用户态接入
 
 `fbterm` 使用 poll 同时等待串口、键盘、PTY 与串口输出。键盘事件经
-`user/apps/fbterm/keyboard.h` 转换成字符或转义序列后，复用现有输入缓冲
+`user/apps/terminal/fbterm/keyboard.h` 转换成字符或转义序列后，复用现有输入缓冲
 和 PTY 写入背压路径。键盘离线时关闭键盘描述符，串口交互保留。
 
 `display` 驱动已展开原有密集语句，使用显式分支块和具名 GPU 命令、

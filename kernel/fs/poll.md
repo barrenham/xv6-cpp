@@ -91,7 +91,7 @@ PollWait 的析构先于文件引用释放，避免对象已销毁而等待项�
 
 ## 使用与验证
 
-`user/apps/pty/pty.cpp` 用一个父进程同时 poll 实际终端输入、master 和实际
+`user/apps/terminal/pty/pty.cpp` 用一个父进程同时 poll 实际终端输入、master 和实际
 终端输出，只 fork 运行内层程序。输入/输出待转发缓冲分别保存，master 挂断
 时先排空输出，再恢复外层终端；Ctrl-] 主动断开。
 

@@ -10,6 +10,9 @@ namespace xv::fs
 {
 namespace
 {
+constinit xv::sync::SpinLock read_context_lock;
+ReadLockedInode *read_contexts = nullptr;
+
 class FileMappingBacking final : public xv::memory::MappingBacking
 {
 public:
@@ -50,7 +53,17 @@ public:
 
   void *
   page(unsigned index) const override {
-    return owner_.page(index);
+    return owner_.resident_page(index);
+  }
+
+  bool
+  demand_paged() const override {
+    return true;
+  }
+
+  void *
+  load_page(unsigned index, int &error) override {
+    return owner_.load_page(index, error);
   }
 
 private:
@@ -58,6 +71,52 @@ private:
   FileMapping &owner_;
 };
 } // namespace
+
+ReadLockedInode::ReadLockedInode(FileSystem &fs, Inode &node) : fs_(fs), node_(node) {
+  fs_.lock_read(&node_);
+  link(*this);
+}
+
+ReadLockedInode::~ReadLockedInode() {
+  unlink(*this);
+  fs_.unlock_read(&node_);
+}
+
+void
+ReadLockedInode::link(ReadLockedInode &guard) {
+  xv::sync::ScopedLock lock(read_context_lock);
+  guard.pid_ = detail::current_pid();
+  guard.next_ = read_contexts;
+  read_contexts = &guard;
+}
+
+void
+ReadLockedInode::unlink(ReadLockedInode &guard) {
+  xv::sync::ScopedLock lock(read_context_lock);
+  auto **cursor = &read_contexts;
+  while (*cursor && *cursor != &guard)
+  {
+    cursor = &(*cursor)->next_;
+  }
+  if (!*cursor)
+  {
+    detail::fail("file read context: missing guard");
+  }
+  *cursor = guard.next_;
+}
+
+bool
+ReadLockedInode::held() {
+  xv::sync::ScopedLock lock(read_context_lock);
+  for (auto *guard = read_contexts; guard; guard = guard->next_)
+  {
+    if (guard->pid_ == detail::current_pid())
+    {
+      return true;
+    }
+  }
+  return false;
+}
 
 xv::memory::MappingBacking *
 FileMapping::backing() {
@@ -71,13 +130,16 @@ struct MappedPages
   {
     void *frame = nullptr;
     unsigned index = 0, leases = 0, writers = 0;
+    unsigned long used = 0;
+    bool loading = false;
+    int error = 0;
   };
 
   MappedPages *next = nullptr;
-  Entry entries[160];
+  Entry entries[100];
 
   static Entry *
-  find(Inode *node, unsigned index) {
+  find_locked(Inode *node, unsigned index) {
     for (auto *block = node->mapped_pages_; block; block = block->next)
     {
       for (auto &entry : block->entries)
@@ -91,8 +153,89 @@ struct MappedPages
     return nullptr;
   }
 
+  static bool
+  contains(Inode *node, unsigned index) {
+    xv::sync::ScopedLock guard(node->cache_state_);
+    auto *entry = find_locked(node, index);
+    return entry && !entry->loading && !entry->error;
+  }
+
+  static bool
+  covered(Inode *node, unsigned offset, unsigned count) {
+    xv::sync::ScopedLock guard(node->cache_state_);
+    unsigned last = (static_cast<unsigned long>(offset) + count - 1) / 4096;
+    for (unsigned index = offset / 4096; index <= last; ++index)
+    {
+      auto *entry = find_locked(node, index);
+      if (!entry || entry->loading || entry->error)
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static bool
+  mapped_writers(Inode *node, unsigned offset, unsigned count) {
+    xv::sync::ScopedLock guard(node->cache_state_);
+    auto end = static_cast<unsigned long>(offset) + count;
+    for (auto *block = node->mapped_pages_; block; block = block->next)
+    {
+      for (auto &entry : block->entries)
+      {
+        if (entry.frame && entry.writers && entry.index * 4096UL < end &&
+            entry.index * 4096UL + 4096 > offset)
+        {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static void
   cleanup(Inode *node) {
+    xv::sync::ScopedLock guard(node->cache_state_);
+    for (auto *block = node->mapped_pages_; block; block = block->next)
+    {
+      for (auto &entry : block->entries)
+      {
+        if (entry.frame && !entry.leases &&
+            entry.index * 4096UL + 4096 > node->size_bytes())
+        {
+          auto low = entry.index * 4096UL;
+          auto valid = node->size_bytes() > low ? node->size_bytes() - low : 0;
+          detail::fill(static_cast<char *>(entry.frame) + valid, 0, 4096 - valid);
+        }
+      }
+    }
+    // Mapped pages are pinned. Keep only eight unleased pages per inode; these
+    // clean, write-through pages can always be reclaimed without an FS RPC.
+    for (;;)
+    {
+      unsigned idle = 0;
+      Entry *oldest = nullptr;
+      for (auto *block = node->mapped_pages_; block; block = block->next)
+      {
+        for (auto &entry : block->entries)
+        {
+          if (entry.frame && !entry.leases)
+          {
+            ++idle;
+            if (!oldest || entry.used < oldest->used)
+            {
+              oldest = &entry;
+            }
+          }
+        }
+      }
+      if (idle <= 8)
+      {
+        break;
+      }
+      detail::release_frame(oldest->frame);
+      *oldest = {};
+    }
     auto **link = &node->mapped_pages_;
     while (auto *block = *link)
     {
@@ -115,23 +258,51 @@ struct MappedPages
   }
 
   static void
-  drop(Entry *entry, bool writing) {
+  drop(Inode *node, Entry *entry, bool writing) {
+    xv::sync::ScopedLock guard(node->cache_state_);
     if (writing)
     {
       --entry->writers;
     }
-    if (!--entry->leases)
+    if (!entry->leases)
+    {
+      detail::fail("file cache: lease underflow");
+    }
+    if (!--entry->leases && entry->error)
     {
       detail::release_frame(entry->frame);
       *entry = {};
     }
   }
 
+  static void
+  add_writer(Inode *node, Entry *entry) {
+    xv::sync::ScopedLock guard(node->cache_state_);
+    ++entry->writers;
+  }
+
   static Entry *
-  acquire(Inode *node, unsigned index, int &error) {
-    if (auto *found = find(node, index))
+  acquire(Inode *node, unsigned index, int &error, unsigned long seed = 0,
+          unsigned seed_bytes = 0, int seed_user = 0, bool supplied = false) {
+    node->cache_state_.acquire();
+    if (auto *found = find_locked(node, index))
     {
-      ++found->leases;
+      ++found->leases; // Pin metadata before sleeping; cleanup cannot free it.
+      while (found->loading)
+      {
+        detail::prepare_sleep(found);
+        node->cache_state_.release();
+        detail::sleep();
+        node->cache_state_.acquire();
+      }
+      error = found->error;
+      found->used = detail::cache_ticks();
+      node->cache_state_.release();
+      if (error)
+      {
+        drop(node, found, false);
+        return nullptr;
+      }
       return found;
     }
     Entry *slot = nullptr;
@@ -152,6 +323,7 @@ struct MappedPages
       auto *page = detail::allocate_page();
       if (!page)
       {
+        node->cache_state_.release();
         error = -ENOMEM;
         return nullptr;
       }
@@ -163,9 +335,12 @@ struct MappedPages
     auto *frame = detail::allocate_page();
     if (!frame)
     {
+      node->cache_state_.release();
       error = -ENOMEM;
       return nullptr;
     }
+    *slot = {frame, index, 1, 0, detail::cache_ticks(), true, 0};
+    node->cache_state_.release();
     detail::fill(frame, 0, 4096);
     unsigned offset = index * 4096;
     unsigned bytes = offset < node->size_bytes() ? node->size_bytes() - offset : 0;
@@ -173,15 +348,26 @@ struct MappedPages
     {
       bytes = 4096;
     }
-    if (bytes &&
-        node->owner().read_data(node, 0, reinterpret_cast<unsigned long>(frame), offset,
-                                bytes) != int(bytes))
+    // No cache spinlock is held across an RPC. Different pages may load in
+    // parallel; duplicate misses sleep on the single in-flight page.
+    error =
+        supplied
+            ? (detail::copy_in(frame, seed_user, seed, seed_bytes) < 0 ? -EFAULT : 0)
+        : bytes &&
+                node->owner().read_data(node, 0, reinterpret_cast<unsigned long>(frame),
+                                        offset, bytes) != int(bytes)
+            ? -EIO
+            : 0;
+    node->cache_state_.acquire();
+    slot->error = error;
+    slot->loading = false;
+    detail::wakeup(slot);
+    node->cache_state_.release();
+    if (error)
     {
-      detail::free_page(frame);
-      error = -EIO;
+      drop(node, slot, false);
       return nullptr;
     }
-    *slot = {frame, index, 1, 0};
     return slot;
   }
 
@@ -259,22 +445,10 @@ FileMapping::create(Inode *node, unsigned offset, unsigned pages, int &error) {
     if (node->owner().status(node, &attributes) >= 0)
     {
       __atomic_store_n(&node->mapped_length_, node->size_bytes(), __ATOMIC_RELEASE);
-      while (mapping->pages_ < pages)
-      {
-        auto *entry =
-            MappedPages::acquire(node, offset / 4096 + mapping->pages_, error);
-        if (!entry)
-        {
-          break;
-        }
-        mapping->entries_[mapping->pages_++] = entry;
-      }
-      if (mapping->pages_ == pages)
-      {
-        node->owner().retain(node);
-        error = 0;
-        return mapping;
-      }
+      mapping->pages_ = pages;
+      node->owner().retain(node);
+      error = 0;
+      return mapping;
     }
     else
     {
@@ -282,7 +456,8 @@ FileMapping::create(Inode *node, unsigned offset, unsigned pages, int &error) {
     }
     for (unsigned i = 0; i < mapping->pages_; ++i)
     {
-      MappedPages::drop(static_cast<MappedPages::Entry *>(mapping->entries_[i]), false);
+      MappedPages::drop(node, static_cast<MappedPages::Entry *>(mapping->entries_[i]),
+                        false);
     }
     MappedPages::cleanup(node);
   }
@@ -317,7 +492,10 @@ FileMapping::enable_write() {
   }
   for (unsigned i = 0; i < pages_; ++i)
   {
-    ++static_cast<MappedPages::Entry *>(entries_[i])->writers;
+    if (entries_[i])
+    {
+      ++static_cast<MappedPages::Entry *>(entries_[i])->writers;
+    }
   }
   writing_ = true;
   return 0;
@@ -348,7 +526,11 @@ FileMapping::release() {
     }
     for (unsigned i = 0; i < pages_; ++i)
     {
-      MappedPages::drop(static_cast<MappedPages::Entry *>(entries_[i]), writing_);
+      if (entries_[i])
+      {
+        MappedPages::drop(node, static_cast<MappedPages::Entry *>(entries_[i]),
+                          writing_);
+      }
     }
     MappedPages::cleanup(node);
   }
@@ -376,15 +558,65 @@ FileMapping::page_available(unsigned page) const {
 }
 
 void *
-FileMapping::page(unsigned index) const {
-  return index < pages_ ? static_cast<MappedPages::Entry *>(entries_[index])->frame
-                        : nullptr;
+FileMapping::resident_page(unsigned index) const {
+  auto *entry =
+      index < pages_ ? __atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE) : nullptr;
+  return entry ? static_cast<MappedPages::Entry *>(entry)->frame : nullptr;
+}
+
+void *
+FileMapping::page(unsigned index) {
+  int error = 0;
+  return load_page(index, error);
+}
+
+void *
+FileMapping::load_page(unsigned index, int &error) {
+  error = 0;
+  if (index >= pages_)
+  {
+    error = -EINVAL;
+    return nullptr;
+  }
+  if (auto *entry = __atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE))
+  {
+    return static_cast<MappedPages::Entry *>(entry)->frame;
+  }
+  // User buffers are prefaulted before file locks. Never recursively enter a
+  // provider from a copy while a VFS transaction/read guard is already held.
+  if (ReadLockedInode::held() || !detail::mapping_fault_safe())
+  {
+    error = -EFAULT;
+    return nullptr;
+  }
+  ReadLockedInode guard(node_->owner(), *node_);
+  if (!__atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE))
+  {
+    auto *entry = MappedPages::acquire(node_, offset_ / 4096 + index, error);
+    if (!entry)
+    {
+      MappedPages::cleanup(node_);
+      return nullptr;
+    }
+    if (writing_)
+    {
+      MappedPages::add_writer(node_, entry);
+    }
+    void *expected = nullptr;
+    if (!__atomic_compare_exchange_n(&entries_[index], &expected,
+                                     static_cast<void *>(entry), false,
+                                     __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+    {
+      MappedPages::drop(node_, entry, writing_);
+    }
+  }
+  return resident_page(index);
 }
 
 int
 FileSystem::read_file(Inode *node, int user, unsigned long address, unsigned offset,
                       unsigned count) {
-  if (!node->mapped_pages_)
+  if (node->kind() != T_FILE || (!mappable() && !node->mapped_pages_))
   {
     return read_data(node, user, address, offset, count);
   }
@@ -400,6 +632,69 @@ FileSystem::read_file(Inode *node, int user, unsigned long address, unsigned off
   {
     count = node->size_bytes() - offset;
   }
+  if (!count)
+  {
+    return 0;
+  }
+  if (count >= 4096 && mappable() && !MappedPages::covered(node, offset, count) &&
+      !MappedPages::mapped_writers(node, offset, count))
+  {
+    // Preserve bulk transport for cold sequential IO. Seed the last eight
+    // complete pages from the delivered bytes instead of rereading every page.
+    int result = read_data(node, user, address, offset, count);
+    if (result <= 0)
+    {
+      return result;
+    }
+    auto end = static_cast<unsigned long>(offset) + result;
+    unsigned first = offset / 4096, last = (end - 1) / 4096;
+    for (unsigned index = first; index <= last; ++index)
+    {
+      if (!MappedPages::contains(node, index))
+      {
+        continue;
+      }
+      int error = 0;
+      auto *entry = MappedPages::acquire(node, index, error);
+      if (!entry)
+      {
+        continue;
+      }
+      auto low = index * 4096UL > offset ? index * 4096UL : offset;
+      auto high = (index + 1UL) * 4096 < end ? (index + 1UL) * 4096 : end;
+      bool good = detail::copy_out(user, address + low - offset,
+                                   static_cast<char *>(entry->frame) + low % 4096,
+                                   high - low) >= 0;
+      MappedPages::drop(node, entry, false);
+      if (!good)
+      {
+        return -1;
+      }
+      record_read_hit();
+    }
+    unsigned start = last > first + 7 ? last - 7 : first;
+    for (unsigned index = start; index <= last; ++index)
+    {
+      auto low = index * 4096UL;
+      unsigned bytes = node->size_bytes() - low;
+      if (bytes > 4096)
+      {
+        bytes = 4096;
+      }
+      if (low < offset || low + bytes > end)
+      {
+        continue;
+      }
+      int error = 0;
+      if (auto *entry = MappedPages::acquire(node, index, error, address + low - offset,
+                                             bytes, user, true))
+      {
+        MappedPages::drop(node, entry, false);
+      }
+    }
+    MappedPages::cleanup(node);
+    return result;
+  }
   unsigned done = 0;
   while (done < count)
   {
@@ -409,17 +704,28 @@ FileSystem::read_file(Inode *node, int user, unsigned long address, unsigned off
       take = count - done;
     }
     int received;
-    if (auto *entry = MappedPages::find(node, position / 4096))
+    bool hit = MappedPages::contains(node, position / 4096);
+    int error = 0;
+    if (auto *entry = (hit || mappable())
+                          ? MappedPages::acquire(node, position / 4096, error)
+                          : nullptr)
     {
+      if (hit)
+      {
+        record_read_hit();
+      }
       received = detail::copy_out(user, address + done,
                                   static_cast<char *>(entry->frame) + position % 4096,
                                   take) < 0
                      ? -1
                      : int(take);
+      MappedPages::drop(node, entry, false);
+      MappedPages::cleanup(node);
     }
     else
     {
       received = read_data(node, user, address + done, position, take);
+      MappedPages::cleanup(node);
     }
     if (received < 0)
     {
@@ -435,11 +741,56 @@ FileSystem::read_file(Inode *node, int user, unsigned long address, unsigned off
 }
 
 int
+FileSystem::cache_written(Inode *node, unsigned old_size, unsigned offset,
+                          unsigned count, CacheCopy copy, void *context) {
+  if (!count)
+  {
+    return 0;
+  }
+  auto end = static_cast<unsigned long>(offset) + count;
+  for (auto *block = node->mapped_pages_; block; block = block->next)
+  {
+    for (auto &entry : block->entries)
+    {
+      if (!entry.frame)
+      {
+        continue;
+      }
+      auto start = entry.index * 4096UL, limit = start + 4096;
+      if (offset > old_size)
+      {
+        auto low = start > old_size ? start : old_size;
+        auto high = limit < offset ? limit : offset;
+        if (low < high)
+        {
+          detail::fill(static_cast<char *>(entry.frame) + low % 4096, 0, high - low);
+        }
+      }
+      auto low = start > offset ? start : offset;
+      auto high = limit < end ? limit : end;
+      if (low < high)
+      {
+        entry.used = detail::cache_ticks();
+      }
+      if (low < high && copy(context, static_cast<char *>(entry.frame) + low % 4096,
+                             low - offset, high - low) < 0)
+      {
+        entry.error = -EIO;
+        return -EIO;
+      }
+    }
+  }
+  return 0;
+}
+
+int
 FileSystem::write_file(Inode *node, int user, unsigned long address, unsigned offset,
                        unsigned count) {
   if (!node->mapped_pages_)
   {
-    return write_data(node, user, address, offset, count);
+    int result = write_cached_data(node, user, address, offset, count);
+    __atomic_store_n(&node->mapped_length_, node->size_bytes(), __ATOMIC_RELEASE);
+    return result;
   }
   if (offset + count < offset)
   {
@@ -456,7 +807,12 @@ FileSystem::write_file(Inode *node, int user, unsigned long address, unsigned of
   {
     return -EIO;
   }
-  int result = write_data(node, user, address, offset, count);
+  int result = write_cached_data(node, user, address, offset, count);
+  if (result >= 0 && publishes_cached_writes(node))
+  {
+    __atomic_store_n(&node->mapped_length_, node->size_bytes(), __ATOMIC_RELEASE);
+    return result;
+  }
   auto end = static_cast<unsigned long>(offset) + count;
   for (auto *block = node->mapped_pages_; block; block = block->next)
   {
@@ -481,10 +837,14 @@ FileSystem::write_file(Inode *node, int user, unsigned long address, unsigned of
       {
         high = node->size_bytes();
       }
-      if (low < high &&
-          read_data(node, 0, reinterpret_cast<unsigned long>(entry.frame) + low % 4096,
+      if (low >= high)
+      {
+        continue;
+      }
+      if (read_data(node, 0, reinterpret_cast<unsigned long>(entry.frame) + low % 4096,
                     low, high - low) != int(high - low))
       {
+        entry.error = -EIO;
         return -EIO;
       }
     }
@@ -541,6 +901,27 @@ FileSystem::resize_file(Inode *node, unsigned size) {
 int
 FileSystem::flush_mapped(Inode *node) {
   return MappedPages::flush(node);
+}
+
+void
+FileSystem::discard_file_cache(Inode *node) {
+  while (auto *block = node->mapped_pages_)
+  {
+    node->mapped_pages_ = block->next;
+    for (auto &entry : block->entries)
+    {
+      if (entry.leases)
+      {
+        detail::fail("file cache: discard pinned page");
+      }
+      if (entry.frame)
+      {
+        detail::release_frame(entry.frame);
+      }
+    }
+    block->~MappedPages();
+    detail::free_page(block);
+  }
 }
 
 int

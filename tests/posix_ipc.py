@@ -32,7 +32,12 @@ def main():
                 if len(rows) != 3:
                     raise AssertionError('missing benchmark rows')
                 for batch, size, ticks, rpc, copied, waits, payload in rows:
-                    if int(payload) != 16384 or int(rpc) != int(size) // int(batch):
+                    # Reads may hit/coalesce in the unified page cache. Every
+                    # write still reaches the backend; misses must preserve bulk
+                    # transfers rather than expanding a 16 KiB request per page.
+                    maximum = int(size) // int(batch)
+                    minimum = int(size) // (2 * int(batch))
+                    if int(payload) != 16384 or not minimum <= int(rpc) <= maximum:
                         raise AssertionError('bulk transport did not coalesce requests: ' + str(rows))
         finally:
             guest.close()

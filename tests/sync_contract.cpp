@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -26,6 +27,7 @@ static_assert(!std::is_destructible_v<Lock>);
 // Compile-time enforcement of the kernel's no-global-constructors contract.
 constinit SpinLock static_spin;
 constinit SleepLock static_sleep;
+constinit SleepRwLock static_rw;
 
 static void check(bool condition, const char *message)
 {
@@ -130,8 +132,116 @@ static void try_lock_contract()
   lock.release();
 }
 
+template <class Predicate>
+static void
+await(Predicate predicate) {
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (!predicate())
+  {
+    check(std::chrono::steady_clock::now() < deadline, "rwlock progress deadline");
+    std::this_thread::yield();
+  }
+}
+
+static void
+rwlock_contract() {
+  contract(static_rw, LockKind::Sleep);
+  auto &lock = static_rw;
+  std::atomic<bool> second_reader{false}, release_reader{false};
+  std::atomic<bool> writer{false}, release_writer{false}, late_reader{false};
+  lock.acquire_shared();
+  std::thread reader([&] {
+    lock.acquire_shared();
+    second_reader = true;
+    await([&] {
+      return release_reader.load();
+    });
+    lock.release_shared();
+  });
+  await([&] {
+    return second_reader.load();
+  });
+  std::thread writing([&] {
+    lock.acquire();
+    check(!late_reader, "queued writer precedes new readers");
+    writer = true;
+    await([&] {
+      return release_writer.load();
+    });
+    lock.release();
+  });
+  await([&] {
+    return xv_test_waiter_count(&lock) == 1;
+  });
+  check(!lock.try_acquire_shared(), "new readers cannot bypass a queued writer");
+  std::thread late([&] {
+    lock.acquire_shared();
+    late_reader = true;
+    lock.release_shared();
+  });
+  await([&] {
+    return xv_test_waiter_count(&lock) == 2;
+  });
+  lock.release_shared();
+  check(!writer && !late_reader, "writer waits for all existing readers");
+  release_reader = true;
+  reader.join();
+  await([&] {
+    return writer.load();
+  });
+  check(!late_reader, "writer excludes readers");
+  release_writer = true;
+  writing.join();
+  late.join();
+  check(late_reader, "writer release wakes parked readers");
+  check(lock.try_acquire_shared(), "shared try acquire after contention");
+  lock.release_shared();
+  expect_panic([&] {
+    lock.release_shared();
+  });
+  expect_panic([&] {
+    lock.acquire();
+    lock.acquire_shared();
+  });
+
+  int value = 0;
+  std::atomic<unsigned> active_readers{0}, active_writers{0};
+  std::vector<std::thread> workers;
+  for (unsigned i = 0; i < 6; ++i)
+  {
+    workers.emplace_back([&, i] {
+      for (unsigned n = 0; n < 1000; ++n)
+      {
+        if (i % 3 == 0)
+        {
+          lock.acquire();
+          check(active_writers.fetch_add(1) == 0 && !active_readers,
+                "exclusive writer under mixed contention");
+          ++value;
+          --active_writers;
+          lock.release();
+        }
+        else
+        {
+          lock.acquire_shared();
+          ++active_readers;
+          check(!active_writers && value >= 0, "readers exclude writers");
+          --active_readers;
+          lock.release_shared();
+        }
+      }
+    });
+  }
+  for (auto &worker : workers)
+  {
+    worker.join();
+  }
+  check(value == 2000, "mixed contention preserves all writes");
+}
+
 int main()
 {
+  rwlock_contract();
   try_lock_contract();
   contract(static_spin, LockKind::Spin);
   contract(static_sleep, LockKind::Sleep);

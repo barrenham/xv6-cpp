@@ -205,6 +205,11 @@ void synchronize_file_mappings()
   xv::process::synchronize_file_mappings();
 }
 
+bool
+mapping_fault_safe() {
+  return xv::arch::intr_get() && can_reclaim_file_objects();
+}
+
 void release_frame(void *page)
 {
   xv::memory::allocator().release_page(page);

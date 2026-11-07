@@ -28,6 +28,14 @@ public:
   context(const xv::userfs::RequestContext &) {
   }
 
+  // Opt in only for reads whose observable state is in the reply/bulk buffer.
+  // Workers fork a stable backend snapshot; writes and metadata are barriers.
+  // Worker-local allocation/caches are discarded, not merged into the parent.
+  virtual unsigned
+  parallel_read_workers() const {
+    return 0;
+  }
+
   virtual int
   snapshot(unsigned, unsigned &) {
     return -1;
@@ -174,6 +182,7 @@ private:
 
   friend int register_backend(const char *, Backend &, unsigned);
   friend int serve(int, Backend &);
+  friend int serve_parallel(int, Backend &);
   int transport_ = -1;
   int extra_transports_[xv::userfs::TransportLanes - 1]{-1, -1};
   unsigned transport_lanes_ = 1;
@@ -190,6 +199,7 @@ int register_backend(const char *type, Backend &backend, unsigned payload = Data
 void dispatch(xv::userfs::Message &, Backend &, void *bulk = nullptr,
               unsigned capacity = DataSize);
 int serve(int descriptor, Backend &backend);
+int serve_parallel(int descriptor, Backend &backend);
 } // namespace userfs
 
 static_assert(sizeof(xvfs_attributes) == sizeof(xv::userfs::Attributes));

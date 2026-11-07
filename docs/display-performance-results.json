@@ -4,7 +4,7 @@
   "host_architecture": "x86_64",
   "qemu_version": "QEMU emulator version 9.2.1 (Debian 1:9.2.1+ds-1ubuntu5.2)",
   "sources_and_binaries": {
-    "user/apps/fbterm/fbterm.cpp": "34f5126e90dadb691764ebe5d29d43b12ffa7a5fa699e2afa437d27fc846ec55",
+    "user/apps/terminal/fbterm/fbterm.cpp": "34f5126e90dadb691764ebe5d29d43b12ffa7a5fa699e2afa437d27fc846ec55",
     "tools/profile_fbterm.py": "d76ffaefe2ed1074e3d9ab5c220e47f7c80d89cda2f56ead87958409dc0f8b9d",
     "build/dev/user/_fbterm": "542d606b366752436a236b0933a18f1d0c55dbf6f98e35079a08155d5f613681",
     "build/dev/kernel.elf": "458bfa8d109f8c16ca15a586a9e0bbc7f3023f68cf51eb6b9d4279cb68095d25"

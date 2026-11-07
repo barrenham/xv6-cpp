@@ -18,7 +18,9 @@ public:
   int synchronize();
   bool page_available(unsigned page) const;
   unsigned long length() const;
-  void *page(unsigned index) const;
+  void *page(unsigned index);
+  void *load_page(unsigned index, int &error);
+  void *resident_page(unsigned index) const;
 
   unsigned
   count() const {

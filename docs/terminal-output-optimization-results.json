@@ -268,7 +268,7 @@
   ],
   "sha256": {
     "kernel/drivers/tty/core/tty.cpp": "f3c54ead97af6016b3054f0dddfd59a9150419034ece34a53196fc9267dcab96",
-    "user/apps/fbterm/fbterm.cpp": "9830d69981842a10f83acf411f04cbc75513a6e33b8ad40729f23a3de65d0f0f",
+    "user/apps/terminal/fbterm/fbterm.cpp": "9830d69981842a10f83acf411f04cbc75513a6e33b8ad40729f23a3de65d0f0f",
     "user/tests/nonblock_checks.cpp": "f128bafd000136138e41c167913736664f96c4eff961118b6ad0cf63e8600b47",
     "tests/fbterm.py": "1e56fb0993980f3b1f656619f19a259bcb7ac10e77f2be49f4326cf16c2abf89",
     "tools/profile_fbterm.py": "377dd03cf10da69a2cfb86bf8199028152da3e473cb735fd707bc534f0ebd335",

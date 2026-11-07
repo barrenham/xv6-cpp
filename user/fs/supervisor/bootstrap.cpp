@@ -3,6 +3,7 @@ module;
 #include "user/fs/supervisor/workspace.h"
 #include "kernel/fs/fcntl.h"
 #include "kernel/fs/image_paths.h"
+#include "user/services/protocol.h"
 module xv.userfs.bootstrap;
 import xv.userfs.catalog;
 import xv.userfs.launcher;
@@ -117,7 +118,7 @@ int initialize(const char *path)
   if (root_pid < 0) fatal("cannot mount root plugin");
   close(3);
   if (chdir("/") < 0) fatal("cannot select root cwd");
-  auto &services = storage->services;
+  auto &boot_services = storage->services;
   for (unsigned i = 0; i < config->count; ++i)
   {
     auto &plugin = storage->plugin;
@@ -126,13 +127,45 @@ int initialize(const char *path)
     int source = launcher::source(plugin);
     if ((plugin.resource == catalog::Resource::Block || plugin.resource == catalog::Resource::File) && source < 0)
       fatal("boot mount source unavailable");
-    services[i] = launcher::start(plugin, entry.type, entry.path, source, true, entry.mode);
+    boot_services[i] =
+        launcher::start(plugin, entry.type, entry.path, source, true, entry.mode);
     if (source >= 0) close(source);
-    if (services[i] < 0) fatal("cannot mount boot plugin");
+    if (boot_services[i] < 0)
+    {
+      fatal("cannot mount boot plugin");
+    }
   }
   int manager_pid = manager::start();
   if (manager_pid < 0) fatal("cannot start mount manager");
   close(4);
+  auto register_core = [&]() {
+    (void)services::register_external("rootfs", root_pid);
+    (void)services::register_external("fs-mount-manager", manager_pid);
+    (void)services::register_external("driver-autoload", 0);
+    for (unsigned i = 0; i < config->count; ++i)
+    {
+      char name[32];
+      unsigned used = 0;
+      for (; used < 27 && config->mounts[i].type[used]; ++used)
+      {
+        name[used] = config->mounts[i].type[used];
+      }
+      name[used++] = '-';
+      name[used++] = '0' + i / 10;
+      name[used++] = '0' + i % 10;
+      name[used] = 0;
+      (void)services::register_external(name, boot_services[i]);
+    }
+  };
+  int service_manager = services::launch_daemon();
+  if (service_manager > 0)
+  {
+    register_core();
+  }
+  else
+  {
+    fprintf(2, "fsboot: service manager unavailable; install/update /sbin/serviced\n");
+  }
   int init = initialize(config->init);
   for (;;)
   {
@@ -145,12 +178,27 @@ int initialize(const char *path)
     }
     else
     {
-      bool service = pid == root_pid || pid == manager_pid;
-      for (unsigned i = 0; i < config->count; ++i) service |= pid == services[i];
+      // The supervisor is a core service too. Restarting it without adopting
+      // its surviving children would create duplicate application instances.
+      bool service =
+          pid > 0 && (pid == root_pid || pid == manager_pid || pid == service_manager);
+      for (unsigned i = 0; i < config->count; ++i)
+      {
+        service |= pid == boot_services[i];
+      }
       if (service)
+      {
         fprintf(2, "fsboot: %s service pid=%d exited status=%d; unavailable\n",
-                pid == root_pid ? "root" : pid == manager_pid ? "mount manager" : "filesystem", pid, status);
-      else if (pid < 0) pause(1);
+                pid == root_pid          ? "root"
+                : pid == manager_pid     ? "mount manager"
+                : pid == service_manager ? "service manager"
+                                         : "filesystem",
+                pid, status);
+      }
+      else if (pid < 0)
+      {
+        pause(1);
+      }
     }
   }
 }

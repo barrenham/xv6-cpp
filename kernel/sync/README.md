@@ -13,9 +13,9 @@ void update(xv::sync::Lock &lock)
 ```
 
 `Lock` 是不可复制的抽象接口，定义 `init`、`acquire`、`release`、
-`holding` 和 `kind`，并保存调试名称。`SpinLock`、`SleepLock` 是 `final`
+`holding` 和 `kind`，并保存调试名称。`SpinLock`、`SleepLock`、`SleepRwLock` 是 `final`
 派生类；调用方可用 `LockKind` 查询类型，无需 RTTI。`ScopedLock` 保存
-`Lock &` 并执行虚调用，能够统一管理两种锁。具体锁仍由使用它的子系统拥有，
+`Lock &` 并执行虚调用，统一管理这些锁的独占获取与释放。具体锁仍由使用它的子系统拥有，
 不需要全局锁注册表或动态分配锁对象。
 
 | 文件 | 职责 |
@@ -37,6 +37,12 @@ void update(xv::sync::Lock &lock)
   自旋锁并睡眠；唤醒方持内部锁修改状态，沿用现有协议防止丢失唤醒。
   `holding()` 自行锁定内部状态，检查当前进程是否持锁。
 - 两种锁均拒绝递归获取和非所有者释放。锁不提供公平性保证。
+- `SleepRwLock` 的 `acquire/release/holding` 表示独占写锁；
+  `acquire_shared/release_shared` 用于共享读锁，`try_acquire_shared` 不等待。
+  多个读者可同时进入，写者等待所有读者退出；有写者排队时阻止新读者进入。
+  等待使用与 SleepLock 相同的登记、睡眠、唤醒协议，不持自旋锁睡眠。
+  不支持递归、升级或降级，不保证 FIFO；共享模式不记录每个读者的 PID，
+  调用者负责配对释放。独占模式检查所有权，共享模式检查读者计数下溢。
 - 守卫不能与手动释放或调度器的锁所有权交接混用。普通自旋锁临界区不能
   跨越 `sleep()` / `sched()`；睡眠锁守卫可以包围阻塞操作。
   调度器的 `p->lock` 有专门的上下文交接协议，继续显式获取和释放。
@@ -56,8 +62,10 @@ void update(xv::sync::Lock &lock)
 
 ## 验证
 
-`sync_contract` 编译实际两种锁实现，测试抽象接口、RAII 提前返回、
+`sync_contract` 编译实际三种锁实现，测试抽象接口、RAII 提前返回、
 多线程竞争、所有权检查、误用诊断及原始存储构造。
+读写锁额外检查多读者同时持锁、写者等待最后一个读者、排队写者阻止新读者、
+写者退出后读者唤醒，以及读写混合竞争。宿主等待队列检查确保测试观察到真实睡眠。
 宿主机仅替换 CPU、中断和等待/唤醒平台操作；分配器契约测试也使用相同
 实际锁实现。QEMU 启动与 `usertests -q` 验证真实多核调度和设备路径。
 

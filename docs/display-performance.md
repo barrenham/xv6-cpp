@@ -78,7 +78,7 @@ GPU像素OCR，最终像素正确性由正常路径的fbterm回归覆盖。
 
 ## 对应代码
 
-- `user/apps/fbterm/fbterm.cpp`：仅在sent==used时读PTY；每批内容必须先完成
+- `user/apps/terminal/fbterm/fbterm.cpp`：仅在sent==used时读PTY；每批内容必须先完成
   串口镜像，未写完前禁止继续读取PTY。所有这些操作与绘制共用同一个循环。
 - `kernel/drivers/tty/core/tty.cpp`：WriteFlow::read在nonblocking时设置part=1。
   一次较大的write会对每个字节重复copy_in、输出转换和transmit。

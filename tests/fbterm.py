@@ -30,7 +30,7 @@ output = Path(args.image).parent
 transcript = bytearray()
 cursor = 0
 # The checked-in bitmap is the font asset, used to decode the actual scanout.
-font_source = (Path(__file__).resolve().parents[1] / 'user/apps/fbterm/font.h').read_text()
+font_source = (Path(__file__).resolve().parents[1] / 'user/apps/terminal/fbterm/font.h').read_text()
 font_source = re.sub(r'//[^\n]*', '', font_source)
 cell_width = int(re.search(r'font_width\s*=\s*(\d+)', font_source)[1])
 cell_height = int(re.search(r'font_height\s*=\s*(\d+)', font_source)[1])

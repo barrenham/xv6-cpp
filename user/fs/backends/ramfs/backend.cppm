@@ -21,8 +21,16 @@ MemoryStorage &heap_storage();
 class MemoryBackend final : public Backend
 {
 public:
-  unsigned cache_flags() const override { return xv::userfs::CacheMetadata; }
-  explicit MemoryBackend(MemoryStorage &, unsigned root_mode = 0755);
+  unsigned cache_flags() const override { return xv::userfs::CacheMetadata;
+  }
+
+  explicit MemoryBackend(MemoryStorage &, unsigned root_mode = 0755,
+                         unsigned read_workers = 0);
+
+  unsigned
+  parallel_read_workers() const override {
+    return read_workers_;
+  }
   ~MemoryBackend();
   bool ready() const { return root_ != nullptr; }
   Attributes root() override;
@@ -56,5 +64,6 @@ private:
   MemoryStorage &storage_;
   Node *nodes_ = nullptr, *root_ = nullptr;
   unsigned next_node_ = 2;
+  unsigned read_workers_ = 0;
 };
 } // namespace userfs

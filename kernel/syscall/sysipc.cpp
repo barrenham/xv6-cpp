@@ -449,15 +449,10 @@ sys_mmap() {
     {
       return error;
     }
-    void *pages[256];
-    for (unsigned i = 0; i < count; ++i)
-    {
-      pages[i] = backing->page(i);
-    }
     unsigned maximum_permissions =
         PTE_U | PTE_R | PTE_X | ((maximum & PROT_WRITE) ? PTE_W : 0);
     auto address = xv::process::current()->memory().map_shared_pages(
-        pages, count, permissions, flags & MAP_PRIVATE, hint, maximum_permissions,
+        nullptr, count, permissions, flags & MAP_PRIVATE, hint, maximum_permissions,
         backing->backing());
     backing->release();
     return address ? address : static_cast<unsigned long>(-ENOMEM);
