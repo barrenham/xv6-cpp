@@ -111,7 +111,7 @@ Editor::Editor(char *line, int capacity, bool interactive)
     columns_ = size.ws_col;
   }
   prefix_ = strlen(prompt_text());
-  displayed_row_ = prefix_ ? (prefix_ - 1) / columns_ : 0;
+  display_.reset(prefix_, columns_);
   termios settings = saved_;
   settings.c_lflag &= ~(ICANON | ECHO | ECHONL | ISIG | IEXTEN);
   settings.c_cc[VMIN] = 1;
@@ -138,60 +138,76 @@ append(unsigned &length, const char *text) {
   }
 }
 
+} // namespace
+
+namespace
+{
 void
-move(unsigned &length, unsigned count, char direction) {
-  if (!count)
+write_all(const char *text, unsigned bytes) {
+  while (bytes)
   {
-    return;
+    int count = write(2, text, bytes);
+    if (count < 0 && errno == EINTR)
+    {
+      continue;
+    }
+    if (count <= 0)
+    {
+      break;
+    }
+    text += count;
+    bytes -= count;
   }
-  append(length, "\033[");
-  char digits[12];
-  unsigned used = 0;
-  do
-  {
-    digits[used++] = '0' + count % 10;
-    count /= 10;
-  } while (count);
-  while (used)
-  {
-    repaint[length++] = digits[--used];
-  }
-  repaint[length++] = direction;
 }
 } // namespace
 
 void
 Editor::redraw(int used, bool fresh_line) {
   unsigned length = 0;
-  append(length, "\r");
-  if (!fresh_line)
+  if (fresh_line)
   {
-    move(length, displayed_row_, 'A');
-  }
-  append(length, "\033[J");
-  const char *text = prompt_text();
-  prefix_ = strlen(text);
-  append(length, prompt_display(text));
-  for (int i = 0; i < used; ++i)
-  {
-    repaint[length++] = line_[i];
-  }
-  unsigned end = prefix_ + used;
-  unsigned end_row = end ? (end - 1) / columns_ : 0;
-  // Keep the terminal's normal pending-wrap state when the cursor is at the end.
-  if (cursor_ != used)
-  {
-    unsigned target = prefix_ + cursor_;
     append(length, "\r");
-    move(length, end_row - target / columns_, 'A');
-    move(length, target % columns_, 'C');
-    displayed_row_ = target / columns_;
+    append(length, prompt_display());
+    display_.reset(prefix_, columns_);
   }
-  else
+  display_.render(line_, used, cursor_, [&](const char *text, unsigned bytes) {
+    for (unsigned i = 0; i < bytes; ++i)
+    {
+      repaint[length++] = text[i];
+    }
+  });
+  if (notice_hidden_)
   {
-    displayed_row_ = end_row;
+    append(length, "\033[?25h");
+    notice_hidden_ = false;
   }
-  write(2, repaint, length);
+  if (length)
+  {
+    write_all(repaint, length);
+  }
+  dirty_ = false;
+}
+
+void
+Editor::begin_notice() {
+  unsigned length = 0;
+  append(length, "\033[?25l");
+  display_.erase([&](const char *text, unsigned bytes) {
+    for (unsigned i = 0; i < bytes; ++i)
+    {
+      repaint[length++] = text[i];
+    }
+  });
+  write_all(repaint, length);
+  notice_hidden_ = true;
+}
+
+void
+Editor::flush(int used) {
+  if (dirty_)
+  {
+    redraw(used);
+  }
 }
 
 void
@@ -411,6 +427,7 @@ Editor::input(char value, int &used) {
   }
   if (value == '\n' || value == '\r')
   {
+    flush(used);
     if (cursor_ != used)
     {
       cursor_ = used;
@@ -435,7 +452,7 @@ Editor::input(char value, int &used) {
     history_ = history_count;
     write(2, "^C\n", 3);
     prompt();
-    displayed_row_ = prefix_ ? (prefix_ - 1) / columns_ : 0;
+    display_.reset(prefix_, columns_);
     return 0;
   }
   if (value == 4 && !used)
@@ -494,8 +511,7 @@ Editor::input(char value, int &used) {
   ++used;
   if (append)
   {
-    write(2, &value, 1);
-    displayed_row_ = (prefix_ + cursor_ - 1) / columns_;
+    dirty_ = true;
   }
   else
   {

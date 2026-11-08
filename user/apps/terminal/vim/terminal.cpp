@@ -6,6 +6,9 @@ namespace vim
 namespace
 {
 char output[4096];
+char row_text[240], previous[100][240];
+unsigned lengths[100]{};
+bool valid[100]{}, reversed[100]{};
 volatile sig_atomic_t stopping = 0;
 constexpr int signals[] = {SIGTERM, SIGHUP, SIGINT, SIGPIPE, SIGTSTP};
 
@@ -53,6 +56,10 @@ Terminal::enter() {
     return false;
   }
   active_ = true;
+  for (auto &entry : valid)
+  {
+    entry = false;
+  }
   resize();
   text("\033[?1049h\033[0m\033[2J\033[H");
   flush();
@@ -61,6 +68,7 @@ Terminal::enter() {
 
 void
 Terminal::resize() {
+  unsigned old_columns = columns, old_rows = rows;
   winsize size{};
   if (ioctl(0, TIOCGWINSZ, reinterpret_cast<unsigned long>(&size)) == 0)
   {
@@ -88,6 +96,13 @@ Terminal::resize() {
   if (rows > 100)
   {
     rows = 100;
+  }
+  if (columns != old_columns || rows != old_rows)
+  {
+    for (auto &entry : valid)
+    {
+      entry = false;
+    }
   }
 }
 
@@ -211,6 +226,64 @@ Terminal::key() {
 }
 
 void
+Terminal::begin_row(unsigned row, bool reverse) {
+  row_ = row - 1;
+  row_used_ = 0;
+  reverse_ = reverse;
+  capturing_ = true;
+}
+
+void
+Terminal::end_row() {
+  capturing_ = false;
+  unsigned first = 0, end = row_used_;
+  bool same_style = valid[row_] && reversed[row_] == reverse_;
+  if (same_style)
+  {
+    while (first < row_used_ && first < lengths[row_] &&
+           row_text[first] == previous[row_][first])
+    {
+      ++first;
+    }
+    if (row_used_ == lengths[row_])
+    {
+      while (end > first && row_text[end - 1] == previous[row_][end - 1])
+      {
+        --end;
+      }
+    }
+  }
+  bool clear = row_used_ < columns && (!valid[row_] || row_used_ < lengths[row_]);
+  if (first < end || clear || !same_style)
+  {
+    move(row_ + 1, first + 1);
+    if (reverse_)
+    {
+      text("\033[7m");
+    }
+    for (unsigned i = first; i < end; ++i)
+    {
+      character(row_text[i]);
+    }
+    if (reverse_)
+    {
+      text("\033[0m");
+    }
+    if (clear)
+    {
+      text("\033[K");
+    }
+  }
+  for (unsigned i = 0; i < row_used_; ++i)
+  {
+    previous[row_][i] = row_text[i];
+  }
+  lengths[row_] = row_used_;
+  reversed[row_] = reverse_;
+  valid[row_] = true;
+}
+
+void
 Terminal::flush() {
   unsigned sent = 0;
   while (sent < used_ && good)
@@ -234,6 +307,14 @@ void
 Terminal::character(char value) {
   if (!good)
   {
+    return;
+  }
+  if (capturing_)
+  {
+    if (row_used_ < columns)
+    {
+      row_text[row_used_++] = value;
+    }
     return;
   }
   output[used_++] = value;

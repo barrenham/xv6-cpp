@@ -10,6 +10,7 @@ import tempfile
 
 from console_login import login_root
 from fs_elf_plugins import Guest
+from ansi_screen import Screen
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -42,13 +43,25 @@ def main():
             before = guest.command('stty -a')
             tty_flags = re.sub(r'\x1b\[[0-9;]*m', '', before).splitlines()[0]
 
+            display = Screen()
+            screen_cursor = 0
+            frames = []
+            def visible():
+                nonlocal screen_cursor
+                display.feed(guest.output[screen_cursor:guest.cursor])
+                screen_cursor = guest.cursor
+                return display.text
+
             def press(data):
                 begin = len(guest.output)
                 guest.cursor = begin
                 guest.process.stdin.write(data if isinstance(data, bytes) else data.encode())
                 guest.process.stdin.flush()
                 guest.expect('\x1b[?25h')
-                return guest.output[begin:guest.cursor].decode(errors='replace')
+                frame = guest.output[begin:guest.cursor]
+                assert b'\x1b[2J' not in frame and b'\x1b[J' not in frame, frame
+                frames.append(len(frame))
+                return visible()
 
             def text(data):
                 last = ''
@@ -78,6 +91,9 @@ def main():
                 assert re.sub(r'\x1b\[[0-9;]*m', '', after).splitlines()[0] == tty_flags, after
 
             launch('/vim-original')
+            press('l')
+            assert frames[-1] < 80, frames[-1]
+            press('h')
             press('A'); text('!'); press(b'\x1b')
             press('u'); press('u')
             press('/'); text('beta'); screen = press('\r')

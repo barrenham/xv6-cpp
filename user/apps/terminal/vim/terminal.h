@@ -28,6 +28,8 @@ public:
   ~Terminal();
   bool enter();
   void resize();
+  void begin_row(unsigned row, bool reverse = false);
+  void end_row();
   int key();
   void text(const char *text);
   void character(char value);
@@ -39,7 +41,8 @@ public:
 
 private:
 
-  bool active_ = false;
+  bool active_ = false, capturing_ = false, reverse_ = false;
+  unsigned row_ = 0, row_used_ = 0;
   termios saved_{};
   struct sigaction previous_[5]{};
   unsigned installed_ = 0, used_ = 0;

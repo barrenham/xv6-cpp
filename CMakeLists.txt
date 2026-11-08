@@ -610,6 +610,17 @@ foreach(cpus IN ITEMS 1 5)
   set_tests_properties(timers_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS "process;timer" RUN_SERIAL TRUE)
 endforeach()
 
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME serial_ux_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/serial_ux.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(serial_ux_${cpus}cpu PROPERTIES TIMEOUT 240 LABELS "tty;serial" RUN_SERIAL TRUE)
+endforeach()
+
+add_test(NAME serial_line_contract COMMAND "${PROJECT_BINARY_DIR}/serial_line_contract")
+set_tests_properties(serial_line_contract PROPERTIES TIMEOUT 15 LABELS "tty;serial")
+
 add_test(NAME vim_buffer_contract COMMAND "${PROJECT_BINARY_DIR}/vim_buffer_contract")
 set_tests_properties(vim_buffer_contract PROPERTIES TIMEOUT 10 LABELS "tty;editor")
 foreach(cpus IN ITEMS 1 5)

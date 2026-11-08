@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-08",
+  "baseline_commit": "0b0b83e",
+  "scope": "serial Shell and Vim incremental drawing",
+  "checks_passed": [
+    "serial_line_contract",
+    "session_1cpu",
+    "session_5cpu",
+    "jobs_1cpu",
+    "jobs_5cpu",
+    "foreground_1cpu",
+    "foreground_5cpu",
+    "tty_1cpu",
+    "tty_5cpu",
+    "serial_ux_1cpu",
+    "serial_ux_5cpu",
+    "serial_colors_1cpu",
+    "serial_colors_5cpu",
+    "vim_1cpu",
+    "vim_5cpu"
+  ],
+  "comparison_5cpu": [
+    {
+      "label": "before",
+      "cpus": 5,
+      "cursor_moves": 50,
+      "output_bytes": 16800,
+      "clear_to_end": 50,
+      "elapsed_seconds": 3.2644
+    },
+    {
+      "label": "after",
+      "cpus": 5,
+      "cursor_moves": 50,
+      "output_bytes": 300,
+      "clear_to_end": 0,
+      "elapsed_seconds": 0.5065
+    }
+  ],
+  "output_reduction_percent": 98.21,
+  "vim_cursor_move_bytes": 35,
+  "initial_attempt": {
+    "failures": [
+      "serial_ux_1cpu",
+      "serial_ux_5cpu"
+    ],
+    "symptom": "Long pasted input echo timed out",
+    "followup": "Rebuilt test image and synchronized pasted chunks with echo; both final cases and old/new comparison passed",
+    "log": "build/serial-ux/checks.log"
+  },
+  "rootfs": {
+    "updated": [
+      "/bin/sh",
+      "/bin/vim"
+    ],
+    "verified_manifest_files": 149,
+    "preserved": [
+      "/etc/passwd",
+      "/etc/shadow",
+      "/etc/services.conf"
+    ],
+    "e2fsck": "PASS",
+    "backup": "data/rootfs.img.before-update-20261108T141947Z-805ab23c.img"
+  },
+  "logs": [
+    "build/serial-ux/native.log",
+    "build/serial-ux/checks.log",
+    "build/serial-ux/regression.log",
+    "build/serial-ux/comparison.log",
+    "build/serial-ux/rootfs-update.log",
+    "build/serial-ux/rootfs-integrity.log"
+  ]
+}

@@ -65,10 +65,11 @@ Editor::draw() {
   {
     left_ = visual - terminal_.columns + 1;
   }
-  terminal_.text("\033[?25l\033[H");
+  terminal_.text("\033[?25l");
   unsigned at = top_;
   for (unsigned r = 0; r < height; ++r)
   {
+    terminal_.begin_row(r + 1);
     if (at > buffer_.size())
     {
       terminal_.text("~");
@@ -92,13 +93,10 @@ Editor::draw() {
       }
       at = end < buffer_.size() ? end + 1 : buffer_.size() + 1;
     }
-    terminal_.text("\033[K\r\n");
+    terminal_.end_row();
   }
   bool style = terminal_style::enabled(1);
-  if (style)
-  {
-    terminal_.text("\033[7m");
-  }
+  terminal_.begin_row(height + 1, style);
   terminal_.text(mode_ == Mode::Insert ? " INSERT | " : " NORMAL | ");
   if (terminal_.columns >= 40)
   {
@@ -119,12 +117,8 @@ Editor::draw() {
     terminal_.character(':');
     terminal_.number(visual + 1);
   }
-  if (style)
-  {
-    terminal_.text("\033[0m");
-  }
-  terminal_.text("\033[K");
-  terminal_.move(terminal_.rows, 1);
+  terminal_.end_row();
+  terminal_.begin_row(terminal_.rows);
   if (mode_ == Mode::Command || mode_ == Mode::Search)
   {
     terminal_.character(mode_ == Mode::Command ? ':' : '/');
@@ -136,7 +130,7 @@ Editor::draw() {
   {
     terminal_.safe(message_, terminal_.columns - 1);
   }
-  terminal_.text("\033[K");
+  terminal_.end_row();
   if (mode_ == Mode::Command || mode_ == Mode::Search)
   {
     terminal_.move(terminal_.rows, input_size_ + 2 < terminal_.columns

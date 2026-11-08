@@ -8,11 +8,15 @@
 namespace shell
 {
 
-const char *
-prompt_text() {
-  static char output[MAXPATH + 32], path[MAXPATH];
+namespace
+{
+char output[MAXPATH + 32], path[MAXPATH], styled[MAXPATH + 64];
+}
+
+void
+refresh_prompt() {
   account::User user{};
-  unsigned uid = geteuid();
+  unsigned uid = geteuid(), effective_uid = uid;
   if (account::find(uid, user))
   {
     strcpy(output, user.name);
@@ -42,29 +46,30 @@ prompt_text() {
   used += strlen(path);
   strcpy(output + used, "$ ");
   used += 2;
+  if (!terminal_style::enabled(2))
+  {
+    strcpy(styled, output);
+    return;
+  }
+  const char *color = effective_uid == 0 ? "\033[33m" : "\033[1;32m";
+  strcpy(styled, color);
+  strcpy(styled + strlen(styled), output);
+  strcpy(styled + strlen(styled), terminal_style::reset);
+}
+
+const char *
+prompt_text() {
   return output;
+}
+
+const char *
+prompt_display() {
+  return styled;
 }
 
 void
 prompt() {
-  const char *text = prompt_display(prompt_text());
-  unsigned length = strlen(text);
-  write(2, text, length);
-}
-
-const char *
-prompt_display(const char *text) {
-  if (!terminal_style::enabled(2))
-  {
-    return text;
-  }
-  static char output[MAXPATH + 64];
-  // Keep the plain prompt available separately: SGR bytes occupy no columns.
-  // Each prompt resets its attributes before the user starts typing.
-  const char *color = geteuid() == 0 ? "\033[33m" : "\033[1;32m";
-  strcpy(output, color);
-  strcpy(output + strlen(output), text);
-  strcpy(output + strlen(output), terminal_style::reset);
-  return output;
+  const char *text = prompt_display();
+  write(2, text, strlen(text));
 }
 } // namespace shell

@@ -67,6 +67,7 @@
 - [用户、组与权限](users-permissions.md)：凭据、账户工具、文件权限、授权边界与磁盘格式。
 
 - [shell 输入编辑与补全](shell-editing.md)。
+- [串口交互与增量绘制优化](serial-ux.md)：Shell 局部更新、输入合并回显、后台通知与 Vim 行缓存。
 - [pwd、cp、mv 与原子重命名](file-tools.md)。
 - [动态 RAM 挂载与生命周期](mounting.md)。
 

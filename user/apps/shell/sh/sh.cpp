@@ -173,7 +173,8 @@ extern "C"
   }
 
   static bool
-  refresh_jobs(bool separate_line = false, Job *foreground = nullptr) {
+  refresh_jobs(bool separate_line = false, Job *foreground = nullptr,
+               shell::Editor *editor = nullptr) {
     bool printed = false;
     for (Job *job = jobs_head, *next; job; job = next)
     {
@@ -196,7 +197,11 @@ extern "C"
         }
         if (pid < 0 || WIFEXITED(status) || WIFSIGNALED(status))
         {
-          if (separate_line && !printed)
+          if (!printed && editor)
+          {
+            editor->begin_notice();
+          }
+          else if (separate_line && !printed)
           {
             write(2, "\n", 1);
           }
@@ -208,7 +213,11 @@ extern "C"
         bool stopped = WIFSTOPPED(status);
         if (stopped != job->stopped)
         {
-          if (separate_line && !printed)
+          if (!printed && editor)
+          {
+            editor->begin_notice();
+          }
+          else if (separate_line && !printed)
           {
             write(2, "\n", 1);
           }
@@ -222,7 +231,8 @@ extern "C"
   }
 
   static bool
-  service_children(bool separate_line = false, Job *foreground = nullptr) {
+  service_children(bool separate_line = false, Job *foreground = nullptr,
+                   shell::Editor *editor = nullptr) {
     if (!children_changed)
     {
       return false;
@@ -238,11 +248,15 @@ extern "C"
       }
       break;
     }
-    return refresh_jobs(separate_line, foreground);
+    return refresh_jobs(separate_line, foreground, editor);
   }
 
   int
   getcmd(char *buf, int nbuf) {
+    if (terminal_fd >= 0)
+    {
+      shell::refresh_prompt();
+    }
     shell::Editor editor(buf, nbuf, terminal_fd >= 0);
     if (terminal_fd >= 0)
     {
@@ -250,26 +264,12 @@ extern "C"
     }
     memset(buf, 0, nbuf);
     int used = 0;
+    unsigned burst = 0;
     while (used + 1 < nbuf)
     {
-      if (service_children(true))
-      {
-        if (editor.active())
-        {
-          editor.redraw(used, true);
-        }
-        else
-        {
-          shell::prompt();
-          if (used)
-          {
-            write(2, buf, used);
-          }
-        }
-      }
       pollfd events[] = {{input_fd, POLLIN, 0}, {child_pipe[0], POLLIN, 0}};
-      int ready = poll(events, 2, -1);
-      if ((ready < 0 && errno == EINTR))
+      int ready = poll(events, 2, editor.pending() || children_changed ? 0 : -1);
+      if (ready < 0 && errno == EINTR)
       {
         continue;
       }
@@ -277,14 +277,30 @@ extern "C"
       {
         return -1;
       }
-      if (events[1].revents)
+      // Drain available input before notifications redraw the prompt. Read one
+      // byte at a time so Enter never steals input intended for the next app.
+      if (!(events[0].revents & (POLLIN | POLLHUP | POLLERR)) || burst == 128)
       {
+        editor.flush(used);
+        burst = 0;
+        if (service_children(true, nullptr, editor.active() ? &editor : nullptr))
+        {
+          if (editor.active())
+          {
+            editor.redraw(used, true);
+          }
+          else
+          {
+            shell::prompt();
+            if (used)
+            {
+              write(2, buf, used);
+            }
+          }
+        }
         continue;
       }
-      if (!(events[0].revents & (POLLIN | POLLHUP | POLLERR)))
-      {
-        continue;
-      }
+      ++burst;
       char byte;
       int n = read(input_fd, &byte, 1);
       if ((n < 0 && errno == EINTR) || (n < 0 && errno == EAGAIN))
