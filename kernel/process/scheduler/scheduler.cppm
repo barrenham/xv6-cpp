@@ -32,4 +32,7 @@ protected:
 
 Scheduler &scheduler();
 SchedulerKind configured_scheduler_kind();
+bool change_scheduler(SchedulerKind kind);
+void scheduler_snapshot(unsigned &kind, unsigned long &changes,
+                        unsigned long &waiting, unsigned long &running);
 } // namespace xv::process

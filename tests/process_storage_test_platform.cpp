@@ -91,6 +91,11 @@ void free_kernel_stack(unsigned long address)
 
 namespace xv::process
 {
+CpuState *current_cpu()
+{
+  return &test_cpus[0];
+}
+
 CpuState *cpu_at(int index)
 {
   return &test_cpus[index];

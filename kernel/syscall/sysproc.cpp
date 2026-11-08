@@ -3,6 +3,8 @@ module;
 
 #include "kernel/support/types.h"
 #include "kernel/io/posix_errno.h"
+#include "kernel/io/scheduler.h"
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -31,6 +33,29 @@ uint64 sys_exit(void)
   argument_integer(0, &n);
   xv::process::exit_process(n);
   return 0; // not reached
+}
+
+uint64
+sys_schedctl() {
+  int operation, kind;
+  uint64 address;
+  argument_integer(0, &operation);
+  argument_integer(1, &kind);
+  argument_address(2, &address);
+  auto *process = xv::process::current();
+  if (operation == XV_SCHED_SET)
+  {
+    if (process->credentials().snapshot().effective_uid != 0) return -EPERM;
+    if (kind < 0 || kind > XV_SCHED_MLFQ || address) return -EINVAL;
+    return xv::process::change_scheduler(static_cast<xv::process::SchedulerKind>(kind))
+               ? 0 : -EBUSY;
+  }
+  if (operation != XV_SCHED_GET || kind) return -EINVAL;
+  xv_scheduler_status status{};
+  status.size = sizeof(status);
+  xv::process::scheduler_snapshot(status.policy, status.changes, status.ready,
+                                  status.running);
+  return process->memory().copy_out(address, &status, sizeof(status)) < 0 ? -EFAULT : 0;
 }
 
 uint64 sys_getpid(void)

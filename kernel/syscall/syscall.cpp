@@ -122,6 +122,9 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_mkdir: return sys_mkdir;
   case SYS_close: return sys_close;
   case SYS_sync: return sys_sync;
+  case SYS_poweroff: return sys_poweroff;
+  case SYS_reboot: return sys_reboot;
+  case SYS_schedctl: return sys_schedctl;
   case SYS_ioctl: return sys_ioctl;
   case SYS_getpgrp: return sys_getpgrp;
   case SYS_setpgid: return sys_setpgid;

@@ -1,14 +1,16 @@
+module;
+#include "kernel/process/scheduler/policies/scheduling_policy.h"
 module xv.process:round_robin;
 
-import :fifo_queue;
+import :scheduler;
+import :policy_queue;
 
 namespace xv::process
 {
-// FIFO selection and the inherited one-timer-tick preemption contract.
-class RoundRobinPolicy final : public FifoReadyQueue
+// FIFO dispatch; the queue adapter preserves preemption on every timer tick.
+class RoundRobinPolicy final : public PolicyReadyQueue
 {
 public:
-  constexpr RoundRobinPolicy() = default;
-  const char *name() const override { return "round-robin"; }
+  constexpr RoundRobinPolicy() : PolicyReadyQueue(SchedulerKind::RoundRobin) {}
 };
 } // namespace xv::process

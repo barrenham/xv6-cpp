@@ -73,7 +73,7 @@ public:
 
 void policy_queues()
 {
-  for (auto kind : {xv::scheduling::Kind::Fair, xv::scheduling::Kind::Feedback})
+  for (auto kind : {xv::scheduling::Kind::Cfs, xv::scheduling::Kind::Feedback, xv::scheduling::Kind::RoundRobin})
   {
     PagedProcessStore store;
     PolicyReadyQueue ready(kind);
@@ -92,7 +92,19 @@ void policy_queues()
           "policy queue skips pinned work without taking process lock");
     Access::lock(*unbound);
     ready.start(*unbound);
-    check(!ready.tick(*unbound), "fresh dispatch has unexpired budget");
+    check(ready.tick(*unbound) == (kind == xv::scheduling::Kind::RoundRobin),
+          "fresh dispatch uses policy preemption contract");
+    for (auto desired : {xv::scheduling::Kind::Feedback, xv::scheduling::Kind::RoundRobin,
+                         xv::scheduling::Kind::Cfs})
+    {
+      check(ready.change_policy(desired) && ready.policy_kind() == desired,
+            "live adapter policy change");
+      unsigned policy;
+      unsigned long changes, waiting, running;
+      ready.policy_snapshot(policy, changes, waiting, running);
+      check(policy == static_cast<unsigned>(desired) && waiting == 1 && running == 1,
+            "live adapter conserves running and affinity-pinned work");
+    }
     ready.stop(*unbound);
     store.release(unbound);
     check(ready.take(*cpu_at(0)) == pinned,

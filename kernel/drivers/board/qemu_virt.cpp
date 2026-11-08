@@ -15,6 +15,7 @@ module;
 module xv.drivers;
 
 import xv.print;
+import xv.arch;
 import xv.runtime;
 
 import xv.fs;
@@ -796,6 +797,37 @@ eject_device_resource(unsigned index) {
   acknowledge_slot(port);
   r.present = false;
   return true;
+}
+
+bool
+can_power_off() {
+  return xv::hardware::description().finisher.bytes >= sizeof(unsigned);
+}
+
+namespace
+{
+[[noreturn]] void
+finish_system(unsigned command) {
+  xv::arch::intr_off();
+  xv::arch::io_fence();
+  *reinterpret_cast<volatile unsigned *>(xv::hardware::description().finisher.address) =
+      command;
+  xv::arch::io_fence();
+  for (;;)
+  {
+    asm volatile("wfi");
+  }
+}
+} // namespace
+
+[[noreturn]] void
+power_off() {
+  finish_system(0x5555); // SiFive finisher PASS: guest shutdown, status zero.
+}
+
+[[noreturn]] void
+reboot() {
+  finish_system(0x7777); // SiFive finisher RESET: restart the whole machine.
 }
 
 InterruptController &

@@ -65,7 +65,7 @@ function(xv_add_process_internals target)
     BASE_DIRS "${module_root}"
     FILES
       "${module_root}/lifecycle/process_manager.cppm"
-      "${module_root}/scheduler/policies/fair.cppm"
+      "${module_root}/scheduler/policies/cfs.cppm"
       "${module_root}/scheduler/policies/round_robin.cppm"
       "${module_root}/scheduler/policies/mlfq.cppm"
       "${module_root}/scheduler/runtime/scheduler_runtime.cppm"

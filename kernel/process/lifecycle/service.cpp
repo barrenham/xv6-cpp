@@ -11,7 +11,7 @@ import xv.runtime;
 import xv.print;
 import :manager;
 import :paged_store;
-import :fair_policy;
+import :cfs_policy;
 import :round_robin;
 import :mlfq_policy;
 import :scheduler_runtime;
@@ -24,11 +24,10 @@ namespace
 constinit xv::stats::Accounting<NCPU> accounting;
 constinit PagedProcessStore store;
 constinit RoundRobinPolicy round_robin_ready;
-constinit FairPolicy fair_ready;
+constinit CfsPolicy cfs_ready;
 constinit MlfqPolicy feedback_ready;
-constinit SchedulerRuntime active_scheduler(fair_ready);
+constinit SchedulerRuntime active_scheduler(cfs_ready);
 int scheduler_initialized = 0;
-SchedulerKind selected_kind = static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
 constinit WaitChannels waits(active_scheduler);
 constinit ProcessGroups groups;
 } // namespace
@@ -73,8 +72,20 @@ Scheduler &scheduler()
 SchedulerKind configured_scheduler_kind()
 {
   return __atomic_load_n(&scheduler_initialized, __ATOMIC_ACQUIRE) == 2
-             ? selected_kind
+             ? active_scheduler.kind()
              : static_cast<SchedulerKind>(XV_DEFAULT_SCHEDULER);
+}
+
+bool
+change_scheduler(SchedulerKind kind) {
+  return __atomic_load_n(&scheduler_initialized, __ATOMIC_ACQUIRE) == 2 &&
+         active_scheduler.change_policy(kind);
+}
+
+void
+scheduler_snapshot(unsigned &kind, unsigned long &changes,
+                   unsigned long &waiting, unsigned long &running) {
+  active_scheduler.snapshot(kind, changes, waiting, running);
 }
 
 bool initialize(SchedulerKind kind)
@@ -82,8 +93,8 @@ bool initialize(SchedulerKind kind)
   ReadyQueue *ready = nullptr;
   switch (kind)
   {
-  case SchedulerKind::Fair:
-    ready = &fair_ready;
+  case SchedulerKind::Cfs:
+    ready = &cfs_ready;
     break;
   case SchedulerKind::RoundRobin:
     ready = &round_robin_ready;
@@ -107,7 +118,6 @@ bool initialize(SchedulerKind kind)
   xv::print::printk("scheduler: %s\n", active_scheduler.name());
   waits.initialize();
   process_manager.initialize();
-  selected_kind = kind;
   __atomic_store_n(&scheduler_initialized, 2, __ATOMIC_RELEASE);
   return true;
 }

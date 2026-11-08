@@ -599,7 +599,7 @@ discover(const void *blob, unsigned long capacity, Description &out) {
   for (auto &device : out.devices) { device = {}; }
   for (auto &entry : out.regions) { entry = {}; }
   out.devices_count = out.regions_count = 0;
-  out.plic = out.rtc = out.timer = {};
+  out.plic = out.rtc = out.timer = out.finisher = {};
   out.plic_phandle = out.interrupt_sources = 0;
   out.pci = {};
   for (auto &context : out.supervisor_contexts)
@@ -645,6 +645,16 @@ discover(const void *blob, unsigned long capacity, Description &out) {
     if (compatible(n, "pci-host-ecam-generic"))
     {
       if (!pci_host(i, out))
+      {
+        return false;
+      }
+      continue;
+    }
+    if (compatible(n, "sifive,test1") || compatible(n, "sifive,test0"))
+    {
+      if (out.finisher.bytes || !region(i, out.finisher) ||
+          out.finisher.bytes < sizeof(unsigned) ||
+          (out.finisher.address & 3) || !add_region(out, out.finisher))
       {
         return false;
       }

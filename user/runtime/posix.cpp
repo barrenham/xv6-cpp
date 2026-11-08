@@ -315,3 +315,22 @@ int mq_setattr(int descriptor, const mq_attr *attributes, mq_attr *previous)
 int clock_gettime(int clock, timespec *time)
 { return result(__xv_clock_gettime(clock, time)); }
 }
+
+extern "C" long __xv_poweroff(void);
+extern "C" int
+poweroff(void) {
+  return result(__xv_poweroff());
+}
+
+extern "C" long __xv_reboot(void);
+extern "C" int
+reboot(void) {
+  return result(__xv_reboot());
+}
+
+struct xv_scheduler_status;
+extern "C" long __xv_schedctl(unsigned, unsigned, xv_scheduler_status *);
+extern "C" int
+schedctl(unsigned operation, unsigned policy, xv_scheduler_status *status) {
+  return result(__xv_schedctl(operation, policy, status));
+}

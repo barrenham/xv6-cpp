@@ -41,14 +41,14 @@ target_sources(kernel PRIVATE
   arch/swtch.S
 )
 
-set(XV_SCHEDULER "fair" CACHE STRING "Boot scheduler: fair, round-robin or mlfq")
-set_property(CACHE XV_SCHEDULER PROPERTY STRINGS fair round-robin mlfq)
-if(XV_SCHEDULER STREQUAL "fair")
+set(XV_SCHEDULER "cfs" CACHE STRING "Boot scheduler: cfs, round-robin or mlfq (fair aliases cfs)")
+set_property(CACHE XV_SCHEDULER PROPERTY STRINGS cfs mlfq round-robin fair)
+if(XV_SCHEDULER STREQUAL "cfs" OR XV_SCHEDULER STREQUAL "fair")
   target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=0)
 elseif(XV_SCHEDULER STREQUAL "round-robin")
   target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=1)
 elseif(XV_SCHEDULER STREQUAL "mlfq")
   target_compile_definitions(kernel PRIVATE XV_DEFAULT_SCHEDULER=2)
 else()
-  message(FATAL_ERROR "XV_SCHEDULER must be fair, round-robin or mlfq")
+  message(FATAL_ERROR "XV_SCHEDULER must be cfs, round-robin or mlfq (fair aliases cfs)")
 endif()

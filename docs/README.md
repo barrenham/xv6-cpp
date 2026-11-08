@@ -2,6 +2,8 @@
 
 开发说明与 `kernel/`、`user/` 代码分离维护。已有源码目录中的历史 README 保留，避免破坏链接。
 
+- [CFS 与多级反馈队列调度](scheduling.md)：构建选择、CPU 时间记账、优先级和抢占规则。
+- [系统关机与重启](poweroff.md)：root 执行 poweroff/reboot，同步文件系统后关机或重启。
 - [常用命令的输出与字段说明](command-output.md)：drvctl、ls、mount、fsctl 的表头、单位和脚本格式。
 - [POSIX IPC 与 FS 批量传输](posix-ipc.md)：Unix socket、描述符传递、共享内存和请求合并。
 - [通用 FS 桥接插件与动态注册](user-filesystems.md)：具名注册、统一挂载、SDK 与独立归档后端。

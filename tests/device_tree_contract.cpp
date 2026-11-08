@@ -15,6 +15,7 @@ main(int argc, char **argv) {
   static xv::hardware::Description tree;
   assert(xv::hardware::discover(bytes.data(), bytes.size(), tree));
   assert(tree.plic.bytes && tree.rtc.bytes && tree.pci.configuration.bytes);
+  assert(tree.finisher.address == 0x100000 && tree.finisher.bytes == 0x1000);
   unsigned virtio = 0, serial = 0;
   for (unsigned i = 0; i < tree.devices_count; ++i)
   {

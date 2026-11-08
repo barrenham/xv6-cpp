@@ -657,3 +657,21 @@ __xv_thread_word_timedwait:
  li a7, SYS_thread_word_timedwait
  ecall
  ret
+
+.global __xv_poweroff
+__xv_poweroff:
+ li a7, SYS_poweroff
+ ecall
+ ret
+
+.global __xv_reboot
+__xv_reboot:
+ li a7, SYS_reboot
+ ecall
+ ret
+
+.global __xv_schedctl
+__xv_schedctl:
+ li a7, SYS_schedctl
+ ecall
+ ret

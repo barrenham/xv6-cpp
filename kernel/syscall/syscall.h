@@ -159,3 +159,7 @@
 #define SYS_thread_signal 119
 
 #define SYS_thread_word_timedwait 120
+
+#define SYS_poweroff 121
+#define SYS_reboot 122
+#define SYS_schedctl 123

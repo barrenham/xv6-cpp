@@ -13,6 +13,14 @@ public:
 
   virtual const char *name() const = 0;
   virtual void initialize() = 0;
+  virtual xv::scheduling::Kind policy_kind() const { return xv::scheduling::Kind::RoundRobin; }
+  virtual bool change_policy(xv::scheduling::Kind) { return false; }
+  virtual void policy_snapshot(unsigned &kind, unsigned long &changes,
+                               unsigned long &waiting, unsigned long &running)
+  {
+    kind = static_cast<unsigned>(policy_kind());
+    changes = waiting = running = 0;
+  }
   // enqueue requires the process lock; take must never wait for it while
   // holding its own queue lock. Runnable ownership protects dequeued pointers.
   virtual void enqueue(Process &process) = 0;

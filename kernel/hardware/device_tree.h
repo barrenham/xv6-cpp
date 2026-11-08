@@ -45,7 +45,7 @@ struct Description
   Device devices[MaxDevices]{};
   Region regions[MaxRegions]{};
   unsigned devices_count = 0, regions_count = 0;
-  Region plic, rtc, timer;
+  Region plic, rtc, timer, finisher;
   unsigned plic_phandle = 0, interrupt_sources = 0;
   unsigned supervisor_contexts[MaxHarts]{};
   PciHost pci;

@@ -19,6 +19,9 @@ export namespace xv::drivers
 // Board services expose generic proxies. Resident ELF modules own concrete
 // drivers; early polling output is available before the page allocator.
 void initialize_console();
+bool can_power_off();
+[[noreturn]] void power_off();
+[[noreturn]] void reboot();
 unsigned long realtime_nanoseconds();
 unsigned long realtime_seconds();
 unsigned long boot_time_seconds();

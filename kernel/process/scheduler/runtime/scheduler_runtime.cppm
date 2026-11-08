@@ -18,6 +18,14 @@ public:
     return ready_->scheduler_name();
   }
 
+  SchedulerKind kind() const { return ready_->policy_kind(); }
+  bool change_policy(SchedulerKind kind) { return ready_->change_policy(kind); }
+  void snapshot(unsigned &kind, unsigned long &changes, unsigned long &waiting,
+                unsigned long &running)
+  {
+    ready_->policy_snapshot(kind, changes, waiting, running);
+  }
+
   // Boot-only binding; service initialize(kind) guards publication and reuse.
   void select(ReadyQueue &ready) { ready_ = &ready; }
 

@@ -28,6 +28,7 @@ import xv.process;
 import xv.sync;
 import xv.memory;
 import xv.drivers;
+import xv.print;
 
 namespace xv::syscall
 {
@@ -1305,6 +1306,45 @@ sys_ioctl(void) {
     return -1;
   }
   return xv::fs::files().ioctl(file, static_cast<unsigned>(request), argument);
+}
+
+namespace
+{
+uint64
+system_power(bool restart) {
+  if (xv::process::current()->credentials().snapshot().effective_uid != 0)
+  {
+    return -EPERM;
+  }
+  if (!xv::drivers::can_power_off())
+  {
+    return -ENODEV;
+  }
+  const char *name = restart ? "reboot" : "poweroff";
+  // Keep scheduling enabled: userspace filesystem workers must complete sync.
+  xv::print::printk("%s: syncing filesystems\n", name);
+  if (xv::fs::filesystem().synchronize_services() < 0)
+  {
+    return -EIO;
+  }
+  xv::print::printk("%s: filesystem sync complete; %s\n", name,
+                    restart ? "rebooting" : "powering off");
+  if (restart)
+  {
+    xv::drivers::reboot();
+  }
+  xv::drivers::power_off();
+}
+} // namespace
+
+uint64
+sys_poweroff() {
+  return system_power(false);
+}
+
+uint64
+sys_reboot() {
+  return system_power(true);
 }
 
 uint64

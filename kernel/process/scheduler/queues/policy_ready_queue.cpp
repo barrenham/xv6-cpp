@@ -47,6 +47,25 @@ void PolicyReadyQueue::stop(Process &process)
 bool PolicyReadyQueue::tick(Process &process)
 {
   xv::sync::ScopedLock guard(lock_);
-  return policy_.tick(entity(process), detail::scheduling_time());
+  if (policy_.kind() == xv::scheduling::Kind::RoundRobin) return true;
+  auto &cpu = *current_cpu();
+  return policy_.tick(entity(process), detail::scheduling_time(), [&cpu](const xv::scheduling::Entity &entry) {
+    return eligible(*static_cast<Process *>(entry.owner), cpu);
+  });
+}
+bool
+PolicyReadyQueue::change_policy(xv::scheduling::Kind kind) {
+  xv::sync::ScopedLock guard(lock_);
+  return policy_.change_policy(kind, detail::scheduling_time());
+}
+
+void
+PolicyReadyQueue::policy_snapshot(unsigned &kind, unsigned long &changes,
+                                 unsigned long &waiting, unsigned long &running) {
+  xv::sync::ScopedLock guard(lock_);
+  kind = static_cast<unsigned>(policy_.kind());
+  changes = policy_.changes();
+  waiting = policy_.size();
+  running = policy_.running_count();
 }
 } // namespace xv::process

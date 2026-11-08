@@ -41,6 +41,9 @@ list(APPEND programs
   apps/network/ping/ping.cpp
   apps/shell/sh/sh.cpp
   apps/system/drvctl/drvctl.cpp
+  apps/system/poweroff/poweroff.cpp
+  apps/system/reboot/reboot.cpp
+  apps/system/schedctl/schedctl.cpp
   apps/system/free/free.cpp
   apps/system/init/init.cpp
   apps/system/kill/kill.cpp

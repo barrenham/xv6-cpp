@@ -38,7 +38,7 @@ parser.add_argument('--environment', action='store_true')
 parser.add_argument('--permissions', action='store_true')
 parser.add_argument('--process-scaling', action='store_true')
 parser.add_argument('--scheduler', action='store_true')
-parser.add_argument('--scheduler-policy', choices=['fair', 'round-robin', 'mlfq'], default='fair')
+parser.add_argument('--scheduler-policy', choices=['cfs', 'fair', 'round-robin', 'mlfq'], default='cfs')
 parser.add_argument('--tty', action='store_true')
 parser.add_argument('--process-groups', action='store_true')
 parser.add_argument('--signals', action='store_true')
@@ -694,7 +694,7 @@ try:
     if args.boot_only:
         checks = checks[:2] + [('pgtblext', 'pgtblext: all tests succeeded')]
     if args.scheduler:
-        if ('scheduler: ' + args.scheduler_policy).encode() not in transcript:
+        if ('scheduler: ' + ('cfs' if args.scheduler_policy == 'fair' else args.scheduler_policy)).encode() not in transcript:
             raise RuntimeError('kernel did not select requested scheduler policy')
         checks = [(f'schedulercheck {max(3, 2 * args.cpus)}',
                    'schedulercheck: all workers made bounded progress')]

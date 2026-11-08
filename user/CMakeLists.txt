@@ -113,6 +113,7 @@ set(programs
   tests/cachebench.cpp
   tests/timerbench.cpp
   tests/schedulercheck.cpp
+  tests/schedswitchtest.cpp
   tests/storagecheck.cpp
   tests/vmcheck.cpp
   tests/workflowtest.cpp

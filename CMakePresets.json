@@ -12,7 +12,7 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "XV_PAGE_ALLOCATOR": "buddy",
         "XV_CPUS": "5",
-        "XV_SCHEDULER": "fair"
+        "XV_SCHEDULER": "cfs"
       }
     },
     {
@@ -22,6 +22,15 @@
       "binaryDir": "${sourceDir}/build/freelist",
       "cacheVariables": {
         "XV_PAGE_ALLOCATOR": "freelist"
+      }
+    },
+    {
+      "name": "cfs",
+      "inherits": "dev",
+      "displayName": "RISC-V / CFS scheduler",
+      "binaryDir": "${sourceDir}/build/cfs",
+      "cacheVariables": {
+        "XV_SCHEDULER": "cfs"
       }
     },
     {
@@ -62,6 +71,10 @@
       "configurePreset": "freelist"
     },
     {
+      "name": "cfs",
+      "configurePreset": "cfs"
+    },
+    {
       "name": "round-robin",
       "configurePreset": "round-robin"
     },
@@ -85,6 +98,13 @@
     {
       "name": "freelist",
       "configurePreset": "freelist",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "cfs",
+      "configurePreset": "cfs",
       "output": {
         "outputOnFailure": true
       }

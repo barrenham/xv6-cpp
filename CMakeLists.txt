@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(xv_labs_cpp_2026 VERSION 0.0.3 LANGUAGES CXX ASM)
+project(xv_labs_cpp_2026 VERSION 0.0.4 LANGUAGES CXX ASM)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -507,6 +507,11 @@ foreach(cpus 1 5)
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --scheduler --scheduler-policy "${XV_SCHEDULER}" --cpus ${cpus})
   set_tests_properties(scheduler_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS process)
+  add_test(NAME scheduler_switch_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/scheduler_switch.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} --initial-policy "${XV_SCHEDULER}")
+  set_tests_properties(scheduler_switch_${cpus}cpu PROPERTIES TIMEOUT 300 LABELS "process;scheduler" RUN_SERIAL TRUE)
 endforeach()
 
 foreach(physical IN ITEMS buddy freelist)
@@ -625,6 +630,19 @@ foreach(cpus IN ITEMS 1 5)
     --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} ${hotplug_network_option})
   set_tests_properties(device_hotplug_${cpus}cpu PROPERTIES TIMEOUT 420 LABELS "drivers;hotplug;network" RUN_SERIAL TRUE)
+endforeach()
+
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME poweroff_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/poweroff.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(poweroff_${cpus}cpu PROPERTIES TIMEOUT 120 LABELS "boot;power" RUN_SERIAL TRUE)
+  add_test(NAME reboot_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/reboot.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(reboot_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "boot;power" RUN_SERIAL TRUE)
 endforeach()
 
 add_test(NAME user_printf_contract COMMAND "${PROJECT_BINARY_DIR}/user_printf_contract")

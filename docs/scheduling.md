@@ -1,6 +1,6 @@
 # 可选时钟调度策略
 
-默认调度器为 `fair`。保留 `round-robin`，新增 `mlfq`，三种策略共用原来的
+默认调度器为 `cfs`（完全公平调度）。`mlfq` 为多级反馈队列，另保留 `round-robin` 供对照。三种策略共用原来的
 进程锁、Runnable 发布、CPU 绑定筛选、上下文切换和本核 TLB fencing 协议。
 这不是 Linux 调度器的移植，也没有增加实时调度 ABI。
 
@@ -8,32 +8,34 @@
 
 ```sh
 conda activate OS-LAB
-cmake --preset dev                       # 默认 fair
+cmake --preset dev                       # 默认 CFS
 cmake --build --preset dev
+cmake --preset cfs                       # 单独的 CFS 构建目录
+cmake --build --preset cfs
 cmake --preset round-robin
 cmake --build --preset round-robin
 cmake --preset mlfq
 cmake --build --preset mlfq
 ```
 
-也可以配置 `-DXV_SCHEDULER=fair|round-robin|mlfq`。无效配置被 CMake 拒绝。
+也可以配置 `-DXV_SCHEDULER=cfs|round-robin|mlfq`（旧值 `fair` 兼容映射到 `cfs`）。无效配置被 CMake 拒绝。
 `SchedulerKind` 与 `initialize(SchedulerKind)` 提供内核启动时的显式选择；
 无参数 `initialize()` 使用构建默认值。无效枚举或重复初始化返回 false，不更换已选择实现。
 启动初始化使用 CAS 串行并以 release 发布；其他 hart 仍通过原有启动屏障等待整个内核准备完成。
-不支持运行时热切换。启动输出 `scheduler: ...` 可核对实际选择，
+允许运行时切换，见下文 `schedctl`。启动输出 `scheduler: ...` 可核对初始选择，
 `configured_scheduler_kind()` 在初始化后返回实际选择。
 
 ## 类与模块职责
 
 - `runtime/scheduler_runtime.cppm/.cpp` 的 `SchedulerRuntime` 实现公开 Scheduler 接口，运行共用选取/切换循环。
-- `policies/fair.cppm` 的 `FairPolicy` 固定公平模式，`policies/mlfq.cppm` 的 `MlfqPolicy` 固定反馈模式；二者继承策略队列适配器。
-- `policies/round_robin.cppm` 的 `RoundRobinPolicy` 使用原 FIFO 队列及每次时钟请求让出的行为。
+- `policies/cfs.cppm` 的 `CfsPolicy` 固定公平模式，`policies/mlfq.cppm` 的 `MlfqPolicy` 固定反馈模式；二者继承策略队列适配器。
+- `policies/round_robin.cppm` 的 `RoundRobinPolicy` 使用共用策略队列的 FIFO 模式，保留每次时钟请求让出的行为。
 - `policies/scheduling_policy.h` 保留可独立测试的共享算法和记账代码；三个模块入口不复制这些算法。
 - `runtime/scheduler_context.cppm/.cpp` 负责进程锁、Running/current、swtch 和 TLB fencing。
 
 实际运行机制已统一命名为 SchedulerRuntime；策略目录下的 round_robin 只表示轮转策略。
 
-## 公平策略
+## CFS 完全公平调度
 
 `scheduling_policy.h` 的 `RunQueue` 不依赖 Process、锁、分配器或寄存器，
 只接收实体和时间戳。`PolicyReadyQueue` 将它接入实际内核，并使用 `r_time()` 计时。
@@ -56,21 +58,21 @@ cmake --build --preset mlfq
 
 ## 轮转与 MLFQ
 
-`round-robin` 使用原来的 `FifoReadyQueue`，每个硬件时钟中断仍请求让出。
+`round-robin` 使用共用 `PolicyReadyQueue` 的 FIFO 模式，每个硬件时钟中断仍请求让出。
 因此保留原行为作为对照和可选实现。
 
 `mlfq` 使用三条 FIFO，时间额度为 1、2、4 个基础单位。运行时间跨主动让出累计，
 额度用完后降低优先级；不会通过反复短暂让出重置额度。每 20 个基础单位统一提升优先级，
 保持各层原有 FIFO 顺序；运行实体同步更新额度起点，睡眠实体下次激活时观察提升代次。
-周期提升限制低优先级任务被持续高优先级工作推迟的时间。
+周期提升限制低优先级任务被持续高优先级工作推迟的时间。高优先级任务就绪后，正在运行的低优先级任务在下一个本核时钟检查时让出，即使低优先级时间片尚未耗尽；如果等待者都绑定到其他 CPU，则不触发无效抢占。CFS 的候选者比较同样遵守 CPU 亲和性。
 
 ## 时钟、锁与交接
 
 基础单位仍为 `TimerInterval = 1000000` 个 QEMU virt 时间基准单位，即原来的约 100 ms。
 `uptime/pause` 的单位、全局 tick 计数和时钟重设方式保持原样。
-公平策略按就绪与运行实体数量计算执行片段，范围为 1..2 个基础单位。
+CFS 的目标周期为 `max(4, 就绪与运行实体数) × 基础单位`，按本实体权重占就绪及运行实体总权重的比例计算执行片段，最小为一个基础单位。入队、出队、开始与停止运行均更新负载；时钟检查时按最新负载重新计算片段。计算使用商与余数拆分，避免大时间基准与权重相乘溢出。
 公平策略与 MLFQ 在没有排队工作时可继续运行当前任务，避免不必要的切换；
-有积压时由预算和策略决定是否抢占。CPU 绑定过滤可能使本 hart 暂无可执行任务，
+有本核可执行的积压时，由预算和策略决定是否抢占。CPU 绑定过滤可能使本 hart 暂无可执行任务，
 但不会从队列删除其他 hart 的工作。
 
 时钟处理仍先计数、重设硬件定时器、服务设备，再询问 `Scheduler::timer_tick()`。
@@ -85,7 +87,7 @@ cmake --build --preset mlfq
 
 系统静态构造一个 SchedulerRuntime 和三种策略，启动时选择其中一种。
 各 hart 调用同一个 Runtime 的 run，但函数调用栈、RunFlow::Context、CpuState 和调度栈分别属于各自的 hart；
-Runtime 中的策略指针在启动发布后不再改变。
+Runtime 中的队列指针在启动发布后不再改变；当前算法在该队列内部切换。
 
 ```mermaid
 flowchart LR
@@ -127,3 +129,50 @@ flowchart LR
 因此暂不在每个 AddressSpace 中增加一份平行的空闲地址池：现有 VirtualRegions 已表达区域归属，
 另放一张未被分配路径使用的空闲表会增加 fork、exec、OOM 回滚与销毁时的一致性负担。
 内核地址池保持可复用；未来加入实际的区间分配 ABI 时，再将区域登记与空闲区间的提交/回滚统一接入。
+
+## 本次补全与验证
+
+此前已有 fair 与 MLFQ 基础，本次明确 CFS 名称和预设，补全按权重计算的动态执行片段、精确队列负载记账，以及 MLFQ 高优先级就绪抢占和两种策略的本核可运行性筛选。旧 `fair` 配置和 `SchedulerKind::Fair` 继续兼容，启动日志统一显示 `scheduler: cfs`。
+
+原生合约覆盖不等长运行与不同权重的 CPU 时间公平性、时钟抢占下 3:1 的份额、最小粒度、大数溢出边界、SMP 公平基准、CPU 亲和性、MLFQ 跨 yield 累计额度、抢占保留额度和周期提升。实际 QEMU 用例分别以单核、五核运行两种策略的多进程 CPU 进展测试。
+
+### 2026-11-08 验证结果
+
+- CFS：`scheduling_policy_contract`、`process_storage_contract`、`process_contract` 和单核/五核 QEMU 调度测试，共 5 项通过，见 `build/cfs-validation.log`。
+- MLFQ：复用同一份开发镜像和 bootstrap ELF，以本策略内核运行单核/五核 QEMU 调度测试，2 项通过，见 `build/mlfq-validation-{1,5}cpu.log`。
+- 单核 3 个 CPU 工作进程、五核 10 个工作进程均完成有界进展检查。该检查不表示精确吞吐基准；权重份额由确定性的原生合约验证。
+- 开发配置为 CFS；MLFQ 的内核位于 `build/mlfq/kernel.elf`。这些预设决定开机默认策略；现在可使用下述命令在运行中切换。
+
+## 运行时切换（v0.0.4）
+
+```sh
+schedctl                 # 查看当前策略、实际切换次数、就绪与运行实体数
+schedctl mlfq            # 立即切换为多级反馈队列
+schedctl cfs             # 切回 CFS；fair 为兼容别名
+schedctl round-robin     # 切换为轮转
+```
+
+查询允许普通用户执行，修改策略在内核检查有效 UID 为 0。重复设置当前策略成功返回但不增加 Changes；无效策略、操作或 SET 的非空输出参数被拒绝，不改变状态。生效范围是整个系统的线程及进程，包括 FS 服务和内核任务。切换不写入启动配置；重启后恢复构建默认策略，Changes 清零。
+
+ABI 位于 `kernel/io/scheduler.h`。`schedctl(GET, 0, &status)` 返回同一次锁保护下的状态快照；`schedctl(SET, policy, nullptr)` 只修改状态，不在修改成功后执行可能失败的用户内存写入。运行库按 POSIX 错误约定返回 -1、设置 errno。
+
+### 如何保持 SMP 下的任务所有权
+
+SchedulerRuntime、选定的 ReadyQueue 对象和引用始终驻留，运行中不更换队列指针。三种开机策略都使用可迁移的 PolicyReadyQueue，继续沿用“进程锁 → 队列锁”的顺序。迁移只持队列锁，不获取任何进程锁，不分配内存，不执行上下文切换。
+
+1. 在同一时间戳记账所有运行实体，保留实际 CPU 时间和权重。
+2. 将运行实体及就绪实体分别移入临时侵入式链表，按照旧策略的选取顺序取出就绪实体。
+3. 更新算法及策略代次，重置 CFS 虚拟时间基准和 MLFQ 层级/额度。将所有就绪实体重建到目标结构，再重新开始运行实体的记账。
+4. 释放队列锁后，其他 CPU 才能继续出队、入队、记账或查询。实际运行的任务不被强制迁移 CPU；后续调度决定按新策略执行。
+
+睡眠实体以及已经出队、尚未开始派发的实体不在迁移列表中；它们下一次激活时通过策略代次发现变化，加入新时间线。亲和性、线程/进程状态、等待通道、文件描述符和 CPU 累计值保持原有含义。各策略的短期优先级/虚拟运行时间不跨算法继承；切入 CFS 从一致基准开始，切入 MLFQ 从最高层开始。
+
+### 验证
+
+原生合约覆盖三种策略的任意迁移、同策略 no-op、非法策略、运行任务、排队任务、睡眠任务、已出队待派发任务，以及连续 240 次迁移后的数量、权重和 CPU 时间守恒。适配器合约覆盖 Process 所有权和绑定到其他 CPU 的排队任务。
+
+`scheduler_switch_1cpu/5cpu` 在独立磁盘上验证 CLI、普通用户权限、三种策略的 CPU 进展；压力程序同时运行四个 CPU 进程、CPU/I/O/睡眠线程和另一个切换控制线程，与主线程并发切换。最后从修改过的策略重启，检查默认策略恢复、登录与文件持久化，再正常关机并运行只读 e2fsck。
+
+### 运行时切换验收（2026-11-08）
+
+`build/runtime-scheduler-validation.log` 中 9 项全部通过：三个原生合约、单核/五核在线切换，以及单核/五核关机与重启回归。在线压力测试的快照分别记录 54 次和 33 次实际切换；并发控制器可能请求相同策略，因此该次数随交错而变。同一策略请求不计数。两组测试均成功重启、恢复默认 CFS、确认持久化文件，再正常关机并通过只读 e2fsck。实际客户机日志为 `build/dev/scheduler-switch-{1,5}cpu.log`。

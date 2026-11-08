@@ -384,7 +384,7 @@ void xv_clangd_module_probe()
                      'kernel/process/memory/address_space.cpp',
                      'kernel/process/scheduler/runtime/scheduler_runtime.cpp',
                      'kernel/process/scheduler/runtime/scheduler_runtime.cppm',
-                     'kernel/process/scheduler/policies/fair.cppm',
+                     'kernel/process/scheduler/policies/cfs.cppm',
                      'kernel/process/scheduler/policies/round_robin.cppm',
                      'kernel/process/scheduler/policies/mlfq.cppm',
                      'kernel/process/scheduler/runtime/scheduler_context.cppm',
