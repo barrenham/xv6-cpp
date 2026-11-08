@@ -20,13 +20,13 @@ with tempfile.TemporaryDirectory(prefix='xv-fs-concurrency-') as temporary:
     guest = Guest(args, image, args.kernel.parent / f'fs-concurrency-{args.cpus}cpu.log')
     try:
         login_root(guest.expect, guest.process)
-        print(guest.command('/usr/tests/fsconcurrencytest',
+        print(guest.command('/usr/tests/fsconcurtest',
                             'fsconcurrencytest: PASS: same/distinct inode readers, shared offsets',
                             timeout=45))
         for path in ('/tmp/fscache', '/root/fscache'):
             print(guest.command('/usr/tests/fscachetest ' + path, 'fscachetest: PASS', timeout=90))
         for path in ('/tmp/fspar', '/root/fspar'):
-            output = guest.command('/usr/tests/fsparallelbench ' + path + ' 4',
+            output = guest.command('/usr/tests/fsparbench ' + path + ' 4',
                                    'fsparallelbench: PASS', timeout=120)
             print(output)
             assert len(re.findall(r'^FSPAR phase=', output, re.M)) == 4, output

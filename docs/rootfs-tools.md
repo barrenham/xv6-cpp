@@ -142,3 +142,18 @@ rootfs_image_contract 验证 fresh 拒绝复用和拒绝包含账户状态的种
 保护账户和个人目录的规则不变。把长名称种子安装到原 xv6 镜像时，无法
 表示的组件会失败，原盘不会发布部分结果。内核和目录工具的规则见
 [目录接口](directories.md)。
+
+## 内部测试程序的安装名
+
+ext3 与保留的 xv6 镜像共用安装清单。旧 xv6 格式的文件名组件最多 14 字节，内部测试使用显式短安装名，源码文件、构建目标和诊断输出保留原名：
+
+| 源码/构建名称 | 客户机路径 |
+| --- | --- |
+| demandcachetest | /usr/tests/demandcache |
+| fsconcurrencytest | /usr/tests/fsconcurtest |
+| fsparallelbench | /usr/tests/fsparbench |
+| schedswitchtest | /usr/tests/schedswitch |
+
+这沿用原有 ramfssvctest、fsresboot 的映射方式。新增内部测试若安装名超过 14 字节，CMake 配置会提示添加显式别名，避免到镜像生成阶段才失败。不截断名称，不跳过程序，也不放宽文件系统校验。ext3 对普通文件的长名称支持不受影响。
+
+已有 ext3 持久盘运行 `rootfs-update` 后会增加这些短名称；清单外的旧长名称按现有保护规则保留，不自动删除。

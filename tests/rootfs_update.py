@@ -90,7 +90,7 @@ with tempfile.TemporaryDirectory(prefix='rootfs-update-contract-') as temporary:
         assert candidate.read_bytes() == before and not list(root.glob(candidate.name + '.before-update-*.img'))
 
     bad_manifest = root / 'bad.tsv'
-    for protected in ('/etc/shadow', '/usr/lib/private'):
+    for protected in ('/etc/shadow', '/usr/lib/private', '/usr/tests/filename_over_14'):
         bad_manifest.write_text(a.manifest.read_text() + f'file\t0600\t{protected}\tignored\n')
         run(seed, target, bad_manifest, success=False)
     assert target.read_bytes() == original

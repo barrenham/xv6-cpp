@@ -1,0 +1,1287 @@
+{
+  "date": "2026-11-08",
+  "version": "v0.0.4",
+  "revision": "5c3224ba2eeca3c038b44eb13ee175e8c631fbfb",
+  "environment": {
+    "qemu": "QEMU emulator version 9.2.1 (Debian 1:9.2.1+ds-1ubuntu5.2)",
+    "ram_mib": 128,
+    "cpus": [
+      1,
+      5
+    ],
+    "root_filesystem": "ext3",
+    "execution": "serial, nice 10, ionice idle; private disks"
+  },
+  "verdict": "follow-up: reported packaging defect resolved; full ALL build and 11 focused checks passed; original acceptance history retained",
+  "ctest": {
+    "unique_tests": 77,
+    "passed": 76,
+    "failed": 1,
+    "attempts": 79,
+    "results": [
+      {
+        "name": "password_hash_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.234066
+      },
+      {
+        "name": "signal_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.077903
+      },
+      {
+        "name": "process_groups_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0470632
+      },
+      {
+        "name": "process_storage_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0648005
+      },
+      {
+        "name": "runtime_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0606634
+      },
+      {
+        "name": "print_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.010767
+      },
+      {
+        "name": "trap_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0312568
+      },
+      {
+        "name": "fs_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 10.5382
+      },
+      {
+        "name": "process_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0179516
+      },
+      {
+        "name": "driver_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 50.9508
+      },
+      {
+        "name": "sync_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.106991
+      },
+      {
+        "name": "allocator_contract_buddy",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.265028
+      },
+      {
+        "name": "allocator_contract_freelist",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.183118
+      },
+      {
+        "name": "network_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0337798
+      },
+      {
+        "name": "dns_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0285759
+      },
+      {
+        "name": "http_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.110148
+      },
+      {
+        "name": "rootfs_image_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 4.73964
+      },
+      {
+        "name": "vm_buddy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.747498
+      },
+      {
+        "name": "vm_freelist_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.682571
+      },
+      {
+        "name": "vm_stack_contract",
+        "phase": "native-retry",
+        "status": "passed",
+        "seconds": 13.0538
+      },
+      {
+        "name": "rootfs_update_contract",
+        "phase": "native-retry",
+        "status": "failed",
+        "seconds": 0.951017
+      },
+      {
+        "name": "rootfs_config_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 37.3743
+      },
+      {
+        "name": "flow_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0124465
+      },
+      {
+        "name": "stats_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0115958
+      },
+      {
+        "name": "rb_tree_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.56023
+      },
+      {
+        "name": "support_containers_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0422945
+      },
+      {
+        "name": "scheduling_policy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.017692
+      },
+      {
+        "name": "slab_buddy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.4955
+      },
+      {
+        "name": "slab_freelist_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.76723
+      },
+      {
+        "name": "ext3_jbd_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.190567
+      },
+      {
+        "name": "ext3_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 22.3635
+      },
+      {
+        "name": "ext3_image_tools_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 23.0443
+      },
+      {
+        "name": "exec_snapshot_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.01289
+      },
+      {
+        "name": "system_accounting_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0204295
+      },
+      {
+        "name": "fbterm_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 4.7698
+      },
+      {
+        "name": "deadline_queue_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.296263
+      },
+      {
+        "name": "vim_buffer_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0133898
+      },
+      {
+        "name": "user_printf_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.007782
+      },
+      {
+        "name": "userfs_memory_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0127827
+      },
+      {
+        "name": "xv6_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 6.731
+      },
+      {
+        "name": "boot_assets_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.00762959
+      },
+      {
+        "name": "ext4_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 18.0012
+      },
+      {
+        "name": "posix_headers_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0894304
+      },
+      {
+        "name": "device_tree_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.387466
+      },
+      {
+        "name": "driver_matching_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0128908
+      },
+      {
+        "name": "fs_memory_pressure_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 89.7214
+      },
+      {
+        "name": "fs_partial_write_ext3_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 38.7958
+      },
+      {
+        "name": "fs_mount_snapshot_ext3_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.1559
+      },
+      {
+        "name": "fs_memory_pressure_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 102.6
+      },
+      {
+        "name": "fs_partial_write_ext3_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 43.8288
+      },
+      {
+        "name": "fs_mount_snapshot_ext3_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 39.0017
+      },
+      {
+        "name": "network_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 12.9562
+      },
+      {
+        "name": "network_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 14.5411
+      },
+      {
+        "name": "http_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 48.6484
+      },
+      {
+        "name": "http_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 54.8904
+      },
+      {
+        "name": "scheduler_switch_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.4148
+      },
+      {
+        "name": "scheduler_switch_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.346
+      },
+      {
+        "name": "device_hotplug_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 69.9491
+      },
+      {
+        "name": "device_hotplug_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 95.3869
+      },
+      {
+        "name": "reboot_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 28.8849
+      },
+      {
+        "name": "reboot_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 38.0111
+      },
+      {
+        "name": "posix_ipc_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.326
+      },
+      {
+        "name": "posix_ipc_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 29.3084
+      },
+      {
+        "name": "unix_socket_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 130.676
+      },
+      {
+        "name": "unix_socket_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 148.765
+      },
+      {
+        "name": "fs_concurrency_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 39.6131
+      },
+      {
+        "name": "fs_concurrency_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 43.4818
+      },
+      {
+        "name": "memory_mapping_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 99.7505
+      },
+      {
+        "name": "memory_mapping_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 104.868
+      },
+      {
+        "name": "system_extensions_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 78.2475
+      },
+      {
+        "name": "system_extensions_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 65.9583
+      },
+      {
+        "name": "fs_persistent_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.6201
+      },
+      {
+        "name": "fs_persistent_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.9455
+      },
+      {
+        "name": "thread_core_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 50.179
+      },
+      {
+        "name": "thread_core_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 47.3659
+      },
+      {
+        "name": "pthread_runtime_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 21.6745
+      },
+      {
+        "name": "pthread_runtime_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 20.4078
+      }
+    ],
+    "history": [
+      {
+        "name": "password_hash_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.234066
+      },
+      {
+        "name": "signal_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.077903
+      },
+      {
+        "name": "process_groups_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0470632
+      },
+      {
+        "name": "process_storage_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0648005
+      },
+      {
+        "name": "runtime_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0606634
+      },
+      {
+        "name": "print_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.010767
+      },
+      {
+        "name": "trap_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0312568
+      },
+      {
+        "name": "fs_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 10.5382
+      },
+      {
+        "name": "process_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0179516
+      },
+      {
+        "name": "driver_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 50.9508
+      },
+      {
+        "name": "sync_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.106991
+      },
+      {
+        "name": "allocator_contract_buddy",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.265028
+      },
+      {
+        "name": "allocator_contract_freelist",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.183118
+      },
+      {
+        "name": "network_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0337798
+      },
+      {
+        "name": "dns_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0285759
+      },
+      {
+        "name": "http_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.110148
+      },
+      {
+        "name": "rootfs_image_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 4.73964
+      },
+      {
+        "name": "vm_buddy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.747498
+      },
+      {
+        "name": "vm_freelist_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.682571
+      },
+      {
+        "name": "vm_stack_contract",
+        "phase": "native",
+        "status": "failed",
+        "seconds": 0.20316
+      },
+      {
+        "name": "rootfs_update_contract",
+        "phase": "native",
+        "status": "failed",
+        "seconds": 0.936702
+      },
+      {
+        "name": "rootfs_config_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 37.3743
+      },
+      {
+        "name": "flow_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0124465
+      },
+      {
+        "name": "stats_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0115958
+      },
+      {
+        "name": "rb_tree_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.56023
+      },
+      {
+        "name": "support_containers_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0422945
+      },
+      {
+        "name": "scheduling_policy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.017692
+      },
+      {
+        "name": "slab_buddy_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.4955
+      },
+      {
+        "name": "slab_freelist_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 1.76723
+      },
+      {
+        "name": "ext3_jbd_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.190567
+      },
+      {
+        "name": "ext3_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 22.3635
+      },
+      {
+        "name": "ext3_image_tools_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 23.0443
+      },
+      {
+        "name": "exec_snapshot_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.01289
+      },
+      {
+        "name": "system_accounting_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0204295
+      },
+      {
+        "name": "fbterm_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 4.7698
+      },
+      {
+        "name": "deadline_queue_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.296263
+      },
+      {
+        "name": "vim_buffer_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0133898
+      },
+      {
+        "name": "user_printf_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.007782
+      },
+      {
+        "name": "userfs_memory_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0127827
+      },
+      {
+        "name": "xv6_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 6.731
+      },
+      {
+        "name": "boot_assets_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.00762959
+      },
+      {
+        "name": "ext4_volume_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 18.0012
+      },
+      {
+        "name": "posix_headers_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0894304
+      },
+      {
+        "name": "device_tree_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.387466
+      },
+      {
+        "name": "driver_matching_contract",
+        "phase": "native",
+        "status": "passed",
+        "seconds": 0.0128908
+      },
+      {
+        "name": "fs_memory_pressure_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 89.7214
+      },
+      {
+        "name": "fs_partial_write_ext3_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 38.7958
+      },
+      {
+        "name": "fs_mount_snapshot_ext3_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.1559
+      },
+      {
+        "name": "fs_memory_pressure_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 102.6
+      },
+      {
+        "name": "fs_partial_write_ext3_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 43.8288
+      },
+      {
+        "name": "fs_mount_snapshot_ext3_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 39.0017
+      },
+      {
+        "name": "network_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 12.9562
+      },
+      {
+        "name": "network_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 14.5411
+      },
+      {
+        "name": "http_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 48.6484
+      },
+      {
+        "name": "http_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 54.8904
+      },
+      {
+        "name": "scheduler_switch_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.4148
+      },
+      {
+        "name": "scheduler_switch_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 40.346
+      },
+      {
+        "name": "device_hotplug_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 69.9491
+      },
+      {
+        "name": "device_hotplug_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 95.3869
+      },
+      {
+        "name": "reboot_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 28.8849
+      },
+      {
+        "name": "reboot_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 38.0111
+      },
+      {
+        "name": "posix_ipc_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.326
+      },
+      {
+        "name": "posix_ipc_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 29.3084
+      },
+      {
+        "name": "unix_socket_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 130.676
+      },
+      {
+        "name": "unix_socket_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 148.765
+      },
+      {
+        "name": "fs_concurrency_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 39.6131
+      },
+      {
+        "name": "fs_concurrency_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 43.4818
+      },
+      {
+        "name": "memory_mapping_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 99.7505
+      },
+      {
+        "name": "memory_mapping_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 104.868
+      },
+      {
+        "name": "system_extensions_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 78.2475
+      },
+      {
+        "name": "system_extensions_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 65.9583
+      },
+      {
+        "name": "fs_persistent_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.6201
+      },
+      {
+        "name": "fs_persistent_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 22.9455
+      },
+      {
+        "name": "thread_core_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 50.179
+      },
+      {
+        "name": "thread_core_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 47.3659
+      },
+      {
+        "name": "pthread_runtime_1cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 21.6745
+      },
+      {
+        "name": "pthread_runtime_5cpu",
+        "phase": "integration",
+        "status": "passed",
+        "seconds": 20.4078
+      },
+      {
+        "name": "vm_stack_contract",
+        "phase": "native-retry",
+        "status": "passed",
+        "seconds": 13.0538
+      },
+      {
+        "name": "rootfs_update_contract",
+        "phase": "native-retry",
+        "status": "failed",
+        "seconds": 0.951017
+      }
+    ]
+  },
+  "soak": {
+    "status": "passed",
+    "cpus": 5,
+    "requested_seconds": 600,
+    "memory_drift_limit_kib": 1024,
+    "kernel_sha256": "f2584e0a9e82c4fb9b9e169a6b82602eb7daed8055d94be5852720c9225357f7",
+    "harness_sha256": "c8989e5c8a470f9d3f0b6682dd1a5379081e1d94405bd0c2e74d442cf29aad17",
+    "rounds": 8,
+    "same_boot_seconds": 600.238,
+    "noncache_baseline_kib": 5140,
+    "noncache_final_kib": 5140,
+    "noncache_drift_kib": 0,
+    "task_count_min": 21,
+    "task_count_max": 21,
+    "task_count_drift": 0,
+    "payload_sha256": "fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83"
+  },
+  "soak_samples": [
+    {
+      "cycle": 1,
+      "elapsed_seconds": 57.442,
+      "free_kib": 123668,
+      "cache_kib": 140,
+      "noncache_used_kib": 5132,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 69.1,
+      "cache_pages": 35,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10979411,
+        "mean_pair_us": 42130,
+        "max_pair_us": 96115,
+        "cpu_ticks": 2970,
+        "mount_and_file_kib": 1600
+      }
+    },
+    {
+      "cycle": 2,
+      "elapsed_seconds": 133.645,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 145.4,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10600164,
+        "mean_pair_us": 40426,
+        "max_pair_us": 94460,
+        "cpu_ticks": 3190,
+        "mount_and_file_kib": 1504
+      }
+    },
+    {
+      "cycle": 3,
+      "elapsed_seconds": 210.235,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 221.4,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 11024277,
+        "mean_pair_us": 42150,
+        "max_pair_us": 98900,
+        "cpu_ticks": 3210,
+        "mount_and_file_kib": 1532
+      }
+    },
+    {
+      "cycle": 4,
+      "elapsed_seconds": 290.075,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 301.7,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10980070,
+        "mean_pair_us": 41922,
+        "max_pair_us": 80409,
+        "cpu_ticks": 3030,
+        "mount_and_file_kib": 1540
+      }
+    },
+    {
+      "cycle": 5,
+      "elapsed_seconds": 367.694,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 379.3,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 11003398,
+        "mean_pair_us": 42083,
+        "max_pair_us": 80399,
+        "cpu_ticks": 3190,
+        "mount_and_file_kib": 1540
+      }
+    },
+    {
+      "cycle": 6,
+      "elapsed_seconds": 442.461,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 454.1,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10567468,
+        "mean_pair_us": 40425,
+        "max_pair_us": 89708,
+        "cpu_ticks": 3070,
+        "mount_and_file_kib": 1532
+      }
+    },
+    {
+      "cycle": 7,
+      "elapsed_seconds": 521.106,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 532.6,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10823389,
+        "mean_pair_us": 41285,
+        "max_pair_us": 76998,
+        "cpu_ticks": 3120,
+        "mount_and_file_kib": 1532
+      }
+    },
+    {
+      "cycle": 8,
+      "elapsed_seconds": 600.234,
+      "free_kib": 123596,
+      "cache_kib": 204,
+      "noncache_used_kib": 5140,
+      "tasks": 21,
+      "processes": 13,
+      "guest_uptime_seconds": 611.9,
+      "cache_pages": 51,
+      "cache_pending": 0,
+      "fs_benchmark": {
+        "ops": 1024,
+        "bytes": 4194304,
+        "elapsed_us": 10541892,
+        "mean_pair_us": 40172,
+        "max_pair_us": 82702,
+        "cpu_ticks": 3180,
+        "mount_and_file_kib": 1540
+      }
+    }
+  ],
+  "hotplug": {
+    "1": {
+      "cycles": 24,
+      "free_kib_min": 124944,
+      "free_kib_max": 124944
+    },
+    "5": {
+      "cycles": 24,
+      "free_kib_min": 123688,
+      "free_kib_max": 123688
+    }
+  },
+  "findings": [
+    {
+      "id": "legacy-manifest-name-limit",
+      "status": "resolved",
+      "observed": [
+        "rootfs_update_contract fails with invalid or duplicate installation path",
+        "fresh mkfs --filesystem xv6 fails with invalid image path component"
+      ],
+      "cause": "A common installation manifest contains four test executable names longer than the legacy filesystem 14-byte component limit. legacy-test-image (an ALL target) consumes this manifest.",
+      "paths": {
+        "demandcachetest": 15,
+        "fsconcurrencytest": 17,
+        "fsparallelbench": 15,
+        "schedswitchtest": 15
+      },
+      "scope": "legacy image packaging/update validation; no ext3 runtime corruption was observed",
+      "initial_status": "open",
+      "resolution": "Explicit short guest installation aliases, updated invocations, configure-time internal-test name guard; strict format checks retained."
+    }
+  ],
+  "test_control_notes": [
+    "Initial vm_stack_contract launch lacked conda ninja in PATH; all probes passed after correcting the runner environment.",
+    "First soak attempt interrupted after ambiguous asynchronous shell prompt acknowledgement; explicit per-job launch acknowledgement was added, then a complete 600-second run passed. The OS binary was unchanged."
+  ],
+  "preservation": {
+    "/home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/build/dev/kernel.elf": {
+      "unchanged": true,
+      "sha256": "f2584e0a9e82c4fb9b9e169a6b82602eb7daed8055d94be5852720c9225357f7"
+    },
+    "/home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/build/dev/user/image/_fsboot": {
+      "unchanged": true,
+      "sha256": "af28077d0e1837692843d24133a9d9e6c3f81d62881d7c5e7be16847526855ea"
+    },
+    "/home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/build/dev/fs-test.img": {
+      "unchanged": true,
+      "sha256": "23d571908cbea843be05b81ffe752bbf77c4cc5061e7756336d251855fa5a66c"
+    },
+    "/home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img": {
+      "unchanged": true,
+      "sha256": "fbbf73aaacb99ed5289fb9b17213a7fdac40c5b8e80f454ef93b8056ef817914"
+    }
+  },
+  "artifacts": "build/reliability-20261108",
+  "completed_utc": "2026-11-08T07:48:59.032255+00:00",
+  "initial_verdict": "partial: runtime checks and soak passed; legacy-image packaging/update compatibility failed",
+  "follow_up": {
+    "date": "2026-11-08",
+    "status": "resolved",
+    "aliases": {
+      "demandcachetest": "demandcache",
+      "fsconcurrencytest": "fsconcurtest",
+      "fsparallelbench": "fsparbench",
+      "schedswitchtest": "schedswitch"
+    },
+    "full_all_build_passed": true,
+    "tests": [
+      {
+        "name": "rootfs_image_contract",
+        "passed": true,
+        "seconds": 7.91934
+      },
+      {
+        "name": "rootfs_update_contract",
+        "passed": true,
+        "seconds": 17.0484
+      },
+      {
+        "name": "rootfs_config_contract",
+        "passed": true,
+        "seconds": 21.3393
+      },
+      {
+        "name": "rootfs_update_5cpu",
+        "passed": true,
+        "seconds": 67.7376
+      },
+      {
+        "name": "scheduler_switch_5cpu",
+        "passed": true,
+        "seconds": 46.7285
+      },
+      {
+        "name": "fs_service_xv6_boot_1cpu",
+        "passed": true,
+        "seconds": 13.4276
+      },
+      {
+        "name": "fs_service_xv6_boot_5cpu",
+        "passed": true,
+        "seconds": 15.2371
+      },
+      {
+        "name": "fs_concurrency_5cpu",
+        "passed": true,
+        "seconds": 48.6227
+      },
+      {
+        "name": "system_extensions_5cpu",
+        "passed": true,
+        "seconds": 73.2324
+      },
+      {
+        "name": "fs_persistent_5cpu",
+        "passed": true,
+        "seconds": 25.7428
+      },
+      {
+        "name": "vm_stack_contract",
+        "passed": true,
+        "seconds": 14.1175
+      }
+    ],
+    "packaging": {
+      "manifest_file_count": 150,
+      "both_images_match_sources": true,
+      "legacy_long_name_rejected": true,
+      "legacy_target_preserved": true,
+      "ext3_long_name_accepted": true
+    },
+    "rootfs_updated_files": 4,
+    "rootfs_verified_manifest_files": 149,
+    "protected_configuration_preserved": true,
+    "backup": "/home/barrenham/OS/OS-LAB/xv-labs-cpp-2026/data/rootfs.img.before-update-20261108T132856Z-d463a0dc.img",
+    "kernel_sha256": "f2584e0a9e82c4fb9b9e169a6b82602eb7daed8055d94be5852720c9225357f7",
+    "artifacts": "build/legacy-name-fix"
+  }
+}

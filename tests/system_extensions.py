@@ -59,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix='xv-system-extensions-') as temporary:
         guest.command('rm /tmp/worker-options')
         print(guest.command('/usr/tests/fsworkertest', 'fsworkertest: PASS', timeout=60))
         for path in ('/tmp/demandcache', '/root/demandcache'):
-            print(guest.command('/usr/tests/demandcachetest ' + path, 'demandcachetest: PASS', timeout=120))
+            print(guest.command('/usr/tests/demandcache ' + path, 'demandcachetest: PASS', timeout=120))
         print(guest.command('/usr/tests/servicetest', 'servicetest: PASS', timeout=120))
         output = guest.command('servicectl list', 'rootfs')
         assert 'NAME' in output and 'STATE' in output and 'driver-autoload' in output, output
@@ -67,12 +67,12 @@ with tempfile.TemporaryDirectory(prefix='xv-system-extensions-') as temporary:
         guest.command('drvctl devices', 'DEVICE_ID')
         guest.command('mkdir /tmp/parallel-ramfs')
         guest.command('mount -t ramfs -o workers=2 /tmp/parallel-ramfs')
-        print(guest.command('/usr/tests/demandcachetest /tmp/parallel-ramfs/data',
+        print(guest.command('/usr/tests/demandcache /tmp/parallel-ramfs/data',
                             'demandcachetest: PASS', timeout=120))
         guest.command('umount /tmp/parallel-ramfs')
         guest.command('mkdir /tmp/legacy')
         guest.command('mount -t xv6 -s 1 /tmp/legacy')
-        print(guest.command('/usr/tests/demandcachetest /tmp/legacy/data',
+        print(guest.command('/usr/tests/demandcache /tmp/legacy/data',
                             'demandcachetest: PASS', timeout=120))
         guest.command('umount /tmp/legacy')
         managers = [line.split()[0] for line in table('ps', 'PID').splitlines()

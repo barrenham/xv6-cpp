@@ -27,7 +27,7 @@ with tempfile.TemporaryDirectory(prefix='xv-fs-concurrency-') as temporary:
         login_root(guest.expect, guest.process)
         for backend, parent in (('ramfs', '/tmp'), ('ext3', '/root')):
             for workers in (1, 4):
-                output = guest.command(f'/usr/tests/fsparallelbench {parent}/fspar {workers}',
+                output = guest.command(f'/usr/tests/fsparbench {parent}/fspar {workers}',
                                        'fsparallelbench: PASS', timeout=180)
                 print(output, flush=True)
                 matches = pattern.findall(output)

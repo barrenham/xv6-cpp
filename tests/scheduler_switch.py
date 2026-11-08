@@ -37,7 +37,7 @@ def main():
                 guest.command('schedctl ' + policy, expect='Policy:    ' + policy)
                 guest.command(f'/usr/tests/schedulercheck {max(3, 2 * args.cpus)}',
                               expect='schedulercheck: all workers made bounded progress', timeout=70)
-            guest.command('/usr/tests/schedswitchtest', expect='schedswitchtest: PASS', timeout=180)
+            guest.command('/usr/tests/schedswitch', expect='schedswitchtest: PASS', timeout=180)
             guest.command('schedctl show', expect='Policy:    cfs')
             guest.command('echo SCHEDULER_DISK_ALIVE > /root/scheduler-switch-check')
             guest.command('cat /root/scheduler-switch-check', expect='SCHEDULER_DISK_ALIVE')

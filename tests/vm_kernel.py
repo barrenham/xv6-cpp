@@ -14,13 +14,14 @@ import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--qemu', required=True)
+parser.add_argument('--ninja', default='ninja')
 parser.add_argument('--kernel', required=True, type=Path)
 parser.add_argument('--image', required=True, type=Path)
 a = parser.parse_args()
 build = a.kernel.resolve().parent
 commands = json.loads((build / 'compile_commands.json').read_text())
 compile = next(item for item in commands if item['file'].endswith('/trap/arch/riscv/kernel_platform.cpp'))
-link = subprocess.check_output(['ninja', '-C', str(build), '-t', 'commands', 'kernel.elf'], text=True).splitlines()[-1]
+link = subprocess.check_output([a.ninja, '-C', str(build), '-t', 'commands', 'kernel.elf'], text=True).splitlines()[-1]
 link = shlex.split(link.split(' && ')[1])
 expectations = {1: b'kernel stack locked growth: OK', 2: b'kernel stack: protection fault',
                 3: b'kernel stack: emergency frames exhausted', 4: b'kernel stack: guard overflow',

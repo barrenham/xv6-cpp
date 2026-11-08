@@ -462,7 +462,7 @@ endforeach()
 set_source_files_properties("${PROJECT_SOURCE_DIR}/kernel/trap/arch/riscv/kernel_platform.cpp"
   TARGET_DIRECTORY kernel PROPERTIES COMPILE_DEFINITIONS XV_VM_SELF_TEST=0)
 add_test(NAME vm_stack_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/vm_kernel.py"
-  --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
+  --ninja "${XV_NINJA}" --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img")
 set_tests_properties(vm_stack_contract PROPERTIES TIMEOUT 90 LABELS memory)
 
 add_test(NAME rootfs_update_contract COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/rootfs_update.py"

@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='xv-fs-persistent-') as temporary:
         print(guest.command('/usr/tests/fspooltest', 'fspooltest: PASS', timeout=90))
         guest.command('mkdir /tmp/persistent')
         guest.command('mount -t ramfs -o workers=2 /tmp/persistent')
-        print(guest.command('/usr/tests/demandcachetest /tmp/persistent/data',
+        print(guest.command('/usr/tests/demandcache /tmp/persistent/data',
                             'demandcachetest: PASS', timeout=120))
         print(guest.command('/usr/tests/filemaptest /tmp/persistent/mapped',
                             'filemaptest: PASS', timeout=180))
