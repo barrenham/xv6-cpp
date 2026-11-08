@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -7,7 +8,7 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (argc < 3)
   {
-    fprintf(2, "usage: chown USER[:GROUP] FILE...\n");
+    ui::usage("usage: chown USER[:GROUP] FILE...\n");
     exit(1);
   }
   char *group = strchr(argv[1], ':');
@@ -37,7 +38,7 @@ app_main(int argc, char **argv) {
   {
     if (chown(argv[i], uid, group ? static_cast<int>(gid) : -1) < 0)
     {
-      fprintf(2, "chown: %s failed\n", argv[i]);
+      ui::error("chown: %s failed\n", argv[i]);
       failed = 1;
     }
   }

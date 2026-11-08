@@ -27,15 +27,10 @@ uservec:
         # user page table.
         #
 
-        # save user a0 in sscratch so
-        # a0 can be used to get at TRAPFRAME.
-        csrw sscratch, a0
+        # sscratch holds this thread's supervisor-only trapframe address.
+        # Exchange it with user a0 without destroying another user register.
+        csrrw a0, sscratch, a0
 
-        # each process has a separate p->trapframe memory area,
-        # but it's mapped to the same virtual address
-        # (TRAPFRAME) in every process's user page table.
-        li a0, TRAPFRAME
-        
         # save the user registers in TRAPFRAME
         sd ra, 40(a0)
         sd sp, 48(a0)
@@ -99,19 +94,23 @@ uservec:
 
 .globl userret
 userret:
-        # usertrap() returns here, with user satp in a0.
+        # usertrap() returns user SATP in a0 and this thread's frame VA in a1.
         # return from kernel to user.
 
         # flush icache, in case this is the first time
         # we're running this proc on this hart.
         fence.i
 
+        # Kernel traps still require the hart entry stack in sscratch until
+        # this final assembly path. Interrupts are masked here.
+        csrw sscratch, a1
+
         # switch to the user page table.
         sfence.vma zero, zero
         csrw satp, a0
         sfence.vma zero, zero
 
-        li a0, TRAPFRAME
+        mv a0, a1
 
         # restore all but a0 from TRAPFRAME
         ld ra, 40(a0)

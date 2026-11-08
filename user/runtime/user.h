@@ -54,6 +54,8 @@ int getpeername(int fd, struct sockaddr *address, socklen_t *length);
 int getsockopt(int fd, int level, int option, void *value, socklen_t *length);
 // system calls
 int fork(void);
+int sched_yield(void);
+void xv_user_enter(void *, void (*)(void *), void *) __attribute__((noreturn));
 int exit(int) __attribute__((noreturn));
 int wait(int *);
 int waitpid(int pid, int *status, int options);

@@ -2,6 +2,7 @@ module;
 #include "kernel/support/flow.h"
 
 #include "kernel/support/types.h"
+#include "kernel/io/posix_errno.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -35,6 +36,87 @@ uint64 sys_exit(void)
 uint64 sys_getpid(void)
 {
   return xv::process::current()->id();
+}
+
+uint64
+sys_gettid() {
+  return xv::process::current()->thread_id();
+}
+
+uint64
+sys_thread_create() {
+  uint64 entry, argument, stack, tls;
+  argument_address(0, &entry);
+  argument_address(1, &argument);
+  argument_address(2, &stack);
+  argument_address(3, &tls);
+  return xv::process::create_thread(entry, argument, stack, tls);
+}
+
+uint64
+sys_thread_join() {
+  int tid;
+  uint64 result;
+  argument_integer(0, &tid);
+  argument_address(1, &result);
+  return xv::process::join_thread(tid, result);
+}
+
+uint64
+sys_thread_exit() {
+  uint64 result;
+  argument_address(0, &result);
+  xv::process::exit_thread(result);
+}
+
+uint64
+sys_thread_word_wait() {
+  uint64 address;
+  int expected;
+  argument_address(0, &address);
+  argument_integer(1, &expected);
+  return xv::process::wait_word(address, static_cast<unsigned>(expected));
+}
+
+uint64
+sys_thread_word_timedwait() {
+  uint64 address, deadline;
+  int expected;
+  argument_address(0, &address);
+  argument_integer(1, &expected);
+  argument_address(2, &deadline);
+  if (!deadline)
+  {
+    return -EINVAL;
+  }
+  return xv::process::wait_word(address, static_cast<unsigned>(expected), deadline);
+}
+
+uint64
+sys_thread_word_wake() {
+  uint64 address;
+  int count;
+  argument_address(0, &address);
+  argument_integer(1, &count);
+  if (count < 0)
+  {
+    return -EINVAL;
+  }
+  return xv::process::wake_word(address, static_cast<unsigned>(count));
+}
+
+uint64
+sys_thread_signal() {
+  int tid, signal;
+  argument_integer(0, &tid);
+  argument_integer(1, &signal);
+  return xv::process::signal_thread(tid, signal);
+}
+
+uint64
+sys_sched_yield(void) {
+  xv::process::scheduler().yield();
+  return 0;
 }
 
 uint64 sys_sigaction()
@@ -148,9 +230,8 @@ uint64 sys_sbrk(void)
 
   argument_integer(0, &n);
   argument_integer(1, &t);
-  addr = xv::process::current()->memory().size();
 
-  if (xv::process::current()->memory().resize(n, t == SBRK_EAGER || n < 0) < 0)
+  if (xv::process::current()->memory().resize(n, t == SBRK_EAGER || n < 0, &addr) < 0)
   {
     return -1;
   }
@@ -176,173 +257,14 @@ uint64 sys_vmprint(void)
 #endif
 
 #ifdef LAB_PGTBL
-namespace
-{
-namespace flow = xv::flow;
-struct PgAccessFlow
-{
-  enum
-  {
-    MAXPAGES = 4096
-  };
-  struct Context
-  {
-    xv::process::Process *process;
-    uchar *bits;
-    uint64 base, out;
-    int npages;
-    int nbytes = 0;
-    uint64 result = static_cast<uint64>(-1);
-  };
-  static bool bounds(Context &c) noexcept
-  {
-    if (c.npages <= 0 || c.npages > MAXPAGES || c.base >= MAXVA)
-    {
-      return false;
-    }
-    c.base = PGROUNDDOWN(c.base);
-    if ((uint64)c.npages > (MAXVA - c.base) / PGSIZE)
-    {
-      return false;
-    }
-
-    return true;
-  }
-  static void prepare(Context &c) noexcept
-  {
-    c.nbytes = (c.npages + 7) / 8;
-    xv::runtime::fill(c.bits, 0, c.nbytes);
-  }
-  static bool sources(Context &c) noexcept
-  {
-    // Validate the whole range before changing any access bits.
-    for (int i = 0; i < c.npages; i++)
-    {
-      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
-                                          c.base + (uint64)i * PGSIZE, 0);
-      if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) || !PTE_LEAF(*pte))
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-  static bool output(Context &c) noexcept
-  {
-    // Reject unmapped/read-only output pages; COW is logically writable.
-    if (c.out >= MAXVA || (uint64)c.nbytes > MAXVA - c.out)
-    {
-      return false;
-    }
-    for (uint64 va = PGROUNDDOWN(c.out); va < c.out + c.nbytes; va += PGSIZE)
-    {
-      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(), va, 0);
-      if (pte == 0 || (*pte & (PTE_V | PTE_U)) != (PTE_V | PTE_U) ||
-          !(*pte & (PTE_W | PTE_COW)))
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-  static bool demote(Context &c) noexcept
-  {
-    // Superpages share one hardware A bit. Demote them so later samples
-    // still detect accesses at the 4 KiB granularity promised by pgaccess.
-    if (xv::memory::demote_user_pages(c.process->memory().page_table(), c.base,
-                                      c.npages) < 0)
-    {
-      return false;
-    }
-
-    return true;
-  }
-  static void sample(Context &c) noexcept
-  {
-    for (int i = 0; i < c.npages; i++)
-    {
-      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
-                                          c.base + (uint64)i * PGSIZE, 0);
-      if (*pte & PTE_A)
-      {
-        c.bits[i / 8] |= 1U << (i % 8);
-      }
-    }
-  }
-  static bool copy_result(Context &c) noexcept
-  {
-    if (xv::memory::copy_to_user(
-            c.process->memory().page_table(), c.process->memory().size(),
-            c.process->memory().regions(), c.out, (char *)c.bits, c.nbytes) < 0)
-    {
-      return false;
-    }
-
-    return true;
-  }
-  static void clear(Context &c) noexcept
-  {
-    for (int i = 0; i < c.npages; i++)
-    {
-      pte_t *pte = xv::memory::walk_entry(c.process->memory().page_table(),
-                                          c.base + (uint64)i * PGSIZE, 0);
-      *pte &= ~PTE_A;
-    }
-    // Invalidate cached translations so future accesses set PTE_A again.
-    xv::arch::sfence_vma();
-    c.result = 0;
-  }
-  struct Bounds;
-  struct Prepare;
-  struct Sources;
-  struct Output;
-  struct Demote;
-  struct Sample;
-  struct CopyResult;
-  struct Clear;
-  using Graph = flow::graph<
-      Bounds,
-      flow::types<
-          flow::node<
-              Bounds, flow::noop,
-              flow::branch<flow::condition<&bounds>, flow::go<Prepare>, flow::stop>>,
-          flow::node<Prepare, flow::action<&prepare>, flow::go<Sources>>,
-          flow::node<
-              Sources, flow::noop,
-              flow::branch<flow::condition<&sources>, flow::go<Output>, flow::stop>>,
-          flow::node<
-              Output, flow::noop,
-              flow::branch<flow::condition<&output>, flow::go<Demote>, flow::stop>>,
-          flow::node<
-              Demote, flow::noop,
-              flow::branch<flow::condition<&demote>, flow::go<Sample>, flow::stop>>,
-          flow::node<Sample, flow::action<&sample>, flow::go<CopyResult>>,
-          flow::node<
-              CopyResult, flow::noop,
-              flow::branch<flow::condition<&copy_result>, flow::go<Clear>, flow::stop>>,
-          flow::node<Clear, flow::action<&clear>, flow::stop>>>;
-};
-
-} // namespace
-
 uint64 sys_pgaccess(void)
 {
-  enum
-  {
-    MAXPAGES = 4096
-  };
-  uchar bits[MAXPAGES / 8];
   uint64 base, out;
   int npages;
-  auto *process = xv::process::current();
   argument_address(0, &base);
   argument_integer(1, &npages);
   argument_address(2, &out);
-  PgAccessFlow::Context context{process, bits, base, out, npages};
-  (void)PgAccessFlow::Graph::run<0>(context);
-  return context.result;
+  return xv::process::current()->memory().sample_access(base, npages, out);
 }
 #endif
 

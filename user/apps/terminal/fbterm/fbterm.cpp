@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "presenter.h"
 
@@ -7,8 +8,8 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (!configure_profile())
   {
-    fprintf(2, "fbterm: FBTERM_PROFILE must be normal, frames, no-mirror, no-present, "
-               "no-paint or parse-only\n");
+    ui::error("fbterm: FBTERM_PROFILE must be normal, frames, no-mirror, no-present, "
+              "no-paint or parse-only\n");
     return 1;
   }
   int first = 1;
@@ -35,16 +36,17 @@ app_main(int argc, char **argv) {
     }
     else if (!strcmp(option, "--help") || !strcmp(option, "-h"))
     {
-      printf("usage: fbterm [--no-serial-mirror] [--] [command [args...]]\n"
-             "       fbterm --demo | --benchmark-scroll\n"
-             "PageUp/PageDown: history; mouse wheel: scroll; typing returns to live.\n"
-             "VNC/serial keyboard; Ctrl-] exits. --no-serial-mirror keeps serial "
-             "input, displays command output only on screen.\n");
+      ui::heading(
+          "usage: fbterm [--no-serial-mirror] [--] [command [args...]]\n"
+          "       fbterm --demo | --benchmark-scroll\n"
+          "PageUp/PageDown: history; mouse wheel: scroll; typing returns to live.\n"
+          "VNC/serial keyboard; Ctrl-] exits. --no-serial-mirror keeps serial "
+          "input, displays command output only on screen.\n");
       return 0;
     }
     else if (option[0] == '-')
     {
-      fprintf(2, "fbterm: unknown option %s\n", option);
+      ui::error("fbterm: unknown option %s\n", option);
       return 1;
     }
     else
@@ -55,7 +57,7 @@ app_main(int argc, char **argv) {
   }
   if ((show_demo || benchmark) && first < argc)
   {
-    fprintf(2, "fbterm: --demo does not take a command\n");
+    ui::error("fbterm: --demo does not take a command\n");
     return 1;
   }
   int framebuffer = open("/dev/fb0", O_RDWR);
@@ -65,8 +67,7 @@ app_main(int argc, char **argv) {
       info.version != 1 || info.bytes_per_pixel != 4 || info.format != 2 ||
       info.stride != info.width * 4 || !terminal.configure(info.width, info.height))
   {
-    fprintf(
-        2,
+    ui::error(
         "fbterm: supported BGRX framebuffer required (root, qemu-vnc or qemu-graphics)\n");
     if (framebuffer >= 0)
     {
@@ -93,7 +94,7 @@ app_main(int argc, char **argv) {
         mapping.backing_height < info.height * 2 ||
         mapping.bytes < static_cast<uint64>(info.stride) * mapping.backing_height)
     {
-      fprintf(2, "fbterm: shared framebuffer mapping failed\n");
+      ui::error("fbterm: shared framebuffer mapping failed\n");
       close(framebuffer);
       return 1;
     }
@@ -112,7 +113,7 @@ app_main(int argc, char **argv) {
       fbterm::Terminal::history_capacity * fbterm::max_columns * sizeof(fbterm::Cell)));
   if (!pixels || !history)
   {
-    fprintf(2, "fbterm: cannot allocate screen/history buffers\n");
+    ui::error("fbterm: cannot allocate screen/history buffers\n");
     close(framebuffer);
     return 1;
   }
@@ -129,7 +130,7 @@ app_main(int argc, char **argv) {
       close(framebuffer);
       return 1;
     }
-    printf("fbterm: benchmark start\n");
+    ui::info("fbterm: benchmark start\n");
     ioctl(framebuffer, XV_FB_GET_TIMING,
           reinterpret_cast<unsigned long>(&gpu_timing_begin));
     ioctl(framebuffer, XV_FB_GET_MAPPED_STATS,
@@ -155,14 +156,16 @@ app_main(int argc, char **argv) {
           reinterpret_cast<unsigned long>(&mapped_stats));
     report(elapsed);
     close(framebuffer);
-    printf("fbterm: benchmark %s\n", okay ? "complete" : "failed");
+    ui::print(1, okay ? ui::Tone::Success : ui::Tone::Error, "fbterm: benchmark %s\n",
+              okay ? "complete" : "failed");
     return okay ? 0 : 1;
   }
   if (show_demo)
   {
     bool ok = demo(framebuffer);
     close(framebuffer);
-    printf("fbterm: demo %s\n", ok ? "displayed" : "failed");
+    ui::print(1, ok ? ui::Tone::Success : ui::Tone::Error, "fbterm: demo %s\n",
+              ok ? "displayed" : "failed");
     return ok ? 0 : 1;
   }
   termios saved{};
@@ -170,7 +173,7 @@ app_main(int argc, char **argv) {
   if (input_flags < 0 || output_flags < 0 || tcgetattr(0, &saved) < 0 ||
       tcgetpgrp(0) != getpgrp())
   {
-    fprintf(2, "fbterm: foreground serial terminal required\n");
+    ui::error("fbterm: foreground serial terminal required\n");
     close(framebuffer);
     return 1;
   }
@@ -193,7 +196,7 @@ app_main(int argc, char **argv) {
       ioctl(fds[1], TIOCSWINSZ, reinterpret_cast<unsigned long>(&size)) < 0 ||
       !flush(framebuffer))
   {
-    fprintf(2, "fbterm: PTY allocation or framebuffer draw failed\n");
+    ui::error("fbterm: PTY allocation or framebuffer draw failed\n");
     if (fds[0] >= 0)
     {
       close(fds[0]);
@@ -230,7 +233,7 @@ app_main(int argc, char **argv) {
     setenv("LINES", rows, 1);
     char *shell[] = {const_cast<char *>("sh"), nullptr};
     execvp(first < argc ? argv[first] : "sh", first < argc ? argv + first : shell);
-    fprintf(2, "fbterm: exec failed\n");
+    ui::error("fbterm: exec failed\n");
     exit(1);
   }
   close(fds[1]);
@@ -238,7 +241,7 @@ app_main(int argc, char **argv) {
   {
     close(fds[0]);
     close(framebuffer);
-    fprintf(2, "fbterm: fork failed\n");
+    ui::error("fbterm: fork failed\n");
     return 1;
   }
   // Restore shared serial state on catchable termination as well as normal EOF.
@@ -250,8 +253,8 @@ app_main(int argc, char **argv) {
   bool display_ready = handlers && presenter.start(framebuffer, fds[0]);
   int keyboard = open("/dev/kbd0", O_RDONLY | O_NONBLOCK);
   int mouse = open("/dev/mouse0", O_RDONLY | O_NONBLOCK);
-  printf("fbterm: connected (%dx%d); %s keyboard, Ctrl-] exits\n", terminal.columns,
-         terminal.rows, keyboard >= 0 ? "VNC and serial" : "serial");
+  ui::info("fbterm: connected (%dx%d); %s keyboard, Ctrl-] exits\n", terminal.columns,
+           terminal.rows, keyboard >= 0 ? "VNC and serial" : "serial");
   termios raw = saved;
   cfmakeraw(&raw);
   raw.c_lflag |= XV_PROXY;
@@ -296,6 +299,7 @@ app_main(int argc, char **argv) {
         reinterpret_cast<unsigned long>(&mapped_stats));
   close(framebuffer);
   report(transfer_ticks);
-  printf("fbterm: disconnected%s\n", ok ? "" : " (I/O error)");
+  ui::print(1, ok ? ui::Tone::Muted : ui::Tone::Error, "fbterm: disconnected%s\n",
+            ok ? "" : " (I/O error)");
   return ok ? 0 : 1;
 }

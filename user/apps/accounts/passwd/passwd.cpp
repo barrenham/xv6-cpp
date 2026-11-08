@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -17,7 +18,7 @@ app_main(int argc, char **argv) {
   bool known = argc == 2 ? account::find(argv[1], user) : account::find(caller, user);
   if (argc > 2 || geteuid() != 0 || !known || (caller != 0 && user.uid != caller))
   {
-    fprintf(2, "passwd: permission denied; usage: passwd [user]\n");
+    ui::error("passwd: permission denied; usage: passwd [user]\n");
     exit(1);
   }
   if (caller)
@@ -29,7 +30,7 @@ app_main(int argc, char **argv) {
     password_hash::wipe(current, sizeof(current));
     if (!valid)
     {
-      fprintf(2, "passwd: authentication failed\n");
+      ui::error("passwd: authentication failed\n");
       exit(1);
     }
   }
@@ -37,6 +38,6 @@ app_main(int argc, char **argv) {
   {
     exit(1);
   }
-  printf("passwd: password updated for %s\n", user.name);
+  ui::success("passwd: password updated for %s\n", user.name);
   exit(0);
 }

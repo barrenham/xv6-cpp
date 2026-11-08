@@ -514,10 +514,13 @@ void prepare_user_return()
     run_vm_kernel_probe();
   }
 #endif
+  // Wait while the supervisor vector and entry-stack sscratch are installed.
+  // Publishing user translations must precede the final nonblocking return path.
+  xv::arch::intr_off();
+  xv::process::enter_user_mappings();
   auto *process = xv::process::current();
   UserReturnFlow::Context context{process};
   (void)UserReturnFlow::Graph::run<0>(context);
-  xv::process::enter_user_mappings();
 }
 
 Word user_page_table_token()
@@ -535,7 +538,8 @@ void restore_kernel(const TrapEvent &event)
 {
   const auto address = TRAMPOLINE + (reinterpret_cast<Word>(userret) -
                                      reinterpret_cast<Word>(trampoline));
-  reinterpret_cast<void (*)(Word)>(address)(token);
+  reinterpret_cast<void (*)(Word, Word)>(address)(
+      token, xv::process::current()->trap_frame_address());
   __builtin_unreachable();
 }
 
@@ -813,3 +817,11 @@ unsigned long scheduler_stack_top()
   return base + KSTACK_BYTES;
 }
 } // namespace xv::trap
+
+namespace xv::trap
+{
+unsigned long user_frame_address()
+{
+  return xv::process::current()->trap_frame_address();
+}
+}

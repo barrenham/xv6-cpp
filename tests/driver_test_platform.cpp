@@ -75,6 +75,8 @@ unsigned effective_user = 1000;
 bool killed = false;
 bool fail_copy = false;
 bool copied_user = false;
+bool check_copy_locks = false;
+std::function<void()> on_copy_out;
 unsigned wakeups = 0;
 unsigned dumps = 0;
 unsigned interrupts = 0;
@@ -386,6 +388,20 @@ console_contract() {
   feed("ok\n");
   check(console.read(destination, 256) == 3 && std::string(input, 3) == "ok\n",
         "flush discards pending line");
+  feed("old\n");
+  check_copy_locks = true;
+  on_copy_out = [&] {
+    check(console.ioctl(TCFLSH, {AddressSpace::Kernel, TCIFLUSH}) == 0,
+          "flush TTY while a user copy is in flight");
+    feed("new\n");
+  };
+  IoBuffer user_destination{AddressSpace::User, reinterpret_cast<unsigned long>(input)};
+  check(console.read(user_destination, 1) == 1 && input[0] == 'o',
+        "reserved TTY byte remains a valid read before flush");
+  check(console.read(user_destination, sizeof(input)) == 4 &&
+            std::string(input, 4) == "new\n",
+        "a late copy never consumes new input after a flush");
+  check_copy_locks = false;
   IoBuffer nonblocking = destination;
   nonblocking.nonblocking = true;
   check(console.read(nonblocking, sizeof(input)) == -EAGAIN,
@@ -1156,8 +1172,12 @@ keyboard_contract() {
   check(keyboard.read(buffer, 8) == -1,
         "keyboard rejects inaccessible user output without consuming event");
   fail_copy = false;
+  buffer.space = AddressSpace::User;
+  check_copy_locks = true;
   check(keyboard.read(buffer, 8) == 8 && output[0].code == 30 && output[0].value == 1,
         "keyboard event survives failed copy");
+  check_copy_locks = false;
+  buffer.space = AddressSpace::Kernel;
   effective_user = 1000;
   check(keyboard.read(buffer, 8) == -1 && keyboard.poll() == POLLERR,
         "inherited keyboard fd rechecks effective uid");
@@ -1320,9 +1340,13 @@ entropy_contract() {
   fail_copy = true;
   check(rng.read(kernel, 17) == -1, "entropy copy failure");
   fail_copy = false;
+  kernel.space = AddressSpace::User;
+  check_copy_locks = true;
   check(rng.read(kernel, 600) == 17 && bytes[0] == 0x5a && bytes[16] == 0x5a &&
             avail->idx == 2,
         "entropy honors short used length and preserves bytes after copy failure");
+  check_copy_locks = false;
+  kernel.space = AddressSpace::Kernel;
   expect_panic([&] {
     complete(0);
   });
@@ -1545,6 +1569,17 @@ copy_in(void *destination, bool user, unsigned long source, unsigned count) {
 int
 copy_out(bool user, unsigned long destination, void *source, unsigned count) {
   test::copied_user = user;
+  if (test::check_copy_locks && user)
+  {
+    test::check(!xv::sync::interrupt_depth(),
+                "terminal user copy may fault without an outer spin lock");
+  }
+  if (test::on_copy_out)
+  {
+    auto callback = test::on_copy_out;
+    test::on_copy_out = nullptr;
+    callback();
+  }
   if (test::fail_copy)
   {
     return -1;

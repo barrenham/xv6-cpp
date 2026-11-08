@@ -45,6 +45,8 @@ for backend, expected in backend_types.items():
     image = build / f'user/image/_{backend}_plugin'
     own_symbols = symbols(image)
     assert expected in own_symbols, f'{image}: backend module missing'
+    assert 'serve_thread_pool' in own_symbols, f'{image}: mandatory thread pool missing'
+    assert 'serve_parallel' not in own_symbols and 'userfs::serve_pool' not in own_symbols, f'{image}: obsolete process pool linked'
     for foreign in backend_types.values():
         if foreign != expected:
             assert foreign not in own_symbols, f'{image}: unrelated backend linked: {foreign}'

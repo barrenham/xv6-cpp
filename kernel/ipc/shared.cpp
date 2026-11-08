@@ -19,6 +19,7 @@ constexpr unsigned Names = 32;
 struct Object
 {
   xv::sync::SpinLock lock;
+  xv::sync::SleepLock resize_lock;
   void *pages[MaxPages]{};
   unsigned allocated = 0, bytes = 0;
   unsigned references = 0, uid = 0, gid = 0, mode = 0;
@@ -100,9 +101,128 @@ resize(Object &object, unsigned bytes) {
       offset += take;
     }
   }
-  object.bytes = bytes;
+  else if (bytes > object.bytes)
+  {
+    // Stores in the mapped partial EOF page must not become file contents
+    // merely because a later truncate grows the object into that padding.
+    unsigned offset = object.bytes;
+    while (offset < bytes)
+    {
+      unsigned take = PageBytes - offset % PageBytes;
+      if (take > bytes - offset)
+      {
+        take = bytes - offset;
+      }
+      xv::runtime::fill(static_cast<unsigned char *>(object.pages[offset / PageBytes]) +
+                            offset % PageBytes,
+                        0, take);
+      offset += take;
+    }
+  }
+  __atomic_store_n(&object.bytes, bytes, __ATOMIC_RELEASE);
   return 0;
 }
+
+int
+resize_object(Object &object, unsigned bytes) {
+  xv::sync::ScopedLock serialize(object.resize_lock);
+  bool shrunk;
+  int result;
+  {
+    xv::sync::ScopedLock guard(object.lock);
+    shrunk = bytes < object.bytes;
+    result = resize(object, bytes);
+  }
+  if (!result && shrunk)
+  {
+    // Publish EOF first, then wait for every hart using the old length. No
+    // object spin lock is held while other processes refresh their mappings.
+    xv::process::synchronize_file_mappings();
+  }
+  return result;
+}
+
+class Mapping final : public xv::memory::MappingBacking
+{
+public:
+
+  Mapping(Object &object, unsigned offset) : object_(object), offset_(offset) {
+    xv::sync::ScopedLock guard(names_lock);
+    ++object_.references;
+  }
+
+  MappingBacking *
+  retain() override {
+    __atomic_add_fetch(&references_, 1U, __ATOMIC_RELAXED);
+    return this;
+  }
+
+  void
+  release() override {
+    if (__atomic_sub_fetch(&references_, 1U, __ATOMIC_ACQ_REL))
+    {
+      return;
+    }
+    auto *object = &object_;
+    this->~Mapping();
+    xv::memory::allocator().deallocate(this);
+    ipc::release(object);
+  }
+
+  int
+  enable_write() override {
+    return 0;
+  }
+
+  int
+  synchronize() override {
+    return 0;
+  }
+
+  bool
+  blocking_load() const override {
+    return false;
+  }
+
+  bool
+  demand_paged() const override {
+    return true;
+  }
+
+  unsigned long
+  length() const override {
+    auto bytes = __atomic_load_n(&object_.bytes, __ATOMIC_ACQUIRE);
+    auto start = static_cast<unsigned long>(offset_) * PageBytes;
+    return bytes > start ? bytes - start : 0;
+  }
+
+  bool
+  page_available(unsigned index) const override {
+    return index < MaxPages - offset_ &&
+           static_cast<unsigned long>(index) * PageBytes < length();
+  }
+
+  void *
+  page(unsigned index) const override {
+    // Resize publishes newly initialized pages before length. High-water
+    // frames remain owned by the object until its last FD/mapping is released.
+    return page_available(index) ? object_.pages[offset_ + index] : nullptr;
+  }
+
+  void *
+  load_page(unsigned index, int &error) override {
+    auto *frame = page(index);
+    error = frame ? 0 : -EINVAL;
+    return frame;
+  }
+
+private:
+
+  Object &object_;
+  unsigned offset_, references_ = 1;
+};
+
+static_assert(sizeof(Mapping) <= PageBytes);
 
 class View final : public xv::io::IoObject, public SharedMemory
 {
@@ -124,8 +244,17 @@ public:
 
   unsigned long
   length() const override {
-    xv::sync::ScopedLock guard(object_.lock);
-    return object_.bytes;
+    return __atomic_load_n(&object_.bytes, __ATOMIC_ACQUIRE);
+  }
+
+  xv::memory::MappingBacking *
+  mapping(unsigned offset) override {
+    if (offset >= MaxPages)
+    {
+      return nullptr;
+    }
+    auto *memory = xv::memory::allocator().allocate();
+    return memory ? new (memory) Mapping(object_, offset) : nullptr;
   }
 
   unsigned long
@@ -139,8 +268,7 @@ public:
     {
       return -EBADF;
     }
-    xv::sync::ScopedLock guard(object_.lock);
-    return ipc::resize(object_, bytes);
+    return resize_object(object_, bytes);
   }
 
   int
@@ -166,25 +294,40 @@ public:
     {
       return -EBADF;
     }
-    xv::sync::ScopedLock guard(object_.lock);
-    if (offset > object_.bytes || count > object_.bytes - offset)
     {
-      return -EINVAL;
+      xv::sync::ScopedLock guard(object_.lock);
+      if (offset > object_.bytes || count > object_.bytes - offset)
+      {
+        return -EINVAL;
+      }
     }
     unsigned done = 0;
     while (done < count)
     {
+      object_.lock.acquire();
       unsigned at = offset + done;
+      if (at >= object_.bytes)
+      {
+        object_.lock.release();
+        return done ? int(done) : -EINVAL;
+      }
       unsigned take = PageBytes - at % PageBytes;
       if (take > count - done)
       {
         take = count - done;
       }
-      auto *physical =
-          static_cast<unsigned char *>(object_.pages[at / PageBytes]) + at % PageBytes;
+      if (take > object_.bytes - at)
+      {
+        take = object_.bytes - at;
+      }
+      auto *page = object_.pages[at / PageBytes];
+      xv::memory::allocator().retain_page(page);
+      object_.lock.release();
+      auto *physical = static_cast<unsigned char *>(page) + at % PageBytes;
       auto address = reinterpret_cast<unsigned long>(buffer) + done;
       int result = writing ? xv::process::copy_in(physical, user, address, take)
                            : xv::process::copy_out(user, address, physical, take);
+      xv::memory::allocator().release_page(page);
       if (result < 0)
       {
         return done ? int(done) : -EFAULT;
@@ -408,6 +551,7 @@ shared_open(const char *name, unsigned flags, unsigned mode, int &error) {
     {
       object = new (memory) Object;
       object->lock.init("shared object pages");
+      object->resize_lock.init("shared object resize");
       object->uid = credentials.effective_uid;
       object->gid = credentials.effective_gid;
       object->mode = mode & 0777 & ~credentials.mask;
@@ -424,8 +568,7 @@ shared_open(const char *name, unsigned flags, unsigned mode, int &error) {
   }
   if (flags & O_TRUNC)
   {
-    xv::sync::ScopedLock guard(object->lock);
-    resize(*object, 0);
+    resize_object(*object, 0);
   }
   void *page = xv::memory::allocator().allocate();
   if (!page)

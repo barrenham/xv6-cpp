@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "user/services/supervisor.h"
 #include "user/runtime/user.h"
@@ -22,7 +23,7 @@ app_main(int argc, char **argv) {
     }
     else
     {
-      fprintf(2, "usage: serviced [--config FILE] [--socket PATH]\n");
+      ui::usage("usage: serviced [--config FILE] [--socket PATH]\n");
       return 1;
     }
   }

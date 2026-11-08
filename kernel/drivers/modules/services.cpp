@@ -1,5 +1,6 @@
 module;
 #include "kernel/io/kmodule_v2.h"
+#include "kernel/io/kmodule_v3.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/memory/layout/memlayout.h"
 #include "kernel/support/placement_new.hpp"
@@ -142,23 +143,32 @@ public:
 
   Binding *binding = nullptr;
   EthernetReceiver *receiver = nullptr;
+  mutable xv::sync::SpinLock gate;
+  bool suspended = false;
 
   bool
   online() const override {
+    xv::sync::ScopedLock guard(gate);
     xv_kmod_synchronize();
-    return binding && binding->ethernet.online(binding->ethernet.context);
+    return binding && !suspended &&
+           __atomic_load_n(&modules::online[binding->index], __ATOMIC_ACQUIRE) &&
+           binding->ethernet.online(binding->ethernet.context);
   }
 
   bool
   carrier() const override {
+    xv::sync::ScopedLock guard(gate);
     xv_kmod_synchronize();
-    return binding && binding->ethernet.carrier(binding->ethernet.context);
+    return binding && !suspended &&
+           __atomic_load_n(&modules::online[binding->index], __ATOMIC_ACQUIRE) &&
+           binding->ethernet.carrier(binding->ethernet.context);
   }
 
   void
   mac_address(unsigned char *out) const override {
+    xv::sync::ScopedLock guard(gate);
     xv_kmod_synchronize();
-    if (binding)
+    if (binding && !suspended)
     {
       binding->ethernet.mac(binding->ethernet.context, out);
     }
@@ -170,7 +180,10 @@ public:
 
   bool
   transmit(void *page, unsigned count) override {
-    if (!binding || !binding->image->pool.adopt(page))
+    xv::sync::ScopedLock guard(gate);
+    if (!binding || suspended ||
+        !__atomic_load_n(&modules::online[binding->index], __ATOMIC_ACQUIRE) ||
+        !binding->image->pool.adopt(page))
     {
       return false;
     }
@@ -189,8 +202,11 @@ public:
 
   bool
   promiscuous(bool enabled) override {
+    xv::sync::ScopedLock guard(gate);
     xv_kmod_synchronize();
-    return binding && binding->ethernet.promiscuous(binding->ethernet.context, enabled);
+    return binding && !suspended &&
+           __atomic_load_n(&modules::online[binding->index], __ATOMIC_ACQUIRE) &&
+           binding->ethernet.promiscuous(binding->ethernet.context, enabled);
   }
 };
 
@@ -214,7 +230,7 @@ cpu() {
 
 int
 pid() {
-  return xv::process::current() ? xv::process::current()->id() : 0;
+  return xv::process::current() ? xv::process::current()->thread_id() : 0;
 }
 
 void
@@ -251,6 +267,7 @@ character(void *token, const char *name, unsigned major, unsigned minor, unsigne
   {
     return -1;
   }
+  binding.publications |= 1;
   ++character_count;
   return 0;
 }
@@ -268,6 +285,7 @@ set_serial(void *token, const xv_kmod_serial *operations) {
     return -1;
   }
   binding.serial = *operations;
+  binding.publications |= 2;
   serial.publish(binding);
   return 0;
 }
@@ -276,7 +294,12 @@ int
 set_network(void *token, const xv_kmod_ethernet *operations) {
   auto &binding = *static_cast<Binding *>(token);
   const auto &image = *binding.image;
-  if (network_size == 4 ||
+  unsigned selected = 0;
+  while (selected < network_size && networks[selected].binding)
+  {
+    ++selected;
+  }
+  if (selected == 4 ||
       __atomic_load_n(&binding.network_slot, __ATOMIC_ACQUIRE) != ~0U || !operations ||
       !callback(image, reinterpret_cast<unsigned long>(operations->online)) ||
       !callback(image, reinterpret_cast<unsigned long>(operations->carrier)) ||
@@ -287,9 +310,19 @@ set_network(void *token, const xv_kmod_ethernet *operations) {
     return -1;
   }
   binding.ethernet = *operations;
-  networks[network_size].binding = &binding;
-  __atomic_store_n(&binding.network_slot, network_size, __ATOMIC_RELEASE);
-  __atomic_store_n(&network_size, network_size + 1, __ATOMIC_RELEASE);
+  binding.publications |= 4;
+  {
+    xv::sync::ScopedLock guard(networks[selected].gate);
+    networks[selected].binding = &binding;
+    networks[selected].suspended = false;
+    __atomic_store_n(&networks[selected].receiver,
+                     static_cast<EthernetReceiver *>(nullptr), __ATOMIC_RELEASE);
+  }
+  __atomic_store_n(&binding.network_slot, selected, __ATOMIC_RELEASE);
+  if (selected == network_size)
+  {
+    __atomic_store_n(&network_size, selected + 1, __ATOMIC_RELEASE);
+  }
   return 0;
 }
 
@@ -332,7 +365,7 @@ ethernet_input(void *token, void *page, unsigned count) {
 } // namespace
 
 int
-attach(Image &image, const xv_kmod_device_v2 &device) {
+attach(Image &image, const xv_kmod_device_v3 &device) {
   if (!image.services.abi)
   {
     image.pool.initialize();
@@ -372,17 +405,49 @@ attach(Image &image, const xv_kmod_device_v2 &device) {
                       serial_input,
                       ethernet_input};
   }
-  auto *driver = reinterpret_cast<const xv_kmod_driver_v2 *>(image.driver);
   xv_kmod_synchronize();
-  if (driver->attach(&image.services, &device) < 0)
+  int result = image.driver->abi >= XV_KMOD_ABI_V3
+                   ? reinterpret_cast<const xv_kmod_driver_v3 *>(image.driver)
+                         ->attach(&image.services, &device)
+                   : reinterpret_cast<const xv_kmod_driver_v2 *>(image.driver)
+                         ->attach(&image.services, &device.base);
+  if (result < 0)
   {
-    set_interrupt(device.binding, nullptr, nullptr);
+    set_interrupt(device.base.binding, nullptr, nullptr);
     return -1;
   }
   ++image.bound;
-  auto &binding = *static_cast<Binding *>(device.binding);
+  auto &binding = *static_cast<Binding *>(device.base.binding);
   __atomic_store_n(&online[binding.index], 1U, __ATOMIC_RELEASE);
   return 0;
+}
+
+void (*network_hotplug)(unsigned, bool) = nullptr;
+
+void
+quiesce_network(Binding &binding) {
+  unsigned slot = __atomic_load_n(&binding.network_slot, __ATOMIC_ACQUIRE);
+  if (slot >= 4)
+  {
+    return;
+  }
+  xv::sync::ScopedLock guard(networks[slot].gate);
+  networks[slot].suspended = true;
+  __atomic_store_n(&networks[slot].receiver, static_cast<EthernetReceiver *>(nullptr),
+                   __ATOMIC_RELEASE);
+}
+
+void
+detach_network(Binding &binding) {
+  unsigned slot = __atomic_load_n(&binding.network_slot, __ATOMIC_ACQUIRE);
+  if (slot >= 4)
+  {
+    return;
+  }
+  xv::sync::ScopedLock guard(networks[slot].gate);
+  networks[slot].binding = nullptr;
+  binding.ethernet = {};
+  __atomic_store_n(&binding.network_slot, ~0U, __ATOMIC_RELEASE);
 }
 
 unsigned

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/mount.h"
@@ -10,7 +11,7 @@ app_main(int argc, char **argv) {
   {
     if (!raw)
     {
-      printf("%-12s %s\n", "FILESYSTEM", "MOUNTPOINT");
+      ui::heading("%-12s %s\n", "FILESYSTEM", "MOUNTPOINT");
     }
     mount_info info;
     int result;
@@ -22,7 +23,7 @@ app_main(int argc, char **argv) {
       }
       else
       {
-        printf("%-12s %s\n", info.type, info.path);
+        ui::heading("%-12s %s\n", info.type, info.path);
       }
     }
     exit(result < 0);
@@ -58,14 +59,13 @@ app_main(int argc, char **argv) {
   if ((source || options ? mountfs(type, path, source, options) : mount(type, path)) <
       0)
   {
-    fprintf(2,
-            "mount: failed (root required, valid unused directory, available slot)\n");
+    ui::error(
+        "mount: failed (root required, valid unused directory, available slot)\n");
     exit(1);
   }
   exit(0);
 usage:
-  fprintf(
-      2,
+  ui::usage(
       "usage: mount [--raw]\n       mount [-t type [-s source] [-o options] /directory]\n");
   exit(1);
 }

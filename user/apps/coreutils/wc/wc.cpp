@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
@@ -38,7 +39,7 @@ extern "C"
     }
     if (n < 0)
     {
-      printf("wc: read error\n");
+      ui::error("wc: read error\n");
       exit(1);
     }
     printf("%d %d %d %s\n", l, w, c, name);
@@ -58,7 +59,7 @@ extern "C"
     {
       if ((fd = open(argv[i], O_RDONLY)) < 0)
       {
-        printf("wc: cannot open %s\n", argv[i]);
+        ui::error("wc: cannot open %s\n", argv[i]);
         exit(1);
       }
       wc(fd, argv[i]);

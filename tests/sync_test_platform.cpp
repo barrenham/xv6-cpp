@@ -176,3 +176,8 @@ extern "C" void xv_test_require_pinned_cpu(bool enabled)
 { xv::sync::detail::require_pinned_cpu = enabled; }
 extern "C" unsigned xv_test_pinned_cpu_lookups()
 { return xv::sync::detail::pinned_cpu_lookups.load(); }
+
+namespace xv::sync
+{
+unsigned interrupt_depth() { return detail::interrupt_depth; }
+}

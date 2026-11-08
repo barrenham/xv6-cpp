@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -6,7 +7,7 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (argc < 3 || !*argv[1])
   {
-    fprintf(2, "usage: chmod OCTAL FILE...\n");
+    ui::usage("usage: chmod OCTAL FILE...\n");
     exit(1);
   }
   unsigned mode = 0;
@@ -23,7 +24,7 @@ app_main(int argc, char **argv) {
   {
     if (chmod(argv[i], mode) < 0)
     {
-      fprintf(2, "chmod: %s failed\n", argv[i]);
+      ui::error("chmod: %s failed\n", argv[i]);
       failed = 1;
     }
   }

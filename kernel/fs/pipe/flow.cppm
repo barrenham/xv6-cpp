@@ -15,18 +15,17 @@ struct Pipe::WriteFlow
   struct Context
   {
     Pipe &owner;
-    unsigned long address;
+    const char *data;
     int count;
-    bool nonblocking;
+    bool nonblocking, atomic_write;
     int done = 0, result = -1;
     bool aborted = false, wait_needed = false, broken = false;
   };
 
   static bool atomic_wait(Context &c) noexcept
   {
-    return static_cast<unsigned>(c.count) <= Pipe::Capacity &&
-           Pipe::Capacity - (c.owner.written_ - c.owner.read_) <
-               static_cast<unsigned>(c.count);
+    return c.atomic_write && Pipe::Capacity - (c.owner.written_ - c.owner.read_) <
+                                 static_cast<unsigned>(c.count);
   }
 
   static bool unavailable(Context &c) noexcept
@@ -84,13 +83,7 @@ struct Pipe::WriteFlow
         }
         return;
       }
-      char ch;
-      if (detail::copy_in(&ch, true, c.address + c.done, 1) == -1)
-      {
-        c.result = c.done ? c.done : -1;
-        return;
-      }
-      c.owner.data_[c.owner.written_++ % Pipe::Capacity] = ch;
+      c.owner.data_[c.owner.written_++ % Pipe::Capacity] = c.data[c.done];
       ++c.done;
     }
     c.result = c.done;
@@ -167,7 +160,8 @@ struct Pipe::ReadFlow
 
   static bool waiting(Context &c) noexcept
   {
-    return c.owner.read_ == c.owner.written_ && c.owner.writer_open_;
+    return c.owner.read_busy_ ||
+           (c.owner.read_ == c.owner.written_ && c.owner.writer_open_);
   }
 
   static bool interrupted(Context &) noexcept
@@ -195,25 +189,31 @@ struct Pipe::ReadFlow
 
   static void transfer(Context &c) noexcept
   {
-    int i;
-    for (i = 0; i < c.count; ++i)
+    unsigned available = c.owner.written_ - c.owner.read_;
+    unsigned count = static_cast<unsigned>(c.count) < available ? c.count : available;
+    if (!count)
     {
-      if (c.owner.read_ == c.owner.written_)
-      {
-        break;
-      }
-      char ch = c.owner.data_[c.owner.read_ % Pipe::Capacity];
-      if (detail::copy_out(true, c.address + i, &ch, 1) == -1)
-      {
-        if (i == 0)
-        {
-          i = -1;
-        }
-        break;
-      }
-      ++c.owner.read_;
+      c.result = 0;
+      return;
     }
-    c.result = i;
+    char bytes[Pipe::Capacity];
+    for (unsigned i = 0; i < count; ++i)
+    {
+      bytes[i] = c.owner.data_[(c.owner.read_ + i) % Pipe::Capacity];
+    }
+    // A reader reserves this prefix, but writers may append while the VM copy
+    // faults or sleeps. A failed copy leaves the reserved bytes unconsumed.
+    c.owner.read_busy_ = true;
+    c.owner.lock_.release();
+    bool copied = detail::copy_out(true, c.address, bytes, count) >= 0;
+    c.owner.lock_.acquire();
+    if (copied)
+    {
+      c.owner.read_ += count;
+    }
+    c.owner.read_busy_ = false;
+    detail::wakeup(&c.owner.read_);
+    c.result = copied ? static_cast<int>(count) : -1;
   }
 
   static void notify_writer(Context &c) noexcept

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/fs/stat.h"
 #include "kernel/fs/fcntl.h"
@@ -140,7 +141,7 @@ serve(int image, const char *type) {
   {
     return 1;
   }
-  printf("tarfsd: registered %s pid=%d\n", type, getpid());
+  ui::success("tarfsd: registered %s pid=%d\n", type, getpid());
   int result = userfs::serve(service, backend);
   close(service);
   return result < 0;

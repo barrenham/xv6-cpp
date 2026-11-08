@@ -1,4 +1,9 @@
 #include "kernel/syscall/syscall.h"
+.global sched_yield
+sched_yield:
+ li a7, SYS_sched_yield
+ ecall
+ ret
 .global kmod
 kmod:
  li a7, SYS_kmod
@@ -8,6 +13,19 @@ kmod:
 fork:
  li a7, SYS_fork
  ecall
+ bnez a0, 1f
+ # No pthread lifecycle operation means the one-entry registry is unchanged.
+ # Stay a leaf here: pushing a return address would cause an unnecessary COW.
+ la t0, __xv_threads_fork_needed
+ lw t0, 0(t0)
+ beqz t0, 1f
+ addi sp, sp, -16
+ sd ra, 0(sp)
+ call __xv_threads_after_fork
+ ld ra, 0(sp)
+ addi sp, sp, 16
+ li a0, 0
+1:
  ret
 .global exit
 exit:
@@ -592,5 +610,50 @@ __xv_mprotect:
 .global __xv_msync
 __xv_msync:
  li a7, SYS_msync
+ ecall
+ ret
+
+.global __xv_thread_create
+__xv_thread_create:
+ li a7, SYS_thread_create
+ ecall
+ ret
+.global __xv_thread_join
+__xv_thread_join:
+ li a7, SYS_thread_join
+ ecall
+ ret
+.global __xv_thread_exit
+__xv_thread_exit:
+ li a7, SYS_thread_exit
+ ecall
+1:
+ j 1b
+.global __xv_gettid
+__xv_gettid:
+ li a7, SYS_gettid
+ ecall
+ ret
+
+.global __xv_thread_word_wait
+__xv_thread_word_wait:
+ li a7, SYS_thread_word_wait
+ ecall
+ ret
+.global __xv_thread_word_wake
+__xv_thread_word_wake:
+ li a7, SYS_thread_word_wake
+ ecall
+ ret
+
+.global __xv_thread_signal
+__xv_thread_signal:
+ li a7, SYS_thread_signal
+ ecall
+ ret
+
+.global __xv_thread_word_timedwait
+__xv_thread_word_timedwait:
+ li a7, SYS_thread_word_timedwait
  ecall
  ret

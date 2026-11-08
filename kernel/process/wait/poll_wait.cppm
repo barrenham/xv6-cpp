@@ -29,6 +29,8 @@ class PollWait final
   };
 public:
 
+  static constexpr unsigned InlineSubscriptions = 8;
+
   constexpr PollWait(Process &process, WaitChannels &channels)
       : process_(process), channels_(channels)
   {
@@ -63,7 +65,8 @@ private:
   WaitChannels &channels_;
   Table table_;
   // Single-channel RPC waits and small polls must work with no free pages.
-  PollEntry inline_entries_[4]{};
+  // A three-lane FS pool watches six socket queues and one completion pipe.
+  PollEntry inline_entries_[InlineSubscriptions]{};
   unsigned inline_used_ = 0;
   Page *pages_ = nullptr;
   bool failed_ = false;

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
 #include "user/runtime/user.h"
@@ -256,7 +257,7 @@ builtin(char **arguments) {
     const char *path = arguments[1] ? arguments[1] : getenv("HOME");
     if (!path || arguments[2] || chdir(path) < 0)
     {
-      fprintf(2, "cannot cd %s\n", path ? path : "");
+      ui::error("cannot cd %s\n", path ? path : "");
       return 1;
     }
     return 0;

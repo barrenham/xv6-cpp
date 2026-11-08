@@ -30,7 +30,9 @@ enum class Operation : unsigned
   Descriptor,
   CaptureExec,
   ReadExec,
-  EndExec
+  EndExec,
+  FileCache,
+  ThreadAfter
 };
 
 struct Device
@@ -51,6 +53,13 @@ struct Process
   int pid, parent, group, session;
   unsigned uid, effective_uid, gid, effective_gid;
   unsigned long bytes;
+  char state, name[16];
+};
+
+struct Thread
+{
+  int tid, pid, parent;
+  unsigned long cpu_milliseconds, bytes;
   char state, name[16];
 };
 struct Cpu
@@ -89,6 +98,11 @@ struct Cache
   char name[32];
   unsigned long hits, misses, evictions, lookup_steps, reads, writes, eviction_steps;
   unsigned long locks, contentions, spins, wait_ticks, tick_hz;
+};
+
+struct FileCache
+{
+  unsigned long pages, pending, idle_evictions, mapped_evictions, target;
 };
 
 struct Query

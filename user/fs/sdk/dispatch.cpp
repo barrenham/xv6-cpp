@@ -8,6 +8,15 @@ module xv.userfs;
 
 namespace userfs
 {
+namespace
+{
+thread_local xv::userfs::RequestContext request_context;
+}
+
+const xv::userfs::RequestContext &
+current_context() {
+  return request_context;
+}
 void
 dispatch(xv::userfs::Message &m, Backend &backend, void *bulk, unsigned capacity) {
   using xv::userfs::Operation;
@@ -22,7 +31,18 @@ dispatch(xv::userfs::Message &m, Backend &backend, void *bulk, unsigned capacity
   {
     return;
   }
-  backend.context(m.context);
+
+  struct ContextScope
+  {
+    xv::userfs::RequestContext previous = request_context;
+
+    ~ContextScope() {
+      request_context = previous;
+    }
+  } scope;
+
+  request_context = m.context;
+  backend.context(request_context);
   switch (m.operation)
   {
   case Operation::Control: {

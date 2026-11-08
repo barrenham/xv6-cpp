@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/poll.h"
@@ -16,7 +17,7 @@ interrupt(int) {
 
 void
 usage() {
-  fprintf(2, "usage: ping [-q] [-c COUNT] [-i SECONDS] [-W SECONDS] [-s BYTES] HOST\n");
+  ui::usage("usage: ping [-q] [-c COUNT] [-i SECONDS] [-W SECONDS] [-s BYTES] HOST\n");
 }
 
 bool
@@ -125,7 +126,7 @@ app_main(int argc, char **argv) {
   struct sigaction action{interrupt, 0, 0};
   if (sigaction(SIGINT, &action, nullptr) < 0)
   {
-    fprintf(2, "ping: cannot install signal handler\n");
+    ui::error("ping: cannot install signal handler\n");
     exit(2);
   }
   dns_result resolved{};
@@ -134,13 +135,13 @@ app_main(int argc, char **argv) {
   int status = dns_lookup(host, &resolved, &dns);
   if (status || !resolved.count)
   {
-    fprintf(2, "ping: %s\n", dns_strerror(status ? status : DNS_NO_ADDRESS));
+    ui::error("ping: %s\n", dns_strerror(status ? status : DNS_NO_ADDRESS));
     exit(2);
   }
   auto *w = static_cast<Workspace *>(malloc(sizeof(Workspace)));
   if (!w)
   {
-    fprintf(2, "ping: out of memory\n");
+    ui::error("ping: out of memory\n");
     exit(2);
   }
   int fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
@@ -149,7 +150,7 @@ app_main(int argc, char **argv) {
   peer.sin_addr.s_addr = htonl(resolved.addresses[0]);
   if (fd < 0 || connect(fd, reinterpret_cast<sockaddr *>(&peer), sizeof(peer)) < 0)
   {
-    fprintf(2, "ping: no usable ICMP route or socket\n");
+    ui::error("ping: no usable ICMP route or socket\n");
     if (fd >= 0)
     {
       close(fd);
@@ -161,13 +162,13 @@ app_main(int argc, char **argv) {
   socklen_t size = sizeof(local);
   if (getsockname(fd, reinterpret_cast<sockaddr *>(&local), &size) < 0)
   {
-    fprintf(2, "ping: cannot read echo identifier\n");
+    ui::error("ping: cannot read echo identifier\n");
     close(fd);
     free(w);
     exit(2);
   }
   unsigned identifier = ntohs(local.sin_port), length = payload + 8;
-  printf("PING %s (", host);
+  ui::heading("PING %s (", host);
   address(resolved.addresses[0]);
   printf(") %u data bytes\n", payload);
   unsigned long sent = 0, received = 0, duplicates = 0, minimum = ~0UL, maximum = 0,
@@ -182,7 +183,7 @@ app_main(int argc, char **argv) {
     int n = sendto(fd, w->request, int(length), 0, nullptr, 0);
     if (n != int(length))
     {
-      fprintf(2, "ping: send failed (%d)\n", n);
+      ui::error("ping: send failed (%d)\n", n);
       failure = 2;
       break;
     }
@@ -268,7 +269,7 @@ app_main(int argc, char **argv) {
     }
     if (!answered && !quiet)
     {
-      printf("Request timeout for icmp_seq=%u\n", sequence);
+      ui::warning("Request timeout for icmp_seq=%u\n", sequence);
     }
     if (count && sent >= count)
     {
@@ -295,12 +296,12 @@ app_main(int argc, char **argv) {
   }
   close(fd);
   free(w);
-  printf(
+  ui::info(
       "\n--- %s ping statistics ---\n%lu packets transmitted, %lu received, %lu duplicates, %lu%% packet loss\n",
       host, sent, received, duplicates, sent ? (sent - received) * 100 / sent : 0);
   if (received)
   {
-    printf("rtt min/avg/max = ");
+    ui::info("rtt min/avg/max = ");
     milliseconds(minimum);
     printf("/");
     milliseconds(sum / received);

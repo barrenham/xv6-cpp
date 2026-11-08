@@ -19,7 +19,7 @@ xv::net::Socket *socket_argument(xv::fs::File **file = nullptr)
 {
   int fd;
   argument_integer(0, &fd);
-  auto *f = xv::process::current()->files().get(fd);
+  auto *f = xv::process::current()->pin_file(fd);
   if (file)
   {
     *file = f;
@@ -32,14 +32,14 @@ local_argument() {
   int descriptor;
   argument_integer(0, &descriptor);
   return xv::io::query<xv::ipc::LocalSocket>(
-      xv::fs::files().object(xv::process::current()->files().get(descriptor)));
+      xv::fs::files().object(xv::process::current()->pin_file(descriptor)));
 }
 
 int
 socket_argument_error() {
   int descriptor;
   argument_integer(0, &descriptor);
-  return xv::process::current()->files().get(descriptor) ? -ENOTSOCK : -EBADF;
+  return xv::process::current()->pin_file(descriptor) ? -ENOTSOCK : -EBADF;
 }
 
 int

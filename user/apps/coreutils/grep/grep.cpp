@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 // Simple grep.  Only supports ^ . * $ operators.
 
@@ -48,7 +49,7 @@ extern "C"
 
     if (argc <= 1)
     {
-      fprintf(2, "usage: grep pattern [file ...]\n");
+      ui::usage("usage: grep pattern [file ...]\n");
       exit(1);
     }
     pattern = argv[1];
@@ -63,7 +64,7 @@ extern "C"
     {
       if ((fd = open(argv[i], O_RDONLY)) < 0)
       {
-        printf("grep: cannot open %s\n", argv[i]);
+        ui::error("grep: cannot open %s\n", argv[i]);
         exit(1);
       }
       grep(pattern, fd);

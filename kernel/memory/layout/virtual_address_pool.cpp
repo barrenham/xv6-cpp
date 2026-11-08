@@ -295,12 +295,26 @@ bool VirtualAddressPool::copy_to(VirtualAddressPool &other) const
 {
   if (&other == this) return true;
   VirtualAddressPool candidate;
-  if (granule_)
+  // The source already contains validated, disjoint intervals. Copy each
+  // final node once instead of reserving ranges and repeatedly splitting and
+  // coalescing temporary free intervals. Do not share intrusive tree links.
+  candidate.begin_ = begin_;
+  candidate.end_ = end_;
+  candidate.granule_ = granule_;
+  auto clone = [&](const Tree &source, Tree &destination) {
+    for (auto *node = source.first(); node; node = Tree::next(node))
+    {
+      auto *copy = candidate.take_node();
+      if (!copy) return false;
+      static_cast<VirtualRegion &>(*copy) = static_cast<const VirtualRegion &>(*node);
+      destination.insert(*copy);
+    }
+    return true;
+  };
+  if (!clone(free_, candidate.free_) || !clone(allocated_, candidate.allocated_))
   {
-    if (!candidate.initialize(begin_, end_, granule_)) return false;
-    for (auto *node = allocated_.first(); node; node = Tree::next(node))
-      if (!candidate.reserve(node->begin, node->end, node->permissions, node->kind, node->demand))
-      { candidate.reset(); return false; }
+    candidate.reset();
+    return false;
   }
   other.swap(candidate);
   candidate.reset();

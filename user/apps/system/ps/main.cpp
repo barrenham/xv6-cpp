@@ -1,6 +1,6 @@
 #include "application.h"
 
 extern "C" int
-main(void) {
-  return app_main();
+main(int argc, char **argv) {
+  return app_main(argc, argv);
 }

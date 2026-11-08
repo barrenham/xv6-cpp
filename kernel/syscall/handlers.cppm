@@ -2,6 +2,14 @@ module xv.syscall:handlers;
 
 namespace xv::syscall
 {
+unsigned long sys_thread_create();
+unsigned long sys_thread_join();
+unsigned long sys_thread_exit();
+unsigned long sys_gettid();
+unsigned long sys_thread_word_wait();
+unsigned long sys_thread_word_timedwait();
+unsigned long sys_thread_word_wake();
+unsigned long sys_thread_signal();
 unsigned long sys_stat();
 unsigned long sys_access();
 unsigned long sys_chown();
@@ -117,4 +125,5 @@ unsigned long sys_mq_send();
 unsigned long sys_mq_receive();
 unsigned long sys_mq_getsetattr();
 unsigned long sys_clock_gettime();
+unsigned long sys_sched_yield();
 }

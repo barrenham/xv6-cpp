@@ -36,6 +36,16 @@ bool ProcessBackend::render_global(unsigned file)
       bytes_.field("MemFree: ", system.free_kib, " kB\n");
       bytes_.field("MemAvailable: ", system.free_kib, " kB\n");
       bytes_.field("MemUsed: ", system.total_kib - system.free_kib, " kB\n");
+      xv::fsservice::FileCache cache{};
+      if (resources_.query(Operation::FileCache, 0, cache) == 1)
+      {
+        bytes_.field("Cached: ", (cache.pages + cache.pending) * 4, " kB\n");
+        bytes_.field("FileCachePages: ", cache.pages, " pages\n");
+        bytes_.field("FileCachePending: ", cache.pending, " pages\n");
+        bytes_.field("FileCacheEvictions: ", cache.idle_evictions, " pages\n");
+        bytes_.field("FileMappedEvictions: ", cache.mapped_evictions, " pages\n");
+        bytes_.field("FileCacheTarget: ", cache.target, " pages\n");
+      }
     }
     else
     {
@@ -59,13 +69,13 @@ bool ProcessBackend::render_global(unsigned file)
         for (unsigned cpu = 0; cpu < cpus; ++cpu)
         { bytes_.text("cpu"); bytes_.number(cpu); bytes_.text(" "); cpu_line(bytes_, times[cpu]); }
         unsigned runnable = 0;
-        xv::fsservice::Process process{};
-        for (unsigned after = 0;; after = process.pid)
+        xv::fsservice::Thread task{};
+        for (unsigned after = 0;; after = task.tid)
         {
-          int result = resources_.query(Operation::ProcessAfter, after, process);
+          int result = resources_.query(Operation::ThreadAfter, after, task);
           if (result < 0) return false;
           if (!result) break;
-          if (process.state == 'R') ++runnable;
+          if (task.state == 'R') ++runnable;
         }
         bytes_.field("intr ", total.interrupts); bytes_.field("ctxt ", system.switches);
         bytes_.field("btime ", system.boot_epoch); bytes_.field("processes ", system.processes);

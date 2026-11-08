@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -8,7 +9,7 @@ extern "C" int
 app_main() {
   if (geteuid() != 0)
   {
-    fprintf(2, "login: must be started by init\n");
+    ui::error("login: must be started by init\n");
     exit(1);
   }
   sigdisposition(SIGINT, SIGNAL_IGNORE);
@@ -16,7 +17,7 @@ app_main() {
   for (;;)
   {
     char name[64], password[64]{};
-    write(1, "login: ", 7);
+    ui::heading("login: ");
     if (!gets(name, sizeof(name)) || !name[0])
     {
       continue;
@@ -37,7 +38,7 @@ app_main() {
       sigdisposition(SIGTSTP, SIGNAL_DEFAULT);
       account::enter(user);
     }
-    fprintf(2, "Login incorrect\n");
+    ui::error("Login incorrect\n");
     pause(10);
   }
 }

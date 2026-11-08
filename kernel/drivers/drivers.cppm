@@ -1,6 +1,8 @@
 module;
 #include "kernel/io/kmodule.h"
 #include "kernel/io/kmodule_v2.h"
+#include "kernel/io/kmodule_v3.h"
+#include "kernel/io/kmodule_v4.h"
 export module xv.drivers;
 
 export import :device;
@@ -40,9 +42,16 @@ BlockDevice &block_device();
 BlockDevice *data_device();
 void initialize_modules();
 void initialize_boot_modules();
+void start_hotplug_worker();
+void register_network_hotplug(void (*callback)(unsigned, bool));
+unsigned scan_device_resources();
+bool device_hotplug_status(unsigned index, xv_kmod_hotplug_status &status);
+bool device_removal_requested(unsigned index, bool &surprise);
+bool eject_device_resource(unsigned index);
 long module_control(unsigned operation, unsigned long argument, unsigned long value);
 bool module_device(unsigned index, xv_kmod_device &device);
 bool module_device_v2(unsigned index, xv_kmod_device_v2 &device);
+bool module_device_v3(unsigned index, xv_kmod_device_v3 &device);
 void module_interrupt(unsigned index);
 InterruptController &interrupt_controller();
 } // namespace xv::drivers

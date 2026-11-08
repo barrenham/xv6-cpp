@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -13,12 +14,12 @@ app_main(int argc, char **argv) {
     }
     else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h"))
     {
-      printf("usage: clear [-x]\n  -x  preserve scrollback\n");
+      ui::heading("usage: clear [-x]\n  -x  preserve scrollback\n");
       exit(0);
     }
     else
     {
-      fprintf(2, "usage: clear [-x]\n");
+      ui::usage("usage: clear [-x]\n");
       exit(2);
     }
   }

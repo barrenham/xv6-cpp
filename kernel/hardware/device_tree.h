@@ -26,6 +26,8 @@ struct Device
   DeviceKind kind = DeviceKind::Platform;
   unsigned irq = 0, type = 0;
   char name[32]{};
+  const unsigned char *compatible = nullptr;
+  unsigned compatible_bytes = 0;
 };
 
 struct PciHost

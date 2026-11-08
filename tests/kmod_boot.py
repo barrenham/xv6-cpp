@@ -48,23 +48,24 @@ def main():
             devices = guest.command('drvctl devices', 'DEVICE_ID')
             assert 'virtio-mmio' in devices and 'BOUND' in devices and 'BUS' in devices
             guest.command('mount', 'MOUNTPOINT')
-            files = guest.command('ls /bin', 'SIZE(B)')
+            # Filename token checks use plain text; terminal styling has a separate contract.
+            files = guest.command('env NO_COLOR=1 ls /bin', 'SIZE(B)')
             assert 'TYPE' in files and 'INODE' in files and 'drvctl' in files.split()
-            detailed = guest.command('ls -l /bin/drvctl', 'MODE')
+            detailed = guest.command('env NO_COLOR=1 ls -l /bin/drvctl', 'MODE')
             assert 'UID' in detailed and 'GID' in detailed and 'drvctl' in detailed.split()
             filesystem = guest.command('fsctl /', 'Max payload (B)')
             assert 'Interface       :' in filesystem and 'Operations      :' in filesystem
             guest.command('fsctl --raw /', 'driver: wire=')
             listing = guest.command('drvctl --raw list', 'virtio_block bound=2')
-            for name, abi in (('virtio_block', 1), ('uart16550', 2), ('virtio_rng', 2),
-                              ('memory', 2), ('virtio_gpu', 2), ('virtio_input', 2), ('e1000', 2)):
+            for name, abi in (('virtio_block', 1), ('uart16550', 3), ('virtio_rng', 3),
+                              ('memory', 2), ('virtio_gpu', 2), ('virtio_input', 2), ('e1000', 4)):
                 line = next(row for row in listing.splitlines() if f' {name} bound=' in row)
                 assert f'abi={abi}' in line, line
                 expected_bound = 2 if name in ('virtio_block', 'virtio_input') else 1
                 assert f'bound={expected_bound} ' in line, line
                 assert guest.output.index(f'driver: loaded {name} from boot archive'.encode()) < guest.output.index(b'fsboot:')
             guest.command('drvctl --raw devices', 'bound=1')
-            nodes = guest.command('ls /dev', 'vdb')
+            nodes = guest.command('env NO_COLOR=1 ls /dev', 'vdb')
             for name in ('vda', 'vdb', 'random', 'urandom', 'null', 'zero', 'full',
                          'fb0', 'kbd0', 'mouse0'):
                 assert name in nodes.split(), (name, nodes)

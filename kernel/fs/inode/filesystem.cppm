@@ -63,6 +63,13 @@ public:
   }
 
   virtual Inode *retain(Inode *node) = 0;
+
+  // Allocation-free, nonblocking pin used while the global cache registry is
+  // locked. Must not resurrect a zero-reference inode awaiting Forget.
+  virtual bool
+  pin_cached_inode(Inode *) {
+    return false;
+  }
   virtual void release(Inode *node) = 0;
   virtual void lock(Inode *node) = 0;
   virtual void unlock(Inode *node) = 0;

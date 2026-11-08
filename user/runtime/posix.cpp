@@ -8,7 +8,8 @@
 
 namespace
 {
-int process_errno;
+__thread int thread_errno;
+int startup_errno;
 
 long
 result(long value) {
@@ -25,7 +26,9 @@ extern "C"
 {
   int *
   __errno_location(void) noexcept {
-    return &process_errno;
+    unsigned long tp;
+    asm volatile("mv %0, tp" : "=r"(tp));
+    return tp ? &thread_errno : &startup_errno;
   }
 
   long __xv_socketpair(int, int, int, int *);

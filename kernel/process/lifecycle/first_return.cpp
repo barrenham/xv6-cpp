@@ -81,7 +81,9 @@ struct Process::FirstReturnFlow
       xv::drivers::initialize_boot_modules();
       initialize_network();
       xv::ipc::start_socket_collector();
+      xv::fs::start_file_cache_reclaimer();
       xv::fs::initialize_device_registry();
+      xv::drivers::start_hotplug_worker();
       // Bootstrap console descriptors require neither /dev nor a root directory.
       for (int descriptor = 0; descriptor < 3; ++descriptor)
       {

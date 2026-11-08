@@ -25,6 +25,7 @@ private:
   char data_[Capacity]{};
   unsigned read_ = 0;
   unsigned written_ = 0;
+  bool read_busy_ = false;
   bool reader_open_ = true;
   bool writer_open_ = true;
 };

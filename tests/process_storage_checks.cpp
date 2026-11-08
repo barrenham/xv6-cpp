@@ -549,13 +549,20 @@ void poll_subscriptions()
     failed.watch(&b);
     check(failed.table() && !failed.failed() && xv_storage_live_pages() == baseline,
           "small polls and RPC waits survive zero allocation budget");
+    int pool_channels[6];
+    for (auto &channel : pool_channels)
+    {
+      failed.watch(&channel);
+    }
+    check(!failed.failed() && xv_storage_live_pages() == baseline,
+          "eight service queues register with zero free pages");
     failed.set_deadline(1000);
     waits.wake(&a);
     check(failed.triggered(), "OOM subscription still receives a wakeup");
     failed.sleep();
     waits.expire_timers(1000);
     check(failed.triggered(), "OOM subscription still receives its deadline");
-    int extra[4];
+    int extra[PollWait::InlineSubscriptions];
     for (auto &channel : extra) failed.watch(&channel);
     check(failed.failed(), "large poll expansion failure is reported");
   }

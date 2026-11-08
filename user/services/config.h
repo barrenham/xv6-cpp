@@ -14,6 +14,7 @@ struct Definition
 {
   char name[32]{}, arguments[8][128]{}, dependencies[8][32]{}, log[128]{};
   unsigned argc = 0, dependency_count = 0, delay = 250, limit = 5, ready_timeout = 5000;
+  unsigned log_max_bytes = 65536, log_backups = 2;
   Restart restart = Restart::Failure;
   bool enabled = true, oneshot = false, notify = false;
 };
@@ -25,5 +26,6 @@ struct Configuration
 };
 
 bool valid_name(const char *);
+unsigned long definition_id(const Definition &);
 bool load_configuration(const char *path, Configuration &, char error[96]);
 } // namespace services

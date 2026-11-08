@@ -74,11 +74,13 @@ private:
   detail::MmioRegion registers_;
   unsigned irq_;
   xv::sync::SpinLock lock_;
+  xv::sync::SleepLock reader_;
   // Event queue, idle status queue, then device-writable event slots.
   void *pages_[DmaPages]{};
   KeyboardEvent buffered_[BufferedEvents]{};
   unsigned head_ = 0;
   unsigned size_ = 0;
+  unsigned long input_epoch_ = 0;
   unsigned short used_index_ = 0;
   bool wheel_ = false;
   bool ready_ = false;

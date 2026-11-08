@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "backend.h"
 #include "user/runtime/user.h"
@@ -8,7 +9,7 @@ app_main(int argc, char **argv) {
   bool registered = (argc == 3 || argc == 4) && !strcmp(argv[1], "--register");
   if (!registered && argc != 2)
   {
-    fprintf(2, "usage: memfsd /mountpoint | memfsd --register type [max-payload]\n");
+    ui::usage("usage: memfsd /mountpoint | memfsd --register type [max-payload]\n");
     return 1;
   }
   unsigned maximum =

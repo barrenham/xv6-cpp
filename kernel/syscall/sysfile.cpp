@@ -50,7 +50,7 @@ argfd(int n, int *pfd, xv::fs::File **pf) {
   xv::fs::File *f;
 
   argument_integer(n, &fd);
-  if (fd < 0 || fd >= NOFILE || (f = xv::process::current()->files().get(fd)) == 0)
+  if (fd < 0 || fd >= NOFILE || (f = xv::process::current()->pin_file(fd)) == 0)
   {
     return -1;
   }
@@ -256,6 +256,7 @@ struct OpenFlow
 
   static bool
   install(Context &c) noexcept {
+    xv::fs::filesystem().unlock(c.inode);
     c.descriptor = xv::process::current()->files().install(
         c.file, c.mode & O_CLOEXEC ? FD_CLOEXEC : 0);
     return c.descriptor >= 0;
@@ -293,11 +294,6 @@ struct OpenFlow
   }
 
   static void
-  detach(Context &c) noexcept {
-    xv::process::current()->files().take(c.descriptor);
-  }
-
-  static void
   release_file(Context &c) noexcept {
     xv::fs::files().release(c.file);
   }
@@ -309,7 +305,6 @@ struct OpenFlow
 
   static void
   success(Context &c) noexcept {
-    xv::fs::filesystem().unlock(c.inode);
     c.result = c.descriptor;
   }
   struct Choose;
@@ -324,10 +319,8 @@ struct OpenFlow
   struct Truncating;
   struct Truncate;
   struct UnlockBound;
-  struct DetachBound;
   struct ReleaseBound;
   struct Success;
-  struct Detach;
   struct ReleaseFile;
   struct ReleaseInode;
   using Graph = flow::graph<
@@ -352,25 +345,23 @@ struct OpenFlow
                      flow::branch<flow::condition<&writable_mount>, flow::go<Allocate>,
                                   flow::go<ReleaseInode>>>,
           flow::node<Allocate, flow::noop,
-                     flow::branch<flow::condition<&allocate>, flow::go<Install>,
+                     flow::branch<flow::condition<&allocate>, flow::go<Bind>,
                                   flow::go<ReleaseInode>>>,
           flow::node<Install, flow::noop,
-                     flow::branch<flow::condition<&install>, flow::go<Bind>,
-                                  flow::go<ReleaseFile>>>,
+                     flow::branch<flow::condition<&install>, flow::go<Success>,
+                                  flow::go<ReleaseBound>>>,
           flow::node<Bind, flow::noop,
                      flow::branch<flow::condition<&bind>, flow::go<Truncating>,
-                                  flow::go<Detach>>>,
+                                  flow::go<ReleaseFile>>>,
           flow::node<Truncating, flow::noop,
                      flow::branch<flow::condition<&truncating>, flow::go<Truncate>,
-                                  flow::go<Success>>>,
+                                  flow::go<Install>>>,
           flow::node<Truncate, flow::noop,
-                     flow::branch<flow::condition<&truncate>, flow::go<Success>,
+                     flow::branch<flow::condition<&truncate>, flow::go<Install>,
                                   flow::go<UnlockBound>>>,
-          flow::node<UnlockBound, flow::action<&unlock_bound>, flow::go<DetachBound>>,
-          flow::node<DetachBound, flow::action<&detach>, flow::go<ReleaseBound>>,
+          flow::node<UnlockBound, flow::action<&unlock_bound>, flow::go<ReleaseBound>>,
           flow::node<ReleaseBound, flow::action<&release_file>, flow::stop>,
           flow::node<Success, flow::action<&success>, flow::stop>,
-          flow::node<Detach, flow::action<&detach>, flow::go<ReleaseFile>>,
           flow::node<ReleaseFile, flow::action<&release_file>, flow::go<ReleaseInode>>,
           flow::node<ReleaseInode, flow::action<&release_inode>, flow::stop>>>;
 };
@@ -467,6 +458,7 @@ struct PipeFlow
     uint64 address;
     xv::fs::File *reader = nullptr, *writer = nullptr;
     int first = -1, second = -1;
+    unsigned long first_generation = 0, second_generation = 0;
     uint64 result = static_cast<uint64>(-1);
   };
 
@@ -477,13 +469,13 @@ struct PipeFlow
 
   static bool
   install_reader(Context &c) noexcept {
-    c.first = fdalloc(c.reader);
+    c.first = c.process->files().install(c.reader, 0, 0, &c.first_generation);
     return c.first >= 0;
   }
 
   static bool
   install_writer(Context &c) noexcept {
-    c.second = fdalloc(c.writer);
+    c.second = c.process->files().install(c.writer, 0, 0, &c.second_generation);
     return c.second >= 0;
   }
 
@@ -500,19 +492,25 @@ struct PipeFlow
 
   static void
   detach_reader(Context &c) noexcept {
-    c.process->files().take(c.first);
+    c.reader = c.process->files().take(c.first, c.first_generation);
   }
 
   static void
   detach_both(Context &c) noexcept {
-    c.process->files().take(c.first);
-    c.process->files().take(c.second);
+    c.reader = c.process->files().take(c.first, c.first_generation);
+    c.writer = c.process->files().take(c.second, c.second_generation);
   }
 
   static void
   release(Context &c) noexcept {
-    xv::fs::files().release(c.reader);
-    xv::fs::files().release(c.writer);
+    if (c.reader)
+    {
+      xv::fs::files().release(c.reader);
+    }
+    if (c.writer)
+    {
+      xv::fs::files().release(c.writer);
+    }
   }
 
   static void
@@ -560,6 +558,7 @@ struct PtyOpenFlow
     xv::fs::File *master_file, *slave_file;
     xv::drivers::CharacterDevice *master = nullptr, *slave = nullptr;
     int descriptors[2] = {-1, -1};
+    unsigned long generations[2]{};
     xv::process::DescriptorTable *table = nullptr;
     uint64 result = static_cast<uint64>(-1);
   };
@@ -585,10 +584,10 @@ struct PtyOpenFlow
   static bool
   install(Context &c) noexcept {
     c.table = &xv::process::current()->files();
-    c.descriptors[0] = c.table->install(c.master_file);
+    c.descriptors[0] = c.table->install(c.master_file, 0, 0, &c.generations[0]);
     if (c.descriptors[0] >= 0)
     {
-      c.descriptors[1] = c.table->install(c.slave_file);
+      c.descriptors[1] = c.table->install(c.slave_file, 0, 0, &c.generations[1]);
     }
     return c.descriptors[1] >= 0;
   }
@@ -603,11 +602,11 @@ struct PtyOpenFlow
   detach(Context &c) noexcept {
     if (c.descriptors[0] >= 0)
     {
-      c.table->take(c.descriptors[0]);
+      c.master_file = c.table->take(c.descriptors[0], c.generations[0]);
     }
     if (c.descriptors[1] >= 0)
     {
-      c.table->take(c.descriptors[1]);
+      c.slave_file = c.table->take(c.descriptors[1], c.generations[1]);
     }
   }
 
@@ -1216,7 +1215,7 @@ sys_fexecve() {
     return -1;
   }
   auto *process = xv::process::current();
-  auto *file = process->files().get(descriptor);
+  auto *file = process->pin_file(descriptor);
   if (!file)
   {
     return -1;
@@ -1426,6 +1425,10 @@ sys_fsregister() {
   {
     xv::fs::files().release(file);
   }
+  else
+  {
+    xv::process::current()->mark_filesystem_worker();
+  }
   return fd;
 }
 
@@ -1445,17 +1448,24 @@ sys_fsserve() {
   {
     return -1;
   }
-  int fd = fdalloc(file);
+  unsigned long generation = 0;
+  xv::fs::files().retain(
+      file); // Keep the endpoint alive while mounting after publication.
+  int fd = xv::process::current()->files().install(file, 0, 0, &generation);
   if (fd < 0)
   {
     xv::fs::files().release(file);
+    xv::fs::files().release(file);
     return -1;
   }
-  if (!xv::fs::mount_userfs(*file, path))
+  bool mounted = xv::fs::mount_userfs(*file, path);
+  xv::fs::files().release(file);
+  if (!mounted)
   {
-    xv::process::current()->files().close(fd);
+    xv::process::current()->files().close(fd, generation);
     return -1;
   }
+  xv::process::current()->mark_filesystem_worker();
   return fd;
 }
 

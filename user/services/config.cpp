@@ -316,6 +316,15 @@ load_configuration(const char *path, Configuration &out, char error[96]) {
           strcpy(current->log, value);
         }
       }
+      else if (!strcmp(key, "log-max-bytes"))
+      {
+        okay = number(value, current->log_max_bytes, 16 * 1024 * 1024) &&
+               current->log_max_bytes >= 1024;
+      }
+      else if (!strcmp(key, "log-backups"))
+      {
+        okay = number(value, current->log_backups, 8) && current->log_backups >= 1;
+      }
       else
       {
         okay = false;
@@ -327,7 +336,12 @@ load_configuration(const char *path, Configuration &out, char error[96]) {
   unsigned char marks[ManagedMaximum]{};
   for (unsigned i = 0; okay && i < out.count; ++i)
   {
-    okay = out.entries[i].argc && visit(out, i, marks);
+    okay = out.entries[i].argc && visit(out, i, marks) &&
+           strcmp(out.entries[i].log, "/tmp/serviced.log") != 0;
+    for (unsigned j = 0; okay && j < i; ++j)
+    {
+      okay = strcmp(out.entries[i].log, out.entries[j].log) != 0;
+    }
   }
   if (okay)
   {

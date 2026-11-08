@@ -24,6 +24,13 @@ struct ProcessInfo
   char name[16]{};
 };
 
+struct ThreadInfo
+{
+  int tid = 0, pid = 0, parent = 0;
+  unsigned long ticks = 0, bytes = 0;
+  char state = 0, name[16]{};
+};
+
 enum class ProcessState
 {
   Unused,
@@ -32,10 +39,33 @@ enum class ProcessState
   Runnable,
   Running,
   Stopped,
-  Zombie
+  Zombie,
+  ThreadZombie
 };
 
 struct CpuState;
+class Process;
+
+// One owner for resources shared by all execution contexts of a process.
+// Lifecycle code allocates this separately from each schedulable descriptor.
+struct ProcessResources
+{
+  AddressSpace memory;
+  Credentials credentials;
+  DescriptorTable descriptors;
+  WorkingDirectory directory;
+  unsigned references = 1;
+  int group_pid = 0;
+  Process *leader = nullptr;
+  Process *threads[32]{};
+  unsigned slots = 1, live = 1, creating = 0;
+  unsigned stopped = 0;
+  bool stop_reported = false, continue_pending = false;
+  int exec_owner = 0;
+  bool threaded = false;
+  unsigned long exit_request = 0;
+  void *user_info = nullptr;
+};
 
 class Process final
 {
@@ -45,8 +75,39 @@ public:
   Process(const Process &) = delete;
   Process &operator=(const Process &) = delete;
 
-  int id() const
-  {
+  int
+  id() const {
+    return resources_ ? resources_->group_pid : pid;
+  }
+
+  Process &
+  group_leader() {
+    return resources_ && resources_->leader ? *resources_->leader : *this;
+  }
+
+  bool
+  threaded_group() const {
+    return resources_ && __atomic_load_n(&resources_->threaded, __ATOMIC_ACQUIRE);
+  }
+
+  bool
+  group_exit_requested() const {
+    return resources_ && __atomic_load_n(&resources_->exit_request, __ATOMIC_ACQUIRE);
+  }
+
+  bool
+  exec_stopped() const {
+    auto owner =
+        resources_ ? __atomic_load_n(&resources_->exec_owner, __ATOMIC_ACQUIRE) : 0;
+    return owner && owner != pid;
+  }
+
+  bool prepare_exec();
+  void finish_exec();
+  void request_group_exit(int status, int signal);
+
+  int
+  thread_id() const {
     return pid;
   }
 
@@ -56,9 +117,19 @@ public:
   }
 
   void set_name(const char *label);
+
+  void
+  mark_filesystem_worker() {
+    filesystem_worker_ = true;
+  }
+
+  bool
+  filesystem_worker() const {
+    return filesystem_worker_;
+  }
   bool is_killed() const;
   void request_kill();
-  int termination_status() const;
+  int termination_status(int *signal = nullptr) const;
   int signal_action(int signal, unsigned long action, unsigned long old,
                     unsigned long restorer);
   int signal_mask(int how, unsigned long set, unsigned long old);
@@ -80,6 +151,8 @@ public:
     return kstack;
   }
 
+  unsigned long trap_frame_address() const;
+
   TrapFrame *registers()
   {
     return trapframe;
@@ -87,35 +160,39 @@ public:
 
   AddressSpace &memory()
   {
-    return memory_;
+    return resources_->memory;
   }
 
   const AddressSpace &memory() const
   {
-    return memory_;
+    return resources_->memory;
   }
 
   Credentials &credentials()
   {
-    return credentials_;
+    return resources_->credentials;
   }
 
   const Credentials &credentials() const
   {
-    return credentials_;
+    return resources_->credentials;
   }
 
   DescriptorTable &files()
   {
-    return descriptors_;
+    return resources_->descriptors;
   }
+
+  // Borrow for this system call; pins survive another thread closing the FD.
+  xv::fs::File *pin_file(int descriptor);
+  void clear_file_pins();
 
   WorkingDirectory &directory()
   {
-    return directory_;
+    return resources_->directory;
   }
 
-  bool create_image(AddressSpace &image);
+  bool create_image(AddressSpace &image, bool describe = true);
   void commit_image(AddressSpace &image, unsigned long entry, unsigned long stack,
                     unsigned long arguments, const char *path,
                     unsigned long environment = 0, ExecSnapshot *snapshot = nullptr);
@@ -163,6 +240,7 @@ private:
   bool stop_event_ = false;
   bool continued_event_ = false;
   bool continue_notification_ = false; // independent of waitpid event consumption
+  bool filesystem_worker_ = false; // inherited; must not recursively reclaim via FS RPC
   int pid = 0;
   void (*kernel_entry_)() = nullptr;
   void *storage_node_ = nullptr; // immutable registry owner, set before publication
@@ -188,19 +266,28 @@ private:
   bool continue_notify_queued_ = false;
   ProcessMembership membership_{this}; // protected by ProcessGroups
   unsigned long kstack = 0;
-  AddressSpace memory_;
+  ProcessResources *resources_ = nullptr;
+  struct FilePins;
+  xv::fs::File *inline_file_pins_[8]{};
+  unsigned inline_file_pin_count_ = 0;
+  FilePins *extra_file_pins_ = nullptr;
+  unsigned thread_slot_ = 0;
   TrapFrame *trapframe = nullptr;
-  void *usyscall = nullptr;
+  unsigned long thread_result_ = 0;
+  int thread_joiner_ = 0, joining_tid_ = 0;
+  int wait_claimant_ = 0;
+  Process *word_wait_next_ = nullptr;
+  unsigned long word_wait_address_ = 0;
+  bool word_woken_ = false, word_waiting_ = false;
+  bool thread_joined_ = false;
   Context context{};
-  Credentials credentials_;
-  DescriptorTable descriptors_;
-  WorkingDirectory directory_;
   char name[16]{};
   struct CpuState *pincpu = nullptr;
   void *wait_key_ = nullptr;
   Process *wait_next_ = nullptr;
   Process *ready_next_ = nullptr;
   bool queued_ = false;
+  unsigned long cpu_ticks_ = 0, cpu_started_ = 0;
   xv::scheduling::Entity scheduling_;
 };
 

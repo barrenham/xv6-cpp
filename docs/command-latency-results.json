@@ -1,0 +1,358 @@
+{
+  "date": "2026-11-08",
+  "method": "QEMU TCG, 128 MiB, independent test image per boot, serial console, 1/5 CPUs, two sequential rounds, host monotonic input-to-prompt timing; no concurrent build",
+  "means": [
+    {
+      "cpus": 1,
+      "command": "/bin/echo latency-probe",
+      "before_seconds": 0.21551913450821303,
+      "after_seconds": 0.4011177649954334
+    },
+    {
+      "cpus": 1,
+      "command": "ls /bin > /dev/null",
+      "before_seconds": 1.519862794491928,
+      "after_seconds": 1.6688120365142822
+    },
+    {
+      "cpus": 1,
+      "command": "ls /bin",
+      "before_seconds": 2.8428003125009127,
+      "after_seconds": 1.6404718999692705
+    },
+    {
+      "cpus": 1,
+      "command": "ls /usr/tests > /dev/null",
+      "before_seconds": 3.303564293019008,
+      "after_seconds": 2.8899339885101654
+    },
+    {
+      "cpus": 1,
+      "command": "ls /usr/tests",
+      "before_seconds": 6.78324764946592,
+      "after_seconds": 2.798142979008844
+    },
+    {
+      "cpus": 5,
+      "command": "/bin/echo latency-probe",
+      "before_seconds": 0.4021526465076022,
+      "after_seconds": 0.4187913269852288
+    },
+    {
+      "cpus": 5,
+      "command": "ls /bin > /dev/null",
+      "before_seconds": 1.7560096275410615,
+      "after_seconds": 1.3180168065009639
+    },
+    {
+      "cpus": 5,
+      "command": "ls /bin",
+      "before_seconds": 4.81847181750345,
+      "after_seconds": 1.3732697969826404
+    },
+    {
+      "cpus": 5,
+      "command": "ls /usr/tests > /dev/null",
+      "before_seconds": 3.1846248639922123,
+      "after_seconds": 2.382933792512631
+    },
+    {
+      "cpus": 5,
+      "command": "ls /usr/tests",
+      "before_seconds": 10.255741517030401,
+      "after_seconds": 3.02216250449419
+    }
+  ],
+  "samples": {
+    "before": [
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.19231164501979947,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.1502196840010583,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /bin",
+        "seconds": 2.8587739630020224,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 2.9047371560009196,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /usr/tests",
+        "seconds": 5.726822424971033,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.23872662399662659,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.8895059049827978,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /bin",
+        "seconds": 2.826826661999803,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 3.702391430037096,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /usr/tests",
+        "seconds": 7.839672873960808,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.42509968898957595,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.7664918930386193,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /bin",
+        "seconds": 4.762745084997732,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 3.2925868289894424,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /usr/tests",
+        "seconds": 10.447323415020946,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.3792056040256284,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.7455273620435037,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /bin",
+        "seconds": 4.874198550009169,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 3.0766628989949822,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /usr/tests",
+        "seconds": 10.064159619039856,
+        "output_bytes": 3546
+      }
+    ],
+    "after": [
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.39739517599809915,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.7906044039991684,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /bin",
+        "seconds": 1.6783432749798521,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 2.993118110985961,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 0,
+        "command": "ls /usr/tests",
+        "seconds": 2.974565791024361,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.40484035399276763,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.547019669029396,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /bin",
+        "seconds": 1.6026005249586888,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 2.78674986603437,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 1,
+        "round": 1,
+        "command": "ls /usr/tests",
+        "seconds": 2.6217201669933274,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.3458842819673009,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.4635948769864626,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /bin",
+        "seconds": 1.6341757869813591,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 2.2767134659807198,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 0,
+        "command": "ls /usr/tests",
+        "seconds": 3.154580548987724,
+        "output_bytes": 3546
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "/bin/echo latency-probe",
+        "seconds": 0.4916983720031567,
+        "output_bytes": 22
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /bin > /dev/null",
+        "seconds": 1.172438736015465,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /bin",
+        "seconds": 1.1123638069839217,
+        "output_bytes": 1607
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /usr/tests > /dev/null",
+        "seconds": 2.4891541190445423,
+        "output_bytes": 8
+      },
+      {
+        "cpus": 5,
+        "round": 1,
+        "command": "ls /usr/tests",
+        "seconds": 2.8897444600006565,
+        "output_bytes": 3546
+      }
+    ]
+  },
+  "after_sha256": {
+    "build/dev/kernel.elf": "8534110cc1bb9a37ac2156a5d55de277d9b22f6c73ff93d67290fd6e5fddc2d0",
+    "build/dev/fs-test.img": "2f39287249a37311db2b0599ce71309db855510da72a23c0b7afb8001beb891e",
+    "user/runtime/printf.cpp": "12833cf31d893fc6eff2956511df051a17555eec498b58bc66b581969a2db5b0",
+    "tests/user_printf_contract.cpp": "73b7434cb7de22fee234b53108f129073ee7c0b586c93198b1b732e5f0739d9d"
+  }
+}

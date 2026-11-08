@@ -20,6 +20,8 @@ struct AddressSpace::CreateFlow
     AddressSpace &owner;
     void *trap_frame;
     void *user_info;
+    unsigned long frame_address;
+    bool describe_regions;
     PageTable table = nullptr;
     bool result = false;
   };
@@ -39,7 +41,7 @@ struct AddressSpace::CreateFlow
 
   static bool map_frame(Context &c) noexcept
   {
-    return xv::memory::map_user_pages(c.table, TRAPFRAME, PGSIZE,
+    return xv::memory::map_user_pages(c.table, c.frame_address, PGSIZE,
                                       reinterpret_cast<unsigned long>(c.trap_frame),
                                       PTE_R | PTE_W) >= 0;
   }
@@ -59,10 +61,13 @@ struct AddressSpace::CreateFlow
   static bool describe(Context &c) noexcept
   {
     c.owner.table_ = c.table;
+    if (!c.describe_regions) return true;
     return c.owner.regions_.initialize() &&
            c.owner.regions_.reserve(TRAMPOLINE, TRAMPOLINE + PGSIZE, PTE_R | PTE_X,
                                     xv::memory::RegionKind::Special) &&
            c.owner.regions_.reserve(TRAPFRAME, TRAPFRAME + PGSIZE, PTE_R | PTE_W,
+                                    xv::memory::RegionKind::Special) &&
+           c.owner.regions_.reserve(THREAD_FRAME_BASE, USER_SPECIAL_TOP, PTE_R | PTE_W,
                                     xv::memory::RegionKind::Special)
 #ifdef LAB_PGTBL
            && c.owner.regions_.reserve(USYSCALL, USYSCALL + PGSIZE, PTE_R | PTE_U,
@@ -85,7 +90,7 @@ struct AddressSpace::CreateFlow
 
   static void unmap_frame(Context &c) noexcept
   {
-    xv::memory::unmap_user_pages(c.table, TRAPFRAME, 1, 0);
+    xv::memory::unmap_user_pages(c.table, c.frame_address, 1, 0);
   }
 
   static void unmap_trampoline(Context &c) noexcept

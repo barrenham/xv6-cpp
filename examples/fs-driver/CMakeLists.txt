@@ -18,13 +18,16 @@ add_compile_options(-O1 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-sign-co
 include_directories("${XVFS_KIT_ROOT}" "${XVFS_KIT_ROOT}/user/include")
 add_library(sdk STATIC
   "${XVFS_KIT_ROOT}/user/fs/sdk/server.cpp"
-  "${XVFS_KIT_ROOT}/user/fs/sdk/parallel.cpp"
+  "${XVFS_KIT_ROOT}/user/fs/sdk/thread_pool.cpp"
+  "${XVFS_KIT_ROOT}/user/fs/sdk/shared_storage.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/dispatch.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/plugin.cpp"
   "${XVFS_KIT_ROOT}/user/fs/sdk/block_io.cpp")
 target_sources(sdk PUBLIC FILE_SET sdk_modules TYPE CXX_MODULES
   BASE_DIRS "${XVFS_KIT_ROOT}/user/fs/sdk" FILES
   "${XVFS_KIT_ROOT}/user/fs/sdk/server.cppm"
+  "${XVFS_KIT_ROOT}/user/fs/sdk/storage.cppm"
+  "${XVFS_KIT_ROOT}/user/fs/sdk/shared_storage.cppm"
   "${XVFS_KIT_ROOT}/user/fs/sdk/plugin.cppm"
   "${XVFS_KIT_ROOT}/user/fs/sdk/block_io.cppm")
 get_filename_component(driver_directory "${XVFS_DRIVER_INTERFACE}" DIRECTORY)
@@ -33,7 +36,7 @@ target_sources(backend PUBLIC FILE_SET driver_module TYPE CXX_MODULES
   BASE_DIRS "${driver_directory}" FILES "${XVFS_DRIVER_INTERFACE}")
 target_link_libraries(backend PUBLIC sdk)
 set(runtime_sources "")
-foreach(source ulib.cpp posix.cpp cxx.cpp path.cpp file_copy.cpp environment.cpp pty.cpp signals.cpp termios.cpp printf.cpp umalloc.cpp usys.S start.S)
+foreach(source ulib.cpp posix.cpp cxx.cpp path.cpp file_copy.cpp environment.cpp pty.cpp signals.cpp termios.cpp printf.cpp umalloc.cpp threads/tls.cpp threads/pthread.cpp threads/sync.cpp threads/timed.cpp threads/rwlock.cpp usys.S start.S process_entry.S)
   list(APPEND runtime_sources "${XVFS_KIT_ROOT}/user/runtime/${source}")
 endforeach()
 add_executable(driver "${XVFS_DRIVER_ENTRY}" ${runtime_sources})

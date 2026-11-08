@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -23,7 +24,7 @@ app_main(int argc, char **argv) {
   if (first < argc)
   {
     execvp(argv[first], argv + first);
-    fprintf(2, "env: exec failed\n");
+    ui::error("env: exec failed\n");
     exit(1);
   }
   for (char **entry = environ; entry && *entry; ++entry)

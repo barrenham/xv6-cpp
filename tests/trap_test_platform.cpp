@@ -52,9 +52,11 @@ struct State
   bool kill_in_syscall = false;
   int pending_signal_status = 0;
   bool signal_on_yield = false;
+  bool signal_after_delivery = false;
   Word user_pc = 0;
   Word prepared_pc = 0;
   Word token = 0x8000000000012345UL;
+  Word frame = 0x3ffffe7000UL;
   Word deadline = 0;
   Word fault_address = 0;
   bool fault_read = false;
@@ -178,7 +180,8 @@ void syscall_contract()
 {
   reset();
   const auto token = ::usertrap(); // Exercise the actual C ABI entry wrapper.
-  check(token == state.token && state.syscalls == 1 && state.user_pc == 0x1004,
+  check(token.page_table == state.token && token.trap_frame == state.frame &&
+            state.syscalls == 1 && state.user_pc == 0x1004,
         "system call advances the saved user PC once");
   check(state.prepared_pc == 0x1004 && !state.interrupts && state.installs == 1,
         "return uses the updated PC with interrupts off");
@@ -219,6 +222,15 @@ void signal_contract()
           "pending signal terminates before syscall and user return");
   };
   expect_exit(42, [] { ::usertrap(); });
+  reset();
+  state.signal_after_delivery = true;
+  exit_check = [] {
+    check(state.syscalls == 1 && !state.preparations,
+          "signal arriving after delivery keeps its real status before user return");
+  };
+  expect_exit(42, [] {
+    ::usertrap();
+  });
   reset();
   state.pending_signal_status = 143;
   expect_exit(42, [] { controller().return_to_user(); });
@@ -443,6 +455,15 @@ void deliver_signals()
   {
     exit_current(test::state.pending_signal_status);
   }
+  if (test::killed_flag.load())
+  {
+    exit_current(-1);
+  }
+  if (test::state.signal_after_delivery)
+  {
+    test::state.signal_after_delivery = false;
+    test::state.pending_signal_status = 130;
+  }
 }
 
 bool interrupted()
@@ -661,3 +682,11 @@ extern "C" int run_trap_contracts()
   std::puts("trap contracts: passed");
   return 0;
 }
+
+namespace xv::trap
+{
+unsigned long
+user_frame_address() {
+  return test::state.frame;
+}
+} // namespace xv::trap

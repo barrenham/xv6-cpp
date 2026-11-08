@@ -21,7 +21,7 @@ constexpr unsigned QueueSlots = 16;
 struct Packet
 {
   Packet *next = nullptr;
-  unsigned size = 0, offset = 0;
+  unsigned size = 0, offset = 0, references = 1;
   Rights rights;
   unsigned char data[MaxPacket];
 };
@@ -30,6 +30,10 @@ static_assert(sizeof(Packet) <= 4096);
 
 void
 destroy(Packet *packet) {
+  if (__atomic_fetch_sub(&packet->references, 1U, __ATOMIC_ACQ_REL) != 1U)
+  {
+    return;
+  }
   for (unsigned i = 0; i < packet->rights.count; ++i)
   {
     xv::fs::files().release_message(
@@ -270,7 +274,14 @@ Endpoint::send(const iovec *vectors, unsigned count, bool user, unsigned flags,
     return rights.count ? -EINVAL : 0;
   }
   bool interruptible = user || !(flags & KernelWait);
-  if (interruptible)
+  if (flags & MSG_DONTWAIT)
+  {
+    if (!writer.try_acquire())
+    {
+      return -EAGAIN;
+    }
+  }
+  else if (interruptible)
   {
     if (!writer.acquire_interruptible())
     {
@@ -377,7 +388,14 @@ Endpoint::receive(const iovec *vectors, unsigned count, bool user, unsigned flag
     return 0;
   }
   bool interruptible = user || !(flags & KernelWait);
-  if (interruptible)
+  if (flags & MSG_DONTWAIT)
+  {
+    if (!reader.try_acquire())
+    {
+      return -EAGAIN;
+    }
+  }
+  else if (interruptible)
   {
     if (!reader.acquire_interruptible())
     {
@@ -392,7 +410,7 @@ Endpoint::receive(const iovec *vectors, unsigned count, bool user, unsigned flag
   auto &queue = owner.queues[side];
   int done = 0, error = 0;
   unsigned original_size = 0;
-  Packet *garbage = nullptr;
+  Packet *garbage = nullptr, *copy_pin = nullptr;
   Rights consumed_rights;
   output_flags = 0;
   owner.lock.acquire();
@@ -431,8 +449,20 @@ Endpoint::receive(const iovec *vectors, unsigned count, bool user, unsigned flag
     {
       take = available;
     }
+    __atomic_add_fetch(&packet->references, 1U, __ATOMIC_RELAXED);
+    owner.lock.release();
     error = copy_vectors(vectors, count, done, packet->data + packet->offset, take,
                          user, true);
+    owner.lock.acquire();
+    if (queue.front() != packet)
+    {
+      // A deferred collector may have detached the packet. The copy pin keeps
+      // bytes and rights alive; final release must happen outside the spin lock.
+      copy_pin = packet;
+      error = -EAGAIN;
+      break;
+    }
+    destroy(packet); // The queue still owns a reference, so this cannot finalize.
     if (error < 0)
     {
       break;
@@ -493,6 +523,10 @@ Endpoint::receive(const iovec *vectors, unsigned count, bool user, unsigned flag
   }
   owner.lock.release();
   reader.release();
+  if (copy_pin)
+  {
+    destroy(copy_pin);
+  }
   for (unsigned i = 0; i < consumed_rights.count; ++i)
   {
     xv::fs::files().release_message(

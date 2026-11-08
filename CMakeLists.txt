@@ -73,6 +73,8 @@ add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/fs-test.img"
   DEPENDS host_mkfs "${PROJECT_BINARY_DIR}/mkfs" "${PROJECT_BINARY_DIR}/fs-manifest.tsv" "${PROJECT_BINARY_DIR}/README" ${XV_USER_BINARIES} ${XV_FS_ASSETS}
   VERBATIM)
 add_custom_target(test-image ALL DEPENDS "${PROJECT_BINARY_DIR}/fs-test.img")
+# Runtime boundary and live-install tests inspect the optional ELF too.
+add_dependencies(test-image user_ext4_plugin)
 add_test(NAME kernel_source_boundary COMMAND "${Python3_EXECUTABLE}"
   "${PROJECT_SOURCE_DIR}/tests/kernel_source_boundary.py" --build "${PROJECT_BINARY_DIR}")
 set_tests_properties(kernel_source_boundary PROPERTIES TIMEOUT 10 LABELS "fs;module")
@@ -88,6 +90,13 @@ foreach(kmod_cpus 1 5)
       --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
       --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${kmod_cpus})
   set_tests_properties(kernel_driver_boot_${kmod_cpus}cpu PROPERTIES
+    TIMEOUT 180 RUN_SERIAL TRUE LABELS "driver;module;boot")
+  add_test(NAME driver_dependencies_${kmod_cpus}cpu
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/driver_dependencies.py"
+      --qemu "${XV_QEMU}" --kernel $<TARGET_FILE:kernel>
+      --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+      --image "${PROJECT_BINARY_DIR}/fs-test.img" --compiler "${CMAKE_CXX_COMPILER}" --cpus ${kmod_cpus})
+  set_tests_properties(driver_dependencies_${kmod_cpus}cpu PROPERTIES
     TIMEOUT 180 RUN_SERIAL TRUE LABELS "driver;module;boot")
   add_test(NAME kernel_driver_hotplug_${kmod_cpus}cpu
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/kmod_hotplug.py"
@@ -138,6 +147,20 @@ set(XV_QEMU_OPTIONS -machine virt -bios none -kernel $<TARGET_FILE:kernel>
 list(APPEND XV_QEMU_OPTIONS -object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-device,rng=rng0,bus=virtio-mmio-bus.2)
 set(XV_NET_BACKEND "user,id=net0" CACHE STRING "QEMU network backend; append hostfwd for inbound UDP")
 list(APPEND XV_QEMU_OPTIONS -netdev ${XV_NET_BACKEND} -device e1000,netdev=net0,bus=pcie.0,addr=01.0,mac=52:54:00:12:34:56)
+set(XV_HOTPLUG_SLOTS "2" CACHE STRING "Reserved PCIe hotplug ports (0..3)")
+if(NOT XV_HOTPLUG_SLOTS MATCHES "^[0-3]$")
+  message(FATAL_ERROR "XV_HOTPLUG_SLOTS must be 0..3")
+endif()
+if(XV_HOTPLUG_SLOTS GREATER 0)
+  math(EXPR XV_LAST_HOTPLUG "${XV_HOTPLUG_SLOTS} - 1")
+  foreach(slot RANGE 0 ${XV_LAST_HOTPLUG})
+    math(EXPR address "16 + ${slot}" OUTPUT_FORMAT HEXADECIMAL)
+    math(EXPR chassis "1 + ${slot}")
+    list(APPEND XV_QEMU_OPTIONS -device pcie-root-port,id=hotplug${slot},bus=pcie.0,addr=${address},chassis=${chassis})
+  endforeach()
+endif()
+set(XV_QMP_SOCKET "${PROJECT_BINARY_DIR}/qemu.qmp" CACHE FILEPATH "Development QEMU local QMP socket")
+list(APPEND XV_QEMU_OPTIONS -qmp unix:${XV_QMP_SOCKET},server=on,wait=off)
 add_custom_target(qemu COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS} DEPENDS kernel user_fsboot rootfs-image USES_TERMINAL)
 add_custom_target(qemu-graphics COMMAND "${XV_QEMU}" ${XV_QEMU_OPTIONS}
   -device virtio-gpu-device,bus=virtio-mmio-bus.3,xres=${XV_DISPLAY_WIDTH},yres=${XV_DISPLAY_HEIGHT}
@@ -301,7 +324,8 @@ foreach(cpus 1 5)
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
     --allocator "${XV_PAGE_ALLOCATOR}" --ram-mib "${XV_RAM_MB}"
     --poll --cpus ${cpus})
-  set_tests_properties(poll_${cpus}cpu PROPERTIES TIMEOUT 15 LABELS io)
+  # Includes a complete boot/login before exercising poll semantics.
+  set_tests_properties(poll_${cpus}cpu PROPERTIES TIMEOUT 45 LABELS io)
   add_test(NAME pty_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
     "${PROJECT_SOURCE_DIR}/tests/smoke.py" --qemu "${XV_QEMU}"
     --kernel $<TARGET_FILE:kernel> --image "${PROJECT_BINARY_DIR}/fs-test.img"
@@ -581,8 +605,38 @@ foreach(cpus IN ITEMS 1 5)
   set_tests_properties(timers_${cpus}cpu PROPERTIES TIMEOUT 90 LABELS "process;timer" RUN_SERIAL TRUE)
 endforeach()
 
+add_test(NAME vim_buffer_contract COMMAND "${PROJECT_BINARY_DIR}/vim_buffer_contract")
+set_tests_properties(vim_buffer_contract PROPERTIES TIMEOUT 10 LABELS "tty;editor")
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME vim_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/vim.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(vim_${cpus}cpu PROPERTIES TIMEOUT 240 LABELS "tty;editor;fs" RUN_SERIAL TRUE)
+endforeach()
+
+foreach(cpus IN ITEMS 1 5)
+  set(hotplug_network_option)
+  if(cpus EQUAL 5)
+    set(hotplug_network_option --boot-network)
+  endif()
+  add_test(NAME device_hotplug_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/device_hotplug.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus} ${hotplug_network_option})
+  set_tests_properties(device_hotplug_${cpus}cpu PROPERTIES TIMEOUT 420 LABELS "drivers;hotplug;network" RUN_SERIAL TRUE)
+endforeach()
+
 add_test(NAME user_printf_contract COMMAND "${PROJECT_BINARY_DIR}/user_printf_contract")
 set_tests_properties(user_printf_contract PROPERTIES TIMEOUT 10 LABELS runtime)
+
+foreach(cpus IN ITEMS 1 5)
+  add_test(NAME serial_colors_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/serial_colors.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(serial_colors_${cpus}cpu PROPERTIES TIMEOUT 180 LABELS "tty;shell" RUN_SERIAL TRUE)
+endforeach()
 
 # FS boot services must run before any disk filesystem is mounted. These cases
 # intentionally supply an unformatted private disk and do not enroll accounts.
@@ -799,6 +853,8 @@ add_test(NAME device_tree_contract COMMAND "${Python3_EXECUTABLE}"
   "${PROJECT_SOURCE_DIR}/tests/device_tree_contract.py" --qemu "${XV_QEMU}"
   --contract "${PROJECT_BINARY_DIR}/device_tree_contract")
 set_tests_properties(device_tree_contract PROPERTIES TIMEOUT 40 LABELS "driver;boot")
+add_test(NAME driver_matching_contract COMMAND "${PROJECT_BINARY_DIR}/driver_matching_contract")
+set_tests_properties(driver_matching_contract PROPERTIES TIMEOUT 10 LABELS "driver;module")
 
 foreach(cpus 1 5)
   add_test(NAME device_discovery_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
@@ -840,4 +896,28 @@ foreach(cpus 1 5)
     --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
     --image "${PROJECT_BINARY_DIR}/fs-test.img" --mkfs "${PROJECT_BINARY_DIR}/mkfs" --cpus ${cpus})
   set_tests_properties(system_extensions_${cpus}cpu PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "fs;memory;services")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME fs_persistent_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/fs_persistent.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(fs_persistent_${cpus}cpu PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE LABELS "fs;ipc")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME thread_core_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/thread_core.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(thread_core_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "process;threads")
+endforeach()
+
+foreach(cpus 1 5)
+  add_test(NAME pthread_runtime_${cpus}cpu COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/tests/pthread_runtime.py" --qemu "${XV_QEMU}"
+    --kernel $<TARGET_FILE:kernel> --bootstrap "${PROJECT_BINARY_DIR}/user/image/_fsboot"
+    --image "${PROJECT_BINARY_DIR}/fs-test.img" --cpus ${cpus})
+  set_tests_properties(pthread_runtime_${cpus}cpu PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "process;threads")
 endforeach()

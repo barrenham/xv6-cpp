@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
@@ -12,7 +13,7 @@ extern "C"
 
     if (argc < 2)
     {
-      fprintf(2, "Usage: rm files...\n");
+      ui::usage("Usage: rm files...\n");
       exit(1);
     }
 
@@ -20,7 +21,7 @@ extern "C"
     {
       if (unlink(argv[i]) < 0)
       {
-        fprintf(2, "rm: %s failed to delete\n", argv[i]);
+        ui::error("rm: %s failed to delete\n", argv[i]);
         break;
       }
     }

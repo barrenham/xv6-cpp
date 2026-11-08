@@ -1,4 +1,4 @@
 #pragma once
 
 // Application implementation; main.cpp owns the executable entry point.
-extern "C" int app_main(void);
+extern "C" int app_main(int argc, char **argv);

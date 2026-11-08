@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/image_paths.h"
 #include "kernel/fs/fcntl.h"
@@ -13,8 +14,8 @@ namespace
 {
 constexpr unsigned Rounds = 100000;
 
-int line(int fd, char *buffer, unsigned capacity)
-{
+int
+line(int fd, char *buffer, unsigned capacity) {
   unsigned used = 0;
   char c;
   for (;;)
@@ -46,8 +47,8 @@ int line(int fd, char *buffer, unsigned capacity)
   return 1;
 }
 
-bool record(const char *name, char *result)
-{
+bool
+record(const char *name, char *result) {
   char database[128];
   path("shadow", database);
   int fd = open(database, O_RDONLY);
@@ -72,8 +73,8 @@ bool record(const char *name, char *result)
 }
 } // namespace
 
-int password_state()
-{
+int
+password_state() {
   struct stat st;
   char database[128];
   path("shadow", database);
@@ -92,8 +93,8 @@ int password_state()
              : -1;
 }
 
-bool verify(const char *name, const char *password)
-{
+bool
+verify(const char *name, const char *password) {
   if (geteuid() != 0)
   {
     return false;
@@ -140,8 +141,8 @@ bool verify(const char *name, const char *password)
   return difference == 0;
 }
 
-bool set_password(const char *name, const char *password)
-{
+bool
+set_password(const char *name, const char *password) {
   User user{};
   char database[128], temporary[128], lock[128];
   path("shadow", database);
@@ -247,8 +248,8 @@ bool set_password(const char *name, const char *password)
   return good;
 }
 
-bool read_password(const char *prompt, char *output, unsigned capacity)
-{
+bool
+read_password(const char *prompt, char *output, unsigned capacity) {
   termios saved;
   if (tcgetattr(0, &saved) < 0)
   {
@@ -261,7 +262,7 @@ bool read_password(const char *prompt, char *output, unsigned capacity)
   {
     return false;
   }
-  write(2, prompt, strlen(prompt));
+  ui::print(2, ui::Tone::Heading, "%s", prompt);
   unsigned used = 0;
   bool good = true, overflow = false;
   for (;;)
@@ -297,8 +298,8 @@ bool read_password(const char *prompt, char *output, unsigned capacity)
   return good && !overflow;
 }
 
-bool change_password(const char *name)
-{
+bool
+change_password(const char *name) {
   char first[64]{}, second[64]{};
   bool good = read_password("New password: ", first, sizeof(first)) &&
               read_password("Retype password: ", second, sizeof(second)) &&
@@ -307,15 +308,15 @@ bool change_password(const char *name)
   password_hash::wipe(second, sizeof(second));
   if (!good)
   {
-    fprintf(
-        2,
+    ui::error(
         "passwd: passwords must match and contain 8..63 bytes; account/database must be writable\n");
   }
   return good;
 }
 
-[[noreturn]] void enter(const User &user)
-{
+[[noreturn]]
+void
+enter(const User &user) {
   for (int fd = 3; fd < 16; ++fd)
   {
     close(fd);
@@ -331,12 +332,12 @@ bool change_password(const char *name)
   if (count < 0 || setgroups(count, extra) < 0 || setgid(user.gid) < 0 ||
       setuid(user.uid) < 0 || chdir(user.home) < 0)
   {
-    fprintf(2, "login: cannot establish user session\n");
+    ui::error("login: cannot establish user session\n");
     exit(1);
   }
   char *arguments[] = {const_cast<char *>(user.shell), nullptr};
   execv(user.shell, arguments);
-  fprintf(2, "login: cannot execute shell\n");
+  ui::error("login: cannot execute shell\n");
   exit(1);
 }
 } // namespace account

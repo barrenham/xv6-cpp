@@ -29,6 +29,9 @@ with tempfile.TemporaryDirectory(prefix='xv-memory-mapping-') as temporary:
         output = guest.command('/usr/tests/mappingtest', 'mappingtest: PASS', timeout=120)
         print(output)
         assert output.count('usertrap(): unexpected') == 2, output
+        output = guest.command('/usr/tests/cachereclaim', 'cachereclaim: PASS', timeout=180)
+        print(output)
+        assert 'usertrap(): unexpected' not in output, output
         for path in ('/tmp/filemaptest', '/root/filemaptest'):
             output = guest.command('/usr/tests/filemaptest ' + path,
                                    'filemaptest: PASS', timeout=180)

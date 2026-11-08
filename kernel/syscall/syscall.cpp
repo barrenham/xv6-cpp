@@ -62,6 +62,7 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_mq_receive: return sys_mq_receive;
   case SYS_mq_getsetattr: return sys_mq_getsetattr;
   case SYS_clock_gettime: return sys_clock_gettime;
+  case SYS_sched_yield: return sys_sched_yield;
   case SYS_mmap: return sys_mmap;
   case SYS_mprotect: return sys_mprotect;
   case SYS_msync: return sys_msync;
@@ -102,6 +103,14 @@ static SyscallHandler lookup_syscall(int number)
   case SYS_chdir: return sys_chdir;
   case SYS_dup: return sys_dup;
   case SYS_getpid: return sys_getpid;
+  case SYS_gettid: return sys_gettid;
+  case SYS_thread_word_timedwait: return sys_thread_word_timedwait;
+  case SYS_thread_word_wait: return sys_thread_word_wait;
+  case SYS_thread_signal: return sys_thread_signal;
+  case SYS_thread_word_wake: return sys_thread_word_wake;
+  case SYS_thread_create: return sys_thread_create;
+  case SYS_thread_join: return sys_thread_join;
+  case SYS_thread_exit: return sys_thread_exit;
   case SYS_sbrk: return sys_sbrk;
   case SYS_pause: return sys_pause;
   case SYS_uptime: return sys_uptime;

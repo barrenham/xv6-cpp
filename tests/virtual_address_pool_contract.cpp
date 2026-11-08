@@ -191,6 +191,11 @@ void metadata_oom()
   auto initial = allocator().free_pages();
   VirtualAddressPool pool;
   check(pool.initialize(Base, Base + 1024 * Unit), "OOM fixture");
+  VirtualAddressPool destination;
+  check(destination.initialize(Base, Base + 16 * Unit) &&
+            destination.reserve(Base, Base + Unit, 2, RegionKind::Image),
+        "copy rollback destination fixture");
+  const auto destination_free = destination.largest_free();
   // Exhaust physical memory, then consume remaining slots in the first slab.
   std::vector<void *> held;
   while (auto *page = allocator().allocate()) held.push_back(page);
@@ -198,6 +203,13 @@ void metadata_oom()
   while (pool.allocate(Unit)) ++filled;
   check(filled > 2, "fill metadata slab");
   auto largest = pool.largest_free();
+  check(!pool.copy_to(destination) &&
+            destination.largest_free() == destination_free &&
+            destination.find(Base) && destination.find(Base)->kind == RegionKind::Image &&
+            destination.find(Base)->permissions == 2 &&
+            !destination.find(Base + Unit),
+        "failed interval clone preserves destination and source");
+  check(pool.largest_free() == largest, "failed clone leaves source topology unchanged");
   VirtualAddressPool uninitialized;
   check(!uninitialized.initialize(Base, Base + Unit), "initialization OOM");
   check(!pool.allocate(Unit) && pool.largest_free() == largest, "allocation OOM preserves free interval");
@@ -210,6 +222,7 @@ void metadata_oom()
   check(pool.largest_free() == 1024 * Unit, "OOM recovery topology");
   for (auto *page : held) allocator().deallocate(page);
   pool.reset();
+  destination.reset();
   check(allocator().free_pages() == initial, "OOM fixture fully reclaimed");
 }
 } // namespace

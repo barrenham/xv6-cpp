@@ -4,6 +4,7 @@ module;
 #include "kernel/io/posix_errno.h"
 export module xv.ipc;
 export import xv.io;
+import xv.vm_types;
 
 export namespace xv::ipc
 {
@@ -74,6 +75,8 @@ public:
   static constexpr auto Id = xv::io::CapabilityId::SharedMemory;
   virtual bool writable() const = 0;
   virtual unsigned long length() const = 0;
+  // The returned lease owns the object independently of names and open FDs.
+  virtual xv::memory::MappingBacking *mapping(unsigned offset_pages) = 0;
   // pin() returns temporary physical-page references; callers release each.
   virtual int pin(unsigned offset_pages, unsigned count, void **pages) = 0;
   virtual int copy(unsigned long offset, void *buffer, unsigned count, bool user,

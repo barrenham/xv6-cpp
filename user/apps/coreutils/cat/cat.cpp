@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/fcntl.h"
@@ -16,13 +17,13 @@ extern "C"
     {
       if (write(1, buf, n) != n)
       {
-        fprintf(2, "cat: write error\n");
+        ui::error("cat: write error\n");
         exit(1);
       }
     }
     if (n < 0)
     {
-      fprintf(2, "cat: read error\n");
+      ui::error("cat: read error\n");
       exit(1);
     }
   }
@@ -41,7 +42,7 @@ extern "C"
     {
       if ((fd = open(argv[i], O_RDONLY)) < 0)
       {
-        fprintf(2, "cat: cannot open %s\n", argv[i]);
+        ui::error("cat: cannot open %s\n", argv[i]);
         exit(1);
       }
       cat(fd);

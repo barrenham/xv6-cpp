@@ -1,5 +1,7 @@
 module;
 #include "kernel/io/kmodule_v2.h"
+#include "kernel/io/kmodule_v3.h"
+#include "kernel/io/kmodule_v4.h"
 module xv.drivers:module_runtime;
 import xv.sync;
 import :serial;
@@ -52,6 +54,9 @@ struct Image
   unsigned long interrupts = 0;
   ResourcePool pool;
   xv_kmod_host_v2 services{};
+  bool automatic = false;
+  unsigned selected_device = MaxDevices;
+  int last_error = 0;
 };
 
 struct Binding
@@ -70,14 +75,19 @@ struct Binding
   xv_kmod_serial serial{};
   xv_kmod_ethernet ethernet{};
   unsigned network_slot = ~0U;
+  bool quarantined = false;
+  unsigned publications = 0;
 };
 
 extern Image images[MaxModules];
 extern Binding bindings[MaxDevices];
 extern unsigned online[MaxDevices];
 bool callback(const Image &, unsigned long address);
-int attach(Image &, const xv_kmod_device_v2 &);
+int attach(Image &, const xv_kmod_device_v3 &);
 unsigned network_count();
+void quiesce_network(Binding &);
+void detach_network(Binding &);
+extern void (*network_hotplug)(unsigned, bool);
 EthernetDevice &network_proxy(unsigned index);
 void network_receiver(unsigned index, EthernetReceiver &receiver);
 } // namespace xv::drivers::modules

@@ -14,12 +14,9 @@ namespace xv::syscall
 int fetch_address(uint64 addr, uint64 *ip)
 {
   xv::process::Process *p = xv::process::current();
-  if (addr >= p->memory().size() ||
-      addr + sizeof(uint64) >
-          p->memory().size()) // both tests needed, in case of overflow
-  {
-    return -1;
-  }
+  // Argument vectors may live in mmap regions (including a mapped stack).
+  // AddressSpace validates overflow, region permissions and actual user PTEs;
+  // the ordinary heap end is not the process's complete virtual address limit.
   if (p->memory().copy_in(ip, addr, sizeof(*ip)) != 0)
   {
     return -1;

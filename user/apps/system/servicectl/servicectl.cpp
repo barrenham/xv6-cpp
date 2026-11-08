@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "user/services/protocol.h"
 #include "user/runtime/user.h"
@@ -7,8 +8,17 @@ namespace
 {
 void
 show(const services::Reply &entry) {
-  printf("%-24s %-12s %6d %8d %6d  %s\n", entry.name, services::phase_name(entry.phase),
-         entry.pid, entry.restarts, entry.status, entry.external ? "core" : entry.log);
+  auto tone = entry.phase == services::Phase::Running ||
+                      entry.phase == services::Phase::Complete
+                  ? ui::Tone::Success
+              : entry.phase == services::Phase::Failed ||
+                      entry.phase == services::Phase::Unavailable
+                  ? ui::Tone::Error
+              : entry.phase == services::Phase::Stopped ? ui::Tone::Muted
+                                                        : ui::Tone::Warning;
+  ui::print(1, tone, "%-24s %-12s %6d %8d %6d  %s\n", entry.name,
+            services::phase_name(entry.phase), entry.pid, entry.restarts, entry.status,
+            entry.external ? "core" : entry.log);
 }
 
 int
@@ -44,8 +54,7 @@ app_main(int argc, char **argv) {
   }
   if (first >= argc)
   {
-    fprintf(
-        2,
+    ui::usage(
         "usage: servicectl [--socket PATH] list | status/start/stop/restart/log NAME | load FILE\n");
     return 1;
   }
@@ -98,15 +107,15 @@ app_main(int argc, char **argv) {
   }
   if (!logs)
   {
-    printf("%-24s %-12s %6s %8s %6s  %s\n", "NAME", "STATE", "PID", "RESTARTS",
-           "STATUS", "LOG / OWNER");
+    ui::heading("%-24s %-12s %6s %8s %6s  %s\n", "NAME", "STATE", "PID", "RESTARTS",
+                "STATUS", "LOG / OWNER");
   }
   for (;; ++request.index)
   {
     services::Reply response;
     if (!services::exchange(socket, request, response))
     {
-      fprintf(2, "servicectl: manager unavailable\n");
+      ui::error("servicectl: manager unavailable\n");
       return 1;
     }
     if (response.result < 0)
@@ -115,9 +124,9 @@ app_main(int argc, char **argv) {
       {
         return 0;
       }
-      fprintf(2, "servicectl: %s\n",
-              response.detail[0] ? response.detail
-                                 : "service or operation unavailable");
+      ui::error("servicectl: %s\n", response.detail[0]
+                                        ? response.detail
+                                        : "service or operation unavailable");
       return 1;
     }
     if (logs)
@@ -126,15 +135,20 @@ app_main(int argc, char **argv) {
     }
     if (request.command == services::Command::Load)
     {
-      printf("configuration loaded\n");
+      ui::success("configuration loaded\n");
       return 0;
     }
     show(response);
     if (!list)
     {
+      if (!response.external && request.command == services::Command::Status)
+      {
+        ui::info("Guardian PID: %d  Captured: %lu bytes  Rotations: %lu\n",
+                 response.guardian, response.log_captured, response.log_rotations);
+      }
       if (response.detail[0])
       {
-        printf("%s\n", response.detail);
+        ui::info("%s\n", response.detail);
       }
       return 0;
     }

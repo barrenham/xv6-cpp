@@ -215,6 +215,10 @@ namespace xv::fs
 {
 bool can_reclaim_file_objects()
 {
+  if (detail::filesystem_service_context() || detail::virtual_memory_context())
+  {
+    return false;
+  }
   if (filesystem().namespace_held()) { return false; }
   xv::sync::ScopedLock guard(registry_lock);
   for (auto *provider : providers)

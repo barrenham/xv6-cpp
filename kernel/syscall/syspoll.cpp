@@ -2,6 +2,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/fs/poll.h"
 #include "kernel/support/param.h"
+#include "kernel/io/posix_errno.h"
 
 module xv.syscall;
 import :arguments;
@@ -89,6 +90,21 @@ struct PollFlow
     return c.wait.failed();
   }
 
+  static void
+  no_memory(Context &c) noexcept {
+    c.result = -ENOMEM;
+  }
+
+  static void
+  fault(Context &c) noexcept {
+    c.result = -EFAULT;
+  }
+
+  static void
+  interrupted(Context &c) noexcept {
+    c.result = -EINTR;
+  }
+
   static void sleep(Context &c) noexcept
   {
     c.registering = false;
@@ -100,6 +116,9 @@ struct PollFlow
   struct Killed;
   struct Failed;
   struct Sleep;
+  struct NoMemory;
+  struct Fault;
+  struct Interrupted;
   using Graph = flow::graph<
       Scan,
       flow::types<flow::node<Scan, flow::action<&scan>,
@@ -107,14 +126,17 @@ struct PollFlow
                                           flow::go<CopyResults>, flow::go<Killed>>>,
                   flow::node<CopyResults, flow::noop,
                              flow::branch<flow::condition<&copy_results>,
-                                          flow::go<Success>, flow::stop>>,
+                                          flow::go<Success>, flow::go<Fault>>>,
                   flow::node<Success, flow::action<&success>, flow::stop>,
                   flow::node<Killed, flow::noop,
-                             flow::branch<flow::condition<&killed>, flow::stop,
-                                          flow::go<Failed>>>,
+                             flow::branch<flow::condition<&killed>,
+                                          flow::go<Interrupted>, flow::go<Failed>>>,
                   flow::node<Failed, flow::noop,
-                             flow::branch<flow::condition<&failed>, flow::stop,
+                             flow::branch<flow::condition<&failed>, flow::go<NoMemory>,
                                           flow::go<Sleep>>>,
+                  flow::node<NoMemory, flow::action<&no_memory>, flow::stop>,
+                  flow::node<Fault, flow::action<&fault>, flow::stop>,
+                  flow::node<Interrupted, flow::action<&interrupted>, flow::stop>,
                   flow::node<Sleep, flow::action<&sleep>, flow::go<Scan>>>>;
 };
 } // namespace
@@ -128,14 +150,14 @@ unsigned long sys_poll()
   argument_integer(2, &timeout);
   if (count < 0 || count > NOFILE)
   {
-    return -1;
+    return -EINVAL;
   }
   pollfd descriptors[NOFILE];
   auto *process = xv::process::current();
   if (count &&
       process->memory().copy_in(descriptors, address, count * sizeof(pollfd)) < 0)
   {
-    return -1;
+    return -EFAULT;
   }
 
   struct HeldFiles
@@ -156,10 +178,7 @@ unsigned long sys_poll()
 
   for (int i = 0; i < count; ++i)
   {
-    if (auto *file = process->files().get(descriptors[i].fd))
-    {
-      held.entries[i] = xv::fs::files().retain(file);
-    }
+    held.entries[i] = process->files().retain(descriptors[i].fd);
   }
   auto wait = xv::process::make_poll_wait();
   const auto start = xv::arch::r_time();

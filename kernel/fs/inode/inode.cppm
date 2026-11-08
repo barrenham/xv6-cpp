@@ -86,10 +86,14 @@ private:
   friend class FileSystem;
   friend class FileMapping;
   friend struct MappedPages;
+  friend struct CacheOperation;
   friend class UserFileSystem;
   FileSystem *owner_ = nullptr;
   MappedPages *mapped_pages_ = nullptr;
+  FileMapping *file_mappings_ = nullptr;
   unsigned mapped_length_ = 0;
+  unsigned cache_users_ = 0;
+  bool cache_reclaiming_ = false;
   unsigned dev = 0;
   unsigned inum = 0;
   int ref = 0;

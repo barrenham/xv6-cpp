@@ -15,6 +15,8 @@ target_sources(kernel PRIVATE
   signals/user_signals.cpp
   signals/signal_delivery.cpp
   lifecycle/process_manager.cpp
+  lifecycle/threads.cpp
+  wait/word_wait.cpp
   groups/process_groups.cpp
   groups/kernel_platform.cpp
   groups/group_operations.cpp
@@ -28,9 +30,11 @@ target_sources(kernel PRIVATE
   scheduler/queues/fifo_ready_queue.cpp
   arch/cpu_affinity.cpp
   lifecycle/service.cpp
+  resources/file_pins.cpp
   resources/process_resources.cpp
   resources/kernel_platform.cpp
   memory/mapping_sync.cpp
+  memory/address_space_access.cpp
   memory/address_space.cpp
   scheduler/runtime/scheduler_runtime.cpp
   exec/elf_loader.cpp

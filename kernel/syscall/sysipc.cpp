@@ -21,7 +21,7 @@ xv::fs::File *
 file_argument() {
   int descriptor;
   argument_integer(0, &descriptor);
-  return xv::process::current()->files().get(descriptor);
+  return xv::process::current()->pin_file(descriptor);
 }
 
 int
@@ -70,6 +70,7 @@ sys_socketpair() {
   }
   xv::fs::File *files[2]{};
   int descriptors[2]{-1, -1};
+  unsigned long generations[2]{};
   int error = -ENFILE;
   for (unsigned i = 0; i < 2; ++i)
   {
@@ -81,7 +82,7 @@ sys_socketpair() {
     xv::fs::files().bind_object(*files[i], *objects[i], options & SOCK_NONBLOCK);
     xv::io::query<xv::ipc::LocalSocket>(objects[i])->attach_file(files[i]);
     descriptors[i] = xv::process::current()->files().install(
-        files[i], options & SOCK_CLOEXEC ? FD_CLOEXEC : 0);
+        files[i], options & SOCK_CLOEXEC ? FD_CLOEXEC : 0, 0, &generations[i]);
     if (descriptors[i] < 0)
     {
       error = -EMFILE;
@@ -101,7 +102,7 @@ sys_socketpair() {
     {
       if (descriptors[i] >= 0)
       {
-        xv::process::current()->files().close(descriptors[i]);
+        xv::process::current()->files().close(descriptors[i], generations[i]);
       }
       else if (files[i])
       {
@@ -183,7 +184,7 @@ sys_sendmsg() {
       auto *descriptors = reinterpret_cast<const int *>(CMSG_DATA(&header));
       for (unsigned i = 0; i < count; ++i)
       {
-        auto *passed = xv::process::current()->files().get(descriptors[i]);
+        auto *passed = xv::process::current()->pin_file(descriptors[i]);
         if (!passed)
         {
           return -EBADF;
@@ -253,12 +254,13 @@ sys_recvmsg() {
     fit = rights.count;
   }
   int installed[xv::ipc::MaxRights]{};
+  unsigned long generations[xv::ipc::MaxRights]{};
   unsigned count = 0;
   for (; count < fit; ++count)
   {
     auto *owned = static_cast<xv::fs::File *>(rights.files[count]);
     installed[count] = xv::process::current()->files().install(
-        owned, flags & MSG_CMSG_CLOEXEC ? FD_CLOEXEC : 0);
+        owned, flags & MSG_CMSG_CLOEXEC ? FD_CLOEXEC : 0, 0, &generations[count]);
     if (installed[count] < 0)
     {
       break;
@@ -302,7 +304,7 @@ sys_recvmsg() {
   {
     for (unsigned i = 0; i < count; ++i)
     {
-      xv::process::current()->files().close(installed[i]);
+      xv::process::current()->files().close(installed[i], generations[i]);
     }
     return error;
   }
@@ -429,7 +431,7 @@ sys_mmap() {
     }
     return result ? result : static_cast<unsigned long>(-ENOMEM);
   }
-  auto *file = xv::process::current()->files().get(descriptor);
+  auto *file = xv::process::current()->pin_file(descriptor);
   if (!file)
   {
     return -EBADF;
@@ -466,19 +468,16 @@ sys_mmap() {
   {
     return -EINVAL;
   }
-  void *pages[256];
-  int error = object->pin(offset / 4096, count, pages);
-  if (error)
+  auto *backing = object->mapping(offset / 4096);
+  if (!backing)
   {
-    return error;
+    return -ENOMEM;
   }
   auto result = xv::process::current()->memory().map_shared_pages(
-      pages, count, permissions, flags & MAP_PRIVATE, hint,
-      PTE_U | PTE_R | ((object->writable() || (flags & MAP_PRIVATE)) ? PTE_W : 0));
-  for (unsigned i = 0; i < count; ++i)
-  {
-    xv::memory::allocator().release_page(pages[i]);
-  }
+      nullptr, count, permissions, flags & MAP_PRIVATE, hint,
+      PTE_U | PTE_R | ((object->writable() || (flags & MAP_PRIVATE)) ? PTE_W : 0),
+      backing);
+  backing->release();
   return result ? result : static_cast<unsigned long>(-ENOMEM);
 }
 

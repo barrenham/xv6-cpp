@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/proc.h"
@@ -7,7 +8,7 @@ app_main() {
   char data[512];
   if (proc::read("/proc/meminfo", data, sizeof(data)) < 0)
   {
-    fprintf(2, "free: cannot read /proc/meminfo\n");
+    ui::error("free: cannot read /proc/meminfo\n");
     exit(1);
   }
   int total = proc::number(data, "MemTotal"), free = proc::number(data, "MemFree");
@@ -16,7 +17,8 @@ app_main() {
   {
     exit(1);
   }
-  printf("%-8s %10s %10s %10s %10s (KiB)\n", "", "total", "used", "free", "available");
+  ui::heading("%-8s %10s %10s %10s %10s (KiB)\n", "", "total", "used", "free",
+              "available");
   printf("%-8s %10d %10d %10d %10d\n", "Mem:", total, total - free, free, available);
   exit(0);
 }

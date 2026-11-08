@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/process/signals/signal.h"
@@ -73,7 +74,7 @@ app_main(int argc, char **argv) {
   }
   if (first >= argc)
   {
-    fprintf(2, "usage: kill [-INT|-TERM|-KILL|-STOP|-TSTP|-CONT|-0] target...\n");
+    ui::usage("usage: kill [-INT|-TERM|-KILL|-STOP|-TSTP|-CONT|-0] target...\n");
     return 1;
   }
   int failed = 0;
@@ -83,7 +84,7 @@ app_main(int argc, char **argv) {
     if (!parse_target(argv[i], target) ||
         (signal < 0 ? kill(target) : sigsend(target, signal)) < 0)
     {
-      fprintf(2, "kill: cannot signal %s\n", argv[i]);
+      ui::error("kill: cannot signal %s\n", argv[i]);
       failed = 1;
     }
   }

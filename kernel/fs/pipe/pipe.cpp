@@ -30,7 +30,7 @@ Pipe::poll(bool writable, xv::sync::PollTable *table) {
     }
     return written_ - read_ < Capacity ? POLLOUT : 0;
   }
-  unsigned events = written_ != read_ || !writer_open_ ? POLLIN : 0;
+  unsigned events = !read_busy_ && (written_ != read_ || !writer_open_) ? POLLIN : 0;
   return events | (writer_open_ ? 0 : POLLHUP);
 }
 
@@ -70,14 +70,40 @@ Pipe::write(uint64 addr, int n, bool nonblocking) {
   {
     return n == 0 ? 0 : -1;
   }
-  lock_.acquire();
-  WriteFlow::Context context{*this, addr, n, nonblocking};
-  (void)WriteFlow::Graph::run<0>(context);
-  if (context.broken)
+  int done = 0;
+  while (done < n)
   {
-    detail::broken_pipe();
+    int count = n - done;
+    if (count > static_cast<int>(Capacity))
+    {
+      count = Capacity;
+    }
+    char bytes[Capacity];
+    // Resolve user faults without holding the pipe lock. The original request
+    // length decides PIPE_BUF atomicity, including a large nonblocking write.
+    if (detail::copy_in(bytes, true, addr + done, count) < 0)
+    {
+      return done ? done : -1;
+    }
+    lock_.acquire();
+    WriteFlow::Context context{*this, bytes, count, nonblocking,
+                               static_cast<unsigned>(n) <= Capacity};
+    (void)WriteFlow::Graph::run<0>(context);
+    if (context.broken)
+    {
+      detail::broken_pipe();
+    }
+    if (context.result <= 0)
+    {
+      return done ? done : context.result;
+    }
+    done += context.result;
+    if (context.result != count)
+    {
+      return done;
+    }
   }
-  return context.result;
+  return done;
 }
 
 int

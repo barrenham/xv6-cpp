@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 // Shell.
 
@@ -144,7 +145,7 @@ extern "C"
     char line[sizeof(job->command) + 48];
     unsigned used = 0;
     auto append = [&](const char *text) {
-      while (*text && used < sizeof(line))
+      while (*text && used + 1 < sizeof(line))
       {
         line[used++] = *text++;
       }
@@ -166,7 +167,9 @@ extern "C"
     append(" ");
     append(job->command);
     append("\n");
-    write(1, line, used);
+    line[used] = 0;
+    ui::print(1, !strcmp(state, "Stopped") ? ui::Tone::Warning : ui::Tone::Info, "%s",
+              line);
   }
 
   static bool
@@ -326,7 +329,7 @@ extern "C"
     }
     if (tcsetpgrp(terminal_fd, job->pid) < 0)
     {
-      fprintf(2, "sh: cannot give terminal to job\n");
+      ui::error("sh: cannot give terminal to job\n");
       return;
     }
     if (resume)
@@ -351,7 +354,7 @@ extern "C"
         {
           tcsetattr(terminal_fd, TCSANOW, &shell_modes);
         }
-        fprintf(2, "sh: cannot continue job\n");
+        ui::error("sh: cannot continue job\n");
         return;
       }
     }
@@ -473,7 +476,7 @@ extern "C"
     shell::last_status = 1;
     if (terminal_fd < 0)
     {
-      fprintf(2, "sh: no interactive terminal\n");
+      ui::error("sh: no interactive terminal\n");
       return true;
     }
     while (*end == ' ' || *end == '\t')
@@ -485,7 +488,7 @@ extern "C"
     {
       if (*end && *end != '\n')
       {
-        fprintf(2, "usage: jobs\n");
+        ui::usage("usage: jobs\n");
         return true;
       }
       for (Job *job = jobs_head; job; job = job->next)
@@ -498,7 +501,7 @@ extern "C"
     Job *job = select_job(end);
     if (!job)
     {
-      fprintf(2, "sh: no such job\n");
+      ui::error("sh: no such job\n");
       return true;
     }
     if (front)
@@ -514,7 +517,7 @@ extern "C"
       }
       if (sigsend(-job->pid, SIGCONT) < 0)
       {
-        fprintf(2, "sh: cannot continue job\n");
+        ui::error("sh: cannot continue job\n");
       }
       else
       {
@@ -565,13 +568,13 @@ extern "C"
     }
     if (next_job > 0x7fffffffU)
     {
-      fprintf(2, "sh: job IDs exhausted\n");
+      ui::error("sh: job IDs exhausted\n");
       return;
     }
     auto *job = static_cast<Job *>(malloc(sizeof(Job)));
     if (!job)
     {
-      fprintf(2, "sh: no job memory\n");
+      ui::error("sh: no job memory\n");
       return;
     }
     memset(job, 0, sizeof(*job));
@@ -598,7 +601,7 @@ extern "C"
       close(gate[0]);
       close(gate[1]);
       free(job);
-      fprintf(2, "sh: fork failed\n");
+      ui::error("sh: fork failed\n");
       return;
     }
     if (child == 0)
@@ -811,7 +814,7 @@ extern "C"
     }
     if (argc > 2)
     {
-      fprintf(2, "usage: sh [script]\n");
+      ui::usage("usage: sh [script]\n");
       exit(2);
     }
     if (argc == 2)
@@ -819,7 +822,7 @@ extern "C"
       int script = open(argv[1], O_RDONLY);
       if (script < 0)
       {
-        fprintf(2, "sh: cannot open %s\n", argv[1]);
+        ui::error("sh: cannot open %s\n", argv[1]);
         exit(1);
       }
       input_fd = script;
@@ -921,7 +924,7 @@ extern "C"
     {
       if (!shell::prepare(command->argv) || shell::builtin(command->argv) != 0)
       {
-        fprintf(2, "sh: invalid environment command\n");
+        ui::error("sh: invalid environment command\n");
       }
       for (unsigned i = 0; command->argv[i]; ++i)
       {
@@ -935,7 +938,7 @@ extern "C"
 
   void
   panic(char *s) {
-    fprintf(2, "%s\n", s);
+    ui::error("%s\n", s);
     exit(1);
   }
 

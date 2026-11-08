@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 // Shell.
 
@@ -63,7 +64,7 @@ extern "C"
       }
       if (!shell::prepare(ecmd->argv))
       {
-        fprintf(2, "sh: environment expansion failed\n");
+        ui::error("sh: environment expansion failed\n");
         exit(1);
       }
       {
@@ -78,7 +79,7 @@ extern "C"
       sigdisposition(SIGTSTP, SIGNAL_DEFAULT);
       sigdisposition(SIGTTIN, SIGNAL_DEFAULT);
       execvp(ecmd->argv[0], ecmd->argv);
-      fprintf(2, "exec %s failed\n", ecmd->argv[0]);
+      ui::error("exec %s failed\n", ecmd->argv[0]);
       exit(127);
 
     case REDIR:
@@ -87,7 +88,7 @@ extern "C"
       rcmd->file = shell::expand(rcmd->file);
       if (!rcmd->file || open(rcmd->file, rcmd->mode) < 0)
       {
-        fprintf(2, "open %s failed\n", rcmd->file);
+        ui::error("open %s failed\n", rcmd->file);
         exit(1);
       }
       runcmd(rcmd->cmd);

@@ -692,6 +692,8 @@ discover(const void *blob, unsigned long capacity, Description &out) {
         : virtio ? 0
                  : compatible_id(reinterpret_cast<const char *>(n.compatible.data));
     copy_name(device.name, n.name);
+    device.compatible = n.compatible.data;
+    device.compatible_bytes = n.compatible.bytes;
     out.devices[out.devices_count++] = device;
     if (!add_region(out, device.registers))
     {

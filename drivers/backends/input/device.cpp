@@ -230,6 +230,7 @@ VirtioKeyboard::initialize_wheel() {
 void
 VirtioKeyboard::initialize() {
   lock_.init("virtio keyboard");
+  reader_.init("virtio keyboard reader");
   InitializeFlow::Context context{*this};
   (void)InitializeFlow::Graph::run<0>(context);
 }
@@ -242,6 +243,7 @@ VirtioKeyboard::open(bool) {
     return nullptr;
   }
   head_ = size_ = 0;
+  ++input_epoch_;
   opened_ = true;
   return this;
 }
@@ -251,6 +253,7 @@ VirtioKeyboard::close() {
   xv::sync::ScopedLock guard(lock_);
   opened_ = false;
   head_ = size_ = 0;
+  ++input_epoch_;
 }
 
 void
@@ -261,6 +264,7 @@ VirtioKeyboard::enqueue(const KeyboardEvent &event) {
   }
   if (size_ == BufferedEvents)
   {
+    ++input_epoch_;
     head_ = 0;
     size_ = 1;
     buffered_[0] = {XV_KEY_SYN, XV_KEY_SYN_DROPPED, 0};
@@ -451,13 +455,22 @@ struct VirtioKeyboard::ReadFlow
       events[i] = owner.buffered_[(owner.head_ + i) % BufferedEvents];
     }
     unsigned bytes = count * sizeof(KeyboardEvent);
-    if (detail::copy_out(context.destination.space == AddressSpace::User,
-                         context.destination.address, events, bytes) < 0)
+    const auto epoch = owner.input_epoch_;
+    owner.lock_.release();
+    int copied = detail::copy_out(context.destination.space == AddressSpace::User,
+                                  context.destination.address, events, bytes);
+    owner.lock_.acquire();
+    if (copied < 0)
     {
       return;
     }
-    owner.head_ = (owner.head_ + count) % BufferedEvents;
-    owner.size_ -= count;
+    // Overflow discards the old queue and inserts SYN_DROPPED. Never consume
+    // this replacement queue when completing an earlier, faulting user copy.
+    if (epoch == owner.input_epoch_)
+    {
+      owner.head_ = (owner.head_ + count) % BufferedEvents;
+      owner.size_ -= count;
+    }
     context.result = bytes;
   }
 
@@ -493,6 +506,18 @@ VirtioKeyboard::read(IoBuffer destination, int count) {
   {
     return -1;
   }
+  if (destination.nonblocking)
+  {
+    if (!reader_.try_acquire())
+    {
+      return -EAGAIN;
+    }
+  }
+  else if (!reader_.acquire_interruptible())
+  {
+    return -1;
+  }
+  xv::sync::ScopedLock reader(reader_, xv::sync::adopt_lock);
   xv::sync::ScopedLock guard(lock_);
   ReadFlow::Context context{*this, destination, count};
   (void)ReadFlow::Graph::run<0>(context);
@@ -510,6 +535,6 @@ VirtioKeyboard::poll(xv::sync::PollTable *table) {
   {
     return POLLERR;
   }
-  return size_ ? POLLIN : 0;
+  return size_ && reader_.available(table) ? POLLIN : 0;
 }
 } // namespace xv::drivers

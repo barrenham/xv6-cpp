@@ -58,6 +58,8 @@ struct Tty::InjectFlow
   {
     if (c.action == InputAction::Interrupt || c.action == InputAction::Suspend)
     {
+      ++c.owner.input_epoch_;
+      ++c.owner.generation_;
       detail::post_terminal_interrupt(&c.owner, c.action == InputAction::Suspend);
     }
     detail::wake_processes(&c.owner.discipline_);
@@ -248,15 +250,32 @@ struct Tty::ReadFlow
         continue;
       }
       char value = byte.value;
-      if (detail::copy_out(c.destination.space == AddressSpace::User,
-                           c.destination.address + c.done, &value, 1) < 0)
+      auto epoch = c.owner.input_epoch_;
+      // read_lock_ preserves the reader reservation while VM faults run.
+      c.owner.lock_.release();
+      bool copied = detail::copy_out(c.destination.space == AddressSpace::User,
+                                     c.destination.address + c.done, &value, 1) >= 0;
+      c.owner.lock_.acquire();
+      if (!copied)
       {
         c.fault = c.finished = true;
         break;
       }
-      c.owner.discipline_.consume();
       ++c.done;
       c.start = detail::terminal_milliseconds();
+      if (epoch != c.owner.input_epoch_)
+      {
+        // A concurrent flush already discarded the reserved byte. Do not
+        // consume the first byte of input received after that flush.
+        c.finished = true;
+        break;
+      }
+      c.owner.discipline_.consume();
+      if (c.generation != c.owner.generation_)
+      {
+        c.finished = true;
+        break;
+      }
       if (c.canonical && byte.end)
       {
         c.finished = true;
@@ -613,6 +632,7 @@ struct Tty::IoctlFlow
     if (c.request == TCSETSF)
     {
       c.owner.discipline_.flush();
+      ++c.owner.input_epoch_;
     }
     if ((c.value.c_lflag ^ c.owner.settings_.c_lflag) & ICANON)
     {
@@ -666,6 +686,7 @@ struct Tty::IoctlFlow
   {
     xv::sync::ScopedLock guard(c.owner.lock_);
     c.owner.discipline_.flush();
+    ++c.owner.input_epoch_;
     ++c.owner.generation_;
     detail::wake_processes(&c.owner.discipline_);
     c.result = 0;
@@ -774,6 +795,8 @@ void Tty::receive(int character)
       discipline_.receive(static_cast<unsigned char>(character), settings_, output_);
   if (action == InputAction::Interrupt || action == InputAction::Suspend)
   {
+    ++input_epoch_;
+    ++generation_;
     detail::post_terminal_interrupt(this, action == InputAction::Suspend);
   }
   if (discipline_.available())

@@ -171,7 +171,7 @@ Editor::redraw(int used, bool fresh_line) {
   append(length, "\033[J");
   const char *text = prompt_text();
   prefix_ = strlen(text);
-  append(length, text);
+  append(length, prompt_display(text));
   for (int i = 0; i < used; ++i)
   {
     repaint[length++] = line_[i];

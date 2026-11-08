@@ -29,7 +29,13 @@ public:
   void snapshot_end() override { bytes_.clear(); }
 private:
   enum Kind : unsigned { Root, Global, ProcessDirectory, Status, FdDirectory, Fd,
-                          FdInfoDirectory, FdInfo, Command, Environment, Name };
+    FdInfoDirectory,
+    FdInfo,
+    Command,
+    Environment,
+    Name,
+    Threads
+  };
   struct Node
   {
     Node *next = nullptr;

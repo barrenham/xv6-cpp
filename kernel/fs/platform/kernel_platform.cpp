@@ -16,12 +16,20 @@ import xv.memory;
 import xv.trap;
 import xv.arch;
 
+namespace xv::fs
+{
+void
+start_file_cache_reclaimer() {
+  xv::process::create_kernel_task("file-reclaim", file_cache_reclaimer);
+}
+} // namespace xv::fs
+
 namespace xv::fs::detail
 {
 bool
 bind_transport(int socket, int memory, unsigned payload, File *&peer, File *&bulk) {
-  auto &descriptors = xv::process::current()->files();
-  auto *p = descriptors.get(socket), *b = descriptors.get(memory);
+  auto *process = xv::process::current();
+  auto *p = process->pin_file(socket), *b = process->pin_file(memory);
   if (!p || !b || p == b)
   {
     return false;
@@ -134,6 +142,7 @@ bool process_after(int after, ProcessRecord &result)
   return true;
 }
 int current_pid() { return xv::process::current()->id(); }
+int current_tid() { return xv::process::current()->thread_id(); }
 bool process_exec_text(unsigned pid,bool environment,PageBuffer &buffer)
 {return xv::process::inspect_exec(int(pid),environment ? xv::process::ExecSnapshot::Field::Environment:xv::process::ExecSnapshot::Field::CommandLine,buffer);}
 int descriptor_snapshot(int pid, DescriptorRecord *records, unsigned capacity)
@@ -210,9 +219,47 @@ mapping_fault_safe() {
   return xv::arch::intr_get() && can_reclaim_file_objects();
 }
 
+bool
+filesystem_service_context() {
+  auto *process = xv::process::current();
+  return process && process->filesystem_worker();
+}
+
 void release_frame(void *page)
 {
   xv::memory::allocator().release_page(page);
+}
+
+void
+retain_frame(void *page) {
+  xv::memory::allocator().retain_page(page);
+}
+
+void
+revoke_frame(void *page) {
+  xv::memory::allocator().revoke_page(page);
+}
+
+unsigned
+reclaim_inactive_mappings() {
+  return xv::process::reclaim_inactive_mappings();
+}
+
+unsigned long
+free_physical_pages() {
+  return xv::memory::allocator().free_pages();
+}
+
+unsigned long
+revoked_physical_pages() {
+  return xv::memory::revoked_page_count();
+}
+
+void
+reclaim_sleep(unsigned milliseconds) {
+  auto wait = xv::process::make_poll_wait();
+  wait.set_deadline(xv::arch::r_time() / 10000 + milliseconds);
+  wait.sleep(false);
 }
 
 void free_page(void *page)
@@ -250,3 +297,12 @@ void report(const char *message, int first, int second)
   xv::print::panic(message);
 }
 } // namespace xv::fs::detail
+
+namespace xv::fs::detail
+{
+bool virtual_memory_context()
+{
+  auto *process = xv::process::current();
+  return process && process->memory().operation_held();
+}
+}

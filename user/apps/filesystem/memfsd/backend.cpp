@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "backend.h"
 #include "application.h"
 #include "kernel/fs/stat.h"
@@ -585,11 +586,11 @@ memfs::serve(const char *target, bool registered, unsigned maximum) {
       registered ? userfs::register_backend(target, backend, maximum) : fsserve(target);
   if (fd < 0)
   {
-    fprintf(2, "memfsd: registration or mount failed\n");
+    ui::error("memfsd: registration or mount failed\n");
     exit(1);
   }
-  printf("memfsd: %s %s pid=%d\n", registered ? "registered" : "serving",
-         registered ? target : target, getpid());
+  ui::success("memfsd: %s %s pid=%d\n", registered ? "registered" : "serving",
+              registered ? target : target, getpid());
   int result = userfs::serve(fd, backend);
   close(fd);
   return result < 0;

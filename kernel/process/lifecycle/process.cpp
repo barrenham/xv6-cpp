@@ -35,7 +35,7 @@ struct Process::CommitFlow
 
   static void image(Context &c) noexcept
   {
-    c.owner.memory_.swap(c.image);
+    c.owner.memory().swap(c.image);
   }
 
   static void signals(Context &c) noexcept
@@ -49,6 +49,7 @@ struct Process::CommitFlow
   {
     c.owner.trapframe->epc = c.entry;
     c.owner.trapframe->sp = c.stack;
+    c.owner.trapframe->tp = 0;
     c.owner.trapframe->a1 = c.arguments;
     c.owner.trapframe->a2 = c.environment;
   }
@@ -87,9 +88,14 @@ void Process::set_name(const char *label)
   xv::runtime::copy_string(name, label, sizeof(name));
 }
 
-bool Process::create_image(AddressSpace &image)
+unsigned long
+Process::trap_frame_address() const {
+  return THREAD_FRAME_ADDRESS(thread_slot_);
+}
+
+bool Process::create_image(AddressSpace &image, bool describe)
 {
-  return image.create(trapframe, usyscall);
+  return image.create(trapframe, resources_->user_info, thread_slot_, describe);
 }
 
 void Process::commit_image(AddressSpace &image, unsigned long entry,

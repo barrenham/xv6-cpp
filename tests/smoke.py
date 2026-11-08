@@ -149,8 +149,10 @@ def expect(token, timeout=30):
                     raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
                 if b'ramfstest: FAIL:' in transcript:
                     raise RuntimeError('RAM filesystem contract failed')
-                if b'namedptytest: FAIL:' in transcript or b'procfstest: FAIL:' in transcript:
-                    raise RuntimeError('named PTY or procfs contract failed')
+                for failure in (b'namedptytest: FAIL:', b'procfstest: FAIL:'):
+                    position = transcript.find(failure)
+                    if position >= 0 and b'\n' in transcript[position:]:
+                        raise RuntimeError(transcript[position:].split(b'\n', 1)[0].decode(errors='replace'))
                 failure=transcript.find(b'devfstest: FAIL:')
                 if failure>=0 and b'\n' in transcript[failure:]:
                     raise RuntimeError(transcript[failure:].split(b'\n',1)[0].decode(errors='replace'))
@@ -791,6 +793,16 @@ try:
                   ('cat /etc/passwd', 'root:')]
     if args.usertest:
         checks = [(f'usertests {args.usertest}', 'ALL TESTS PASSED')]
+        if args.usertest in ('fourteen', 'partial_write'):
+            # countfree() intentionally exhausts physical pages. Core FS pools
+            # must still serve new requests afterwards, including proc/dev/tmp.
+            checks += [('cat /proc/self/status', 'Name: '),
+                       ('ps -T', 'CPU_MS'),
+                       ('echo pressure-ok > /dev/null', None),
+                       ('echo FS_POOL_PRESSURE_OK > /tmp/fs-pool-pressure', None),
+                       ('cat /tmp/fs-pool-pressure', 'FS_POOL_PRESSURE_OK'),
+                       ('mkdir /root/thread-pressure-check', None),
+                       ('rm /root/thread-pressure-check', None)]
     for cmd, token in checks:
         process.stdin.write((cmd + '\n').encode())
         process.stdin.flush()

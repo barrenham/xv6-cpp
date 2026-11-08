@@ -24,8 +24,7 @@ launch_daemon() {
         close(fd);
       }
     }
-    if (open("/dev/zero", O_RDONLY) != 0 ||
-        open("/tmp/serviced.log", O_CREATE | O_WRONLY | O_APPEND) != 1 || dup(1) != 2)
+    if (open("/dev/zero", O_RDONLY) != 0 || open_manager_log() != 1 || dup(1) != 2)
     {
       exit(1);
     }

@@ -25,7 +25,8 @@ void *current_cpu()
 
 int current_pid()
 {
-  return xv::process::current()->id();
+  auto *process = xv::process::current();
+  return process ? process->thread_id() : 0;
 }
 
 bool interrupted()

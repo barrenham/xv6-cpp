@@ -2,6 +2,7 @@
 #include "kernel/fs/stat.h"
 #include "user/runtime/user.h"
 #include "kernel/support/param.h"
+#include "user/runtime/threads/internal.h"
 
 extern "C" {
 
@@ -22,10 +23,10 @@ typedef union header Header;
 
 static Header base;
 static Header *freep;
+static unsigned allocator_lock;
 
-void
-free(void *ap)
-{
+static void
+free_unlocked(void *ap) {
   Header *bp, *p;
 
   bp = (Header *)ap - 1;
@@ -58,16 +59,19 @@ morecore(uint nu)
     return 0;
   hp = (Header *)p;
   hp->s.size = nu;
-  free((void *)(hp + 1));
+  free_unlocked((void *)(hp + 1));
   return freep;
 }
 
-void *
-malloc(uint nbytes)
-{
+static void *
+malloc_unlocked(uint nbytes) {
   Header *p, *prevp;
   uint nunits;
 
+  if (nbytes > 0x7fffffffU - sizeof(Header) * 2)
+  {
+    return nullptr;
+  }
   nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
   if ((prevp = freep) == 0) {
     base.s.ptr = freep = prevp = &base;
@@ -89,5 +93,28 @@ malloc(uint nbytes)
       if ((p = morecore(nunits)) == 0)
         return 0;
   }
+}
+
+void
+free(void *pointer) {
+  if (!pointer)
+  {
+    return;
+  }
+  xv_threads::lock(allocator_lock);
+  free_unlocked(pointer);
+  xv_threads::unlock(allocator_lock);
+}
+
+void *
+malloc(uint bytes) {
+  xv_threads::lock(allocator_lock);
+  auto *pointer = malloc_unlocked(bytes);
+  xv_threads::unlock(allocator_lock);
+  if (!pointer)
+  {
+    errno = ENOMEM;
+  }
+  return pointer;
 }
 }

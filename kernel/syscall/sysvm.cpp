@@ -15,24 +15,11 @@ namespace xv::syscall
 {
 #ifdef LAB_PGTBL
 
-static pte_t *pgpte(pagetable_t pagetable, uint64 va)
-{
-  return va < MAXVA ? xv::memory::walk_entry(pagetable, va, 0) : nullptr;
-}
-
 uint64 sys_pgpte(void)
 {
-  uint64 va;
-  xv::process::Process *p;
-
-  p = xv::process::current();
-  argument_address(0, &va);
-  pte_t *pte = pgpte(p->memory().page_table(), va);
-  if (pte != 0)
-  {
-    return (uint64)*pte;
-  }
-  return 0;
+  uint64 address;
+  argument_address(0, &address);
+  return xv::process::current()->memory().page_entry(address);
 }
 
 namespace
@@ -50,16 +37,12 @@ struct KernelStatisticsFlow
   static bool copy_super(Context &c) noexcept
   {
     auto &memory = c.process->memory();
-    return xv::memory::copy_to_user(
-               memory.page_table(), memory.size(), memory.regions(), c.super_address,
-               reinterpret_cast<char *>(&c.super), sizeof(uint64)) >= 0;
+    return memory.copy_out(c.super_address, &c.super, sizeof(uint64)) >= 0;
   }
   static bool copy_regular(Context &c) noexcept
   {
     auto &memory = c.process->memory();
-    return xv::memory::copy_to_user(
-               memory.page_table(), memory.size(), memory.regions(), c.regular_address,
-               reinterpret_cast<char *>(&c.regular), sizeof(uint64)) >= 0;
+    return memory.copy_out(c.regular_address, &c.regular, sizeof(uint64)) >= 0;
   }
   static void success(Context &c) noexcept { c.result = 0; }
   struct Super;

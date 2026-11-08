@@ -12,11 +12,11 @@ public:
 
   constexpr DhcpManager(InterfaceRegistry &interfaces, Ipv4Layer &ip,
                         LeaseConfiguration &configuration)
-      : interfaces_(interfaces), ip_(ip), configuration_(configuration)
-  {
+      : interfaces_(interfaces), ip_(ip), configuration_(configuration) {
   }
 
   void initialize();
+  void forget(NetworkInterface &interface);
   int execute(unsigned operation, netctl_request &request);
   bool receive_bootstrap(NetworkInterface &interface, Packet &packet,
                          const IpDatagram &datagram) override;

@@ -1,5 +1,8 @@
 #include "tests/process_test_hooks.h"
 #include <cstdio>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <cstdlib>
 #include <type_traits>
 #include <unordered_map>
@@ -30,6 +33,7 @@ static_assert(!std::is_trivially_destructible_v<Process>);
 constinit DescriptorTable boot_table;
 constinit WorkingDirectory boot_directory;
 static bool transaction = false;
+static std::mutex reference_mutex;
 
 static void check(bool condition, const char *message)
 {
@@ -42,6 +46,7 @@ static void check(bool condition, const char *message)
 
 extern "C" void *test_retain_file(void *reference)
 {
+  std::lock_guard guard(reference_mutex);
   check(reference && references(reference) > 0, "duplicate live file reference");
   ++references(reference);
   return reference;
@@ -49,12 +54,14 @@ extern "C" void *test_retain_file(void *reference)
 
 extern "C" void test_release_file(void *reference)
 {
+  std::lock_guard guard(reference_mutex);
   check(reference && references(reference) > 0, "close owned file reference");
   --references(reference);
 }
 
 extern "C" void *test_retain_inode(void *reference)
 {
+  std::lock_guard guard(reference_mutex);
   check(reference && references(reference) > 0, "duplicate live inode reference");
   ++references(reference);
   return reference;
@@ -62,6 +69,7 @@ extern "C" void *test_retain_inode(void *reference)
 
 extern "C" void test_release_inode(void *reference)
 {
+  std::lock_guard guard(reference_mutex);
   check(transaction, "directory reference released within transaction");
   check(reference && references(reference) > 0, "drop owned inode reference");
   --references(reference);
@@ -168,6 +176,84 @@ static void directory_contract()
         "directory references balanced");
 }
 
+static void
+concurrent_resources_contract() {
+  reference_counts.clear();
+  DescriptorTable table;
+  file first, second;
+  // Keep a fixture reference alive while descriptor ownership changes.
+  test_retain_file(&first);
+  check(table.install(&first) == 0, "concurrent descriptor fixture");
+  auto *held = table.retain(0);
+  check(held == &first && table.close(0) && references(&first) == 2,
+        "retained lookup survives concurrent descriptor close");
+  test_release_file(held);
+  check(!table.retain(0) && !table.retain(-1), "retained lookup validates slots");
+  std::atomic<bool> finished{false};
+  std::thread reader([&] {
+    while (!finished.load())
+    {
+      if (auto *reference = table.retain(0))
+      {
+        test_release_file(reference);
+      }
+    }
+  });
+  for (unsigned round = 0; round < 2000; ++round)
+  {
+    auto *next = round & 1 ? &first : &second;
+    test_retain_file(next);
+    check(table.install(next) == 0 && table.close(0), "shared descriptor replacement");
+  }
+  finished.store(true);
+  reader.join();
+  unsigned long old_generation = 0, new_generation = 0;
+  test_retain_file(&first);
+  check(table.install(&first, 0, 0, &old_generation) == 0 && table.close(0),
+        "rollback fixture initial binding");
+  test_retain_file(&first);
+  check(table.install(&first, 0, 0, &new_generation) == 0 &&
+            new_generation != old_generation,
+        "same file rebound to same descriptor has a new generation");
+  check(!table.take(0, old_generation) && !table.close(0, old_generation) &&
+            table.close(0, new_generation),
+        "failed publication cannot close another thread's replacement binding");
+  test_release_file(&first);
+  test_release_file(&second);
+  check(references(&first) == 0 && references(&second) == 0,
+        "concurrent descriptor references balance");
+
+  reference_counts.clear();
+  WorkingDirectory directory;
+  inode a, b;
+  transaction = true;
+  test_retain_inode(&a);
+  directory.replace(&a);
+  finished.store(false);
+  std::thread lookup([&] {
+    while (!finished.load())
+    {
+      auto *reference = directory.duplicate();
+      check(reference, "concurrent cwd remains present");
+      test_release_inode(reference);
+    }
+  });
+  for (unsigned round = 0; round < 2000; ++round)
+  {
+    auto *next = round & 1 ? &a : &b;
+    test_retain_inode(next);
+    directory.replace(next);
+  }
+  finished.store(true);
+  lookup.join();
+  directory.clear();
+  test_release_inode(&a);
+  test_release_inode(&b);
+  check(references(&a) == 0 && references(&b) == 0,
+        "concurrent cwd references balance");
+  transaction = false;
+}
+
 static void credential_contract()
 {
   Credentials parent, child;
@@ -196,5 +282,6 @@ int main()
   credential_contract();
   descriptor_contract();
   directory_contract();
+  concurrent_resources_contract();
   std::puts("process resource contracts: passed");
 }

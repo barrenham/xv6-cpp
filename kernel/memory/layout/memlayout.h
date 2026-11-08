@@ -57,7 +57,7 @@
 #define XV_KERNEL_STACK_MIB 2
 #endif
 #define KSTACK_BYTES (XV_KERNEL_STACK_MIB * 1024UL * 1024)
-#define KSTACK_INITIAL_PAGES 8
+#define KSTACK_INITIAL_PAGES 2
 #define KSTACK_PAGES (KSTACK_BYTES / PGSIZE)
 #define KSTACK_TOP (TRAMPOLINE & ~(KSTACK_BYTES - 1))
 // Stack/guard intervals are allocated dynamically above discovered physical RAM.
@@ -75,7 +75,7 @@
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 #ifdef LAB_PGTBL
 #define USYSCALL (TRAPFRAME - PGSIZE)
-#define UTOP (USYSCALL)
+#define USER_SPECIAL_TOP (USYSCALL)
 
 #ifndef __ASSEMBLER__
 struct usyscall {
@@ -83,5 +83,12 @@ struct usyscall {
 };
 #endif
 #else
-#define UTOP (TRAPFRAME)
+#define USER_SPECIAL_TOP (TRAPFRAME)
 #endif
+
+// Slot zero uses the traditional TRAPFRAME. Additional frames are supervisor
+// mappings in a reserved interval below the process-wide user-info page.
+#define THREAD_FRAME_SLOTS 32
+#define THREAD_FRAME_BASE (USER_SPECIAL_TOP - (THREAD_FRAME_SLOTS - 1) * PGSIZE)
+#define THREAD_FRAME_ADDRESS(slot) ((slot) ? USER_SPECIAL_TOP - (slot) * PGSIZE : TRAPFRAME)
+#define UTOP THREAD_FRAME_BASE

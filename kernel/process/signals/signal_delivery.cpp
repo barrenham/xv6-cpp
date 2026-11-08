@@ -23,22 +23,32 @@ struct ProcessManager::WakeSignalFlow
   static bool resume(Context &c) noexcept
   {
     return c.process.state == ProcessState::Stopped &&
-           (c.process.killed || (c.bits & (1U << SIGKILL)) ||
-            c.process.pending_signals_.continuing());
+           (c.process.killed || c.process.exec_stopped() ||
+            (c.bits & (1U << SIGKILL)) || c.process.pending_signals_.continuing());
   }
 
   static void continued(Context &c) noexcept
   {
-    c.process.stop_event_ = false;
-    c.process.continued_event_ = !c.fatal;
-    c.process.continue_notification_ = c.process.continue_notification_ || !c.fatal;
-    c.owner.queue_child_notification(c.process);
+    c.process.pending_signals_.clear_resume();
+    if (auto *resources = c.process.resources_)
+    {
+      if (!__atomic_fetch_sub(&resources->stopped, 1U, __ATOMIC_ACQ_REL))
+      {
+        __builtin_trap();
+      }
+      if (!c.fatal &&
+          __atomic_exchange_n(&resources->stop_reported, false, __ATOMIC_ACQ_REL))
+      {
+        __atomic_store_n(&resources->continue_pending, true, __ATOMIC_RELEASE);
+        __atomic_store_n(&c.owner.child_notifications_, true, __ATOMIC_RELEASE);
+      }
+    }
   }
 
   static bool interrupt(Context &c) noexcept
   {
-    return c.process.interruptible_ &&
-           (c.process.killed || c.process.pending_signals_.interrupting());
+    return c.process.interruptible_ && (c.process.killed || c.process.exec_stopped() ||
+                                        c.process.pending_signals_.interrupting());
   }
 
   static void clear_wait(Context &c) noexcept
@@ -99,7 +109,7 @@ struct ProcessManager::SendPidSignalFlow
 
   static bool permitted(Context &c) noexcept
   {
-    return (!c.process->kernel_entry_ || c.signal == 0) &&
+    return !c.process->thread_slot_ && (!c.process->kernel_entry_ || c.signal == 0) &&
            (c.process != c.owner.initial_ || c.signal == 0) &&
            Credentials::may_signal(current()->credentials().snapshot(),
                                    c.process->credentials().snapshot());
@@ -112,7 +122,11 @@ struct ProcessManager::SendPidSignalFlow
 
   static void post(Context &c) noexcept
   {
-    c.process->pending_signals_.post(c.signal);
+    c.process->pending_signals_.post_process(c.signal);
+    if (c.signal == SIGKILL)
+    {
+      c.process->request_group_exit(SIGNAL_EXIT_STATUS(SIGKILL), SIGKILL);
+    }
     c.owner.wake_for_signal(*c.process);
   }
 
@@ -123,7 +137,7 @@ struct ProcessManager::SendPidSignalFlow
 
   static void notify(Context &c) noexcept
   {
-    c.owner.notify_child_events();
+    c.owner.wake_signal_waiters();
     c.result = 0;
   }
   struct Find;
@@ -162,7 +176,7 @@ struct ProcessManager::SendGroupSignalFlow
 
   static void visit(Context &c) noexcept
   {
-    c.owner.groups_.visit_group(current()->membership_, c.group, c.post);
+    c.owner.groups_.visit_group(current()->group_leader().membership_, c.group, c.post);
   }
 
   static bool matched(Context &c) noexcept
@@ -241,18 +255,17 @@ struct ProcessManager::DeliverSignalFlow
 
   static void status(Context &c) noexcept
   {
-    c.status = c.process.termination_status();
+    c.status = c.process.termination_status(&c.signal);
   }
 
   static bool terminating(Context &c) noexcept
   {
-    return c.status != 0;
+    return c.status != 0 || c.process.group_exit_requested();
   }
 
   static void terminate(Context &c) noexcept
   {
-    int signal = c.process.pending_signals_.terminating_signal();
-    c.owner.exit_process(c.status, signal ? signal : SIGKILL);
+    c.owner.exit_process(c.status, c.signal ? c.signal : SIGKILL);
   }
 
   static bool caught(Context &c) noexcept
@@ -295,20 +308,20 @@ struct ProcessManager::DeliverSignalFlow
 
   static void prepare(Context &c) noexcept
   {
+    c.process.pending_signals_.request_group_stop(
+        c.process.pending_signals_.stopping_signal());
+    c.owner.wake_signal_waiters(false);
     c.owner.waits_.cancel(c.process);
     c.owner.wait_lock_.acquire();
-    // Notify before taking the child lock, closing the parent's check-to-sleep window.
-    if (c.process.parent)
-    {
-      c.owner.wakeup(&c.process.parent->child_events_);
-    }
     c.process.lock.acquire();
     c.signal = c.process.pending_signals_.take_stop();
   }
 
   static bool valid_stop(Context &c) noexcept
   {
-    return c.signal && !c.process.killed &&
+    return c.signal && c.process.pending_signals_.group_stop_signal() &&
+           !c.process.killed && !c.process.group_exit_requested() &&
+           !c.process.exec_stopped() &&
            !c.process.pending_signals_.terminating_signal();
   }
 
@@ -321,10 +334,9 @@ struct ProcessManager::DeliverSignalFlow
   static void publish(Context &c) noexcept
   {
     c.process.stop_signal_ = c.signal;
-    c.process.stop_event_ = true;
-    c.process.continued_event_ = false;
     c.process.state = ProcessState::Stopped;
-    c.owner.post_child_signal(c.process);
+    __atomic_add_fetch(&c.process.resources_->stopped, 1U, __ATOMIC_ACQ_REL);
+    c.owner.report_group_stop(c.process);
     c.owner.wait_lock_.release();
   }
 
@@ -369,8 +381,12 @@ struct ProcessManager::DeliverSignalFlow
 
 void ProcessManager::wake_for_signal(Process &process)
 {
+  // Selecting a fatal process-pending signal transfers it to this thread.
+  // Sample the local bits afterwards, including SIGKILL for stopped tasks.
+  bool fatal = process.killed || process.exec_stopped() ||
+               process.group_exit_requested() ||
+               process.pending_signals_.terminating_signal();
   auto bits = process.pending_signals_.pending();
-  bool fatal = process.killed || process.pending_signals_.terminating_signal();
   WakeSignalFlow::Context context{*this, process, bits, fatal};
   (void)WakeSignalFlow::Graph::run<0>(context);
 }
@@ -412,7 +428,11 @@ int ProcessManager::send_signal(int target, int signal)
       ++matched;
       if (signal_)
       {
-        process->pending_signals_.post(signal_);
+        process->pending_signals_.post_process(signal_);
+        if (signal_ == SIGKILL)
+        {
+          process->request_group_exit(SIGNAL_EXIT_STATUS(SIGKILL), SIGKILL);
+        }
       }
     }
 
@@ -441,13 +461,26 @@ void ProcessManager::wake_signal_waiters(bool notify_children)
     {
     }
 
+    bool stopping = false;
+
     void visit(Process &process) override
     {
+      if (process.group_exit_requested() && process.state != ProcessState::Zombie &&
+          process.state != ProcessState::ThreadZombie)
+      {
+        process.killed = 1;
+      }
       if (process.state != ProcessState::Unused &&
           process.state != ProcessState::Zombie &&
-          (process.pending_signals_.pending() || process.pending_signals_.continuing()))
+          process.state != ProcessState::ThreadZombie &&
+          (process.killed || process.exec_stopped() ||
+           process.pending_signals_.pending() ||
+           process.pending_signals_.process_pending() ||
+           process.pending_signals_.group_stop_signal() ||
+           process.pending_signals_.continuing()))
       {
         manager_.wake_for_signal(process);
+        stopping = stopping || process.pending_signals_.group_stop_signal();
       }
     }
 
@@ -458,6 +491,16 @@ void ProcessManager::wake_signal_waiters(bool notify_children)
 
   // No group lock and no borrowed owner pointer survives to this stable visit.
   store_.visit(wake);
+  if (wake.stopping)
+  {
+    store_.visit(wake);
+    // The child-notification consumer itself wakes signal waiters with false.
+    // Requeueing here would keep that consumer looping while a group is stopped.
+    if (notify_children)
+    {
+      __atomic_store_n(&child_notifications_, true, __ATOMIC_RELEASE);
+    }
+  }
   if (notify_children)
   {
     notify_child_events();
@@ -479,10 +522,14 @@ void ProcessManager::post_terminal_interrupt(void *terminal, int signal)
       auto *process = member.owner();
       if (process && process != initial_)
       {
-        process->pending_signals_.post(signal_);
+        process->pending_signals_.post_process(signal_);
+        if (signal_ == SIGKILL)
+        {
+          process->request_group_exit(SIGNAL_EXIT_STATUS(SIGKILL), SIGKILL);
+        }
         if (signal_ == SIGHUP)
         {
-          process->pending_signals_.post(SIGCONT);
+          process->pending_signals_.post_process(SIGCONT);
         }
       }
     }
@@ -521,13 +568,13 @@ void ProcessManager::post_child_signal(Process &child)
   refresh_child_events(child);
   if (child.parent)
   {
-    child.parent->pending_signals_.post(SIGCHLD);
-    // Default/ignored/blocked SIGCHLD does not interrupt a sleep. wait/waitpid
-    // already receive the family event above. Keep the pending bit, but avoid
-    // scanning and locking every process unless a signal can interrupt this
-    // parent. Its mask/disposition can only change while it is running; the
-    // next interruptible sleep rechecks pending signals under its process lock.
-    if (child.parent->pending_signals_.interrupting())
+    child.parent->pending_signals_.post_process(SIGCHLD);
+    // wait/waitpid already receive the family event above. Keep the pending
+    // bit, but a default/ignored SIGCHLD needs no full-registry signal wakeup.
+    // A caught disposition is shared by the group: wake even when the leader
+    // blocks SIGCHLD, since another thread may be eligible to run its handler.
+    // A later mask/action change rechecks pending signals on its own path.
+    if (child.parent->pending_signals_.handled() & (1U << SIGCHLD))
     {
       __atomic_store_n(&signal_notifications_, true, __ATOMIC_RELEASE);
     }
@@ -546,6 +593,10 @@ void ProcessManager::notify_child_events()
 
 void ProcessManager::deliver_signals()
 {
+  if (current()->exec_stopped())
+  {
+    exit_thread(0);
+  }
   DeliverSignalFlow::Context context{*this, *current()};
   (void)DeliverSignalFlow::Graph::run<0>(context);
 }

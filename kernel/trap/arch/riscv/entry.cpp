@@ -1,9 +1,10 @@
 import xv.trap;
 #include "kernel/trap/arch/riscv/entry.h"
 
-extern "C" unsigned long usertrap()
+extern "C" UserTrapReturn usertrap()
 {
-  return xv::trap::controller().handle_user();
+  auto token = xv::trap::controller().handle_user();
+  return {token, xv::trap::user_frame_address()};
 }
 
 extern "C" void kerneltrap()

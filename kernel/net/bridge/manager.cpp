@@ -9,8 +9,8 @@ import :platform;
 
 namespace xv::net
 {
-void BridgeManager::initialize()
-{
+void
+BridgeManager::initialize() {
   admin_lock_.init("bridge administration");
   MacAddress seed{{2, 0x58, 0x56, 0, 0, 0}};
   for (unsigned i = 0; i < interfaces_.count(); ++i)
@@ -39,8 +39,8 @@ void BridgeManager::initialize()
   }
 }
 
-BridgeInterface *BridgeManager::find(unsigned id)
-{
+BridgeInterface *
+BridgeManager::find(unsigned id) {
   for (auto &bridge : bridges_)
   {
     if (bridge.active_ && bridge.id() == id)
@@ -51,27 +51,42 @@ BridgeInterface *BridgeManager::find(unsigned id)
   return nullptr;
 }
 
-bool BridgeManager::unused(NetworkInterface &interface) const
-{
-  if (interface.address_count() || interface.dhcp_active())
+bool
+BridgeManager::unused(NetworkInterface &interface) const {
+  if (!interface.available() || interface.address_count() || interface.dhcp_active())
   {
     return false;
   }
   return !routes_.references(interface);
 }
 
-int BridgeManager::membership(BridgeInterface &bridge, NetworkInterface &interface,
-                              bool add)
-{
+int
+BridgeManager::membership(BridgeInterface &bridge, NetworkInterface &interface,
+                          bool add) {
   MembershipFlow::Context ctx{*this, bridge, interface, add};
   (void)MembershipFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-int BridgeManager::execute(unsigned operation, netctl_request &request)
-{
+int
+BridgeManager::execute(unsigned operation, netctl_request &request) {
   ExecuteFlow::Context ctx{*this, operation, request};
   (void)ExecuteFlow::Graph::run<0>(ctx);
   return ctx.result;
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+void
+BridgeManager::forget(NetworkInterface &interface) {
+  xv::sync::ScopedLock guard(admin_lock_);
+  for (auto &bridge : bridges_)
+  {
+    if (interface.master() == bridge.id())
+    {
+      (void)membership(bridge, interface, false);
+    }
+  }
 }
 } // namespace xv::net

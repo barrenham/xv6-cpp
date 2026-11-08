@@ -3,17 +3,10 @@ module;
 #include "kernel/fs/userfs/protocol.h"
 export module xv.userfs.ramfs;
 export import xv.userfs;
+export import xv.userfs.storage;
 
 export namespace userfs
 {
-class MemoryStorage
-{
-public:
-  virtual void *allocate(unsigned bytes) = 0;
-  virtual void release(void *) = 0;
-protected:
-  ~MemoryStorage() = default;
-};
 MemoryStorage &heap_storage();
 
 // Sparse file pages, directory entries and inodes grow independently. The only
@@ -24,12 +17,11 @@ public:
   unsigned cache_flags() const override { return xv::userfs::CacheMetadata;
   }
 
-  explicit MemoryBackend(MemoryStorage &, unsigned root_mode = 0755,
-                         unsigned read_workers = 0);
+  explicit MemoryBackend(MemoryStorage &, unsigned root_mode = 0755);
 
-  unsigned
-  parallel_read_workers() const override {
-    return read_workers_;
+  bool
+  concurrent_data() const override {
+    return true;
   }
   ~MemoryBackend();
   bool ready() const { return root_ != nullptr; }
@@ -64,6 +56,5 @@ private:
   MemoryStorage &storage_;
   Node *nodes_ = nullptr, *root_ = nullptr;
   unsigned next_node_ = 2;
-  unsigned read_workers_ = 0;
 };
 } // namespace userfs

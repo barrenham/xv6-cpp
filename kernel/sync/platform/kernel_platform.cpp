@@ -51,3 +51,8 @@ void pop_interrupts_off()
 }
 
 } // namespace xv::sync
+
+namespace xv::sync
+{
+unsigned interrupt_depth() { return xv::process::current_cpu()->noff; }
+}

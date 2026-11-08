@@ -7,17 +7,17 @@ import :routing;
 
 namespace xv::net
 {
-bool RoutingTable::valid(const Route &route) const
-{
+bool
+RoutingTable::valid(const Route &route) const {
   ValidationFlow::Context ctx{*this, route};
   (void)ValidationFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-bool RoutingTable::add(unsigned network, unsigned prefix, NetworkInterface &interface,
-                       unsigned gateway, unsigned metric, unsigned source,
-                       unsigned owner, unsigned local_address)
-{
+bool
+RoutingTable::add(unsigned network, unsigned prefix, NetworkInterface &interface,
+                  unsigned gateway, unsigned metric, unsigned source, unsigned owner,
+                  unsigned local_address) {
   ConfigurationGuard guard;
   Route route{network, prefix,     gateway, metric,
               source,  &interface, owner,   local_address};
@@ -30,8 +30,8 @@ bool RoutingTable::add(unsigned network, unsigned prefix, NetworkInterface &inte
   return true;
 }
 
-bool RoutingTable::at(unsigned index, Route &result) const
-{
+bool
+RoutingTable::at(unsigned index, Route &result) const {
   ConfigurationGuard guard;
   if (index >= count_)
   {
@@ -41,8 +41,8 @@ bool RoutingTable::at(unsigned index, Route &result) const
   return true;
 }
 
-bool RoutingTable::references(const NetworkInterface &interface) const
-{
+bool
+RoutingTable::references(const NetworkInterface &interface) const {
   ConfigurationGuard guard;
   for (unsigned i = 0; i < count_; ++i)
   {
@@ -55,15 +55,15 @@ bool RoutingTable::references(const NetworkInterface &interface) const
   return false;
 }
 
-bool RoutingTable::same_path(const Route &left, const Route &right)
-{
+bool
+RoutingTable::same_path(const Route &left, const Route &right) {
   return left.network == right.network && left.prefix == right.prefix &&
          left.interface == right.interface && left.gateway == right.gateway &&
          left.metric == right.metric && left.source == right.source;
 }
 
-int RoutingTable::find(const Route &route) const
-{
+int
+RoutingTable::find(const Route &route) const {
   for (unsigned i = 0; i < count_; ++i)
   {
     if (same_path(routes_[i], route))
@@ -74,8 +74,8 @@ int RoutingTable::find(const Route &route) const
   return -1;
 }
 
-void RoutingTable::erase(unsigned index)
-{
+void
+RoutingTable::erase(unsigned index) {
   for (unsigned i = index + 1; i < count_; ++i)
   {
     routes_[i - 1] = routes_[i];
@@ -83,32 +83,29 @@ void RoutingTable::erase(unsigned index)
   routes_[--count_] = {};
 }
 
-int RoutingTable::add_static(unsigned network, unsigned prefix,
-                             NetworkInterface &interface, unsigned gateway,
-                             unsigned metric, unsigned source)
-{
+int
+RoutingTable::add_static(unsigned network, unsigned prefix, NetworkInterface &interface,
+                         unsigned gateway, unsigned metric, unsigned source) {
   ConfigurationGuard guard;
   MutationFlow::Context ctx{*this, network, prefix, interface, gateway, metric, source};
   (void)MutationFlow::AddGraph::run<0>(ctx);
   return ctx.result;
 }
 
-int RoutingTable::remove_static(unsigned network, unsigned prefix,
-                                NetworkInterface &interface, unsigned gateway,
-                                unsigned metric, unsigned source)
-{
+int
+RoutingTable::remove_static(unsigned network, unsigned prefix,
+                            NetworkInterface &interface, unsigned gateway,
+                            unsigned metric, unsigned source) {
   ConfigurationGuard guard;
   MutationFlow::Context ctx{*this, network, prefix, interface, gateway, metric, source};
   (void)MutationFlow::RemoveGraph::run<0>(ctx);
   return ctx.result;
 }
 
-RoutingTable::RouteSet RoutingTable::address_routes(NetworkInterface &interface,
-                                                    NetworkInterface &loopback,
-                                                    Ipv4Address address,
-                                                    unsigned lease_owner,
-                                                    unsigned gateway, unsigned metric)
-{
+RoutingTable::RouteSet
+RoutingTable::address_routes(NetworkInterface &interface, NetworkInterface &loopback,
+                             Ipv4Address address, unsigned lease_owner,
+                             unsigned gateway, unsigned metric) {
   RouteSet result{
       {{address.address, 32, 0, 0, address.address, &loopback, interface.id(),
         address.address, lease_owner},
@@ -119,9 +116,9 @@ RoutingTable::RouteSet RoutingTable::address_routes(NetworkInterface &interface,
   return result;
 }
 
-bool RoutingTable::add_address_routes(NetworkInterface &interface,
-                                      NetworkInterface &loopback, Ipv4Address address)
-{
+bool
+RoutingTable::add_address_routes(NetworkInterface &interface,
+                                 NetworkInterface &loopback, Ipv4Address address) {
   ConfigurationGuard guard;
   if (address.prefix > 32 || available() < 2)
   {
@@ -135,9 +132,9 @@ bool RoutingTable::add_address_routes(NetworkInterface &interface,
   return true;
 }
 
-void RoutingTable::remove_address_routes(const NetworkInterface &interface,
-                                         unsigned address)
-{
+void
+RoutingTable::remove_address_routes(const NetworkInterface &interface,
+                                    unsigned address) {
   ConfigurationGuard guard;
   for (unsigned i = 0; i < count_;)
   {
@@ -154,8 +151,8 @@ void RoutingTable::remove_address_routes(const NetworkInterface &interface,
   }
 }
 
-unsigned RoutingTable::lease_route_count(unsigned owner) const
-{
+unsigned
+RoutingTable::lease_route_count(unsigned owner) const {
   unsigned count = 0;
   for (unsigned i = 0; i < count_; ++i)
   {
@@ -167,28 +164,28 @@ unsigned RoutingTable::lease_route_count(unsigned owner) const
   return count;
 }
 
-bool RoutingTable::lease_routes_match(NetworkInterface &interface,
-                                      NetworkInterface &loopback, Ipv4Address address,
-                                      unsigned gateway, unsigned metric) const
-{
+bool
+RoutingTable::lease_routes_match(NetworkInterface &interface,
+                                 NetworkInterface &loopback, Ipv4Address address,
+                                 unsigned gateway, unsigned metric) const {
   ConfigurationGuard guard;
   LeaseFlow::MatchContext ctx{*this, interface, loopback, address, gateway, metric};
   (void)LeaseFlow::MatchGraph::run<0>(ctx);
   return ctx.result;
 }
 
-bool RoutingTable::replace_lease_routes(NetworkInterface &interface,
-                                        NetworkInterface &loopback, Ipv4Address address,
-                                        unsigned gateway, unsigned metric)
-{
+bool
+RoutingTable::replace_lease_routes(NetworkInterface &interface,
+                                   NetworkInterface &loopback, Ipv4Address address,
+                                   unsigned gateway, unsigned metric) {
   ConfigurationGuard guard;
   LeaseFlow::Context ctx{*this, interface, loopback, address, gateway, metric};
   (void)LeaseFlow::ReplaceGraph::run<0>(ctx);
   return ctx.result;
 }
 
-bool RoutingTable::remove_lease_routes(const NetworkInterface &interface)
-{
+bool
+RoutingTable::remove_lease_routes(const NetworkInterface &interface) {
   ConfigurationGuard guard;
   unsigned retained = 0, previous_count = count_;
   for (unsigned i = 0; i < previous_count; ++i)
@@ -206,12 +203,33 @@ bool RoutingTable::remove_lease_routes(const NetworkInterface &interface)
   return count_ != previous_count;
 }
 
-bool RoutingTable::lookup(unsigned destination, RouteSelection &result, unsigned source,
-                          const NetworkInterface *via) const
-{
+bool
+RoutingTable::lookup(unsigned destination, RouteSelection &result, unsigned source,
+                     const NetworkInterface *via) const {
   ConfigurationGuard guard;
   LookupFlow::Context ctx{*this, destination, result, source, via};
   (void)LookupFlow::Graph::run<0>(ctx);
   return ctx.found;
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+void
+RoutingTable::remove_interface(const NetworkInterface &interface) {
+  ConfigurationGuard guard;
+  for (unsigned i = 0; i < count_;)
+  {
+    const auto &route = routes_[i];
+    if (route.interface == &interface || route.address_owner == interface.id() ||
+        route.lease_owner == interface.id())
+    {
+      erase(i);
+    }
+    else
+    {
+      ++i;
+    }
+  }
 }
 } // namespace xv::net

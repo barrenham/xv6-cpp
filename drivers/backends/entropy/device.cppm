@@ -48,6 +48,7 @@ private:
   detail::MmioRegion registers_;
   unsigned irq_;
   xv::sync::SpinLock lock_;
+  xv::sync::SleepLock reader_;
   virtq_desc *descriptors_ = nullptr;
   virtq_avail *available_ = nullptr;
   volatile virtq_used *used_ = nullptr;

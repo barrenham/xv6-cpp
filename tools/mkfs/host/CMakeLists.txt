@@ -286,6 +286,8 @@ add_executable(vm_contract
   "${XV_ROOT}/tests/vm_contract.cpp"
   "${XV_ROOT}/tests/virtual_address_pool_contract.cpp"
   "${XV_ROOT}/tests/address_space_contract.cpp"
+  "${XV_ROOT}/tests/address_space_threads.cpp"
+  "${XV_ROOT}/kernel/process/memory/address_space_access.cpp"
   "${XV_ROOT}/kernel/process/memory/address_space.cpp"
   "${XV_ROOT}/tests/allocator_test_platform.cpp"
   "${XV_ROOT}/tests/sync_test_platform.cpp"
@@ -478,3 +480,16 @@ target_include_directories(device_tree_contract PRIVATE "${XV_ROOT}")
 target_compile_features(device_tree_contract PRIVATE cxx_std_20)
 target_compile_options(device_tree_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
 set_target_properties(device_tree_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(driver_matching_contract "${XV_ROOT}/tests/driver_matching_contract.cpp")
+target_include_directories(driver_matching_contract PRIVATE "${XV_ROOT}")
+target_compile_features(driver_matching_contract PRIVATE cxx_std_20)
+target_compile_options(driver_matching_contract PRIVATE -O2 -Wall -Wextra -Werror -UNDEBUG)
+set_target_properties(driver_matching_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")
+
+add_executable(vim_buffer_contract "${XV_ROOT}/tests/vim_buffer_contract.cpp"
+  "${XV_ROOT}/user/apps/terminal/vim/buffer.cpp")
+target_include_directories(vim_buffer_contract PRIVATE "${XV_ROOT}")
+target_compile_features(vim_buffer_contract PRIVATE cxx_std_20)
+target_compile_options(vim_buffer_contract PRIVATE -O2 -Wall -Wextra -Werror -fno-builtin)
+set_target_properties(vim_buffer_contract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${XV_OUTPUT_DIR}")

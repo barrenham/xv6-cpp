@@ -47,7 +47,7 @@ void ProcessStore::retire(Process &process)
 {
   if (registered(process) || process.membership_.registered() ||
       process.parent || process.first_child_ || process.child_event_mask_ ||
-      process.continue_notify_queued_ ||
+      process.continue_notify_queued_ || process.word_waiting_ ||
       process.queued_ || process.scheduling_.queued || process.scheduling_.running ||
       !process.lock.holding() || process.state == ProcessState::Running ||
       process.state == ProcessState::Runnable ||

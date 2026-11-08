@@ -20,6 +20,7 @@ struct Message
 {
   Message *next = nullptr;
   unsigned size = 0, priority = 0;
+  bool reserved = false;
   char data[MessageBytes];
 };
 
@@ -31,6 +32,18 @@ struct Queue
   unsigned references = 0, uid = 0, gid = 0, mode = 0;
   char name[256]{};
 };
+
+Message *
+available(Queue &queue) {
+  for (auto *message = queue.head; message; message = message->next)
+  {
+    if (!message->reserved)
+    {
+      return message;
+    }
+  }
+  return nullptr;
+}
 
 static_assert(sizeof(Queue) <= 4096 && sizeof(Message) <= 4096);
 constinit xv::sync::SpinLock names_lock;
@@ -201,7 +214,8 @@ public:
     }
     queue_.lock.acquire();
     int error = 0;
-    while (!queue_.head)
+    Message *message = nullptr;
+    while (!(message = available(queue_)))
     {
       error = nonblocking ? -EAGAIN : wait(queue_, deadline);
       if (error)
@@ -209,24 +223,37 @@ public:
         break;
       }
     }
-    Message *message = nullptr;
     if (!error)
     {
-      message = queue_.head;
+      message->reserved = true;
+      queue_.lock.release();
       auto &memory = xv::process::current()->memory();
-      if (memory.copy_out(address, message->data, message->size) < 0 ||
-          (priority &&
-           memory.copy_out(priority, &message->priority, sizeof(unsigned)) < 0))
+      bool copied = memory.copy_out(address, message->data, message->size) >= 0 &&
+                    (!priority || memory.copy_out(priority, &message->priority,
+                                                  sizeof(unsigned)) >= 0);
+      queue_.lock.acquire();
+      message->reserved = false;
+      if (!copied)
       {
         error = -EFAULT;
         message = nullptr; // Invalid output must not consume the message.
       }
       else
       {
-        queue_.head = message->next;
+        // Senders may have inserted higher-priority messages during the copy.
+        auto **link = &queue_.head;
+        while (*link && *link != message)
+        {
+          link = &(*link)->next;
+        }
+        if (!*link)
+        {
+          __builtin_trap();
+        }
+        *link = message->next;
         --queue_.count;
-        xv::process::wakeup(&queue_);
       }
+      xv::process::wakeup(&queue_);
     }
     queue_.lock.release();
     if (message)
@@ -254,7 +281,7 @@ public:
     {
       table->watch(&queue_);
     }
-    return (access_ != O_WRONLY && queue_.count ? POLLIN : 0) |
+    return (access_ != O_WRONLY && available(queue_) ? POLLIN : 0) |
            (access_ != O_RDONLY && queue_.count < queue_.maximum ? POLLOUT : 0);
   }
 

@@ -3,7 +3,7 @@
 namespace services
 {
 inline constexpr const char *DefaultSocket = "/tmp/serviced.sock";
-inline constexpr unsigned Version = 1, Maximum = 24, ManagedMaximum = 16;
+inline constexpr unsigned Version = 2, Maximum = 24, ManagedMaximum = 16;
 enum class Command : unsigned
 {
   List,
@@ -12,7 +12,9 @@ enum class Command : unsigned
   Stop,
   Restart,
   Load,
-  Register
+  Register,
+  DependencyState,
+  Retire
 };
 enum class Phase : unsigned
 {
@@ -43,7 +45,12 @@ struct Reply
   unsigned restarts = 0;
   Phase phase = Phase::Stopped;
   bool external = false;
+  bool wanted = false;
+  int guardian = 0;
+  unsigned long definition_id = 0;
+  unsigned long log_captured = 0, log_rotations = 0;
   char name[32]{}, log[128]{}, detail[96]{};
+  char guardian_socket[108]{};
 };
 
 const char *phase_name(Phase);
@@ -52,5 +59,6 @@ int listen(const char *socket);
 int accept_request(int listener, Request &);
 bool reply(int client, const Reply &);
 int launch_daemon();
+int open_manager_log();
 bool register_external(const char *name, int pid);
 } // namespace services

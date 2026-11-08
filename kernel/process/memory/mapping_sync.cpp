@@ -2,6 +2,7 @@ module;
 #include "kernel/support/param.h"
 module xv.process;
 import xv.arch;
+import xv.sync;
 
 namespace xv::process
 {
@@ -49,14 +50,20 @@ void
 enter_user_mappings() {
   // The user-return path has interrupts masked. No process can migrate between
   // publishing its hart state and switching SATP through the trampoline.
-  auto &translation = translations[cpu_id()];
   for (;;)
   {
     auto epoch = __atomic_load_n(&mapping_epoch, __ATOMIC_SEQ_CST);
-    current()->memory().refresh_file_mappings();
+    if (!current()->memory().refresh_for_user())
+    {
+      wait_address_space(current()->memory());
+      continue;
+    }
+    // Refresh can wait for another thread and resume on a different hart.
+    auto &translation = translations[cpu_id()];
     __atomic_store_n(&translation.epoch, epoch, __ATOMIC_SEQ_CST);
     __atomic_store_n(&translation.active, 1U, __ATOMIC_SEQ_CST);
-    if (__atomic_load_n(&mapping_epoch, __ATOMIC_SEQ_CST) == epoch)
+    if (__atomic_load_n(&mapping_epoch, __ATOMIC_SEQ_CST) == epoch &&
+        current()->memory().user_entry_allowed())
     {
       break;
     }
@@ -88,3 +95,36 @@ synchronize_file_mappings() {
   __atomic_sub_fetch(&mapping_waiters, 1U, __ATOMIC_SEQ_CST);
 }
 } // namespace xv::process
+
+namespace xv::process
+{
+bool synchronize_address_space(const AddressSpace &space)
+{
+  auto *process = current();
+  if (process && &process->memory() == &space)
+  {
+    if (xv::sync::interrupt_depth()) return false;
+    synchronize_file_mappings();
+  }
+  return true;
+}
+}
+
+namespace xv::process
+{
+void wake_address_space(const AddressSpace &space)
+{
+  if (current()) wakeup(const_cast<AddressSpace *>(&space));
+}
+
+void wait_address_space(const AddressSpace &space)
+{
+  auto wait = make_poll_wait();
+  wait.watch(const_cast<AddressSpace *>(&space));
+  if (!space.user_entry_allowed())
+  {
+    wait.set_deadline(xv::arch::r_time() / 10000 + 2);
+    wait.sleep(false);
+  }
+}
+}

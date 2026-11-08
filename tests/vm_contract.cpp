@@ -95,38 +95,132 @@ static void references_test()
   allocator().release_page(page);
   check(allocator().free_pages() == initial, "last reference frees exactly once");
 }
-static void vm_test()
-{
+
+static void
+revocation_test() {
+  const auto initial = allocator().free_pages();
+  const auto pending = revoked_page_count();
+  const auto epoch = page_reclamation_epoch();
+  auto *page = allocator().allocate();
+  check(page && !allocator().page_revoked(page), "new frame is not revoked");
+  allocator().retain_page(page);
+  allocator().revoke_page(page);
+  allocator().revoke_page(page);
+  check(allocator().page_revoked(page) && allocator().page_references(page) == 2 &&
+            revoked_page_count() == pending + 1 &&
+            page_reclamation_epoch() == epoch + 1,
+        "revocation is idempotent and preserves physical references");
+  check(!allocator().adopt_revoked_page(page),
+        "shared revoked frame cannot become private");
+  allocator().release_page(page);
+  check(allocator().adopt_revoked_page(page) && !allocator().page_revoked(page) &&
+            allocator().page_references(page) == 1 && revoked_page_count() == pending,
+        "sole COW owner can preserve its frame after cache eviction");
+  allocator().revoke_page(page);
+  allocator().release_page(page);
+  check(revoked_page_count() == pending && allocator().free_pages() == initial,
+        "final revoked reference frees the frame and pending accounting");
+}
+
+static void *pressure_reserve = nullptr;
+static unsigned pressure_calls = 0;
+
+static unsigned
+release_reserve(unsigned requested) {
+  check(requested == 1, "allocator forwards pressure request");
+  ++pressure_calls;
+  if (!pressure_reserve)
+  {
+    return 0;
+  }
+  allocator().deallocate(pressure_reserve);
+  pressure_reserve = nullptr;
+  return 1;
+}
+
+static void
+pressure_test() {
+  auto initial = allocator().free_pages();
+  pressure_reserve = allocator().allocate();
+  void *reserved = pressure_reserve;
+  check(reserved != nullptr, "pressure reserve");
+  std::vector<void *> held;
+  while (auto *page = allocator().allocate())
+  {
+    held.push_back(page);
+  }
+  set_page_reclaimer(release_reserve);
+  auto *recovered = allocator().allocate();
+  set_page_reclaimer(nullptr);
+  check(recovered == reserved && pressure_calls == 1 && !pressure_reserve,
+        "failed allocation reclaims and retries without a spurious OOM");
+  allocator().deallocate(recovered);
+  for (auto *page : held)
+  {
+    allocator().deallocate(page);
+  }
+  check(allocator().free_pages() == initial, "pressure recovery returns every page");
+}
+
+static void
+vm_test() {
   auto initial = allocator().free_pages();
   VirtualAddressPool regions;
   check(regions.initialize(0, 1UL << 38, 1), "initialize address pool");
-  check(regions.reserve(0, PGSIZE, PTE_R | PTE_U, RegionKind::Image), "readonly image region");
-  check(regions.reserve(PGSIZE, 2 * PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap, true), "heap region");
+  check(regions.reserve(0, PGSIZE, PTE_R | PTE_U, RegionKind::Image),
+        "readonly image region");
+  check(regions.reserve(PGSIZE, 2 * PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap,
+                        true),
+        "heap region");
   check(regions.reserve(2 * PGSIZE, 3 * PGSIZE, 0, RegionKind::Guard), "guard region");
-  check(regions.reserve(3 * PGSIZE, 8 * PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap, true), "lazy region");
+  check(regions.reserve(3 * PGSIZE, 8 * PGSIZE, PTE_R | PTE_W | PTE_U, RegionKind::Heap,
+                        true),
+        "lazy region");
   auto table = create_user_table(), child = create_user_table();
   check(allocate_user_pages(table, 0, PGSIZE, 0) == PGSIZE, "allocate text");
-  check(allocate_user_pages(table, PGSIZE, 2 * PGSIZE, PTE_W) == 2 * PGSIZE, "allocate data");
+  check(allocate_user_pages(table, PGSIZE, 2 * PGSIZE, PTE_W) == 2 * PGSIZE,
+        "allocate data");
   auto physical = translate_user_page(table, PGSIZE);
   *reinterpret_cast<char *>(physical) = 'P';
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, 0, FaultAccess::Write).result == FaultResult::Permission, "readonly write is protection");
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Read).result == FaultResult::AlreadyMapped, "mapped fault is not retried");
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, 2 * PGSIZE, FaultAccess::Write).result == FaultResult::Permission, "guard is protection");
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, 8 * PGSIZE, FaultAccess::Read).result == FaultResult::OutsideRegion, "outside region rejected");
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, 3 * PGSIZE, FaultAccess::Execute).result == FaultResult::Permission, "heap is non-executable");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, 0, FaultAccess::Write).result ==
+            FaultResult::Permission,
+        "readonly write is protection");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Read)
+                .result == FaultResult::AlreadyMapped,
+        "mapped fault is not retried");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, 2 * PGSIZE, FaultAccess::Write)
+                .result == FaultResult::Permission,
+        "guard is protection");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, 8 * PGSIZE, FaultAccess::Read)
+                .result == FaultResult::OutsideRegion,
+        "outside region rejected");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, 3 * PGSIZE, FaultAccess::Execute)
+                .result == FaultResult::Permission,
+        "heap is non-executable");
   check(clone_user_pages(table, child, 8 * PGSIZE) == 0, "COW fork");
-  check(translate_user_page(child, PGSIZE) == physical && allocator().page_references(reinterpret_cast<void *>(physical)) == 2, "fork shares frame");
-  check((*walk_entry(table, PGSIZE, 0) & (PTE_COW | PTE_W)) == PTE_COW, "parent write protected");
-  auto result = resolve_user_fault(child, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Write);
-  check(result.result == FaultResult::Resolved && result.physical != physical, "child write copies frame");
+  check(translate_user_page(child, PGSIZE) == physical &&
+            allocator().page_references(reinterpret_cast<void *>(physical)) == 2,
+        "fork shares frame");
+  check((*walk_entry(table, PGSIZE, 0) & (PTE_COW | PTE_W)) == PTE_COW,
+        "parent write protected");
+  auto result =
+      resolve_user_fault(child, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Write);
+  check(result.result == FaultResult::Resolved && result.physical != physical,
+        "child write copies frame");
   check(*reinterpret_cast<char *>(result.physical) == 'P', "COW copy retains bytes");
-  check(copy_to_user(child, 8 * PGSIZE, regions, PGSIZE, "C", 1) == 0, "kernel copyout into child");
-  check(*reinterpret_cast<char *>(physical) == 'P', "parent unchanged by child copyout");
+  check(copy_to_user(child, 8 * PGSIZE, regions, PGSIZE, "C", 1) == 0,
+        "kernel copyout into child");
+  check(*reinterpret_cast<char *>(physical) == 'P',
+        "parent unchanged by child copyout");
   auto before = allocator().free_pages();
-  check(resolve_user_fault(table, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Write).result == FaultResult::Resolved, "exclusive owner promotes");
+  check(resolve_user_fault(table, 8 * PGSIZE, regions, PGSIZE, FaultAccess::Write)
+                .result == FaultResult::Resolved,
+        "exclusive owner promotes");
   check(allocator().free_pages() == before, "exclusive COW requires no new frame");
   char byte = 1;
-  check(copy_from_user(child, 8 * PGSIZE, regions, &byte, 3 * PGSIZE, 1) == 0 && byte == 0, "lazy read zero fills");
+  check(copy_from_user(child, 8 * PGSIZE, regions, &byte, 3 * PGSIZE, 1) == 0 &&
+            byte == 0,
+        "lazy read zero fills");
   auto grandchild = create_user_table();
   check(clone_user_pages(child, grandchild, 8 * PGSIZE) == 0, "nested fork");
   check(copy_to_user(grandchild, 8 * PGSIZE, regions, PGSIZE, "G", 1) == 0, "copyout breaks shared COW");
@@ -213,6 +307,7 @@ static void superpage_ownership_test()
   check(allocator().free_pages() == initial, "empty-table reuse fixture fully reclaimed");
 }
 extern void address_space_contracts();
+void address_space_threads();
 extern void virtual_address_pool_contracts();
 int main(int argc, char **argv)
 {
@@ -224,8 +319,17 @@ int main(int argc, char **argv)
   auto kind = !std::strcmp(argv[1], "buddy") ? AllocatorKind::Buddy : AllocatorKind::FreeList;
   check(initialize(kind, reinterpret_cast<void *>(KERNBASE + 2 * 1024 * 1024),
                    reinterpret_cast<void *>(KERNBASE + bytes)), "initialize physical allocator");
-  regions_test(); metadata_oom_test(); references_test(); fork_oom_test(); vm_test(); sole_owner_oom_test(); superpage_ownership_test();
+  regions_test();
+  metadata_oom_test();
+  references_test();
+  revocation_test();
+  pressure_test();
+  fork_oom_test();
+  vm_test();
+  sole_owner_oom_test();
+  superpage_ownership_test();
   virtual_address_pool_contracts();
   address_space_contracts();
+  address_space_threads();
   std::puts("VM region, protection, OOM and COW contracts passed");
 }

@@ -445,8 +445,43 @@ struct KernelPageTable::AllocateFlow
 
   static void
   commit(Context &c) noexcept {
+    constexpr unsigned pages = KSTACK_INITIAL_PAGES;
+    static_assert(pages && !(pages & (pages - 1)));
+    constexpr unsigned order = __builtin_ctz(pages);
+    // The stack directory is prepared, but not published. Obtain its initial
+    // suffix in one buddy allocation, then transfer ownership to independent
+    // pages so trimming/freeing retains its existing per-page contract.
+    auto &physical = allocator();
+    void *block = physical.supports(order) ? physical.allocate(order) : nullptr;
+    if (block)
+    {
+      if (!physical.split_to_pages(block, order))
+      {
+        physical.deallocate(block, order);
+      }
+      else
+      {
+        auto base = c.address + KSTACK_BYTES - pages * PageSize;
+        for (unsigned index = 0; index < pages; ++index)
+        {
+          auto *entry = walk_entry(static_cast<PageTable>(c.owner.root_),
+                                   base + index * PageSize, 0);
+          if (!entry || (*entry & PTE_V))
+          {
+            xv::print::panic("kernel stack: initial directory");
+          }
+          *entry = PA2PTE(reinterpret_cast<unsigned long>(block) + index * PageSize) |
+                   PTE_R | PTE_W | PTE_V;
+        }
+        xv::arch::sfence_vma();
+        c.ok = true;
+        return;
+      }
+    }
+    // Fragmentation and allocators supporting only single pages must not
+    // turn an otherwise possible stack allocation into a failure.
     c.ok = c.owner.commit_stack(c.address, c.address + KSTACK_BYTES -
-                                               KSTACK_INITIAL_PAGES * PageSize);
+                                               pages * PageSize);
   }
 
   static void

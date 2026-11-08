@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "supervisor.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
@@ -21,7 +22,7 @@ int
 run(const char *config, const char *socket, int ready_fd) {
   if (geteuid() != 0)
   {
-    fprintf(2, "serviced: root required\n");
+    ui::error("serviced: root required\n");
     return 1;
   }
   umask(0077);
@@ -35,24 +36,37 @@ run(const char *config, const char *socket, int ready_fd) {
   struct Cleanup
   {
     Supervisor *owner;
+    bool active = false;
 
     ~Cleanup() {
-      owner->shutdown();
+      if (active)
+      {
+        owner->shutdown();
+      }
       owner->~Supervisor();
       free(owner);
     }
   } cleanup{supervisor};
 
-  char error[96];
-  if (!supervisor->load(config, error))
-  {
-    fprintf(2, "serviced: %s\n", error);
-    return 1;
-  }
   int listener = services::listen(socket);
   if (listener < 0)
   {
-    fprintf(2, "serviced: cannot bind control socket\n");
+    ui::error("serviced: cannot bind control socket\n");
+    return 1;
+  }
+  if (!supervisor->configure(socket))
+  {
+    ui::error("serviced: cannot recover private service registry\n");
+    close(listener);
+    unlink(socket);
+    return 1;
+  }
+  char error[96];
+  if (!supervisor->load(config, error))
+  {
+    ui::error("serviced: %s\n", error);
+    close(listener);
+    unlink(socket);
     return 1;
   }
   struct sigaction action{stop_signal, 0, 0};
@@ -63,24 +77,29 @@ run(const char *config, const char *socket, int ready_fd) {
     unlink(socket);
     return 1;
   }
+  signal(SIGPIPE, SIG_IGN);
+  cleanup.active = true;
   if (ready_fd >= 0)
   {
     bool sent = write(ready_fd, "R", 1) == 1;
     close(ready_fd);
     if (!sent)
     {
+      cleanup.active = false;
       close(listener);
       unlink(socket);
       return 1;
     }
   }
-  printf("serviced: ready pid=%d config=%s socket=%s\n", getpid(), config, socket);
+  ui::info("serviced: ready pid=%d config=%s socket=%s\n", getpid(), config, socket);
+  bool failed = false;
   while (!stopping)
   {
     supervisor->tick();
     pollfd pending{listener, POLLIN, 0};
     if (poll(&pending, 1, 50) < 0 && errno != EINTR)
     {
+      failed = true;
       break;
     }
     if (!(pending.revents & POLLIN))
@@ -100,9 +119,14 @@ run(const char *config, const char *socket, int ready_fd) {
       services::reply(client, response);
     }
   }
+  if (!failed)
+  {
+    supervisor->shutdown();
+  }
+  cleanup.active = false;
   close(listener);
   unlink(socket);
-  return 0;
+  return failed ? 1 : 0;
 }
 
 } // namespace services

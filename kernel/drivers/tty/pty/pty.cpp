@@ -365,22 +365,30 @@ struct Pty::ReadMasterFlow
 
   static void drain(Context &c) noexcept
   {
-    int done = 0;
-    bool fault = false;
-    while (done < c.count && c.owner.read_ != c.owner.written_)
+    unsigned available = c.owner.written_ - c.owner.read_;
+    unsigned count = static_cast<unsigned>(c.count) < available ? c.count : available;
+    if (!count)
     {
-      char value = c.owner.data_[c.owner.read_ % Capacity];
-      if (detail::copy_out(c.destination.space == AddressSpace::User,
-                           c.destination.address + done, &value, 1) < 0)
-      {
-        fault = true;
-        break;
-      }
-      ++c.owner.read_;
-      ++done;
+      c.result = 0;
+      return;
+    }
+    char bytes[Capacity];
+    for (unsigned i = 0; i < count; ++i)
+    {
+      bytes[i] = c.owner.data_[(c.owner.read_ + i) % Capacity];
+    }
+    // reader_lock_ excludes another consumer; producers cannot overwrite this
+    // prefix until read_ advances, so copying may fault with the spin lock off.
+    c.owner.lock_.release();
+    bool copied = detail::copy_out(c.destination.space == AddressSpace::User,
+                                   c.destination.address, bytes, count) >= 0;
+    c.owner.lock_.acquire();
+    if (copied)
+    {
+      c.owner.read_ += count;
     }
     detail::wake_processes(&c.owner.read_);
-    c.result = done ? done : (fault ? -1 : 0);
+    c.result = copied ? static_cast<int>(count) : -1;
   }
   struct Check;
   struct Killed;

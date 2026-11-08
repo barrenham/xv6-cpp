@@ -1,5 +1,6 @@
 module;
 #include "drivers/sdk/host.h"
+#include "kernel/io/kmodule_v3.h"
 #include "kernel/support/placement_new.hpp"
 #include "kernel/fs/poll.h"
 module xv.drivers;
@@ -15,7 +16,8 @@ interrupt(void *context) {
 }
 
 int
-attach(const xv_kmod_host_v2 *host, const xv_kmod_device_v2 *device) {
+attach(const xv_kmod_host_v2 *host, const xv_kmod_device_v3 *identity) {
+  const auto *device = &identity->base;
   xv_driver_set_host(host);
   auto *page = host->page(host->owner);
   if (!page)
@@ -46,8 +48,16 @@ attach(const xv_kmod_host_v2 *host, const xv_kmod_device_v2 *device) {
   return 0;
 }
 
-const xv_kmod_driver_v2 driver{
-    {sizeof(driver), XV_KMOD_ABI_V2, XV_KMOD_BUS_VIRTIO_MMIO, 4, "virtio_rng", nullptr},
+const xv_kmod_match matches[]{{.bus = XV_KMOD_BUS_VIRTIO_MMIO,
+                               .flags = XV_KMOD_MATCH_DEVICE | XV_KMOD_MATCH_COMPATIBLE,
+                               .device = 4,
+                               .compatible = "virtio,mmio"}};
+const xv_kmod_driver_v3 driver{
+    {sizeof(driver), XV_KMOD_ABI_V3, XV_KMOD_BUS_VIRTIO_MMIO, 4, "virtio_rng", nullptr},
+    matches,
+    1,
+    0,
+    nullptr,
     attach};
 } // namespace
 
@@ -56,6 +66,6 @@ extern "C"
   [[gnu::visibility("default")]]
   const xv_kmod_driver *
   xv_driver_entry(unsigned abi) {
-    return abi == XV_KMOD_ABI_V2 ? &driver.base : nullptr;
+    return abi == XV_KMOD_ABI_V3 ? &driver.base : nullptr;
   }
 }

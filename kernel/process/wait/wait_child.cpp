@@ -43,6 +43,10 @@ void ProcessManager::update_child_event(Process &child, unsigned kind, bool pend
 void ProcessManager::refresh_child_events(Process &child)
 {
   const bool zombie = child.state == ProcessState::Zombie;
+  if (child.resources_ && !child.pending_signals_.group_stop_signal())
+  {
+    child.stop_event_ = false;
+  }
   update_child_event(child, 0, zombie);
   update_child_event(child, 1, !zombie && child.stop_event_);
   update_child_event(child, 2, !zombie && child.continued_event_);
@@ -85,6 +89,43 @@ void ProcessManager::cancel_child_notification(Process &child)
 void ProcessManager::collect_child_notifications()
 {
   xv::sync::ScopedLock family(wait_lock_);
+
+  class Groups final : public ProcessVisitor
+  {
+  public:
+
+    explicit Groups(ProcessManager &manager) : manager_(manager) {
+    }
+
+    void
+    visit(Process &process) override {
+      auto *resources = process.resources_;
+      if (!resources || resources->leader != &process)
+      {
+        return;
+      }
+      bool continued =
+          __atomic_exchange_n(&resources->continue_pending, false, __ATOMIC_ACQ_REL);
+      if (process.state == ProcessState::Zombie)
+      {
+        return;
+      }
+      if (continued)
+      {
+        process.stop_event_ = false;
+        process.continued_event_ = true;
+        process.continue_notification_ = true;
+        manager_.queue_child_notification(process);
+      }
+      manager_.report_group_stop(process);
+    }
+
+  private:
+
+    ProcessManager &manager_;
+  } groups(*this);
+
+  store_.visit(groups);
   for (;;)
   {
     child_notification_lock_.acquire();
@@ -141,7 +182,8 @@ struct ProcessManager::WaitFlow
           c.have_children = true;
           refresh_child_events(*candidate);
           for (unsigned kind = 0; kind < 3; ++kind)
-            if ((candidate->child_event_mask_ & (1U << kind)) &&
+            if (!candidate->wait_claimant_ &&
+                (candidate->child_event_mask_ & (1U << kind)) &&
                 (!kind || (c.options & (kind == 1 ? WUNTRACED : WCONTINUED))))
             { c.child = candidate; c.event_kind = kind; break; }
         }
@@ -161,8 +203,10 @@ struct ProcessManager::WaitFlow
           // SIGCONT publishes state before its deferred family notification.
           // Reconcile an old stop entry before exposing it to the caller.
           refresh_child_events(*candidate);
-          if ((candidate->child_event_mask_ & (1U << kind)) &&
-              (!c.group || c.owner.groups_.get_group(candidate->membership_) == c.group))
+          if (!candidate->wait_claimant_ &&
+              (candidate->child_event_mask_ & (1U << kind)) &&
+              (!c.group ||
+               c.owner.groups_.get_group(candidate->membership_) == c.group))
           { c.child = candidate; c.event_kind = kind; break; }
           candidate->lock.release();
           candidate = next;
@@ -201,8 +245,15 @@ struct ProcessManager::WaitFlow
 
   static bool copy_status(Context &c) noexcept
   {
-    return !c.address ||
-           c.parent.memory_.copy_out(c.address, &c.status, sizeof(c.status)) >= 0;
+    c.child->wait_claimant_ = current()->thread_id();
+    c.child->lock.release();
+    c.owner.wait_lock_.release();
+    bool copied = !c.address || current()->memory().copy_out(c.address, &c.status,
+                                                             sizeof(c.status)) >= 0;
+    c.owner.wait_lock_.acquire();
+    c.child->lock.acquire();
+    c.child->wait_claimant_ = 0;
+    return copied;
   }
 
   static bool exited(Context &c) noexcept
@@ -212,6 +263,7 @@ struct ProcessManager::WaitFlow
 
   static void reap(Context &c) noexcept
   {
+    c.owner.reap_group_workers(*c.child);
     c.owner.reap(c.child);
   }
 
@@ -233,6 +285,7 @@ struct ProcessManager::WaitFlow
   {
     c.owner.wait_lock_.release();
     c.result = c.pid;
+    c.owner.wakeup(&c.parent.child_events_);
   }
 
   static void unlock_child(Context &c) noexcept
@@ -267,6 +320,7 @@ struct ProcessManager::WaitFlow
   static void failure(Context &c) noexcept
   {
     c.owner.wait_lock_.release();
+    c.owner.wakeup(&c.parent.child_events_);
   }
   struct Scan;
   struct Copy;
@@ -323,7 +377,7 @@ int ProcessManager::waitpid(int pid, unsigned long address, int options)
 int ProcessManager::wait_child(int selector, unsigned long address, int options,
                                bool encoded)
 {
-  Process *parent = current();
+  Process *parent = &current()->group_leader();
   int group = selector == 0   ? groups_.get_group(parent->membership_)
               : selector < -1 ? -selector
                               : 0;

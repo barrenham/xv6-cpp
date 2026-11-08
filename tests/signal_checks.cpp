@@ -2,6 +2,7 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
+#include <atomic>
 #include <vector>
 #include "kernel/process/signals/signal.h"
 
@@ -158,6 +159,142 @@ void masks_and_handlers()
   check(state.take_stop() == SIGSTOP && state.caught_signal() == SIGTSTP &&
         (state.pending() & (1U << SIGTTIN)), "default stop preserves blocked/caught stops");
 }
+
+void
+shared_dispositions() {
+  PendingSignals leader, first, second;
+  leader.set_action(SIGUSR1, {0x1000, 1U << SIGUSR2, 0, 0x2000});
+  leader.set_mask(1U << SIGUSR1);
+  first.share_dispositions(leader);
+  second.share_dispositions(first);
+  check(first.action(SIGUSR1).handler == 0x1000 && second.mask() == leader.mask(),
+        "new threads share actions and inherit the calling mask");
+  first.set_mask(0);
+  check(second.mask() == leader.mask(), "thread masks remain independent");
+  first.set_action(SIGUSR2, {0x3000, 0, 0, 0x4000});
+  check(leader.action(SIGUSR2).handler == 0x3000 &&
+            second.action(SIGUSR2).restorer == 0x4000,
+        "handler changes are visible throughout a thread group");
+  first.post(SIGUSR2);
+  second.post(SIGUSR2);
+  leader.disposition(SIGUSR2, SIGNAL_IGNORE);
+  check(!first.pending() && !second.pending() && first.post(SIGUSR2) &&
+            !first.pending(),
+        "shared ignore clears pending bits in every member");
+  second.on_exec();
+  check(!leader.action(SIGUSR1).handler &&
+            first.action(SIGUSR2).handler == SIGNAL_IGNORE,
+        "exec resets shared caught actions and preserves ignored actions");
+  first.set_action(SIGUSR1, {0x5000, 0, 0x80000000U, 0x6000});
+  first.post(SIGUSR1);
+  int signal = 0;
+  PendingSignals::Action selected;
+  check(first.take_handler(signal, selected) && signal == SIGUSR1 &&
+            selected.handler == 0x5000 && !first.pending() &&
+            !leader.action(SIGUSR1).handler,
+        "handler snapshot, pending consume and one-shot reset are atomic");
+  second.post(SIGUSR1);
+  second.set_mask(0);
+  check(second.terminating_signal() == SIGUSR1,
+        "one-shot reset is visible to another thread with a pending signal");
+  second.consume(SIGUSR1);
+  std::atomic<bool> done{false};
+  std::thread changing([&] {
+    for (unsigned round = 0; round < 2000; ++round)
+    {
+      first.set_action(SIGUSR1, round & 1
+                                    ? PendingSignals::Action{0x1000, 7, 9, 0x2000}
+                                    : PendingSignals::Action{0x3000, 11, 13, 0x4000});
+    }
+    done.store(true);
+  });
+  while (!done.load())
+  {
+    auto action = leader.action(SIGUSR1);
+    check(!action.handler ||
+              (action.handler == 0x1000 && action.mask == 7 && action.flags == 9 &&
+               action.restorer == 0x2000) ||
+              (action.handler == 0x3000 && action.mask == 11 && action.flags == 13 &&
+               action.restorer == 0x4000),
+          "concurrent disposition reads never tear a multiword handler action");
+  }
+  changing.join();
+  second.reset();
+  first.reset();
+  leader.reset();
+}
+
+void
+process_delivery() {
+  PendingSignals leader, first, second;
+  leader.set_action(SIGUSR1, {0x1000, 0, 0, 0x2000});
+  unsigned long generation;
+  auto previous = leader.action(SIGUSR1, &generation);
+  leader.set_action(SIGUSR2, {});
+  check(!leader.set_action_if(SIGUSR1, {}, generation) &&
+            leader.action(SIGUSR1).handler == previous.handler,
+        "sigaction retries a stale old-value snapshot without changing the action");
+  leader.action(SIGUSR1, &generation);
+  check(leader.set_action_if(SIGUSR1, previous, generation),
+        "sigaction commits against its exact old-value snapshot");
+  leader.set_mask(1U << SIGUSR1);
+  first.share_dispositions(leader);
+  second.share_dispositions(first);
+  check(leader.post_process(SIGUSR1) && !leader.caught_signal() &&
+            !first.caught_signal() && !second.caught_signal() &&
+            leader.process_pending() == (1U << SIGUSR1),
+        "process signal remains pending when every thread blocks it");
+  first.set_mask(0);
+  second.set_mask(0);
+  check(first.caught_signal() == SIGUSR1 && !second.caught_signal() &&
+            !leader.process_pending(),
+        "one eligible thread claims each process signal");
+  leader.deactivate();
+  check(first.deactivate() && second.caught_signal() == SIGUSR1,
+        "an exiting selected thread returns undelivered process signals");
+  second.consume(SIGUSR1);
+  first.post(SIGUSR1);
+  check(!first.deactivate() && !second.caught_signal(),
+        "thread-directed signals never migrate when their target exits");
+  leader.post_process(SIGUSR1);
+  check(!leader.caught_signal() && !first.caught_signal() &&
+            second.caught_signal() == SIGUSR1,
+        "process routing survives an exited group leader");
+  second.consume(SIGUSR1);
+  second.set_mask(1U << SIGUSR1);
+  leader.post_process(SIGUSR1);
+  first.disposition(SIGUSR1, SIGNAL_IGNORE);
+  check(!leader.process_pending(), "shared ignore discards process-pending signals");
+  second.reset();
+  first.reset();
+  leader.reset();
+}
+
+void
+group_stop_delivery() {
+  PendingSignals leader, worker;
+  leader.set_mask(1U << SIGTSTP);
+  worker.share_dispositions(leader);
+  leader.post_process(SIGTSTP);
+  check(!leader.stopping_signal(), "blocked group stop remains pending");
+  worker.set_mask(0);
+  check(worker.stopping_signal() == SIGTSTP && leader.stopping_signal() == SIGTSTP &&
+            worker.take_stop() == SIGTSTP && worker.take_stop() == SIGTSTP,
+        "a selected default stop persists across every thread's individual mask");
+  leader.post_process(SIGCONT);
+  check(!worker.stopping_signal() && !leader.stopping_signal() && worker.continuing() &&
+            leader.continuing(),
+        "continue cancels the group stop and resumes every member");
+  worker.consume_continue();
+  leader.consume_continue();
+  leader.set_action(SIGTSTP, {0x1000, 0, 0, 0x2000});
+  worker.post(SIGTSTP);
+  check(!worker.stopping_signal() && worker.caught_signal() == SIGTSTP &&
+            !leader.group_stop_signal(),
+        "a caught stop signal remains an ordinary per-thread handler");
+  worker.reset();
+  leader.reset();
+}
 void child_notifications()
 {
   PendingSignals state;
@@ -186,6 +323,9 @@ extern "C" int run_signal_contracts()
   xv::process::signal_test::dispositions();
   xv::process::signal_test::stop_continue();
   xv::process::signal_test::masks_and_handlers();
+  xv::process::signal_test::shared_dispositions();
+  xv::process::signal_test::process_delivery();
+  xv::process::signal_test::group_stop_delivery();
   xv::process::signal_test::child_notifications();
   std::puts("pending signal contracts: passed");
   return 0;

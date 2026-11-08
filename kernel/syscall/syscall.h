@@ -147,3 +147,15 @@
 #define SYS_mprotect 110
 
 #define SYS_msync 111
+#define SYS_sched_yield 112
+
+#define SYS_thread_create 113
+#define SYS_thread_join 114
+#define SYS_thread_exit 115
+#define SYS_gettid 116
+#define SYS_thread_word_wait 117
+#define SYS_thread_word_wake 118
+
+#define SYS_thread_signal 119
+
+#define SYS_thread_word_timedwait 120

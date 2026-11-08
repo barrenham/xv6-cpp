@@ -126,6 +126,11 @@ void create_initial_process()
   accounting.created();
 }
 
+unsigned
+reclaim_inactive_mappings() {
+  return process_manager.reclaim_inactive_mappings();
+}
+
 int fork_process()
 {
   int pid = process_manager.fork_process();
@@ -134,6 +139,43 @@ int fork_process()
     accounting.created();
   }
   return pid;
+}
+
+long
+create_thread(unsigned long entry, unsigned long argument, unsigned long stack,
+              unsigned long tls) {
+  auto result = process_manager.create_thread(entry, argument, stack, tls);
+  if (result > 0)
+  {
+    accounting.created();
+  }
+  return result;
+}
+
+int
+join_thread(int tid, unsigned long result) {
+  return process_manager.join_thread(tid, result);
+}
+
+int
+wait_word(unsigned long address, unsigned expected, unsigned long deadline) {
+  return process_manager.wait_word(address, expected, deadline);
+}
+
+int
+signal_thread(int tid, int signal) {
+  return process_manager.signal_thread(tid, signal);
+}
+
+int
+wake_word(unsigned long address, unsigned count) {
+  return process_manager.wake_word(address, count);
+}
+
+[[noreturn]]
+void
+exit_thread(unsigned long result) {
+  process_manager.exit_thread(result);
 }
 
 [[noreturn]] void exit_process(int status)
@@ -283,6 +325,11 @@ int copy_out(bool user, unsigned long destination, const void *source,
   }
   xv::runtime::move(reinterpret_cast<void *>(destination), source, count);
   return 0;
+}
+
+bool
+snapshot_thread_after(int after, int pid, ThreadInfo &result) {
+  return process_manager.snapshot_thread_after(after, pid, result);
 }
 
 bool snapshot_after(int after, ProcessInfo &result)

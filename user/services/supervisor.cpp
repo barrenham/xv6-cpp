@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "supervisor.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
@@ -80,6 +81,18 @@ Supervisor::load(const char *path, char error[96]) {
     good = false;
     strcpy(error, "too many services");
   }
+  if (good && !local_)
+  {
+    retire_guardians();
+    for (unsigned i = 0; i < count_; ++i)
+    {
+      if (!entries_[i].external && entries_[i].guardian)
+      {
+        good = false;
+        strcpy(error, "cannot retire previous service guardians");
+      }
+    }
+  }
   if (good)
   {
     unsigned kept = 0;
@@ -105,11 +118,20 @@ Supervisor::load(const char *path, char error[96]) {
   }
   config->~Configuration();
   free(config);
+  if (good && !local_ && !discover_guardians())
+  {
+    strcpy(error, "cannot enumerate surviving service guardians");
+    good = false;
+  }
   return good;
 }
 
 bool
 Supervisor::dependencies(unsigned index) const {
+  if (local_)
+  {
+    return permitted_;
+  }
   for (unsigned d = 0; d < entries_[index].definition.dependency_count; ++d)
   {
     int dependency = find(entries_[index].definition.dependencies[d]);
@@ -134,6 +156,10 @@ Supervisor::activate(unsigned index, bool manual, unsigned depth) {
     return false;
   }
   auto &entry = entries_[index];
+  if (entry.unconfigured)
+  {
+    return false;
+  }
   if (entry.external)
   {
     return entry.phase == Phase::Running || entry.phase == Phase::Complete;
@@ -142,7 +168,7 @@ Supervisor::activate(unsigned index, bool manual, unsigned depth) {
   {
     return false;
   }
-  for (unsigned d = 0; d < entry.definition.dependency_count; ++d)
+  for (unsigned d = 0; !local_ && d < entry.definition.dependency_count; ++d)
   {
     int dependency = find(entry.definition.dependencies[d]);
     if (dependency < 0 || !activate(dependency, false, depth + 1))
@@ -151,13 +177,21 @@ Supervisor::activate(unsigned index, bool manual, unsigned depth) {
       return false;
     }
   }
+  if (!local_)
+  {
+    if (!ensure_guardian(index))
+    {
+      return false;
+    }
+    return (!manual && entry.wanted) || forward(index, Command::Start);
+  }
   if (manual)
   {
     entry.restarts = 0;
   }
   entry.wanted = true;
   if (entry.phase == Phase::Stopped || entry.phase == Phase::Failed ||
-      entry.phase == Phase::Unavailable)
+      entry.phase == Phase::Unavailable || (manual && entry.phase == Phase::Complete))
   {
     entry.phase = Phase::Waiting;
   }
@@ -168,8 +202,9 @@ void
 Supervisor::spawn(unsigned index) {
   auto &entry = entries_[index];
   entry.detail[0] = 0;
-  int notification[2]{-1, -1}, executed[2]{-1, -1};
-  if (pipe(executed) < 0 || (entry.definition.notify && pipe(notification) < 0))
+  int notification[2]{-1, -1}, executed[2]{-1, -1}, output[2]{-1, -1};
+  if (!open_log(entry) || pipe(executed) < 0 || pipe(output) < 0 ||
+      (entry.definition.notify && pipe(notification) < 0))
   {
     for (int fd : executed)
     {
@@ -179,6 +214,13 @@ Supervisor::spawn(unsigned index) {
       }
     }
     for (int fd : notification)
+    {
+      if (fd >= 0)
+      {
+        close(fd);
+      }
+    }
+    for (int fd : output)
     {
       if (fd >= 0)
       {
@@ -200,7 +242,7 @@ Supervisor::spawn(unsigned index) {
     }
     for (int fd = 0; fd < 16; ++fd)
     {
-      if (fd != executed[1] && fd != notification[1])
+      if (fd != executed[1] && fd != notification[1] && fd != output[1])
       {
         close(fd);
       }
@@ -210,12 +252,15 @@ Supervisor::spawn(unsigned index) {
       write(executed[1], "E", 1);
       exit(1);
     }
-    if (open("/dev/zero", O_RDONLY) != 0 ||
-        open(entry.definition.log, O_CREATE | O_WRONLY | O_APPEND) != 1 || dup(1) != 2)
+    if (open("/dev/zero", O_RDONLY) != 0 || dup(output[1]) != 1 || dup(1) != 2)
     {
       write(executed[1], "E", 1);
       exit(1);
     }
+    close(output[1]);
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGINT, SIG_DFL);
+    signal(SIGPIPE, SIG_DFL);
     if (entry.definition.notify)
     {
       char descriptor[16];
@@ -240,6 +285,7 @@ Supervisor::spawn(unsigned index) {
     exit(127);
   }
   close(executed[1]);
+  close(output[1]);
   if (notification[1] >= 0)
   {
     close(notification[1]);
@@ -247,6 +293,7 @@ Supervisor::spawn(unsigned index) {
   if (child < 0)
   {
     close(executed[0]);
+    close(output[0]);
     if (notification[0] >= 0)
     {
       close(notification[0]);
@@ -256,6 +303,8 @@ Supervisor::spawn(unsigned index) {
     return;
   }
   entry.pid = child;
+  entry.output = output[0];
+  fcntl(entry.output, F_SETFL, O_NONBLOCK);
   entry.ready = notification[0];
   entry.phase = Phase::Starting;
   entry.deadline = milliseconds() + entry.definition.ready_timeout;
@@ -278,7 +327,7 @@ Supervisor::spawn(unsigned index) {
   {
     entry.phase = Phase::Running;
   }
-  printf("serviced: start %s pid=%d\n", entry.definition.name, child);
+  ui::info("serviced: start %s pid=%d\n", entry.definition.name, child);
 }
 
 void
@@ -300,6 +349,11 @@ Supervisor::exited(Service &entry, int status) {
   {
     sigsend(-old, SIGKILL);
   }
+  if (!drain_log(entry))
+  {
+    strcpy(entry.detail, "log write or rotation failed");
+  }
+  close_log(entry);
   bool success = WIFEXITED(status) && WEXITSTATUS(status) == 0;
   if (!entry.wanted && !entry.restart_after_stop)
   {
@@ -361,6 +415,19 @@ Supervisor::stop(unsigned index, bool restart, unsigned depth) {
       }
     }
   }
+  if (!local_)
+  {
+    if (entry.guardian)
+    {
+      (void)forward(index, restart ? Command::Restart : Command::Stop);
+    }
+    else
+    {
+      entry.wanted = restart;
+      entry.phase = restart ? Phase::Waiting : Phase::Stopped;
+    }
+    return;
+  }
   entry.wanted = false;
   entry.restart_after_stop = restart;
   if (entry.pid)
@@ -378,8 +445,12 @@ Supervisor::stop(unsigned index, bool restart, unsigned depth) {
 
 void
 Supervisor::tick() {
-  for (unsigned i = 0; i < count_; ++i)
+  // A guardian handshake may wait for exec/IO. Return to the control listener
+  // between managed entries instead of accumulating N synchronous handshakes.
+  unsigned budget = local_ ? count_ : (count_ ? 1 : 0);
+  for (unsigned step = 0; step < budget; ++step)
   {
+    unsigned i = local_ ? step : tick_cursor_++ % count_;
     auto &entry = entries_[i];
     if (entry.external)
     {
@@ -394,6 +465,25 @@ Supervisor::tick() {
         strcpy(entry.detail, "core service exited; existing mounts are not recovered");
       }
       continue;
+    }
+    if (!local_)
+    {
+      if (!ensure_guardian(i))
+      {
+        continue;
+      }
+      if (entry.wanted && entry.phase == Phase::Waiting)
+      {
+        (void)activate(i, false);
+      }
+      (void)forward(i, Command::DependencyState, dependencies(i));
+      continue;
+    }
+    if (!drain_log(entry) && entry.pid)
+    {
+      strcpy(entry.detail, "log write or rotation failed");
+      sigsend(-entry.pid, SIGKILL);
+      kill(entry.pid);
     }
     if (entry.pid)
     {
@@ -459,6 +549,15 @@ Supervisor::describe(unsigned index, Reply &reply) const {
   reply.restarts = entry.restarts;
   reply.phase = entry.phase;
   reply.external = entry.external;
+  reply.wanted = entry.wanted;
+  reply.guardian = entry.guardian;
+  reply.definition_id = definition_id(entry.definition);
+  reply.log_captured = entry.log_captured;
+  reply.log_rotations = entry.log_rotations;
+  if (entry.guardian)
+  {
+    guardian_path(index, reply.guardian_socket);
+  }
   strcpy(reply.name, entry.definition.name);
   strcpy(reply.log, entry.definition.log);
   strcpy(reply.detail, entry.detail);
@@ -466,24 +565,74 @@ Supervisor::describe(unsigned index, Reply &reply) const {
 
 void
 Supervisor::request(const Request &request, Reply &reply) {
+  if (local_ && (request.command == Command::DependencyState ||
+                 request.command == Command::Retire))
+  {
+    if (strcmp(request.name, entries_[0].definition.name))
+    {
+      return;
+    }
+    if (request.command == Command::Retire)
+    {
+      retiring_ = true;
+      stop(0);
+    }
+    else
+    {
+      permitted_ = request.pid != 0;
+    }
+    describe(0, reply);
+    return;
+  }
   if (request.command == Command::Load)
   {
+    if (local_)
+    {
+      return;
+    }
     reply.result = load(request.path, reply.detail) ? 0 : -1;
     return;
   }
   if (request.command == Command::Register)
   {
-    if (!valid_name(request.name) || request.pid < 0 || count_ == Maximum ||
-        find(request.name) >= 0)
+    if (local_)
     {
       return;
     }
-    auto &entry = entries_[count_++];
+    int existing = find(request.name);
+    if (!valid_name(request.name) || request.pid < 0 ||
+        (existing < 0 && count_ == Maximum) ||
+        (existing >= 0 && !entries_[existing].external))
+    {
+      return;
+    }
+    auto &entry = entries_[existing >= 0 ? unsigned(existing) : count_++];
+    if (existing < 0)
+    {
+      entry.~Service();
+      new (&entry) Service{};
+    }
+    int previous_pid = entry.pid;
+    Phase previous_phase = entry.phase;
     strcpy(entry.definition.name, request.name);
     entry.external = true;
     entry.pid = request.pid;
     entry.phase = request.pid ? Phase::Running : Phase::Complete;
     strcpy(entry.detail, "core service; lifecycle owned by bootstrap");
+    if (!save_external())
+    {
+      if (existing < 0)
+      {
+        --count_;
+      }
+      else
+      {
+        entry.pid = previous_pid;
+        entry.phase = previous_phase;
+      }
+      strcpy(reply.detail, "cannot save core service registry");
+      return;
+    }
     reply.result = 0;
     return;
   }
@@ -522,6 +671,11 @@ Supervisor::request(const Request &request, Reply &reply) {
 
 void
 Supervisor::shutdown() {
+  if (!local_)
+  {
+    retire_guardians();
+    return;
+  }
   for (unsigned i = count_; i; --i)
   {
     if (!entries_[i - 1].external)

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
@@ -6,12 +7,15 @@
 #include "kernel/fs/fcntl.h"
 #include "kernel/support/param.h"
 #include "user/runtime/directory.h"
+#include "user/runtime/terminal_style.h"
+#include "style.h"
 
 extern "C"
 {
 
   char *fmtname(char *path);
   static bool detailed = false;
+  static bool color = false;
 
   const char *
   type_name(short type) {
@@ -36,23 +40,27 @@ extern "C"
 
   void
   heading() {
+    const char *begin = color ? terminal_style::heading : "";
+    const char *end = color ? terminal_style::reset : "";
     if (detailed)
     {
-      printf("%-10s %5s %6s %6s %12s %s\n", "MODE", "LINKS", "UID", "GID", "SIZE(B)",
-             "NAME");
+      printf("%s%-10s %5s %6s %6s %12s %s%s\n", begin, "MODE", "LINKS", "UID", "GID",
+             "SIZE(B)", "NAME", end);
     }
     else
     {
-      printf("%-9s %8s %12s %s\n", "TYPE", "INODE", "SIZE(B)", "NAME");
+      printf("%s%-9s %8s %12s %s%s\n", begin, "TYPE", "INODE", "SIZE(B)", "NAME", end);
     }
   }
 
   void
   show(char *path, const struct stat &entry) {
+    const char *begin = color ? listing::name_color(entry) : "";
+    const char *end = *begin ? terminal_style::reset : "";
     if (!detailed)
     {
-      printf("%-9s %8u %12lu %s\n", type_name(entry.type), entry.ino, entry.size,
-             fmtname(path));
+      printf("%-9s %8u %12lu %s%s%s\n", type_name(entry.type), entry.ino, entry.size,
+             begin, fmtname(path), end);
       return;
     }
     char mode[11];
@@ -79,8 +87,8 @@ extern "C"
       mode[9] = mode[9] == 'x' ? 't' : 'T';
     }
     mode[10] = 0;
-    printf("%-10s %5d %6u %6u %12lu %s\n", mode, entry.nlink, entry.uid, entry.gid,
-           entry.size, fmtname(path));
+    printf("%-10s %5d %6u %6u %12lu %s%s%s\n", mode, entry.nlink, entry.uid, entry.gid,
+           entry.size, begin, fmtname(path), end);
   }
 
   char *
@@ -112,13 +120,13 @@ extern "C"
     }
     if ((fd = open(path, O_RDONLY)) < 0)
     {
-      fprintf(2, "ls: cannot open %s\n", path);
+      ui::error("ls: cannot open %s\n", path);
       return;
     }
 
     if (fstat(fd, &st) < 0)
     {
-      fprintf(2, "ls: cannot stat %s\n", path);
+      ui::error("ls: cannot stat %s\n", path);
       close(fd);
       return;
     }
@@ -136,7 +144,7 @@ extern "C"
     case T_DIR:
       if (strlen(path) + 2 > sizeof buf)
       {
-        printf("ls: path too long\n");
+        ui::error("ls: path too long\n");
         break;
       }
       strcpy(buf, path);
@@ -147,13 +155,13 @@ extern "C"
         unsigned length = strlen(de->d_name);
         if (unsigned(p - buf) + length + 1 > sizeof(buf))
         {
-          fprintf(2, "ls: path too long\n");
+          ui::error("ls: path too long\n");
           continue;
         }
         memmove(p, de->d_name, length + 1);
         if (lstat(buf, &st) < 0)
         {
-          printf("ls: cannot stat %s\n", buf);
+          ui::error("ls: cannot stat %s\n", buf);
           continue;
         }
         show(buf, st);
@@ -168,11 +176,48 @@ extern "C"
     int i;
 
     int first = 1;
-    if (argc > 1 && strcmp(argv[1], "-l") == 0)
+    enum class Color
     {
-      detailed = true;
-      ++first;
+      Auto,
+      Always,
+      Never
+    } policy = Color::Auto;
+    for (; first < argc; ++first)
+    {
+      const char *option = argv[first];
+      if (!strcmp(option, "--"))
+      {
+        ++first;
+        break;
+      }
+      if (option[0] != '-' || !option[1])
+      {
+        break;
+      }
+      if (!strcmp(option, "-l"))
+      {
+        detailed = true;
+      }
+      else if (!strcmp(option, "--color") || !strcmp(option, "--color=always"))
+      {
+        policy = Color::Always;
+      }
+      else if (!strcmp(option, "--color=auto"))
+      {
+        policy = Color::Auto;
+      }
+      else if (!strcmp(option, "--color=never"))
+      {
+        policy = Color::Never;
+      }
+      else
+      {
+        ui::usage("usage: ls [-l] [--color=auto|always|never] [--] [path ...]\n");
+        exit(1);
+      }
     }
+    color = policy == Color::Always ||
+            (policy == Color::Auto && terminal_style::enabled(1));
     if (argc == first)
     {
       ls(".");

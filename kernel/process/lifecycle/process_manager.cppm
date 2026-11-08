@@ -24,6 +24,16 @@ public:
   void create_kernel_task(const char *name, void (*entry)());
   static void kernel_task_return();
   int fork_process();
+  long create_thread(unsigned long entry, unsigned long argument, unsigned long stack,
+                     unsigned long tls);
+  int join_thread(int tid, unsigned long result);
+  int signal_thread(int tid, int signal);
+  bool prepare_exec();
+  void finish_exec();
+  int wait_word(unsigned long address, unsigned expected, unsigned long deadline = 0);
+  int wake_word(unsigned long address, unsigned count);
+  [[noreturn]]
+  void exit_thread(unsigned long result);
   [[noreturn]] void exit_process(int status, int signal = 0);
   int wait(unsigned long status_address);
   int waitpid(int pid, unsigned long address, int options);
@@ -42,6 +52,8 @@ public:
   void wakeup(void *channel);
   void dump();
   bool snapshot_after(int after, ProcessInfo &result);
+  bool snapshot_thread_after(int after, int pid, ThreadInfo &result);
+  unsigned reclaim_inactive_mappings();
   int inspect_files(int pid, xv::fs::FileInfo *entries, unsigned capacity, unsigned inspector = ~0U);
   bool inspect_exec(int pid, ExecSnapshot::Field field, xv::fs::PageBuffer &result, unsigned inspector = ~0U);
   int get_process_group();
@@ -78,8 +90,9 @@ private:
   xv::sync::SpinLock child_notification_lock_;
   bool child_notifications_ = false;
   bool signal_notifications_ = false;
-  Process *allocate();
+  Process *allocate(bool describe_image = true);
   void reap(Process *process);
+  void reap_group_workers(Process &leader);
   int allocate_pid();
   void reparent(Process *parent);
   static void attach_child(Process &parent, Process &child);
@@ -90,6 +103,7 @@ private:
   void queue_child_notification(Process &child);
   void cancel_child_notification(Process &child);
   void collect_child_notifications();
+  void report_group_stop(Process &source);
   ProcessStore &store_;
   Scheduler &scheduler_;
   WaitChannels &waits_;

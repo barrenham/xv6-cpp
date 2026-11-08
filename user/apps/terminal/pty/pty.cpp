@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/process/wait/wait.h"
@@ -145,7 +146,7 @@ app_main(int argc, char **argv) {
   fds[1] = opened ? open(slave_path, O_RDWR) : -1;
   if (tcgetattr(0, &saved) < 0 || tcgetpgrp(0) != getpgrp() || fds[1] < 0)
   {
-    fprintf(2, "pty: foreground terminal required or allocation failed\n");
+    ui::error("pty: foreground terminal required or allocation failed\n");
     exit(1);
   }
   // The parent becomes raw, so output processing belongs to the new slave.
@@ -193,7 +194,7 @@ app_main(int argc, char **argv) {
     close(fds[1]);
     char *shell[] = {const_cast<char *>("sh"), nullptr};
     execvp(argc > 1 ? argv[1] : "sh", argc > 1 ? argv + 1 : shell);
-    fprintf(2, "pty: exec failed\n");
+    ui::error("pty: exec failed\n");
     exit(1);
   }
   close(fds[1]);
@@ -209,11 +210,11 @@ app_main(int argc, char **argv) {
   }
   const char *newline =
       (saved.c_oflag & (OPOST | ONLCR)) == (OPOST | ONLCR) ? "\r\n" : "\n";
-  printf("pty: connected; Ctrl-] exits%s", newline);
+  ui::info("pty: connected; Ctrl-] exits%s", newline);
   transfer(fds[0]);
   close(fds[0]);
   tcsetattr(0, TCSANOW, &saved);
   waitpid(child, nullptr, 0);
-  printf("pty: disconnected\n");
+  ui::muted("pty: disconnected\n");
   exit(0);
 }

@@ -3,6 +3,7 @@ import :lru;
 import :vfs;
 import :platform;
 import xv.print;
+import xv.memory;
 
 namespace xv::fs
 {
@@ -62,6 +63,8 @@ devices() {
 
 void
 initialize_cache() {
+  xv::memory::set_page_reclaimer(reclaim_file_pages);
+  xv::memory::set_slow_page_reclaimer(reclaim_file_pages_slow);
   initialize_userfs_plugins();
   initialize_mount_manager();
   devices().attach_block("vda", 8, 0, xv::drivers::block_device());

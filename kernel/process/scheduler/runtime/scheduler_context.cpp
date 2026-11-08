@@ -35,6 +35,7 @@ struct SchedulerContext::DispatchFlow
     }
     c.ready.start(c.process);
     c.process.state = ProcessState::Running;
+    c.process.cpu_started_ = xv::arch::r_time();
     c.cpu.current = &c.process;
     account_dispatch();
   }
@@ -51,6 +52,8 @@ struct SchedulerContext::DispatchFlow
   static void
   leave(Context &c) noexcept {
     current_cpu()->intena = 0;
+    c.process.cpu_ticks_ += xv::arch::r_time() - c.process.cpu_started_;
+    c.process.cpu_started_ = 0;
     c.cpu.current = nullptr;
     c.process.lock.release();
   }
@@ -179,7 +182,9 @@ SchedulerContext::dispatch(Process &process, CpuState &cpu, ReadyQueue &ready) {
 void
 SchedulerContext::make_runnable(Process &process, ReadyQueue &ready) {
   if (!process.lock.holding() || process.state == ProcessState::Unused ||
-      process.state == ProcessState::Zombie || process.state == ProcessState::Runnable)
+      process.state == ProcessState::Zombie ||
+      process.state == ProcessState::ThreadZombie ||
+      process.state == ProcessState::Runnable)
   {
     xv::print::panic("scheduler: invalid runnable transition");
   }

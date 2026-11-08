@@ -21,16 +21,15 @@ public:
   };
 
   constexpr explicit RoutingTable(const InterfaceRegistry &interfaces)
-      : interfaces_(interfaces)
-  {
+      : interfaces_(interfaces) {
   }
 
   bool add(unsigned network, unsigned prefix, NetworkInterface &interface,
            unsigned gateway = 0, unsigned metric = 0, unsigned source = 0,
            unsigned owner = 0, unsigned local_address = 0);
 
-  void seal()
-  {
+  void
+  seal() {
     ConfigurationGuard guard;
     sealed_ = true;
   }
@@ -39,12 +38,13 @@ public:
               const NetworkInterface *via = nullptr) const;
   bool at(unsigned index, Route &result) const;
 
-  unsigned available() const
-  {
+  unsigned
+  available() const {
     ConfigurationGuard guard;
     return Capacity - count_;
   }
 
+  void remove_interface(const NetworkInterface &interface);
   bool references(const NetworkInterface &interface) const;
   int add_static(unsigned network, unsigned prefix, NetworkInterface &interface,
                  unsigned gateway = 0, unsigned metric = 0, unsigned source = 0);

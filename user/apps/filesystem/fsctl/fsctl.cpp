@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "user/runtime/user.h"
 #include "kernel/fs/fcntl.h"
@@ -69,8 +70,8 @@ app_main(int argc, char **argv) {
   int remaining = argc - first;
   if (remaining != 1 && remaining != 4 && remaining != 5)
   {
-    fprintf(2,
-            "usage: fsctl [--raw] [-w] path [interface version command [hex-input]]\n");
+    ui::usage(
+        "usage: fsctl [--raw] [-w] path [interface version command [hex-input]]\n");
     return 1;
   }
   xvfs_control request{};
@@ -111,14 +112,14 @@ app_main(int argc, char **argv) {
   int fd = open(argv[first], writable ? O_RDWR : O_RDONLY);
   if (fd < 0)
   {
-    fprintf(2, "fsctl: cannot open path\n");
+    ui::error("fsctl: cannot open path\n");
     return 1;
   }
   int result = xvfs_driver_control(fd, &request);
   close(fd);
   if (result < 0)
   {
-    fprintf(2, "fsctl: driver command failed\n");
+    ui::error("fsctl: driver command failed\n");
     return 1;
   }
   if (remaining == 1 && request.output_size == sizeof(xvfs_driver_info))
@@ -137,16 +138,16 @@ app_main(int argc, char **argv) {
     }
     else
     {
-      printf("Path            : %s\n", argv[first]);
-      printf("Interface       : %s\n",
-             info.interface_name[0] ? info.interface_name : "none");
-      printf("Interface ver.  : %u\n", info.interface_version);
-      printf("Wire version    : %u\n", info.wire_version);
-      printf("Access mode     : %s\n",
-             info.flags & XVFS_READ_ONLY ? "read-only" : "read-write");
-      printf("Max payload (B) : %u\n", info.max_payload);
-      printf("Snapshots       : %s\n", info.flags & XVFS_SNAPSHOTS ? "yes" : "no");
-      printf("Operations      :");
+      ui::info("Path            : %s\n", argv[first]);
+      ui::info("Interface       : %s\n",
+               info.interface_name[0] ? info.interface_name : "none");
+      ui::info("Interface ver.  : %u\n", info.interface_version);
+      ui::info("Wire version    : %u\n", info.wire_version);
+      ui::info("Access mode     : %s\n",
+               info.flags & XVFS_READ_ONLY ? "read-only" : "read-write");
+      ui::info("Max payload (B) : %u\n", info.max_payload);
+      ui::info("Snapshots       : %s\n", info.flags & XVFS_SNAPSHOTS ? "yes" : "no");
+      ui::heading("Operations      :");
       const char *names[] = {
           "lookup",       "create",  "read",   "write",          "resize",
           "setattr",      "readdir", "link",   "unlink",         "rename",
@@ -177,10 +178,10 @@ app_main(int argc, char **argv) {
     }
     else
     {
-      printf("Reply size: %u bytes\n", request.output_size);
+      ui::info("Reply size: %u bytes\n", request.output_size);
       if (request.output_size)
       {
-        printf("OFFSET  DATA (hex)\n");
+        ui::heading("OFFSET  DATA (hex)\n");
       }
     }
     const char *hex = "0123456789abcdef";

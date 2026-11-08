@@ -62,3 +62,7 @@ static_assert(offsetof(xvfs_resource_query, data) == offsetof(xv::fsservice::Que
 static_assert(sizeof(xvfs_system) == sizeof(xv::fsservice::System));
 static_assert(XVFS_SYSTEM == static_cast<unsigned>(xv::fsservice::Operation::System));
 static_assert(XVFS_RESOURCE_VERSION == xv::fsservice::Version);
+
+static_assert(sizeof(xvfs_thread) == sizeof(xv::fsservice::Thread));
+static_assert(XVFS_THREAD_AFTER ==
+              static_cast<unsigned>(xv::fsservice::Operation::ThreadAfter));

@@ -56,16 +56,6 @@ struct TrapController::EntryFlow
     detail::deliver_signals();
   }
 
-  static inline bool terminating(Context &c) noexcept
-  {
-    return c.action == TrapAction::Terminate || detail::killed();
-  }
-
-  static inline void exit(Context &) noexcept
-  {
-    detail::exit_current(-1);
-  }
-
   static inline bool yielding(Context &c) noexcept
   {
     return c.action == TrapAction::Yield;
@@ -96,7 +86,6 @@ struct TrapController::EntryFlow
   struct UserDispatch;
   struct RejectUser;
   struct Signals;
-  struct Exit;
   struct YieldRequest;
   struct Yield;
   struct PrepareReturn;
@@ -115,10 +104,10 @@ struct TrapController::EntryFlow
                      flow::branch<flow::condition<&unhandled>, flow::go<RejectUser>,
                                   flow::go<Signals>>>,
           flow::node<RejectUser, flow::action<&reject_user>, flow::stop>,
-          flow::node<Signals, flow::action<&signals>,
-                     flow::branch<flow::condition<&terminating>, flow::go<Exit>,
-                                  flow::go<YieldRequest>>>,
-          flow::node<Exit, flow::action<&exit>, flow::stop>,
+          // Signal delivery owns termination and its status. A second killed()
+          // check here could observe a newly posted signal and lose its status
+          // by taking the old generic exit(-1) path. prepare_return rechecks.
+          flow::node<Signals, flow::action<&signals>, flow::go<YieldRequest>>,
           flow::node<YieldRequest, flow::noop,
                      flow::branch<flow::condition<&yielding>, flow::go<Yield>,
                                   flow::go<PrepareReturn>>>,

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
@@ -9,7 +10,7 @@ app_main(int argc, char **argv) {
   int n = argc == 2 ? readlink(argv[1], path, sizeof(path) - 1) : -1;
   if (n < 0)
   {
-    fprintf(2, "readlink: failed\n");
+    ui::error("readlink: failed\n");
     exit(1);
   }
   path[n] = 0;

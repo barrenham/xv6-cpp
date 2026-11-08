@@ -11,6 +11,7 @@ import :ethernet_interface;
 import :loopback;
 import :tunnel;
 import :control;
+import :platform;
 
 namespace xv::net
 {
@@ -33,8 +34,8 @@ constinit LeaseConfiguration lease_configuration(interface_registry, routes, loo
 constinit DhcpManager dhcp(interface_registry, ip, lease_configuration);
 constinit NetworkManager manager(interface_registry, routes, loopback, &bridges, &dhcp);
 
-bool configure_qemu_defaults()
-{
+bool
+configure_qemu_defaults() {
 #if !XV_NET_BOOT_DHCP
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
   {
@@ -53,8 +54,8 @@ bool configure_qemu_defaults()
   return true;
 }
 
-void initialize_loopback()
-{
+void
+initialize_loopback() {
   loopback.add_address({0x7f000001, 8});
   loopback.set_up(true);
   loopback.attach(ip);
@@ -64,13 +65,68 @@ void initialize_loopback()
   }
 }
 
-void initialize_ethernet_interfaces()
-{
+bool ethernet_initialized[4]{};
+
+void
+hotplug_ethernet(unsigned slot, bool present) {
+  if (slot >= 4)
+  {
+    return;
+  }
+  detail::TimerChange changed;
+  auto &interface = ethernet[slot];
+  if (!present)
+  {
+    {
+      ConfigurationGuard guard;
+      interface.present(false);
+      dhcp.forget(interface);
+      routes.remove_interface(interface);
+      interface.reset_configuration();
+      interface_registry.withdraw(interface);
+    }
+    bridges.forget(interface);
+    interface.invalidate();
+    return;
+  }
+  {
+    ConfigurationGuard guard;
+    interface.present(true);
+    if (!ethernet_initialized[slot])
+    {
+      interface.initialize(xv::drivers::network_device(slot));
+      interface.attach(ip);
+      ethernet_initialized[slot] = true;
+    }
+    else
+    {
+      interface.reconnect(xv::drivers::network_device(slot));
+    }
+    interface.configure_link(true);
+    if (interface_registry.publish(interface) < 0)
+    {
+      interface.present(false);
+      return;
+    }
+    xv::drivers::initialize_network(interface.receiver(), slot);
+  }
+#if XV_NET_BOOT_DHCP
+  netctl_request request{};
+  request.version = NETCTL_VERSION;
+  request.size = sizeof(request);
+  request.ifindex = interface.id();
+  (void)dhcp.execute(NETCTL_DHCP_START, request);
+#endif
+}
+
+void
+initialize_ethernet_interfaces() {
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
   {
     auto &interface = ethernet[i];
     xv::drivers::initialize_network(interface.receiver(), i);
     interface.initialize(xv::drivers::network_device(i));
+    ethernet_initialized[i] = true;
     interface.set_up(true);
     interface.attach(ip);
     if (!interface_registry.add(interface))
@@ -80,8 +136,8 @@ void initialize_ethernet_interfaces()
   }
 }
 
-void attach_protocols()
-{
+void
+attach_protocols() {
   ip.attach(1, icmp);
   ip.attach(17, udp);
   ip.attach(6, tcp);
@@ -91,8 +147,8 @@ void attach_protocols()
   tcp.attach(sockets);
 }
 
-void start_default_dhcp()
-{
+void
+start_default_dhcp() {
 #if XV_NET_BOOT_DHCP
   for (unsigned i = 0; i < xv::drivers::network_device_count(); ++i)
   {
@@ -117,8 +173,8 @@ struct InitializationFlow
     bool configured = false;
   };
 
-  static void services(Context &) noexcept
-  {
+  static void
+  services(Context &) noexcept {
     firewall.initialize();
     ip.attach_filter(firewall);
     sockets.initialize();
@@ -127,59 +183,59 @@ struct InitializationFlow
     dhcp.initialize();
   }
 
-  static void local_interface(Context &) noexcept
-  {
+  static void
+  local_interface(Context &) noexcept {
     initialize_loopback();
   }
 
-  static void ethernet_interfaces(Context &) noexcept
-  {
+  static void
+  ethernet_interfaces(Context &) noexcept {
     initialize_ethernet_interfaces();
   }
 
-  static void bridge_interfaces(Context &) noexcept
-  {
+  static void
+  bridge_interfaces(Context &) noexcept {
     bridges.initialize();
   }
 
-  static void protocols(Context &) noexcept
-  {
+  static void
+  protocols(Context &) noexcept {
     attach_protocols();
   }
 
-  static void configure(Context &c) noexcept
-  {
+  static void
+  configure(Context &c) noexcept {
     c.configured = c.setup ? c.setup->configure(interface_registry, routes, ip, tunnels)
                            : configure_qemu_defaults();
   }
 
-  static bool configured(Context &c) noexcept
-  {
+  static bool
+  configured(Context &c) noexcept {
     return c.configured;
   }
 
-  static bool seal_interfaces(Context &) noexcept
-  {
+  static bool
+  seal_interfaces(Context &) noexcept {
     return interface_registry.seal();
   }
 
-  static void seal_routes(Context &) noexcept
-  {
+  static void
+  seal_routes(Context &) noexcept {
     routes.seal();
   }
 
-  static bool default_setup(Context &c) noexcept
-  {
+  static bool
+  default_setup(Context &c) noexcept {
     return !c.setup;
   }
 
-  static void start_dhcp(Context &) noexcept
-  {
+  static void
+  start_dhcp(Context &) noexcept {
     start_default_dhcp();
   }
 
-  static void invalid(Context &) noexcept
-  {
+  static void
+  invalid(Context &) noexcept {
     detail::fail("invalid network setup");
   }
   struct Services;
@@ -220,23 +276,23 @@ struct TimerFlow
     unsigned long now;
   };
 
-  static void interfaces(Context &c) noexcept
-  {
+  static void
+  interfaces(Context &c) noexcept {
     interface_registry.tick(c.now);
   }
 
-  static void fragments(Context &c) noexcept
-  {
+  static void
+  fragments(Context &c) noexcept {
     ip.tick(c.now);
   }
 
-  static void leases(Context &c) noexcept
-  {
+  static void
+  leases(Context &c) noexcept {
     dhcp.tick(c.now);
   }
 
-  static void connections(Context &c) noexcept
-  {
+  static void
+  connections(Context &c) noexcept {
     sockets.tick(c.now);
   }
   struct FirstInterfaces;
@@ -255,40 +311,41 @@ struct TimerFlow
 };
 } // namespace
 
-int firewall_control(unsigned operation, firewall_request &request)
-{
+int
+firewall_control(unsigned operation, firewall_request &request) {
   return firewall.execute(operation, request);
 }
 
-int control(unsigned operation, netctl_request &request)
-{
+int
+control(unsigned operation, netctl_request &request) {
   detail::TimerChange changed;
   return manager.execute(operation, request);
 }
 
-const InterfaceRegistry &interfaces()
-{
+const InterfaceRegistry &
+interfaces() {
   return interface_registry;
 }
 
-const RoutingTable &routing_table()
-{
+const RoutingTable &
+routing_table() {
   return routes;
 }
 
-SocketRegistry &socket_registry()
-{
+SocketRegistry &
+socket_registry() {
   return sockets;
 }
 
-void initialize(NetworkSetup *setup)
-{
+void
+initialize(NetworkSetup *setup) {
   InitializationFlow::Context ctx{setup};
   (void)InitializationFlow::Graph::run<0>(ctx);
+  xv::drivers::register_network_hotplug(hotplug_ethernet);
 }
 
-void timer_tick()
-{
+void
+timer_tick() {
   TimerFlow::Context ctx{detail::milliseconds()};
   (void)TimerFlow::Graph::run<0>(ctx);
 }
@@ -296,11 +353,10 @@ void timer_tick()
 
 namespace xv::net
 {
-unsigned long next_timer_deadline()
-{
+unsigned long
+next_timer_deadline() {
   unsigned long next = interface_registry.next_deadline();
-  auto include = [&](unsigned long at)
-  {
+  auto include = [&](unsigned long at) {
     if (at < next)
     {
       next = at;

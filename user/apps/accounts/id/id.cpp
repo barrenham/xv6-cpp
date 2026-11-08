@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -7,8 +8,8 @@ extern "C" int
 app_main() {
   account::User user{};
   bool known = account::find(static_cast<unsigned>(getuid()), user);
-  printf("uid=%d(%s) gid=%d euid=%d egid=%d", getuid(), known ? user.name : "unknown",
-         getgid(), geteuid(), getegid());
+  ui::info("uid=%d(%s) gid=%d euid=%d egid=%d", getuid(), known ? user.name : "unknown",
+           getgid(), geteuid(), getegid());
   unsigned groups[16];
   int count = getgroups(16, groups);
   printf(" groups=%d", getgid());

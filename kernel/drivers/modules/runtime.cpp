@@ -1,6 +1,9 @@
 module;
 #include "kernel/io/kmodule.h"
 #include "kernel/io/kmodule_v2.h"
+#include "kernel/io/kmodule_v3.h"
+#include "kernel/io/kmodule_v4.h"
+#include "kernel/drivers/modules/matching.h"
 #include "kernel/arch/riscv/register_constants.h"
 #include "kernel/support/placement_new.hpp"
 #include "kernel/support/param.h"
@@ -10,6 +13,7 @@ import xv.memory;
 import xv.process;
 import xv.runtime;
 import xv.print;
+import xv.arch;
 import xv.fs;
 import :module_runtime;
 
@@ -71,9 +75,149 @@ constinit xv::sync::SleepLock manager;
 unsigned long code_generation = 0;
 unsigned long observed_generation[NCPU]{};
 
+constexpr unsigned EventCapacity = 64;
+xv_kmod_event events[EventCapacity]{};
+unsigned long event_sequence = 0;
+unsigned seen_generation[MaxDevices]{};
+unsigned failed_generation[MaxDevices]{}, failed_module[MaxDevices]{};
+int device_errors[MaxDevices]{};
+bool hotplug_started = false;
+
+void
+record_event(unsigned type, unsigned index) {
+  if (!hotplug_started)
+  {
+    return;
+  }
+  xv_kmod_hotplug_status status{};
+  if (!device_hotplug_status(index, status))
+  {
+    return;
+  }
+  auto &event = events[event_sequence++ % EventCapacity];
+  event = {};
+  event.size = sizeof(event);
+  event.type = type;
+  event.index = index;
+  event.generation = status.generation;
+  event.sequence = event_sequence;
+  xv::runtime::copy_fixed(event.name, status.identity.name, sizeof(event.name));
+}
+
 void
 instruction_barrier() {
   xv_kmod_synchronize();
+}
+
+const xv_kmod_driver_v3 *
+extended(const Image &image) {
+  return image.driver && image.driver->abi >= XV_KMOD_ABI_V3
+             ? reinterpret_cast<const xv_kmod_driver_v3 *>(image.driver)
+             : nullptr;
+}
+
+bool
+driver_name(const char *name) {
+  unsigned length = 0;
+  while (length < XV_KMOD_NAME && name[length])
+  {
+    char c = name[length++];
+    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+          c == '_' || c == '-'))
+    {
+      return false;
+    }
+  }
+  return length && length < XV_KMOD_NAME;
+}
+
+int
+named_image(const char *name) {
+  for (unsigned i = 0; i < MaxModules; ++i)
+  {
+    if (images[i].base &&
+        !xv::runtime::compare_text(images[i].driver->name, name, XV_KMOD_NAME))
+    {
+      return i;
+    }
+  }
+  return -1;
+}
+
+bool
+dependency_cycle(unsigned id, unsigned char *colors) {
+  if (colors[id] == 1)
+  {
+    return true;
+  }
+  if (colors[id] == 2)
+  {
+    return false;
+  }
+  colors[id] = 1;
+  auto *driver = extended(images[id]);
+  if (driver)
+  {
+    for (unsigned i = 0; i < driver->dependency_count; ++i)
+    {
+      int dependency = named_image(driver->dependencies[i].name);
+      if (dependency >= 0 && dependency_cycle(dependency, colors))
+      {
+        return true;
+      }
+    }
+  }
+  colors[id] = 2;
+  return false;
+}
+
+const char *
+waiting_dependency(const Image &image) {
+  auto *driver = extended(image);
+  if (driver)
+  {
+    for (unsigned i = 0; i < driver->dependency_count; ++i)
+    {
+      const char *name = driver->dependencies[i].name;
+      int dependency = named_image(name);
+      if (dependency < 0 || !images[dependency].bound || images[dependency].last_error)
+      {
+        return name;
+      }
+    }
+  }
+  return nullptr;
+}
+
+bool
+matches(const Image &image, unsigned device_index, unsigned *entry = nullptr,
+        unsigned *flags = nullptr) {
+  xv_kmod_device_v3 device{};
+  if (!module_device_v3(device_index, device))
+  {
+    return false;
+  }
+  if (auto *driver = extended(image))
+  {
+    for (unsigned i = 0; i < driver->match_count; ++i)
+    {
+      if (matching::accepts(driver->matches[i], device))
+      {
+        if (entry)
+        {
+          *entry = i;
+        }
+        if (flags)
+        {
+          *flags = driver->matches[i].flags;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+  return image.driver->bus == device.base.base.bus &&
+         image.driver->device_id == device.base.base.id;
 }
 
 class ImageLoader
@@ -231,14 +375,22 @@ public:
     __atomic_fetch_add(&code_generation, 1UL, __ATOMIC_RELEASE);
     instruction_barrier();
     auto entry = reinterpret_cast<xv_kmod_entry>(base_ + elf.entry);
-    auto *driver = entry(XV_KMOD_ABI_V2);
+    auto *driver = entry(XV_KMOD_ABI_V4);
+    if (!driver)
+    {
+      driver = entry(XV_KMOD_ABI_V3);
+    }
+    if (!driver)
+    {
+      driver = entry(XV_KMOD_ABI_V2);
+    }
     if (!driver)
     {
       driver = entry(XV_KMOD_ABI);
     }
     auto address = reinterpret_cast<unsigned long>(driver);
     if (address < base_ || !range(address - base_, sizeof(*driver), 4) ||
-        !driver->device_id)
+        (driver->abi < XV_KMOD_ABI_V3 && !driver->device_id))
     {
       return false;
     }
@@ -259,6 +411,58 @@ public:
               reinterpret_cast<const xv_kmod_driver_v2 *>(driver)->attach)))
       {
         return false;
+      }
+    }
+    else if (driver->abi == XV_KMOD_ABI_V3 || driver->abi == XV_KMOD_ABI_V4)
+    {
+      if (driver->size != (driver->abi == XV_KMOD_ABI_V4 ? sizeof(xv_kmod_driver_v4)
+                                                         : sizeof(xv_kmod_driver_v3)) ||
+          !range(address - base_, driver->size, 4))
+      {
+        return false;
+      }
+      if (driver->abi == XV_KMOD_ABI_V4 &&
+          !code(reinterpret_cast<unsigned long>(
+              reinterpret_cast<const xv_kmod_driver_v4 *>(driver)->remove)))
+      {
+        return false;
+      }
+      auto *v3 = reinterpret_cast<const xv_kmod_driver_v3 *>(driver);
+      auto matches_address = reinterpret_cast<unsigned long>(v3->matches);
+      auto dependencies_address = reinterpret_cast<unsigned long>(v3->dependencies);
+      if (!v3->match_count || v3->match_count > XV_KMOD_MAX_MATCHES ||
+          v3->dependency_count > XV_KMOD_MAX_DEPENDENCIES || matches_address < base_ ||
+          !range(matches_address - base_, v3->match_count * sizeof(xv_kmod_match), 4) ||
+          (v3->dependency_count &&
+           (dependencies_address < base_ ||
+            !range(dependencies_address - base_,
+                   v3->dependency_count * sizeof(xv_kmod_dependency), 4))) ||
+          !code(reinterpret_cast<unsigned long>(v3->attach)))
+      {
+        return false;
+      }
+      for (unsigned i = 0; i < v3->match_count; ++i)
+      {
+        if (!matching::valid(v3->matches[i]))
+        {
+          return false;
+        }
+      }
+      for (unsigned i = 0; i < v3->dependency_count; ++i)
+      {
+        const char *name = v3->dependencies[i].name;
+        if (!driver_name(name) ||
+            !xv::runtime::compare_text(name, driver->name, XV_KMOD_NAME))
+        {
+          return false;
+        }
+        for (unsigned j = 0; j < i; ++j)
+        {
+          if (!xv::runtime::compare_text(name, v3->dependencies[j].name, XV_KMOD_NAME))
+          {
+            return false;
+          }
+        }
       }
     }
     else
@@ -290,6 +494,16 @@ public:
     out.base = base_;
     out.bytes = bytes_;
     out.driver = driver;
+    unsigned char colors[MaxModules]{};
+    for (unsigned i = 0; i < MaxModules; ++i)
+    {
+      if (images[i].base && dependency_cycle(i, colors))
+      {
+        out.base = out.bytes = 0;
+        out.driver = nullptr;
+        return false;
+      }
+    }
     base_ = 0;
     return true;
   }
@@ -459,7 +673,10 @@ public:
   constexpr explicit ModuleBlock(unsigned index = 0) : index_(index) {
   }
 
-  void configure(unsigned index) { index_ = index; }
+  void
+  configure(unsigned index) {
+    index_ = index;
+  }
 
   const char *
   name() const override {
@@ -537,24 +754,41 @@ bind(unsigned id, unsigned device_index) {
   }
   auto &image = images[id];
   auto &binding = bindings[device_index];
-  if (image.driver->bus != device.bus || image.driver->device_id != device.id)
+  if (binding.image || !device.id || !matches(image, device_index) ||
+      waiting_dependency(image))
   {
     return -1;
   }
   binding.image = &image;
   binding.irq = device.irq;
   binding.index = device_index;
-  if (image.driver->abi == XV_KMOD_ABI_V2)
+  if (image.driver->abi >= XV_KMOD_ABI_V2)
   {
-    xv_kmod_device_v2 extended{};
-    if (!module_device_v2(device_index, extended))
+    xv_kmod_device_v3 extended{};
+    if (!module_device_v3(device_index, extended))
     {
       return -1;
     }
-    extended.binding = &binding;
-    return modules::attach(image, extended);
+    extended.base.binding = &binding;
+    int result = modules::attach(image, extended);
+    if (!result)
+    {
+      if (binding.network_slot < 4 && modules::network_hotplug)
+      {
+        modules::network_hotplug(binding.network_slot, true);
+      }
+      record_event(XV_KMOD_EVENT_BOUND, device_index);
+    }
+    else
+    {
+      binding.image = nullptr;
+    }
+    return result;
   }
-  if (device.bus != XV_KMOD_BUS_VIRTIO_MMIO || device.id != 2) return -1;
+  if (device.bus != XV_KMOD_BUS_VIRTIO_MMIO || device.id != 2)
+  {
+    return -1;
+  }
   binding.host = {sizeof(xv_kmod_host),
                   XV_KMOD_ABI,
                   &binding,
@@ -586,23 +820,229 @@ bind(unsigned id, unsigned device_index) {
     return -1;
   }
   unsigned ordinal = 0;
-  while (ordinal < block_count && block_indices[ordinal] != device_index) ++ordinal;
-  if (ordinal == block_count) return -1;
+  while (ordinal < block_count && block_indices[ordinal] != device_index)
+  {
+    ++ordinal;
+  }
+  if (ordinal == block_count)
+  {
+    return -1;
+  }
   if (ordinal == 1 && !xv::fs::publish_data_device(block_instances[device_index]))
+  {
     xv::print::panic("module: device publication failed");
+  }
   if (ordinal > 1)
   {
     char name[16] = "vd";
     unsigned value = ordinal, at = 2;
-    if (value >= 26) { name[at++] = 'a' + value / 26 - 1; value %= 26; }
-    name[at++] = 'a' + value; name[at] = 0;
-    if (!xv::fs::devices().attach_dynamic_block(name, 8, ordinal * 16, block_instances[device_index]))
+    if (value >= 26)
+    {
+      name[at++] = 'a' + value / 26 - 1;
+      value %= 26;
+    }
+    name[at++] = 'a' + value;
+    name[at] = 0;
+    if (!xv::fs::devices().attach_dynamic_block(name, 8, ordinal * 16,
+                                                block_instances[device_index]))
+    {
       xv::print::panic("module: extra block device publication failed");
+    }
   }
   ++image.bound;
   __atomic_store_n(&online[device_index], 1U, __ATOMIC_RELEASE);
   return 0;
 }
+
+void
+reconcile_modules(bool boot = false) {
+  // A provider becomes usable only after binding at least one instance. Retry
+  // dependents when a later-loaded provider binds; never steal owned devices.
+  for (unsigned pass = 0; pass < MaxModules; ++pass)
+  {
+    bool progress = false;
+    for (unsigned id = 0; id < MaxModules; ++id)
+    {
+      auto &image = images[id];
+      if (!image.base || !image.automatic || waiting_dependency(image))
+      {
+        continue;
+      }
+      for (unsigned index = 0; index < MaxDevices; ++index)
+      {
+        xv_kmod_device device{};
+        if (!module_device(index, device))
+        {
+          break;
+        }
+        if (!device.id || bindings[index].image || online[index] ||
+            (image.selected_device != MaxDevices && image.selected_device != index) ||
+            !matches(image, index))
+        {
+          continue;
+        }
+        xv_kmod_hotplug_status state{};
+        if (!device_hotplug_status(index, state))
+        {
+          continue;
+        }
+        if (failed_generation[index] == state.generation && failed_module[index] == id)
+        {
+          continue;
+        }
+        if (bind(id, index) < 0)
+        {
+          failed_generation[index] = state.generation;
+          failed_module[index] = id;
+          device_errors[index] = -1;
+          record_event(XV_KMOD_EVENT_FAILED, index);
+          image.last_error = -1;
+          if (boot)
+          {
+            xv::print::panic("boot drivers: matching device initialization failed");
+          }
+          continue;
+        }
+        device_errors[index] = 0;
+        progress = true;
+        if (boot)
+        {
+          xv::print::printk("driver: bound %s to %s\n", image.driver->name,
+                            device.name);
+        }
+      }
+    }
+    if (!progress)
+    {
+      break;
+    }
+  }
+}
+
+int
+remove_device(unsigned index, bool surprise) {
+  xv_kmod_hotplug_status status{};
+  if (!device_hotplug_status(index, status) || !(status.flags & XV_KMOD_PRESENT))
+  {
+    return -19;
+  }
+  if (!(status.flags & XV_KMOD_REMOVABLE))
+  {
+    return -16;
+  }
+  auto &binding = bindings[index];
+  auto *image = binding.image;
+  if (image)
+  {
+    if (image->driver->abi != XV_KMOD_ABI_V4 || (binding.publications & ~4U))
+    {
+      return -95;
+    }
+    xv_kmod_device_v3 identity{};
+    if (!module_device_v3(index, identity))
+    {
+      return -19;
+    }
+    identity.base.binding = &binding;
+    unsigned slot = binding.network_slot;
+    modules::quiesce_network(binding);
+    {
+      xv::sync::ScopedLock guard(binding.interrupt_lock);
+      __atomic_store_n(&binding.interrupt_active, 0U, __ATOMIC_RELEASE);
+    }
+    __atomic_store_n(&online[index], 0U, __ATOMIC_RELEASE);
+    binding.quarantined = true;
+    if (slot < 4 && modules::network_hotplug)
+    {
+      modules::network_hotplug(slot, false);
+    }
+    instruction_barrier();
+    auto *driver = reinterpret_cast<const xv_kmod_driver_v4 *>(image->driver);
+    if (driver->remove(&image->services, &identity,
+                       surprise ? XV_KMOD_REMOVE_SURPRISE : XV_KMOD_REMOVE_ORDERLY) < 0)
+    {
+      device_errors[index] = -16;
+      image->last_error = -16;
+      record_event(XV_KMOD_EVENT_FAILED, index);
+      return -16;
+    }
+    modules::detach_network(binding);
+    binding.interrupt_context = nullptr;
+    binding.interrupt_handler = nullptr;
+    binding.image = nullptr;
+    binding.publications = 0;
+    binding.quarantined = false;
+    --image->bound;
+    image->last_error = 0;
+  }
+  if (!eject_device_resource(index))
+  {
+    return -16;
+  }
+  device_errors[index] = 0;
+  failed_generation[index] = 0;
+  record_event(XV_KMOD_EVENT_REMOVED, index);
+  return 0;
+}
+
+unsigned
+rescan_devices(bool retry) {
+  unsigned changed = scan_device_resources();
+  for (unsigned i = 0; i < MaxDevices; ++i)
+  {
+    xv_kmod_hotplug_status state{};
+    if (!device_hotplug_status(i, state))
+    {
+      break;
+    }
+    if ((state.flags & XV_KMOD_PRESENT) && seen_generation[i] != state.generation)
+    {
+      seen_generation[i] = state.generation;
+      device_errors[i] = 0;
+      record_event(XV_KMOD_EVENT_ADDED, i);
+    }
+    if (retry)
+    {
+      failed_generation[i] = 0;
+    }
+    bool surprise = false;
+    if (device_removal_requested(i, surprise))
+    {
+      if (bindings[i].quarantined && !retry)
+      {
+        continue;
+      }
+      int result = remove_device(i, surprise);
+      if (!result)
+      {
+        ++changed;
+      }
+      else if (device_errors[i] != result)
+      {
+        device_errors[i] = result;
+        record_event(XV_KMOD_EVENT_REJECTED, i);
+      }
+    }
+  }
+  reconcile_modules();
+  return changed;
+}
+
+void
+hotplug_worker() {
+  xv::arch::intr_on();
+  auto wait = xv::process::make_poll_wait();
+  for (;;)
+  {
+    {
+      xv::sync::ScopedLock guard(manager);
+      (void)rescan_devices(false);
+    }
+    wait.set_deadline(xv::arch::r_time() / 10000 + 250);
+    wait.sleep();
+  }
+}
+
 } // namespace
 
 extern "C" void
@@ -627,6 +1067,35 @@ initialize_modules() {
   for (auto &binding : bindings)
   {
     binding.interrupt_lock.init("driver interrupt publication");
+  }
+}
+
+void
+register_network_hotplug(void (*callback)(unsigned, bool)) {
+  xv::sync::ScopedLock guard(manager);
+  modules::network_hotplug = callback;
+}
+
+void
+start_hotplug_worker() {
+  bool supported = false;
+  {
+    xv::sync::ScopedLock guard(manager);
+    for (unsigned i = 0; i < MaxDevices; ++i)
+    {
+      xv_kmod_hotplug_status status{};
+      if (!device_hotplug_status(i, status))
+      {
+        break;
+      }
+      seen_generation[i] = status.generation;
+      supported |= status.flags & XV_KMOD_REMOVABLE;
+    }
+    hotplug_started = true;
+  }
+  if (supported)
+  {
+    xv::process::create_kernel_task("device-hotplug", hotplug_worker);
   }
 }
 
@@ -722,58 +1191,63 @@ initialize_boot_modules() {
       xv::print::panic("boot drivers: invalid module ELF");
     }
     xv::print::printk("driver: loaded %s from boot archive\n", images[id].driver->name);
-    for (unsigned device_index = 0;; ++device_index)
+    images[id].automatic = true;
+    images[id].selected_device = selected;
+  }
+  reconcile_modules(true);
+  for (auto &module : images)
+  {
+    if (module.base)
     {
-      xv_kmod_device device{};
-      if (!module_device(device_index, device))
+      if (const char *name = waiting_dependency(module))
       {
-        break;
+        xv::print::printk("driver: waiting %s: dependency %s\n", module.driver->name,
+                          name);
       }
-      if (__atomic_load_n(&online[device_index], __ATOMIC_ACQUIRE)) continue;
-      if (selected != MaxDevices && selected != device_index)
-      {
-        continue;
-      }
-      if (device.bus != images[id].driver->bus ||
-          device.id != images[id].driver->device_id)
-      {
-        continue;
-      }
-      if (bind(id, device_index) < 0)
-      {
-        xv::print::panic("boot drivers: matching device initialization failed");
-      }
-      xv::print::printk("driver: bound %s to %s\n", images[id].driver->name,
-                        device.name);
     }
   }
 }
 
-void discover_block_roles()
-{
-  if (block_count) return;
+void
+discover_block_roles() {
+  if (block_count)
+  {
+    return;
+  }
   for (unsigned i = 0; i < MaxDevices; ++i)
   {
     block_instances[i].configure(i);
     xv_kmod_device device{};
-    if (!module_device(i, device)) break;
+    if (!module_device(i, device))
+    {
+      break;
+    }
     if (device.bus == XV_KMOD_BUS_VIRTIO_MMIO && device.id == 2)
+    {
       block_indices[block_count++] = i;
+    }
   }
 }
 
 BlockDevice *
 data_device() {
   discover_block_roles();
-  if (block_count < 2) return nullptr;
+  if (block_count < 2)
+  {
+    return nullptr;
+  }
   unsigned index = block_indices[1];
-  return __atomic_load_n(&online[index], __ATOMIC_ACQUIRE) ? &block_instances[index] : nullptr;
+  return __atomic_load_n(&online[index], __ATOMIC_ACQUIRE) ? &block_instances[index]
+                                                           : nullptr;
 }
 
 BlockDevice &
 block_device() {
   discover_block_roles();
-  if (!block_count) xv::print::panic("no block device discovered in device tree");
+  if (!block_count)
+  {
+    xv::print::panic("no block device discovered in device tree");
+  }
   return block_instances[block_indices[0]];
 }
 
@@ -796,7 +1270,7 @@ module_interrupt(unsigned index) {
   {
     return;
   }
-  if (binding.image->driver->abi == XV_KMOD_ABI_V2)
+  if (binding.image->driver->abi >= XV_KMOD_ABI_V2)
   {
     return;
   }
@@ -814,6 +1288,78 @@ module_control(unsigned operation, unsigned long argument, unsigned long value) 
   xv::sync::ScopedLock guard(manager);
   switch (operation)
   {
+  case XV_KMOD_RESCAN:
+    return rescan_devices(true);
+  case XV_KMOD_REMOVE: {
+    if (argument >= MaxDevices)
+    {
+      return -1;
+    }
+    xv_kmod_hotplug_status current{};
+    if (!device_hotplug_status(argument, current))
+    {
+      return -19;
+    }
+    if (value && value != current.generation)
+    {
+      record_event(XV_KMOD_EVENT_REJECTED, argument);
+      return -22;
+    }
+    int result = remove_device(argument, false);
+    if (result < 0)
+    {
+      device_errors[argument] = result;
+      record_event(XV_KMOD_EVENT_REJECTED, argument);
+    }
+    return result;
+  }
+  case XV_KMOD_HOTPLUG_STATUS: {
+    xv_kmod_hotplug_status status{};
+    if (value >= MaxDevices || !device_hotplug_status(value, status))
+    {
+      return -1;
+    }
+    if (bindings[value].image)
+    {
+      status.flags |= XV_KMOD_BOUND;
+    }
+    bool surprise = false;
+    if (device_removal_requested(value, surprise))
+    {
+      status.flags |= XV_KMOD_REMOVE_PENDING;
+    }
+    if (bindings[value].quarantined)
+    {
+      status.flags |= XV_KMOD_REMOVE_FAILED;
+    }
+    if ((status.flags & XV_KMOD_REMOVABLE) &&
+        (!bindings[value].image ||
+         (bindings[value].image->driver->abi == XV_KMOD_ABI_V4 &&
+          !(bindings[value].publications & ~4U))))
+    {
+      status.flags |= XV_KMOD_CAN_REMOVE;
+    }
+    status.last_error = device_errors[value];
+    status.network_slot = bindings[value].network_slot;
+    return xv::process::copy_out(true, argument, &status, sizeof(status));
+  }
+  case XV_KMOD_EVENT: {
+    if (value >= event_sequence)
+    {
+      return 0;
+    }
+    unsigned long oldest =
+        event_sequence > EventCapacity ? event_sequence - EventCapacity + 1 : 1;
+    unsigned long sequence = value + 1, lost = 0;
+    if (sequence < oldest)
+    {
+      lost = oldest - sequence;
+      sequence = oldest;
+    }
+    auto event = events[(sequence - 1) % EventCapacity];
+    event.lost = lost;
+    return xv::process::copy_out(true, argument, &event, sizeof(event)) < 0 ? -1 : 1;
+  }
   case XV_KMOD_LOAD:
     for (unsigned i = 0; i < MaxModules; ++i)
     {
@@ -853,22 +1399,79 @@ module_control(unsigned operation, unsigned long argument, unsigned long value) 
     return xv::process::copy_out(true, argument, &device, sizeof(device));
   }
   case XV_KMOD_AUTOBIND: {
-    if (argument >= MaxModules || !images[argument].base) return -1;
-    unsigned attached = 0;
-    bool failed = false;
-    for (unsigned index = 0; index < MaxDevices; ++index)
+    if (argument >= MaxModules || !images[argument].base)
     {
-      xv_kmod_device device{};
-      if (!module_device(index, device)) break;
-      if (__atomic_load_n(&online[index], __ATOMIC_ACQUIRE) ||
-          device.bus != images[argument].driver->bus || device.id != images[argument].driver->device_id) continue;
-      if (bind(argument, index) < 0) failed = true;
-      else ++attached;
+      return -1;
     }
-    return failed ? -1 : static_cast<long>(attached);
+    auto &image = images[argument];
+    unsigned before = image.bound;
+    image.automatic = true;
+    image.selected_device = MaxDevices;
+    image.last_error = 0;
+    for (unsigned i = 0; i < MaxDevices; ++i)
+      if (failed_module[i] == argument) failed_generation[i] = 0;
+    reconcile_modules();
+    return image.last_error ? -1 : static_cast<long>(image.bound - before);
   }
-  case XV_KMOD_BIND:
-    return argument >= MaxModules || value > 0xffffffffUL ? -1 : bind(argument, value);
+  case XV_KMOD_BIND: {
+    if (argument >= MaxModules || value > 0xffffffffUL)
+    {
+      return -1;
+    }
+    int result = bind(argument, value);
+    if (!result)
+    {
+      images[argument].last_error = 0;
+      reconcile_modules();
+    }
+    return result;
+  }
+  case XV_KMOD_STATUS: {
+    if (value >= MaxModules || !images[value].base)
+    {
+      return -1;
+    }
+    const auto &image = images[value];
+    xv_kmod_status status{};
+    status.size = sizeof(status);
+    status.automatic = image.automatic;
+    status.last_error = image.last_error;
+    const char *dependency = waiting_dependency(image);
+    status.state = image.last_error ? XV_KMOD_STATE_FAILED
+                   : dependency     ? XV_KMOD_STATE_WAITING
+                   : image.bound    ? XV_KMOD_STATE_READY
+                                    : XV_KMOD_STATE_LOADED;
+    xv::runtime::copy_fixed(status.detail,
+                            dependency         ? dependency
+                            : image.last_error ? "device initialization failed"
+                            : image.bound      ? "bound"
+                                               : "no bound matching device",
+                            sizeof(status.detail));
+    if (auto *driver = extended(image))
+    {
+      status.dependency_count = driver->dependency_count;
+      for (unsigned i = 0; i < driver->dependency_count; ++i)
+      {
+        status.dependencies[i] = driver->dependencies[i];
+      }
+    }
+    return xv::process::copy_out(true, argument, &status, sizeof(status));
+  }
+  case XV_KMOD_DEVICE_V3: {
+    xv_kmod_device_v3 device{};
+    if (value >= MaxDevices || !module_device_v3(value, device))
+    {
+      return -1;
+    }
+    device.base.base.bound = __atomic_load_n(&online[value], __ATOMIC_ACQUIRE);
+    if (device.base.base.bound)
+    {
+      device.bound_module = bindings[value].image - images;
+      (void)matches(*bindings[value].image, value, &device.match_index,
+                    &device.match_flags);
+    }
+    return xv::process::copy_out(true, argument, &device, sizeof(device));
+  }
   default:
     return -1;
   }

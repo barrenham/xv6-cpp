@@ -355,3 +355,44 @@ E1000::promiscuous(bool enable) {
   return true;
 }
 } // namespace xv::drivers
+
+namespace xv::drivers
+{
+bool
+E1000::shutdown(bool surprise) {
+  xv::sync::ScopedLock guard(lock_);
+  ready_ = false;
+  if (!surprise)
+  {
+    registers_.write32(0xd8, ~0U);
+    registers_.write32(0x100, 0);
+    registers_.write32(0x400, 0);
+    registers_.write32(0, registers_.read32(0) | (1U << 26));
+    unsigned budget = 100000;
+    while ((registers_.read32(0) & (1U << 26)) && --budget)
+    {
+    }
+    if (!budget)
+    {
+      return false;
+    }
+    registers_.read32(0xc0);
+  }
+  detail::io_barrier();
+  for (unsigned i = 0; i < Count; ++i)
+  {
+    if (transmitted_[i])
+    {
+      detail::free_dma_page(transmitted_[i]);
+      transmitted_[i] = nullptr;
+    }
+    if (received_[i])
+    {
+      detail::free_dma_page(received_[i]);
+      received_[i] = nullptr;
+    }
+  }
+  receiver_ = nullptr;
+  return true;
+}
+} // namespace xv::drivers

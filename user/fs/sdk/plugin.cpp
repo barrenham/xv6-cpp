@@ -36,6 +36,27 @@ Invocation::Invocation(int argc, char **argv)
 int run(const Invocation &invocation, Backend &backend)
 {
   if (!invocation.valid || invocation.probe) return -1;
+  bool configured = false;
+  for (const char *option = invocation.options; option && *option;)
+  {
+    const char *end = strchr(option, ',');
+    unsigned length = end ? unsigned(end - option) : strlen(option);
+    if (length >= 8 && !memcmp(option, "workers=", 8))
+    {
+      if (configured || length != 9 || option[8] < '1' || option[8] > '2' ||
+          !backend.set_worker_threads(option[8] - '0'))
+      {
+        return -1;
+      }
+      configured = true;
+    }
+    else if (length >= 13 && !memcmp(option, "read-workers=", 13))
+    {
+      return -1;
+    }
+    // Other options belong to the concrete backend, not the SDK scheduler.
+    option = end ? end + 1 : nullptr;
+  }
   int endpoint = register_backend(invocation.type, backend);
   if (endpoint < 0) return -1;
   if (write(Ready, "R", 1) != 1) { close(endpoint); return -1; }

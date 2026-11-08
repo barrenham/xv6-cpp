@@ -1,5 +1,8 @@
 # fork 的 5 秒性能门槛
 
+线程支持后的性能优化已按用户要求收尾；稳定低于 **3 秒**尚未实现。
+本页记录既有 5 秒门槛，最新实现、全部计量和验证见 [优化记录](fork-thread-regression.md)。
+
 `fork_progress_1cpu` 和 `fork_progress_5cpu` 现在是默认 CTest 中的性能门禁。
 每种核数在同一次启动中运行 3 轮 `forktest` 和 `usertests forktest`，共 12 个样本。
 每个样本都必须通过，不能用平均值或重试后的较快结果覆盖超标样本。

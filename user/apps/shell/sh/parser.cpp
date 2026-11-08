@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 // Shell.
 
@@ -201,7 +202,7 @@ extern "C"
     peek(&s, es, "");
     if (s != es)
     {
-      fprintf(2, "leftovers: %s\n", s);
+      ui::error("leftovers: %s\n", s);
       panic("syntax");
     }
     nulterminate(cmd);

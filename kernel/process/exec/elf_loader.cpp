@@ -411,10 +411,16 @@ struct ElfLoader::LoadFlow
 
   static void
   commit(Context &c) noexcept {
+    // Only a fully validated replacement may terminate sibling threads.
+    if (!c.process.prepare_exec())
+    {
+      return;
+    }
     c.process.commit_image(c.candidate.memory, c.header.entry, c.stack, c.stack, c.path,
                            c.environment_address, &c.snapshot);
     c.process.credentials().apply_exec(c.image_uid, c.image_gid, c.image_mode);
     c.process.files().close_on_exec();
+    c.process.finish_exec();
     c.result = c.count;
   }
   struct Header;
@@ -522,6 +528,7 @@ struct ElfLoader::LoadFlow
 int
 ElfLoader::load(Process &process, const char *path, char *const *arguments,
                 char *const *environment) {
+
   PendingImage candidate;
   ExecutableFile file(path);
   ExecSnapshot snapshot;
@@ -538,6 +545,7 @@ int
 ElfLoader::load_memory(Process &process, const void *bytes, unsigned long length,
                        const char *path, char *const *arguments,
                        char *const *environment) {
+
   PendingImage candidate;
   ExecutableMemory file(bytes, length);
   ExecSnapshot snapshot;

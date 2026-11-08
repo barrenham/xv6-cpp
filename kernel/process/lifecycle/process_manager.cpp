@@ -1,6 +1,8 @@
 module;
 
 #include "kernel/support/types.h"
+#include "kernel/process/signals/signal.h"
+#include "kernel/support/placement_new.hpp"
 #include "kernel/support/flow.h"
 #include "kernel/support/param.h"
 #include "kernel/memory/layout/memlayout.h"
@@ -9,6 +11,7 @@ module;
 module xv.process;
 
 import xv.print;
+import xv.arch;
 
 import xv.runtime;
 
@@ -31,6 +34,7 @@ struct ProcessManager::AllocateFlow
     ProcessManager &owner;
     Process *process = nullptr, *result = nullptr;
     bool ready = false;
+    bool describe_image = true;
   };
 
   static void
@@ -46,6 +50,16 @@ struct ProcessManager::AllocateFlow
 
   static void
   trapframe(Context &c) noexcept {
+    static_assert(sizeof(ProcessResources) <= PGSIZE);
+    auto *page = xv::memory::allocator().allocate();
+    if (!page)
+    {
+      return;
+    }
+    c.process->resources_ = new (page) ProcessResources{};
+    c.process->resources_->group_pid = c.process->pid;
+    c.process->resources_->leader = c.process;
+    c.process->resources_->threads[0] = c.process;
     c.process->trapframe = static_cast<TrapFrame *>(xv::memory::allocator().allocate());
 #ifdef LAB_LOCK
     if (c.process->trapframe)
@@ -63,22 +77,23 @@ struct ProcessManager::AllocateFlow
 #ifdef LAB_PGTBL
   static void
   user_syscall(Context &c) noexcept {
-    c.process->usyscall = xv::memory::allocator().allocate();
-    if (c.process->usyscall)
+    c.process->resources_->user_info = xv::memory::allocator().allocate();
+    if (c.process->resources_->user_info)
     {
-      xv::runtime::fill(c.process->usyscall, 0, PGSIZE);
-      static_cast<struct usyscall *>(c.process->usyscall)->pid = c.process->pid;
+      xv::runtime::fill(c.process->resources_->user_info, 0, PGSIZE);
+      static_cast<struct usyscall *>(c.process->resources_->user_info)->pid =
+          c.process->pid;
     }
   }
 
   static bool
   has_user_syscall(Context &c) noexcept {
-    return c.process->usyscall != nullptr;
+    return c.process->resources_->user_info != nullptr;
   }
 #endif
   static void
   image(Context &c) noexcept {
-    c.ready = c.process->create_image(c.process->memory_);
+    c.ready = c.process->create_image(c.process->memory(), c.describe_image);
   }
 
   static bool
@@ -89,6 +104,7 @@ struct ProcessManager::AllocateFlow
   static void
   prepare_return(Context &c) noexcept {
     xv::runtime::fill(&c.process->context, 0, sizeof(c.process->context));
+    c.process->cpu_ticks_ = c.process->cpu_started_ = 0;
     c.process->context.ra = reinterpret_cast<uint64>(first_return);
     c.process->context.sp = c.process->kstack + KSTACK_PAGES * PGSIZE;
     c.result = c.process;
@@ -155,25 +171,30 @@ struct ProcessManager::ReapFlow
   static void
   image(Context &c) noexcept {
     c.process->trapframe = nullptr;
-    c.process->memory_.reset();
+    if (auto *resources = c.process->resources_)
+    {
+      auto slot = c.process->thread_slot_;
+      if (resources->threads[slot] == c.process)
+      {
+        resources->threads[slot] = nullptr;
+      }
+      resources->slots &= ~(1U << slot);
+      if (!__atomic_sub_fetch(&resources->references, 1U, __ATOMIC_ACQ_REL))
+      {
+        resources->memory.reset();
+        if (resources->user_info)
+        {
+          xv::memory::allocator().deallocate(resources->user_info);
+        }
+        resources->~ProcessResources();
+        xv::memory::allocator().deallocate(resources);
+      }
+      c.process->resources_ = nullptr;
+    }
     c.process->exec_snapshot_.reset();
   }
-#ifdef LAB_PGTBL
-  static bool
-  has_user_syscall(Context &c) noexcept {
-    return c.process->usyscall != nullptr;
-  }
-
-  static void
-  free_user_syscall(Context &c) noexcept {
-    xv::memory::allocator().deallocate(c.process->usyscall);
-  }
-#endif
   static void
   reset_identity(Context &c) noexcept {
-#ifdef LAB_PGTBL
-    c.process->usyscall = nullptr;
-#endif
     c.process->pid = 0;
     c.process->name[0] = 0;
     c.process->chan = nullptr;
@@ -202,30 +223,19 @@ struct ProcessManager::ReapFlow
   struct Group;
   struct Trapframe;
   struct Image;
-  struct UserSyscall;
   struct Reset;
   struct Detach;
   struct Release;
-#ifdef LAB_PGTBL
-  using AfterImage = flow::branch<flow::condition<&has_user_syscall>,
-                                  flow::go<UserSyscall>, flow::go<Reset>>;
-#else
-  using AfterImage = flow::go<Reset>;
-#endif
   using Graph = flow::graph<
       Group,
-      flow::types<
-          flow::node<Group, flow::action<&group>,
-                     flow::branch<flow::condition<&has_trapframe>, flow::go<Trapframe>,
-                                  flow::go<Image>>>,
-          flow::node<Trapframe, flow::action<&free_trapframe>, flow::go<Image>>,
-          flow::node<Image, flow::action<&image>, AfterImage>,
-#ifdef LAB_PGTBL
-          flow::node<UserSyscall, flow::action<&free_user_syscall>, flow::go<Reset>>,
-#endif
-          flow::node<Reset, flow::action<&reset_identity>, flow::go<Detach>>,
-          flow::node<Detach, flow::action<&detach>, flow::go<Release>>,
-          flow::node<Release, flow::action<&release>, flow::stop>>>;
+      flow::types<flow::node<Group, flow::action<&group>,
+                             flow::branch<flow::condition<&has_trapframe>,
+                                          flow::go<Trapframe>, flow::go<Image>>>,
+                  flow::node<Trapframe, flow::action<&free_trapframe>, flow::go<Image>>,
+                  flow::node<Image, flow::action<&image>, flow::go<Reset>>,
+                  flow::node<Reset, flow::action<&reset_identity>, flow::go<Detach>>,
+                  flow::node<Detach, flow::action<&detach>, flow::go<Release>>,
+                  flow::node<Release, flow::action<&release>, flow::stop>>>;
 };
 
 struct ProcessManager::InitialFlow
@@ -304,7 +314,9 @@ struct ProcessManager::ForkFlow
 
   static void
   allocate(Context &c) noexcept {
-    c.child = c.owner.allocate();
+    // Fork installs the parent region metadata immediately; avoid building
+    // and then discarding an empty image's bootstrap regions.
+    c.child = c.owner.allocate(false);
   }
 
   static bool
@@ -314,7 +326,9 @@ struct ProcessManager::ForkFlow
 
   static void
   image(Context &c) noexcept {
-    c.copied = c.parent.memory_.copy_to(c.child->memory_);
+    c.child->lock.release();
+    c.copied = c.parent.memory().copy_to(c.child->memory());
+    c.child->lock.acquire();
   }
 
   static bool
@@ -345,10 +359,11 @@ struct ProcessManager::ForkFlow
 
   static void
   resources(Context &c) noexcept {
-    c.child->descriptors_.inherit_from(c.parent.descriptors_);
-    c.child->directory_.inherit_from(c.parent.directory_);
-    c.child->credentials_.inherit(c.parent.credentials_);
+    c.child->files().inherit_from(c.parent.files());
+    c.child->directory().inherit_from(c.parent.directory());
+    c.child->credentials().inherit(c.parent.credentials());
     c.child->exec_snapshot_.inherit(c.parent.exec_snapshot_);
+    c.child->filesystem_worker_ = c.parent.filesystem_worker_;
     xv::runtime::copy_string(c.child->name, c.parent.name, sizeof(c.child->name));
     c.result = c.child->pid;
     c.child->lock.release();
@@ -357,8 +372,9 @@ struct ProcessManager::ForkFlow
   static void
   family(Context &c) noexcept {
     c.owner.wait_lock_.acquire();
-    c.owner.groups_.inherit(c.child->membership_, c.child->pid, c.parent.membership_);
-    attach_child(c.parent, *c.child);
+    auto &leader = c.parent.group_leader();
+    c.owner.groups_.inherit(c.child->membership_, c.child->pid, leader.membership_);
+    attach_child(leader, *c.child);
     c.owner.wait_lock_.release();
   }
 
@@ -467,17 +483,18 @@ struct ProcessManager::ExitFlow
   static void
   cancel_wait(Context &c) noexcept {
     c.owner.waits_.cancel(c.process);
+    c.process.clear_file_pins();
   }
 
   static void
   close_files(Context &c) noexcept {
     c.process.memory().close_file_mappings();
-    c.process.descriptors_.close_all();
+    c.process.files().close_all();
   }
 
   static void
   directory(Context &c) noexcept {
-    c.process.directory_.clear();
+    c.process.directory().clear();
     xv::ipc::collect_deferred_socket_cycles();
   }
 
@@ -547,7 +564,8 @@ struct ProcessManager::KillFlow
 
   static bool
   permitted(Context &c) noexcept {
-    return !c.process->kernel_entry_ && c.process != c.owner.initial_ &&
+    return !c.process->thread_slot_ && !c.process->kernel_entry_ &&
+           c.process != c.owner.initial_ &&
            Credentials::may_signal(current()->credentials().snapshot(),
                                    c.process->credentials().snapshot());
   }
@@ -555,6 +573,7 @@ struct ProcessManager::KillFlow
   static void
   mark(Context &c) noexcept {
     c.process->killed = 1;
+    c.process->request_group_exit(SIGNAL_EXIT_STATUS(SIGKILL), SIGKILL);
     c.owner.wake_for_signal(*c.process);
   }
 
@@ -565,7 +584,7 @@ struct ProcessManager::KillFlow
 
   static void
   notify(Context &c) noexcept {
-    c.owner.notify_child_events();
+    c.owner.wake_signal_waiters();
     c.result = 0;
   }
   struct Find;
@@ -683,8 +702,9 @@ ProcessManager::allocate_pid() {
 
 // Allocation transfers a stable descriptor and its held process lock.
 Process *
-ProcessManager::allocate() {
+ProcessManager::allocate(bool describe_image) {
   AllocateFlow::Context context{*this};
+  context.describe_image = describe_image;
   (void)AllocateFlow::Graph::run<0>(context);
   return context.result;
 }
@@ -807,6 +827,12 @@ ProcessManager::exit_process(int status, int signal) {
   {
     xv::print::panic("init exiting");
   }
+  if (__atomic_load_n(&p->resources_->threaded, __ATOMIC_ACQUIRE))
+  {
+    p->request_group_exit(status, signal);
+    wake_signal_waiters();
+    exit_thread(0);
+  }
   ExitFlow::Context context{*this, *p, status, signal};
   (void)ExitFlow::Graph::run<0>(context);
   xv::print::panic("zombie exit");
@@ -841,8 +867,8 @@ ProcessManager::dump() {
 
     void
     visit(Process &process) override {
-      static const char *states[] = {"unused", "used",    "sleep", "runble",
-                                     "run",    "stopped", "zombie"};
+      static const char *states[] = {"unused", "used",    "sleep",  "runble",
+                                     "run",    "stopped", "zombie", "thread-zombie"};
       if (process.state == ProcessState::Unused)
       {
         return;
@@ -871,8 +897,8 @@ ProcessManager::snapshot_after(int after, ProcessInfo &result) {
 
     void
     visit(Process &process) override {
-      if (process.state == ProcessState::Unused || process.pid <= after_ ||
-          (found && process.pid >= result_.pid))
+      if (process.state == ProcessState::Unused || process.thread_slot_ ||
+          process.pid <= after_ || (found && process.pid >= result_.pid))
       {
         return;
       }
@@ -881,14 +907,19 @@ ProcessManager::snapshot_after(int after, ProcessInfo &result) {
       result_.parent = process.parent ? process.parent->pid : 0;
       result_.group = groups_.get_group(process.membership_);
       result_.session = groups_.get_session(process.membership_, 0);
-      auto credentials = process.credentials_.snapshot();
+      auto credentials = process.credentials().snapshot();
       result_.uid = credentials.uid;
       result_.effective_uid = credentials.effective_uid;
       result_.gid = credentials.gid;
       result_.effective_gid = credentials.effective_gid;
-      result_.bytes = process.memory_.observed_size();
-      const char states[] = "?USRRTZ";
-      result_.state = states[static_cast<unsigned>(process.state)];
+      result_.bytes = process.memory().observed_size();
+      const char states[] = "?USRRTZX";
+      result_.state =
+          process.state == ProcessState::ThreadZombie
+              ? (__atomic_load_n(&process.resources_->stop_reported, __ATOMIC_ACQUIRE)
+                     ? 'T'
+                     : 'R')
+              : states[static_cast<unsigned>(process.state)];
       xv::runtime::move(result_.name, process.name, sizeof(result_.name));
       found = true;
     }
@@ -905,6 +936,77 @@ ProcessManager::snapshot_after(int after, ProcessInfo &result) {
   xv::sync::ScopedLock family(wait_lock_);
   store_.visit(snapshot);
   return snapshot.found;
+}
+
+bool
+ProcessManager::snapshot_thread_after(int after, int pid, ThreadInfo &result) {
+  class Snapshot final : public ProcessVisitor
+  {
+  public:
+
+    Snapshot(int after, int pid, ThreadInfo &result)
+        : after_(after), pid_(pid), result_(result) {
+    }
+
+    void
+    visit(Process &thread) override {
+      if (thread.state == ProcessState::Unused || !thread.resources_ ||
+          thread.pid <= after_ || (pid_ && thread.id() != pid_) ||
+          (found && thread.pid >= result_.tid))
+      {
+        return;
+      }
+      result_ = {};
+      result_.tid = thread.pid;
+      result_.pid = thread.id();
+      auto &leader = thread.group_leader();
+      result_.parent = leader.parent ? leader.parent->id() : 0;
+      result_.ticks = thread.cpu_ticks_;
+      if (thread.state == ProcessState::Running && thread.cpu_started_)
+      {
+        result_.ticks += xv::arch::r_time() - thread.cpu_started_;
+      }
+      result_.bytes = thread.memory().observed_size();
+      const char states[] = "?USRRTZZ";
+      result_.state = states[static_cast<unsigned>(thread.state)];
+      xv::runtime::move(result_.name, thread.name, sizeof(result_.name));
+      found = true;
+    }
+
+    bool found = false;
+
+  private:
+
+    int after_, pid_;
+    ThreadInfo &result_;
+  } snapshot(after, pid, result);
+
+  xv::sync::ScopedLock family(wait_lock_);
+  store_.visit(snapshot);
+  return snapshot.found;
+}
+
+unsigned
+ProcessManager::reclaim_inactive_mappings() {
+  class Reclaim final : public ProcessVisitor
+  {
+  public:
+
+    unsigned dropped = 0;
+
+    void
+    visit(Process &process) override {
+      if (process.state == ProcessState::Sleeping ||
+          process.state == ProcessState::Runnable ||
+          process.state == ProcessState::Stopped)
+      {
+        dropped += process.memory().reclaim_inactive_mappings();
+      }
+    }
+  } visitor;
+
+  store_.visit(visitor);
+  return visitor.dropped;
 }
 
 int

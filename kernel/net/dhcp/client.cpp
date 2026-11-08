@@ -11,13 +11,13 @@ import :platform;
 
 namespace xv::net
 {
-void DhcpManager::initialize()
-{
+void
+DhcpManager::initialize() {
   ip_.attach_bootstrap(*this);
 }
 
-DhcpManager::Client *DhcpManager::find(NetworkInterface &interface)
-{
+DhcpManager::Client *
+DhcpManager::find(NetworkInterface &interface) {
   for (auto &client : clients_)
   {
     if (client.interface == &interface)
@@ -28,8 +28,8 @@ DhcpManager::Client *DhcpManager::find(NetworkInterface &interface)
   return nullptr;
 }
 
-void DhcpManager::select(Client &client, unsigned long now, unsigned delay)
-{
+void
+DhcpManager::select(Client &client, unsigned long now, unsigned delay) {
   client.state = DHCP_SELECTING;
   client.xid =
       ++counter_ ^ static_cast<unsigned>(now) ^ wire::read32(client.mac.bytes + 2);
@@ -41,32 +41,32 @@ void DhcpManager::select(Client &client, unsigned long now, unsigned delay)
   client.renewal = client.rebinding = client.expires = 0;
 }
 
-int DhcpManager::execute(unsigned operation, netctl_request &request)
-{
+int
+DhcpManager::execute(unsigned operation, netctl_request &request) {
   detail::TimerChange changed;
   CommandFlow::Context ctx{*this, operation, request};
   (void)CommandFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-int DhcpManager::transmit(const Client &c, unsigned type)
-{
+int
+DhcpManager::transmit(const Client &c, unsigned type) {
   TransmitFlow::Context ctx{*this, c, type};
   (void)TransmitFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-bool DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet,
-                                    const IpDatagram &d)
-{
+bool
+DhcpManager::receive_bootstrap(NetworkInterface &interface, Packet &packet,
+                               const IpDatagram &d) {
   detail::TimerChange changed;
   ReceiveFlow::Context ctx{*this, interface, packet, d};
   (void)ReceiveFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-void DhcpManager::tick(unsigned long now)
-{
+void
+DhcpManager::tick(unsigned long now) {
   TickFlow::Context ctx{*this, now};
   (void)TickFlow::Graph::run<0>(ctx);
 }
@@ -74,12 +74,11 @@ void DhcpManager::tick(unsigned long now)
 
 namespace xv::net
 {
-unsigned long DhcpManager::next_deadline()
-{
+unsigned long
+DhcpManager::next_deadline() {
   ConfigurationGuard guard;
   unsigned long next = ~0UL;
-  auto include = [&](unsigned long at)
-  {
+  auto include = [&](unsigned long at) {
     if (at < next)
     {
       next = at;
@@ -111,5 +110,25 @@ unsigned long DhcpManager::next_deadline()
     }
   }
   return next;
+}
+} // namespace xv::net
+
+namespace xv::net
+{
+void
+DhcpManager::forget(NetworkInterface &interface) {
+  ConfigurationGuard guard;
+  for (auto &client : clients_)
+  {
+    if (client.interface != &interface)
+    {
+      continue;
+    }
+    configuration_.remove(interface);
+    unsigned serial = client.serial + 1;
+    client = {};
+    client.serial = serial;
+  }
+  interface.set_dhcp_active(false);
 }
 } // namespace xv::net

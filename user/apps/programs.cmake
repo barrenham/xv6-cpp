@@ -52,4 +52,5 @@ list(APPEND programs
   apps/terminal/fbterm/fbterm.cpp
   apps/terminal/pty/pty.cpp
   apps/terminal/stty/stty.cpp
+  apps/terminal/vim/vim.cpp
 )

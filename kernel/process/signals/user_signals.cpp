@@ -3,6 +3,7 @@ module;
 #include "kernel/support/flow.h"
 #include "kernel/syscall/syscall.h"
 #include "kernel/arch/riscv/register_constants.h"
+#include "kernel/memory/layout/memlayout.h"
 
 module xv.process;
 import xv.memory;
@@ -27,19 +28,14 @@ static_assert(sizeof(TrapFrame) - __builtin_offsetof(TrapFrame, ra) == 31 * 8);
 
 bool
 executable(const AddressSpace &memory, unsigned long address) {
-  const auto *region = memory.regions().find(address);
-  if ((address & 1) || !region ||
-      (region->permissions & (PTE_U | PTE_X)) != (PTE_U | PTE_X))
+  if (address & 1)
   {
     return false;
   }
-  memory.refresh_file_mappings();
-  if (!memory.prefault_mappings(address, 1, xv::memory::FaultAccess::Execute))
-  {
-    return false;
-  }
-  auto *entry = xv::memory::walk_entry(memory.page_table(), address, 0);
-  return entry && (*entry & (PTE_V | PTE_U | PTE_X)) == (PTE_V | PTE_U | PTE_X);
+  auto outcome = const_cast<AddressSpace &>(memory).handle_fault(
+      address, xv::memory::FaultAccess::Execute);
+  return outcome.result == xv::memory::FaultResult::Resolved ||
+         outcome.result == xv::memory::FaultResult::AlreadyMapped;
 }
 } // namespace
 
@@ -54,6 +50,7 @@ struct Process::SignalActionFlow
     unsigned long address, old, restorer;
     sigaction &value;
     PendingSignals::Action previous{};
+    unsigned long generation = 0;
     bool valid = false;
     int result = -1;
   };
@@ -65,7 +62,7 @@ struct Process::SignalActionFlow
 
   static void
   read(Context &c) noexcept {
-    c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
+    c.valid = c.owner.memory().copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value.sa_mask & ~PendingSignals::SupportedMask) &&
               !(c.value.sa_flags & ~(SA_NODEFER | SA_RESETHAND | SA_RESTART));
   }
@@ -78,28 +75,29 @@ struct Process::SignalActionFlow
   static bool
   executable_handler(Context &c) noexcept {
     auto handler = reinterpret_cast<unsigned long>(c.value.sa_handler);
-    return handler <= SIGNAL_IGNORE || (executable(c.owner.memory_, handler) &&
-                                        executable(c.owner.memory_, c.restorer));
+    return handler <= SIGNAL_IGNORE || (executable(c.owner.memory(), handler) &&
+                                        executable(c.owner.memory(), c.restorer));
   }
 
   static void
   previous(Context &c) noexcept {
-    c.previous = c.owner.pending_signals_.action(c.signal);
+    c.previous = c.owner.pending_signals_.action(c.signal, &c.generation);
   }
 
   static bool
   copy_previous(Context &c) noexcept {
     sigaction result{reinterpret_cast<sighandler_t>(c.previous.handler),
                      c.previous.mask, c.previous.flags};
-    return !c.old || c.owner.memory_.copy_out(c.old, &result, sizeof(result)) >= 0;
+    return !c.old || c.owner.memory().copy_out(c.old, &result, sizeof(result)) >= 0;
   }
 
-  static void
+  static bool
   install(Context &c) noexcept {
-    xv::sync::ScopedLock guard(c.owner.lock);
-    c.owner.pending_signals_.set_action(
-        c.signal, {reinterpret_cast<unsigned long>(c.value.sa_handler), c.value.sa_mask,
-                   c.value.sa_flags, c.restorer});
+    return c.owner.pending_signals_.set_action_if(
+        c.signal,
+        {reinterpret_cast<unsigned long>(c.value.sa_handler), c.value.sa_mask,
+         c.value.sa_flags, c.restorer},
+        c.generation);
   }
 
   static void
@@ -114,23 +112,26 @@ struct Process::SignalActionFlow
   struct Install;
   struct Success;
   using Graph = flow::graph<
-      Input, flow::types<flow::node<Input, flow::noop,
-                                    flow::branch<flow::condition<&input>,
-                                                 flow::go<Read>, flow::go<Previous>>>,
-                         flow::node<Read, flow::action<&read>,
-                                    flow::branch<flow::condition<&valid>,
-                                                 flow::go<Executable>, flow::stop>>,
-                         flow::node<Executable, flow::noop,
-                                    flow::branch<flow::condition<&executable_handler>,
-                                                 flow::go<Previous>, flow::stop>>,
-                         flow::node<Previous, flow::action<&previous>,
-                                    flow::branch<flow::condition<&copy_previous>,
-                                                 flow::go<InstallCheck>, flow::stop>>,
-                         flow::node<InstallCheck, flow::noop,
-                                    flow::branch<flow::condition<&input>,
-                                                 flow::go<Install>, flow::go<Success>>>,
-                         flow::node<Install, flow::action<&install>, flow::go<Success>>,
-                         flow::node<Success, flow::action<&success>, flow::stop>>>;
+      Input,
+      flow::types<flow::node<Input, flow::noop,
+                             flow::branch<flow::condition<&input>, flow::go<Read>,
+                                          flow::go<Previous>>>,
+                  flow::node<Read, flow::action<&read>,
+                             flow::branch<flow::condition<&valid>, flow::go<Executable>,
+                                          flow::stop>>,
+                  flow::node<Executable, flow::noop,
+                             flow::branch<flow::condition<&executable_handler>,
+                                          flow::go<Previous>, flow::stop>>,
+                  flow::node<Previous, flow::action<&previous>,
+                             flow::branch<flow::condition<&copy_previous>,
+                                          flow::go<InstallCheck>, flow::stop>>,
+                  flow::node<InstallCheck, flow::noop,
+                             flow::branch<flow::condition<&input>, flow::go<Install>,
+                                          flow::go<Success>>>,
+                  flow::node<Install, flow::noop,
+                             flow::branch<flow::condition<&install>, flow::go<Success>,
+                                          flow::go<Previous>>>,
+                  flow::node<Success, flow::action<&success>, flow::stop>>>;
 };
 
 struct Process::SignalMaskFlow
@@ -152,7 +153,7 @@ struct Process::SignalMaskFlow
 
   static void
   read(Context &c) noexcept {
-    c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
+    c.valid = c.owner.memory().copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value & ~PendingSignals::SupportedMask) &&
               (c.how == SIG_BLOCK || c.how == SIG_UNBLOCK || c.how == SIG_SETMASK);
   }
@@ -170,7 +171,7 @@ struct Process::SignalMaskFlow
   static bool
   copy_previous(Context &c) noexcept {
     return !c.old ||
-           c.owner.memory_.copy_out(c.old, &c.previous, sizeof(c.previous)) >= 0;
+           c.owner.memory().copy_out(c.old, &c.previous, sizeof(c.previous)) >= 0;
   }
 
   static void
@@ -221,7 +222,7 @@ struct Process::SignalSuspendFlow
 
   static void
   read(Context &c) noexcept {
-    c.valid = c.owner.memory_.copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
+    c.valid = c.owner.memory().copy_in(&c.value, c.address, sizeof(c.value)) >= 0 &&
               !(c.value & ~PendingSignals::SupportedMask);
   }
 
@@ -289,10 +290,12 @@ struct Process::EnterSignalFlow
 
   static bool
   valid(Context &c) noexcept {
+    // The interrupted stack may be a valid mmap region above the ordinary
+    // heap. Frame copy_out below checks actual user mappings and permissions.
     return c.owner.signal_depth_ != 16 &&
-           executable(c.owner.memory_, c.action.handler) &&
-           executable(c.owner.memory_, c.action.restorer) &&
-           c.owner.trapframe->sp <= c.owner.memory_.size() &&
+           executable(c.owner.memory(), c.action.handler) &&
+           executable(c.owner.memory(), c.action.restorer) &&
+           c.owner.trapframe->sp <= MAXVA &&
            c.owner.trapframe->sp >= sizeof(SignalFrame);
   }
 
@@ -315,7 +318,7 @@ struct Process::EnterSignalFlow
 
   static void
   copy(Context &c) noexcept {
-    c.copied = c.owner.memory_.copy_out(c.stack, &c.frame, sizeof(c.frame)) >= 0;
+    c.copied = c.owner.memory().copy_out(c.stack, &c.frame, sizeof(c.frame)) >= 0;
   }
 
   static bool
@@ -326,11 +329,6 @@ struct Process::EnterSignalFlow
   static void
   consume(Context &c) noexcept {
     xv::sync::ScopedLock guard(c.owner.lock);
-    c.owner.pending_signals_.consume(c.signal);
-    if (c.action.flags & SA_RESETHAND)
-    {
-      c.owner.pending_signals_.set_action(c.signal, {});
-    }
     unsigned mask = c.owner.pending_signals_.mask() | c.action.mask;
     if (!(c.action.flags & SA_NODEFER))
     {
@@ -379,10 +377,9 @@ struct Process::ReturnSignalFlow
   static bool
   valid(Context &c) noexcept {
     return c.owner.trapframe->sp == c.stack &&
-           c.owner.memory_.copy_in(&c.frame, c.stack, sizeof(c.frame)) >= 0 &&
-           c.frame.magic == FrameMagic && executable(c.owner.memory_, c.frame.pc) &&
-           !(c.frame.registers[1] & 15) &&
-           c.frame.registers[1] <= c.owner.memory_.size() &&
+           c.owner.memory().copy_in(&c.frame, c.stack, sizeof(c.frame)) >= 0 &&
+           c.frame.magic == FrameMagic && executable(c.owner.memory(), c.frame.pc) &&
+           !(c.frame.registers[1] & 15) && c.frame.registers[1] <= MAXVA &&
            !(c.frame.mask & ~static_cast<unsigned long>(PendingSignals::SupportedMask));
   }
 
@@ -434,8 +431,9 @@ Process::signal_mask(int how, unsigned long address, unsigned long old) {
 
 int
 Process::signal_pending(unsigned long address) {
-  auto value = pending_signals_.pending() & pending_signals_.mask();
-  return memory_.copy_out(address, &value, sizeof(value));
+  auto value = (pending_signals_.pending() | pending_signals_.process_pending()) &
+               pending_signals_.mask();
+  return memory().copy_out(address, &value, sizeof(value));
 }
 
 int
@@ -447,12 +445,12 @@ Process::signal_suspend(unsigned long address) {
 
 bool
 Process::enter_signal_handler() {
-  const int signal = pending_signals_.caught_signal();
-  if (!signal)
+  int signal = 0;
+  PendingSignals::Action action;
+  if (!pending_signals_.take_handler(signal, action))
   {
     return true;
   }
-  const auto action = pending_signals_.action(signal);
   SignalFrame frame;
   EnterSignalFlow::Context context{*this, signal, action, frame};
   (void)EnterSignalFlow::Graph::run<0>(context);
@@ -479,14 +477,10 @@ Process::begin_system_call() {
 
 long
 Process::finish_system_call(int number, unsigned long argument, long result) {
+  clear_file_pins();
   if (number == SYS_sigsuspend && result == -1 && stop_requested())
   {
     suspend_restarted_ = true;
-    return result;
-  }
-  int signal = pending_signals_.caught_signal();
-  if ((result != -1 && result != -EINTR) || !syscall_interrupted_ || !signal)
-  {
     return result;
   }
   bool restartable =
@@ -494,6 +488,18 @@ Process::finish_system_call(int number, unsigned long argument, long result) {
       number == SYS_waitpid || number == SYS_accept || number == SYS_recvfrom ||
       number == SYS_sendto || number == SYS_recvmsg || number == SYS_sendmsg ||
       number == SYS_connect || number == SYS_mq_send || number == SYS_mq_receive;
+  int signal = pending_signals_.caught_signal();
+  if ((result == -1 || result == -EINTR) && restartable && !signal && stop_requested())
+  {
+    // A default stop is temporary: a blocked operation resumes after CONT.
+    // Positive partial results are returned normally and must never be replayed.
+    trapframe->epc -= 4;
+    return argument;
+  }
+  if ((result != -1 && result != -EINTR) || !syscall_interrupted_ || !signal)
+  {
+    return result;
+  }
   if (restartable && (pending_signals_.action(signal).flags & SA_RESTART))
   {
     trapframe->epc -= 4;

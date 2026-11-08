@@ -25,8 +25,12 @@ public:
   }
 
   void initialize() override;
+  bool shutdown(bool surprise);
 
-  void authorize_resources(bool ready) { resources_ready_ = ready; }
+  void
+  authorize_resources(bool ready) {
+    resources_ready_ = ready;
+  }
 
   void
   mac_address(unsigned char *destination) const override {

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/net/filter/control.h"
@@ -8,20 +9,20 @@ namespace
 [[noreturn]]
 void
 fail(const char *message) {
-  fprintf(2, "iptables: %s\n", message);
+  ui::error("iptables: %s\n", message);
   exit(1);
 }
 
 [[noreturn]]
 void
 usage() {
-  fprintf(2, "usage: iptables [-t filter] -L [CHAIN] [-n] [-v] [--line-numbers]\n"
-             "       iptables -A CHAIN | -I CHAIN [N] [matches] -j TARGET\n"
-             "       iptables -D CHAIN N | -P INPUT|OUTPUT ACCEPT|DROP\n"
-             "       iptables -N CHAIN | -X CHAIN | -F [CHAIN] | -Z [CHAIN]\n"
-             "matches: -s IP[/BITS] -d IP[/BITS] -p tcp|udp|icmp|all|N\n"
-             "         --sport PORT[:PORT] --dport PORT[:PORT] -i DEV -o DEV\n"
-             "targets: ACCEPT, DROP, RETURN, or a user chain (max 15 characters)\n");
+  ui::usage("usage: iptables [-t filter] -L [CHAIN] [-n] [-v] [--line-numbers]\n"
+            "       iptables -A CHAIN | -I CHAIN [N] [matches] -j TARGET\n"
+            "       iptables -D CHAIN N | -P INPUT|OUTPUT ACCEPT|DROP\n"
+            "       iptables -N CHAIN | -X CHAIN | -F [CHAIN] | -Z [CHAIN]\n"
+            "matches: -s IP[/BITS] -d IP[/BITS] -p tcp|udp|icmp|all|N\n"
+            "         --sport PORT[:PORT] --dport PORT[:PORT] -i DEV -o DEV\n"
+            "targets: ACCEPT, DROP, RETURN, or a user chain (max 15 characters)\n");
   exit(1);
 }
 
@@ -46,7 +47,7 @@ call(unsigned op, firewall_request &r) {
   int result = netctl(op, reinterpret_cast<netctl_request *>(&r));
   if (result < 0)
   {
-    fprintf(2, "iptables: operation failed (%d)\n", result);
+    ui::error("iptables: operation failed (%d)\n", result);
     exit(1);
   }
   return result;
@@ -202,10 +203,10 @@ interface(unsigned id) {
 
 void
 list(const firewall_request &chain) {
-  printf("Chain %s (%s %llu packets, %llu bytes)\n", chain.chain,
-         chain.policy == FW_RETURN ? "return" : action(chain.policy), chain.packets,
-         chain.bytes);
-  printf("num packets bytes target proto in out source destination ports\n");
+  ui::heading("Chain %s (%s %llu packets, %llu bytes)\n", chain.chain,
+              chain.policy == FW_RETURN ? "return" : action(chain.policy),
+              chain.packets, chain.bytes);
+  ui::heading("num packets bytes target proto in out source destination ports\n");
   for (unsigned i = 0;; ++i)
   {
     auto r = request(chain.chain);

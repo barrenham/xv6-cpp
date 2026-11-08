@@ -7,8 +7,8 @@ import :interface;
 
 namespace xv::net
 {
-bool NetworkInterface::owns(unsigned value) const
-{
+bool
+NetworkInterface::owns(unsigned value) const {
   ConfigurationGuard guard;
   for (unsigned i = 0; i < address_count_; ++i)
   {
@@ -20,14 +20,14 @@ bool NetworkInterface::owns(unsigned value) const
   return false;
 }
 
-bool NetworkInterface::accepts_destination(unsigned address,
-                                           const InterfaceRegistry &) const
-{
+bool
+NetworkInterface::accepts_destination(unsigned address,
+                                      const InterfaceRegistry &) const {
   return owns(address) || broadcast(address);
 }
 
-bool NetworkInterface::broadcast(unsigned value) const
-{
+bool
+NetworkInterface::broadcast(unsigned value) const {
   ConfigurationGuard guard;
   if (value == 0xffffffff)
   {
@@ -44,8 +44,8 @@ bool NetworkInterface::broadcast(unsigned value) const
   return false;
 }
 
-unsigned NetworkInterface::source_for(unsigned destination) const
-{
+unsigned
+NetworkInterface::source_for(unsigned destination) const {
   ConfigurationGuard guard;
   const Ipv4Address *best = nullptr;
   for (unsigned i = 0; i < address_count_; ++i)
@@ -60,8 +60,8 @@ unsigned NetworkInterface::source_for(unsigned destination) const
   return best ? best->address : 0;
 }
 
-bool NetworkInterface::add_address(Ipv4Address value)
-{
+bool
+NetworkInterface::add_address(Ipv4Address value) {
   ConfigurationGuard guard;
   if (sealed_ || address_count_ == AddressCapacity || !value.address ||
       (value.address >> 28) >= 14 || value.prefix > 32 || owns(value.address))
@@ -72,8 +72,8 @@ bool NetworkInterface::add_address(Ipv4Address value)
   return true;
 }
 
-bool NetworkInterface::set_up(bool value)
-{
+bool
+NetworkInterface::set_up(bool value) {
   ConfigurationGuard guard;
   if (sealed_)
   {
@@ -83,72 +83,92 @@ bool NetworkInterface::set_up(bool value)
   return true;
 }
 
-void NetworkInterface::configure_link(bool value)
-{
+void
+NetworkInterface::present(bool value) {
   ConfigurationGuard guard;
-  up_ = value;
+  available_ = value;
+  ++generation_;
+  if (!value)
+  {
+    up_ = false;
+  }
+}
+
+void
+NetworkInterface::reset_configuration() {
+  ConfigurationGuard guard;
+  up_ = dhcp_active_ = false;
+  address_count_ = 0;
+  statistics_ = {};
   ++generation_;
 }
 
-void NetworkInterface::set_dhcp_active(bool active)
-{
+void
+NetworkInterface::configure_link(bool value) {
+  ConfigurationGuard guard;
+  up_ = value && available_;
+  ++generation_;
+}
+
+void
+NetworkInterface::set_dhcp_active(bool active) {
   ConfigurationGuard guard;
   dhcp_active_ = active;
 }
 
-void NetworkInterface::topology_changed()
-{
+void
+NetworkInterface::topology_changed() {
   ConfigurationGuard guard;
   ++generation_;
 }
 
-void NetworkInterface::deliver(Packet &packet)
-{
+void
+NetworkInterface::deliver(Packet &packet) {
   DeliverFlow::Context ctx{*this, packet};
   (void)DeliverFlow::Graph::run<0>(ctx);
 }
 
-int InterfaceRegistry::registration_error(const NetworkInterface &interface) const
-{
+int
+InterfaceRegistry::registration_error(const NetworkInterface &interface) const {
   RegistrationFlow::Context ctx{*this, interface};
   (void)RegistrationFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-bool InterfaceRegistry::add(NetworkInterface &interface)
-{
+bool
+InterfaceRegistry::add(NetworkInterface &interface) {
   ConfigurationGuard guard;
   UpdateFlow::Context ctx{*this, interface};
   (void)UpdateFlow::AddGraph::run<0>(ctx);
   return ctx.success;
 }
 
-int InterfaceRegistry::publish(NetworkInterface &interface)
-{
+int
+InterfaceRegistry::publish(NetworkInterface &interface) {
   ConfigurationGuard guard;
   UpdateFlow::Context ctx{*this, interface};
   (void)UpdateFlow::PublishGraph::run<0>(ctx);
   return ctx.result;
 }
 
-bool InterfaceRegistry::withdraw(NetworkInterface &interface)
-{
+bool
+InterfaceRegistry::withdraw(NetworkInterface &interface) {
   ConfigurationGuard guard;
   UpdateFlow::Context ctx{*this, interface};
   (void)UpdateFlow::WithdrawGraph::run<0>(ctx);
   return ctx.success;
 }
 
-bool InterfaceRegistry::seal()
-{
+bool
+InterfaceRegistry::seal() {
   ConfigurationGuard guard;
   SealFlow::Context ctx{*this};
   (void)SealFlow::Graph::run<0>(ctx);
   return ctx.result;
 }
 
-NetworkInterface *InterfaceRegistry::find(unsigned id) const
-{
+NetworkInterface *
+InterfaceRegistry::find(unsigned id) const {
   ConfigurationGuard guard;
   for (unsigned i = 0; i < count_; ++i)
   {
@@ -160,8 +180,8 @@ NetworkInterface *InterfaceRegistry::find(unsigned id) const
   return nullptr;
 }
 
-bool InterfaceRegistry::owns(unsigned address) const
-{
+bool
+InterfaceRegistry::owns(unsigned address) const {
   ConfigurationGuard guard;
   for (unsigned i = 0; i < count_; ++i)
   {
@@ -173,8 +193,8 @@ bool InterfaceRegistry::owns(unsigned address) const
   return false;
 }
 
-void InterfaceRegistry::tick(unsigned long now)
-{
+void
+InterfaceRegistry::tick(unsigned long now) {
   NetworkInterface *snapshot[Capacity];
   unsigned count;
   {
@@ -191,8 +211,8 @@ void InterfaceRegistry::tick(unsigned long now)
   }
 }
 
-InterfaceStatistics NetworkInterface::statistics() const
-{
+InterfaceStatistics
+NetworkInterface::statistics() const {
   return {__atomic_load_n(&statistics_.rx_packets, __ATOMIC_RELAXED),
           __atomic_load_n(&statistics_.rx_bytes, __ATOMIC_RELAXED),
           __atomic_load_n(&statistics_.rx_dropped, __ATOMIC_RELAXED),
@@ -201,26 +221,26 @@ InterfaceStatistics NetworkInterface::statistics() const
           __atomic_load_n(&statistics_.tx_errors, __ATOMIC_RELAXED)};
 }
 
-void NetworkInterface::receive_drop()
-{
+void
+NetworkInterface::receive_drop() {
   __atomic_fetch_add(&statistics_.rx_dropped, 1ULL, __ATOMIC_RELAXED);
 }
 
-int NetworkInterface::send(Packet &packet, unsigned next_hop)
-{
+int
+NetworkInterface::send(Packet &packet, unsigned next_hop) {
   unsigned length = packet.size();
   int result = transmit(packet, next_hop);
   return account_send(length, result);
 }
 
-int NetworkInterface::send_bootstrap(Packet &packet)
-{
+int
+NetworkInterface::send_bootstrap(Packet &packet) {
   unsigned length = packet.size();
   return account_send(length, transmit_bootstrap(packet));
 }
 
-int NetworkInterface::account_send(unsigned length, int result)
-{
+int
+NetworkInterface::account_send(unsigned length, int result) {
   if (result < 0)
   {
     __atomic_fetch_add(&statistics_.tx_errors, 1ULL, __ATOMIC_RELAXED);
@@ -237,8 +257,8 @@ int NetworkInterface::account_send(unsigned length, int result)
 
 namespace xv::net
 {
-unsigned long InterfaceRegistry::next_deadline()
-{
+unsigned long
+InterfaceRegistry::next_deadline() {
   NetworkInterface *snapshot[Capacity];
   unsigned count;
   {

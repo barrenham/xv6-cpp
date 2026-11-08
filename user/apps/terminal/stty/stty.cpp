@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/tty/termios.h"
@@ -30,16 +31,16 @@ app_main(int argc, char **argv) {
   termios settings{};
   if (tcgetattr(0, &settings) < 0)
   {
-    fprintf(2, "stty: stdin is not a terminal\n");
+    ui::error("stty: stdin is not a terminal\n");
     return 1;
   }
   if (argc == 1 || (argc == 2 && strcmp(argv[1], "-a") == 0))
   {
-    printf("%s %s %s min %d time %d\n",
-           settings.c_lflag & ICANON ? "icanon" : "-icanon",
-           settings.c_lflag & ECHO ? "echo" : "-echo",
-           settings.c_oflag & ONLCR ? "onlcr" : "-onlcr", settings.c_cc[VMIN],
-           settings.c_cc[VTIME]);
+    ui::info("%s %s %s min %d time %d\n",
+             settings.c_lflag & ICANON ? "icanon" : "-icanon",
+             settings.c_lflag & ECHO ? "echo" : "-echo",
+             settings.c_oflag & ONLCR ? "onlcr" : "-onlcr", settings.c_cc[VMIN],
+             settings.c_cc[VTIME]);
     return 0;
   }
   for (int i = 1; i < argc; ++i)
@@ -109,10 +110,10 @@ app_main(int argc, char **argv) {
   {
     return 0;
   }
-  fprintf(2, "stty: settings rejected\n");
+  ui::error("stty: settings rejected\n");
   return 1;
 usage:
-  fprintf(2, "usage: stty [-a | sane | raw | [-]echo | [-]icanon | "
-             "[-]onlcr | min N | time N] ...\n");
+  ui::usage("usage: stty [-a | sane | raw | [-]echo | [-]icanon | "
+            "[-]onlcr | min N | time N] ...\n");
   return 1;
 }

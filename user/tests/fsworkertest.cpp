@@ -4,6 +4,7 @@
 #include "kernel/fs/poll.h"
 #include "kernel/fs/userfs/protocol.h"
 import xv.userfs;
+extern "C" int __xv_gettid();
 
 namespace
 {
@@ -19,7 +20,7 @@ check(bool okay, const char *why) {
 struct Probe
 {
   unsigned entered = 0, active = 0, peak = 0, gate = 1, writes = 0, violations = 0;
-  int readers[2]{};
+  int readers[2]{}, actors[2]{};
 };
 
 class Backend final : public userfs::Backend
@@ -46,9 +47,9 @@ public:
     return xv::userfs::CacheMetadata;
   }
 
-  unsigned
-  parallel_read_workers() const override {
-    return 2;
+  bool
+  concurrent_data() const override {
+    return true;
   }
 
   userfs::Attributes
@@ -85,7 +86,7 @@ public:
     {
       return -1;
     }
-    if (getpid() == owner_)
+    if (getpid() != owner_ || __xv_gettid() == owner_)
     {
       ++probe_.violations;
     }
@@ -96,10 +97,12 @@ public:
                                         __ATOMIC_RELAXED, __ATOMIC_RELAXED))
     {
     }
+    auto actor = userfs::current_context().pid;
     unsigned slot = __atomic_fetch_add(&probe_.entered, 1U, __ATOMIC_ACQ_REL);
     if (slot < 2)
     {
-      probe_.readers[slot] = getpid();
+      probe_.readers[slot] = __xv_gettid();
+      probe_.actors[slot] = actor;
     }
     auto deadline = clockticks() + 20000000;
     while (__atomic_load_n(&probe_.gate, __ATOMIC_ACQUIRE) &&
@@ -109,6 +112,8 @@ public:
             "both SDK read handlers must execute before either completes");
       poll(nullptr, 0, 1);
     }
+    check(userfs::current_context().pid == actor,
+          "request identity remains thread local across blocking calls");
     memmove(out, values_ + (node - 2) * 8192 + offset, count);
     __atomic_sub_fetch(&probe_.active, 1U, __ATOMIC_ACQ_REL);
     return count;
@@ -199,7 +204,11 @@ main() {
   }
   check(probe->peak == 2 && probe->readers[0] != probe->readers[1] &&
             probe->readers[0] != provider && probe->readers[1] != provider,
-        "two distinct handler processes overlapped");
+        "two distinct handler threads in the same process overlapped");
+  check(probe->actors[0] != probe->actors[1] &&
+            (probe->actors[0] == children[0] || probe->actors[0] == children[1]) &&
+            (probe->actors[1] == children[0] || probe->actors[1] == children[1]),
+        "concurrent callbacks retain their distinct client identities");
   probe->gate = 0;
   check(lseek(files[0], 0, SEEK_SET) == 0 && write(files[0], "Z", 1) == 1 &&
             lseek(files[0], 0, SEEK_SET) == 0 && read(files[0], &ready, 1) == 1 &&
@@ -209,7 +218,7 @@ main() {
   check(uncached >= 0 && write(uncached, "Z", 1) == 1 &&
             lseek(uncached, 0, SEEK_SET) == 0 && read(uncached, &ready, 1) == 1 &&
             ready == 'Z' && probe->entered >= 3,
-        "next worker snapshot observes the parent write");
+        "next worker sees writes to the shared backend");
   close(uncached);
   for (auto *view : views)
   {

@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory(prefix='vm-stack-', dir=build) as temporary:
         command[command.index('-o') + 1] = str(kernel)
         subprocess.run(command, cwd=compile['directory'], check=True)
         # 1000 stacks also fit when each reservation uses the supported 64 MiB
-        # capacity (32 leaf-table pages plus 8 initial data pages per stack).
+        # capacity (32 leaf-table pages plus the initial data-page suffix per stack).
         ram = '256M' if mode == 5 else '128M'
         guest = subprocess.Popen([a.qemu, '-machine', 'virt', '-bios', 'none', '-kernel', str(kernel), *bootstrap_args(a.kernel),
             '-m', ram, '-smp', '1', '-nographic', '-snapshot', '-global', 'virtio-mmio.force-legacy=false',

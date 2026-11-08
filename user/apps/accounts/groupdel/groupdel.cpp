@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -7,9 +8,9 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (argc != 2 || account::group_remove(argv[1]) < 0)
   {
-    fprintf(2, "groupdel: failed (root required, valid account/group)\n");
+    ui::error("groupdel: failed (root required, valid account/group)\n");
     exit(1);
   }
-  printf("groupdel: done\n");
+  ui::success("groupdel: done\n");
   exit(0);
 }

@@ -16,14 +16,13 @@ public:
 
   constexpr BridgeInterface(unsigned id, const char *name)
       : EthernetInterface(id, name),
-        bridge_mac_{{2, 0x58, 0x56, 0, 0, static_cast<unsigned char>(id)}}
-  {
+        bridge_mac_{{2, 0x58, 0x56, 0, 0, static_cast<unsigned char>(id)}} {
   }
 
   void initialize(IpReceiver &ip);
 
-  bool is_bridge() const override
-  {
+  bool
+  is_bridge() const override {
     return true;
   }
 
@@ -37,13 +36,13 @@ private:
 
   friend class BridgeManager;
 
-  unsigned bridge_id() const override
-  {
+  unsigned
+  bridge_id() const override {
     return id();
   }
 
-  bool online() const override
-  {
+  bool
+  online() const override {
     ConfigurationGuard guard;
     return active_ && up();
   }
@@ -78,11 +77,11 @@ public:
 
   constexpr BridgeManager(InterfaceRegistry &interfaces, RoutingTable &routes,
                           IpReceiver &ip)
-      : interfaces_(interfaces), routes_(routes), ip_(ip)
-  {
+      : interfaces_(interfaces), routes_(routes), ip_(ip) {
   }
 
   void initialize();
+  void forget(NetworkInterface &interface);
   int execute(unsigned operation, netctl_request &request);
 
 private:

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -7,9 +8,9 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (argc != 2 || account::group_add(argv[1]) < 0)
   {
-    fprintf(2, "groupadd: failed (root required, valid account/group)\n");
+    ui::error("groupadd: failed (root required, valid account/group)\n");
     exit(1);
   }
-  printf("groupadd: done\n");
+  ui::success("groupadd: done\n");
   exit(0);
 }

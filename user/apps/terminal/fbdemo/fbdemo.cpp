@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/fcntl.h"
@@ -70,7 +71,7 @@ mapped_demo(int fd, const FramebufferInfo &info) {
   {
     return false;
   }
-  printf("fbdemo: mapped fork/exec/unmap and zero-copy checks passed\n");
+  ui::success("fbdemo: mapped fork/exec/unmap and zero-copy checks passed\n");
   return true;
 }
 
@@ -79,7 +80,7 @@ app_main(int argc, char **argv) {
   int fd = open("/dev/fb0", O_RDWR);
   if (fd < 0)
   {
-    fprintf(2, "fbdemo: no framebuffer (use qemu-graphics)\n");
+    ui::error("fbdemo: no framebuffer (use qemu-graphics)\n");
     return 1;
   }
   FramebufferInfo info{};
@@ -87,7 +88,7 @@ app_main(int argc, char **argv) {
       info.version != 1 || info.width > 1920 || !info.width || !info.height ||
       info.bytes_per_pixel != 4)
   {
-    fprintf(2, "fbdemo: unsupported framebuffer\n");
+    ui::error("fbdemo: unsupported framebuffer\n");
     close(fd);
     return 1;
   }
@@ -102,8 +103,9 @@ app_main(int argc, char **argv) {
   if (argc == 2 && !strcmp(argv[1], "--mapped"))
   {
     bool okay = mapped_demo(fd, info);
-    printf("fbdemo: %dx%d RGB bars %s\n", info.width, info.height,
-           okay ? "displayed" : "failed");
+    ui::print(1, okay ? ui::Tone::Success : ui::Tone::Error,
+              "fbdemo: %dx%d RGB bars %s\n", info.width, info.height,
+              okay ? "displayed" : "failed");
     close(fd);
     return okay ? 0 : 1;
   }
@@ -112,7 +114,7 @@ app_main(int argc, char **argv) {
   if (ioctl(fd, 0, 0) != -1 || ioctl(fd, XV_FB_GET_INFO, ~0UL) != -1 ||
       ioctl(fd, XV_FB_DRAW, reinterpret_cast<unsigned long>(&invalid)) != -1)
   {
-    fprintf(2, "fbdemo: invalid request accepted\n");
+    ui::error("fbdemo: invalid request accepted\n");
     close(fd);
     return 1;
   }
@@ -120,7 +122,7 @@ app_main(int argc, char **argv) {
   invalid.pixels = 0x3ffffff000UL;
   if (ioctl(fd, XV_FB_DRAW, reinterpret_cast<unsigned long>(&invalid)) != -1)
   {
-    fprintf(2, "fbdemo: invalid pixels accepted\n");
+    ui::error("fbdemo: invalid pixels accepted\n");
     close(fd);
     return 1;
   }
@@ -136,7 +138,7 @@ app_main(int argc, char **argv) {
   int status = -1;
   if (child < 0 || wait(&status) != child || status != 0)
   {
-    fprintf(2, "fbdemo: inherited descriptor permission check failed\n");
+    ui::error("fbdemo: inherited descriptor permission check failed\n");
     close(fd);
     return 1;
   }
@@ -153,12 +155,12 @@ app_main(int argc, char **argv) {
         0, y, info.width, 1, info.width * 4, 0, reinterpret_cast<uint64>(pixels)};
     if (ioctl(fd, XV_FB_DRAW, reinterpret_cast<unsigned long>(&update)) < 0)
     {
-      fprintf(2, "fbdemo: draw failed\n");
+      ui::error("fbdemo: draw failed\n");
       close(fd);
       return 1;
     }
   }
-  printf("fbdemo: %dx%d RGB bars displayed\n", info.width, info.height);
+  ui::success("fbdemo: %dx%d RGB bars displayed\n", info.width, info.height);
   close(fd);
   return 0;
 }

@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -10,7 +11,7 @@ app_main(int argc, char **argv) {
   bool mounting = argc == 4 && !strcmp(argv[1], "--mount");
   if (!registered && !mounting)
   {
-    fprintf(2, "usage: ramfsd --register type | ramfsd --mount type /mountpoint\n");
+    ui::usage("usage: ramfsd --register type | ramfsd --mount type /mountpoint\n");
     exit(1);
   }
   userfs::MemoryBackend backend(userfs::heap_storage());
@@ -21,11 +22,11 @@ app_main(int argc, char **argv) {
     {
       close(endpoint);
     }
-    fprintf(2, "ramfsd: registration or mount failed\n");
+    ui::error("ramfsd: registration or mount failed\n");
     exit(1);
   }
-  printf("ramfsd: %s %s pid=%d\n", mounting ? "mounted" : "registered", argv[2],
-         getpid());
+  ui::success("ramfsd: %s %s pid=%d\n", mounting ? "mounted" : "registered", argv[2],
+              getpid());
   int result = userfs::serve(endpoint, backend);
   close(endpoint);
   exit(result < 0);

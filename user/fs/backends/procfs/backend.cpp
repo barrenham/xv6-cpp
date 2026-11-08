@@ -143,10 +143,15 @@ int ProcessBackend::lookup(unsigned parent, const char *name, Attributes &out)
   }
   if (node.kind == ProcessDirectory)
   {
-    const char *const names[] = {"status", "fd", "fdinfo", "cmdline", "environ", "comm"};
-    const unsigned kinds[] = {Status, FdDirectory, FdInfoDirectory, Command, Environment, Name};
-    for (unsigned i = 0; i < 6; ++i)
-      if (!strcmp(name, names[i])) return describe(kinds[i], node.pid, 0, out, true) ? 0 : -1;
+    const char *const names[] = {"status",  "fd",   "fdinfo", "cmdline",
+                                 "environ", "comm", "threads"};
+    const unsigned kinds[] = {Status,      FdDirectory, FdInfoDirectory, Command,
+                              Environment, Name,        Threads};
+    for (unsigned i = 0; i < 7; ++i)
+    {
+      if (!strcmp(name, names[i]))
+        return describe(kinds[i], node.pid, 0, out, true) ? 0 : -1;
+    }
     return -1;
   }
   unsigned fd;
@@ -201,9 +206,14 @@ int ProcessBackend::readdir(unsigned id, unsigned long offset, Entry &out)
   }
   if (node.kind == ProcessDirectory)
   {
-    const char *const names[] = {"status", "fd", "fdinfo", "cmdline", "environ", "comm"};
-    const unsigned kinds[] = {Status, FdDirectory, FdInfoDirectory, Command, Environment, Name};
-    if (offset >= 8) return 0;
+    const char *const names[] = {"status",  "fd",   "fdinfo", "cmdline",
+                                 "environ", "comm", "threads"};
+    const unsigned kinds[] = {Status,      FdDirectory, FdInfoDirectory, Command,
+                              Environment, Name,        Threads};
+    if (offset >= 9)
+    {
+      return 0;
+    }
     strcpy(out.name, names[offset - 2]);
     return describe(kinds[offset - 2], node.pid, 0, out.attributes, false) ? 1 : -1;
   }
@@ -290,6 +300,33 @@ bool ProcessBackend::render_process(const Node &node)
     bytes_.field("Flags: ", value.flags); bytes_.text("Type: "); bytes_.text(kind); bytes_.text("\n");
     bytes_.field("Device: ", value.device); bytes_.field("Inode: ", value.inode);
     return bytes_.good();
+  }
+  if (node.kind == Threads)
+  {
+    xv::fsservice::Thread thread{};
+    for (unsigned after = 0;; after = thread.tid)
+    {
+      int result = resources_.query(xv::fsservice::Operation::ThreadAfter, after,
+                                    thread, node.pid);
+      if (!result)
+      {
+        return bytes_.good();
+      }
+      if (result < 0)
+      {
+        return false;
+      }
+      bytes_.number(thread.tid);
+      bytes_.text(" ");
+      bytes_.append(&thread.state, 1);
+      bytes_.text(" ");
+      bytes_.number(thread.cpu_milliseconds);
+      bytes_.text(" ");
+      bytes_.number(thread.bytes / 1024);
+      bytes_.text(" ");
+      bytes_.text(thread.name);
+      bytes_.text("\n");
+    }
   }
   xv::fsservice::Process value{};
   if (!process(node.pid, value)) return false;

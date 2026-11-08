@@ -18,6 +18,21 @@ inline void *byte_fill(void *destination, int value, unsigned long count)
   typedef unsigned long AliasWord __attribute__((__may_alias__));
   const AliasWord pattern = (~AliasWord(0) / 255) * byte;
   auto *words = reinterpret_cast<AliasWord *>(bytes);
+  // Page initialization/poisoning is a frequent allocation cost. Eight stores
+  // per iteration reduce loop bookkeeping without changing the filled range.
+  while (count >= 8 * width)
+  {
+    words[0] = pattern;
+    words[1] = pattern;
+    words[2] = pattern;
+    words[3] = pattern;
+    words[4] = pattern;
+    words[5] = pattern;
+    words[6] = pattern;
+    words[7] = pattern;
+    words += 8;
+    count -= 8 * width;
+  }
   while (count >= width)
   {
     *words++ = pattern;

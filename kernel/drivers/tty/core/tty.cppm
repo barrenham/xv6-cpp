@@ -13,30 +13,44 @@ namespace xv::drivers
 class TerminalLifetime
 {
 public:
-  virtual void retain_terminal()=0;
-  virtual CharacterDevice *open_retained_terminal()=0;
+
+  virtual void retain_terminal() = 0;
+  virtual CharacterDevice *open_retained_terminal() = 0;
+
 protected:
-  constexpr TerminalLifetime()=default;
-  ~TerminalLifetime()=default;
+
+  constexpr TerminalLifetime() = default;
+  ~TerminalLifetime() = default;
 };
+
 class Tty final : public CharacterDevice, public InputReceiver
 {
 public:
 
-  constexpr Tty(TerminalOutput &output, LineDiscipline &discipline,TerminalLifetime *lifetime=nullptr)
-      : output_(output), discipline_(discipline), lifetime_(lifetime)
-  {
+  constexpr Tty(TerminalOutput &output, LineDiscipline &discipline,
+                TerminalLifetime *lifetime = nullptr)
+      : output_(output), discipline_(discipline), lifetime_(lifetime) {
   }
 
-  const char *name() const override
-  {
+  const char *
+  name() const override {
     return "ttyS0";
   }
 
-  Tty *pin_terminal()
-  {if(lifetime_)lifetime_->retain_terminal();return this;}
-  CharacterDevice *open_pinned_terminal()
-  {return lifetime_ ? lifetime_->open_retained_terminal():this;}
+  Tty *
+  pin_terminal() {
+    if (lifetime_)
+    {
+      lifetime_->retain_terminal();
+    }
+    return this;
+  }
+
+  CharacterDevice *
+  open_pinned_terminal() {
+    return lifetime_ ? lifetime_->open_retained_terminal() : this;
+  }
+
   void initialize() override;
   int read(IoBuffer destination, int count) override;
   int write(IoBuffer source, int count) override;
@@ -67,7 +81,7 @@ private:
   xv::sync::SleepLock write_lock_;
   termios settings_{};
   winsize size_{24, 80, 0, 0};
-  unsigned generation_ = 0;
+  unsigned generation_ = 0, input_epoch_ = 0;
   bool timed_wait_ = false;
   bool hungup_ = false;
 };

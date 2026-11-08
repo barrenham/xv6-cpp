@@ -39,7 +39,7 @@ xv::ipc::MessageQueue *
 queue_argument(xv::fs::File *&file) {
   int descriptor;
   argument_integer(0, &descriptor);
-  file = xv::process::current()->files().get(descriptor);
+  file = xv::process::current()->pin_file(descriptor);
   return xv::io::query<xv::ipc::MessageQueue>(xv::fs::files().object(file));
 }
 

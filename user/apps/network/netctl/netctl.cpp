@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "user/runtime/user.h"
@@ -15,7 +16,7 @@ request() {
 [[noreturn]]
 void
 fail(const char *message, int error) {
-  fprintf(2, "netctl: %s (%d)\n", message, error);
+  ui::error("netctl: %s (%d)\n", message, error);
   exit(1);
 }
 
@@ -134,8 +135,7 @@ device(const char *name) {
 [[noreturn]]
 void
 usage() {
-  fprintf(
-      2,
+  ui::usage(
       "usage: netctl link|addr|route|neigh|stats [show [DEV]]\n"
       "       netctl link set DEV up|down\n"
       "       netctl addr add|del IP/PREFIX dev DEV\n"
@@ -202,9 +202,9 @@ show(const char *what, unsigned filter) {
     }
     if (!strcmp(what, "link"))
     {
-      printf("%u: %s %s carrier %s mtu %u", r.ifindex, r.name,
-             r.flags & NET_LINK_UP ? "UP" : "DOWN",
-             r.flags & NET_LINK_CARRIER ? "up" : "down", r.mtu);
+      ui::info("%u: %s %s carrier %s mtu %u", r.ifindex, r.name,
+               r.flags & NET_LINK_UP ? "UP" : "DOWN",
+               r.flags & NET_LINK_CARRIER ? "up" : "down", r.mtu);
       if (r.flags & NET_LINK_MAC)
       {
         printf(" mac ");
@@ -222,10 +222,10 @@ show(const char *what, unsigned filter) {
     }
     else if (!strcmp(what, "stats"))
     {
-      printf("%s RX packets %llu bytes %llu dropped %llu\n", r.name, r.rx_packets,
-             r.rx_bytes, r.rx_dropped);
-      printf("%s TX packets %llu bytes %llu errors %llu\n", r.name, r.tx_packets,
-             r.tx_bytes, r.tx_errors);
+      ui::info("%s RX packets %llu bytes %llu dropped %llu\n", r.name, r.rx_packets,
+               r.rx_bytes, r.rx_dropped);
+      ui::info("%s TX packets %llu bytes %llu errors %llu\n", r.name, r.tx_packets,
+               r.tx_bytes, r.tx_errors);
     }
     else
     {
@@ -380,7 +380,7 @@ dhcp_show(unsigned id) {
   auto r = request();
   r.ifindex = id;
   call(NETCTL_DHCP_STATUS, r);
-  printf("%s DHCP %s", r.name, dhcp_state(r.flags));
+  ui::info("%s DHCP %s", r.name, dhcp_state(r.flags));
   if (r.address)
   {
     printf(" ip ");

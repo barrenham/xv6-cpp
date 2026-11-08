@@ -28,12 +28,27 @@ public:
   context(const xv::userfs::RequestContext &) {
   }
 
-  // Opt in only for reads whose observable state is in the reply/bulk buffer.
-  // Workers fork a stable backend snapshot; writes and metadata are barriers.
-  // Worker-local allocation/caches are discarded, not merged into the parent.
-  virtual unsigned
-  parallel_read_workers() const {
-    return 0;
+  // Every backend uses a fixed pthread pool. Mutable volumes and request-local
+  // state default to whole-backend exclusion. Opt in only when data callbacks
+  // on different inodes (and context()) are safe to run concurrently.
+  virtual bool
+  concurrent_data() const {
+    return false;
+  }
+
+  unsigned
+  worker_threads() const {
+    return worker_threads_;
+  }
+
+  bool
+  set_worker_threads(unsigned count) {
+    if (!count || count > 2)
+    {
+      return false;
+    }
+    worker_threads_ = count;
+    return true;
   }
 
   virtual int
@@ -182,7 +197,8 @@ private:
 
   friend int register_backend(const char *, Backend &, unsigned);
   friend int serve(int, Backend &);
-  friend int serve_parallel(int, Backend &);
+  friend int serve_thread_pool(int, Backend &);
+  unsigned worker_threads_ = 2;
   int transport_ = -1;
   int extra_transports_[xv::userfs::TransportLanes - 1]{-1, -1};
   unsigned transport_lanes_ = 1;
@@ -199,7 +215,9 @@ int register_backend(const char *type, Backend &backend, unsigned payload = Data
 void dispatch(xv::userfs::Message &, Backend &, void *bulk = nullptr,
               unsigned capacity = DataSize);
 int serve(int descriptor, Backend &backend);
-int serve_parallel(int descriptor, Backend &backend);
+int serve_thread_pool(int descriptor, Backend &backend);
+// Valid for the duration of the current worker callback; stored in static TLS.
+const xv::userfs::RequestContext &current_context();
 } // namespace userfs
 
 static_assert(sizeof(xvfs_attributes) == sizeof(xv::userfs::Attributes));

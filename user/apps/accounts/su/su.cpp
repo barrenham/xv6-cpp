@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/fs/image_paths.h"
 #include "kernel/support/types.h"
@@ -8,13 +9,13 @@ extern "C" int
 app_main(int argc, char **argv) {
   if (geteuid() != 0)
   {
-    fprintf(2, "su: root required\n");
+    ui::error("su: root required\n");
     exit(1);
   }
   account::User user{};
   if (!account::find(argc > 1 ? argv[1] : "root", user))
   {
-    fprintf(2, "su: unknown user\n");
+    ui::error("su: unknown user\n");
     exit(1);
   }
   for (int fd = 3; fd < 16; ++fd)
@@ -32,7 +33,7 @@ app_main(int argc, char **argv) {
   if (count < 0 || setgroups(count, extra) < 0 || setgid(user.gid) < 0 ||
       setuid(user.uid) < 0 || chdir(user.home) < 0)
   {
-    fprintf(2, "su: credential switch failed\n");
+    ui::error("su: credential switch failed\n");
     exit(1);
   }
   char *shell_arguments[] = {user.shell, nullptr};
@@ -44,6 +45,6 @@ app_main(int argc, char **argv) {
   {
     execv(user.shell, shell_arguments);
   }
-  fprintf(2, "su: exec failed\n");
+  ui::error("su: exec failed\n");
   exit(1);
 }

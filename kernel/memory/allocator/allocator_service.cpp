@@ -24,8 +24,45 @@ constexpr auto StorageAlign = alignof(BuddyPageAllocator) >
 
 alignas(StorageAlign) unsigned char storage[StorageSize];
 PhysicalPageAllocator *active = nullptr;
+PageReclaimer page_reclaimer = nullptr;
+PageReclaimer slow_page_reclaimer = nullptr;
+constexpr unsigned Revoked = 1U << 31, ReferenceMask = Revoked - 1;
+unsigned long reclamation_epoch = 1;
+unsigned long revoked_pages = 0;
 int initializing = 0;
 } // namespace
+
+void
+set_page_reclaimer(PageReclaimer callback) {
+  __atomic_store_n(&page_reclaimer, callback, __ATOMIC_RELEASE);
+}
+
+unsigned
+reclaim_pages(unsigned target) {
+  auto callback = __atomic_load_n(&page_reclaimer, __ATOMIC_ACQUIRE);
+  return callback && target ? callback(target) : 0;
+}
+
+void
+set_slow_page_reclaimer(PageReclaimer callback) {
+  __atomic_store_n(&slow_page_reclaimer, callback, __ATOMIC_RELEASE);
+}
+
+unsigned
+reclaim_slow_pages(unsigned target) {
+  auto callback = __atomic_load_n(&slow_page_reclaimer, __ATOMIC_ACQUIRE);
+  return callback && target ? callback(target) : 0;
+}
+
+unsigned long
+page_reclamation_epoch() {
+  return __atomic_load_n(&reclamation_epoch, __ATOMIC_ACQUIRE);
+}
+
+unsigned long
+revoked_page_count() {
+  return __atomic_load_n(&revoked_pages, __ATOMIC_ACQUIRE);
+}
 
 bool initialize(AllocatorKind kind, const BootMemoryInfo &memory,
                 PhysicalAddress first_usable)
@@ -229,12 +266,14 @@ void PhysicalPageAllocator::retain_page(void *address)
   auto old = __atomic_load_n(count, __ATOMIC_ACQUIRE);
   do
   {
-    if (old == ~0U)
+    if ((old & ReferenceMask) == ReferenceMask)
     {
       detail::fail("page retain: overflow");
     }
-  } while (!__atomic_compare_exchange_n(count, &old, old ? old + 1 : 2, false,
-                                        __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE));
+  } while (!__atomic_compare_exchange_n(
+      count, &old,
+      (old & Revoked) | ((old & ReferenceMask) ? (old & ReferenceMask) + 1 : 2), false,
+      __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE));
 }
 
 void PhysicalPageAllocator::release_page(void *address)
@@ -254,11 +293,21 @@ void PhysicalPageAllocator::release_page(void *address)
       deallocate(address);
       return;
     }
-    if (__atomic_compare_exchange_n(count, &old, old - 1, false, __ATOMIC_ACQ_REL,
+    auto references = old & ReferenceMask;
+    if (!references)
+    {
+      detail::fail("page release: revoked frame without owner");
+    }
+    auto next = references == 1 ? 0 : old - 1;
+    if (__atomic_compare_exchange_n(count, &old, next, false, __ATOMIC_ACQ_REL,
                                     __ATOMIC_ACQUIRE))
     {
-      if (old == 1)
+      if (references == 1)
       {
+        if (old & Revoked)
+        {
+          __atomic_sub_fetch(&revoked_pages, 1UL, __ATOMIC_RELEASE);
+        }
         deallocate(address);
       }
       return;
@@ -276,7 +325,67 @@ unsigned PhysicalPageAllocator::page_references(void *address) const
   }
   auto count = __atomic_load_n(&shared_refs_[layout_.ram().page_index(physical)],
                                __ATOMIC_ACQUIRE);
+  count &= ReferenceMask;
   return count ? count : 1;
+}
+
+void
+PhysicalPageAllocator::revoke_page(void *address) {
+  auto physical = PhysicalAddress::from_pointer(address);
+  if (!shared_refs_ || !layout_.contains_usable_block(physical, PageSize) ||
+      !physical.is_aligned())
+  {
+    detail::fail("page revoke: invalid frame");
+  }
+  auto *slot = &shared_refs_[layout_.ram().page_index(physical)];
+  auto old = __atomic_load_n(slot, __ATOMIC_ACQUIRE);
+  for (;;)
+  {
+    if (old & Revoked)
+    {
+      return;
+    }
+    unsigned next = Revoked | (old ? old : 1);
+    if (__atomic_compare_exchange_n(slot, &old, next, false, __ATOMIC_ACQ_REL,
+                                    __ATOMIC_ACQUIRE))
+    {
+      break;
+    }
+  }
+  __atomic_add_fetch(&reclamation_epoch, 1UL, __ATOMIC_RELEASE);
+  __atomic_add_fetch(&revoked_pages, 1UL, __ATOMIC_RELEASE);
+}
+
+bool
+PhysicalPageAllocator::page_revoked(void *address) const {
+  auto physical = PhysicalAddress::from_pointer(address);
+  if (!shared_refs_ || !layout_.contains_usable_block(physical, PageSize) ||
+      !physical.is_aligned())
+  {
+    detail::fail("page revoked: invalid frame");
+  }
+  return __atomic_load_n(&shared_refs_[layout_.ram().page_index(physical)],
+                         __ATOMIC_ACQUIRE) &
+         Revoked;
+}
+
+bool
+PhysicalPageAllocator::adopt_revoked_page(void *address) {
+  auto physical = PhysicalAddress::from_pointer(address);
+  if (!shared_refs_ || !layout_.contains_usable_block(physical, PageSize) ||
+      !physical.is_aligned())
+  {
+    detail::fail("page adopt: invalid frame");
+  }
+  auto *slot = &shared_refs_[layout_.ram().page_index(physical)];
+  unsigned expected = Revoked | 1U;
+  bool adopted = __atomic_compare_exchange_n(slot, &expected, 1U, false,
+                                             __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+  if (adopted)
+  {
+    __atomic_sub_fetch(&revoked_pages, 1UL, __ATOMIC_RELEASE);
+  }
+  return adopted;
 }
 
 PhysicalPageAllocator &allocator()

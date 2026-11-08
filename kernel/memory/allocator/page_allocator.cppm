@@ -11,6 +11,17 @@ enum class AllocatorKind
   Buddy
 };
 
+// Reclaim callbacks must not sleep, allocate, perform I/O, or wait for locks.
+// They may release clean cache frames before an allocation is retried.
+using PageReclaimer = unsigned (*)(unsigned target);
+void set_page_reclaimer(PageReclaimer);
+unsigned reclaim_pages(unsigned target);
+// The slow callback must decline unsafe caller contexts before waiting.
+void set_slow_page_reclaimer(PageReclaimer);
+unsigned reclaim_slow_pages(unsigned target);
+unsigned long page_reclamation_epoch();
+unsigned long revoked_page_count();
+
 // Owns physical pages, not virtual mappings or byte-sized heap objects.
 class PhysicalPageAllocator
 {
@@ -50,6 +61,9 @@ public:
   void retain_page(void *address);
   void release_page(void *address);
   unsigned page_references(void *address) const;
+  void revoke_page(void *address);
+  bool page_revoked(void *address) const;
+  bool adopt_revoked_page(void *address);
 
 protected:
 

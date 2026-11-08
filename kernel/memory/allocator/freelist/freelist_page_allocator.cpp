@@ -45,6 +45,19 @@ void *FreeListPageAllocator::allocate(unsigned order)
     states_[layout_.ram().page_index(PhysicalAddress::from_pointer(page))] = Allocated;
   }
   lock_.release();
+  if (!page && (reclaim_pages(1) || reclaim_slow_pages(1)))
+  {
+    lock_.acquire();
+    page = head_;
+    if (page)
+    {
+      account_free(-1);
+      head_ = page->next;
+      states_[layout_.ram().page_index(PhysicalAddress::from_pointer(page))] =
+          Allocated;
+    }
+    lock_.release();
+  }
   if (page)
   {
     detail::fill(page, 5, PageSize);

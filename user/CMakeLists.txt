@@ -1,8 +1,9 @@
 find_program(XV_USER_OBJCOPY llvm-objcopy HINTS "$ENV{CONDA_PREFIX}/bin" REQUIRED)
-add_library(user_runtime OBJECT runtime/ulib.cpp runtime/posix.cpp runtime/cxx.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/usys.S runtime/start.S)
+add_library(user_runtime OBJECT runtime/ulib.cpp runtime/posix.cpp runtime/cxx.cpp runtime/path.cpp runtime/file_copy.cpp runtime/environment.cpp runtime/pty.cpp runtime/signals.cpp runtime/termios.cpp runtime/printf.cpp runtime/umalloc.cpp runtime/threads/tls.cpp runtime/threads/pthread.cpp runtime/threads/sync.cpp runtime/threads/timed.cpp runtime/threads/rwlock.cpp runtime/usys.S runtime/start.S runtime/process_entry.S)
 target_link_libraries(user_runtime PRIVATE xv_options)
 add_library(user_services STATIC services/config.cpp services/control.cpp
-  services/supervisor.cpp services/daemon.cpp services/bootstrap.cpp)
+  services/supervisor.cpp services/guardian.cpp services/log.cpp
+  services/daemon.cpp services/bootstrap.cpp)
 target_link_libraries(user_services PUBLIC xv_options)
 add_subdirectory(fs)
 add_library(user_accounts STATIC runtime/accounts.cpp runtime/account_admin.cpp runtime/authentication.cpp)
@@ -69,6 +70,16 @@ function(xv_add_program source)
   set(XV_USER_BINARIES ${XV_USER_BINARIES} $<TARGET_FILE:${target}> "${guest_binary}" PARENT_SCOPE)
 endfunction()
 set(programs
+  tests/threadio.cpp
+  tests/threadstop.cpp
+  tests/threadexec.cpp
+  tests/pthreadsync.cpp
+  tests/pthreadtest.cpp
+  tests/threadcore.cpp
+  tests/sharedheap.cpp
+  tests/fspoolbench.cpp
+  tests/fspooltest.cpp
+  tests/cachereclaim.cpp
   tests/demandcachetest.cpp
   tests/fsworkertest.cpp
   tests/servicefixture.cpp
@@ -166,6 +177,7 @@ foreach(program init id su useradd chown sh login passwd userdel groupadd groupd
 endforeach()
 
 target_link_libraries(user_ramfsd PRIVATE user_fs_ramfs)
+target_link_libraries(user_sharedheap PRIVATE user_fs_shared)
 target_link_libraries(user_fsrootboottest PRIVATE user_fs_block user_fs_ext3 user_fs_devfs)
 target_link_libraries(user_fsdiskboot PRIVATE user_fs_block)
 target_link_libraries(user_fsboot_executable PRIVATE user_fs_bootstrap)
@@ -195,6 +207,9 @@ foreach(backend ext3 xv6 devfs ramfs procfs)
   set(plugin_program "${backend}_plugin")
   xv_add_program("fs/plugins/${backend}/main.cpp" "${plugin_program}" "/usr/lib/fsplugins/${backend}.elf")
   target_link_libraries(user_${plugin_program} PRIVATE user_fs_${backend} user_fs_plugin)
+  if(backend STREQUAL "ramfs")
+    target_link_libraries(user_${plugin_program} PRIVATE user_fs_shared)
+  endif()
   if(backend STREQUAL "ext3" OR backend STREQUAL "xv6")
     target_link_libraries(user_${plugin_program} PRIVATE user_fs_block)
   endif()

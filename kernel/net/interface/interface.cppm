@@ -37,42 +37,50 @@ class NetworkInterface
 public:
 
   constexpr NetworkInterface(unsigned id, const char *name, unsigned mtu)
-      : id_(id), name_(name), mtu_(mtu)
-  {
+      : id_(id), name_(name), mtu_(mtu) {
   }
 
   NetworkInterface(const NetworkInterface &) = delete;
   NetworkInterface &operator=(const NetworkInterface &) = delete;
 
-  unsigned id() const
-  {
+  unsigned
+  id() const {
     return id_;
   }
 
-  const char *name() const
-  {
+  const char *
+  name() const {
     return name_;
   }
 
-  unsigned mtu() const
-  {
+  unsigned
+  mtu() const {
     return mtu_;
   }
 
-  bool dhcp_active() const
-  {
+  bool
+  available() const {
+    ConfigurationGuard guard;
+    return available_;
+  }
+
+  void present(bool value);
+  void reset_configuration();
+
+  bool
+  dhcp_active() const {
     ConfigurationGuard guard;
     return dhcp_active_;
   }
 
-  bool up() const
-  {
+  bool
+  up() const {
     ConfigurationGuard guard;
     return up_;
   }
 
-  unsigned generation() const
-  {
+  unsigned
+  generation() const {
     ConfigurationGuard guard;
     return generation_;
   }
@@ -81,42 +89,42 @@ public:
   void receive_drop();
   int send(Packet &packet, unsigned next_hop);
 
-  virtual bool neighbor(unsigned, NeighborInfo &)
-  {
+  virtual bool
+  neighbor(unsigned, NeighborInfo &) {
     return false;
   }
 
-  virtual void invalidate()
-  {
+  virtual void
+  invalidate() {
   }
 
-  virtual bool is_bridge() const
-  {
+  virtual bool
+  is_bridge() const {
     return false;
   }
 
-  virtual Layer2Port *layer2()
-  {
+  virtual Layer2Port *
+  layer2() {
     return nullptr;
   }
 
-  virtual unsigned master() const
-  {
+  virtual unsigned
+  master() const {
     return 0;
   }
 
-  virtual bool is_tunnel() const
-  {
+  virtual bool
+  is_tunnel() const {
     return false;
   }
 
-  virtual bool carrier() const
-  {
+  virtual bool
+  carrier() const {
     return true;
   }
 
-  virtual const MacAddress *mac() const
-  {
+  virtual const MacAddress *
+  mac() const {
     return nullptr;
   }
 
@@ -126,14 +134,14 @@ public:
                                    const InterfaceRegistry &registry) const;
   unsigned source_for(unsigned destination) const;
 
-  unsigned address_count() const
-  {
+  unsigned
+  address_count() const {
     ConfigurationGuard guard;
     return address_count_;
   }
 
-  Ipv4Address address(unsigned index) const
-  {
+  Ipv4Address
+  address(unsigned index) const {
     ConfigurationGuard guard;
     return index < address_count_ ? addresses_[index] : Ipv4Address{};
   }
@@ -144,28 +152,28 @@ public:
   void set_dhcp_active(bool active);
   void topology_changed();
 
-  void attach(IpReceiver &receiver)
-  {
+  void
+  attach(IpReceiver &receiver) {
     receiver_ = &receiver;
   }
 
   void deliver(Packet &packet);
   int send_bootstrap(Packet &packet);
 
-  virtual int transmit_bootstrap(Packet &)
-  {
+  virtual int
+  transmit_bootstrap(Packet &) {
     return -95;
   }
 
   virtual int transmit(Packet &packet, unsigned next_hop) = 0;
 
-  virtual unsigned long next_deadline()
-  {
+  virtual unsigned long
+  next_deadline() {
     return ~0UL;
   }
 
-  virtual void tick(unsigned long)
-  {
+  virtual void
+  tick(unsigned long) {
   }
 
 protected:
@@ -182,6 +190,7 @@ private:
   unsigned id_;
   const char *name_;
   unsigned mtu_;
+  bool available_ = true;
   bool up_ = false, sealed_ = false, dhcp_active_ = false;
   static constexpr unsigned AddressCapacity = 4;
   Ipv4Address addresses_[AddressCapacity]{};
@@ -199,14 +208,14 @@ public:
   int publish(NetworkInterface &interface);
   bool withdraw(NetworkInterface &interface);
 
-  unsigned count() const
-  {
+  unsigned
+  count() const {
     ConfigurationGuard guard;
     return count_;
   }
 
-  NetworkInterface *at(unsigned index) const
-  {
+  NetworkInterface *
+  at(unsigned index) const {
     ConfigurationGuard guard;
     return index < count_ ? interfaces_[index] : nullptr;
   }

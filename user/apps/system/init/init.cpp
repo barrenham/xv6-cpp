@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/fs/image_paths.h"
 // init: The initial user-level program
@@ -30,19 +31,19 @@ extern "C"
     dup(0); // stderr
     if (!account::initialize())
     {
-      fprintf(2, "init: account setup failed\n");
+      ui::error("init: account setup failed\n");
       exit(1);
     }
 
     int state = account::password_state();
     if (state < 0)
     {
-      fprintf(2, "init: invalid shadow database\n");
+      ui::error("init: invalid shadow database\n");
       exit(1);
     }
     if (!state)
     {
-      printf("First boot: set the root password (8..63 bytes).\n");
+      ui::heading("First boot: set the root password (8..63 bytes).\n");
       while (!account::change_password("root"))
       {
       }
@@ -55,17 +56,17 @@ extern "C"
       {
         tcsetattr(0, TCSAFLUSH, &settings);
       }
-      printf("init: starting login\n");
+      ui::info("init: starting login\n");
       pid = fork();
       if (pid < 0)
       {
-        printf("init: fork failed\n");
+        ui::warning("init: fork failed\n");
         exit(1);
       }
       if (pid == 0)
       {
         exec("/bin/login", argv);
-        printf("init: exec login failed\n");
+        ui::warning("init: exec login failed\n");
         exit(1);
       }
 
@@ -81,7 +82,7 @@ extern "C"
         }
         else if (wpid < 0)
         {
-          printf("init: wait returned an error\n");
+          ui::warning("init: wait returned an error\n");
           exit(1);
         }
         else

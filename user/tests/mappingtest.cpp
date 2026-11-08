@@ -2,6 +2,7 @@
 #include "kernel/fs/fcntl.h"
 #include "kernel/io/mman.h"
 #include "kernel/io/posix_errno.h"
+#include "kernel/process/wait/wait.h"
 #include "user/runtime/user.h"
 
 namespace
@@ -153,6 +154,151 @@ executable() {
         "signal handler may execute from mmap memory");
   check(munmap(memory, Page) == 0, "executable cleanup");
 }
+
+void
+bus(int) {
+  exit(42);
+}
+
+void
+wait_bus(int child) {
+  int status = -1;
+  check(child > 0 && waitpid(child, &status, 0) == child && WIFEXITED(status) &&
+            WEXITSTATUS(status) == 42,
+        "shared memory bounds deliver catchable SIGBUS");
+}
+
+void
+shared_lifecycle() {
+  constexpr const char *name = "/mapping-lifecycle";
+  shm_unlink(name);
+  int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
+  check(fd >= 0, "create empty shared object");
+  auto *memory = static_cast<volatile char *>(
+      mmap(nullptr, 3 * Page, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+  check(memory != MAP_FAILED, "reserve shared mapping beyond current EOF");
+  int child = fork();
+  if (!child)
+  {
+    signal(SIGBUS, bus);
+    (void)memory[0];
+    exit(1);
+  }
+  wait_bus(child);
+  check(ftruncate(fd, 3 * Page) == 0 && memory[0] == 0 && memory[2 * Page] == 0,
+        "growth makes previously empty mapping accessible");
+  memory[0] = 'A';
+  memory[Page] = 'B';
+  memory[2 * Page] = 'C';
+  int ready[2];
+  check(pipe(ready) == 0, "SMP truncate handshake");
+  child = fork();
+  if (!child)
+  {
+    close(ready[0]);
+    signal(SIGBUS, bus);
+    check(memory[Page] == 'B', "resident shared page before truncate");
+    check(write(ready[1], "R", 1) == 1, "publish resident child PTE");
+    for (;;)
+    {
+      (void)memory[Page]; // no syscall: force remote-hart TLB revocation
+    }
+  }
+  close(ready[1]);
+  char token;
+  check(child > 0 && read(ready[0], &token, 1) == 1, "child page ready");
+  close(ready[0]);
+  check(ftruncate(fd, 17) == 0, "truncate shared object with active remote mapping");
+  wait_bus(child);
+  check(memory[0] == 'A' && memory[17] == 0 && memory[Page - 1] == 0,
+        "partial EOF page zero filled");
+  memory[17] = 'P';
+  memory[Page - 1] = 'Q';
+  check(ftruncate(fd, 3 * Page) == 0 && memory[Page] == 0 && memory[2 * Page] == 0,
+        "regrowth does not resurrect truncated bytes");
+  check(memory[17] == 0 && memory[Page - 1] == 0,
+        "growth clears mapped EOF padding stores");
+  auto *offset = static_cast<char *>(
+      mmap(nullptr, Page, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 2 * Page));
+  check(offset != MAP_FAILED, "nonzero shared mapping offset");
+  memory[2 * Page] = 'Z';
+  check(offset[0] == 'Z', "shared offset aliases same object");
+  check(shm_unlink(name) == 0 && close(fd) == 0, "unlink and close with live mappings");
+  fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
+  check(fd >= 0 && ftruncate(fd, Page) == 0, "same name creates an independent object");
+  check(memory[0] == 'A' && offset[0] == 'Z', "mapping owns unlinked object lifetime");
+  auto *reset = static_cast<volatile char *>(
+      mmap(nullptr, Page, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+  check(reset != MAP_FAILED, "map replacement object");
+  reset[0] = 'N';
+  child = fork();
+  if (!child)
+  {
+    int truncated = shm_open(name, O_RDWR | O_TRUNC, 0);
+    check(truncated >= 0 && close(truncated) == 0, "independent O_TRUNC");
+    exit(0);
+  }
+  child_done(child);
+  child = fork();
+  if (!child)
+  {
+    signal(SIGBUS, bus);
+    (void)reset[0];
+    exit(1);
+  }
+  wait_bus(child);
+  check(pipe(ready) == 0 && write(ready[1], const_cast<char *>(reset), 1) < 0,
+        "kernel copy rejects truncated shared buffer without killing caller");
+  close(ready[0]);
+  close(ready[1]);
+  check(ftruncate(fd, Page) == 0 && reset[0] == 0 &&
+            munmap(const_cast<char *>(reset), Page) == 0,
+        "O_TRUNC regrowth and mapping cleanup");
+  check(munmap(const_cast<char *>(memory) + Page, Page) == 0 &&
+            munmap(const_cast<char *>(memory), 3 * Page) == 0 &&
+            munmap(offset, Page) == 0 && close(fd) == 0 && shm_unlink(name) == 0,
+        "shared mapping split, descriptor and object cleanup");
+}
+
+void
+mapped_arguments() {
+  auto *memory = anonymous(2);
+  auto **arguments = reinterpret_cast<char **>(memory);
+  arguments[0] = const_cast<char *>("echo");
+  arguments[1] = const_cast<char *>("mapped-argument-vector");
+  arguments[2] = nullptr;
+  auto **environment = reinterpret_cast<char **>(memory + 64);
+  environment[0] = nullptr;
+  int child = fork();
+  if (!child)
+  {
+    execve("/bin/echo", arguments, environment);
+    check(false, "exec accepts argv and envp from mmap regions above the heap");
+  }
+  child_done(child);
+  child = fork();
+  if (!child)
+  {
+    check(mprotect(memory, Page, PROT_NONE) == 0 &&
+              execve("/bin/echo", arguments, environment) < 0,
+          "exec rejects protected mapped argument vectors");
+    exit(0);
+  }
+  child_done(child);
+  child = fork();
+  if (!child)
+  {
+    auto *boundary = memory + Page - 4;
+    char *value = const_cast<char *>("echo");
+    memmove(boundary, &value, sizeof(value));
+    check(mprotect(memory + Page, Page, PROT_NONE) == 0 &&
+              execve("/bin/echo", reinterpret_cast<char **>(boundary), environment) < 0,
+          "exec rejects a pointer word crossing into an inaccessible page");
+    exit(0);
+  }
+  child_done(child);
+  check(munmap(memory, 2 * Page) == 0, "release mapped argument vectors");
+}
 } // namespace
 
 extern "C" int
@@ -160,7 +306,9 @@ main() {
   permissions();
   inheritance();
   shared_access();
+  shared_lifecycle();
   executable();
+  mapped_arguments();
   for (unsigned i = 0; i < 48; ++i)
   {
     auto *memory = anonymous(3);

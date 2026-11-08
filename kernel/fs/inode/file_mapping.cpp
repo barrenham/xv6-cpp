@@ -12,6 +12,13 @@ namespace
 {
 constinit xv::sync::SpinLock read_context_lock;
 ReadLockedInode *read_contexts = nullptr;
+constinit xv::sync::SpinLock cache_registry_lock;
+MappedPages *cache_blocks = nullptr;
+unsigned long cache_frames = 0;
+constexpr unsigned CacheTarget = 1024;
+unsigned mapped_pressure = 0;
+unsigned long mapped_evictions = 0;
+unsigned long idle_evictions = 0;
 
 class FileMappingBacking final : public xv::memory::MappingBacking
 {
@@ -63,7 +70,12 @@ public:
 
   void *
   load_page(unsigned index, int &error) override {
-    return owner_.load_page(index, error);
+    return owner_.pin_page(index, error);
+  }
+
+  bool
+  loads_pinned() const override {
+    return true;
   }
 
 private:
@@ -85,7 +97,7 @@ ReadLockedInode::~ReadLockedInode() {
 void
 ReadLockedInode::link(ReadLockedInode &guard) {
   xv::sync::ScopedLock lock(read_context_lock);
-  guard.pid_ = detail::current_pid();
+  guard.pid_ = detail::current_tid();
   guard.next_ = read_contexts;
   read_contexts = &guard;
 }
@@ -110,7 +122,7 @@ ReadLockedInode::held() {
   xv::sync::ScopedLock lock(read_context_lock);
   for (auto *guard = read_contexts; guard; guard = guard->next_)
   {
-    if (guard->pid_ == detail::current_pid())
+    if (guard->pid_ == detail::current_tid())
     {
       return true;
     }
@@ -124,6 +136,31 @@ FileMapping::backing() {
                                                 sizeof(FileMappingBacking));
 }
 
+// Mutations can keep raw cache frames across an FS RPC. Pin the inode's cache
+// while that operation runs; allocation-side reclaim never waits for its lock.
+struct CacheOperation
+{
+  explicit CacheOperation(Inode *node) : node_(*node) {
+    node_.cache_state_.acquire();
+    while (node_.cache_reclaiming_)
+    {
+      detail::prepare_sleep(&node_);
+      node_.cache_state_.release();
+      detail::sleep();
+      node_.cache_state_.acquire();
+    }
+    ++node_.cache_users_;
+    node_.cache_state_.release();
+  }
+
+  ~CacheOperation() {
+    xv::sync::ScopedLock guard(node_.cache_state_);
+    --node_.cache_users_;
+  }
+
+  Inode &node_;
+};
+
 struct MappedPages
 {
   struct Entry
@@ -136,7 +173,232 @@ struct MappedPages
   };
 
   MappedPages *next = nullptr;
+  MappedPages *global_next = nullptr, *global_previous = nullptr;
+  Inode *owner = nullptr;
   Entry entries[100];
+
+  static unsigned
+  loans(Inode *node, const Entry *entry) {
+    unsigned count = 0;
+    for (auto *mapping = node->file_mappings_; mapping; mapping = mapping->next_)
+    {
+      unsigned first = mapping->offset_ / 4096;
+      if (entry->index >= first && entry->index - first < mapping->pages_)
+      {
+        count += mapping->entries_[entry->index - first] == entry;
+      }
+    }
+    return count;
+  }
+
+  static bool
+  pending(Inode *node, Inode **nodes, unsigned count) {
+    for (unsigned i = 0; i < count; ++i)
+    {
+      if (nodes[i] == node)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static unsigned
+  revoke(unsigned target, Inode **nodes, unsigned &node_count) {
+    if (cache_registry_lock.holding() || !cache_registry_lock.try_acquire())
+    {
+      return 0;
+    }
+    unsigned freed = 0;
+    while (freed < target)
+    {
+      MappedPages *selected = nullptr;
+      unsigned slot = 0;
+      unsigned long oldest = ~0UL;
+      for (auto *block = cache_blocks; block; block = block->global_next)
+      {
+        auto *node = block->owner;
+        if (node->cache_state_.holding() || !node->cache_state_.try_acquire())
+        {
+          continue;
+        }
+        if (!node->cache_users_ &&
+            (!node->cache_reclaiming_ || pending(node, nodes, node_count)))
+        {
+          for (unsigned i = 0; i < 100; ++i)
+          {
+            const auto &entry = block->entries[i];
+            if (entry.frame && entry.leases && !entry.loading && !entry.writers &&
+                !entry.error && (!selected || entry.used < oldest) &&
+                entry.leases == loans(node, &entry))
+            {
+              selected = block;
+              slot = i;
+              oldest = entry.used;
+            }
+          }
+        }
+        node->cache_state_.release();
+      }
+      if (!selected || !selected->owner->cache_state_.try_acquire())
+      {
+        break;
+      }
+      auto *node = selected->owner;
+      auto &entry = selected->entries[slot];
+      bool eligible = !node->cache_users_ && entry.frame && entry.leases &&
+                      !entry.loading && !entry.writers && !entry.error &&
+                      entry.leases == loans(node, &entry) &&
+                      (!node->cache_reclaiming_ || pending(node, nodes, node_count));
+      if (eligible && !node->cache_reclaiming_)
+      {
+        eligible = node_count < 64 && node->owner().pin_cached_inode(node);
+        if (eligible)
+        {
+          node->cache_reclaiming_ = true;
+          nodes[node_count++] = node;
+        }
+      }
+      if (eligible)
+      {
+        detail::revoke_frame(entry.frame);
+        for (auto *mapping = node->file_mappings_; mapping; mapping = mapping->next_)
+        {
+          unsigned first = mapping->offset_ / 4096;
+          if (entry.index >= first && entry.index - first < mapping->pages_ &&
+              mapping->entries_[entry.index - first] == &entry)
+          {
+            __atomic_store_n(&mapping->entries_[entry.index - first],
+                             static_cast<void *>(nullptr), __ATOMIC_RELEASE);
+          }
+        }
+        release_cached(entry);
+        ++freed;
+      }
+      node->cache_state_.release();
+      if (!eligible)
+      {
+        break;
+      }
+    }
+    cache_registry_lock.release();
+    __atomic_add_fetch(&mapped_evictions, static_cast<unsigned long>(freed),
+                       __ATOMIC_RELAXED);
+    return freed;
+  }
+
+  static void
+  complete_revoke(Inode **nodes, unsigned count) {
+    for (unsigned i = 0; i < count; ++i)
+    {
+      auto *node = nodes[i];
+      {
+        xv::sync::ScopedLock guard(node->cache_state_);
+        node->cache_reclaiming_ = false;
+      }
+      detail::wakeup(node);
+      node->owner().release(node);
+    }
+  }
+
+  static void
+  register_block(MappedPages *block, Inode *node) {
+    xv::sync::ScopedLock guard(cache_registry_lock);
+    block->owner = node;
+    block->global_next = cache_blocks;
+    if (cache_blocks)
+    {
+      cache_blocks->global_previous = block;
+    }
+    cache_blocks = block;
+  }
+
+  static void
+  unregister_block(MappedPages *block) {
+    xv::sync::ScopedLock guard(cache_registry_lock);
+    if (block->global_previous)
+    {
+      block->global_previous->global_next = block->global_next;
+    }
+    else
+    {
+      cache_blocks = block->global_next;
+    }
+    if (block->global_next)
+    {
+      block->global_next->global_previous = block->global_previous;
+    }
+  }
+
+  static void
+  release_cached(Entry &entry) {
+    detail::release_frame(entry.frame);
+    __atomic_sub_fetch(&cache_frames, 1UL, __ATOMIC_RELAXED);
+    entry = {};
+  }
+
+  static unsigned
+  reclaim(unsigned target) {
+    // Cleanup takes cache_state_ before the registry lock. Allocation may be
+    // called under either: use try-locks only, never reverse a blocking order.
+    if (cache_registry_lock.holding() || !cache_registry_lock.try_acquire())
+    {
+      return 0;
+    }
+    unsigned freed = 0;
+    while (freed < target)
+    {
+      MappedPages *selected = nullptr;
+      unsigned selected_index = 0;
+      unsigned long oldest = ~0UL;
+      for (auto *block = cache_blocks; block; block = block->global_next)
+      {
+        if (block->owner->cache_state_.holding() ||
+            !block->owner->cache_state_.try_acquire())
+        {
+          continue;
+        }
+        if (block->owner->cache_users_)
+        {
+          block->owner->cache_state_.release();
+          continue;
+        }
+        for (unsigned i = 0; i < 100; ++i)
+        {
+          const auto &entry = block->entries[i];
+          if (entry.frame && !entry.leases && !entry.loading && !entry.writers &&
+              (!selected || entry.used < oldest))
+          {
+            selected = block;
+            selected_index = i;
+            oldest = entry.used;
+          }
+        }
+        block->owner->cache_state_.release();
+      }
+      if (!selected || !selected->owner->cache_state_.try_acquire())
+      {
+        break;
+      }
+      auto &entry = selected->entries[selected_index];
+      bool eligible = !selected->owner->cache_users_ && entry.frame && !entry.leases &&
+                      !entry.loading && !entry.writers;
+      if (eligible)
+      {
+        release_cached(entry);
+        ++freed;
+      }
+      selected->owner->cache_state_.release();
+      if (!eligible)
+      {
+        break;
+      }
+    }
+    cache_registry_lock.release();
+    __atomic_add_fetch(&idle_evictions, static_cast<unsigned long>(freed),
+                       __ATOMIC_RELAXED);
+    return freed;
+  }
 
   static Entry *
   find_locked(Inode *node, unsigned index) {
@@ -233,8 +495,7 @@ struct MappedPages
       {
         break;
       }
-      detail::release_frame(oldest->frame);
-      *oldest = {};
+      release_cached(*oldest);
     }
     auto **link = &node->mapped_pages_;
     while (auto *block = *link)
@@ -247,6 +508,7 @@ struct MappedPages
       if (empty)
       {
         *link = block->next;
+        unregister_block(block);
         block->~MappedPages();
         detail::free_page(block);
       }
@@ -270,8 +532,7 @@ struct MappedPages
     }
     if (!--entry->leases && entry->error)
     {
-      detail::release_frame(entry->frame);
-      *entry = {};
+      release_cached(*entry);
     }
   }
 
@@ -284,6 +545,10 @@ struct MappedPages
   static Entry *
   acquire(Inode *node, unsigned index, int &error, unsigned long seed = 0,
           unsigned seed_bytes = 0, int seed_user = 0, bool supplied = false) {
+    if (__atomic_load_n(&cache_frames, __ATOMIC_RELAXED) >= CacheTarget)
+    {
+      (void)reclaim(16);
+    }
     node->cache_state_.acquire();
     if (auto *found = find_locked(node, index))
     {
@@ -330,6 +595,7 @@ struct MappedPages
       auto *block = new (page) MappedPages{};
       block->next = node->mapped_pages_;
       node->mapped_pages_ = block;
+      register_block(block, node);
       slot = block->entries;
     }
     auto *frame = detail::allocate_page();
@@ -340,6 +606,7 @@ struct MappedPages
       return nullptr;
     }
     *slot = {frame, index, 1, 0, detail::cache_ticks(), true, 0};
+    __atomic_add_fetch(&cache_frames, 1UL, __ATOMIC_RELAXED);
     node->cache_state_.release();
     detail::fill(frame, 0, 4096);
     unsigned offset = index * 4096;
@@ -373,6 +640,7 @@ struct MappedPages
 
   static int
   flush(Inode *node) {
+    CacheOperation pin(node);
     bool writable = false;
     for (auto *block = node->mapped_pages_; block; block = block->next)
     {
@@ -420,6 +688,86 @@ struct MappedPages
   }
 };
 
+unsigned
+reclaim_file_pages(unsigned target) {
+  auto freed = MappedPages::reclaim(target);
+  if (freed < target)
+  {
+    __atomic_store_n(&mapped_pressure, 1U, __ATOMIC_RELEASE);
+  }
+  return freed;
+}
+
+unsigned
+reclaim_mapped_file_pages(unsigned target) {
+  if (!target)
+  {
+    return 0;
+  }
+  Inode *nodes[64];
+  unsigned count = 0;
+  auto evicted = MappedPages::revoke(target > 64 ? 64 : target, nodes, count);
+  if (evicted)
+  {
+    detail::synchronize_file_mappings();
+    (void)detail::reclaim_inactive_mappings();
+  }
+  MappedPages::complete_revoke(nodes, count);
+  return evicted;
+}
+
+unsigned
+reclaim_file_pages_slow(unsigned target) {
+  if (!detail::mapping_fault_safe() || ReadLockedInode::held())
+  {
+    return 0;
+  }
+  auto before = detail::free_physical_pages();
+  auto evicted = reclaim_mapped_file_pages(target < 16   ? 16
+                                           : target > 64 ? 64
+                                                         : target);
+  return evicted && detail::free_physical_pages() > before ? evicted : 0;
+}
+
+void
+file_cache_reclaimer() {
+  for (;;)
+  {
+    auto free = detail::free_physical_pages();
+    auto cached = cached_file_pages();
+    bool requested = __atomic_exchange_n(&mapped_pressure, 0U, __ATOMIC_ACQ_REL);
+    if (requested || free < 512 || cached > CacheTarget)
+    {
+      unsigned target = free < 512             ? 64
+                        : cached > CacheTarget ? unsigned(cached - CacheTarget)
+                                               : 16;
+      if (target > 64)
+      {
+        target = 64;
+      }
+      auto idle = MappedPages::reclaim(target);
+      if (idle < target)
+      {
+        (void)reclaim_mapped_file_pages(target - idle);
+      }
+      (void)detail::reclaim_inactive_mappings();
+    }
+    detail::reclaim_sleep(20);
+  }
+}
+
+unsigned long
+cached_file_pages() {
+  return __atomic_load_n(&cache_frames, __ATOMIC_RELAXED);
+}
+
+FileCacheInfo
+file_cache_info() {
+  return {cached_file_pages(), detail::revoked_physical_pages(),
+          __atomic_load_n(&idle_evictions, __ATOMIC_RELAXED),
+          __atomic_load_n(&mapped_evictions, __ATOMIC_RELAXED), CacheTarget};
+}
+
 FileMapping *
 FileMapping::create(Inode *node, unsigned offset, unsigned pages, int &error) {
   error = -EINVAL;
@@ -447,6 +795,11 @@ FileMapping::create(Inode *node, unsigned offset, unsigned pages, int &error) {
       __atomic_store_n(&node->mapped_length_, node->size_bytes(), __ATOMIC_RELEASE);
       mapping->pages_ = pages;
       node->owner().retain(node);
+      {
+        xv::sync::ScopedLock lock(node->cache_state_);
+        mapping->next_ = node->file_mappings_;
+        node->file_mappings_ = mapping;
+      }
       error = 0;
       return mapping;
     }
@@ -476,6 +829,7 @@ FileMapping::retain() {
 int
 FileMapping::enable_write() {
   LockedInode guard(node_->owner(), *node_);
+  CacheOperation pin(node_);
   if (writing_)
   {
     return 0;
@@ -490,6 +844,7 @@ FileMapping::enable_write() {
   {
     return -EIO;
   }
+  xv::sync::ScopedLock cache(node_->cache_state_);
   for (unsigned i = 0; i < pages_; ++i)
   {
     if (entries_[i])
@@ -520,6 +875,19 @@ FileMapping::release() {
   auto *node = node_;
   {
     LockedInode guard(node->owner(), *node);
+    {
+      xv::sync::ScopedLock cache(node->cache_state_);
+      auto **link = &node->file_mappings_;
+      while (*link && *link != this)
+      {
+        link = &(*link)->next_;
+      }
+      if (!*link)
+      {
+        detail::fail("file mapping: missing lease registry");
+      }
+      *link = next_;
+    }
     if (writing_ && MappedPages::flush(node) < 0)
     {
       detail::report("mmap: final writeback failed");
@@ -559,6 +927,7 @@ FileMapping::page_available(unsigned page) const {
 
 void *
 FileMapping::resident_page(unsigned index) const {
+  xv::sync::ScopedLock cache(node_->cache_state_);
   auto *entry =
       index < pages_ ? __atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE) : nullptr;
   return entry ? static_cast<MappedPages::Entry *>(entry)->frame : nullptr;
@@ -572,15 +941,32 @@ FileMapping::page(unsigned index) {
 
 void *
 FileMapping::load_page(unsigned index, int &error) {
+  return load_page_impl(index, error, false);
+}
+
+void *
+FileMapping::pin_page(unsigned index, int &error) {
+  return load_page_impl(index, error, true);
+}
+
+void *
+FileMapping::load_page_impl(unsigned index, int &error, bool pin) {
   error = 0;
   if (index >= pages_)
   {
     error = -EINVAL;
     return nullptr;
   }
-  if (auto *entry = __atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE))
   {
-    return static_cast<MappedPages::Entry *>(entry)->frame;
+    xv::sync::ScopedLock cache(node_->cache_state_);
+    if (auto *entry = static_cast<MappedPages::Entry *>(entries_[index]))
+    {
+      if (pin)
+      {
+        detail::retain_frame(entry->frame);
+      }
+      return entry->frame;
+    }
   }
   // User buffers are prefaulted before file locks. Never recursively enter a
   // provider from a copy while a VFS transaction/read guard is already held.
@@ -590,27 +976,35 @@ FileMapping::load_page(unsigned index, int &error) {
     return nullptr;
   }
   ReadLockedInode guard(node_->owner(), *node_);
-  if (!__atomic_load_n(&entries_[index], __ATOMIC_ACQUIRE))
+  auto *loaded = MappedPages::acquire(node_, offset_ / 4096 + index, error);
+  if (!loaded)
   {
-    auto *entry = MappedPages::acquire(node_, offset_ / 4096 + index, error);
-    if (!entry)
-    {
-      MappedPages::cleanup(node_);
-      return nullptr;
-    }
+    MappedPages::cleanup(node_);
+    return nullptr;
+  }
+  node_->cache_state_.acquire();
+  auto *published = static_cast<MappedPages::Entry *>(entries_[index]);
+  bool duplicate = published != nullptr;
+  if (!published)
+  {
     if (writing_)
     {
-      MappedPages::add_writer(node_, entry);
+      ++loaded->writers;
     }
-    void *expected = nullptr;
-    if (!__atomic_compare_exchange_n(&entries_[index], &expected,
-                                     static_cast<void *>(entry), false,
-                                     __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
-    {
-      MappedPages::drop(node_, entry, writing_);
-    }
+    published = loaded;
+    __atomic_store_n(&entries_[index], static_cast<void *>(loaded), __ATOMIC_RELEASE);
   }
-  return resident_page(index);
+  auto *frame = published->frame;
+  if (pin)
+  {
+    detail::retain_frame(frame);
+  }
+  node_->cache_state_.release();
+  if (duplicate)
+  {
+    MappedPages::drop(node_, loaded, false);
+  }
+  return frame;
 }
 
 int
@@ -743,6 +1137,7 @@ FileSystem::read_file(Inode *node, int user, unsigned long address, unsigned off
 int
 FileSystem::cache_written(Inode *node, unsigned old_size, unsigned offset,
                           unsigned count, CacheCopy copy, void *context) {
+  CacheOperation pin(node);
   if (!count)
   {
     return 0;
@@ -786,6 +1181,7 @@ FileSystem::cache_written(Inode *node, unsigned old_size, unsigned offset,
 int
 FileSystem::write_file(Inode *node, int user, unsigned long address, unsigned offset,
                        unsigned count) {
+  CacheOperation pin(node);
   if (!node->mapped_pages_)
   {
     int result = write_cached_data(node, user, address, offset, count);
@@ -855,6 +1251,7 @@ FileSystem::write_file(Inode *node, int user, unsigned long address, unsigned of
 
 int
 FileSystem::resize_file(Inode *node, unsigned size) {
+  CacheOperation pin(node);
   if (MappedPages::flush(node) < 0)
   {
     return -EIO;
@@ -905,9 +1302,11 @@ FileSystem::flush_mapped(Inode *node) {
 
 void
 FileSystem::discard_file_cache(Inode *node) {
+  xv::sync::ScopedLock guard(node->cache_state_);
   while (auto *block = node->mapped_pages_)
   {
     node->mapped_pages_ = block->next;
+    MappedPages::unregister_block(block);
     for (auto &entry : block->entries)
     {
       if (entry.leases)
@@ -916,7 +1315,7 @@ FileSystem::discard_file_cache(Inode *node) {
       }
       if (entry.frame)
       {
-        detail::release_frame(entry.frame);
+        MappedPages::release_cached(entry);
       }
     }
     block->~MappedPages();

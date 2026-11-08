@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/support/param.h"
@@ -10,7 +11,7 @@ app_main(int argc, char **argv) {
   static char target[MAXPATH];
   if (argc != 3 || !fileutil::destination(argv[1], argv[2], target, sizeof(target)))
   {
-    fprintf(2, "usage: mv source destination\n");
+    ui::usage("usage: mv source destination\n");
     exit(1);
   }
   if (rename(argv[1], target) == 0)
@@ -49,6 +50,6 @@ app_main(int argc, char **argv) {
   {
     exit(0);
   }
-  fprintf(2, "mv: cannot move %s to %s\n", argv[1], argv[2]);
+  ui::error("mv: cannot move %s to %s\n", argv[1], argv[2]);
   exit(1);
 }

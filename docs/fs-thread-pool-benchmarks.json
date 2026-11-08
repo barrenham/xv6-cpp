@@ -1,0 +1,185 @@
+{
+  "method": "Sequential private-disk QEMU runs, 128 MiB, 1/5 CPUs, 2 clients, 1024 write/read operations totaling 4 MiB; 2 samples per case. No concurrent builds or QEMU instances. Whole-system migration comparison, not an isolated cost attribution.",
+  "summary": [
+    {
+      "before": {
+        "elapsed_seconds": 57.489035,
+        "cpu_seconds": 55.1,
+        "mean_pair_ms": 223.6345,
+        "cold_mount_and_file_kib": 2072,
+        "later_mount_and_file_kib": 368
+      },
+      "after": {
+        "elapsed_seconds": 7.491729,
+        "cpu_seconds": 7.4,
+        "mean_pair_ms": 28.779,
+        "cold_mount_and_file_kib": 1652,
+        "later_mount_and_file_kib": 1588
+      },
+      "cpus": 1,
+      "wall_speedup": 7.673667186840314,
+      "cpu_reduction_percent": 86.5698729582577
+    },
+    {
+      "before": {
+        "elapsed_seconds": 32.3158775,
+        "cpu_seconds": 54.9,
+        "mean_pair_ms": 125.1875,
+        "cold_mount_and_file_kib": 2072,
+        "later_mount_and_file_kib": 364
+      },
+      "after": {
+        "elapsed_seconds": 7.1610045,
+        "cpu_seconds": 10.4,
+        "mean_pair_ms": 27.478,
+        "cold_mount_and_file_kib": 1652,
+        "later_mount_and_file_kib": 1588
+      },
+      "cpus": 5,
+      "wall_speedup": 4.512757602651974,
+      "cpu_reduction_percent": 81.05646630236794
+    }
+  ],
+  "samples": [
+    {
+      "kernel_sha256": "3c84671671ec13f7137e0a11f26c5662d5e08134d7743554ed4012c17369acd5",
+      "image_sha256": "05e5ec685c116811b8e95f3023798125e84a1f82fb2e733fde882161944c2290",
+      "records": [
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 55907171,
+          "mean_pair_us": 217647,
+          "max_pair_us": 533462,
+          "cpu_ticks": 5420,
+          "mount_and_file_kib": 2072,
+          "label": "before",
+          "cpus": 1,
+          "run": 0,
+          "cpu_ms": 54200,
+          "bytes_per_second": 75022
+        },
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 59070899,
+          "mean_pair_us": 229622,
+          "max_pair_us": 1277795,
+          "cpu_ticks": 5600,
+          "mount_and_file_kib": 368,
+          "label": "before",
+          "cpus": 1,
+          "run": 1,
+          "cpu_ms": 56000,
+          "bytes_per_second": 71004
+        }
+      ],
+      "notes": "2 forked clients, separate 512 KiB files; 256 write/read pairs each. CPU is whole-system /proc/stat in 10 ms units. Memory is global MemFree delta after mount and seeding, including caches and file storage. Run 0 and later runs have different cache warmth; not a performance gate."
+    },
+    {
+      "kernel_sha256": "84738811f85b53825f0d20508ed8c43544d21c9752bfe4d34ff0c81d50bf3e59",
+      "image_sha256": "258f5058888f06c026fd0a9a6c9bb26aec3ae032b66610c21f45d348bd05c3c1",
+      "records": [
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 7462275,
+          "mean_pair_us": 28668,
+          "max_pair_us": 67574,
+          "cpu_ticks": 730,
+          "mount_and_file_kib": 1652,
+          "label": "after",
+          "cpus": 1,
+          "run": 0,
+          "cpu_ms": 7300,
+          "bytes_per_second": 562067
+        },
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 7521183,
+          "mean_pair_us": 28890,
+          "max_pair_us": 95047,
+          "cpu_ticks": 750,
+          "mount_and_file_kib": 1588,
+          "label": "after",
+          "cpus": 1,
+          "run": 1,
+          "cpu_ms": 7500,
+          "bytes_per_second": 557665
+        }
+      ],
+      "notes": "2 forked clients, separate 512 KiB files; 256 write/read pairs each. CPU is whole-system /proc/stat in 10 ms units. Memory is global MemFree delta after mount and seeding, including caches and file storage. Run 0 and later runs have different cache warmth; not a performance gate."
+    },
+    {
+      "kernel_sha256": "3c84671671ec13f7137e0a11f26c5662d5e08134d7743554ed4012c17369acd5",
+      "image_sha256": "05e5ec685c116811b8e95f3023798125e84a1f82fb2e733fde882161944c2290",
+      "records": [
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 28413603,
+          "mean_pair_us": 109558,
+          "max_pair_us": 229246,
+          "cpu_ticks": 4660,
+          "mount_and_file_kib": 2072,
+          "label": "before",
+          "cpus": 5,
+          "run": 0,
+          "cpu_ms": 46600,
+          "bytes_per_second": 147616
+        },
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 36218152,
+          "mean_pair_us": 140817,
+          "max_pair_us": 252741,
+          "cpu_ticks": 6320,
+          "mount_and_file_kib": 364,
+          "label": "before",
+          "cpus": 5,
+          "run": 1,
+          "cpu_ms": 63200,
+          "bytes_per_second": 115806
+        }
+      ],
+      "notes": "2 forked clients, separate 512 KiB files; 256 write/read pairs each. CPU is whole-system /proc/stat in 10 ms units. Memory is global MemFree delta after mount and seeding, including caches and file storage. Run 0 and later runs have different cache warmth; not a performance gate."
+    },
+    {
+      "kernel_sha256": "84738811f85b53825f0d20508ed8c43544d21c9752bfe4d34ff0c81d50bf3e59",
+      "image_sha256": "258f5058888f06c026fd0a9a6c9bb26aec3ae032b66610c21f45d348bd05c3c1",
+      "records": [
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 7211963,
+          "mean_pair_us": 27714,
+          "max_pair_us": 66842,
+          "cpu_ticks": 1060,
+          "mount_and_file_kib": 1652,
+          "label": "after",
+          "cpus": 5,
+          "run": 0,
+          "cpu_ms": 10600,
+          "bytes_per_second": 581575
+        },
+        {
+          "ops": 1024,
+          "bytes": 4194304,
+          "elapsed_us": 7110046,
+          "mean_pair_us": 27242,
+          "max_pair_us": 75866,
+          "cpu_ticks": 1020,
+          "mount_and_file_kib": 1588,
+          "label": "after",
+          "cpus": 5,
+          "run": 1,
+          "cpu_ms": 10200,
+          "bytes_per_second": 589912
+        }
+      ],
+      "notes": "2 forked clients, separate 512 KiB files; 256 write/read pairs each. CPU is whole-system /proc/stat in 10 ms units. Memory is global MemFree delta after mount and seeding, including caches and file storage. Run 0 and later runs have different cache warmth; not a performance gate."
+    }
+  ]
+}

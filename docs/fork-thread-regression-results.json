@@ -1,0 +1,324 @@
+{
+  "date_utc": "2026-11-08T02:23:22.470748+00:00",
+  "status": "optimization implemented; user requested wrap-up",
+  "stable_under_three_seconds": false,
+  "method": "128 MiB QEMU virt/TCG, dev -O1. 1000 children and full wait unchanged. Final fresh-boot samples include complete shell-command wall time; repeated samples also retain usertests pre/post memory sweeps separately. No concurrent QEMU/builder during measurement.",
+  "final": {
+    "samples": [
+      {
+        "cpus": 1,
+        "children": 1000,
+        "guest_ticks": 26231475,
+        "guest_seconds": 2.6231475,
+        "command_total_seconds": 2.9955058700288646
+      },
+      {
+        "cpus": 5,
+        "children": 1000,
+        "guest_ticks": 26475625,
+        "guest_seconds": 2.6475625,
+        "command_total_seconds": 3.0993638840154745
+      }
+    ],
+    "sha256": {
+      "kernel.elf": "8534110cc1bb9a37ac2156a5d55de277d9b22f6c73ff93d67290fd6e5fddc2d0",
+      "fs-test.img": "7780f182b8c1dfc6b58f0cfdd8e2da2b6fdf04b990971feb60dd5f64e4ad924a",
+      "user/image/_fsboot": "ae560b213095f4c17e828fd73bcf335724504a8d32cd03bb1fbfa3d65b6dced6",
+      "user/_forktest": "26b8c1869c0f4598f0faf4e14d767f0eb6fbaf8c983655b86aeec2a7d1c3cc45"
+    },
+    "notes": "Final accepted code, one fresh private-disk boot per CPU configuration, 128 MiB. No concurrent builder/QEMU. Earlier 12 samples are preserved separately; stable sub-3s was not achieved."
+  },
+  "summary": [
+    {
+      "cpus": 1,
+      "before_guest_seconds": 5.9969754,
+      "after_mean_guest_seconds": 3.1564628,
+      "after_min_guest_seconds": 2.8174733,
+      "after_max_guest_seconds": 3.5985999,
+      "after_mean_command_seconds": 3.5236666666666667
+    },
+    {
+      "cpus": 5,
+      "before_guest_seconds": 4.7748423,
+      "after_mean_guest_seconds": 2.9118995333333335,
+      "after_min_guest_seconds": 2.5339325,
+      "after_max_guest_seconds": 3.1269968,
+      "after_mean_command_seconds": 3.4593333333333334
+    }
+  ],
+  "before": {
+    "1": [
+      {
+        "command": "forktest",
+        "cpus": 1,
+        "iteration": 0,
+        "setup_seconds": 0.213,
+        "test_seconds": 6.025,
+        "cleanup_seconds": 0.029,
+        "total_seconds": 6.268,
+        "guest_ticks": 59969754,
+        "guest_seconds": 5.9969754,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 5.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 1,
+        "iteration": 0,
+        "setup_seconds": 12.687,
+        "test_seconds": 7.765,
+        "cleanup_seconds": 12.542,
+        "total_seconds": 32.994,
+        "guest_ticks": 77298303,
+        "guest_seconds": 7.7298303,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 5.0,
+        "within_budget": false,
+        "workload_complete": true
+      }
+    ],
+    "5": [
+      {
+        "command": "forktest",
+        "cpus": 5,
+        "iteration": 0,
+        "setup_seconds": 0.329,
+        "test_seconds": 4.88,
+        "cleanup_seconds": 0.087,
+        "total_seconds": 5.296,
+        "guest_ticks": 47748423,
+        "guest_seconds": 4.7748423,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 5.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 5,
+        "iteration": 0,
+        "setup_seconds": 13.444,
+        "test_seconds": 5.541,
+        "cleanup_seconds": 15.462,
+        "total_seconds": 34.447,
+        "guest_ticks": 54010324,
+        "guest_seconds": 5.4010324,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 5.0,
+        "within_budget": false,
+        "workload_complete": true
+      }
+    ]
+  },
+  "repeated_after": {
+    "1": [
+      {
+        "command": "forktest",
+        "cpus": 1,
+        "iteration": 0,
+        "setup_seconds": 0.265,
+        "test_seconds": 3.128,
+        "cleanup_seconds": 0.066,
+        "total_seconds": 3.459,
+        "guest_ticks": 30533152,
+        "guest_seconds": 3.0533152,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 1,
+        "iteration": 0,
+        "setup_seconds": 12.122,
+        "test_seconds": 2.964,
+        "cleanup_seconds": 12.548,
+        "total_seconds": 27.634,
+        "guest_ticks": 29070897,
+        "guest_seconds": 2.9070897,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": true,
+        "workload_complete": true
+      },
+      {
+        "command": "forktest",
+        "cpus": 1,
+        "iteration": 1,
+        "setup_seconds": 0.194,
+        "test_seconds": 2.857,
+        "cleanup_seconds": 0.05,
+        "total_seconds": 3.101,
+        "guest_ticks": 28174733,
+        "guest_seconds": 2.8174733,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 1,
+        "iteration": 1,
+        "setup_seconds": 12.78,
+        "test_seconds": 3.029,
+        "cleanup_seconds": 15.37,
+        "total_seconds": 31.18,
+        "guest_ticks": 29538085,
+        "guest_seconds": 2.9538085,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "forktest",
+        "cpus": 1,
+        "iteration": 2,
+        "setup_seconds": 0.232,
+        "test_seconds": 3.68,
+        "cleanup_seconds": 0.099,
+        "total_seconds": 4.011,
+        "guest_ticks": 35985999,
+        "guest_seconds": 3.5985999,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 1,
+        "iteration": 2,
+        "setup_seconds": 15.345,
+        "test_seconds": 3.648,
+        "cleanup_seconds": 15.484,
+        "total_seconds": 34.476,
+        "guest_ticks": 35776468,
+        "guest_seconds": 3.5776468,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      }
+    ],
+    "5": [
+      {
+        "command": "forktest",
+        "cpus": 5,
+        "iteration": 0,
+        "setup_seconds": 0.345,
+        "test_seconds": 3.23,
+        "cleanup_seconds": 0.098,
+        "total_seconds": 3.673,
+        "guest_ticks": 30747693,
+        "guest_seconds": 3.0747693,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 5,
+        "iteration": 0,
+        "setup_seconds": 15.653,
+        "test_seconds": 3.066,
+        "cleanup_seconds": 15.632,
+        "total_seconds": 34.351,
+        "guest_ticks": 29509782,
+        "guest_seconds": 2.9509782,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "forktest",
+        "cpus": 5,
+        "iteration": 1,
+        "setup_seconds": 0.342,
+        "test_seconds": 3.264,
+        "cleanup_seconds": 0.08,
+        "total_seconds": 3.687,
+        "guest_ticks": 31269968,
+        "guest_seconds": 3.1269968,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 5,
+        "iteration": 1,
+        "setup_seconds": 15.361,
+        "test_seconds": 2.909,
+        "cleanup_seconds": 12.687,
+        "total_seconds": 30.957,
+        "guest_ticks": 28029042,
+        "guest_seconds": 2.8029042,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": true,
+        "workload_complete": true
+      },
+      {
+        "command": "forktest",
+        "cpus": 5,
+        "iteration": 2,
+        "setup_seconds": 0.307,
+        "test_seconds": 2.645,
+        "cleanup_seconds": 0.065,
+        "total_seconds": 3.018,
+        "guest_ticks": 25339325,
+        "guest_seconds": 2.5339325,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": false,
+        "workload_complete": true
+      },
+      {
+        "command": "usertests forktest",
+        "cpus": 5,
+        "iteration": 2,
+        "setup_seconds": 12.773,
+        "test_seconds": 2.495,
+        "cleanup_seconds": 12.566,
+        "total_seconds": 27.834,
+        "guest_ticks": 24025311,
+        "guest_seconds": 2.4025311,
+        "timebase_hz": 10000000,
+        "children": 1000,
+        "max_test_seconds": 3.0,
+        "within_budget": true,
+        "workload_complete": true
+      }
+    ]
+  },
+  "validation": {
+    "base_matrix": "build/fork-final-functional-validation.log: 23/25; new TLS alignment cases failed and were subsequently fixed",
+    "tls_fix": "build/fork-tls-origin-validation.log: pthread runtime 1/5 CPU 2/2 passed",
+    "wrapup": "build/fork-wrapup-validation.log: allocator/VM plus 5-CPU pthread 5/5 passed",
+    "standalone_sdk": "build/fork-independent-sdk-validation.log: exported ext4 ELF/PT_TLS build passed"
+  },
+  "excluded_experiments": "Early VM retirement, allocator free-page queue, direct clone mapping and ThinLTO were not retained. Final production uses the tested standard lifecycle/allocator and original build settings."
+}

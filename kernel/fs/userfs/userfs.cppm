@@ -82,6 +82,7 @@ public:
   Inode *root() override;
 
   Inode *retain(Inode *) override;
+  bool pin_cached_inode(Inode *) override;
   void release(Inode *) override;
 
   void

@@ -71,8 +71,9 @@ struct WaitChannels::PrepareFlow
 
   static bool interrupted(Context &c) noexcept
   {
-    return c.interruptible &&
-           (c.process.killed || c.process.pending_signals_.interrupting());
+    return c.interruptible && (c.process.killed || c.process.exec_stopped() ||
+                               c.process.group_exit_requested() ||
+                               c.process.pending_signals_.interrupting());
   }
 
   static void reject(Context &c) noexcept

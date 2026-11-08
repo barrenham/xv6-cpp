@@ -9,6 +9,7 @@ module;
 #include <thread>
 #include <type_traits>
 #include <vector>
+#include <unordered_map>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "kernel/support/param.h"
@@ -118,6 +119,7 @@ DeviceRegistry registry;
 Inode *cwd = nullptr;
 int baseline_pages = 0;
 thread_local int page_budget = -1, copy_in_budget = -1, copy_out_budget = -1;
+thread_local bool require_unlocked_copy = false;
 thread_local bool killed = false, fail_copy = false;
 thread_local detail::Identity caller_identity;
 std::atomic<int> allocated_pages{0};
@@ -332,6 +334,7 @@ page_buffer_contract() {
 
 void
 pipe_contract() {
+  require_unlocked_copy = true;
   {
     File *reader, *writer;
     page_budget = 0;
@@ -392,6 +395,7 @@ pipe_contract() {
     data[i] = 'a' + i % 26;
   }
   std::thread producer([&] {
+    require_unlocked_copy = true;
     check(file_table.write(writer, reinterpret_cast<unsigned long>(data.data()),
                            data.size()) == static_cast<int>(data.size()),
           "blocking pipe writer");
@@ -414,6 +418,58 @@ pipe_contract() {
   file_table.release(reader);
   check(allocated_pages == baseline_pages,
         "pipe page released after both endpoints close");
+  File *parallel_reader, *parallel_writer;
+  check(create_pipe(&parallel_reader, &parallel_writer), "parallel reader pipe");
+  file_table.retain(parallel_reader);
+  std::vector<unsigned long> received[2];
+  std::thread producing([&] {
+    require_unlocked_copy = true;
+    for (unsigned long record = 0; record < 512; ++record)
+    {
+      check(file_table.write(parallel_writer, reinterpret_cast<unsigned long>(&record),
+                             sizeof(record)) == static_cast<int>(sizeof(record)),
+            "parallel pipe record write");
+    }
+    file_table.release(parallel_writer);
+  });
+  auto consume = [&](unsigned index) {
+    require_unlocked_copy = true;
+    for (;;)
+    {
+      unsigned long value;
+      int count = file_table.read(
+          parallel_reader, reinterpret_cast<unsigned long>(&value), sizeof(value));
+      check(count == 0 || count == static_cast<int>(sizeof(value)),
+            "reserved parallel pipe record read");
+      if (!count)
+      {
+        break;
+      }
+      received[index].push_back(value);
+    }
+    file_table.release(parallel_reader);
+  };
+  std::thread reading_first(consume, 0), reading_second(consume, 1);
+  producing.join();
+  reading_first.join();
+  reading_second.join();
+  bool seen[512]{};
+  for (auto &records : received)
+  {
+    for (auto value : records)
+    {
+      check(value < 512 && !seen[value],
+            "concurrent pipe reads never duplicate a reservation");
+      seen[value] = true;
+    }
+  }
+  for (bool present : seen)
+  {
+    check(present, "concurrent pipe reads lose no bytes");
+  }
+  check(allocated_pages == baseline_pages,
+        "parallel pipe reservations retain no resources");
+  require_unlocked_copy = false;
 
   check(create_pipe(&reader, &writer), "create killed-reader pipe");
   killed = true;
@@ -591,6 +647,32 @@ bridge_contract() {
   node = vfs.lookup("/renamed");
   check(node != nullptr, "new path resolves");
   int mapping_error = 0;
+  auto cache_start = cached_file_pages();
+  auto *cached = FileMapping::create(node, 0, 2, mapping_error);
+  check(cached && cached->page(0) && cached->page(1) &&
+            cached_file_pages() == cache_start + 2,
+        "global file cache accounts mapped frames");
+  check(reclaim_file_pages(2) == 0 && cached->resident_page(0) &&
+            cached->resident_page(1),
+        "allocation slow path never frees an active mapping lease");
+  cached->release();
+  check(reclaim_file_pages(1) == 1 && cached_file_pages() == cache_start + 1 &&
+            reclaim_file_pages(32) == 1 && cached_file_pages() == cache_start,
+        "global pressure reclaims clean idle frames independently of inode quota");
+  cached = FileMapping::create(node, 0, 1, mapping_error);
+  check(cached && static_cast<char *>(cached->page(0))[0] == 'Q',
+        "evicted cache content can be read back from the actual FS backend");
+  auto *pinned = cached->pin_page(0, mapping_error);
+  check(pinned && !mapping_error && reclaim_mapped_file_pages(1) == 1 &&
+            !cached->resident_page(0) && static_cast<char *>(pinned)[0] == 'Q',
+        "mapped eviction clears leases but preserves an in-flight fault reference");
+  detail::release_frame(pinned);
+  check(static_cast<char *>(cached->page(0))[0] == 'Q',
+        "revoked mapping refaults from the backend");
+  check(cached->enable_write() == 0 && reclaim_mapped_file_pages(1) == 0 &&
+            cached->resident_page(0),
+        "mapped reclaim preserves shared writable pages");
+  cached->release();
   vfs.lock(node);
   node->owner().discard_file_cache(node);
   vfs.unlock(node);
@@ -783,6 +865,16 @@ current_pid() {
   return 1;
 }
 
+int
+current_tid() {
+  return current_pid();
+}
+
+bool
+filesystem_service_context() {
+  return false;
+}
+
 void
 prepare_interruptible_sleep(void *channel) {
   xv_test_prepare_sleep(channel);
@@ -815,6 +907,11 @@ current_directory() {
 
 int
 copy_in(void *destination, bool, unsigned long source, unsigned count) {
+  if (test::require_unlocked_copy)
+  {
+    test::check(!xv::sync::interrupt_depth(),
+                "pipe copyin may fault without an outer spin lock");
+  }
   if (test::copy_in_budget == 0)
   {
     return -1;
@@ -833,6 +930,11 @@ copy_in(void *destination, bool, unsigned long source, unsigned count) {
 
 int
 copy_out(bool, unsigned long destination, const void *source, unsigned count) {
+  if (test::require_unlocked_copy)
+  {
+    test::check(!xv::sync::interrupt_depth(),
+                "pipe copyout may fault without an outer spin lock");
+  }
   if (test::copy_out_budget == 0)
   {
     return -1;
@@ -878,7 +980,58 @@ mapping_fault_safe() {
 
 void
 release_frame(void *page) {
+  extern std::mutex frame_lock;
+  extern std::unordered_map<void *, unsigned> frame_references;
+  {
+    std::lock_guard guard(frame_lock);
+    auto found = frame_references.find(page);
+    if (found != frame_references.end())
+    {
+      if (--found->second)
+      {
+        return;
+      }
+      frame_references.erase(found);
+    }
+  }
   free_page(page);
+}
+
+std::mutex frame_lock;
+std::unordered_map<void *, unsigned> frame_references;
+
+void
+retain_frame(void *page) {
+  std::lock_guard guard(frame_lock);
+  auto [entry, inserted] = frame_references.try_emplace(page, 1);
+  (void)inserted;
+  ++entry->second;
+}
+
+// Native FS tests exercise leases; real PTE invalidation/refcount bits are
+// covered separately by vm_contract using the actual physical allocator.
+void
+revoke_frame(void *) {
+}
+
+unsigned
+reclaim_inactive_mappings() {
+  return 0;
+}
+
+unsigned long
+free_physical_pages() {
+  return 4096 - test::allocated_pages.load();
+}
+
+unsigned long
+revoked_physical_pages() {
+  return 0;
+}
+
+void
+reclaim_sleep(unsigned milliseconds) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
 void
@@ -1000,3 +1153,11 @@ run_cache_profile() {
   }
   return 0;
 }
+
+namespace xv::fs::detail
+{
+bool
+virtual_memory_context() {
+  return false;
+}
+} // namespace xv::fs::detail

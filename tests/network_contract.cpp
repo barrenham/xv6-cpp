@@ -15,6 +15,7 @@ extern "C" void *net_test_allocate();
 extern "C" void net_test_deliver(void *, unsigned);
 extern "C" void net_test_capture(void *, unsigned *);
 extern "C" void net_test_device(bool, bool);
+extern "C" void net_test_hotplug(bool);
 extern "C" int net_test_pages();
 extern "C" void net_test_clear_interrupt();
 extern "C" void net_test_clock(unsigned long);
@@ -198,5 +199,20 @@ int main()
   run_network_control_contracts();
   run_bridge_contracts();
   run_dhcp_contracts();
+  net_test_hotplug(false);
+  check(!xv::net::interfaces().find(2), "removed hardware interface is withdrawn");
+  xv::net::RoutingTable::Route stale{};
+  for (unsigned i = 0; xv::net::routing_table().at(i, stale); ++i)
+    check(stale.interface->id() != 2 && stale.address_owner != 2 && stale.lease_owner != 2,
+          "hot unplug clears direct and loopback-owned routes");
+  int pages = net_test_pages();
+  for (unsigned i = 0; i < 32; ++i)
+  {
+    net_test_hotplug(true);
+    auto *added = xv::net::interfaces().find(2);
+    check(added && added->up() && !added->address_count(), "reinsertion publishes a clean interface");
+    net_test_hotplug(false);
+  }
+  check(net_test_pages() == pages, "repeated unplug does not retain packet pages");
   std::puts("network contract: all passed");
 }

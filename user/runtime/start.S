@@ -6,7 +6,9 @@ _user_start:
   sd a0, 0(sp)
   sd a1, 8(sp)
   sd a2, 16(sp)
-  mv a0, a2
+  call __xv_threads_init
+  bnez a0, 2f
+  ld a0, 16(sp)
   call __environment_init
   ld a0, 0(sp)
   ld a1, 8(sp)
@@ -15,4 +17,8 @@ _user_start:
   call main
   call exit
 1:
+  j 1b
+2:
+  li a0, 127
+  call exit
   j 1b

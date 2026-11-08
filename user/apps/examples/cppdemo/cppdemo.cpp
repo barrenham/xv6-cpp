@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "user/runtime/file.hpp"
 
@@ -26,10 +27,10 @@ app_main() {
   {
     if (read_console() != 0)
     {
-      printf("cppdemo: RAII failed\n");
+      ui::warning("cppdemo: RAII failed\n");
       return 1;
     }
   }
-  printf("cppdemo: RAII and move ownership OK\n");
+  ui::success("cppdemo: RAII and move ownership OK\n");
   return 0;
 }

@@ -5,6 +5,7 @@ namespace shell
 {
 void prompt();
 const char *prompt_text();
+const char *prompt_display(const char *text);
 
 class Editor final
 {

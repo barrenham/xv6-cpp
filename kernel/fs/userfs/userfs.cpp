@@ -187,7 +187,7 @@ UserFileSystem::operation_held() {
     return true;
   }
   xv::sync::ScopedLock guard(state_);
-  int pid = detail::current_pid();
+  int pid = detail::current_tid();
   for (const auto &slot : data_slots_)
   {
     if (slot.owner == pid)
@@ -209,6 +209,22 @@ UserFileSystem::retain(Inode *n) {
   ++n->ref;
   ++live_references_;
   return n;
+}
+
+bool
+UserFileSystem::pin_cached_inode(Inode *node) {
+  if (references_.holding() || !references_.try_acquire())
+  {
+    return false;
+  }
+  bool pinned = node->ref > 0;
+  if (pinned)
+  {
+    ++node->ref;
+    ++live_references_;
+  }
+  references_.release();
+  return pinned;
 }
 
 void
@@ -841,7 +857,7 @@ public:
         if (!owner_.data_slots_[i].owner)
         {
           lane_ = i + 1;
-          owner_.data_slots_[i].owner = detail::current_pid();
+          owner_.data_slots_[i].owner = detail::current_tid();
           peer_ = files().retain(owner_.data_peers_[i]);
           bulk_ = files().retain(owner_.bulk_);
           break;

@@ -2,9 +2,11 @@
 """Exercise lazy file pages/COW, unified cache, FS workers and service supervision."""
 import argparse
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
+import time
 from console_login import login_root
 from fs_elf_plugins import Guest
 
@@ -26,6 +28,35 @@ with tempfile.TemporaryDirectory(prefix='xv-system-extensions-') as temporary:
     guest = Guest(args, image, args.kernel.parent / f'system-extensions-{args.cpus}cpu.log', data=data)
     try:
         login_root(guest.expect, guest.process)
+        def table(command, header):
+            # Boot-supervisor diagnostics may split a command's echoed input
+            # during crash recovery. Synchronize on its actual table instead.
+            guest.cursor = len(guest.output)
+            guest.send('env NO_COLOR=1 ' + command)
+            guest.expect(header)
+            begin = guest.cursor
+            guest.expect('$ ')
+            return guest.output[begin:guest.cursor].decode(errors='replace')
+
+        # This test parses table fields; color presentation has its own UART
+        # coverage. Request the plain interface rather than counting SGR bytes.
+        listing = guest.command('env NO_COLOR=1 ps -T', 'CPU_MS')
+        tasks = [line.split() for line in listing.splitlines()
+                 if re.match(r'^\s*\d+\s+\d+\s+[A-Z?]\s+', line)]
+        for name in ('ext3.elf', 'devfs.elf', 'procfs.elf', 'ramfs.elf'):
+            own = [task for task in tasks if task[-1] == name]
+            assert len(own) == 3 and len({task[0] for task in own}) == 1, (name, own)
+            assert len({task[1] for task in own}) == 3, own
+        guest.command('mkdir /tmp/worker-options')
+        guest.command('mount -t ramfs -o workers=0 /tmp/worker-options', failure=True)
+        guest.command('mount -t ramfs -o read-workers=2 /tmp/worker-options', failure=True)
+        mounted = guest.command('mount -t ramfs -o workers=1 /tmp/worker-options')
+        provider = re.search(r'server pid=(\d+)', mounted).group(1)
+        listing = guest.command('env NO_COLOR=1 ps -T ' + provider, 'CPU_MS')
+        assert len([line for line in listing.splitlines()
+                    if re.match(r'^\s*' + provider + r'\s+\d+\s+', line)]) == 2, listing
+        guest.command('umount /tmp/worker-options')
+        guest.command('rm /tmp/worker-options')
         print(guest.command('/usr/tests/fsworkertest', 'fsworkertest: PASS', timeout=60))
         for path in ('/tmp/demandcache', '/root/demandcache'):
             print(guest.command('/usr/tests/demandcachetest ' + path, 'demandcachetest: PASS', timeout=120))
@@ -35,7 +66,7 @@ with tempfile.TemporaryDirectory(prefix='xv-system-extensions-') as temporary:
         guest.command('echo classified-apps | grep classified-apps', 'classified-apps')
         guest.command('drvctl devices', 'DEVICE_ID')
         guest.command('mkdir /tmp/parallel-ramfs')
-        guest.command('mount -t ramfs -o read-workers=2 /tmp/parallel-ramfs')
+        guest.command('mount -t ramfs -o workers=2 /tmp/parallel-ramfs')
         print(guest.command('/usr/tests/demandcachetest /tmp/parallel-ramfs/data',
                             'demandcachetest: PASS', timeout=120))
         guest.command('umount /tmp/parallel-ramfs')
@@ -44,15 +75,23 @@ with tempfile.TemporaryDirectory(prefix='xv-system-extensions-') as temporary:
         print(guest.command('/usr/tests/demandcachetest /tmp/legacy/data',
                             'demandcachetest: PASS', timeout=120))
         guest.command('umount /tmp/legacy')
-        managers = [line.split()[0] for line in guest.command('ps').splitlines()
+        managers = [line.split()[0] for line in table('ps', 'PID').splitlines()
                     if line.split() and line.split()[-1] == 'serviced']
         assert len(managers) == 1, managers
         guest.command('kill -KILL ' + managers[0])
-        guest.cursor = 0
-        guest.expect('fsboot: service manager service pid=' + managers[0] + ' exited')
-        assert not any(line.split() and line.split()[-1] == 'serviced'
-                       for line in guest.command('ps').splitlines())
-        guest.command('servicectl list', 'servicectl: manager unavailable')
+        # UART diagnostics can interleave the shell prompt in the middle of a
+        # message. Verify actual process/control recovery instead of its text.
+        deadline = time.monotonic() + 15
+        while True:
+            after = [line.split()[0] for line in table('ps', 'PID').splitlines()
+                     if line.split() and line.split()[-1] == 'serviced']
+            if len(after) == 1 and after[0] != managers[0]:
+                state = table('servicectl list', 'NAME')
+                if 'rootfs' in state and 'driver-autoload' in state:
+                    break
+            assert time.monotonic() < deadline, (after, guest.output.decode(errors='replace'))
+            time.sleep(.1)
+        guest.command('ls -l /tmp/serviced.log.1', '65536')
         guest.command('echo login-survives', 'login-survives')
         guest.command('sync')
     finally:

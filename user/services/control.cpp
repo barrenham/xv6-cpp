@@ -53,6 +53,8 @@ wait_io(int fd, short events, int timeout) {
   {
     result = poll(&watched, 1, timeout);
   } while (result < 0 && errno == EINTR);
+  if (result == 0) errno = ETIMEDOUT;
+  else if (result > 0 && !(watched.revents & events)) errno = ECONNRESET;
   return result > 0 && (watched.revents & events);
 }
 } // namespace
@@ -71,9 +73,15 @@ exchange(const char *path, const Request &request, Reply &out) {
   }
   bool okay = connect(fd, reinterpret_cast<sockaddr *>(&target), sizeof(target)) == 0 &&
               write(fd, &request, sizeof(request)) == sizeof(request) &&
-              wait_io(fd, POLLIN, 5000) && read(fd, &out, sizeof(out)) == sizeof(out) &&
-              out.version == Version;
+              wait_io(fd, POLLIN, 5000);
+  if (okay) {
+    int count = read(fd, &out, sizeof(out));
+    okay = count == sizeof(out) && out.version == Version;
+    if (!okay && count >= 0) errno = count == 0 ? ECONNRESET : EIO;
+  }
+  int error = errno;
   close(fd);
+  errno = error;
   return okay;
 }
 
@@ -127,7 +135,7 @@ accept_request(int listener, Request &request) {
     return -1;
   }
   fcntl(fd, F_SETFL, O_NONBLOCK);
-  if (!wait_io(fd, POLLIN, 100) ||
+  if (!wait_io(fd, POLLIN, 1000) ||
       read(fd, &request, sizeof(request)) != sizeof(request) ||
       request.version != Version || request.name[31] || request.path[127])
   {

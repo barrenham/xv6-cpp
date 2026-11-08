@@ -48,6 +48,8 @@ public:
 }
 namespace xv::drivers
 {
+void (*test_hotplug)(unsigned, bool) = nullptr;
+void register_network_hotplug(void (*callback)(unsigned, bool)) { test_hotplug = callback; }
 unsigned network_device_count() { return 1; }
 EthernetDevice &network_device(unsigned) { return device; }
 void initialize_network(EthernetReceiver &r, unsigned) { receiver = &r; }
@@ -61,3 +63,5 @@ extern "C" void net_test_clear_frames() { frames.clear(); }
 extern "C" unsigned net_test_frame_count() { return frames.size(); }
 extern "C" unsigned net_test_frame(unsigned index, void *out)
 { if (index >= frames.size()) return 0; const auto &frame = frames[index]; std::memcpy(out,frame.data(),frame.size()); return frame.size(); }
+
+extern "C" void net_test_hotplug(bool present) { xv::drivers::test_hotplug(0, present); }

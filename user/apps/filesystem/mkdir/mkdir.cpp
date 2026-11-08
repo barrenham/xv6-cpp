@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/stat.h"
@@ -12,7 +13,7 @@ extern "C"
 
     if (argc < 2)
     {
-      fprintf(2, "Usage: mkdir files...\n");
+      ui::usage("Usage: mkdir files...\n");
       exit(1);
     }
 
@@ -20,7 +21,7 @@ extern "C"
     {
       if (mkdir(argv[i]) < 0)
       {
-        fprintf(2, "mkdir: %s failed to create\n", argv[i]);
+        ui::error("mkdir: %s failed to create\n", argv[i]);
         break;
       }
     }

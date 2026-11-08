@@ -26,8 +26,11 @@ static int receive(int fd)
 static void wait_signal(int pid, int signal)
 {
   int status = 0;
-  check(wait(&status) == pid && status == SIGNAL_EXIT_STATUS(signal),
-        "signal exit status");
+  int received = wait(&status);
+  if (received != pid || status != SIGNAL_EXIT_STATUS(signal))
+    fprintf(2, "signaltest: expected pid=%d signal=%d status=%d, got pid=%d status=%d\n",
+            pid, signal, SIGNAL_EXIT_STATUS(signal), received, status);
+  check(received == pid && status == SIGNAL_EXIT_STATUS(signal), "signal exit status");
   check(sigsend(pid, 0) == -1, "reaped PID absent");
 }
 

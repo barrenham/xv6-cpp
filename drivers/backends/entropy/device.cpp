@@ -22,6 +22,7 @@ struct VirtioEntropy::InitializeFlow
   static void
   identify(Context &c) noexcept {
     c.owner.lock_.init("virtio entropy");
+    c.owner.reader_.init("virtio entropy reader");
     auto &r = c.owner.registers_;
     c.found = r.read32(VIRTIO_MMIO_MAGIC_VALUE) == 0x74726976 &&
               r.read32(VIRTIO_MMIO_VERSION) == 2 &&
@@ -193,9 +194,16 @@ struct VirtioEntropy::ReadFlow
     {
       take = 256;
     }
-    if (detail::copy_out(c.destination.space == AddressSpace::User,
-                         c.destination.address, c.owner.bytes_ + c.owner.read_,
-                         take) < 0)
+    unsigned char staged[256];
+    for (unsigned i = 0; i < take; ++i)
+    {
+      staged[i] = c.owner.bytes_[c.owner.read_ + i];
+    }
+    c.owner.lock_.release();
+    int copied = detail::copy_out(c.destination.space == AddressSpace::User,
+                                  c.destination.address, staged, take);
+    c.owner.lock_.acquire();
+    if (copied < 0)
     {
       return;
     }
@@ -253,6 +261,18 @@ VirtioEntropy::read(IoBuffer destination, int count) {
   {
     return count ? -1 : 0;
   }
+  if (destination.nonblocking)
+  {
+    if (!reader_.try_acquire())
+    {
+      return -EAGAIN;
+    }
+  }
+  else if (!reader_.acquire_interruptible())
+  {
+    return -1;
+  }
+  xv::sync::ScopedLock reader(reader_, xv::sync::adopt_lock);
   xv::sync::ScopedLock guard(lock_);
   ReadFlow::Context context{*this, destination, count};
   (void)ReadFlow::Graph::run<0>(context);
@@ -266,7 +286,7 @@ VirtioEntropy::poll(xv::sync::PollTable *table) {
   {
     table->watch(&size_);
   }
-  return !ready_ ? POLLERR : read_ < size_ ? POLLIN : 0;
+  return !ready_ ? POLLERR : read_ < size_ && reader_.available(table) ? POLLIN : 0;
 }
 
 void

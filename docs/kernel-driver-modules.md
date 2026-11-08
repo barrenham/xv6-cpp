@@ -28,7 +28,7 @@ RTC 和系统定时器也保留为基础设施。
 文件系统服务。根盘驱动不依赖根盘文件，因此不会出现先挂载才能加载驱动的循环。
 
 清单每行是归档路径，可附加设备编号；支持空白、空行和 `#` 注释。
-默认清单按序加载全部七个模块，并绑定所有匹配且空闲的设备。例如：
+默认清单先加载全部七个模块，再按依赖就绪顺序绑定匹配且空闲的设备。例如：
 
 ```text
 drivers/vblk.elf
@@ -43,9 +43,10 @@ drivers/serial.elf
 
 ## ABI 与调用路径
 
-公共头文件是 `kernel/io/kmodule.h`（ABI 1）和 `kernel/io/kmodule_v2.h`（ABI 2）。
-块设备示例保持 ABI 1；其他默认模块采用 ABI 2。入口
-`xv_driver_entry(host_abi)` 返回版本化描述，加载器优先请求 ABI 2，再尝试 ABI 1。
+公共头文件是 `kernel/io/kmodule.h`（ABI 1）、`kernel/io/kmodule_v2.h`（ABI 2）
+和 `kernel/io/kmodule_v3.h`（ABI 3）。块设备示例保持 ABI 1；serial、rng、e1000
+使用 ABI 3，其他默认模块采用 ABI 2。入口 `xv_driver_entry(host_abi)` 返回版本化
+描述，加载器依次请求 ABI 3、2、1。ABI 3 描述仍使用 ABI 2 的 host 服务函数表。
 ABI 2 增加字符设备会话、串口、以太网、IRQ、poll、用户复制、共享页映射和等待唤醒。
 C++ 对象和虚函数表各自留在 ELF 或内核内部，不跨 ABI 传递。
 
@@ -66,12 +67,42 @@ ELF 必须是 RV64、LP64 整数 ABI、位置无关的 `ET_DYN`，只允许无�
 当前上限为 32 个常驻 ELF、64 个资源槽，每个文件 256 KiB、映像 1 MiB。
 ABI 1 每次绑定最多 32 页；ABI 2 每个 ELF 追踪最多 8192 个数据页，按需分配元数据。
 设备树提供 VirtIO MMIO、UART、PLIC、RTC 与 PCI ECAM/内存窗口、中断映射。
-内核按这些资源建立映射与中断路由，PCI 通用枚举分配 BAR；驱动按 bus/device_id
-匹配。VirtIO 槽位按 MMIO 地址排序，空槽保留资源编号，块设备名称按块设备次序分配。
+内核按这些资源建立映射与中断路由，PCI 通用枚举分配 BAR；ABI 1/2 驱动按
+bus/device_id 匹配，ABI 3 使用下述匹配表。VirtIO 槽位按 MMIO 地址排序，
+空槽保留资源编号，块设备名称按块设备次序分配。
 默认 QEMU 的八个 VirtIO 槽位编号 0..7，UART 为 8、软件资源为 9，PCI 从 10 开始；
 应以 `drvctl devices` 的实际结果为准。普通平台设备使用首个 compatible 字符串的
-`xv_kmod_compatible_id()` 值作为 device_id。ABI 结构布局保持不变。
+`xv_kmod_compatible_id()` 值作为旧接口 device_id；ABI 3 另外保留 compatible
+字符串列表，按精确字符串匹配，包括列表中的后备兼容型号。旧 ABI 结构布局不变。
 不支持运行中硬件热插拔、卸载或重新绑定已占用设备。
+
+## ABI 3 匹配与依赖
+
+`xv_kmod_driver_v3` 声明最多 32 条 `xv_kmod_match` 和 8 个依赖模块名。
+匹配表中各条规则之间为“或”，同一规则指定的条件之间为“且”。bus 必须一致；
+flags 决定是否检查厂商、设备型号、子系统厂商/型号、修订版本闭区间、24 位 PCI
+类别掩码，以及完整的 compatible 字符串。没有设置标志的字段为通配条件。
+
+e1000 同时匹配 PCI 厂商 0x8086、设备 0x100e 和以太网类别；serial 按 ns16550a/
+ns16550 兼容字符串匹配，rng 按 VirtIO 类型与 virtio,mmio 字符串匹配。设备身份
+来自实际 PCI 配置空间和 DT，不由待加载驱动提供。compatible 列表超过 ABI 的
+256 字节容量时显式标记、禁用该设备的字符串匹配，不进行截断前缀匹配。
+
+依赖使用驱动描述中的名称；依赖模块至少成功绑定一个实例后才就绪。启动时先
+加载清单中的 ELF，再多轮调度就绪模块，因此清单可以先列使用者、后列提供者。
+运行时自动绑定遇到缺失/未绑定依赖时保留 waiting 状态；后续提供者成功自动或
+手工绑定会再次扫描待绑定模块。缺失依赖不无限等待，也不抢占已绑定的设备。
+自依赖、重复依赖、形成闭环的加载、非法匹配标志/版本区间、越界表指针均拒绝。
+目前依赖提供者仍须出现在启动清单或由管理员加载，不会根据名称猜测任意路径。
+
+```sh
+drvctl status MODULE
+drvctl inspect DEVICE
+```
+
+status 显示 loaded/waiting/ready/failed、绑定数、自动绑定状态、依赖和失败信息；
+inspect 显示实际身份、MMIO/IRQ、compatible、已绑定模块和命中的规则编号/标志。
+依赖失败或硬件初始化失败不会转换成虚假的 ready。
 
 ## 构建和运行中安装
 
@@ -145,3 +176,7 @@ MMIO/IRQ 验证解析随资源变化并拒绝畸形资源；`device_discovery_{1
 早期发现代码在 4 KiB 固定启动栈上执行。资源描述必须原地初始化，避免生成超过
 6 KiB 的聚合临时对象；该源文件启用 `-Wframe-larger-than=2048` 并由 Werror 拒绝
 过大的单函数栈帧。完整启动测试补充检查跨函数调用和实际驱动路径。
+
+## PCIe 设备热插拔
+
+运行时设备发现、ABI 4 移除回调、e1000 DMA/IRQ 清理、drvctl 状态/事件与主机 QMP 工具参见 [设备热插拔](device-hotplug.md)。旧 ABI 的驻留模块仍可加载，受保护的设备不会因热插拔请求而强行释放资源。

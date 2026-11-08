@@ -276,6 +276,13 @@ void *BuddyPageAllocator::allocate(unsigned order)
   }
   AllocateFlow::Context context{*this, order, order, PhysicalAddress()};
   (void)AllocateFlow::Graph::run<0>(context);
+  if (!context.result &&
+      (reclaim_pages(1U << order) || reclaim_slow_pages(1U << order)))
+  {
+    AllocateFlow::Context retry{*this, order, order, PhysicalAddress()};
+    (void)AllocateFlow::Graph::run<0>(retry);
+    return retry.result;
+  }
   return context.result;
 }
 

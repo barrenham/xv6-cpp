@@ -4,6 +4,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <vector>
+#include <atomic>
+#include <thread>
 
 import xv.process;
 import xv.memory;
@@ -33,9 +35,10 @@ class MappingProbe final : public MappingBacking
 public:
 
   void *frames[3]{};
-  unsigned references = 1, available = 3, synchronizations = 0, writes = 0;
-  unsigned loads = 0;
+  std::atomic<unsigned> references{1}, loads{0};
+  unsigned available = 3, synchronizations = 0, writes = 0;
   bool lazy = false;
+  std::atomic<bool> block_load{false}, blocked{false}, resume_load{false};
 
   bool
   demand_paged() const override {
@@ -45,6 +48,14 @@ public:
   void *
   load_page(unsigned index, int &error) override {
     ++loads;
+    if (index == 1 && block_load.load())
+    {
+      blocked.store(true);
+      while (!resume_load.load())
+      {
+        std::this_thread::yield();
+      }
+    }
     error = 0;
     return page(index);
   }
@@ -96,11 +107,42 @@ address_space_contracts() {
   }
   void *device[2] = {allocator().allocate(), allocator().allocate()};
   check(device[0] && device[1], "allocate device backing");
+  AddressSpace alternate;
+  check(alternate.create(borrowed[0], borrowed[1], 7),
+        "create exec image for a nonzero initial thread slot");
+  auto *alternate_frame = walk_entry(alternate.page_table(), THREAD_FRAME_ADDRESS(7), 0);
+  auto *unused_primary = walk_entry(alternate.page_table(), TRAPFRAME, 0);
+  check(alternate_frame && PTE2PA(*alternate_frame) == reinterpret_cast<unsigned long>(borrowed[0]) &&
+            (!unused_primary || !(*unused_primary & PTE_V)),
+        "initial trapframe maps only the selected supervisor slot");
+  alternate.reset();
+  check(allocator().page_references(borrowed[0]) == 1,
+        "nonzero initial slot teardown preserves borrowed register frame");
   AddressSpace parent, child;
   check(parent.create(borrowed[0], borrowed[1]), "create parent");
   check(child.create(borrowed[2], borrowed[3]), "create child");
   check(parent.regions().find(TRAMPOLINE)->kind == RegionKind::Special,
         "describe trampoline");
+  auto *thread_frame = allocator().allocate();
+  auto *other_frame = allocator().allocate();
+  check(thread_frame && other_frame && parent.map_thread_frame(1, thread_frame) &&
+            parent.map_thread_frame(THREAD_FRAME_SLOTS - 1, other_frame),
+        "distinct thread trapframes share one page table");
+  auto *entry = walk_entry(parent.page_table(), THREAD_FRAME_ADDRESS(1), 0);
+  check(entry && PTE2PA(*entry) == reinterpret_cast<unsigned long>(thread_frame) &&
+            !(*entry & PTE_U), "thread frame is supervisor-only");
+  char protected_byte = 0;
+  check(parent.copy_in(&protected_byte, THREAD_FRAME_ADDRESS(1), 1) < 0 &&
+            !parent.map_thread_frame(1, other_frame) &&
+            !parent.map_thread_frame(0, other_frame) &&
+            !parent.map_thread_frame(THREAD_FRAME_SLOTS, other_frame) &&
+            !parent.unmap_thread_frame(1, other_frame),
+        "thread frames reject user access, duplicate slots and wrong ownership");
+  check(parent.unmap_thread_frame(1, thread_frame) &&
+            !parent.unmap_thread_frame(1, thread_frame) &&
+            allocator().page_references(thread_frame) == 1,
+        "unmapping a thread frame preserves physical owner reference");
+  // Keep the last slot mapped: reset must remove its alias without owning it.
   check(parent.grow_to(2 * PGSIZE, PTE_W), "create image");
   check(parent.resize(-1) == -1, "cannot shrink image");
   check(parent.resize(3 * PGSIZE, false) == 0, "reserve lazy heap");
@@ -270,14 +312,69 @@ address_space_contracts() {
             parent.copy_out(mapped, "P", 1) == 0 &&
             *static_cast<char *>(backing.frames[0]) == 0,
         "mprotect cannot accidentally make a borrowed COW frame writable");
+  *static_cast<char *>(backing.frames[1]) = 'R';
+  check(parent.copy_in(&value, mapped + PGSIZE, 1) == 0 && value == 'R' &&
+            child.copy_in(&value, mapped + PGSIZE, 1) == 0 && value == 'R',
+        "two address spaces fault the same reclaimable file frame");
+  auto *evicted = backing.frames[1];
+  auto *replacement = allocator().allocate();
+  check(replacement, "replacement backend frame");
+  std::memset(replacement, 'S', PGSIZE);
+  backing.frames[1] = replacement;
+  const auto pending_before = revoked_page_count();
+  allocator().revoke_page(evicted);
+  allocator().release_page(evicted);
+  check(parent.reclaim_inactive_mappings() == 1 &&
+            child.reclaim_inactive_mappings() == 1 &&
+            revoked_page_count() == pending_before,
+        "inactive process sweep releases all old PTE references and physical memory");
+  check(parent.copy_in(&value, mapped + PGSIZE, 1) == 0 && value == 'S' &&
+            child.copy_in(&value, mapped + PGSIZE, 1) == 0 && value == 'S' &&
+            parent.copy_in(&value, mapped, 1) == 0 && value == 'P' &&
+            child.copy_in(&value, mapped, 1) == 0 && value == 'Z',
+        "evicted aliases refault while modified private COW copies survive");
   parent.reset();
   child.reset();
+  check(parent.create(borrowed[0], borrowed[1]), "blocked copy address space");
+  mapped = parent.map_shared_pages(nullptr, 3, PTE_U | PTE_R, false, 0, PTE_U | PTE_R,
+                                   &backing);
+  check(mapped && parent.copy_in(&value, mapped, 1) == 0,
+        "blocked copy owns an initial file PTE");
+  backing.block_load.store(true);
+  std::thread copying([&] {
+    char byte = 0;
+    check(parent.copy_in(&byte, mapped + PGSIZE, 1) == 0 && byte == 'S',
+          "blocked copy completes with its original page-table ownership");
+  });
+  while (!backing.blocked.load())
+  {
+    std::this_thread::yield();
+  }
+  evicted = backing.frames[0];
+  backing.frames[0] = allocator().allocate();
+  check(backing.frames[0], "blocked copy replacement frame");
+  allocator().revoke_page(evicted);
+  allocator().release_page(evicted);
+  check(parent.reclaim_inactive_mappings() == 0 &&
+            revoked_page_count() == pending_before + 1,
+        "background sweep skips an address space blocked inside kernel copy");
+  backing.resume_load.store(true);
+  copying.join();
+  check(parent.reclaim_inactive_mappings() == 1 &&
+            revoked_page_count() == pending_before,
+        "completed kernel copy allows pending physical references to be reclaimed");
+  parent.reset();
   for (auto *frame : backing.frames)
   {
     check(allocator().page_references(frame) == 1,
           "mapping lifecycle releases every page-table frame reference");
     allocator().release_page(frame);
   }
+
+  check(allocator().page_references(other_frame) == 1,
+        "reset drops supervisor aliases without freeing thread-owned frames");
+  allocator().release_page(thread_frame);
+  allocator().release_page(other_frame);
 
   // Vary available physical pages across each mapping/metadata allocation stage.
   std::vector<void *> held;

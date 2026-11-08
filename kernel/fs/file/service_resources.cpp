@@ -126,6 +126,25 @@ public:
     case Operation::ProcessAfter:
       process(query);
       break;
+    case Operation::ThreadAfter: {
+      xv::process::ThreadInfo source;
+      if (query.index > 0x7fffffffU || query.pid < 0 ||
+          !xv::process::snapshot_thread_after(query.index, query.pid, source))
+      {
+        query.result = 0;
+        break;
+      }
+      xv::fsservice::Thread record{};
+      record.tid = source.tid;
+      record.pid = source.pid;
+      record.parent = source.parent;
+      record.cpu_milliseconds = source.ticks / 10000;
+      record.bytes = source.bytes;
+      record.state = source.state;
+      detail::move(record.name, source.name, sizeof(record.name));
+      reply(query, record);
+      break;
+    }
     case Operation::Cpu:
       cpu(query);
       break;
@@ -144,6 +163,13 @@ public:
     case Operation::Cache:
       cache_statistics(query);
       break;
+    case Operation::FileCache: {
+      auto info = file_cache_info();
+      xv::fsservice::FileCache record{info.pages, info.pending, info.idle_evictions,
+                                      info.mapped_evictions, info.target};
+      reply(query, record);
+      break;
+    }
     case Operation::KernelVersion: {
       const char *version = detail::kernel_version();
       unsigned count = 0;

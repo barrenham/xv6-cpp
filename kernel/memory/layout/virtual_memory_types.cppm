@@ -20,6 +20,16 @@ public:
     return false;
   }
 
+  // False promises load_page only observes stable memory and cannot wait for I/O.
+  virtual bool blocking_load() const { return true; }
+
+  // Evictable stores can atomically pin a returned frame before dropping their
+  // lock. Otherwise VM retains the stable borrowed frame after load_page().
+  virtual bool
+  loads_pinned() const {
+    return false;
+  }
+
   // Borrowed frame; the caller retains its own PTE reference after success.
   virtual void *
   load_page(unsigned index, int &error) {

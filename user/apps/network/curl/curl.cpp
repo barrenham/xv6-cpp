@@ -1,3 +1,4 @@
+#include "user/runtime/ui.h"
 #include "application.h"
 #include "kernel/support/types.h"
 #include "kernel/fs/fcntl.h"
@@ -120,8 +121,7 @@ public:
 
 void
 usage() {
-  fprintf(
-      2,
+  ui::usage(
       "usage: curl [-iILfNsS] [-o FILE] [-m SECONDS] [--connect-timeout SECONDS] [-w FORMAT] HTTP-URL\n");
 }
 
@@ -432,7 +432,7 @@ app_main(int argc, char **argv) {
   {
     if (!silent || show_error)
     {
-      fprintf(2, "curl: (%d) %s\n", status, xv::http::error_string(status));
+      ui::error("curl: (%d) %s\n", status, xv::http::error_string(status));
     }
     exit(status);
   }
@@ -444,7 +444,7 @@ app_main(int argc, char **argv) {
     {
       if (!silent || show_error)
       {
-        fprintf(2, "curl: cannot open %s\n", output);
+        ui::error("curl: cannot open %s\n", output);
       }
       exit(23);
     }
@@ -460,7 +460,7 @@ app_main(int argc, char **argv) {
     }
     if (!silent || show_error)
     {
-      fprintf(2, "curl: out of memory\n");
+      ui::error("curl: out of memory\n");
     }
     exit(27);
   }
@@ -481,8 +481,8 @@ app_main(int argc, char **argv) {
   }
   if (status && (!silent || show_error))
   {
-    fprintf(2, "curl: (%d) %s (HTTP %u)\n", status, xv::http::error_string(status),
-            response.status);
+    ui::error("curl: (%d) %s (HTTP %u)\n", status, xv::http::error_string(status),
+              response.status);
   }
   exit(status);
 }
